@@ -126,37 +126,40 @@ func (c *entryController) Log() {
 	qso := QSO{}
 	qso.Callsign, err = callsign.Parse(c.view.GetCallsign())
 	if err != nil {
-		c.activeField = CallsignField
-		c.view.SetActiveField(c.activeField)
-		c.view.ShowError(err)
+		c.showErrorOnField(err, CallsignField)
 		return
 	}
 	qso.Time = c.clock.Now()
-	qso.TheirReport = RST(c.view.GetTheirReport())
+
+	qso.TheirReport, err = ParseRST(c.view.GetTheirReport())
+	if err != nil {
+		c.showErrorOnField(err, TheirReportField)
+		return
+	}
+
 	theirNumber, err := strconv.Atoi(c.view.GetTheirNumber())
 	if err != nil {
-		c.activeField = TheirNumberField
-		c.view.SetActiveField(c.activeField)
-		c.view.ShowError(err)
+		c.showErrorOnField(err, TheirNumberField)
 		return
 	}
 	qso.TheirNumber = QSONumber(theirNumber)
 
-	qso.MyReport = RST(c.view.GetMyReport())
+	qso.MyReport, err = ParseRST(c.view.GetMyReport())
+	if err != nil {
+		c.showErrorOnField(err, MyReportField)
+		return
+	}
+
 	myNumber, err := strconv.Atoi(c.view.GetMyNumber())
 	if err != nil {
-		c.activeField = MyNumberField
-		c.view.SetActiveField(c.activeField)
-		c.view.ShowError(err)
+		c.showErrorOnField(err, MyNumberField)
 		return
 	}
 	qso.MyNumber = QSONumber(myNumber)
 
 	duplicateQso, duplicate := c.log.Find(qso.Callsign)
 	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
-		c.activeField = CallsignField
-		c.view.SetActiveField(c.activeField)
-		c.view.ShowError(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, duplicateQso.MyNumber.String()))
+		c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, duplicateQso.MyNumber.String()), CallsignField)
 		return
 	}
 
@@ -164,9 +167,15 @@ func (c *entryController) Log() {
 	c.Reset()
 }
 
+func (c *entryController) showErrorOnField(err error, field EntryField) {
+	c.activeField = field
+	c.view.SetActiveField(c.activeField)
+	c.view.ShowError(err)
+}
+
 func (c *entryController) Reset() {
-	nextNumber := c.log.GetNextNumber()
 	logger.Println("Reset")
+	nextNumber := c.log.GetNextNumber()
 	c.activeField = CallsignField
 	c.view.SetCallsign("")
 	c.view.SetTheirReport("599")

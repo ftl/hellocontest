@@ -152,6 +152,21 @@ func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 	assert.Equal(t, CallsignField, controller.GetActiveField())
 }
 
+func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
+	_, log, view, controller := setupEntryTest()
+
+	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("GetTheirReport").Once().Return("000")
+	view.On("SetActiveField", TheirReportField).Once()
+	view.On("ShowError", mock.Anything).Once()
+
+	controller.Log()
+
+	view.AssertExpectations(t)
+	log.AssertNotCalled(t, "Log", mock.Anything)
+	assert.Equal(t, TheirReportField, controller.GetActiveField())
+}
+
 func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 
@@ -166,6 +181,23 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
 	assert.Equal(t, TheirNumberField, controller.GetActiveField())
+}
+
+func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
+	_, log, view, controller := setupEntryTest()
+
+	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("GetTheirReport").Once().Return("599")
+	view.On("GetTheirNumber").Once().Return("1")
+	view.On("GetMyReport").Once().Return("000")
+	view.On("SetActiveField", MyReportField).Once()
+	view.On("ShowError", mock.Anything).Once()
+
+	controller.Log()
+
+	view.AssertExpectations(t)
+	log.AssertNotCalled(t, "Log", mock.Anything)
+	assert.Equal(t, MyReportField, controller.GetActiveField())
 }
 
 func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {

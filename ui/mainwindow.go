@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -281,9 +280,9 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 			qso.Callsign.String(),
 			qso.Band.String(),
 			qso.MyReport.String(),
-			fmt.Sprintf("%03d", qso.MyNumber),
+			qso.MyNumber.String(),
 			qso.TheirReport.String(),
-			fmt.Sprintf("%03d", qso.TheirNumber),
+			qso.TheirNumber.String(),
 		})
 	if err != nil {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)

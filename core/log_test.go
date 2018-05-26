@@ -47,7 +47,7 @@ func TestParseRST(t *testing.T) {
 func TestNewLog(t *testing.T) {
 	log := NewLog(NewClock())
 
-	assert.Equal(t, 1, log.GetNextNumber(), "next number of empty log should be 1")
+	assert.Equal(t, QSONumber(1), log.GetNextNumber(), "next number of empty log should be 1")
 	assert.Empty(t, log.GetQsosByMyNumber(), "empty log should not contain any QSO")
 }
 
@@ -80,7 +80,7 @@ func TestLog_LogAgain(t *testing.T) {
 	require.Equal(t, 2, len(log.GetQsosByMyNumber()), "log should have two items")
 	lastQso := log.GetQsosByMyNumber()[1]
 	assert.Equal(t, then, lastQso.LogTimestamp, "last item should have last timestamp")
-	assert.Equal(t, 2, lastQso.TheirNumber, "last item should have latest data")
+	assert.Equal(t, QSONumber(2), lastQso.TheirNumber, "last item should have latest data")
 }
 
 func TestLog_GetNextNumber(t *testing.T) {
@@ -89,7 +89,7 @@ func TestLog_GetNextNumber(t *testing.T) {
 	qso := QSO{MyNumber: 123}
 	log.Log(qso)
 
-	assert.Equal(t, 124, log.GetNextNumber(), "next number should be the highest existing number + 1")
+	assert.Equal(t, QSONumber(124), log.GetNextNumber(), "next number should be the highest existing number + 1")
 }
 
 func TestLog_Find(t *testing.T) {
@@ -113,9 +113,9 @@ func (m *mockedLog) SetView(view LogView) {
 	m.Called(view)
 }
 
-func (m *mockedLog) GetNextNumber() int {
+func (m *mockedLog) GetNextNumber() QSONumber {
 	args := m.Called()
-	return args.Int(0)
+	return args.Get(0).(QSONumber)
 }
 
 func (m *mockedLog) Log(qso QSO) {

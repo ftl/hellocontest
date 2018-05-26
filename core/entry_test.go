@@ -12,7 +12,7 @@ import (
 func TestEntryController_Reset(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 
-	log.On("GetNextNumber").Once().Return(1)
+	log.On("GetNextNumber").Once().Return(QSONumber(1))
 	view.On("SetMyReport", "599").Once()
 	view.On("SetMyNumber", "001").Once()
 	view.On("SetCallsign", "").Once()
@@ -116,7 +116,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	controller.GotoNextField()
 
 	log.On("Find", dl1abc).Once().Return(QSO{}, false)
-	log.On("GetNextNumber").Once().Return(1)
+	log.On("GetNextNumber").Once().Return(QSONumber(1))
 	log.On("Log", qso).Once()
 	view.On("GetCallsign").Once().Return("DL1ABC")
 	view.On("GetTheirReport").Once().Return("559")
@@ -206,7 +206,7 @@ func setupEntryTest() (Clock, *mockedLog, *mockedEntryView, EntryController) {
 	view := new(mockedEntryView)
 	controller := NewEntryController(clock, log)
 
-	log.On("GetNextNumber").Once().Return(1)
+	log.On("GetNextNumber").Once().Return(QSONumber(1))
 	view.On("SetEntryController", controller).Once()
 	view.On("SetMyReport", "599").Once()
 	view.On("SetMyNumber", "001").Once()

@@ -15,7 +15,7 @@ import (
 type Log interface {
 	SetView(LogView)
 
-	GetNextNumber() int
+	GetNextNumber() QSONumber
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
 	GetQsosByMyNumber() []QSO
@@ -35,14 +35,14 @@ type QSO struct {
 	Time         time.Time
 	Band         Band
 	MyReport     RST
-	MyNumber     int
+	MyNumber     QSONumber
 	TheirReport  RST
-	TheirNumber  int
+	TheirNumber  QSONumber
 	LogTimestamp time.Time
 }
 
 func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%s|%s|%s|%03d|%s|%03d", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Band, qso.MyReport, qso.MyNumber, qso.TheirReport, qso.TheirNumber)
+	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Band, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String())
 }
 
 // Band represents an amateur radio band.
@@ -91,6 +91,13 @@ func (rst *RST) String() string {
 	return string(*rst)
 }
 
+// QSONumber is the unique number of a QSO in the log, either on my or on their side.
+type QSONumber int
+
+func (nr *QSONumber) String() string {
+	return fmt.Sprintf("%03d", *nr)
+}
+
 // NewLog creates a new empty log.
 func NewLog(clock Clock) Log {
 	return &log{
@@ -114,8 +121,8 @@ func (l *log) SetView(view LogView) {
 	l.view.UpdateAllRows(l.qsos)
 }
 
-func (l *log) GetNextNumber() int {
-	return l.myLastNumber + 1
+func (l *log) GetNextNumber() QSONumber {
+	return QSONumber(l.myLastNumber + 1)
 }
 
 func (l *log) Log(qso QSO) {

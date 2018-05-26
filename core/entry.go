@@ -107,9 +107,9 @@ func (c *entryController) leaveCallsignField() {
 	}
 
 	c.view.SetTheirReport(string(qso.TheirReport))
-	c.view.SetTheirNumber(fmt.Sprintf("%03d", qso.TheirNumber))
+	c.view.SetTheirNumber(qso.TheirNumber.String())
 	c.view.SetMyReport(string(qso.MyReport))
-	c.view.SetMyNumber(fmt.Sprintf("%03d", qso.MyNumber))
+	c.view.SetMyNumber(qso.MyNumber.String())
 	c.view.SetDuplicateMarker(true)
 }
 
@@ -133,27 +133,30 @@ func (c *entryController) Log() {
 	}
 	qso.Time = c.clock.Now()
 	qso.TheirReport = RST(c.view.GetTheirReport())
-	qso.TheirNumber, err = strconv.Atoi(c.view.GetTheirNumber())
+	theirNumber, err := strconv.Atoi(c.view.GetTheirNumber())
 	if err != nil {
 		c.activeField = TheirNumberField
 		c.view.SetActiveField(c.activeField)
 		c.view.ShowError(err)
 		return
 	}
+	qso.TheirNumber = QSONumber(theirNumber)
+
 	qso.MyReport = RST(c.view.GetMyReport())
-	qso.MyNumber, err = strconv.Atoi(c.view.GetMyNumber())
+	myNumber, err := strconv.Atoi(c.view.GetMyNumber())
 	if err != nil {
 		c.activeField = MyNumberField
 		c.view.SetActiveField(c.activeField)
 		c.view.ShowError(err)
 		return
 	}
+	qso.MyNumber = QSONumber(myNumber)
 
 	duplicateQso, duplicate := c.log.Find(qso.Callsign)
 	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
 		c.activeField = CallsignField
 		c.view.SetActiveField(c.activeField)
-		c.view.ShowError(fmt.Errorf("%s was worked before in QSO #%03d", qso.Callsign, duplicateQso.MyNumber))
+		c.view.ShowError(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, duplicateQso.MyNumber.String()))
 		return
 	}
 
@@ -162,13 +165,14 @@ func (c *entryController) Log() {
 }
 
 func (c *entryController) Reset() {
+	nextNumber := c.log.GetNextNumber()
 	logger.Println("Reset")
 	c.activeField = CallsignField
 	c.view.SetCallsign("")
 	c.view.SetTheirReport("599")
 	c.view.SetTheirNumber("")
 	c.view.SetMyReport("599")
-	c.view.SetMyNumber(fmt.Sprintf("%03d", c.log.GetNextNumber()))
+	c.view.SetMyNumber(nextNumber.String())
 	c.view.SetActiveField(c.activeField)
 	c.view.SetDuplicateMarker(false)
 	c.view.ClearError()

@@ -35,12 +35,9 @@ type application struct {
 }
 
 func (app *application) startup() {
-	log.Println("startup")
 }
 
 func (app *application) activate() {
-	log.Println("activate")
-
 	app.builder = setupBuilder()
 
 	app.mainWindow = setupMainWindow(app.builder, app.app)
@@ -54,7 +51,6 @@ func (app *application) activate() {
 }
 
 func (app *application) shutdown() {
-	log.Println("shutdown")
 }
 
 func setupBuilder() *gtk.Builder {

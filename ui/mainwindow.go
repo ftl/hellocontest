@@ -102,29 +102,23 @@ func (w *mainWindow) addEntryTraversal(widget *gtk.Entry) {
 
 func (w *mainWindow) onEntryKeyPress(widget interface{}, event *gdk.Event) bool {
 	keyEvent := gdk.EventKeyNewFromEvent(event)
-	log.Printf("key pressed in: %[1]T %[1]v", widget)
 	switch keyEvent.KeyVal() {
 	case gdk.KEY_Tab:
-		log.Print("TAB pressed")
 		w.entry.GotoNextField()
 		return true
 	case gdk.KEY_space:
-		log.Print("Space pressed")
 		w.entry.GotoNextField()
 		return true
 	case gdk.KEY_Return:
-		log.Print("Return pressed")
 		w.entry.Log()
 		return true
 	default:
-		log.Printf("Key pressed: %q", keyEvent.KeyVal())
 		return false
 	}
 }
 
 func (w *mainWindow) onEntryFocusIn(entry *gtk.Entry, event *gdk.Event) bool {
 	entryField := w.entryToField(entry)
-	log.Printf("found active field %d", entryField)
 	w.entry.SetActiveField(entryField)
 	return false
 }
@@ -203,9 +197,7 @@ func (w *mainWindow) SetMyNumber(text string) {
 }
 
 func (w *mainWindow) SetActiveField(field core.EntryField) {
-	log.Printf("window.SetActiveField: %d", field)
 	entry := w.fieldToEntry(field)
-	log.Printf("found entry %v", entry)
 	entry.GrabFocus()
 }
 

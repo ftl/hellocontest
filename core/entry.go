@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	logger "log"
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
@@ -174,7 +173,6 @@ func (c *entryController) showErrorOnField(err error, field EntryField) {
 }
 
 func (c *entryController) Reset() {
-	logger.Println("Reset")
 	nextNumber := c.log.GetNextNumber()
 	c.activeField = CallsignField
 	c.view.SetCallsign("")

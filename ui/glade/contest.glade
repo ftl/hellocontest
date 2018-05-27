@@ -208,10 +208,10 @@
           <object class="GtkGrid" id="entryGrid">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">2</property>
-            <property name="margin_right">2</property>
-            <property name="margin_top">2</property>
-            <property name="margin_bottom">2</property>
+            <property name="margin_left">3</property>
+            <property name="margin_right">3</property>
+            <property name="margin_top">5</property>
+            <property name="margin_bottom">5</property>
             <property name="row_spacing">5</property>
             <property name="column_spacing">5</property>
             <child>
@@ -367,10 +367,10 @@
           <object class="GtkGrid" id="keyerGrid">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">2</property>
-            <property name="margin_right">2</property>
-            <property name="margin_top">2</property>
-            <property name="margin_bottom">2</property>
+            <property name="margin_left">3</property>
+            <property name="margin_right">3</property>
+            <property name="margin_top">5</property>
+            <property name="margin_bottom">5</property>
             <property name="row_spacing">2</property>
             <property name="column_spacing">2</property>
             <property name="row_homogeneous">True</property>

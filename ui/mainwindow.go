@@ -48,6 +48,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.addEntryTraversal(result.theirNumber)
 	result.addEntryTraversal(result.myReport)
 	result.addEntryTraversal(result.myNumber)
+	result.logButton.Connect("clicked", result.onLogButtonClicked)
+	result.resetButton.Connect("clicked", result.onResetButtonClicked)
 
 	result.qsoList = setupQsoView(getUI(builder, "qsoView").(*gtk.TreeView))
 
@@ -112,6 +114,9 @@ func (w *mainWindow) onEntryKeyPress(widget interface{}, event *gdk.Event) bool 
 	case gdk.KEY_Return:
 		w.entry.Log()
 		return true
+	case gdk.KEY_Escape:
+		w.entry.Reset()
+		return true
 	default:
 		return false
 	}
@@ -126,6 +131,16 @@ func (w *mainWindow) onEntryFocusIn(entry *gtk.Entry, event *gdk.Event) bool {
 func (w *mainWindow) onEntryFocusOut(entry *gtk.Entry, event *gdk.Event) bool {
 	entry.SelectRegion(0, 0)
 	return false
+}
+
+func (w *mainWindow) onLogButtonClicked(button *gtk.Button) bool {
+	w.entry.Log()
+	return true
+}
+
+func (w *mainWindow) onResetButtonClicked(button *gtk.Button) bool {
+	w.entry.Reset()
+	return true
 }
 
 func (w *mainWindow) Show() {

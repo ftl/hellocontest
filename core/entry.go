@@ -29,6 +29,10 @@ type EntryView interface {
 	SetTheirReport(string)
 	GetTheirNumber() string
 	SetTheirNumber(string)
+	GetBand() string
+	SetBand(text string)
+	GetMode() string
+	SetMode(text string)
 	GetMyReport() string
 	SetMyReport(string)
 	GetMyNumber() string
@@ -105,6 +109,8 @@ func (c *entryController) leaveCallsignField() {
 		return
 	}
 
+	c.view.SetBand(string(qso.Band))
+	c.view.SetMode(string(qso.Mode))
 	c.view.SetTheirReport(string(qso.TheirReport))
 	c.view.SetTheirNumber(qso.TheirNumber.String())
 	c.view.SetMyReport(string(qso.MyReport))
@@ -129,6 +135,18 @@ func (c *entryController) Log() {
 		return
 	}
 	qso.Time = c.clock.Now()
+
+	qso.Band, err = ParseBand(c.view.GetBand())
+	if err != nil {
+		c.view.ShowError(err)
+		return
+	}
+
+	qso.Mode, err = ParseMode(c.view.GetMode())
+	if err != nil {
+		c.view.ShowError(err)
+		return
+	}
 
 	qso.TheirReport, err = ParseRST(c.view.GetTheirReport())
 	if err != nil {

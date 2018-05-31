@@ -238,6 +238,7 @@
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">1</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>
@@ -252,7 +253,7 @@
                 <property name="input_purpose">digits</property>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">3</property>
                 <property name="top_attach">1</property>
               </packing>
             </child>
@@ -266,7 +267,7 @@
                 <property name="input_purpose">digits</property>
               </object>
               <packing>
-                <property name="left_attach">3</property>
+                <property name="left_attach">4</property>
                 <property name="top_attach">1</property>
               </packing>
             </child>
@@ -278,7 +279,7 @@
                 <property name="receives_default">True</property>
               </object>
               <packing>
-                <property name="left_attach">4</property>
+                <property name="left_attach">5</property>
                 <property name="top_attach">1</property>
               </packing>
             </child>
@@ -291,9 +292,10 @@
                 <property name="width_chars">3</property>
                 <property name="placeholder_text" translatable="yes">RST</property>
                 <property name="input_purpose">digits</property>
+                <accelerator key="r" signal="grab-focus" modifiers="GDK_CONTROL_MASK"/>
               </object>
               <packing>
-                <property name="left_attach">2</property>
+                <property name="left_attach">3</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -308,7 +310,7 @@
                 <property name="input_purpose">digits</property>
               </object>
               <packing>
-                <property name="left_attach">3</property>
+                <property name="left_attach">4</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -320,7 +322,7 @@
                 <property name="receives_default">True</property>
               </object>
               <packing>
-                <property name="left_attach">4</property>
+                <property name="left_attach">5</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -350,11 +352,30 @@
               <packing>
                 <property name="left_attach">0</property>
                 <property name="top_attach">2</property>
-                <property name="width">5</property>
+                <property name="width">6</property>
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkComboBoxText" id="bandCombo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <accelerator key="b" signal="popup" modifiers="GDK_CONTROL_MASK"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="modeCombo">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <accelerator key="m" signal="popup" modifiers="GDK_CONTROL_MASK"/>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="top_attach">0</property>
+              </packing>
             </child>
           </object>
           <packing>

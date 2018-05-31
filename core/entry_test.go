@@ -75,20 +75,24 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := QSO{
 		Callsign:    dl1abc,
+		Band:        Band20m,
+		Mode:        ModeSSB,
 		TheirReport: RST("599"),
 		TheirNumber: 12,
 		MyReport:    RST("559"),
 		MyNumber:    1,
 	}
 
-	log.On("Find", dl1abc).Return(qso, true)
-	view.On("SetDuplicateMarker", true)
-	view.On("SetActiveField", TheirReportField)
-	view.On("GetCallsign").Return("DL1ABC")
-	view.On("SetTheirReport", "599")
-	view.On("SetTheirNumber", "012")
-	view.On("SetMyReport", "559")
-	view.On("SetMyNumber", "001")
+	log.On("Find", dl1abc).Return(qso, true).Once()
+	view.On("SetDuplicateMarker", true).Once()
+	view.On("SetActiveField", TheirReportField).Once()
+	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("SetBand", "20m").Once()
+	view.On("SetMode", "SSB").Once()
+	view.On("SetTheirReport", "599").Once()
+	view.On("SetTheirNumber", "012").Once()
+	view.On("SetMyReport", "559").Once()
+	view.On("SetMyNumber", "001").Once()
 
 	controller.GotoNextField()
 
@@ -103,6 +107,8 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	qso := QSO{
 		Callsign:    dl1abc,
 		Time:        clock.Now(),
+		Band:        Band40m,
+		Mode:        ModeCW,
 		TheirReport: RST("559"),
 		TheirNumber: 12,
 		MyReport:    RST("579"),
@@ -119,6 +125,8 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	log.On("GetNextNumber").Once().Return(QSONumber(1))
 	log.On("Log", qso).Once()
 	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("GetBand").Once().Return("40m")
+	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("559")
 	view.On("GetTheirNumber").Once().Return("012")
 	view.On("GetMyReport").Once().Return("579")
@@ -156,6 +164,8 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 
 	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("GetBand").Once().Return("40m")
+	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("000")
 	view.On("SetActiveField", TheirReportField).Once()
 	view.On("ShowError", mock.Anything).Once()
@@ -171,6 +181,8 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 
 	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("GetBand").Once().Return("40m")
+	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("559")
 	view.On("GetTheirNumber").Once().Return("abc")
 	view.On("SetActiveField", TheirNumberField).Once()
@@ -187,6 +199,8 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 
 	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("GetBand").Once().Return("40m")
+	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("599")
 	view.On("GetTheirNumber").Once().Return("1")
 	view.On("GetMyReport").Once().Return("000")
@@ -215,6 +229,8 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 
 	log.On("Find", dl1abc).Once().Return(qso, true)
 	view.On("GetCallsign").Once().Return("DL1ABC")
+	view.On("GetBand").Once().Return("40m")
+	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("599")
 	view.On("GetTheirNumber").Once().Return("1")
 	view.On("GetMyReport").Once().Return("579")
@@ -288,6 +304,24 @@ func (m *mockedEntryView) GetTheirNumber() string {
 
 func (m *mockedEntryView) SetTheirNumber(number string) {
 	m.Called(number)
+}
+
+func (m *mockedEntryView) GetBand() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *mockedEntryView) SetBand(text string) {
+	m.Called(text)
+}
+
+func (m *mockedEntryView) GetMode() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *mockedEntryView) SetMode(text string) {
+	m.Called(text)
 }
 
 func (m *mockedEntryView) GetMyReport() string {

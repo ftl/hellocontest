@@ -15,6 +15,8 @@ type mainWindow struct {
 	callsign    *gtk.Entry
 	theirReport *gtk.Entry
 	theirNumber *gtk.Entry
+	band        *gtk.ComboBoxText
+	mode        *gtk.ComboBoxText
 	myReport    *gtk.Entry
 	myNumber    *gtk.Entry
 	logButton   *gtk.Button
@@ -37,6 +39,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
 	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
 	result.theirNumber = getUI(builder, "theirNumberEntry").(*gtk.Entry)
+	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
+	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
 	result.myReport = getUI(builder, "myReportEntry").(*gtk.Entry)
 	result.myNumber = getUI(builder, "myNumberEntry").(*gtk.Entry)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
@@ -48,18 +52,39 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.addEntryTraversal(result.theirNumber)
 	result.addEntryTraversal(result.myReport)
 	result.addEntryTraversal(result.myNumber)
+	result.addOtherWidgetTraversal(&result.band.Widget)
+	result.addOtherWidgetTraversal(&result.mode.Widget)
 	result.logButton.Connect("clicked", result.onLogButtonClicked)
 	result.resetButton.Connect("clicked", result.onResetButtonClicked)
 
+	setupBandCombo(result.band)
+	setupModeCombo(result.mode)
 	result.qsoList = setupQsoView(getUI(builder, "qsoView").(*gtk.TreeView))
 
 	return result
+}
+
+func setupBandCombo(combo *gtk.ComboBoxText) {
+	combo.RemoveAll()
+	for _, value := range core.Bands {
+		combo.Append(value.String(), value.String())
+	}
+	combo.SetActive(0)
+}
+
+func setupModeCombo(combo *gtk.ComboBoxText) {
+	combo.RemoveAll()
+	for _, value := range core.Modes {
+		combo.Append(value.String(), value.String())
+	}
+	combo.SetActive(0)
 }
 
 const (
 	qsoColumnUTC int = iota
 	qsoColumnCallsign
 	qsoColumnBand
+	qsoColumnMode
 	qsoColumnMyReport
 	qsoColumnMyNumber
 	qsoColumnTheirReport
@@ -70,12 +95,13 @@ func setupQsoView(qsoView *gtk.TreeView) *gtk.ListStore {
 	qsoView.AppendColumn(createColumn("UTC", qsoColumnUTC))
 	qsoView.AppendColumn(createColumn("Callsign", qsoColumnCallsign))
 	qsoView.AppendColumn(createColumn("Band", qsoColumnBand))
+	qsoView.AppendColumn(createColumn("Mode", qsoColumnMode))
 	qsoView.AppendColumn(createColumn("My RST", qsoColumnMyReport))
 	qsoView.AppendColumn(createColumn("My #", qsoColumnMyNumber))
 	qsoView.AppendColumn(createColumn("Th RST", qsoColumnTheirReport))
 	qsoView.AppendColumn(createColumn("Th #", qsoColumnTheirNumber))
 
-	qsoList, err := gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)
+	qsoList, err := gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)
 	if err != nil {
 		log.Fatalf("Cannot create QSO list store: %v", err)
 	}
@@ -96,10 +122,10 @@ func createColumn(title string, id int) *gtk.TreeViewColumn {
 	return column
 }
 
-func (w *mainWindow) addEntryTraversal(widget *gtk.Entry) {
-	widget.Connect("key_press_event", w.onEntryKeyPress)
-	widget.Connect("focus_in_event", w.onEntryFocusIn)
-	widget.Connect("focus_out_event", w.onEntryFocusOut)
+func (w *mainWindow) addEntryTraversal(entry *gtk.Entry) {
+	entry.Connect("key_press_event", w.onEntryKeyPress)
+	entry.Connect("focus_in_event", w.onEntryFocusIn)
+	entry.Connect("focus_out_event", w.onEntryFocusOut)
 }
 
 func (w *mainWindow) onEntryKeyPress(widget interface{}, event *gdk.Event) bool {
@@ -131,6 +157,26 @@ func (w *mainWindow) onEntryFocusIn(entry *gtk.Entry, event *gdk.Event) bool {
 func (w *mainWindow) onEntryFocusOut(entry *gtk.Entry, event *gdk.Event) bool {
 	entry.SelectRegion(0, 0)
 	return false
+}
+
+func (w *mainWindow) addOtherWidgetTraversal(widget *gtk.Widget) {
+	widget.Connect("key_press_event", w.onOtherWidgetKeyPress)
+}
+
+func (w *mainWindow) onOtherWidgetKeyPress(widget interface{}, event *gdk.Event) bool {
+	keyEvent := gdk.EventKeyNewFromEvent(event)
+	switch keyEvent.KeyVal() {
+	case gdk.KEY_Tab:
+		w.entry.SetActiveField(core.CallsignField)
+		w.SetActiveField(core.CallsignField)
+		return true
+	case gdk.KEY_space:
+		w.entry.SetActiveField(core.CallsignField)
+		w.SetActiveField(core.CallsignField)
+		return true
+	default:
+		return false
+	}
 }
 
 func (w *mainWindow) onLogButtonClicked(button *gtk.Button) bool {
@@ -185,6 +231,23 @@ func (w *mainWindow) GetTheirNumber() string {
 
 func (w *mainWindow) SetTheirNumber(text string) {
 	w.theirNumber.SetText(text)
+}
+
+func (w *mainWindow) GetBand() string {
+	return w.band.GetActiveText()
+}
+
+func (w *mainWindow) SetBand(text string) {
+	set := w.band.SetActiveID(text)
+	log.Printf("set %s, active %s, %t", text, w.band.GetActiveText(), set)
+}
+
+func (w *mainWindow) GetMode() string {
+	return w.mode.GetActiveText()
+}
+
+func (w *mainWindow) SetMode(text string) {
+	w.mode.SetActiveID(text)
 }
 
 func (w *mainWindow) GetMyReport() string {
@@ -255,9 +318,11 @@ func (w *mainWindow) entryToField(entry *gtk.Entry) core.EntryField {
 }
 
 func (w *mainWindow) SetDuplicateMarker(bool) {}
+
 func (w *mainWindow) ShowError(err error) {
 	w.errorLabel.SetText(err.Error())
 }
+
 func (w *mainWindow) ClearError() {
 	w.errorLabel.SetText("")
 }
@@ -277,6 +342,7 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 			qsoColumnUTC,
 			qsoColumnCallsign,
 			qsoColumnBand,
+			qsoColumnMode,
 			qsoColumnMyReport,
 			qsoColumnMyNumber,
 			qsoColumnTheirReport,
@@ -286,6 +352,7 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 			qso.Time.In(time.UTC).Format("15:04"),
 			qso.Callsign.String(),
 			qso.Band.String(),
+			qso.Mode.String(),
 			qso.MyReport.String(),
 			qso.MyNumber.String(),
 			qso.TheirReport.String(),

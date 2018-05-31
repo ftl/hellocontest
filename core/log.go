@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	logger "log"
 	"math"
 	"regexp"
 	"sort"
@@ -34,6 +35,7 @@ type QSO struct {
 	Callsign     callsign.Callsign
 	Time         time.Time
 	Band         Band
+	Mode         Mode
 	MyReport     RST
 	MyNumber     QSONumber
 	TheirReport  RST
@@ -42,7 +44,7 @@ type QSO struct {
 }
 
 func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Band, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String())
+	return fmt.Sprintf("%s|%-10s|%4s|%-4s|%s|%s|%s|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String())
 }
 
 // Band represents an amateur radio band.
@@ -62,8 +64,48 @@ const (
 	Band10m  Band = "10m"
 )
 
+// Bands are all HF bands.
+var Bands = []Band{Band160m, Band80m, Band60m, Band40m, Band30m, Band20m, Band17m, Band15m, Band12m, Band10m}
+
+// ParseBand parses a string into a HF band value
+func ParseBand(s string) (Band, error) {
+	for _, band := range Bands {
+		if string(band) == s {
+			return band, nil
+		}
+	}
+	return Band160m, fmt.Errorf("%q is not a supported HF band", s)
+}
+
 func (band *Band) String() string {
 	return string(*band)
+}
+
+// Mode represents the mode.
+type Mode string
+
+// All relevant modes.
+const (
+	ModeCW   Mode = "CW"
+	ModeSSB  Mode = "SSB"
+	ModeRTTY Mode = "RTTY"
+)
+
+// Modes are all relevant modes.
+var Modes = []Mode{ModeCW, ModeSSB, ModeRTTY}
+
+// ParseMode parses a string into a HF Mode value
+func ParseMode(s string) (Mode, error) {
+	for _, mode := range Modes {
+		if string(mode) == s {
+			return mode, nil
+		}
+	}
+	return ModeCW, fmt.Errorf("%q is not a supported mode", s)
+}
+
+func (mode *Mode) String() string {
+	return string(*mode)
 }
 
 // RST represents a signal report using the "Readability/Signalstrength/Tone" system.
@@ -130,6 +172,7 @@ func (l *log) Log(qso QSO) {
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
 	l.view.RowAdded(qso)
+	logger.Printf("QSO added: %s", qso.String())
 }
 
 func (l *log) Find(callsign callsign.Callsign) (QSO, bool) {

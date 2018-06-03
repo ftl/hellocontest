@@ -52,6 +52,7 @@ type Band string
 
 // All HF bands.
 const (
+	NoBand   Band = ""
 	Band160m Band = "160m"
 	Band80m  Band = "80m"
 	Band60m  Band = "60m"
@@ -86,6 +87,7 @@ type Mode string
 
 // All relevant modes.
 const (
+	NoMode   Mode = ""
 	ModeCW   Mode = "CW"
 	ModeSSB  Mode = "SSB"
 	ModeRTTY Mode = "RTTY"

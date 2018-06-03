@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	logger "log"
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
@@ -14,6 +15,9 @@ type EntryController interface {
 	GotoNextField() EntryField
 	GetActiveField() EntryField
 	SetActiveField(EntryField)
+
+	BandSelected(string)
+	ModeSelected(string)
 
 	Log()
 	Reset()
@@ -66,10 +70,12 @@ func NewEntryController(clock Clock, log Log) EntryController {
 }
 
 type entryController struct {
-	clock       Clock
-	log         Log
-	view        EntryView
-	activeField EntryField
+	clock        Clock
+	log          Log
+	view         EntryView
+	activeField  EntryField
+	selectedBand Band
+	selectedMode Mode
 }
 
 func (c *entryController) SetView(view EntryView) {
@@ -124,6 +130,20 @@ func (c *entryController) GetActiveField() EntryField {
 
 func (c *entryController) SetActiveField(field EntryField) {
 	c.activeField = field
+}
+
+func (c *entryController) BandSelected(s string) {
+	if band, err := ParseBand(s); err == nil {
+		logger.Printf("Band selected: %v", band)
+		c.selectedBand = band
+	}
+}
+
+func (c *entryController) ModeSelected(s string) {
+	if mode, err := ParseMode(s); err == nil {
+		logger.Printf("Mode selected: %v", mode)
+		c.selectedMode = mode
+	}
 }
 
 func (c *entryController) Log() {
@@ -196,6 +216,12 @@ func (c *entryController) Reset() {
 	c.view.SetCallsign("")
 	c.view.SetTheirReport("599")
 	c.view.SetTheirNumber("")
+	if c.selectedBand != NoBand {
+		c.view.SetBand(c.selectedBand.String())
+	}
+	if c.selectedMode != NoMode {
+		c.view.SetMode(c.selectedMode.String())
+	}
 	c.view.SetMyReport("599")
 	c.view.SetMyNumber(nextNumber.String())
 	c.view.SetActiveField(c.activeField)

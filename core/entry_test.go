@@ -27,6 +27,28 @@ func TestEntryController_Reset(t *testing.T) {
 	view.AssertExpectations(t)
 }
 
+func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
+	_, log, view, controller := setupEntryTest()
+
+	log.On("GetNextNumber").Once().Return(QSONumber(1))
+	view.On("SetBand", "30m").Once()
+	view.On("SetMode", "RTTY").Once()
+	view.On("SetMyReport", "599").Once()
+	view.On("SetMyNumber", "001").Once()
+	view.On("SetCallsign", "").Once()
+	view.On("SetTheirReport", "599").Once()
+	view.On("SetTheirNumber", "").Once()
+	view.On("SetActiveField", CallsignField).Once()
+	view.On("SetDuplicateMarker", false).Once()
+	view.On("ClearError").Once()
+
+	controller.BandSelected("30m")
+	controller.ModeSelected("RTTY")
+	controller.Reset()
+
+	view.AssertExpectations(t)
+}
+
 func TestEntryController_GotoNextField(t *testing.T) {
 	_, _, view, controller := setupEntryTest()
 
@@ -242,7 +264,6 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-
 }
 
 // Helpers

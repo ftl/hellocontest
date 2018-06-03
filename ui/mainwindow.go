@@ -25,6 +25,8 @@ type mainWindow struct {
 
 	qsoList *gtk.ListStore
 
+	ignoreComboChange bool
+
 	entry core.EntryController
 	log   core.Log
 }
@@ -53,7 +55,9 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.addEntryTraversal(result.myReport)
 	result.addEntryTraversal(result.myNumber)
 	result.addOtherWidgetTraversal(&result.band.Widget)
+	result.band.Connect("changed", result.onBandChanged)
 	result.addOtherWidgetTraversal(&result.mode.Widget)
+	result.mode.Connect("changed", result.onModeChanged)
 	result.logButton.Connect("clicked", result.onLogButtonClicked)
 	result.resetButton.Connect("clicked", result.onResetButtonClicked)
 
@@ -179,6 +183,20 @@ func (w *mainWindow) onOtherWidgetKeyPress(widget interface{}, event *gdk.Event)
 	}
 }
 
+func (w *mainWindow) onBandChanged(widget *gtk.ComboBoxText) bool {
+	if w.entry != nil && !w.ignoreComboChange {
+		w.entry.BandSelected(widget.GetActiveText())
+	}
+	return false
+}
+
+func (w *mainWindow) onModeChanged(widget *gtk.ComboBoxText) bool {
+	if w.entry != nil && !w.ignoreComboChange {
+		w.entry.ModeSelected(widget.GetActiveText())
+	}
+	return false
+}
+
 func (w *mainWindow) onLogButtonClicked(button *gtk.Button) bool {
 	w.entry.Log()
 	return true
@@ -238,8 +256,9 @@ func (w *mainWindow) GetBand() string {
 }
 
 func (w *mainWindow) SetBand(text string) {
-	set := w.band.SetActiveID(text)
-	log.Printf("set %s, active %s, %t", text, w.band.GetActiveText(), set)
+	w.ignoreComboChange = true
+	defer func() { w.ignoreComboChange = false }()
+	w.band.SetActiveID(text)
 }
 
 func (w *mainWindow) GetMode() string {
@@ -247,6 +266,8 @@ func (w *mainWindow) GetMode() string {
 }
 
 func (w *mainWindow) SetMode(text string) {
+	w.ignoreComboChange = true
+	defer func() { w.ignoreComboChange = false }()
 	w.mode.SetActiveID(text)
 }
 

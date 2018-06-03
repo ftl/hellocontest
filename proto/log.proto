@@ -1,0 +1,15 @@
+syntax = "proto3";
+package proto;
+option go_package = "proto";
+
+message QSO {
+    string callsign = 1;
+    int64 timestamp = 2;
+    string band = 3;
+    string mode = 4;
+    string my_report = 5;
+    int32 my_number = 6;
+    string their_report = 7;
+    int32 their_number = 8;
+    int64 log_timestamp = 9;
+}

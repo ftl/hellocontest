@@ -11,6 +11,8 @@ import (
 )
 
 type mainWindow struct {
+	styleProvider *gtk.CssProvider
+
 	window      *gtk.ApplicationWindow
 	callsign    *gtk.Entry
 	theirReport *gtk.Entry
@@ -33,6 +35,8 @@ type mainWindow struct {
 
 func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWindow {
 	result := new(mainWindow)
+
+	result.styleProvider = setupStyleProvider()
 
 	result.window = getUI(builder, "mainWindow").(*gtk.ApplicationWindow)
 	result.window.SetApplication(application)
@@ -65,7 +69,50 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	setupModeCombo(result.mode)
 	result.qsoList = setupQsoView(getUI(builder, "qsoView").(*gtk.TreeView))
 
+	result.addStyleProvider(&result.myNumber.Widget)
+
 	return result
+}
+
+func setupStyleProvider() *gtk.CssProvider {
+	provider, err := gtk.CssProviderNew()
+	if err != nil {
+		log.Fatalf("Cannot create CSS provider: %v", err)
+	}
+	provider.LoadFromData(`
+		.duplicate {background-color: #FFDFDF;}
+	`)
+	return provider
+}
+
+func (w *mainWindow) addStyleProvider(widget *gtk.Widget) {
+	context, err := widget.GetStyleContext()
+	if err != nil {
+		log.Printf("Cannot get style context: %v", err)
+		return
+	}
+	context.AddProvider(w.styleProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+}
+
+func addStyleClass(widget *gtk.Widget, class string) {
+	doWithStyle(widget, func(style *gtk.StyleContext) {
+		style.AddClass(class)
+	})
+}
+
+func removeStyleClass(widget *gtk.Widget, class string) {
+	doWithStyle(widget, func(style *gtk.StyleContext) {
+		style.RemoveClass(class)
+	})
+}
+
+func doWithStyle(widget *gtk.Widget, do func(*gtk.StyleContext)) error {
+	style, err := widget.GetStyleContext()
+	if err != nil {
+		return err
+	}
+	do(style)
+	return nil
 }
 
 func setupBandCombo(combo *gtk.ComboBoxText) {
@@ -338,7 +385,14 @@ func (w *mainWindow) entryToField(entry *gtk.Entry) core.EntryField {
 	}
 }
 
-func (w *mainWindow) SetDuplicateMarker(bool) {}
+func (w *mainWindow) SetDuplicateMarker(duplicate bool) {
+	log.Printf("set duplicate marker: %v", duplicate)
+	if duplicate {
+		addStyleClass(&w.myNumber.Widget, "duplicate")
+	} else {
+		removeStyleClass(&w.myNumber.Widget, "duplicate")
+	}
+}
 
 func (w *mainWindow) ShowError(err error) {
 	w.errorLabel.SetText(err.Error())

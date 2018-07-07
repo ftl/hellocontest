@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"io"
 	"log"
+	"os"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/glib"
@@ -32,6 +34,7 @@ type application struct {
 	clock      core.Clock
 	log        core.Log
 	entry      core.EntryController
+	outFile    io.WriteCloser
 }
 
 func (app *application) startup() {
@@ -44,13 +47,15 @@ func (app *application) activate() {
 	app.mainWindow.Show()
 
 	app.clock = core.NewClock()
-	app.log = core.NewLog(app.clock)
+	app.outFile = setupOutFile()
+	app.log = core.NewLog(app.clock, app.outFile)
 	app.log.SetView(app.mainWindow)
 	app.entry = core.NewEntryController(app.clock, app.log)
 	app.entry.SetView(app.mainWindow)
 }
 
 func (app *application) shutdown() {
+	app.outFile.Close()
 }
 
 func setupBuilder() *gtk.Builder {
@@ -62,4 +67,12 @@ func setupBuilder() *gtk.Builder {
 	builder.AddFromFile("ui/glade/contest.glade")
 
 	return builder
+}
+
+func setupOutFile() io.WriteCloser {
+	file, err := os.OpenFile("current.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	return file
 }

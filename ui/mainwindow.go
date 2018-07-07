@@ -386,7 +386,6 @@ func (w *mainWindow) entryToField(entry *gtk.Entry) core.EntryField {
 }
 
 func (w *mainWindow) SetDuplicateMarker(duplicate bool) {
-	log.Printf("set duplicate marker: %v", duplicate)
 	if duplicate {
 		addStyleClass(&w.myNumber.Widget, "duplicate")
 	} else {

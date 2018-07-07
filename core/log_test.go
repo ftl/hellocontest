@@ -45,7 +45,7 @@ func TestParseRST(t *testing.T) {
 }
 
 func TestNewLog(t *testing.T) {
-	log := NewLog(NewClock())
+	log := NewLog(NewClock(), nil)
 
 	assert.Equal(t, QSONumber(1), log.GetNextNumber(), "next number of empty log should be 1")
 	assert.Empty(t, log.GetQsosByMyNumber(), "empty log should not contain any QSO")
@@ -54,7 +54,7 @@ func TestNewLog(t *testing.T) {
 func TestLog_Log(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := staticClock{now}
-	log := NewLog(clock)
+	log := NewLog(clock, nil)
 
 	qso := QSO{MyNumber: 1}
 	log.Log(qso)
@@ -68,7 +68,7 @@ func TestLog_LogAgain(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	then := time.Date(2006, time.January, 2, 15, 5, 0, 0, time.UTC)
 	clock := &staticClock{now}
-	log := NewLog(clock)
+	log := NewLog(clock, nil)
 
 	qso := QSO{MyNumber: 1, TheirNumber: 1}
 	log.Log(qso)
@@ -84,7 +84,7 @@ func TestLog_LogAgain(t *testing.T) {
 }
 
 func TestLog_GetNextNumber(t *testing.T) {
-	log := NewLog(NewClock())
+	log := NewLog(NewClock(), nil)
 
 	qso := QSO{MyNumber: 123}
 	log.Log(qso)
@@ -93,7 +93,7 @@ func TestLog_GetNextNumber(t *testing.T) {
 }
 
 func TestLog_Find(t *testing.T) {
-	log := NewLog(NewClock())
+	log := NewLog(NewClock(), nil)
 	aa3b, _ := callsign.Parse("AA3B")
 	qso := QSO{Callsign: aa3b}
 

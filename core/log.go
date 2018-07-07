@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/binary"
 	"fmt"
+	"io"
 	logger "log"
 	"math"
 	"regexp"
@@ -10,6 +12,8 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hellocontest/pb"
+	"github.com/golang/protobuf/proto"
 )
 
 // Log describes the functionality of the log component.
@@ -143,11 +147,12 @@ func (nr *QSONumber) String() string {
 }
 
 // NewLog creates a new empty log.
-func NewLog(clock Clock) Log {
+func NewLog(clock Clock, writer io.Writer) Log {
 	return &log{
-		clock: clock,
-		qsos:  make([]QSO, 0, 1000),
-		view:  &nullLogView{},
+		clock:  clock,
+		qsos:   make([]QSO, 0, 1000),
+		view:   &nullLogView{},
+		writer: writer,
 	}
 }
 
@@ -156,7 +161,8 @@ type log struct {
 	qsos         []QSO
 	myLastNumber int
 
-	view LogView
+	view   LogView
+	writer io.Writer
 }
 
 func (l *log) SetView(view LogView) {
@@ -174,7 +180,43 @@ func (l *log) Log(qso QSO) {
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
 	l.view.RowAdded(qso)
+	if err := l.write(qso); err != nil {
+		logger.Printf("Error writing qso: %v", err)
+	}
 	logger.Printf("QSO added: %s", qso.String())
+}
+
+func (l *log) write(qso QSO) error {
+	pbQSO := &pb.QSO{
+		Callsign:     qso.Callsign.String(),
+		Timestamp:    qso.Time.Unix(),
+		Band:         qso.Band.String(),
+		Mode:         qso.Mode.String(),
+		MyReport:     qso.MyReport.String(),
+		MyNumber:     int32(qso.MyNumber),
+		TheirReport:  qso.TheirReport.String(),
+		TheirNumber:  int32(qso.TheirNumber),
+		LogTimestamp: qso.LogTimestamp.Unix(),
+	}
+
+	b, err := proto.Marshal(pbQSO)
+	if err != nil {
+		return err
+	}
+
+	length := int32(len(b))
+	err = binary.Write(l.writer, binary.LittleEndian, length)
+	if err != nil {
+		return err
+	}
+
+	_, err = l.writer.Write(b)
+	if err != nil {
+		return err
+	}
+
+	logger.Printf("QSO written: %s", pbQSO.String())
+	return nil
 }
 
 func (l *log) Find(callsign callsign.Callsign) (QSO, bool) {

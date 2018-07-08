@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -148,12 +149,80 @@ func (nr *QSONumber) String() string {
 
 // NewLog creates a new empty log.
 func NewLog(clock Clock, writer io.Writer) Log {
+	return newLog(clock, writer)
+}
+
+func newLog(clock Clock, writer io.Writer) *log {
 	return &log{
 		clock:  clock,
 		qsos:   make([]QSO, 0, 1000),
 		view:   &nullLogView{},
 		writer: writer,
 	}
+}
+
+// LoadLog creates a new log and loads it with the entries from the given reader.
+func LoadLog(clock Clock, writer io.Writer, reader io.Reader) (Log, error) {
+	logger.Print("Loading QSOs")
+	log := newLog(clock, writer)
+	bufferedReader := bufio.NewReader(reader)
+	for {
+		qso, err := read(bufferedReader)
+		if err == io.EOF {
+			return log, nil
+		} else if err != nil {
+			return nil, err
+		}
+		log.qsos = append(log.qsos, qso)
+		logger.Printf("loaded QSO %v: ", qso)
+	}
+}
+
+func read(reader *bufio.Reader) (QSO, error) {
+	var length int32
+	err := binary.Read(reader, binary.LittleEndian, &length)
+	if err != nil {
+		return QSO{}, err
+	}
+
+	b := make([]byte, length)
+	_, err = io.ReadFull(reader, b)
+	if err != nil {
+		return QSO{}, err
+	}
+
+	pbQSO := &pb.QSO{}
+	err = proto.Unmarshal(b, pbQSO)
+	if err != nil {
+		return QSO{}, err
+	}
+
+	qso := QSO{}
+	qso.Callsign, err = callsign.Parse(pbQSO.Callsign)
+	if err != nil {
+		return QSO{}, err
+	}
+	qso.Time = time.Unix(pbQSO.Timestamp, 0)
+	qso.Band, err = ParseBand(pbQSO.Band)
+	if err != nil {
+		return QSO{}, err
+	}
+	qso.Mode, err = ParseMode(pbQSO.Mode)
+	if err != nil {
+		return QSO{}, err
+	}
+	qso.MyReport, err = ParseRST(pbQSO.MyReport)
+	if err != nil {
+		return QSO{}, err
+	}
+	qso.MyNumber = QSONumber(pbQSO.MyNumber)
+	qso.TheirReport, err = ParseRST(pbQSO.TheirReport)
+	if err != nil {
+		return QSO{}, err
+	}
+	qso.TheirNumber = QSONumber(pbQSO.TheirNumber)
+	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
+	return qso, nil
 }
 
 type log struct {
@@ -180,13 +249,13 @@ func (l *log) Log(qso QSO) {
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
 	l.view.RowAdded(qso)
-	if err := l.write(qso); err != nil {
+	if err := write(l.writer, qso); err != nil {
 		logger.Printf("Error writing qso: %v", err)
 	}
 	logger.Printf("QSO added: %s", qso.String())
 }
 
-func (l *log) write(qso QSO) error {
+func write(writer io.Writer, qso QSO) error {
 	pbQSO := &pb.QSO{
 		Callsign:     qso.Callsign.String(),
 		Timestamp:    qso.Time.Unix(),
@@ -205,12 +274,12 @@ func (l *log) write(qso QSO) error {
 	}
 
 	length := int32(len(b))
-	err = binary.Write(l.writer, binary.LittleEndian, length)
+	err = binary.Write(writer, binary.LittleEndian, length)
 	if err != nil {
 		return err
 	}
 
-	_, err = l.writer.Write(b)
+	_, err = writer.Write(b)
 	if err != nil {
 		return err
 	}

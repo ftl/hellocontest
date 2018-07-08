@@ -406,7 +406,10 @@ func (w *mainWindow) SetLog(log core.Log) {
 }
 
 func (w *mainWindow) UpdateAllRows(qsos []core.QSO) {
-
+	w.qsoList.Clear()
+	for _, qso := range qsos {
+		w.RowAdded(qso)
+	}
 }
 
 func (w *mainWindow) RowAdded(qso core.QSO) {

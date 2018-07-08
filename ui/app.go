@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"bytes"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -48,7 +50,7 @@ func (app *application) activate() {
 
 	app.clock = core.NewClock()
 	app.outFile = setupOutFile()
-	app.log = core.NewLog(app.clock, app.outFile)
+	app.log = loadLog(app)
 	app.log.SetView(app.mainWindow)
 	app.entry = core.NewEntryController(app.clock, app.log)
 	app.entry.SetView(app.mainWindow)
@@ -75,4 +77,17 @@ func setupOutFile() io.WriteCloser {
 		panic(err)
 	}
 	return file
+}
+
+func loadLog(app *application) core.Log {
+	b, err := ioutil.ReadFile("current.log")
+	if err != nil {
+		panic(err)
+	}
+	reader := bytes.NewReader(b)
+	log, err := core.LoadLog(app.clock, app.outFile, reader)
+	if err != nil {
+		panic(err)
+	}
+	return log
 }

@@ -51,6 +51,18 @@ func TestNewLog(t *testing.T) {
 	assert.Empty(t, log.GetQsosByMyNumber(), "empty log should not contain any QSO")
 }
 
+func TestLoadLog(t *testing.T) {
+	reader := new(mockedReader)
+	reader.On("ReadAll").Return([]QSO{
+		{MyNumber: 123},
+	}, nil)
+
+	log, err := LoadLog(NewClock(), reader)
+	require.NoError(t, err)
+
+	assert.Equal(t, QSONumber(124), log.GetNextNumber())
+}
+
 func TestLog_Log(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := staticClock{now}
@@ -81,6 +93,22 @@ func TestLog_LogAgain(t *testing.T) {
 	lastQso := log.GetQsosByMyNumber()[1]
 	assert.Equal(t, then, lastQso.LogTimestamp, "last item should have last timestamp")
 	assert.Equal(t, QSONumber(2), lastQso.TheirNumber, "last item should have latest data")
+}
+
+func TestLog_EmitRowAdded(t *testing.T) {
+	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
+	clock := staticClock{now}
+	log := NewLog(clock)
+	emitted := false
+	log.OnRowAdded(func(QSO) error {
+		emitted = true
+		return nil
+	})
+
+	qso := QSO{MyNumber: 1}
+	log.Log(qso)
+
+	assert.True(t, emitted)
 }
 
 func TestLog_GetNextNumber(t *testing.T) {
@@ -150,4 +178,13 @@ func (m *mockedLogView) UpdateAllRows(qsos []QSO) {
 
 func (m *mockedLogView) RowAdded(qso QSO) {
 	m.Called(qso)
+}
+
+type mockedReader struct {
+	mock.Mock
+}
+
+func (m *mockedReader) ReadAll() ([]QSO, error) {
+	args := m.Called()
+	return args.Get(0).([]QSO), args.Error(1)
 }

@@ -1,11 +1,7 @@
 package ui
 
 import (
-	"bytes"
-	"io"
-	"io/ioutil"
 	"log"
-	"os"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/glib"
@@ -36,7 +32,7 @@ type application struct {
 	clock      core.Clock
 	log        core.Log
 	entry      core.EntryController
-	outFile    io.WriteCloser
+	store      core.Store
 }
 
 func (app *application) startup() {
@@ -49,15 +45,15 @@ func (app *application) activate() {
 	app.mainWindow.Show()
 
 	app.clock = core.NewClock()
-	app.outFile = setupOutFile()
+	app.store = core.NewFileStore("current.log")
 	app.log = loadLog(app)
 	app.log.SetView(app.mainWindow)
+	app.log.OnRowAdded(app.store.Write)
 	app.entry = core.NewEntryController(app.clock, app.log)
 	app.entry.SetView(app.mainWindow)
 }
 
 func (app *application) shutdown() {
-	app.outFile.Close()
 }
 
 func setupBuilder() *gtk.Builder {
@@ -71,21 +67,8 @@ func setupBuilder() *gtk.Builder {
 	return builder
 }
 
-func setupOutFile() io.WriteCloser {
-	file, err := os.OpenFile("current.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		panic(err)
-	}
-	return file
-}
-
 func loadLog(app *application) core.Log {
-	b, err := ioutil.ReadFile("current.log")
-	if err != nil {
-		panic(err)
-	}
-	reader := bytes.NewReader(b)
-	log, err := core.LoadLog(app.clock, app.outFile, reader)
+	log, err := core.LoadLog(app.clock, app.store)
 	if err != nil {
 		panic(err)
 	}

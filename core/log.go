@@ -183,7 +183,16 @@ func LoadLog(clock Clock, reader Reader) (Log, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.myLastNumber = lastNumber(log.qsos)
 	return log, nil
+}
+
+func lastNumber(qsos []QSO) int {
+	lastNumber := 0
+	for _, qso := range qsos {
+		lastNumber = int(math.Max(float64(lastNumber), float64(qso.MyNumber)))
+	}
+	return lastNumber
 }
 
 type log struct {

@@ -10,3 +10,14 @@ I develop this software for myself and just for fun in my free time. If you find
 This software is published under the [MIT License](https://www.tldrlegal.com/l/mit).
 
 Copyright [Florian Thienel](http://thecodingflow.com/)
+
+## Build
+
+### Protobuf
+To generate the Go-code related to Protobuf, use the following command:
+
+```
+protoc --go_out . ./pb/log.proto
+```
+
+This will generate the Go-code into the packge `pb`.

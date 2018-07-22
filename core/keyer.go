@@ -16,6 +16,9 @@ type KeyerValues struct {
 	MyReport  RST
 }
 
+// KeyerValueProvider provides the variable values for the Keyer templates on demand.
+type KeyerValueProvider func() KeyerValues
+
 // CWClient defines the interface used by the Keyer to output the CW.
 type CWClient interface {
 	Send(text string)
@@ -25,12 +28,12 @@ type CWClient interface {
 type Keyer interface {
 	SetTemplate(index int, pattern string) error
 	GetTemplate(index int) string
-	GetText(index int, values KeyerValues) (string, error)
-	Send(index int, values KeyerValues) error
+	GetText(index int) (string, error)
+	Send(index int) error
 }
 
 // NewKeyer returns a new Keyer that provides len(patterns) templates, based on the given patterns.
-func NewKeyer(patterns []string, client CWClient) (Keyer, error) {
+func NewKeyer(patterns []string, client CWClient, values KeyerValueProvider) (Keyer, error) {
 	templates := make([]*template.Template, len(patterns))
 	for i, pattern := range patterns {
 		name := fmt.Sprintf("%d", i)
@@ -40,13 +43,14 @@ func NewKeyer(patterns []string, client CWClient) (Keyer, error) {
 			return nil, err
 		}
 	}
-	return &keyer{patterns, templates, client}, nil
+	return &keyer{patterns, templates, client, values}, nil
 }
 
 type keyer struct {
 	patterns  []string
 	templates []*template.Template
 	client    CWClient
+	values    KeyerValueProvider
 }
 
 func (k *keyer) SetTemplate(index int, pattern string) error {
@@ -59,17 +63,17 @@ func (k *keyer) GetTemplate(index int) string {
 	return k.patterns[index]
 }
 
-func (k *keyer) GetText(index int, values KeyerValues) (string, error) {
+func (k *keyer) GetText(index int) (string, error) {
 	buffer := bytes.NewBufferString("")
-	err := k.templates[index].Execute(buffer, values)
+	err := k.templates[index].Execute(buffer, k.values())
 	if err != nil {
 		return "", err
 	}
 	return buffer.String(), nil
 }
 
-func (k *keyer) Send(index int, values KeyerValues) error {
-	message, err := k.GetText(index, values)
+func (k *keyer) Send(index int) error {
+	message, err := k.GetText(index)
 	if err != nil {
 		return err
 	}

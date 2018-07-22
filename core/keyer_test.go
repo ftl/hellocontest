@@ -14,24 +14,26 @@ func TestTemplateHandling(t *testing.T) {
 	patterns := []string{"{{.MyCall}}", "{{.TheirCall}}", "{{.MyNumber}}", "{{.MyReport}}"}
 	expected := []string{"DL1ABC", "DL0ZZZ", "456", "123"}
 	myCall, _ := callsign.Parse("DL1ABC")
-	values := KeyerValues{
-		MyCall:    myCall,
-		TheirCall: "DL0ZZZ",
-		MyNumber:  QSONumber(456),
-		MyReport:  RST("123"),
+	values := func() KeyerValues {
+		return KeyerValues{
+			MyCall:    myCall,
+			TheirCall: "DL0ZZZ",
+			MyNumber:  QSONumber(456),
+			MyReport:  RST("123"),
+		}
 	}
 
-	keyer, err := NewKeyer(patterns, new(mockCWClient))
+	keyer, err := NewKeyer(patterns, new(mockCWClient), values)
 	require.NoError(t, err)
 
 	for i, pattern := range patterns {
 		assert.Equal(t, pattern, keyer.GetTemplate(i))
-		actual, err := keyer.GetText(i, values)
+		actual, err := keyer.GetText(i)
 		require.NoError(t, err)
 		assert.Equal(t, expected[i], actual)
 
 		keyer.SetTemplate(i, fmt.Sprintf("%s %d", patterns[i], i))
-		actual, err = keyer.GetText(i, values)
+		actual, err = keyer.GetText(i)
 		require.NoError(t, err)
 		assert.Equal(t, fmt.Sprintf("%s %d", expected[i], i), actual)
 	}
@@ -40,19 +42,21 @@ func TestTemplateHandling(t *testing.T) {
 func TestSend(t *testing.T) {
 	patterns := []string{"{{.MyCall}} {{.TheirCall}} {{.MyNumber}} {{.MyReport}}"}
 	myCall, _ := callsign.Parse("DL1ABC")
-	values := KeyerValues{
-		MyCall:    myCall,
-		TheirCall: "DL0ZZZ",
-		MyNumber:  QSONumber(456),
-		MyReport:  RST("123"),
+	values := func() KeyerValues {
+		return KeyerValues{
+			MyCall:    myCall,
+			TheirCall: "DL0ZZZ",
+			MyNumber:  QSONumber(456),
+			MyReport:  RST("123"),
+		}
 	}
 	cwClient := new(mockCWClient)
 	cwClient.On("Send", mock.Anything).Once()
 
-	keyer, err := NewKeyer(patterns, cwClient)
+	keyer, err := NewKeyer(patterns, cwClient, values)
 	require.NoError(t, err)
 
-	keyer.Send(0, values)
+	keyer.Send(0)
 
 	cwClient.AssertExpectations(t)
 }

@@ -16,15 +16,21 @@ type KeyerValues struct {
 	MyReport  RST
 }
 
+// CWClient defines the interface used by the Keyer to output the CW.
+type CWClient interface {
+	Send(text string)
+}
+
 // Keyer represents the component that sends prepared CW texts using text/templates.
 type Keyer interface {
 	SetTemplate(index int, pattern string) error
 	GetTemplate(index int) string
-	GetText(index int, values KeyerValues) string
+	GetText(index int, values KeyerValues) (string, error)
+	Send(index int, values KeyerValues) error
 }
 
 // NewKeyer returns a new Keyer that provides len(patterns) templates, based on the given patterns.
-func NewKeyer(patterns []string) (Keyer, error) {
+func NewKeyer(patterns []string, client CWClient) (Keyer, error) {
 	templates := make([]*template.Template, len(patterns))
 	for i, pattern := range patterns {
 		name := fmt.Sprintf("%d", i)
@@ -34,12 +40,13 @@ func NewKeyer(patterns []string) (Keyer, error) {
 			return nil, err
 		}
 	}
-	return &keyer{patterns, templates}, nil
+	return &keyer{patterns, templates, client}, nil
 }
 
 type keyer struct {
 	patterns  []string
 	templates []*template.Template
+	client    CWClient
 }
 
 func (k *keyer) SetTemplate(index int, pattern string) error {
@@ -52,8 +59,20 @@ func (k *keyer) GetTemplate(index int) string {
 	return k.patterns[index]
 }
 
-func (k *keyer) GetText(index int, values KeyerValues) string {
+func (k *keyer) GetText(index int, values KeyerValues) (string, error) {
 	buffer := bytes.NewBufferString("")
-	k.templates[index].Execute(buffer, values)
-	return buffer.String()
+	err := k.templates[index].Execute(buffer, values)
+	if err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
+func (k *keyer) Send(index int, values KeyerValues) error {
+	message, err := k.GetText(index, values)
+	if err != nil {
+		return err
+	}
+	k.client.Send(message)
+	return nil
 }

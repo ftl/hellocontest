@@ -17,7 +17,7 @@ Copyright [Florian Thienel](http://thecodingflow.com/)
 To generate the Go-code related to Protobuf, use the following command:
 
 ```
-protoc --go_out . ./pb/log.proto
+go generate ./...
 ```
 
 This will generate the Go-code into the packge `pb`.

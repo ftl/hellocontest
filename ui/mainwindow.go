@@ -88,7 +88,7 @@ func setupStyleProvider() *gtk.CssProvider {
 		log.Fatalf("Cannot create CSS provider: %v", err)
 	}
 	provider.LoadFromData(`
-		.duplicate {background-color: #FFDFDF;}
+		.duplicate {background-color: #FF0000; color: #FFFFFF;}
 	`)
 	return provider
 }

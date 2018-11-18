@@ -25,6 +25,8 @@ type mainWindow struct {
 	resetButton *gtk.Button
 	errorLabel  *gtk.Label
 
+	menuFileQuit *gtk.MenuItem
+
 	qsoList *gtk.ListStore
 
 	ignoreComboChange bool
@@ -41,6 +43,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.window = getUI(builder, "mainWindow").(*gtk.ApplicationWindow)
 	result.window.SetApplication(application)
 	result.window.SetDefaultSize(500, 500)
+
+	result.menuFileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
 	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
@@ -70,6 +74,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.qsoList = setupQsoView(getUI(builder, "qsoView").(*gtk.TreeView))
 
 	result.addStyleProvider(&result.myNumber.Widget)
+
+	result.menuFileQuit.Connect("activate", result.onQuit)
 
 	return result
 }
@@ -177,6 +183,14 @@ func (w *mainWindow) addEntryTraversal(entry *gtk.Entry) {
 	entry.Connect("key_press_event", w.onEntryKeyPress)
 	entry.Connect("focus_in_event", w.onEntryFocusIn)
 	entry.Connect("focus_out_event", w.onEntryFocusOut)
+}
+
+func (w *mainWindow) onQuit() {
+	if app, err := w.window.GetApplication(); err != nil {
+		log.Printf("Cannot quit application: %v", err)
+	} else {
+		app.Quit()
+	}
 }
 
 func (w *mainWindow) onEntryKeyPress(widget interface{}, event *gdk.Event) bool {

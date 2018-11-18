@@ -27,6 +27,7 @@ type mainWindow struct {
 
 	menuFileQuit *gtk.MenuItem
 
+	qsoView *gtk.TreeView
 	qsoList *gtk.ListStore
 
 	ignoreComboChange bool
@@ -71,7 +72,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 
 	setupBandCombo(result.band)
 	setupModeCombo(result.mode)
-	result.qsoList = setupQsoView(getUI(builder, "qsoView").(*gtk.TreeView))
+	result.qsoView = getUI(builder, "qsoView").(*gtk.TreeView)
+	result.qsoList = setupQsoView(result.qsoView)
 
 	result.addStyleProvider(&result.myNumber.Widget)
 
@@ -452,4 +454,9 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 	if err != nil {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)
 	}
+	path, err := w.qsoList.GetPath(newRow)
+	if err != nil {
+		log.Printf("Cannot get path for list item: %s", err)
+	}
+	w.qsoView.SetCursorOnCell(path, w.qsoView.GetColumn(1), nil, false)
 }

@@ -60,3 +60,24 @@ const (
 	MyNumberField
 	OtherField
 )
+
+// AppController controls the main functions of the application.
+type AppController interface {
+	Startup()
+
+	SetView(AppView)
+	SetLogView(LogView)
+	SetEntryView(EntryView)
+
+	New()
+	Open()
+	SaveAs()
+}
+
+// AppView represents the visual parts of the main application.
+type AppView interface {
+	SetAppController(AppController)
+
+	SelectFile() (string, error)
+	ShowErrorMessage(error)
+}

@@ -12,13 +12,13 @@ import (
 
 // NewController returns a new EntryController.
 func NewController(clock core.Clock, log core.Log) core.EntryController {
-	return &entryController{
+	return &controller{
 		clock: clock,
 		log:   log,
 	}
 }
 
-type entryController struct {
+type controller struct {
 	clock        core.Clock
 	log          core.Log
 	view         core.EntryView
@@ -27,13 +27,13 @@ type entryController struct {
 	selectedMode core.Mode
 }
 
-func (c *entryController) SetView(view core.EntryView) {
+func (c *controller) SetView(view core.EntryView) {
 	c.view = view
 	c.view.SetEntryController(c)
 	c.Reset()
 }
 
-func (c *entryController) GotoNextField() core.EntryField {
+func (c *controller) GotoNextField() core.EntryField {
 	switch c.activeField {
 	case core.CallsignField:
 		c.leaveCallsignField()
@@ -51,7 +51,7 @@ func (c *entryController) GotoNextField() core.EntryField {
 	return c.activeField
 }
 
-func (c *entryController) leaveCallsignField() {
+func (c *controller) leaveCallsignField() {
 	callsign, err := callsign.Parse(c.view.GetCallsign())
 	if err != nil {
 		fmt.Println(err)
@@ -73,29 +73,29 @@ func (c *entryController) leaveCallsignField() {
 	c.view.SetDuplicateMarker(true)
 }
 
-func (c *entryController) GetActiveField() core.EntryField {
+func (c *controller) GetActiveField() core.EntryField {
 	return c.activeField
 }
 
-func (c *entryController) SetActiveField(field core.EntryField) {
+func (c *controller) SetActiveField(field core.EntryField) {
 	c.activeField = field
 }
 
-func (c *entryController) BandSelected(s string) {
+func (c *controller) BandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
 		logger.Printf("Band selected: %v", band)
 		c.selectedBand = band
 	}
 }
 
-func (c *entryController) ModeSelected(s string) {
+func (c *controller) ModeSelected(s string) {
 	if mode, err := parse.Mode(s); err == nil {
 		logger.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
 	}
 }
 
-func (c *entryController) Log() {
+func (c *controller) Log() {
 	var err error
 	qso := core.QSO{}
 	qso.Callsign, err = callsign.Parse(c.view.GetCallsign())
@@ -153,13 +153,13 @@ func (c *entryController) Log() {
 	c.Reset()
 }
 
-func (c *entryController) showErrorOnField(err error, field core.EntryField) {
+func (c *controller) showErrorOnField(err error, field core.EntryField) {
 	c.activeField = field
 	c.view.SetActiveField(c.activeField)
 	c.view.ShowError(err)
 }
 
-func (c *entryController) Reset() {
+func (c *controller) Reset() {
 	nextNumber := c.log.GetNextNumber()
 	c.activeField = core.CallsignField
 	c.view.SetCallsign("")

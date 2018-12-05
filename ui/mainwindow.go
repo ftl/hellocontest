@@ -25,15 +25,19 @@ type mainWindow struct {
 	resetButton *gtk.Button
 	errorLabel  *gtk.Label
 
-	menuFileQuit *gtk.MenuItem
+	menuFileNew    *gtk.MenuItem
+	menuFileOpen   *gtk.MenuItem
+	menuFileSaveAs *gtk.MenuItem
+	menuFileQuit   *gtk.MenuItem
 
 	qsoView *gtk.TreeView
 	qsoList *gtk.ListStore
 
 	ignoreComboChange bool
 
-	entry core.EntryController
 	log   core.Log
+	app   core.AppController
+	entry core.EntryController
 }
 
 func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWindow {
@@ -45,6 +49,9 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.window.SetApplication(application)
 	result.window.SetDefaultSize(500, 500)
 
+	result.menuFileNew = getUI(builder, "menuFileNew").(*gtk.MenuItem)
+	result.menuFileOpen = getUI(builder, "menuFileOpen").(*gtk.MenuItem)
+	result.menuFileSaveAs = getUI(builder, "menuFileSaveAs").(*gtk.MenuItem)
 	result.menuFileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
@@ -77,6 +84,9 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 
 	result.addStyleProvider(&result.myNumber.Widget)
 
+	result.menuFileNew.Connect("activate", result.onNew)
+	result.menuFileOpen.Connect("activate", result.onOpen)
+	result.menuFileSaveAs.Connect("activate", result.onSaveAs)
 	result.menuFileQuit.Connect("activate", result.onQuit)
 
 	return result
@@ -185,6 +195,18 @@ func (w *mainWindow) addEntryTraversal(entry *gtk.Entry) {
 	entry.Connect("key_press_event", w.onEntryKeyPress)
 	entry.Connect("focus_in_event", w.onEntryFocusIn)
 	entry.Connect("focus_out_event", w.onEntryFocusOut)
+}
+
+func (w *mainWindow) onNew() {
+	w.app.New()
+}
+
+func (w *mainWindow) onOpen() {
+	w.app.Open()
+}
+
+func (w *mainWindow) onSaveAs() {
+	w.app.SaveAs()
 }
 
 func (w *mainWindow) onQuit() {
@@ -459,4 +481,16 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 		log.Printf("Cannot get path for list item: %s", err)
 	}
 	w.qsoView.SetCursorOnCell(path, w.qsoView.GetColumn(1), nil, false)
+}
+
+func (w *mainWindow) SetAppController(app core.AppController) {
+	w.app = app
+}
+
+func (w *mainWindow) SelectFile() (string, error) {
+	return "current.log", nil
+}
+
+func (w *mainWindow) ShowErrorMessage(err error) {
+	log.Printf("%v", err)
 }

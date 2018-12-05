@@ -4,10 +4,8 @@ import (
 	logger "log"
 
 	"github.com/ftl/hellocontest/core"
+	coreapp "github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/clock"
-	"github.com/ftl/hellocontest/core/entry"
-	"github.com/ftl/hellocontest/core/log"
-	"github.com/ftl/hellocontest/core/store"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -34,9 +32,7 @@ type application struct {
 	builder    *gtk.Builder
 	mainWindow *mainWindow
 	clock      core.Clock
-	log        core.Log
-	entry      core.EntryController
-	store      core.Store
+	controller core.AppController
 }
 
 func (app *application) startup() {
@@ -49,13 +45,11 @@ func (app *application) activate() {
 	app.mainWindow.Show()
 
 	app.clock = clock.New()
-	app.store = store.New("current.log")
-	app.log = app.loadLog()
-	app.log.OnRowAdded(app.store.Write)
-	app.entry = entry.NewController(app.clock, app.log)
-
-	app.log.SetView(app.mainWindow)
-	app.entry.SetView(app.mainWindow)
+	app.controller = coreapp.NewController(app.clock)
+	app.controller.Startup()
+	app.controller.SetView(app.mainWindow)
+	app.controller.SetLogView(app.mainWindow)
+	app.controller.SetEntryView(app.mainWindow)
 }
 
 func (app *application) shutdown() {
@@ -70,12 +64,4 @@ func setupBuilder() *gtk.Builder {
 	builder.AddFromFile("ui/glade/contest.glade")
 
 	return builder
-}
-
-func (app *application) loadLog() core.Log {
-	log, err := log.Load(app.clock, app.store)
-	if err != nil {
-		panic(err)
-	}
-	return log
 }

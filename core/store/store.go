@@ -1,4 +1,4 @@
-package core
+package store
 
 import (
 	"bufio"
@@ -11,18 +11,14 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/parse"
 	"github.com/ftl/hellocontest/pb"
 	"github.com/golang/protobuf/proto"
 )
 
-// Store allows to read and write log entries.
-type Store interface {
-	Reader
-	Writer
-}
-
-// NewFileStore returns a new file based Store.
-func NewFileStore(filename string) Store {
+// New returns a new file based Store.
+func New(filename string) core.Store {
 	return &fileStore{filename}
 }
 
@@ -30,15 +26,15 @@ type fileStore struct {
 	filename string
 }
 
-func (f *fileStore) ReadAll() ([]QSO, error) {
+func (f *fileStore) ReadAll() ([]core.QSO, error) {
 	b, err := ioutil.ReadFile(f.filename)
 	if err != nil {
-		return []QSO{}, err
+		return []core.QSO{}, err
 	}
 
 	reader := bytes.NewReader(b)
 	bufferedReader := bufio.NewReader(reader)
-	qsos := []QSO{}
+	qsos := []core.QSO{}
 	for {
 		qso, err := read(bufferedReader)
 		if err == io.EOF {
@@ -51,54 +47,54 @@ func (f *fileStore) ReadAll() ([]QSO, error) {
 	}
 }
 
-func read(reader *bufio.Reader) (QSO, error) {
+func read(reader *bufio.Reader) (core.QSO, error) {
 	var length int32
 	err := binary.Read(reader, binary.LittleEndian, &length)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
 
 	b := make([]byte, length)
 	_, err = io.ReadFull(reader, b)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
 
 	pbQSO := &pb.QSO{}
 	err = proto.Unmarshal(b, pbQSO)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
 
-	qso := QSO{}
+	qso := core.QSO{}
 	qso.Callsign, err = callsign.Parse(pbQSO.Callsign)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
 	qso.Time = time.Unix(pbQSO.Timestamp, 0)
-	qso.Band, err = ParseBand(pbQSO.Band)
+	qso.Band, err = parse.Band(pbQSO.Band)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
-	qso.Mode, err = ParseMode(pbQSO.Mode)
+	qso.Mode, err = parse.Mode(pbQSO.Mode)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
-	qso.MyReport, err = ParseRST(pbQSO.MyReport)
+	qso.MyReport, err = parse.RST(pbQSO.MyReport)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
-	qso.MyNumber = QSONumber(pbQSO.MyNumber)
-	qso.TheirReport, err = ParseRST(pbQSO.TheirReport)
+	qso.MyNumber = core.QSONumber(pbQSO.MyNumber)
+	qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
 	if err != nil {
-		return QSO{}, err
+		return core.QSO{}, err
 	}
-	qso.TheirNumber = QSONumber(pbQSO.TheirNumber)
+	qso.TheirNumber = core.QSONumber(pbQSO.TheirNumber)
 	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
 	return qso, nil
 }
 
-func (f *fileStore) Write(qso QSO) error {
+func (f *fileStore) Write(qso core.QSO) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -107,7 +103,7 @@ func (f *fileStore) Write(qso QSO) error {
 	return write(file, qso)
 }
 
-func write(writer io.Writer, qso QSO) error {
+func write(writer io.Writer, qso core.QSO) error {
 	pbQSO := &pb.QSO{
 		Callsign:     qso.Callsign.String(),
 		Timestamp:    qso.Time.Unix(),

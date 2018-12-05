@@ -1,9 +1,13 @@
 package ui
 
 import (
-	"log"
+	logger "log"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/clock"
+	"github.com/ftl/hellocontest/core/entry"
+	"github.com/ftl/hellocontest/core/log"
+	"github.com/ftl/hellocontest/core/store"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -14,7 +18,7 @@ func Run(args []string) {
 	app := &application{id: "ft.hellocontest"}
 	app.app, err = gtk.ApplicationNew(app.id, glib.APPLICATION_FLAGS_NONE)
 	if err != nil {
-		log.Fatal("Cannot create application: ", err)
+		logger.Fatal("Cannot create application: ", err)
 	}
 
 	app.app.Connect("startup", app.startup)
@@ -44,12 +48,12 @@ func (app *application) activate() {
 	app.mainWindow = setupMainWindow(app.builder, app.app)
 	app.mainWindow.Show()
 
-	app.clock = core.NewClock()
-	app.store = core.NewFileStore("current.log")
+	app.clock = clock.New()
+	app.store = store.New("current.log")
 	app.log = loadLog(app)
 	app.log.SetView(app.mainWindow)
 	app.log.OnRowAdded(app.store.Write)
-	app.entry = core.NewEntryController(app.clock, app.log)
+	app.entry = entry.NewController(app.clock, app.log)
 	app.entry.SetView(app.mainWindow)
 }
 
@@ -59,7 +63,7 @@ func (app *application) shutdown() {
 func setupBuilder() *gtk.Builder {
 	builder, err := gtk.BuilderNew()
 	if err != nil {
-		log.Fatal("Cannot create builder: ", err)
+		logger.Fatal("Cannot create builder: ", err)
 	}
 
 	builder.AddFromFile("ui/glade/contest.glade")
@@ -68,7 +72,7 @@ func setupBuilder() *gtk.Builder {
 }
 
 func loadLog(app *application) core.Log {
-	log, err := core.LoadLog(app.clock, app.store)
+	log, err := log.Load(app.clock, app.store)
 	if err != nil {
 		panic(err)
 	}

@@ -1,39 +1,15 @@
-package core
+package keyer
 
 import (
 	"bytes"
 	"fmt"
 	"text/template"
 
-	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hellocontest/core"
 )
 
-// KeyerValues contains the values that can be used as variables in the keyer templates.
-type KeyerValues struct {
-	MyCall    callsign.Callsign
-	TheirCall string
-	MyNumber  QSONumber
-	MyReport  RST
-}
-
-// KeyerValueProvider provides the variable values for the Keyer templates on demand.
-type KeyerValueProvider func() KeyerValues
-
-// CWClient defines the interface used by the Keyer to output the CW.
-type CWClient interface {
-	Send(text string)
-}
-
-// Keyer represents the component that sends prepared CW texts using text/templates.
-type Keyer interface {
-	SetTemplate(index int, pattern string) error
-	GetTemplate(index int) string
-	GetText(index int) (string, error)
-	Send(index int) error
-}
-
-// NewKeyer returns a new Keyer that provides len(patterns) templates, based on the given patterns.
-func NewKeyer(patterns []string, client CWClient, values KeyerValueProvider) (Keyer, error) {
+// New returns a new Keyer that provides len(patterns) templates, based on the given patterns.
+func New(patterns []string, client core.CWClient, values core.KeyerValueProvider) (core.Keyer, error) {
 	templates := make([]*template.Template, len(patterns))
 	for i, pattern := range patterns {
 		name := fmt.Sprintf("%d", i)
@@ -49,8 +25,8 @@ func NewKeyer(patterns []string, client CWClient, values KeyerValueProvider) (Ke
 type keyer struct {
 	patterns  []string
 	templates []*template.Template
-	client    CWClient
-	values    KeyerValueProvider
+	client    core.CWClient
+	values    core.KeyerValueProvider
 }
 
 func (k *keyer) SetTemplate(index int, pattern string) error {

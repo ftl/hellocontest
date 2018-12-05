@@ -7,64 +7,6 @@ import (
 	"github.com/ftl/hamradio/callsign"
 )
 
-// Clock represents a source of the current time.
-type Clock interface {
-	Now() time.Time
-}
-
-// EntryController controls the entry of QSO data.
-type EntryController interface {
-	SetView(EntryView)
-
-	GotoNextField() EntryField
-	GetActiveField() EntryField
-	SetActiveField(EntryField)
-
-	BandSelected(string)
-	ModeSelected(string)
-
-	Log()
-	Reset()
-}
-
-// EntryView represents the visual part of the QSO data entry.
-type EntryView interface {
-	SetEntryController(EntryController)
-
-	GetCallsign() string
-	SetCallsign(string)
-	GetTheirReport() string
-	SetTheirReport(string)
-	GetTheirNumber() string
-	SetTheirNumber(string)
-	GetBand() string
-	SetBand(text string)
-	GetMode() string
-	SetMode(text string)
-	GetMyReport() string
-	SetMyReport(string)
-	GetMyNumber() string
-	SetMyNumber(string)
-
-	SetActiveField(EntryField)
-	SetDuplicateMarker(bool)
-	ShowError(error)
-	ClearError()
-}
-
-// EntryField represents an entry field in the visual part.
-type EntryField int
-
-// The entry fields.
-const (
-	CallsignField EntryField = iota
-	TheirReportField
-	TheirNumberField
-	MyReportField
-	MyNumberField
-	OtherField
-)
-
 // Log describes the functionality of the log component.
 type Log interface {
 	SetView(LogView)
@@ -74,14 +16,6 @@ type Log interface {
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
 	GetQsosByMyNumber() []QSO
-}
-
-// LogView represents the visual part of the log.
-type LogView interface {
-	SetLog(Log)
-
-	UpdateAllRows([]QSO)
-	RowAdded(QSO)
 }
 
 // Reader reads log entries.
@@ -179,6 +113,11 @@ type QSONumber int
 
 func (nr *QSONumber) String() string {
 	return fmt.Sprintf("%03d", *nr)
+}
+
+// Clock represents a source of the current time.
+type Clock interface {
+	Now() time.Time
 }
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.

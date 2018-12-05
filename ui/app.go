@@ -50,10 +50,11 @@ func (app *application) activate() {
 
 	app.clock = clock.New()
 	app.store = store.New("current.log")
-	app.log = loadLog(app)
-	app.log.SetView(app.mainWindow)
+	app.log = app.loadLog()
 	app.log.OnRowAdded(app.store.Write)
 	app.entry = entry.NewController(app.clock, app.log)
+
+	app.log.SetView(app.mainWindow)
 	app.entry.SetView(app.mainWindow)
 }
 
@@ -71,7 +72,7 @@ func setupBuilder() *gtk.Builder {
 	return builder
 }
 
-func loadLog(app *application) core.Log {
+func (app *application) loadLog() core.Log {
 	log, err := log.Load(app.clock, app.store)
 	if err != nil {
 		panic(err)

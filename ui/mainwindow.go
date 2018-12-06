@@ -1,13 +1,16 @@
 package ui
 
 import (
+	"fmt"
 	"log"
+	"path/filepath"
 	"time"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/pkg/errors"
 )
 
 type mainWindow struct {
@@ -487,8 +490,62 @@ func (w *mainWindow) SetAppController(app core.AppController) {
 	w.app = app
 }
 
-func (w *mainWindow) SelectFile() (string, error) {
-	return "current.log", nil
+func (w *mainWindow) ShowFilename(filename string) {
+	w.window.SetTitle(fmt.Sprintf("Hello Contest %s", filepath.Base(filename)))
+}
+
+func (w *mainWindow) SelectOpenFile(title string, patterns ...string) (string, bool, error) {
+	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_OPEN, "Open", gtk.RESPONSE_ACCEPT)
+	if err != nil {
+		errors.Wrap(err, "cannot create a file selection dialog to open a file")
+	}
+	defer dlg.Destroy()
+
+	if len(patterns) > 0 {
+		filter, err := gtk.FileFilterNew()
+		if err != nil {
+			return "", false, errors.Wrap(err, "cannot create a file selection dialog to open a file")
+		}
+		for _, pattern := range patterns {
+			filter.AddPattern(pattern)
+		}
+		dlg.SetFilter(filter)
+	}
+
+	result := dlg.Run()
+	if result != int(gtk.RESPONSE_ACCEPT) {
+		return "", false, nil
+	}
+
+	return dlg.GetFilename(), true, nil
+}
+
+func (w *mainWindow) SelectSaveFile(title string, patterns ...string) (string, bool, error) {
+	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_SAVE, "Save", gtk.RESPONSE_ACCEPT)
+	if err != nil {
+		return "", false, errors.Wrap(err, "cannot create a file selection dialog to save a file")
+	}
+	defer dlg.Destroy()
+
+	dlg.SetDoOverwriteConfirmation(true)
+
+	if len(patterns) > 0 {
+		filter, err := gtk.FileFilterNew()
+		if err != nil {
+			return "", false, errors.Wrap(err, "cannot create a file selection dialog to save a file")
+		}
+		for _, pattern := range patterns {
+			filter.AddPattern(pattern)
+		}
+		dlg.SetFilter(filter)
+	}
+
+	result := dlg.Run()
+	if result != int(gtk.RESPONSE_ACCEPT) {
+		return "", false, nil
+	}
+
+	return dlg.GetFilename(), true, nil
 }
 
 func (w *mainWindow) ShowErrorMessage(format string, a ...interface{}) {

@@ -17,6 +17,8 @@ func NewController(clock core.Clock) core.AppController {
 type controller struct {
 	view core.AppView
 
+	filename string
+
 	clock core.Clock
 	log   core.Log
 	store core.Store
@@ -29,17 +31,19 @@ type controller struct {
 func (c *controller) SetView(view core.AppView) {
 	c.view = view
 	c.view.SetAppController(c)
+	c.view.ShowFilename(c.filename)
 }
 
 func (c *controller) Startup() {
 	var err error
-	c.store = store.New("current.log")
+	c.filename = "current.log"
+
+	c.store = store.New(c.filename)
 	c.log, err = log.Load(c.clock, c.store)
 	if err != nil {
 		c.log = log.New(c.clock)
 	}
 	c.log.OnRowAdded(c.store.Write)
-
 	c.entry = entry.NewController(c.clock, c.log)
 }
 
@@ -54,7 +58,24 @@ func (c *controller) SetEntryView(view core.EntryView) {
 }
 
 func (c *controller) New() {
-	c.view.ShowErrorMessage("Creating a new log is not yet implemented.")
+	filename, ok, err := c.view.SelectSaveFile("New Logfile", "*.log")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorMessage("Cannot select a file: %v", err)
+		return
+	}
+
+	c.filename = filename
+	c.store = store.New(c.filename)
+	c.log = log.New(c.clock)
+	c.log.OnRowAdded(c.store.Write)
+	c.entry = entry.NewController(c.clock, c.log)
+
+	c.view.ShowFilename(c.filename)
+	c.log.SetView(c.logView)
+	c.entry.SetView(c.entryView)
 }
 
 func (c *controller) Open() {

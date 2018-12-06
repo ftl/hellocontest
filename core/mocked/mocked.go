@@ -22,6 +22,10 @@ func (m *Log) OnRowAdded(listener core.RowAddedListener) {
 	m.Called(listener)
 }
 
+func (m *Log) ClearRowAddedListeners() {
+	m.Called()
+}
+
 func (m *Log) GetNextNumber() core.QSONumber {
 	args := m.Called()
 	return args.Get(0).(core.QSONumber)
@@ -39,6 +43,11 @@ func (m *Log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 func (m *Log) GetQsosByMyNumber() []core.QSO {
 	args := m.Called()
 	return args.Get(0).([]core.QSO)
+}
+
+func (m *Log) WriteAll(writer core.Writer) error {
+	args := m.Called(writer)
+	return args.Error(0)
 }
 
 type LogView struct {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
+	"github.com/pkg/errors"
 )
 
 // New creates a new empty log.
@@ -65,6 +66,10 @@ func (l *log) OnRowAdded(listener core.RowAddedListener) {
 	l.rowAddedListeners = append(l.rowAddedListeners, listener)
 }
 
+func (l *log) ClearRowAddedListeners() {
+	l.rowAddedListeners = make([]core.RowAddedListener, 0)
+}
+
 func (l *log) emitRowAdded(qso core.QSO) {
 	for _, listener := range l.rowAddedListeners {
 		err := listener(qso)
@@ -107,6 +112,16 @@ func (l *log) GetQsosByMyNumber() []core.QSO {
 		return l.qsos[i].MyNumber < l.qsos[j].MyNumber
 	})
 	return result
+}
+
+func (l *log) WriteAll(writer core.Writer) error {
+	for _, qso := range l.qsos {
+		err := writer.Write(qso)
+		if err != nil {
+			return errors.Wrapf(err, "cannot write QSO %v", qso)
+		}
+	}
+	return nil
 }
 
 type nullLogView struct{}

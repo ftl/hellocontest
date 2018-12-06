@@ -109,5 +109,26 @@ func (c *controller) Open() {
 }
 
 func (c *controller) SaveAs() {
-	c.view.ShowErrorMessage("Saving a log under another name is not yet implemented.")
+	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", "*.log")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorMessage("Cannot select a file: %v", err)
+		return
+	}
+
+	store := store.New(filename)
+	err = c.log.WriteAll(store)
+	if err != nil {
+		c.view.ShowErrorMessage("Cannot save as %s: %v", filepath.Base(filename), err)
+		return
+	}
+
+	c.log.ClearRowAddedListeners()
+	c.filename = filename
+	c.store = store
+	c.log.OnRowAdded(c.store.Write)
+
+	c.view.ShowFilename(c.filename)
 }

@@ -11,11 +11,13 @@ import (
 type Log interface {
 	SetView(LogView)
 	OnRowAdded(RowAddedListener)
+	ClearRowAddedListeners()
 
 	GetNextNumber() QSONumber
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
 	GetQsosByMyNumber() []QSO
+	WriteAll(Writer) error
 }
 
 // Reader reads log entries.

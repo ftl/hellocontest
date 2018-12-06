@@ -1,6 +1,8 @@
 package app
 
 import (
+	"path/filepath"
+
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/log"
@@ -79,7 +81,31 @@ func (c *controller) New() {
 }
 
 func (c *controller) Open() {
-	c.view.ShowErrorMessage("Opening a log is not yet implemented.")
+	filename, ok, err := c.view.SelectOpenFile("Open Logfile", "*.log")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorMessage("Cannot select a file: %v", err)
+		return
+	}
+
+	store := store.New(filename)
+	log, err := log.Load(c.clock, store)
+	if err != nil {
+		c.view.ShowErrorMessage("Cannot open %s: %v", filepath.Base(filename), err)
+		return
+	}
+
+	c.filename = filename
+	c.store = store
+	c.log = log
+	c.log.OnRowAdded(c.store.Write)
+	c.entry = entry.NewController(c.clock, c.log)
+
+	c.view.ShowFilename(c.filename)
+	c.log.SetView(c.logView)
+	c.entry.SetView(c.entryView)
 }
 
 func (c *controller) SaveAs() {

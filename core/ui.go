@@ -79,5 +79,6 @@ type AppView interface {
 	SetAppController(AppController)
 
 	SelectFile() (string, error)
-	ShowErrorMessage(error)
+	ShowMessage(string, ...interface{})
+	ShowErrorMessage(string, ...interface{})
 }

@@ -491,6 +491,14 @@ func (w *mainWindow) SelectFile() (string, error) {
 	return "current.log", nil
 }
 
-func (w *mainWindow) ShowErrorMessage(err error) {
-	log.Printf("%v", err)
+func (w *mainWindow) ShowErrorMessage(format string, a ...interface{}) {
+	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, format, a...)
+	defer dlg.Destroy()
+	dlg.Run()
+}
+
+func (w *mainWindow) ShowMessage(format string, a ...interface{}) {
+	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_OK, format, a...)
+	defer dlg.Destroy()
+	dlg.Run()
 }

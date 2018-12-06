@@ -1,8 +1,6 @@
 package app
 
 import (
-	"github.com/pkg/errors"
-
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/log"
@@ -56,13 +54,13 @@ func (c *controller) SetEntryView(view core.EntryView) {
 }
 
 func (c *controller) New() {
-	c.view.ShowErrorMessage(errors.New("creating a new log is not yet implemented"))
+	c.view.ShowErrorMessage("Creating a new log is not yet implemented.")
 }
 
 func (c *controller) Open() {
-	c.view.ShowErrorMessage(errors.New("opening a log is not yet implemented"))
+	c.view.ShowErrorMessage("Opening a log is not yet implemented.")
 }
 
 func (c *controller) SaveAs() {
-	c.view.ShowErrorMessage(errors.New("saving a log under another name is not yet implemented"))
+	c.view.ShowErrorMessage("Saving a log under another name is not yet implemented.")
 }

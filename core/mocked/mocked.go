@@ -110,6 +110,15 @@ func (m *EntryView) SetTheirNumber(number string) {
 	m.Called(number)
 }
 
+func (m *EntryView) GetTheirXchange() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *EntryView) SetTheirXchange(xchange string) {
+	m.Called(xchange)
+}
+
 func (m *EntryView) GetBand() string {
 	args := m.Called()
 	return args.String(0)
@@ -144,6 +153,15 @@ func (m *EntryView) GetMyNumber() string {
 
 func (m *EntryView) SetMyNumber(number string) {
 	m.Called(number)
+}
+
+func (m *EntryView) GetMyXchange() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *EntryView) SetMyXchange(xchange string) {
+	m.Called(xchange)
 }
 
 func (m *EntryView) SetActiveField(field core.EntryField) {

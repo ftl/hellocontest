@@ -179,8 +179,8 @@ func (c *controller) Reset() {
 	c.activeField = core.CallsignField
 	c.view.SetCallsign("")
 	if c.selectedMode == core.ModeSSB {
-		c.view.SetTheirReport("59")
 		c.view.SetMyReport("59")
+		c.view.SetTheirReport("59")
 	} else {
 		c.view.SetMyReport("599")
 		c.view.SetTheirReport("599")

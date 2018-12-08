@@ -95,6 +95,14 @@ func (c *controller) ModeSelected(s string) {
 	if mode, err := parse.Mode(s); err == nil {
 		logger.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
+
+		if c.selectedMode == core.ModeSSB {
+			c.view.SetTheirReport("59")
+			c.view.SetMyReport("59")
+		} else {
+			c.view.SetMyReport("599")
+			c.view.SetTheirReport("599")
+		}
 	}
 }
 
@@ -170,7 +178,13 @@ func (c *controller) Reset() {
 	nextNumber := c.log.GetNextNumber()
 	c.activeField = core.CallsignField
 	c.view.SetCallsign("")
-	c.view.SetTheirReport("599")
+	if c.selectedMode == core.ModeSSB {
+		c.view.SetTheirReport("59")
+		c.view.SetMyReport("59")
+	} else {
+		c.view.SetMyReport("599")
+		c.view.SetTheirReport("599")
+	}
 	c.view.SetTheirNumber("")
 	c.view.SetTheirXchange("")
 	if c.selectedBand != core.NoBand {
@@ -179,7 +193,6 @@ func (c *controller) Reset() {
 	if c.selectedMode != core.NoMode {
 		c.view.SetMode(c.selectedMode.String())
 	}
-	c.view.SetMyReport("599")
 	c.view.SetMyNumber(nextNumber.String())
 	c.view.SetActiveField(c.activeField)
 	c.view.SetDuplicateMarker(false)

@@ -51,8 +51,10 @@ type QSO struct {
 	Mode         Mode
 	MyReport     RST
 	MyNumber     QSONumber
+	MyXchange    string
 	TheirReport  RST
 	TheirNumber  QSONumber
+	TheirXchange string
 	LogTimestamp time.Time
 }
 

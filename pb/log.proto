@@ -11,4 +11,6 @@ message QSO {
     string their_report = 7;
     int32 their_number = 8;
     int64 log_timestamp = 9;
+    string my_xchange = 10;
+    string their_xchange = 11;
 }

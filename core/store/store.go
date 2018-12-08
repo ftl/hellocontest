@@ -85,11 +85,13 @@ func read(reader *bufio.Reader) (core.QSO, error) {
 		return core.QSO{}, err
 	}
 	qso.MyNumber = core.QSONumber(pbQSO.MyNumber)
+	qso.MyXchange = pbQSO.MyXchange
 	qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
 	if err != nil {
 		return core.QSO{}, err
 	}
 	qso.TheirNumber = core.QSONumber(pbQSO.TheirNumber)
+	qso.TheirXchange = pbQSO.TheirXchange
 	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
 	return qso, nil
 }
@@ -111,8 +113,10 @@ func write(writer io.Writer, qso core.QSO) error {
 		Mode:         qso.Mode.String(),
 		MyReport:     qso.MyReport.String(),
 		MyNumber:     int32(qso.MyNumber),
+		MyXchange:    qso.MyXchange,
 		TheirReport:  qso.TheirReport.String(),
 		TheirNumber:  int32(qso.TheirNumber),
+		TheirXchange: qso.TheirXchange,
 		LogTimestamp: qso.LogTimestamp.Unix(),
 	}
 

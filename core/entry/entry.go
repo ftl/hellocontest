@@ -40,11 +40,12 @@ func (c *controller) GotoNextField() core.EntryField {
 	}
 
 	transitions := map[core.EntryField]core.EntryField{
-		core.CallsignField:    core.TheirReportField,
-		core.TheirReportField: core.TheirNumberField,
-		core.TheirNumberField: core.CallsignField,
-		core.MyReportField:    core.CallsignField,
-		core.MyNumberField:    core.CallsignField,
+		core.CallsignField:     core.TheirReportField,
+		core.TheirReportField:  core.TheirNumberField,
+		core.TheirNumberField:  core.TheirXchangeField,
+		core.TheirXchangeField: core.CallsignField,
+		core.MyReportField:     core.CallsignField,
+		core.MyNumberField:     core.CallsignField,
 	}
 	c.activeField = transitions[c.activeField]
 	c.view.SetActiveField(c.activeField)
@@ -68,8 +69,10 @@ func (c *controller) leaveCallsignField() {
 	c.view.SetMode(string(qso.Mode))
 	c.view.SetTheirReport(string(qso.TheirReport))
 	c.view.SetTheirNumber(qso.TheirNumber.String())
+	c.view.SetTheirXchange(qso.TheirXchange)
 	c.view.SetMyReport(string(qso.MyReport))
 	c.view.SetMyNumber(qso.MyNumber.String())
+	c.view.SetMyXchange(qso.MyXchange)
 	c.view.SetDuplicateMarker(true)
 }
 
@@ -130,6 +133,8 @@ func (c *controller) Log() {
 	}
 	qso.TheirNumber = core.QSONumber(theirNumber)
 
+	qso.TheirXchange = c.view.GetTheirXchange()
+
 	qso.MyReport, err = parse.RST(c.view.GetMyReport())
 	if err != nil {
 		c.showErrorOnField(err, core.MyReportField)
@@ -142,6 +147,8 @@ func (c *controller) Log() {
 		return
 	}
 	qso.MyNumber = core.QSONumber(myNumber)
+
+	qso.MyXchange = c.view.GetMyXchange()
 
 	duplicateQso, duplicate := c.log.Find(qso.Callsign)
 	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
@@ -165,6 +172,7 @@ func (c *controller) Reset() {
 	c.view.SetCallsign("")
 	c.view.SetTheirReport("599")
 	c.view.SetTheirNumber("")
+	c.view.SetTheirXchange("")
 	if c.selectedBand != core.NoBand {
 		c.view.SetBand(c.selectedBand.String())
 	}

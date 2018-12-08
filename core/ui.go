@@ -33,6 +33,8 @@ type EntryView interface {
 	SetTheirReport(string)
 	GetTheirNumber() string
 	SetTheirNumber(string)
+	GetTheirXchange() string
+	SetTheirXchange(string)
 	GetBand() string
 	SetBand(text string)
 	GetMode() string
@@ -41,6 +43,8 @@ type EntryView interface {
 	SetMyReport(string)
 	GetMyNumber() string
 	SetMyNumber(string)
+	GetMyXchange() string
+	SetMyXchange(string)
 
 	SetActiveField(EntryField)
 	SetDuplicateMarker(bool)
@@ -56,8 +60,10 @@ const (
 	CallsignField EntryField = iota
 	TheirReportField
 	TheirNumberField
+	TheirXchangeField
 	MyReportField
 	MyNumberField
+	MyXchangeField
 	OtherField
 )
 

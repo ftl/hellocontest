@@ -4,6 +4,7 @@
   <requires lib="gtk+" version="3.12"/>
   <object class="GtkApplicationWindow" id="mainWindow">
     <property name="can_focus">False</property>
+    <property name="hexpand">True</property>
     <property name="title" translatable="yes">Hello Contest</property>
     <child>
       <placeholder/>
@@ -100,6 +101,7 @@
         </child>
         <child>
           <object class="GtkScrolledWindow" id="qsoViewContainer">
+            <property name="width_request">555</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="shadow_type">in</property>
@@ -153,8 +155,8 @@
           <object class="GtkGrid" id="entryGrid">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">3</property>
-            <property name="margin_right">3</property>
+            <property name="margin_left">4</property>
+            <property name="margin_right">4</property>
             <property name="margin_top">5</property>
             <property name="margin_bottom">5</property>
             <property name="row_spacing">5</property>
@@ -163,7 +165,6 @@
               <object class="GtkLabel" id="label2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="xpad">3</property>
                 <property name="label" translatable="yes">their</property>
                 <property name="width_chars">6</property>
                 <property name="xalign">0</property>
@@ -217,24 +218,13 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="logButton">
-                <property name="label" translatable="yes">Log</property>
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="left_attach">5</property>
-                <property name="top_attach">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkEntry" id="myReportEntry">
                 <property name="name">myReportEntry</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="max_length">3</property>
                 <property name="width_chars">3</property>
+                <property name="max_width_chars">3</property>
                 <property name="placeholder_text" translatable="yes">RST</property>
                 <property name="input_purpose">digits</property>
                 <accelerator key="r" signal="grab-focus" modifiers="GDK_CONTROL_MASK"/>
@@ -260,22 +250,9 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="resetButton">
-                <property name="label" translatable="yes">Reset</property>
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="left_attach">5</property>
-                <property name="top_attach">0</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="xpad">3</property>
                 <property name="label" translatable="yes">my</property>
                 <property name="ellipsize">start</property>
                 <property name="width_chars">6</property>
@@ -290,14 +267,13 @@
               <object class="GtkLabel" id="errorLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="xpad">3</property>
                 <property name="label" translatable="yes">Fehler</property>
                 <property name="xalign">0</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
                 <property name="top_attach">2</property>
-                <property name="width">6</property>
+                <property name="width">7</property>
               </packing>
             </child>
             <child>
@@ -322,6 +298,56 @@
                 <property name="top_attach">0</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkButton" id="resetButton">
+                <property name="label" translatable="yes">Reset</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="receives_default">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">6</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="logButton">
+                <property name="label" translatable="yes">Log</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="receives_default">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">6</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="myXchangeEntry">
+                <property name="name">myXchangeEntry</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">6</property>
+                <property name="placeholder_text" translatable="yes">XChg</property>
+              </object>
+              <packing>
+                <property name="left_attach">5</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="theirXchangeEntry">
+                <property name="name">theirXchangeEntry</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="width_chars">6</property>
+                <property name="placeholder_text" translatable="yes">XChg</property>
+              </object>
+              <packing>
+                <property name="left_attach">5</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -333,8 +359,8 @@
           <object class="GtkGrid" id="keyerGrid">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="margin_left">3</property>
-            <property name="margin_right">3</property>
+            <property name="margin_left">4</property>
+            <property name="margin_right">4</property>
             <property name="margin_top">5</property>
             <property name="margin_bottom">5</property>
             <property name="row_spacing">2</property>

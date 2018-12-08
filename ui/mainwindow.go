@@ -16,17 +16,19 @@ import (
 type mainWindow struct {
 	styleProvider *gtk.CssProvider
 
-	window      *gtk.ApplicationWindow
-	callsign    *gtk.Entry
-	theirReport *gtk.Entry
-	theirNumber *gtk.Entry
-	band        *gtk.ComboBoxText
-	mode        *gtk.ComboBoxText
-	myReport    *gtk.Entry
-	myNumber    *gtk.Entry
-	logButton   *gtk.Button
-	resetButton *gtk.Button
-	errorLabel  *gtk.Label
+	window       *gtk.ApplicationWindow
+	callsign     *gtk.Entry
+	theirReport  *gtk.Entry
+	theirNumber  *gtk.Entry
+	theirXchange *gtk.Entry
+	band         *gtk.ComboBoxText
+	mode         *gtk.ComboBoxText
+	myReport     *gtk.Entry
+	myNumber     *gtk.Entry
+	myXchange    *gtk.Entry
+	logButton    *gtk.Button
+	resetButton  *gtk.Button
+	errorLabel   *gtk.Label
 
 	menuFileNew    *gtk.MenuItem
 	menuFileOpen   *gtk.MenuItem
@@ -60,10 +62,12 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
 	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
 	result.theirNumber = getUI(builder, "theirNumberEntry").(*gtk.Entry)
+	result.theirXchange = getUI(builder, "theirXchangeEntry").(*gtk.Entry)
 	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
 	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
 	result.myReport = getUI(builder, "myReportEntry").(*gtk.Entry)
 	result.myNumber = getUI(builder, "myNumberEntry").(*gtk.Entry)
+	result.myXchange = getUI(builder, "myXchangeEntry").(*gtk.Entry)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.resetButton = getUI(builder, "resetButton").(*gtk.Button)
 	result.errorLabel = getUI(builder, "errorLabel").(*gtk.Label)
@@ -71,8 +75,10 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.addEntryTraversal(result.callsign)
 	result.addEntryTraversal(result.theirReport)
 	result.addEntryTraversal(result.theirNumber)
+	result.addEntryTraversal(result.theirXchange)
 	result.addEntryTraversal(result.myReport)
 	result.addEntryTraversal(result.myNumber)
+	result.addEntryTraversal(result.myXchange)
 	result.addOtherWidgetTraversal(&result.band.Widget)
 	result.band.Connect("changed", result.onBandChanged)
 	result.addOtherWidgetTraversal(&result.mode.Widget)
@@ -159,8 +165,10 @@ const (
 	qsoColumnMode
 	qsoColumnMyReport
 	qsoColumnMyNumber
+	qsoColumnMyXchange
 	qsoColumnTheirReport
 	qsoColumnTheirNumber
+	qsoColumnTheirXchange
 )
 
 func setupQsoView(qsoView *gtk.TreeView) *gtk.ListStore {
@@ -170,10 +178,12 @@ func setupQsoView(qsoView *gtk.TreeView) *gtk.ListStore {
 	qsoView.AppendColumn(createColumn("Mode", qsoColumnMode))
 	qsoView.AppendColumn(createColumn("My RST", qsoColumnMyReport))
 	qsoView.AppendColumn(createColumn("My #", qsoColumnMyNumber))
+	qsoView.AppendColumn(createColumn("My XChg", qsoColumnMyXchange))
 	qsoView.AppendColumn(createColumn("Th RST", qsoColumnTheirReport))
 	qsoView.AppendColumn(createColumn("Th #", qsoColumnTheirNumber))
+	qsoView.AppendColumn(createColumn("Th XChg", qsoColumnTheirXchange))
 
-	qsoList, err := gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)
+	qsoList, err := gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)
 	if err != nil {
 		log.Fatalf("Cannot create QSO list store: %v", err)
 	}
@@ -339,6 +349,18 @@ func (w *mainWindow) SetTheirNumber(text string) {
 	w.theirNumber.SetText(text)
 }
 
+func (w *mainWindow) GetTheirXchange() string {
+	text, err := w.theirXchange.GetText()
+	if err != nil {
+		log.Printf("Error getting text: %v", err)
+	}
+	return text
+}
+
+func (w *mainWindow) SetTheirXchange(text string) {
+	w.theirXchange.SetText(text)
+}
+
 func (w *mainWindow) GetBand() string {
 	return w.band.GetActiveText()
 }
@@ -383,6 +405,18 @@ func (w *mainWindow) SetMyNumber(text string) {
 	w.myNumber.SetText(text)
 }
 
+func (w *mainWindow) GetMyXchange() string {
+	text, err := w.myXchange.GetText()
+	if err != nil {
+		log.Printf("Error getting text: %v", err)
+	}
+	return text
+}
+
+func (w *mainWindow) SetMyXchange(text string) {
+	w.myXchange.SetText(text)
+}
+
 func (w *mainWindow) SetActiveField(field core.EntryField) {
 	entry := w.fieldToEntry(field)
 	entry.GrabFocus()
@@ -396,10 +430,14 @@ func (w *mainWindow) fieldToEntry(field core.EntryField) *gtk.Entry {
 		return w.theirReport
 	case core.TheirNumberField:
 		return w.theirNumber
+	case core.TheirXchangeField:
+		return w.theirXchange
 	case core.MyReportField:
 		return w.myReport
 	case core.MyNumberField:
 		return w.myNumber
+	case core.MyXchangeField:
+		return w.myXchange
 	case core.OtherField:
 		return w.callsign
 	default:
@@ -417,10 +455,14 @@ func (w *mainWindow) entryToField(entry *gtk.Entry) core.EntryField {
 		return core.TheirReportField
 	case "theirNumberEntry":
 		return core.TheirNumberField
+	case "theirXchangeEntry":
+		return core.TheirXchangeField
 	case "myReportEntry":
 		return core.MyReportField
 	case "myNumberEntry":
 		return core.MyNumberField
+	case "myXchangeEntry":
+		return core.MyXchangeField
 	default:
 		return core.OtherField
 	}
@@ -463,8 +505,10 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 			qsoColumnMode,
 			qsoColumnMyReport,
 			qsoColumnMyNumber,
+			qsoColumnMyXchange,
 			qsoColumnTheirReport,
 			qsoColumnTheirNumber,
+			qsoColumnTheirXchange,
 		},
 		[]interface{}{
 			qso.Time.In(time.UTC).Format("15:04"),
@@ -473,8 +517,10 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 			qso.Mode.String(),
 			qso.MyReport.String(),
 			qso.MyNumber.String(),
+			qso.MyXchange,
 			qso.TheirReport.String(),
 			qso.TheirNumber.String(),
+			qso.TheirXchange,
 		})
 	if err != nil {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)

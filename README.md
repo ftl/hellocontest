@@ -13,6 +13,17 @@ Copyright [Florian Thienel](http://thecodingflow.com/)
 
 ## Build
 
+### gtk+3.0
+To build the software on your system with the gotk3 library, you need to set a tag with the version number of gtk+3.0 that is installed on your system:
+
+```
+# find out the version number
+pkg-config --modversion gtk+-3.0
+
+# build hellocontest (example for gtk+ 3.22.30)
+go build -tags gtk_3_22
+```
+
 ### Protobuf
 To generate the Go-code related to Protobuf, use the following command:
 

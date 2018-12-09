@@ -11,7 +11,7 @@ startup
 
 new
 - should ask for a filename
-- should create an empty log
+- should overwrite, if the file already exists
 - should update the log view
 - should connect the entry view to the new log
 
@@ -24,6 +24,9 @@ open
 
 save as
 - should ask for a filename
+- should clear the new file
+- should overwrite, if the file already exists
+- should write all existing QSOs from the log to the file
 - should append new QSOs to the selected file
 
 */

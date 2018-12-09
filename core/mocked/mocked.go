@@ -50,6 +50,36 @@ func (m *Log) WriteAll(writer core.Writer) error {
 	return args.Error(0)
 }
 
+type AppView struct {
+	mock.Mock
+}
+
+func (m *AppView) SetAppController(controller core.AppController) {
+	m.Called(controller)
+}
+
+func (m *AppView) ShowFilename(filename string) {
+	m.Called(filename)
+}
+
+func (m *AppView) SelectOpenFile(title string, patterns ...string) (string, bool, error) {
+	args := m.Called(title, patterns)
+	return args.String(0), args.Bool(1), args.Error(2)
+}
+
+func (m *AppView) SelectSaveFile(title string, patterns ...string) (string, bool, error) {
+	args := m.Called(title, patterns)
+	return args.String(0), args.Bool(1), args.Error(2)
+}
+
+func (m *AppView) ShowMessage(format string, args ...interface{}) {
+	m.Called(format, args)
+}
+
+func (m *AppView) ShowErrorMessage(format string, args ...interface{}) {
+	m.Called(format, args)
+}
+
 type LogView struct {
 	mock.Mock
 }

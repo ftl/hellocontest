@@ -68,9 +68,15 @@ func (c *controller) New() {
 		c.view.ShowErrorMessage("Cannot select a file: %v", err)
 		return
 	}
+	store := store.New(filename)
+	err = store.Clear()
+	if err != nil {
+		c.view.ShowErrorMessage("Cannot create %s: %v", filepath.Base(filename), err)
+		return
+	}
 
 	c.filename = filename
-	c.store = store.New(c.filename)
+	c.store = store
 	c.log = log.New(c.clock)
 	c.log.OnRowAdded(c.store.Write)
 	c.entry = entry.NewController(c.clock, c.log)
@@ -119,6 +125,11 @@ func (c *controller) SaveAs() {
 	}
 
 	store := store.New(filename)
+	err = store.Clear()
+	if err != nil {
+		c.view.ShowErrorMessage("Cannot create %s: %v", filepath.Base(filename), err)
+		return
+	}
 	err = c.log.WriteAll(store)
 	if err != nil {
 		c.view.ShowErrorMessage("Cannot save as %s: %v", filepath.Base(filename), err)

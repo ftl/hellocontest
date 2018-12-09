@@ -34,6 +34,7 @@ type Writer interface {
 type Store interface {
 	Reader
 	Writer
+	Clear() error
 }
 
 // RowAddedListener is notified when a new row is added to the log.

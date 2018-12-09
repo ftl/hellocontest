@@ -139,3 +139,11 @@ func write(writer io.Writer, qso core.QSO) error {
 	logger.Printf("QSO written: %s", qso.String())
 	return nil
 }
+
+func (f *fileStore) Clear() error {
+	file, err := os.Create(f.filename)
+	if err != nil {
+		return err
+	}
+	return file.Sync()
+}

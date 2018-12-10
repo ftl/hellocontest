@@ -202,8 +202,8 @@ func (m *EntryView) SetDuplicateMarker(active bool) {
 	m.Called(active)
 }
 
-func (m *EntryView) ShowMessage(err error) {
-	m.Called(err)
+func (m *EntryView) ShowMessage(args ...interface{}) {
+	m.Called(args)
 }
 
 func (m *EntryView) ClearMessage() {

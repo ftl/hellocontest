@@ -282,6 +282,31 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 	log.AssertNotCalled(t, "Log", mock.Anything)
 }
 
+func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing.T) {
+	clock, log, view, controller := setupEntryTest()
+
+	dl1ab, _ := callsign.Parse("DL1AB")
+	dl1abc, _ := callsign.Parse("DL1ABC")
+	qso := core.QSO{
+		Callsign:    dl1ab,
+		Time:        clock.Now(),
+		TheirReport: core.RST("559"),
+		TheirNumber: 12,
+		MyReport:    core.RST("579"),
+		MyNumber:    12,
+	}
+
+	log.On("Find", dl1ab).Once().Return(qso, true)
+	view.On("ShowMessage", mock.Anything).Once()
+	controller.EnterCallsign("DL1AB")
+	view.AssertExpectations(t)
+
+	log.On("Find", dl1abc).Once().Return(qso, false)
+	view.On("ClearMessage").Once()
+	controller.EnterCallsign("DL1ABC")
+	view.AssertExpectations(t)
+}
+
 // Helpers
 
 func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, core.EntryController) {

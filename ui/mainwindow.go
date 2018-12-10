@@ -70,7 +70,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.myXchange = getUI(builder, "myXchangeEntry").(*gtk.Entry)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.resetButton = getUI(builder, "resetButton").(*gtk.Button)
-	result.messageLabel = getUI(builder, "errorLabel").(*gtk.Label)
+	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
 
 	result.addEntryTraversal(result.callsign)
 	result.addEntryTraversal(result.theirReport)
@@ -79,6 +79,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.addEntryTraversal(result.myReport)
 	result.addEntryTraversal(result.myNumber)
 	result.addEntryTraversal(result.myXchange)
+	result.callsign.Connect("changed", result.onCallsignChanged)
 	result.addOtherWidgetTraversal(&result.band.Widget)
 	result.band.Connect("changed", result.onBandChanged)
 	result.addOtherWidgetTraversal(&result.mode.Widget)
@@ -281,6 +282,18 @@ func (w *mainWindow) onOtherWidgetKeyPress(widget interface{}, event *gdk.Event)
 	}
 }
 
+func (w *mainWindow) onCallsignChanged(widget *gtk.Entry) bool {
+	if w.entry == nil {
+		return false
+	}
+	callsign, err := widget.GetText()
+	if err != nil {
+		return false
+	}
+	w.entry.EnterCallsign(callsign)
+	return false
+}
+
 func (w *mainWindow) onBandChanged(widget *gtk.ComboBoxText) bool {
 	if w.entry != nil && !w.ignoreComboChange {
 		w.entry.BandSelected(widget.GetActiveText())
@@ -476,8 +489,8 @@ func (w *mainWindow) SetDuplicateMarker(duplicate bool) {
 	}
 }
 
-func (w *mainWindow) ShowMessage(err error) {
-	w.messageLabel.SetText(err.Error())
+func (w *mainWindow) ShowMessage(args ...interface{}) {
+	w.messageLabel.SetText(fmt.Sprint(args...))
 }
 
 func (w *mainWindow) ClearMessage() {

@@ -106,6 +106,21 @@ func (c *controller) ModeSelected(s string) {
 	}
 }
 
+func (c *controller) EnterCallsign(s string) {
+	callsign, err := callsign.Parse(s)
+	if err != nil {
+		return
+	}
+
+	qso, found := c.log.Find(callsign)
+	if !found {
+		c.view.ClearMessage()
+		return
+	}
+
+	c.view.ShowMessage(fmt.Sprintf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()))
+}
+
 func (c *controller) Log() {
 	var err error
 	qso := core.QSO{}

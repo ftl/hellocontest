@@ -18,6 +18,7 @@ type EntryController interface {
 
 	BandSelected(string)
 	ModeSelected(string)
+	EnterCallsign(string)
 
 	Log()
 	Reset()
@@ -48,7 +49,7 @@ type EntryView interface {
 
 	SetActiveField(EntryField)
 	SetDuplicateMarker(bool)
-	ShowMessage(error)
+	ShowMessage(...interface{})
 	ClearMessage()
 }
 

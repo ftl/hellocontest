@@ -93,14 +93,16 @@ type Mode string
 
 // All relevant modes.
 const (
-	NoMode   Mode = ""
-	ModeCW   Mode = "CW"
-	ModeSSB  Mode = "SSB"
-	ModeRTTY Mode = "RTTY"
+	NoMode      Mode = ""
+	ModeCW      Mode = "CW"
+	ModeSSB     Mode = "SSB"
+	ModeFM      Mode = "FM"
+	ModeRTTY    Mode = "RTTY"
+	ModeDigital Mode = "DIGI"
 )
 
 // Modes are all relevant modes.
-var Modes = []Mode{ModeCW, ModeSSB, ModeRTTY}
+var Modes = []Mode{ModeCW, ModeSSB, ModeFM, ModeRTTY, ModeDigital}
 
 func (mode *Mode) String() string {
 	return string(*mode)

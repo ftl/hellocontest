@@ -118,13 +118,13 @@ func (c *controller) Log() {
 
 	qso.Band, err = parse.Band(c.view.GetBand())
 	if err != nil {
-		c.view.ShowError(err)
+		c.view.ShowMessage(err)
 		return
 	}
 
 	qso.Mode, err = parse.Mode(c.view.GetMode())
 	if err != nil {
-		c.view.ShowError(err)
+		c.view.ShowMessage(err)
 		return
 	}
 
@@ -171,7 +171,7 @@ func (c *controller) Log() {
 func (c *controller) showErrorOnField(err error, field core.EntryField) {
 	c.activeField = field
 	c.view.SetActiveField(c.activeField)
-	c.view.ShowError(err)
+	c.view.ShowMessage(err)
 }
 
 func (c *controller) Reset() {
@@ -196,5 +196,5 @@ func (c *controller) Reset() {
 	c.view.SetMyNumber(nextNumber.String())
 	c.view.SetActiveField(c.activeField)
 	c.view.SetDuplicateMarker(false)
-	c.view.ClearError()
+	c.view.ClearMessage()
 }

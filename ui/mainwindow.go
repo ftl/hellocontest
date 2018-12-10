@@ -28,7 +28,7 @@ type mainWindow struct {
 	myXchange    *gtk.Entry
 	logButton    *gtk.Button
 	resetButton  *gtk.Button
-	errorLabel   *gtk.Label
+	messageLabel *gtk.Label
 
 	menuFileNew    *gtk.MenuItem
 	menuFileOpen   *gtk.MenuItem
@@ -70,7 +70,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.myXchange = getUI(builder, "myXchangeEntry").(*gtk.Entry)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.resetButton = getUI(builder, "resetButton").(*gtk.Button)
-	result.errorLabel = getUI(builder, "errorLabel").(*gtk.Label)
+	result.messageLabel = getUI(builder, "errorLabel").(*gtk.Label)
 
 	result.addEntryTraversal(result.callsign)
 	result.addEntryTraversal(result.theirReport)
@@ -476,12 +476,12 @@ func (w *mainWindow) SetDuplicateMarker(duplicate bool) {
 	}
 }
 
-func (w *mainWindow) ShowError(err error) {
-	w.errorLabel.SetText(err.Error())
+func (w *mainWindow) ShowMessage(err error) {
+	w.messageLabel.SetText(err.Error())
 }
 
-func (w *mainWindow) ClearError() {
-	w.errorLabel.SetText("")
+func (w *mainWindow) ClearMessage() {
+	w.messageLabel.SetText("")
 }
 
 func (w *mainWindow) SetLog(log core.Log) {
@@ -594,14 +594,14 @@ func (w *mainWindow) SelectSaveFile(title string, patterns ...string) (string, b
 	return dlg.GetFilename(), true, nil
 }
 
-func (w *mainWindow) ShowErrorMessage(format string, a ...interface{}) {
-	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, format, a...)
+func (w *mainWindow) ShowInfoDialog(format string, a ...interface{}) {
+	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()
 	dlg.Run()
 }
 
-func (w *mainWindow) ShowMessage(format string, a ...interface{}) {
-	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_OK, format, a...)
+func (w *mainWindow) ShowErrorDialog(format string, a ...interface{}) {
+	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()
 	dlg.Run()
 }

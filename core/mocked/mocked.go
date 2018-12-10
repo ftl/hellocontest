@@ -72,11 +72,11 @@ func (m *AppView) SelectSaveFile(title string, patterns ...string) (string, bool
 	return args.String(0), args.Bool(1), args.Error(2)
 }
 
-func (m *AppView) ShowMessage(format string, args ...interface{}) {
+func (m *AppView) ShowInfoDialog(format string, args ...interface{}) {
 	m.Called(format, args)
 }
 
-func (m *AppView) ShowErrorMessage(format string, args ...interface{}) {
+func (m *AppView) ShowErrorDialog(format string, args ...interface{}) {
 	m.Called(format, args)
 }
 
@@ -202,11 +202,11 @@ func (m *EntryView) SetDuplicateMarker(active bool) {
 	m.Called(active)
 }
 
-func (m *EntryView) ShowError(err error) {
+func (m *EntryView) ShowMessage(err error) {
 	m.Called(err)
 }
 
-func (m *EntryView) ClearError() {
+func (m *EntryView) ClearMessage() {
 	m.Called()
 }
 

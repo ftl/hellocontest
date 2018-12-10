@@ -48,8 +48,8 @@ type EntryView interface {
 
 	SetActiveField(EntryField)
 	SetDuplicateMarker(bool)
-	ShowError(error)
-	ClearError()
+	ShowMessage(error)
+	ClearMessage()
 }
 
 // EntryField represents an entry field in the visual part.
@@ -88,6 +88,6 @@ type AppView interface {
 	SelectOpenFile(string, ...string) (string, bool, error)
 	SelectSaveFile(string, ...string) (string, bool, error)
 
-	ShowMessage(string, ...interface{})
-	ShowErrorMessage(string, ...interface{})
+	ShowInfoDialog(string, ...interface{})
+	ShowErrorDialog(string, ...interface{})
 }

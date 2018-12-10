@@ -65,13 +65,13 @@ func (c *controller) New() {
 		return
 	}
 	if err != nil {
-		c.view.ShowErrorMessage("Cannot select a file: %v", err)
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
 		return
 	}
 	store := store.New(filename)
 	err = store.Clear()
 	if err != nil {
-		c.view.ShowErrorMessage("Cannot create %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
 		return
 	}
 
@@ -92,14 +92,14 @@ func (c *controller) Open() {
 		return
 	}
 	if err != nil {
-		c.view.ShowErrorMessage("Cannot select a file: %v", err)
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
 		return
 	}
 
 	store := store.New(filename)
 	log, err := log.Load(c.clock, store)
 	if err != nil {
-		c.view.ShowErrorMessage("Cannot open %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot open %s: %v", filepath.Base(filename), err)
 		return
 	}
 
@@ -120,19 +120,19 @@ func (c *controller) SaveAs() {
 		return
 	}
 	if err != nil {
-		c.view.ShowErrorMessage("Cannot select a file: %v", err)
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
 		return
 	}
 
 	store := store.New(filename)
 	err = store.Clear()
 	if err != nil {
-		c.view.ShowErrorMessage("Cannot create %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
 		return
 	}
 	err = c.log.WriteAll(store)
 	if err != nil {
-		c.view.ShowErrorMessage("Cannot save as %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
 		return
 	}
 

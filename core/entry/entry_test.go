@@ -24,7 +24,7 @@ func TestEntryController_Reset(t *testing.T) {
 	view.On("SetTheirXchange", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
-	view.On("ClearError").Once()
+	view.On("ClearMessage").Once()
 
 	controller.Reset()
 
@@ -45,7 +45,7 @@ func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
 	view.On("SetTheirXchange", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
-	view.On("ClearError").Once()
+	view.On("ClearMessage").Once()
 
 	controller.BandSelected("30m")
 	controller.ModeSelected("RTTY")
@@ -173,7 +173,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	view.On("SetTheirXchange", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
-	view.On("ClearError").Once()
+	view.On("ClearMessage").Once()
 
 	controller.Log()
 
@@ -186,7 +186,7 @@ func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 
 	view.On("GetCallsign").Once().Return("DL")
 	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("ShowError", mock.Anything).Once()
+	view.On("ShowMessage", mock.Anything).Once()
 
 	controller.Log()
 
@@ -203,7 +203,7 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("000")
 	view.On("SetActiveField", core.TheirReportField).Once()
-	view.On("ShowError", mock.Anything).Once()
+	view.On("ShowMessage", mock.Anything).Once()
 
 	controller.Log()
 
@@ -221,7 +221,7 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	view.On("GetTheirReport").Once().Return("559")
 	view.On("GetTheirNumber").Once().Return("abc")
 	view.On("SetActiveField", core.TheirNumberField).Once()
-	view.On("ShowError", mock.Anything).Once()
+	view.On("ShowMessage", mock.Anything).Once()
 
 	controller.Log()
 
@@ -241,7 +241,7 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	view.On("GetTheirXchange").Once().Return("")
 	view.On("GetMyReport").Once().Return("000")
 	view.On("SetActiveField", core.MyReportField).Once()
-	view.On("ShowError", mock.Anything).Once()
+	view.On("ShowMessage", mock.Anything).Once()
 
 	controller.Log()
 
@@ -274,7 +274,7 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 	view.On("GetMyNumber").Once().Return("013")
 	view.On("GetMyXchange").Once().Return("")
 	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("ShowError", mock.Anything).Once()
+	view.On("ShowMessage", mock.Anything).Once()
 
 	controller.Log()
 
@@ -301,7 +301,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, core.EntryCon
 	view.On("SetTheirXchange", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
-	view.On("ClearError").Once()
+	view.On("ClearMessage").Once()
 	controller.SetView(view)
 
 	return clock, log, view, controller

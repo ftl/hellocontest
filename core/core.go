@@ -122,6 +122,29 @@ func (nr *QSONumber) String() string {
 	return fmt.Sprintf("%03d", *nr)
 }
 
+// Exchanger extracts the exchanged data (mine or their) from the given QSO.
+type Exchanger func(QSO) string
+
+// MyNumber extracts MyNumber as exchange from the given QSO.
+func MyNumber(qso QSO) string {
+	return qso.MyNumber.String()
+}
+
+// MyXchange extracts MyXchange as exchange from the given QSO.
+func MyXchange(qso QSO) string {
+	return qso.MyXchange
+}
+
+// TheirNumber extracts TheirNumber as exchange from the given QSO.
+func TheirNumber(qso QSO) string {
+	return qso.TheirNumber.String()
+}
+
+// TheirXchange extracts TheirXchange as exchange from the given QSO.
+func TheirXchange(qso QSO) string {
+	return qso.TheirXchange
+}
+
 // Clock represents a source of the current time.
 type Clock interface {
 	Now() time.Time

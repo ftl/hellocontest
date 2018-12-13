@@ -26,7 +26,7 @@ func (m *Log) ClearRowAddedListeners() {
 	m.Called()
 }
 
-func (m *Log) GetNextNumber() core.QSONumber {
+func (m *Log) NextNumber() core.QSONumber {
 	args := m.Called()
 	return args.Get(0).(core.QSONumber)
 }
@@ -40,7 +40,7 @@ func (m *Log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 	return args.Get(0).(core.QSO), args.Bool(1)
 }
 
-func (m *Log) GetQsosByMyNumber() []core.QSO {
+func (m *Log) QsosOrderedByMyNumber() []core.QSO {
 	args := m.Called()
 	return args.Get(0).([]core.QSO)
 }

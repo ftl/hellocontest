@@ -190,7 +190,7 @@ func (c *controller) showErrorOnField(err error, field core.EntryField) {
 }
 
 func (c *controller) Reset() {
-	nextNumber := c.log.GetNextNumber()
+	nextNumber := c.log.NextNumber()
 	c.activeField = core.CallsignField
 	c.view.SetCallsign("")
 	if c.selectedMode == core.ModeSSB {

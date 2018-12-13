@@ -13,10 +13,10 @@ type Log interface {
 	OnRowAdded(RowAddedListener)
 	ClearRowAddedListeners()
 
-	GetNextNumber() QSONumber
+	NextNumber() QSONumber
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
-	GetQsosByMyNumber() []QSO
+	QsosOrderedByMyNumber() []QSO
 	WriteAll(Writer) error
 }
 

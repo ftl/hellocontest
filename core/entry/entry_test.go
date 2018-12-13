@@ -15,7 +15,7 @@ import (
 func TestEntryController_Reset(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 
-	log.On("GetNextNumber").Once().Return(core.QSONumber(1))
+	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	view.On("SetMyReport", "599").Once()
 	view.On("SetMyNumber", "001").Once()
 	view.On("SetCallsign", "").Once()
@@ -34,7 +34,7 @@ func TestEntryController_Reset(t *testing.T) {
 func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 
-	log.On("GetNextNumber").Once().Return(core.QSONumber(1))
+	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	view.On("SetBand", "30m").Once()
 	view.On("SetMode", "RTTY").Once()
 	view.On("SetMyReport", "599").Twice()
@@ -154,7 +154,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	controller.GotoNextField()
 
 	log.On("Find", dl1abc).Once().Return(core.QSO{}, false)
-	log.On("GetNextNumber").Once().Return(core.QSONumber(1))
+	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	log.On("Log", qso).Once()
 	view.On("GetCallsign").Once().Return("DL1ABC")
 	view.On("GetBand").Once().Return("40m")
@@ -316,7 +316,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, core.EntryCon
 	view := new(mocked.EntryView)
 	controller := NewController(clock, log)
 
-	log.On("GetNextNumber").Once().Return(core.QSONumber(1))
+	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	view.On("SetEntryController", controller).Once()
 	view.On("SetCallsign", "").Once()
 	view.On("SetMyReport", "599").Once()

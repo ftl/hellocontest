@@ -15,8 +15,8 @@ import (
 func TestNew(t *testing.T) {
 	log := New(clock.New())
 
-	assert.Equal(t, core.QSONumber(1), log.GetNextNumber(), "next number of empty log should be 1")
-	assert.Empty(t, log.GetQsosByMyNumber(), "empty log should not contain any QSO")
+	assert.Equal(t, core.QSONumber(1), log.NextNumber(), "next number of empty log should be 1")
+	assert.Empty(t, log.QsosOrderedByMyNumber(), "empty log should not contain any QSO")
 }
 
 func TestLoad(t *testing.T) {
@@ -28,7 +28,7 @@ func TestLoad(t *testing.T) {
 	log, err := Load(clock.New(), reader)
 	require.NoError(t, err)
 
-	assert.Equal(t, core.QSONumber(124), log.GetNextNumber())
+	assert.Equal(t, core.QSONumber(124), log.NextNumber())
 }
 
 func TestLog_Log(t *testing.T) {
@@ -39,8 +39,8 @@ func TestLog_Log(t *testing.T) {
 	qso := core.QSO{MyNumber: 1}
 	log.Log(qso)
 
-	require.Equal(t, 1, len(log.GetQsosByMyNumber()), "after logging one QSO, the log should have one item")
-	loggedQso := log.GetQsosByMyNumber()[0]
+	require.Equal(t, 1, len(log.QsosOrderedByMyNumber()), "after logging one QSO, the log should have one item")
+	loggedQso := log.QsosOrderedByMyNumber()[0]
 	assert.Equal(t, now, loggedQso.LogTimestamp, "LogTimestamp is wrong")
 }
 
@@ -58,8 +58,8 @@ func TestLog_LogAgain(t *testing.T) {
 	qso.TheirNumber = 2
 	log.Log(qso)
 
-	require.Equal(t, 2, len(log.GetQsosByMyNumber()), "log should have two items")
-	lastQso := log.GetQsosByMyNumber()[1]
+	require.Equal(t, 2, len(log.QsosOrderedByMyNumber()), "log should have two items")
+	lastQso := log.QsosOrderedByMyNumber()[1]
 	assert.Equal(t, then, lastQso.LogTimestamp, "last item should have last timestamp")
 	assert.Equal(t, core.QSONumber(2), lastQso.TheirNumber, "last item should have latest data")
 }
@@ -86,7 +86,7 @@ func TestLog_GetNextNumber(t *testing.T) {
 	qso := core.QSO{MyNumber: 123}
 	log.Log(qso)
 
-	assert.Equal(t, core.QSONumber(124), log.GetNextNumber(), "next number should be the highest existing number + 1")
+	assert.Equal(t, core.QSONumber(124), log.NextNumber(), "next number should be the highest existing number + 1")
 }
 
 func TestLog_Find(t *testing.T) {

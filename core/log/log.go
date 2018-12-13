@@ -79,7 +79,7 @@ func (l *log) emitRowAdded(qso core.QSO) {
 	}
 }
 
-func (l *log) GetNextNumber() core.QSONumber {
+func (l *log) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
 }
 
@@ -102,7 +102,7 @@ func (l *log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 	return core.QSO{}, false
 }
 
-func (l *log) GetQsosByMyNumber() []core.QSO {
+func (l *log) QsosOrderedByMyNumber() []core.QSO {
 	result := make([]core.QSO, len(l.qsos))
 	copy(result, l.qsos)
 	sort.Slice(result, func(i, j int) bool {

@@ -3,6 +3,7 @@ package cabrillo
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
@@ -65,7 +66,7 @@ var mode = map[core.Mode]string{
 }
 
 func qsoLine(mycall callsign.Callsign, myExchange core.Exchanger, theirExchange core.Exchanger, qso core.QSO) string {
-	timestamp := qso.Time.Format("2006-01-02 1504")
+	timestamp := qso.Time.In(time.UTC).Format("2006-01-02 1504")
 	return fmt.Sprintf("QSO: %s %s %s %s %s %s %s %s %s",
 		qrg[qso.Band],
 		mode[qso.Mode],

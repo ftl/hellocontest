@@ -80,7 +80,7 @@ func TestLog_EmitRowAdded(t *testing.T) {
 	assert.True(t, emitted)
 }
 
-func TestLog_GetNextNumber(t *testing.T) {
+func TestLog_NextNumber(t *testing.T) {
 	log := New(clock.New())
 
 	qso := core.QSO{MyNumber: 123}
@@ -98,4 +98,25 @@ func TestLog_Find(t *testing.T) {
 	loggedQso, ok := log.Find(aa3b)
 	assert.True(t, ok, "qso found")
 	assert.Equal(t, aa3b, loggedQso.Callsign, "callsign")
+}
+
+func TestUnique(t *testing.T) {
+	c := clock.New()
+	log := New(c)
+	aa3b, _ := callsign.Parse("AA3B")
+	qso1 := core.QSO{
+		Callsign:     aa3b,
+		LogTimestamp: c.Now().Add(-10 * time.Minute),
+	}
+	log.Log(qso1)
+	qso2 := core.QSO{
+		Callsign:     aa3b,
+		LogTimestamp: c.Now(),
+	}
+	log.Log(qso2)
+
+	actual := unique([]core.QSO{qso1, qso2})
+
+	assert.Equal(t, 1, len(actual))
+	assert.Equal(t, qso2, actual[0])
 }

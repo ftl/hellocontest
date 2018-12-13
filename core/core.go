@@ -17,6 +17,7 @@ type Log interface {
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
 	QsosOrderedByMyNumber() []QSO
+	UniqueQsosOrderedByMyNumber() []QSO
 	WriteAll(Writer) error
 }
 

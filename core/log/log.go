@@ -103,14 +103,40 @@ func (l *log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 }
 
 func (l *log) QsosOrderedByMyNumber() []core.QSO {
-	result := make([]core.QSO, len(l.qsos))
-	copy(result, l.qsos)
+	return byMyNumber(l.qsos)
+}
+
+func (l *log) UniqueQsosOrderedByMyNumber() []core.QSO {
+	return byMyNumber(unique(l.qsos))
+}
+
+func byMyNumber(qsos []core.QSO) []core.QSO {
+	result := make([]core.QSO, len(qsos))
+	copy(result, qsos)
 	sort.Slice(result, func(i, j int) bool {
-		if l.qsos[i].MyNumber == l.qsos[j].MyNumber {
-			return l.qsos[i].LogTimestamp.Before(l.qsos[j].LogTimestamp)
+		if qsos[i].MyNumber == qsos[j].MyNumber {
+			return qsos[i].LogTimestamp.Before(qsos[j].LogTimestamp)
 		}
-		return l.qsos[i].MyNumber < l.qsos[j].MyNumber
+		return qsos[i].MyNumber < qsos[j].MyNumber
 	})
+	return result
+}
+
+func unique(qsos []core.QSO) []core.QSO {
+	result := make([]core.QSO, 0, len(qsos))
+	index := make(map[callsign.Callsign]int)
+	for _, qso := range qsos {
+		i, ok := index[qso.Callsign]
+		if !ok {
+			i = len(result)
+			result = append(result, qso)
+			index[qso.Callsign] = i
+			continue
+		}
+		if qso.LogTimestamp.After(result[i].LogTimestamp) {
+			result[i] = qso
+		}
+	}
 	return result
 }
 

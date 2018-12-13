@@ -45,6 +45,11 @@ func (m *Log) QsosOrderedByMyNumber() []core.QSO {
 	return args.Get(0).([]core.QSO)
 }
 
+func (m *Log) UniqueQsosOrderedByMyNumber() []core.QSO {
+	args := m.Called()
+	return args.Get(0).([]core.QSO)
+}
+
 func (m *Log) WriteAll(writer core.Writer) error {
 	args := m.Called(writer)
 	return args.Error(0)

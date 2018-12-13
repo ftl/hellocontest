@@ -5,6 +5,7 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	coreapp "github.com/ftl/hellocontest/core/app"
+	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -31,7 +32,6 @@ type application struct {
 	app        *gtk.Application
 	builder    *gtk.Builder
 	mainWindow *mainWindow
-	clock      core.Clock
 	controller core.AppController
 }
 
@@ -44,8 +44,8 @@ func (app *application) activate() {
 	app.mainWindow = setupMainWindow(app.builder, app.app)
 	app.mainWindow.Show()
 
-	app.clock = clock.New()
-	app.controller = coreapp.NewController(app.clock)
+	configuration, _ := cfg.Load()
+	app.controller = coreapp.NewController(clock.New(), configuration)
 	app.controller.Startup()
 	app.controller.SetView(app.mainWindow)
 	app.controller.SetLogView(app.mainWindow)

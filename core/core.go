@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/locator"
 )
 
 // Log describes the functionality of the log component.
@@ -149,6 +150,12 @@ func TheirXchange(qso QSO) string {
 // Clock represents a source of the current time.
 type Clock interface {
 	Now() time.Time
+}
+
+// Configuration provides read access to the configuration data.
+type Configuration interface {
+	MyCall() callsign.Callsign
+	MyLocator() locator.Locator
 }
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.

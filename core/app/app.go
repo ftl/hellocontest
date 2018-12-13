@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
@@ -13,9 +12,10 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(clock core.Clock) core.AppController {
+func NewController(clock core.Clock, configuration core.Configuration) core.AppController {
 	return &controller{
-		clock: clock,
+		clock:         clock,
+		configuration: configuration,
 	}
 }
 
@@ -24,10 +24,11 @@ type controller struct {
 
 	filename string
 
-	clock core.Clock
-	log   core.Log
-	store core.Store
-	entry core.EntryController
+	clock         core.Clock
+	configuration core.Configuration
+	log           core.Log
+	store         core.Store
+	entry         core.EntryController
 
 	logView   core.LogView
 	entryView core.EntryView
@@ -157,15 +158,13 @@ func (c *controller) ExportCabrillo() {
 		return
 	}
 
-	mycall, _ := callsign.Parse("DL3NEY") // TODO configure
-
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
 		return
 	}
 	defer file.Close()
-	err = cabrillo.Export(file, mycall, core.MyNumber, core.TheirNumber, c.log.UniqueQsosOrderedByMyNumber()...)
+	err = cabrillo.Export(file, c.configuration.MyCall(), core.MyNumber, core.TheirNumber, c.log.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return

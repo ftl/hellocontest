@@ -30,10 +30,11 @@ type mainWindow struct {
 	resetButton  *gtk.Button
 	messageLabel *gtk.Label
 
-	menuFileNew    *gtk.MenuItem
-	menuFileOpen   *gtk.MenuItem
-	menuFileSaveAs *gtk.MenuItem
-	menuFileQuit   *gtk.MenuItem
+	menuFileNew            *gtk.MenuItem
+	menuFileOpen           *gtk.MenuItem
+	menuFileSaveAs         *gtk.MenuItem
+	menuFileExportCabrillo *gtk.MenuItem
+	menuFileQuit           *gtk.MenuItem
 
 	qsoView *gtk.TreeView
 	qsoList *gtk.ListStore
@@ -57,6 +58,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.menuFileNew = getUI(builder, "menuFileNew").(*gtk.MenuItem)
 	result.menuFileOpen = getUI(builder, "menuFileOpen").(*gtk.MenuItem)
 	result.menuFileSaveAs = getUI(builder, "menuFileSaveAs").(*gtk.MenuItem)
+	result.menuFileExportCabrillo = getUI(builder, "menuFileExportCabrillo").(*gtk.MenuItem)
+
 	result.menuFileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
@@ -97,6 +100,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.menuFileNew.Connect("activate", result.onNew)
 	result.menuFileOpen.Connect("activate", result.onOpen)
 	result.menuFileSaveAs.Connect("activate", result.onSaveAs)
+	result.menuFileExportCabrillo.Connect("activate", result.onExportCabrillo)
 	result.menuFileQuit.Connect("activate", result.onQuit)
 
 	return result
@@ -221,6 +225,10 @@ func (w *mainWindow) onOpen() {
 
 func (w *mainWindow) onSaveAs() {
 	w.app.SaveAs()
+}
+
+func (w *mainWindow) onExportCabrillo() {
+	w.app.ExportCabrillo()
 }
 
 func (w *mainWindow) onQuit() {

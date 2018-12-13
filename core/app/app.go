@@ -1,10 +1,13 @@
 package app
 
 import (
+	"os"
 	"path/filepath"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/entry"
+	"github.com/ftl/hellocontest/core/export/cabrillo"
 	"github.com/ftl/hellocontest/core/log"
 	"github.com/ftl/hellocontest/core/store"
 )
@@ -142,4 +145,29 @@ func (c *controller) SaveAs() {
 	c.log.OnRowAdded(c.store.Write)
 
 	c.view.ShowFilename(c.filename)
+}
+
+func (c *controller) ExportCabrillo() {
+	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", "*.cabrillo")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+
+	mycall, _ := callsign.Parse("DL3NEY") // TODO configure
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
+		return
+	}
+	defer file.Close()
+	err = cabrillo.Export(file, mycall, core.MyNumber, core.TheirNumber, c.log.UniqueQsosOrderedByMyNumber()...)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
+		return
+	}
 }

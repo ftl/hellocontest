@@ -2,10 +2,44 @@ package cabrillo
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
+
+// Export writes the given QSOs to the given writer in the Cabrillo format.
+// The header is very limited and needs to be completed manually after the log was written.
+func Export(w io.Writer, mycall callsign.Callsign, myExchange core.Exchanger, theirExchange core.Exchanger, qsos ...core.QSO) error {
+	head := []string{
+		"START-OF-LOG: 3.0",
+		"CREATED-BY: Hello Contest",
+		fmt.Sprintf("CALLSIGN: %s", mycall),
+	}
+	tail := []string{
+		"END-OF-LOG:",
+	}
+
+	for _, line := range head {
+		if _, err := fmt.Fprintln(w, line); err != nil {
+			return err
+		}
+	}
+
+	for _, qso := range qsos {
+		if _, err := fmt.Fprintln(w, qsoLine(mycall, myExchange, theirExchange, qso)); err != nil {
+			return err
+		}
+	}
+
+	for _, line := range tail {
+		if _, err := fmt.Fprintln(w, line); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 var qrg = map[core.Band]string{
 	core.NoBand:   "",

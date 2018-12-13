@@ -1,6 +1,7 @@
 package cabrillo
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -62,4 +63,33 @@ func TestQsoLine(t *testing.T) {
 			assert.Equal(t, tC.expected, actual)
 		})
 	}
+}
+
+func TestExport(t *testing.T) {
+	buffer := bytes.NewBuffer([]byte{})
+	myCall, _ := callsign.Parse("AA1ZZZ")
+	theirCall, _ := callsign.Parse("S50A")
+	qso := core.QSO{
+		Callsign:     theirCall,
+		Time:         time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
+		Band:         core.Band40m,
+		Mode:         core.ModeCW,
+		MyReport:     core.RST("599"),
+		MyNumber:     core.QSONumber(1),
+		MyXchange:    "ABC",
+		TheirReport:  core.RST("589"),
+		TheirNumber:  core.QSONumber(4),
+		TheirXchange: "DEF",
+	}
+
+	expected := `START-OF-LOG: 3.0
+CREATED-BY: Hello Contest
+CALLSIGN: AA1ZZZ
+QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 S50A 589 DEF
+END-OF-LOG:
+`
+
+	Export(buffer, myCall, core.MyNumber, core.TheirXchange, qso)
+
+	assert.Equal(t, expected, buffer.String())
 }

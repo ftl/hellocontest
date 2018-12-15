@@ -44,7 +44,10 @@ func (app *application) activate() {
 	app.mainWindow = setupMainWindow(app.builder, app.app)
 	app.mainWindow.Show()
 
-	configuration, _ := cfg.Load()
+	configuration, err := cfg.Load()
+	if err != nil {
+		logger.Println(err)
+	}
 	app.controller = coreapp.NewController(clock.New(), configuration)
 	app.controller.Startup()
 	app.controller.SetView(app.mainWindow)

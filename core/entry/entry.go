@@ -1,6 +1,7 @@
 package entry
 
 import (
+	"errors"
 	"fmt"
 	logger "log"
 	"strconv"
@@ -11,25 +12,30 @@ import (
 )
 
 // NewController returns a new EntryController.
-func NewController(clock core.Clock, log core.Log) core.EntryController {
+func NewController(clock core.Clock, log core.Log, enterTheirNumber, enterTheirXchange bool) core.EntryController {
 	return &controller{
-		clock: clock,
-		log:   log,
+		clock:             clock,
+		log:               log,
+		enterTheirNumber:  enterTheirNumber,
+		enterTheirXchange: enterTheirXchange,
 	}
 }
 
 type controller struct {
-	clock        core.Clock
-	log          core.Log
-	view         core.EntryView
-	activeField  core.EntryField
-	selectedBand core.Band
-	selectedMode core.Mode
+	clock             core.Clock
+	log               core.Log
+	enterTheirNumber  bool
+	enterTheirXchange bool
+	view              core.EntryView
+	activeField       core.EntryField
+	selectedBand      core.Band
+	selectedMode      core.Mode
 }
 
 func (c *controller) SetView(view core.EntryView) {
 	c.view = view
 	c.view.SetEntryController(c)
+	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
 	c.Reset()
 }
 
@@ -41,11 +47,22 @@ func (c *controller) GotoNextField() core.EntryField {
 
 	transitions := map[core.EntryField]core.EntryField{
 		core.CallsignField:     core.TheirReportField,
-		core.TheirReportField:  core.TheirNumberField,
-		core.TheirNumberField:  core.TheirXchangeField,
 		core.TheirXchangeField: core.CallsignField,
 		core.MyReportField:     core.CallsignField,
 		core.MyNumberField:     core.CallsignField,
+	}
+	if c.enterTheirNumber && c.enterTheirXchange {
+		transitions[core.TheirReportField] = core.TheirNumberField
+		transitions[core.TheirNumberField] = core.TheirXchangeField
+	} else if !c.enterTheirNumber && c.enterTheirXchange {
+		transitions[core.TheirReportField] = core.TheirXchangeField
+		transitions[core.TheirNumberField] = core.CallsignField
+	} else if c.enterTheirNumber && !c.enterTheirXchange {
+		transitions[core.TheirReportField] = core.TheirNumberField
+		transitions[core.TheirNumberField] = core.CallsignField
+	} else if !c.enterTheirNumber && !c.enterTheirXchange {
+		transitions[core.TheirReportField] = core.CallsignField
+		transitions[core.TheirNumberField] = core.CallsignField
 	}
 	c.activeField = transitions[c.activeField]
 	c.view.SetActiveField(c.activeField)
@@ -149,14 +166,27 @@ func (c *controller) Log() {
 		return
 	}
 
-	theirNumber, err := strconv.Atoi(c.view.GetTheirNumber())
-	if err != nil {
-		c.showErrorOnField(err, core.TheirNumberField)
-		return
-	}
-	qso.TheirNumber = core.QSONumber(theirNumber)
+	if c.enterTheirNumber {
+		value := c.view.GetTheirNumber()
+		if value == "" {
+			c.showErrorOnField(errors.New("their number is missing"), core.TheirNumberField)
+			return
+		}
 
-	qso.TheirXchange = c.view.GetTheirXchange()
+		theirNumber, err := strconv.Atoi(value)
+		if err != nil {
+			c.showErrorOnField(err, core.TheirNumberField)
+			return
+		}
+		qso.TheirNumber = core.QSONumber(theirNumber)
+	}
+
+	if c.enterTheirXchange {
+		qso.TheirXchange = c.view.GetTheirXchange()
+		if qso.TheirXchange == "" {
+			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
+		}
+	}
 
 	qso.MyReport, err = parse.RST(c.view.GetMyReport())
 	if err != nil {

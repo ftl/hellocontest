@@ -438,6 +438,11 @@ func (w *mainWindow) SetMyXchange(text string) {
 	w.myXchange.SetText(text)
 }
 
+func (w *mainWindow) EnableExchangeFields(theirNumber, theirXchange bool) {
+	w.theirNumber.SetSensitive(theirNumber)
+	w.theirXchange.SetSensitive(theirXchange)
+}
+
 func (w *mainWindow) SetActiveField(field core.EntryField) {
 	entry := w.fieldToEntry(field)
 	entry.GrabFocus()

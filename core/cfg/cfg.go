@@ -1,6 +1,8 @@
 package cfg
 
 import (
+	"strings"
+
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
@@ -26,6 +28,13 @@ func Static(myCall callsign.Callsign, myLocator locator.Locator) core.Configurat
 	}
 }
 
+const (
+	enterTheirNumber  cfg.Key = "hellocontest.enter.theirNumber"
+	enterTheirXchange cfg.Key = "hellocontest.enter.theirXchange"
+	myExchanger       cfg.Key = "hellocontest.exchange.my"
+	theirExchanger    cfg.Key = "hellocontest.exchange.their"
+)
+
 type loaded struct {
 	configuration cfg.Configuration
 }
@@ -42,6 +51,46 @@ func (l loaded) MyLocator() locator.Locator {
 	return myLocator
 }
 
+func (l loaded) EnterTheirNumber() bool {
+	return l.configuration.Get(enterTheirNumber, true).(bool)
+}
+
+func (l loaded) EnterTheirXchange() bool {
+	return l.configuration.Get(enterTheirXchange, true).(bool)
+}
+
+func (l loaded) MyExchanger() core.Exchanger {
+	value := strings.ToUpper(l.configuration.Get(myExchanger, "").(string))
+	switch value {
+	case "NUMBER":
+		return core.MyNumber
+	case "XCHANGE":
+		return core.MyXchange
+	case "BOTH":
+		return core.MyNumberAndXchange
+	case "NONE":
+		return core.NoExchange
+	default:
+		return core.MyNumber
+	}
+}
+
+func (l loaded) TheirExchanger() core.Exchanger {
+	value := strings.ToUpper(l.configuration.Get(theirExchanger, "").(string))
+	switch value {
+	case "NUMBER":
+		return core.TheirNumber
+	case "XCHANGE":
+		return core.TheirXchange
+	case "BOTH":
+		return core.TheirNumberAndXchange
+	case "NONE":
+		return core.NoExchange
+	default:
+		return core.TheirNumber
+	}
+}
+
 type static struct {
 	myCall    callsign.Callsign
 	myLocator locator.Locator
@@ -53,4 +102,20 @@ func (s static) MyCall() callsign.Callsign {
 
 func (s static) MyLocator() locator.Locator {
 	return s.myLocator
+}
+
+func (s static) EnterTheirNumber() bool {
+	return true
+}
+
+func (s static) EnterTheirXchange() bool {
+	return true
+}
+
+func (s static) MyExchanger() core.Exchanger {
+	return core.MyNumber
+}
+
+func (s static) TheirExchanger() core.Exchanger {
+	return core.TheirNumber
 }

@@ -58,22 +58,28 @@ func TestEntryController_GotoNextField(t *testing.T) {
 	_, _, view, controller := setupEntryTest()
 
 	view.On("GetCallsign").Return("").Maybe()
-	view.On("SetActiveField", mock.Anything).Times(7)
+	view.On("SetActiveField", mock.Anything).Times(10)
 
 	assert.Equal(t, core.CallsignField, controller.GetActiveField(), "callsign should be active at start")
 
 	testCases := []struct {
-		active, next core.EntryField
+		enterTheirNumber, enterTheirXchange bool
+		active, next                        core.EntryField
 	}{
-		{core.CallsignField, core.TheirReportField},
-		{core.TheirReportField, core.TheirNumberField},
-		{core.TheirNumberField, core.TheirXchangeField},
-		{core.TheirXchangeField, core.CallsignField},
-		{core.MyReportField, core.CallsignField},
-		{core.MyNumberField, core.CallsignField},
-		{core.OtherField, core.CallsignField},
+		{true, true, core.CallsignField, core.TheirReportField},
+		{true, true, core.TheirReportField, core.TheirNumberField},
+		{false, true, core.TheirReportField, core.TheirXchangeField},
+		{false, false, core.TheirReportField, core.CallsignField},
+		{true, true, core.TheirNumberField, core.TheirXchangeField},
+		{true, false, core.TheirNumberField, core.CallsignField},
+		{true, true, core.TheirXchangeField, core.CallsignField},
+		{true, true, core.MyReportField, core.CallsignField},
+		{true, true, core.MyNumberField, core.CallsignField},
+		{true, true, core.OtherField, core.CallsignField},
 	}
 	for _, tc := range testCases {
+		controller.enterTheirNumber = tc.enterTheirNumber
+		controller.enterTheirXchange = tc.enterTheirXchange
 		controller.SetActiveField(tc.active)
 		actual := controller.GotoNextField()
 		assert.Equal(t, tc.next, actual)
@@ -238,7 +244,7 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("599")
 	view.On("GetTheirNumber").Once().Return("1")
-	view.On("GetTheirXchange").Once().Return("")
+	view.On("GetTheirXchange").Once().Return("abc")
 	view.On("GetMyReport").Once().Return("000")
 	view.On("SetActiveField", core.MyReportField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -255,12 +261,14 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
-		Callsign:    dl1abc,
-		Time:        clock.Now(),
-		TheirReport: core.RST("559"),
-		TheirNumber: 12,
-		MyReport:    core.RST("579"),
-		MyNumber:    12,
+		Callsign:     dl1abc,
+		Time:         clock.Now(),
+		TheirReport:  core.RST("559"),
+		TheirNumber:  12,
+		TheirXchange: "abc",
+		MyReport:     core.RST("579"),
+		MyNumber:     12,
+		MyXchange:    "def",
 	}
 
 	log.On("Find", dl1abc).Once().Return(qso, true)
@@ -269,10 +277,10 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 	view.On("GetMode").Once().Return("CW")
 	view.On("GetTheirReport").Once().Return("599")
 	view.On("GetTheirNumber").Once().Return("1")
-	view.On("GetTheirXchange").Once().Return("")
+	view.On("GetTheirXchange").Once().Return("abc")
 	view.On("GetMyReport").Once().Return("579")
 	view.On("GetMyNumber").Once().Return("013")
-	view.On("GetMyXchange").Once().Return("")
+	view.On("GetMyXchange").Once().Return("def")
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
@@ -309,15 +317,16 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 
 // Helpers
 
-func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, core.EntryController) {
+func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, *controller) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, log)
+	controller := NewController(clock, log, true, true).(*controller)
 
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	view.On("SetEntryController", controller).Once()
+	view.On("EnableExchangeFields", true, true).Once()
 	view.On("SetCallsign", "").Once()
 	view.On("SetMyReport", "599").Once()
 	view.On("SetTheirReport", "599").Once()

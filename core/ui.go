@@ -47,6 +47,7 @@ type EntryView interface {
 	GetMyXchange() string
 	SetMyXchange(string)
 
+	EnableExchangeFields(bool, bool)
 	SetActiveField(EntryField)
 	SetDuplicateMarker(bool)
 	ShowMessage(...interface{})

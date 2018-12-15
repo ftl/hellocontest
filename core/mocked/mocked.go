@@ -199,6 +199,10 @@ func (m *EntryView) SetMyXchange(xchange string) {
 	m.Called(xchange)
 }
 
+func (m *EntryView) EnableExchangeFields(theirNumber, theirXchange bool) {
+	m.Called(theirNumber, theirXchange)
+}
+
 func (m *EntryView) SetActiveField(field core.EntryField) {
 	m.Called(field)
 }

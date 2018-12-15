@@ -50,7 +50,12 @@ func (c *controller) Startup() {
 		c.log = log.New(c.clock)
 	}
 	c.log.OnRowAdded(c.store.Write)
-	c.entry = entry.NewController(c.clock, c.log)
+	c.entry = entry.NewController(
+		c.clock,
+		c.log,
+		c.configuration.EnterTheirNumber(),
+		c.configuration.EnterTheirXchange(),
+	)
 }
 
 func (c *controller) SetLogView(view core.LogView) {
@@ -83,7 +88,12 @@ func (c *controller) New() {
 	c.store = store
 	c.log = log.New(c.clock)
 	c.log.OnRowAdded(c.store.Write)
-	c.entry = entry.NewController(c.clock, c.log)
+	c.entry = entry.NewController(
+		c.clock,
+		c.log,
+		c.configuration.EnterTheirNumber(),
+		c.configuration.EnterTheirXchange(),
+	)
 
 	c.view.ShowFilename(c.filename)
 	c.log.SetView(c.logView)
@@ -111,7 +121,12 @@ func (c *controller) Open() {
 	c.store = store
 	c.log = log
 	c.log.OnRowAdded(c.store.Write)
-	c.entry = entry.NewController(c.clock, c.log)
+	c.entry = entry.NewController(
+		c.clock,
+		c.log,
+		c.configuration.EnterTheirNumber(),
+		c.configuration.EnterTheirXchange(),
+	)
 
 	c.view.ShowFilename(c.filename)
 	c.log.SetView(c.logView)
@@ -164,7 +179,11 @@ func (c *controller) ExportCabrillo() {
 		return
 	}
 	defer file.Close()
-	err = cabrillo.Export(file, c.configuration.MyCall(), core.MyNumber, core.TheirNumber, c.log.UniqueQsosOrderedByMyNumber()...)
+	err = cabrillo.Export(file,
+		c.configuration.MyCall(),
+		c.configuration.MyExchanger(),
+		c.configuration.TheirExchanger(),
+		c.log.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return

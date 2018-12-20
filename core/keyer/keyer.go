@@ -34,7 +34,11 @@ func (k *keyer) EnterPattern(index int, pattern string) {
 	k.patterns[index] = pattern
 	var err error
 	k.templates[index], err = template.New("").Parse(pattern)
-	k.view.ShowMessage(err)
+	if err != nil {
+		k.view.ShowMessage(err)
+	} else {
+		k.view.ShowMessage()
+	}
 }
 
 func (k *keyer) GetPattern(index int) string {

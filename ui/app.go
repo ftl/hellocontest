@@ -53,9 +53,11 @@ func (app *application) activate() {
 	app.controller.SetView(app.mainWindow)
 	app.controller.SetLogView(app.mainWindow)
 	app.controller.SetEntryView(app.mainWindow)
+	app.controller.SetKeyerView(app.mainWindow)
 }
 
 func (app *application) shutdown() {
+	app.controller.Shutdown()
 }
 
 func setupBuilder() *gtk.Builder {

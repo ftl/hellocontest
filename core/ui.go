@@ -22,6 +22,7 @@ type EntryController interface {
 
 	Log()
 	Reset()
+	CurrentValues() KeyerValues
 }
 
 // EntryView represents the visual part of the QSO data entry.
@@ -72,10 +73,12 @@ const (
 // AppController controls the main functions of the application.
 type AppController interface {
 	Startup()
+	Shutdown()
 
 	SetView(AppView)
 	SetLogView(LogView)
 	SetEntryView(EntryView)
+	SetKeyerView(KeyerView)
 
 	New()
 	Open()
@@ -93,4 +96,22 @@ type AppView interface {
 
 	ShowInfoDialog(string, ...interface{})
 	ShowErrorDialog(string, ...interface{})
+}
+
+// KeyerController controls the keyer.
+type KeyerController interface {
+	SetView(KeyerView)
+
+	Send(int)
+	EnterPattern(int, string)
+}
+
+// KeyerView represents the visual parts of the keyer.
+type KeyerView interface {
+	SetKeyerController(KeyerController)
+
+	ShowMessage(...interface{})
+
+	GetPattern(int) string
+	SetPattern(int, string)
 }

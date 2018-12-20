@@ -1,12 +1,15 @@
 package app
 
 import (
+	logger "log"
 	"os"
 	"path/filepath"
 
+	"github.com/ftl/hamradio/cwclient"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
+	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/log"
 	"github.com/ftl/hellocontest/core/store"
 )
@@ -28,10 +31,13 @@ type controller struct {
 	configuration core.Configuration
 	log           core.Log
 	store         core.Store
+	cwclient      core.CWClient
 	entry         core.EntryController
+	keyer         core.KeyerController
 
 	logView   core.LogView
 	entryView core.EntryView
+	keyerView core.KeyerView
 }
 
 func (c *controller) SetView(view core.AppView) {
@@ -47,15 +53,23 @@ func (c *controller) Startup() {
 	c.store = store.New(c.filename)
 	c.log, err = log.Load(c.clock, c.store)
 	if err != nil {
+		logger.Println(err)
 		c.log = log.New(c.clock)
 	}
 	c.log.OnRowAdded(c.store.Write)
+	c.cwclient, _ = cwclient.NewDefault()
+
 	c.entry = entry.NewController(
 		c.clock,
 		c.log,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
 	)
+	c.keyer = keyer.NewController(c.cwclient, c.entry.CurrentValues)
+}
+
+func (c *controller) Shutdown() {
+	c.cwclient.Disconnect()
 }
 
 func (c *controller) SetLogView(view core.LogView) {
@@ -66,6 +80,11 @@ func (c *controller) SetLogView(view core.LogView) {
 func (c *controller) SetEntryView(view core.EntryView) {
 	c.entryView = view
 	c.entry.SetView(c.entryView)
+}
+
+func (c *controller) SetKeyerView(view core.KeyerView) {
+	c.keyerView = view
+	c.keyer.SetView(c.keyerView)
 }
 
 func (c *controller) New() {

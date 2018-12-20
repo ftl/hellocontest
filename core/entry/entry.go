@@ -243,3 +243,15 @@ func (c *controller) Reset() {
 	c.view.SetDuplicateMarker(false)
 	c.view.ClearMessage()
 }
+
+func (c *controller) CurrentValues() core.KeyerValues {
+	values := core.KeyerValues{}
+	values.MyReport, _ = parse.RST(c.view.GetMyReport())
+
+	myNumber, _ := strconv.Atoi(c.view.GetMyNumber())
+	values.MyNumber = core.QSONumber(myNumber)
+
+	values.MyXchange = c.view.GetMyXchange()
+
+	return values
+}

@@ -29,6 +29,7 @@ type mainWindow struct {
 	logButton    *gtk.Button
 	resetButton  *gtk.Button
 	messageLabel *gtk.Label
+	*keyer
 
 	menuFileNew            *gtk.MenuItem
 	menuFileOpen           *gtk.MenuItem
@@ -74,6 +75,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.resetButton = getUI(builder, "resetButton").(*gtk.Button)
 	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
+
+	result.keyer = setupKeyer(builder, result)
 
 	result.addEntryTraversal(result.callsign)
 	result.addEntryTraversal(result.theirReport)

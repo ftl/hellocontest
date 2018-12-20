@@ -184,6 +184,7 @@ type KeyerValues struct {
 	TheirCall string
 	MyNumber  QSONumber
 	MyReport  RST
+	MyXchange string
 }
 
 // KeyerValueProvider provides the variable values for the Keyer templates on demand.
@@ -191,13 +192,8 @@ type KeyerValueProvider func() KeyerValues
 
 // CWClient defines the interface used by the Keyer to output the CW.
 type CWClient interface {
+	Connect() error
+	Disconnect()
+	IsConnected() bool
 	Send(text string)
-}
-
-// Keyer represents the component that sends prepared CW texts using text/templates.
-type Keyer interface {
-	SetTemplate(index int, pattern string) error
-	GetTemplate(index int) string
-	GetText(index int) (string, error)
-	Send(index int) error
 }

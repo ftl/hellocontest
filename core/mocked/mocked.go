@@ -232,6 +232,41 @@ type CWClient struct {
 	mock.Mock
 }
 
+func (m *CWClient) Connect() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *CWClient) Disconnect() {
+	m.Called()
+}
+
+func (m *CWClient) IsConnected() bool {
+	args := m.Called()
+	return args.Bool(0)
+}
+
 func (m *CWClient) Send(text string) {
 	m.Called(text)
+}
+
+type KeyerView struct {
+	mock.Mock
+}
+
+func (m *KeyerView) SetKeyerController(controller core.KeyerController) {
+	m.Called(controller)
+}
+
+func (m *KeyerView) ShowMessage(args ...interface{}) {
+	m.Called(args)
+}
+
+func (m *KeyerView) GetPattern(index int) string {
+	args := m.Called(index)
+	return args.String(0)
+}
+
+func (m *KeyerView) SetPattern(index int, pattern string) {
+	m.Called(index, pattern)
 }

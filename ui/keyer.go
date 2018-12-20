@@ -32,7 +32,6 @@ func setupKeyer(builder *gtk.Builder, parent *mainWindow) *keyer {
 
 func (k *keyer) onButton(index int) func(button *gtk.Button) bool {
 	return func(button *gtk.Button) bool {
-		log.Printf("button %d pressed", index)
 		if k.controller == nil {
 			log.Printf("no keyer controller")
 			return false
@@ -44,7 +43,6 @@ func (k *keyer) onButton(index int) func(button *gtk.Button) bool {
 
 func (k *keyer) onEntryChanged(index int) func(entry *gtk.Entry) bool {
 	return func(entry *gtk.Entry) bool {
-		log.Printf("entry %d changed: %v", index, entry)
 		if k.controller == nil {
 			log.Printf("no keyer controller")
 			return false
@@ -60,7 +58,6 @@ func (k *keyer) onEntryChanged(index int) func(entry *gtk.Entry) bool {
 }
 
 func (k *keyer) SetKeyerController(controller core.KeyerController) {
-	log.Printf("set keyer controller: %v\n", controller)
 	k.controller = controller
 }
 

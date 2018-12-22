@@ -32,6 +32,9 @@ type keyer struct {
 func (k *keyer) SetView(view core.KeyerView) {
 	k.view = view
 	k.view.SetKeyerController(k)
+	for i, pattern := range k.patterns {
+		k.view.SetPattern(i, pattern)
+	}
 }
 
 func (k *keyer) EnterPattern(index int, pattern string) {
@@ -42,6 +45,13 @@ func (k *keyer) EnterPattern(index int, pattern string) {
 		k.view.ShowMessage(err)
 	} else {
 		k.view.ShowMessage()
+	}
+}
+
+func (k *keyer) SetPatterns(patterns []string) {
+	for i, pattern := range patterns {
+		k.patterns[i] = pattern
+		k.templates[i], _ = template.New("").Parse(patterns[i])
 	}
 }
 

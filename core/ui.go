@@ -101,6 +101,7 @@ type AppView interface {
 // KeyerController controls the keyer.
 type KeyerController interface {
 	SetView(KeyerView)
+	SetPatterns([]string)
 
 	Send(int)
 	EnterPattern(int, string)

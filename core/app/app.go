@@ -57,7 +57,7 @@ func (c *controller) Startup() {
 		c.log = log.New(c.clock)
 	}
 	c.log.OnRowAdded(c.store.Write)
-	c.cwclient, _ = cwclient.NewDefault()
+	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
 
 	c.entry = entry.NewController(
 		c.clock,
@@ -66,6 +66,7 @@ func (c *controller) Startup() {
 		c.configuration.EnterTheirXchange(),
 	)
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
+	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 }
 
 func (c *controller) Shutdown() {

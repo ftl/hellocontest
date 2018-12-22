@@ -176,6 +176,11 @@ type Configuration interface {
 	EnterTheirXchange() bool
 	MyExchanger() Exchanger
 	TheirExchanger() Exchanger
+
+	KeyerHost() string
+	KeyerPort() int
+	KeyerSPPatterns() []string
+	KeyerRunPatterns() []string
 }
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.

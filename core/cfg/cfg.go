@@ -33,6 +33,10 @@ const (
 	enterTheirXchange cfg.Key = "hellocontest.enter.theirXchange"
 	myExchanger       cfg.Key = "hellocontest.exchange.my"
 	theirExchanger    cfg.Key = "hellocontest.exchange.their"
+	keyerHost         cfg.Key = "hellocontest.keyer.host"
+	keyerPort         cfg.Key = "hellocontest.keyer.port"
+	keyerSPPatterns   cfg.Key = "hellocontest.keyer.sp"
+	keyerRunPatterns  cfg.Key = "hellocontest.keyer.run"
 )
 
 type loaded struct {
@@ -91,6 +95,22 @@ func (l loaded) TheirExchanger() core.Exchanger {
 	}
 }
 
+func (l loaded) KeyerHost() string {
+	return l.configuration.Get(keyerHost, "").(string)
+}
+
+func (l loaded) KeyerPort() int {
+	return int(l.configuration.Get(keyerPort, 0.0).(float64))
+}
+
+func (l loaded) KeyerSPPatterns() []string {
+	return l.configuration.GetStrings(keyerSPPatterns, []string{})
+}
+
+func (l loaded) KeyerRunPatterns() []string {
+	return l.configuration.GetStrings(keyerRunPatterns, []string{})
+}
+
 type static struct {
 	myCall    callsign.Callsign
 	myLocator locator.Locator
@@ -118,4 +138,20 @@ func (s static) MyExchanger() core.Exchanger {
 
 func (s static) TheirExchanger() core.Exchanger {
 	return core.TheirNumber
+}
+
+func (s static) KeyerHost() string {
+	return ""
+}
+
+func (s static) KeyerPort() int {
+	return 0
+}
+
+func (s static) KeyerSPPatterns() []string {
+	return []string{}
+}
+
+func (s static) KeyerRunPatterns() []string {
+	return []string{}
 }

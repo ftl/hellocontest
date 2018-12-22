@@ -92,6 +92,23 @@ func TestLoaded_TheirExchanger(t *testing.T) {
 	}
 }
 
+func TestLoaded_KeyerSPPatterns(t *testing.T) {
+	testCases := []struct {
+		value    string
+		expected []string
+	}{
+		{"", []string{}},
+		{`"sp":[]`, []string{}},
+		{`"sp":["one"]`, []string{"one"}},
+	}
+	for i, tC := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			config := loadFromString(t, fmt.Sprintf(`{"hellocontest":{"keyer":{%s}}}`, tC.value))
+			assert.Equal(t, tC.expected, config.KeyerSPPatterns())
+		})
+	}
+}
+
 func loadFromString(t *testing.T, s string) *loaded {
 	raw, err := cfg.Read(bytes.NewBufferString(s))
 	require.NoError(t, err)

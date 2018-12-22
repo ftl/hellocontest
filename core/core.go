@@ -199,5 +199,7 @@ type CWClient interface {
 	Connect() error
 	Disconnect()
 	IsConnected() bool
+	Speed(int)
 	Send(text string)
+	Abort()
 }

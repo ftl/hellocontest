@@ -14,6 +14,7 @@ import (
 func NewController(client core.CWClient, myCall callsign.Callsign, values core.KeyerValueProvider) core.KeyerController {
 	return &keyer{
 		myCall:    myCall,
+		speed:     20,
 		patterns:  make(map[int]string),
 		templates: make(map[int]*template.Template),
 		client:    client,
@@ -22,6 +23,7 @@ func NewController(client core.CWClient, myCall callsign.Callsign, values core.K
 
 type keyer struct {
 	myCall    callsign.Callsign
+	speed     int
 	patterns  map[int]string
 	templates map[int]*template.Template
 	client    core.CWClient
@@ -35,6 +37,16 @@ func (k *keyer) SetView(view core.KeyerView) {
 	for i, pattern := range k.patterns {
 		k.view.SetPattern(i, pattern)
 	}
+	k.view.SetSpeed(k.speed)
+}
+
+func (k *keyer) EnterSpeed(speed int) {
+	k.speed = speed
+	if !k.client.IsConnected() {
+		return
+	}
+	log.Printf("speed entered: %d", speed)
+	k.client.Speed(k.speed)
 }
 
 func (k *keyer) EnterPattern(index int, pattern string) {
@@ -96,13 +108,22 @@ func (k *keyer) Send(index int) {
 			k.view.ShowMessage(err)
 			return
 		}
+		k.client.Speed(k.speed)
 	}
 
 	log.Printf("sending %s\n", message)
 	k.client.Send(message)
 }
 
-// Softcut replaces 0 and 9 with their "cut" counterparts t and n.
+func (k *keyer) Stop() {
+	if !k.client.IsConnected() {
+		return
+	}
+	log.Println("abort sending")
+	k.client.Abort()
+}
+
+// softcut replaces 0 and 9 with their "cut" counterparts t and n.
 func softcut(s string) string {
 	cuts := map[string]string{
 		"0": "t",
@@ -115,7 +136,7 @@ func softcut(s string) string {
 	return result
 }
 
-// Cut replaces digits with the "cut" counterparts. (see http://wiki.bavarian-contest-club.de/wiki/Contest-FAQ#Was_sind_.22Cut_Numbers.22.3F)
+// cut replaces digits with the "cut" counterparts. (see http://wiki.bavarian-contest-club.de/wiki/Contest-FAQ#Was_sind_.22Cut_Numbers.22.3F)
 func cut(s string) string {
 	cuts := map[string]string{
 		"0": "t",

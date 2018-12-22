@@ -104,7 +104,9 @@ type KeyerController interface {
 	SetPatterns([]string)
 
 	Send(int)
+	Stop()
 	EnterPattern(int, string)
+	EnterSpeed(int)
 }
 
 // KeyerView represents the visual parts of the keyer.
@@ -115,4 +117,6 @@ type KeyerView interface {
 
 	GetPattern(int) string
 	SetPattern(int, string)
+	GetSpeed() int
+	SetSpeed(int)
 }

@@ -3,14 +3,17 @@ package keyer
 import (
 	"bytes"
 	"log"
+	"strings"
 	"text/template"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
 // NewController returns a new Keyer that has no patterns or templates defined yet.
-func NewController(client core.CWClient, values core.KeyerValueProvider) core.KeyerController {
+func NewController(client core.CWClient, myCall callsign.Callsign, values core.KeyerValueProvider) core.KeyerController {
 	return &keyer{
+		myCall:    myCall,
 		patterns:  make(map[int]string),
 		templates: make(map[int]*template.Template),
 		client:    client,
@@ -18,6 +21,7 @@ func NewController(client core.CWClient, values core.KeyerValueProvider) core.Ke
 }
 
 type keyer struct {
+	myCall    callsign.Callsign
 	patterns  map[int]string
 	templates map[int]*template.Template
 	client    core.CWClient
@@ -51,11 +55,22 @@ func (k *keyer) GetText(index int) (string, error) {
 	if !ok {
 		return "", nil
 	}
-	err := template.Execute(buffer, k.values())
+	err := template.Execute(buffer, k.fillins())
 	if err != nil {
 		return "", err
 	}
 	return buffer.String(), nil
+}
+
+func (k *keyer) fillins() map[string]string {
+	values := k.values()
+	return map[string]string{
+		"MyCall":    k.myCall.String(),
+		"MyReport":  softcut(values.MyReport.String()),
+		"MyNumber":  softcut(values.MyNumber.String()),
+		"MyXchange": values.MyXchange,
+		"TheirCall": values.TheirCall,
+	}
 }
 
 func (k *keyer) Send(index int) {
@@ -75,4 +90,36 @@ func (k *keyer) Send(index int) {
 
 	log.Printf("sending %s\n", message)
 	k.client.Send(message)
+}
+
+// Softcut replaces 0 and 9 with their "cut" counterparts t and n.
+func softcut(s string) string {
+	cuts := map[string]string{
+		"0": "t",
+		"9": "n",
+	}
+	result := s
+	for digit, cut := range cuts {
+		result = strings.Replace(result, digit, cut, -1)
+	}
+	return result
+}
+
+// Cut replaces digits with the "cut" counterparts. (see http://wiki.bavarian-contest-club.de/wiki/Contest-FAQ#Was_sind_.22Cut_Numbers.22.3F)
+func cut(s string) string {
+	cuts := map[string]string{
+		"0": "t",
+		"1": "a",
+		"2": "u",
+		"3": "v",
+		"5": "e",
+		"7": "g",
+		"8": "d",
+		"9": "n",
+	}
+	result := s
+	for digit, cut := range cuts {
+		result = strings.Replace(result, digit, cut, -1)
+	}
+	return result
 }

@@ -180,7 +180,6 @@ type Configuration interface {
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.
 type KeyerValues struct {
-	MyCall    callsign.Callsign
 	TheirCall string
 	MyNumber  QSONumber
 	MyReport  RST

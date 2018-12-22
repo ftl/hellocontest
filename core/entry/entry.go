@@ -245,13 +245,13 @@ func (c *controller) Reset() {
 }
 
 func (c *controller) CurrentValues() core.KeyerValues {
+	myNumber, _ := strconv.Atoi(c.view.GetMyNumber())
+
 	values := core.KeyerValues{}
 	values.MyReport, _ = parse.RST(c.view.GetMyReport())
-
-	myNumber, _ := strconv.Atoi(c.view.GetMyNumber())
 	values.MyNumber = core.QSONumber(myNumber)
-
 	values.MyXchange = c.view.GetMyXchange()
+	values.TheirCall = c.view.GetCallsign()
 
 	return values
 }

@@ -65,7 +65,7 @@ func (c *controller) Startup() {
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
 	)
-	c.keyer = keyer.NewController(c.cwclient, c.entry.CurrentValues)
+	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 }
 
 func (c *controller) Shutdown() {

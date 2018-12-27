@@ -8,6 +8,7 @@ import (
 	"github.com/ftl/hamradio/cwclient"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/entry"
+	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/log"
@@ -212,6 +213,29 @@ func (c *controller) ExportCabrillo() {
 		c.log.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
+		return
+	}
+}
+
+func (c *controller) ExportADIF() {
+	filename, ok, err := c.view.SelectSaveFile("Export ADIF File", "*.adif")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
+		return
+	}
+	defer file.Close()
+	err = adif.Export(file, c.log.UniqueQsosOrderedByMyNumber()...)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot export ADIF to %s: %v", filename, err)
 		return
 	}
 }

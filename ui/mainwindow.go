@@ -35,6 +35,7 @@ type mainWindow struct {
 	menuFileOpen           *gtk.MenuItem
 	menuFileSaveAs         *gtk.MenuItem
 	menuFileExportCabrillo *gtk.MenuItem
+	menuFileExportADIF     *gtk.MenuItem
 	menuFileQuit           *gtk.MenuItem
 
 	qsoView *gtk.TreeView
@@ -60,6 +61,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.menuFileOpen = getUI(builder, "menuFileOpen").(*gtk.MenuItem)
 	result.menuFileSaveAs = getUI(builder, "menuFileSaveAs").(*gtk.MenuItem)
 	result.menuFileExportCabrillo = getUI(builder, "menuFileExportCabrillo").(*gtk.MenuItem)
+	result.menuFileExportADIF = getUI(builder, "menuFileExportADIF").(*gtk.MenuItem)
 
 	result.menuFileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 
@@ -104,6 +106,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.menuFileOpen.Connect("activate", result.onOpen)
 	result.menuFileSaveAs.Connect("activate", result.onSaveAs)
 	result.menuFileExportCabrillo.Connect("activate", result.onExportCabrillo)
+	result.menuFileExportADIF.Connect("activate", result.onExportADIF)
 	result.menuFileQuit.Connect("activate", result.onQuit)
 
 	return result
@@ -232,6 +235,10 @@ func (w *mainWindow) onSaveAs() {
 
 func (w *mainWindow) onExportCabrillo() {
 	w.app.ExportCabrillo()
+}
+
+func (w *mainWindow) onExportADIF() {
+	w.app.ExportADIF()
 }
 
 func (w *mainWindow) onQuit() {

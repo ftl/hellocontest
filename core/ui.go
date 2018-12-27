@@ -84,6 +84,7 @@ type AppController interface {
 	Open()
 	SaveAs()
 	ExportCabrillo()
+	ExportADIF()
 }
 
 // AppView represents the visual parts of the main application.

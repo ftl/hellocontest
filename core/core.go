@@ -17,6 +17,7 @@ type Log interface {
 	NextNumber() QSONumber
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
+	FindAll(callsign.Callsign, Band, Mode) []QSO
 	QsosOrderedByMyNumber() []QSO
 	UniqueQsosOrderedByMyNumber() []QSO
 	WriteAll(Writer) error

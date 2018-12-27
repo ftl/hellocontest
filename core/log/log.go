@@ -102,6 +102,24 @@ func (l *log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 	return core.QSO{}, false
 }
 
+func (l *log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	result := make([]core.QSO, 0)
+	for _, qso := range l.qsos {
+		if callsign != qso.Callsign {
+			continue
+		}
+		if band != core.NoBand && band != qso.Band {
+			continue
+		}
+		if mode != core.NoMode && mode != qso.Mode {
+			continue
+		}
+		result = append(result, qso)
+
+	}
+	return result
+}
+
 func (l *log) QsosOrderedByMyNumber() []core.QSO {
 	return byMyNumber(l.qsos)
 }

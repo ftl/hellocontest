@@ -23,6 +23,7 @@ func TestSend(t *testing.T) {
 	view := new(mocked.KeyerView)
 	view.On("SetKeyerController", mock.Anything)
 	view.On("ShowMessage", mock.Anything)
+	view.On("SetSpeed", mock.Anything)
 	cwClient := new(mocked.CWClient)
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
 	cwClient.On("IsConnected").Return(true)

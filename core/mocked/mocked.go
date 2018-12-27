@@ -40,6 +40,11 @@ func (m *Log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 	return args.Get(0).(core.QSO), args.Bool(1)
 }
 
+func (m *Log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	args := m.Called(callsign, band, mode)
+	return args.Get(0).([]core.QSO)
+}
+
 func (m *Log) QsosOrderedByMyNumber() []core.QSO {
 	args := m.Called()
 	return args.Get(0).([]core.QSO)
@@ -246,8 +251,16 @@ func (m *CWClient) IsConnected() bool {
 	return args.Bool(0)
 }
 
+func (m *CWClient) Speed(speed int) {
+	m.Called(speed)
+}
+
 func (m *CWClient) Send(text string) {
 	m.Called(text)
+}
+
+func (m *CWClient) Abort() {
+	m.Called()
 }
 
 type KeyerView struct {
@@ -269,4 +282,13 @@ func (m *KeyerView) GetPattern(index int) string {
 
 func (m *KeyerView) SetPattern(index int, pattern string) {
 	m.Called(index, pattern)
+}
+
+func (m *KeyerView) GetSpeed() int {
+	args := m.Called()
+	return args.Int(0)
+}
+
+func (m *KeyerView) SetSpeed(speed int) {
+	m.Called(speed)
 }

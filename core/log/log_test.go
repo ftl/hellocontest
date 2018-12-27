@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -98,6 +99,35 @@ func TestLog_Find(t *testing.T) {
 	loggedQso, ok := log.Find(aa3b)
 	assert.True(t, ok, "qso found")
 	assert.Equal(t, aa3b, loggedQso.Callsign, "callsign")
+}
+
+func TestLog_FindAll(t *testing.T) {
+	log := New(clock.New())
+	aa1zzz, _ := callsign.Parse("AA1ZZZ")
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY})
+
+	testCases := []struct {
+		band        core.Band
+		mode        core.Mode
+		expectedLen int
+	}{
+		{core.NoBand, core.NoMode, 5},
+		{core.Band10m, core.NoMode, 2},
+		{core.Band20m, core.NoMode, 3},
+		{core.Band10m, core.ModeCW, 1},
+		{core.Band10m, core.ModeRTTY, 0},
+		{core.NoBand, core.ModeCW, 2},
+	}
+	for _, tC := range testCases {
+		t.Run(fmt.Sprintf("%v, %v", tC.band, tC.mode), func(t *testing.T) {
+			qsos := log.FindAll(aa1zzz, tC.band, tC.mode)
+			assert.Equal(t, tC.expectedLen, len(qsos))
+		})
+	}
 }
 
 func TestUnique(t *testing.T) {

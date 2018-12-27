@@ -83,6 +83,20 @@ func (l *log) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
 }
 
+func (l *log) LastBand() core.Band {
+	if len(l.qsos) == 0 {
+		return core.NoBand
+	}
+	return l.qsos[len(l.qsos)-1].Band
+}
+
+func (l *log) LastMode() core.Mode {
+	if len(l.qsos) == 0 {
+		return core.NoMode
+	}
+	return l.qsos[len(l.qsos)-1].Mode
+}
+
 func (l *log) Log(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)

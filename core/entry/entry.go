@@ -12,12 +12,16 @@ import (
 )
 
 // NewController returns a new EntryController.
-func NewController(clock core.Clock, log core.Log, enterTheirNumber, enterTheirXchange bool) core.EntryController {
+func NewController(clock core.Clock, log core.Log, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) core.EntryController {
 	return &controller{
 		clock:             clock,
 		log:               log,
 		enterTheirNumber:  enterTheirNumber,
 		enterTheirXchange: enterTheirXchange,
+		allowMultiBand:    allowMultiBand,
+		allowMultiMode:    allowMultiMode,
+		selectedBand:      log.LastBand(),
+		selectedMode:      log.LastMode(),
 	}
 }
 
@@ -26,6 +30,8 @@ type controller struct {
 	log               core.Log
 	enterTheirNumber  bool
 	enterTheirXchange bool
+	allowMultiBand    bool
+	allowMultiMode    bool
 	view              core.EntryView
 	activeField       core.EntryField
 	selectedBand      core.Band
@@ -35,6 +41,8 @@ type controller struct {
 func (c *controller) SetView(view core.EntryView) {
 	c.view = view
 	c.view.SetEntryController(c)
+	c.view.SetBand(c.selectedBand.String())
+	c.view.SetMode(c.selectedMode.String())
 	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
 	c.Reset()
 }
@@ -76,7 +84,7 @@ func (c *controller) leaveCallsignField() {
 		return
 	}
 
-	qso, found := c.log.Find(callsign)
+	qso, found := c.isDuplicate(callsign)
 	if !found {
 		c.view.SetDuplicateMarker(false)
 		return
@@ -93,6 +101,22 @@ func (c *controller) leaveCallsignField() {
 	c.view.SetDuplicateMarker(true)
 }
 
+func (c *controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
+	band := core.NoBand
+	if c.allowMultiBand {
+		band = c.selectedBand
+	}
+	mode := core.NoMode
+	if c.allowMultiMode {
+		mode = c.selectedMode
+	}
+	qsos := c.log.FindAll(callsign, band, mode)
+	if len(qsos) == 0 {
+		return core.QSO{}, false
+	}
+	return qsos[len(qsos)-1], true
+}
+
 func (c *controller) GetActiveField() core.EntryField {
 	return c.activeField
 }
@@ -105,6 +129,7 @@ func (c *controller) BandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
 		logger.Printf("Band selected: %v", band)
 		c.selectedBand = band
+		c.EnterCallsign(c.view.GetCallsign())
 	}
 }
 
@@ -120,6 +145,8 @@ func (c *controller) ModeSelected(s string) {
 			c.view.SetMyReport("599")
 			c.view.SetTheirReport("599")
 		}
+
+		c.EnterCallsign(c.view.GetCallsign())
 	}
 }
 
@@ -129,7 +156,7 @@ func (c *controller) EnterCallsign(s string) {
 		return
 	}
 
-	qso, found := c.log.Find(callsign)
+	qso, found := c.isDuplicate(callsign)
 	if !found {
 		c.view.ClearMessage()
 		return
@@ -203,7 +230,7 @@ func (c *controller) Log() {
 
 	qso.MyXchange = c.view.GetMyXchange()
 
-	duplicateQso, duplicate := c.log.Find(qso.Callsign)
+	duplicateQso, duplicate := c.isDuplicate(qso.Callsign)
 	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
 		c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, duplicateQso.MyNumber.String()), core.CallsignField)
 		return

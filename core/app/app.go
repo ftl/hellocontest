@@ -64,6 +64,8 @@ func (c *controller) Startup() {
 		c.log,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
+		c.configuration.AllowMultiBand(),
+		c.configuration.AllowMultiMode(),
 	)
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
@@ -113,6 +115,8 @@ func (c *controller) New() {
 		c.log,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
+		c.configuration.AllowMultiBand(),
+		c.configuration.AllowMultiMode(),
 	)
 
 	c.view.ShowFilename(c.filename)
@@ -146,6 +150,8 @@ func (c *controller) Open() {
 		c.log,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
+		c.configuration.AllowMultiBand(),
+		c.configuration.AllowMultiMode(),
 	)
 
 	c.view.ShowFilename(c.filename)

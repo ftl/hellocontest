@@ -15,6 +15,8 @@ type Log interface {
 	ClearRowAddedListeners()
 
 	NextNumber() QSONumber
+	LastBand() Band
+	LastMode() Mode
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
 	FindAll(callsign.Callsign, Band, Mode) []QSO
@@ -177,6 +179,8 @@ type Configuration interface {
 	EnterTheirXchange() bool
 	MyExchanger() Exchanger
 	TheirExchanger() Exchanger
+	AllowMultiBand() bool
+	AllowMultiMode() bool
 
 	KeyerHost() string
 	KeyerPort() int

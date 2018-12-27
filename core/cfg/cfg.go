@@ -31,6 +31,8 @@ func Static(myCall callsign.Callsign, myLocator locator.Locator) core.Configurat
 const (
 	enterTheirNumber  cfg.Key = "hellocontest.enter.theirNumber"
 	enterTheirXchange cfg.Key = "hellocontest.enter.theirXchange"
+	allowMultiBand    cfg.Key = "hellocontest.enter.allowMultiBand"
+	allowMultiMode    cfg.Key = "hellocontest.enter.allowMultiMode"
 	myExchanger       cfg.Key = "hellocontest.exchange.my"
 	theirExchanger    cfg.Key = "hellocontest.exchange.their"
 	keyerHost         cfg.Key = "hellocontest.keyer.host"
@@ -95,6 +97,14 @@ func (l loaded) TheirExchanger() core.Exchanger {
 	}
 }
 
+func (l loaded) AllowMultiBand() bool {
+	return l.configuration.Get(allowMultiBand, false).(bool)
+}
+
+func (l loaded) AllowMultiMode() bool {
+	return l.configuration.Get(allowMultiMode, false).(bool)
+}
+
 func (l loaded) KeyerHost() string {
 	return l.configuration.Get(keyerHost, "").(string)
 }
@@ -138,6 +148,14 @@ func (s static) MyExchanger() core.Exchanger {
 
 func (s static) TheirExchanger() core.Exchanger {
 	return core.TheirNumber
+}
+
+func (s static) AllowMultiBand() bool {
+	return false
+}
+
+func (s static) AllowMultiMode() bool {
+	return false
 }
 
 func (s static) KeyerHost() string {

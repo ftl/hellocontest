@@ -31,6 +31,16 @@ func (m *Log) NextNumber() core.QSONumber {
 	return args.Get(0).(core.QSONumber)
 }
 
+func (m *Log) LastBand() core.Band {
+	args := m.Called()
+	return args.Get(0).(core.Band)
+}
+
+func (m *Log) LastMode() core.Mode {
+	args := m.Called()
+	return args.Get(0).(core.Mode)
+}
+
 func (m *Log) Log(qso core.QSO) {
 	m.Called(qso)
 }

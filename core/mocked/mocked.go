@@ -12,60 +12,101 @@ import (
 
 type Log struct {
 	mock.Mock
+	active bool
+}
+
+func (m *Log) Activate() {
+	m.active = true
 }
 
 func (m *Log) SetView(view core.LogView) {
+	if !m.active {
+		return
+	}
 	m.Called(view)
 }
 
 func (m *Log) OnRowAdded(listener core.RowAddedListener) {
+	if !m.active {
+		return
+	}
 	m.Called(listener)
 }
 
 func (m *Log) ClearRowAddedListeners() {
+	if !m.active {
+		return
+	}
 	m.Called()
 }
 
 func (m *Log) NextNumber() core.QSONumber {
+	if !m.active {
+		return core.QSONumber(0)
+	}
 	args := m.Called()
 	return args.Get(0).(core.QSONumber)
 }
 
 func (m *Log) LastBand() core.Band {
+	if !m.active {
+		return core.NoBand
+	}
 	args := m.Called()
 	return args.Get(0).(core.Band)
 }
 
 func (m *Log) LastMode() core.Mode {
+	if !m.active {
+		return core.NoMode
+	}
 	args := m.Called()
 	return args.Get(0).(core.Mode)
 }
 
 func (m *Log) Log(qso core.QSO) {
+	if !m.active {
+		return
+	}
 	m.Called(qso)
 }
 
 func (m *Log) Find(callsign callsign.Callsign) (core.QSO, bool) {
+	if !m.active {
+		return core.QSO{}, false
+	}
 	args := m.Called(callsign)
 	return args.Get(0).(core.QSO), args.Bool(1)
 }
 
 func (m *Log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	if !m.active {
+		return []core.QSO{}
+	}
 	args := m.Called(callsign, band, mode)
 	return args.Get(0).([]core.QSO)
 }
 
 func (m *Log) QsosOrderedByMyNumber() []core.QSO {
+	if !m.active {
+		return []core.QSO{}
+	}
 	args := m.Called()
 	return args.Get(0).([]core.QSO)
 }
 
 func (m *Log) UniqueQsosOrderedByMyNumber() []core.QSO {
+	if !m.active {
+		return []core.QSO{}
+	}
 	args := m.Called()
 	return args.Get(0).([]core.QSO)
 }
 
 func (m *Log) WriteAll(writer core.Writer) error {
+	if !m.active {
+		return nil
+	}
 	args := m.Called(writer)
 	return args.Error(0)
 }
@@ -127,110 +168,187 @@ func (m *Reader) ReadAll() ([]core.QSO, error) {
 
 type EntryView struct {
 	mock.Mock
+	active bool
+}
+
+func (m *EntryView) Activate() {
+	m.active = true
 }
 
 func (m *EntryView) SetEntryController(controller core.EntryController) {
+	if !m.active {
+		return
+	}
 	m.Called(controller)
 }
 
 func (m *EntryView) GetCallsign() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetCallsign(callsign string) {
+	if !m.active {
+		return
+	}
 	m.Called(callsign)
 }
 
 func (m *EntryView) GetTheirReport() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetTheirReport(report string) {
+	if !m.active {
+		return
+	}
 	m.Called(report)
 }
 
 func (m *EntryView) GetTheirNumber() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetTheirNumber(number string) {
+	if !m.active {
+		return
+	}
 	m.Called(number)
 }
 
 func (m *EntryView) GetTheirXchange() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetTheirXchange(xchange string) {
+	if !m.active {
+		return
+	}
 	m.Called(xchange)
 }
 
 func (m *EntryView) GetBand() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetBand(text string) {
+	if !m.active {
+		return
+	}
 	m.Called(text)
 }
 
 func (m *EntryView) GetMode() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetMode(text string) {
+	if !m.active {
+		return
+	}
 	m.Called(text)
 }
 
 func (m *EntryView) GetMyReport() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetMyReport(report string) {
+	if !m.active {
+		return
+	}
 	m.Called(report)
 }
 
 func (m *EntryView) GetMyNumber() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetMyNumber(number string) {
+	if !m.active {
+		return
+	}
 	m.Called(number)
 }
 
 func (m *EntryView) GetMyXchange() string {
+	if !m.active {
+		return ""
+	}
 	args := m.Called()
 	return args.String(0)
 }
 
 func (m *EntryView) SetMyXchange(xchange string) {
+	if !m.active {
+		return
+	}
 	m.Called(xchange)
 }
 
 func (m *EntryView) EnableExchangeFields(theirNumber, theirXchange bool) {
+	if !m.active {
+		return
+	}
 	m.Called(theirNumber, theirXchange)
 }
 
 func (m *EntryView) SetActiveField(field core.EntryField) {
+	if !m.active {
+		return
+	}
 	m.Called(field)
 }
 
 func (m *EntryView) SetDuplicateMarker(active bool) {
+	if !m.active {
+		return
+	}
 	m.Called(active)
 }
 
 func (m *EntryView) ShowMessage(args ...interface{}) {
+	if !m.active {
+		return
+	}
 	m.Called(args)
 }
 
 func (m *EntryView) ClearMessage() {
+	if !m.active {
+		return
+	}
 	m.Called()
 }
 

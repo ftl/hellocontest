@@ -24,6 +24,15 @@ pkg-config --modversion gtk+-3.0
 go build -tags gtk_3_22
 ```
 
+### Glade
+The UI is defined using a Glade file. This file is integrated into the executable by the tool [go-bindata](https://github.com/kevinburke/go-bindata). To integrate a new version of the glade file into the executable, run
+
+```
+go generate ./...
+```
+
+This wil generate the related Go-code into the package `ui/glade`.
+
 ### Protobuf
 To generate the Go-code related to Protobuf, use the following command:
 

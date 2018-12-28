@@ -7,6 +7,7 @@ import (
 	coreapp "github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
+	"github.com/ftl/hellocontest/ui/glade"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -66,7 +67,8 @@ func setupBuilder() *gtk.Builder {
 		logger.Fatal("Cannot create builder: ", err)
 	}
 
-	builder.AddFromFile("ui/glade/contest.glade")
+	// builder.AddFromFile("ui/glade/contest.glade")
+	builder.AddFromString(glade.MustAssetString("contest.glade"))
 
 	return builder
 }

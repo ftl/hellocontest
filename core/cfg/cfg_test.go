@@ -9,7 +9,6 @@ import (
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
-	"github.com/ftl/hellocontest/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,54 +41,6 @@ func TestLoaded_EnterTheirXchange(t *testing.T) {
 	assert.True(t, config1.EnterTheirXchange())
 	config2 := loadFromString(t, `{"hellocontest":{"enter":{"theirXchange":false}}}`)
 	assert.False(t, config2.EnterTheirXchange())
-}
-
-func TestLoaded_MyExchanger(t *testing.T) {
-	testCases := []struct {
-		value    string
-		expected core.Exchanger
-	}{
-		{"", core.MyNumber},
-		{"Number", core.MyNumber},
-		{"NUMBER", core.MyNumber},
-		{"Xchange", core.MyXchange},
-		{"XCHANGE", core.MyXchange},
-		{"both", core.MyNumberAndXchange},
-		{"Both", core.MyNumberAndXchange},
-		{"none", core.NoExchange},
-		{"NONE", core.NoExchange},
-	}
-	for i, tC := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			config := loadFromString(t, fmt.Sprintf(`{"hellocontest":{"exchange":{"my":"%s"}}}`, tC.value))
-			qso := core.QSO{MyNumber: core.QSONumber(123), MyXchange: "ABC"}
-			assert.Equal(t, tC.expected(qso), config.MyExchanger()(qso))
-		})
-	}
-}
-
-func TestLoaded_TheirExchanger(t *testing.T) {
-	testCases := []struct {
-		value    string
-		expected core.Exchanger
-	}{
-		{"", core.TheirNumber},
-		{"Number", core.TheirNumber},
-		{"NUMBER", core.TheirNumber},
-		{"Xchange", core.TheirXchange},
-		{"XCHANGE", core.TheirXchange},
-		{"both", core.TheirNumberAndXchange},
-		{"Both", core.TheirNumberAndXchange},
-		{"none", core.NoExchange},
-		{"NONE", core.NoExchange},
-	}
-	for i, tC := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			config := loadFromString(t, fmt.Sprintf(`{"hellocontest":{"exchange":{"their":"%s"}}}`, tC.value))
-			qso := core.QSO{TheirNumber: core.QSONumber(123), TheirXchange: "ABC"}
-			assert.Equal(t, tC.expected(qso), config.TheirExchanger()(qso))
-		})
-	}
 }
 
 func TestLoaded_KeyerSPPatterns(t *testing.T) {

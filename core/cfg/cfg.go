@@ -1,8 +1,6 @@
 package cfg
 
 import (
-	"strings"
-
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
@@ -29,16 +27,15 @@ func Static(myCall callsign.Callsign, myLocator locator.Locator) core.Configurat
 }
 
 const (
-	enterTheirNumber  cfg.Key = "hellocontest.enter.theirNumber"
-	enterTheirXchange cfg.Key = "hellocontest.enter.theirXchange"
-	allowMultiBand    cfg.Key = "hellocontest.enter.allowMultiBand"
-	allowMultiMode    cfg.Key = "hellocontest.enter.allowMultiMode"
-	myExchanger       cfg.Key = "hellocontest.exchange.my"
-	theirExchanger    cfg.Key = "hellocontest.exchange.their"
-	keyerHost         cfg.Key = "hellocontest.keyer.host"
-	keyerPort         cfg.Key = "hellocontest.keyer.port"
-	keyerSPPatterns   cfg.Key = "hellocontest.keyer.sp"
-	keyerRunPatterns  cfg.Key = "hellocontest.keyer.run"
+	enterTheirNumber    cfg.Key = "hellocontest.enter.theirNumber"
+	enterTheirXchange   cfg.Key = "hellocontest.enter.theirXchange"
+	allowMultiBand      cfg.Key = "hellocontest.enter.allowMultiBand"
+	allowMultiMode      cfg.Key = "hellocontest.enter.allowMultiMode"
+	cabrilloQSOTemplate cfg.Key = "hellocontest.cabrillo.qso"
+	keyerHost           cfg.Key = "hellocontest.keyer.host"
+	keyerPort           cfg.Key = "hellocontest.keyer.port"
+	keyerSPPatterns     cfg.Key = "hellocontest.keyer.sp"
+	keyerRunPatterns    cfg.Key = "hellocontest.keyer.run"
 )
 
 type loaded struct {
@@ -65,36 +62,9 @@ func (l loaded) EnterTheirXchange() bool {
 	return l.configuration.Get(enterTheirXchange, true).(bool)
 }
 
-func (l loaded) MyExchanger() core.Exchanger {
-	value := strings.ToUpper(l.configuration.Get(myExchanger, "").(string))
-	switch value {
-	case "NUMBER":
-		return core.MyNumber
-	case "XCHANGE":
-		return core.MyXchange
-	case "BOTH":
-		return core.MyNumberAndXchange
-	case "NONE":
-		return core.NoExchange
-	default:
-		return core.MyNumber
-	}
-}
-
-func (l loaded) TheirExchanger() core.Exchanger {
-	value := strings.ToUpper(l.configuration.Get(theirExchanger, "").(string))
-	switch value {
-	case "NUMBER":
-		return core.TheirNumber
-	case "XCHANGE":
-		return core.TheirXchange
-	case "BOTH":
-		return core.TheirNumberAndXchange
-	case "NONE":
-		return core.NoExchange
-	default:
-		return core.TheirNumber
-	}
+func (l loaded) CabrilloQSOTemplate() string {
+	defaultTemplate := "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"
+	return l.configuration.Get(cabrilloQSOTemplate, defaultTemplate).(string)
 }
 
 func (l loaded) AllowMultiBand() bool {
@@ -142,12 +112,8 @@ func (s static) EnterTheirXchange() bool {
 	return true
 }
 
-func (s static) MyExchanger() core.Exchanger {
-	return core.MyNumber
-}
-
-func (s static) TheirExchanger() core.Exchanger {
-	return core.TheirNumber
+func (s static) CabrilloQSOTemplate() string {
+	return "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"
 }
 
 func (s static) AllowMultiBand() bool {

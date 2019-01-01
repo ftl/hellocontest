@@ -127,44 +127,6 @@ func (nr *QSONumber) String() string {
 	return fmt.Sprintf("%03d", *nr)
 }
 
-// Exchanger extracts the exchanged data (mine or their) from the given QSO.
-type Exchanger func(QSO) string
-
-// NoExchange can be used if there is no extra exchange. It returns an empty string.
-func NoExchange(qso QSO) string {
-	return ""
-}
-
-// MyNumber extracts MyNumber as exchange from the given QSO.
-func MyNumber(qso QSO) string {
-	return qso.MyNumber.String()
-}
-
-// MyXchange extracts MyXchange as exchange from the given QSO.
-func MyXchange(qso QSO) string {
-	return qso.MyXchange
-}
-
-// MyNumberAndXchange extracts MyNumber and MyXchange as exchange from the given QSO, separated by a single space character.
-func MyNumberAndXchange(qso QSO) string {
-	return fmt.Sprintf("%s %s", qso.MyNumber.String(), qso.MyXchange)
-}
-
-// TheirNumber extracts TheirNumber as exchange from the given QSO.
-func TheirNumber(qso QSO) string {
-	return qso.TheirNumber.String()
-}
-
-// TheirXchange extracts TheirXchange as exchange from the given QSO.
-func TheirXchange(qso QSO) string {
-	return qso.TheirXchange
-}
-
-// TheirNumberAndXchange extracts TheirNumber and TheirXchange as exchange from the given QSO, separated by a single space character.
-func TheirNumberAndXchange(qso QSO) string {
-	return fmt.Sprintf("%s %s", qso.TheirNumber.String(), qso.TheirXchange)
-}
-
 // Clock represents a source of the current time.
 type Clock interface {
 	Now() time.Time
@@ -177,8 +139,7 @@ type Configuration interface {
 
 	EnterTheirNumber() bool
 	EnterTheirXchange() bool
-	MyExchanger() Exchanger
-	TheirExchanger() Exchanger
+	CabrilloQSOTemplate() string
 	AllowMultiBand() bool
 	AllowMultiMode() bool
 

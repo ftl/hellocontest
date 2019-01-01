@@ -3,6 +3,7 @@ package cabrillo
 import (
 	"fmt"
 	"io"
+	"text/template"
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
@@ -11,7 +12,7 @@ import (
 
 // Export writes the given QSOs to the given writer in the Cabrillo format.
 // The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, mycall callsign.Callsign, myExchange core.Exchanger, theirExchange core.Exchanger, qsos ...core.QSO) error {
+func Export(w io.Writer, t *template.Template, mycall callsign.Callsign, qsos ...core.QSO) error {
 	head := []string{
 		"START-OF-LOG: 3.0",
 		"CREATED-BY: Hello Contest",
@@ -28,7 +29,7 @@ func Export(w io.Writer, mycall callsign.Callsign, myExchange core.Exchanger, th
 	}
 
 	for _, qso := range qsos {
-		if _, err := fmt.Fprintln(w, qsoLine(mycall, myExchange, theirExchange, qso)); err != nil {
+		if err := writeQSO(w, t, mycall, qso); err != nil {
 			return err
 		}
 	}
@@ -65,17 +66,30 @@ var mode = map[core.Mode]string{
 	core.ModeDigital: "DG",
 }
 
-func qsoLine(mycall callsign.Callsign, myExchange core.Exchanger, theirExchange core.Exchanger, qso core.QSO) string {
-	timestamp := qso.Time.In(time.UTC).Format("2006-01-02 1504")
-	return fmt.Sprintf("QSO: %s %s %s %s %s %s %s %s %s",
-		qrg[qso.Band],
-		mode[qso.Mode],
-		timestamp,
-		mycall,
-		qso.MyReport,
-		myExchange(qso),
-		qso.Callsign,
-		qso.TheirReport,
-		theirExchange(qso),
-	)
+func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso core.QSO) error {
+	fillins := map[string]string{
+		"QRG":          qrg[qso.Band],
+		"Mode":         mode[qso.Mode],
+		"Date":         qso.Time.In(time.UTC).Format("2006-01-02"),
+		"Time":         qso.Time.In(time.UTC).Format("1504"),
+		"MyCall":       mycall.String(),
+		"MyReport":     qso.MyReport.String(),
+		"MyNumber":     qso.MyNumber.String(),
+		"MyXchange":    qso.MyXchange,
+		"TheirCall":    qso.Callsign.String(),
+		"TheirReport":  qso.TheirReport.String(),
+		"TheirNumber":  qso.TheirNumber.String(),
+		"TheirXchange": qso.TheirXchange,
+	}
+
+	_, err := fmt.Fprintf(w, "QSO: ")
+	if err != nil {
+		return err
+	}
+	err = t.Execute(w, fillins)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(w)
+	return err
 }

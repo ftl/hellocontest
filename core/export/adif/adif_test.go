@@ -35,11 +35,9 @@ func TestData(t *testing.T) {
 func TestRecord(t *testing.T) {
 	theirCall, _ := callsign.Parse("S50A")
 	testCases := []struct {
-		desc          string
-		qso           core.QSO
-		myExchange    core.Exchanger
-		theirExchange core.Exchanger
-		expected      string
+		desc     string
+		qso      core.QSO
+		expected string
 	}{
 		{
 			desc: "40m CW",

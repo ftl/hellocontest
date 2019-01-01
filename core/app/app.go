@@ -4,6 +4,7 @@ import (
 	logger "log"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/ftl/hamradio/cwclient"
 	"github.com/ftl/hellocontest/core"
@@ -200,16 +201,22 @@ func (c *controller) ExportCabrillo() {
 		return
 	}
 
+	template, err := template.New("").Parse(c.configuration.CabrilloQSOTemplate())
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot parse the QSO template: %v", err)
+		return
+	}
+
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
 		return
 	}
 	defer file.Close()
-	err = cabrillo.Export(file,
+	err = cabrillo.Export(
+		file,
+		template,
 		c.configuration.MyCall(),
-		c.configuration.MyExchanger(),
-		c.configuration.TheirExchanger(),
 		c.log.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)

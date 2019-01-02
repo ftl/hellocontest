@@ -146,10 +146,10 @@ func byMyNumber(qsos []core.QSO) []core.QSO {
 	result := make([]core.QSO, len(qsos))
 	copy(result, qsos)
 	sort.Slice(result, func(i, j int) bool {
-		if qsos[i].MyNumber == qsos[j].MyNumber {
-			return qsos[i].LogTimestamp.Before(qsos[j].LogTimestamp)
+		if result[i].MyNumber == result[j].MyNumber {
+			return result[i].LogTimestamp.Before(result[j].LogTimestamp)
 		}
-		return qsos[i].MyNumber < qsos[j].MyNumber
+		return result[i].MyNumber < result[j].MyNumber
 	})
 	return result
 }

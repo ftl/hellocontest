@@ -130,23 +130,52 @@ func TestLog_FindAll(t *testing.T) {
 	}
 }
 
+func TestLog_UniqueQsosOrderedByMyNumber(t *testing.T) {
+	log := New(clock.New())
+	log.Log(core.QSO{Callsign: callsign.MustParse("AA3B"), MyNumber: core.QSONumber(4)})
+	log.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(1)})
+	log.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: core.QSONumber(3)})
+	log.Log(core.QSO{Callsign: callsign.MustParse("S50A"), MyNumber: core.QSONumber(2)})
+
+	actual := log.UniqueQsosOrderedByMyNumber()
+
+	assert.Equal(t, core.QSONumber(1), actual[0].MyNumber)
+	assert.Equal(t, core.QSONumber(2), actual[1].MyNumber)
+	assert.Equal(t, core.QSONumber(3), actual[2].MyNumber)
+	assert.Equal(t, core.QSONumber(4), actual[3].MyNumber)
+}
+
 func TestUnique(t *testing.T) {
 	c := clock.New()
-	log := New(c)
-	aa3b, _ := callsign.Parse("AA3B")
+	aa3b := callsign.MustParse("AA3B")
 	qso1 := core.QSO{
 		Callsign:     aa3b,
 		LogTimestamp: c.Now().Add(-10 * time.Minute),
 	}
-	log.Log(qso1)
 	qso2 := core.QSO{
 		Callsign:     aa3b,
 		LogTimestamp: c.Now(),
 	}
-	log.Log(qso2)
 
 	actual := unique([]core.QSO{qso1, qso2})
 
 	assert.Equal(t, 1, len(actual))
 	assert.Equal(t, qso2, actual[0])
+}
+
+func TestByMyNumber(t *testing.T) {
+	c := clock.New()
+	qsos := []core.QSO{
+		{MyNumber: core.QSONumber(3), LogTimestamp: c.Now().Add(-1 * time.Minute)},
+		{MyNumber: core.QSONumber(2), LogTimestamp: c.Now().Add(-2 * time.Minute)},
+		{MyNumber: core.QSONumber(1), LogTimestamp: c.Now().Add(-3 * time.Minute)},
+		{MyNumber: core.QSONumber(4), LogTimestamp: c.Now().Add(-50 * time.Second)},
+	}
+
+	actual := byMyNumber(qsos)
+
+	assert.Equal(t, core.QSONumber(1), actual[0].MyNumber)
+	assert.Equal(t, core.QSONumber(2), actual[1].MyNumber)
+	assert.Equal(t, core.QSONumber(3), actual[2].MyNumber)
+	assert.Equal(t, core.QSONumber(4), actual[3].MyNumber)
 }

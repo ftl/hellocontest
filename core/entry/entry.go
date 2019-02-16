@@ -78,7 +78,7 @@ func (c *controller) GotoNextField() core.EntryField {
 }
 
 func (c *controller) leaveCallsignField() {
-	callsign, err := callsign.Parse(c.view.GetCallsign())
+	callsign, err := callsign.Parse(c.view.Callsign())
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -129,7 +129,7 @@ func (c *controller) BandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
 		logger.Printf("Band selected: %v", band)
 		c.selectedBand = band
-		c.EnterCallsign(c.view.GetCallsign())
+		c.EnterCallsign(c.view.Callsign())
 	}
 }
 
@@ -146,7 +146,7 @@ func (c *controller) ModeSelected(s string) {
 			c.view.SetTheirReport("599")
 		}
 
-		c.EnterCallsign(c.view.GetCallsign())
+		c.EnterCallsign(c.view.Callsign())
 	}
 }
 
@@ -168,33 +168,33 @@ func (c *controller) EnterCallsign(s string) {
 func (c *controller) Log() {
 	var err error
 	qso := core.QSO{}
-	qso.Callsign, err = callsign.Parse(c.view.GetCallsign())
+	qso.Callsign, err = callsign.Parse(c.view.Callsign())
 	if err != nil {
 		c.showErrorOnField(err, core.CallsignField)
 		return
 	}
 	qso.Time = c.clock.Now()
 
-	qso.Band, err = parse.Band(c.view.GetBand())
+	qso.Band, err = parse.Band(c.view.Band())
 	if err != nil {
 		c.view.ShowMessage(err)
 		return
 	}
 
-	qso.Mode, err = parse.Mode(c.view.GetMode())
+	qso.Mode, err = parse.Mode(c.view.Mode())
 	if err != nil {
 		c.view.ShowMessage(err)
 		return
 	}
 
-	qso.TheirReport, err = parse.RST(c.view.GetTheirReport())
+	qso.TheirReport, err = parse.RST(c.view.TheirReport())
 	if err != nil {
 		c.showErrorOnField(err, core.TheirReportField)
 		return
 	}
 
 	if c.enterTheirNumber {
-		value := c.view.GetTheirNumber()
+		value := c.view.TheirNumber()
 		if value == "" {
 			c.showErrorOnField(errors.New("their number is missing"), core.TheirNumberField)
 			return
@@ -209,26 +209,26 @@ func (c *controller) Log() {
 	}
 
 	if c.enterTheirXchange {
-		qso.TheirXchange = c.view.GetTheirXchange()
+		qso.TheirXchange = c.view.TheirXchange()
 		if qso.TheirXchange == "" {
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
 		}
 	}
 
-	qso.MyReport, err = parse.RST(c.view.GetMyReport())
+	qso.MyReport, err = parse.RST(c.view.MyReport())
 	if err != nil {
 		c.showErrorOnField(err, core.MyReportField)
 		return
 	}
 
-	myNumber, err := strconv.Atoi(c.view.GetMyNumber())
+	myNumber, err := strconv.Atoi(c.view.MyNumber())
 	if err != nil {
 		c.showErrorOnField(err, core.MyNumberField)
 		return
 	}
 	qso.MyNumber = core.QSONumber(myNumber)
 
-	qso.MyXchange = c.view.GetMyXchange()
+	qso.MyXchange = c.view.MyXchange()
 
 	duplicateQso, duplicate := c.isDuplicate(qso.Callsign)
 	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
@@ -272,13 +272,13 @@ func (c *controller) Reset() {
 }
 
 func (c *controller) CurrentValues() core.KeyerValues {
-	myNumber, _ := strconv.Atoi(c.view.GetMyNumber())
+	myNumber, _ := strconv.Atoi(c.view.MyNumber())
 
 	values := core.KeyerValues{}
-	values.MyReport, _ = parse.RST(c.view.GetMyReport())
+	values.MyReport, _ = parse.RST(c.view.MyReport())
 	values.MyNumber = core.QSONumber(myNumber)
-	values.MyXchange = c.view.GetMyXchange()
-	values.TheirCall = c.view.GetCallsign()
+	values.MyXchange = c.view.MyXchange()
+	values.TheirCall = c.view.Callsign()
 
 	return values
 }

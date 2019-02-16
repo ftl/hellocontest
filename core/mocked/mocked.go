@@ -182,7 +182,7 @@ func (m *EntryView) SetEntryController(controller core.EntryController) {
 	m.Called(controller)
 }
 
-func (m *EntryView) GetCallsign() string {
+func (m *EntryView) Callsign() string {
 	if !m.active {
 		return ""
 	}
@@ -197,7 +197,7 @@ func (m *EntryView) SetCallsign(callsign string) {
 	m.Called(callsign)
 }
 
-func (m *EntryView) GetTheirReport() string {
+func (m *EntryView) TheirReport() string {
 	if !m.active {
 		return ""
 	}
@@ -212,7 +212,7 @@ func (m *EntryView) SetTheirReport(report string) {
 	m.Called(report)
 }
 
-func (m *EntryView) GetTheirNumber() string {
+func (m *EntryView) TheirNumber() string {
 	if !m.active {
 		return ""
 	}
@@ -227,7 +227,7 @@ func (m *EntryView) SetTheirNumber(number string) {
 	m.Called(number)
 }
 
-func (m *EntryView) GetTheirXchange() string {
+func (m *EntryView) TheirXchange() string {
 	if !m.active {
 		return ""
 	}
@@ -242,7 +242,7 @@ func (m *EntryView) SetTheirXchange(xchange string) {
 	m.Called(xchange)
 }
 
-func (m *EntryView) GetBand() string {
+func (m *EntryView) Band() string {
 	if !m.active {
 		return ""
 	}
@@ -257,7 +257,7 @@ func (m *EntryView) SetBand(text string) {
 	m.Called(text)
 }
 
-func (m *EntryView) GetMode() string {
+func (m *EntryView) Mode() string {
 	if !m.active {
 		return ""
 	}
@@ -272,7 +272,7 @@ func (m *EntryView) SetMode(text string) {
 	m.Called(text)
 }
 
-func (m *EntryView) GetMyReport() string {
+func (m *EntryView) MyReport() string {
 	if !m.active {
 		return ""
 	}
@@ -287,7 +287,7 @@ func (m *EntryView) SetMyReport(report string) {
 	m.Called(report)
 }
 
-func (m *EntryView) GetMyNumber() string {
+func (m *EntryView) MyNumber() string {
 	if !m.active {
 		return ""
 	}
@@ -302,7 +302,7 @@ func (m *EntryView) SetMyNumber(number string) {
 	m.Called(number)
 }
 
-func (m *EntryView) GetMyXchange() string {
+func (m *EntryView) MyXchange() string {
 	if !m.active {
 		return ""
 	}

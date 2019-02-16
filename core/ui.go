@@ -29,23 +29,23 @@ type EntryController interface {
 type EntryView interface {
 	SetEntryController(EntryController)
 
-	GetCallsign() string
+	Callsign() string
 	SetCallsign(string)
-	GetTheirReport() string
+	TheirReport() string
 	SetTheirReport(string)
-	GetTheirNumber() string
+	TheirNumber() string
 	SetTheirNumber(string)
-	GetTheirXchange() string
+	TheirXchange() string
 	SetTheirXchange(string)
-	GetBand() string
+	Band() string
 	SetBand(text string)
-	GetMode() string
+	Mode() string
 	SetMode(text string)
-	GetMyReport() string
+	MyReport() string
 	SetMyReport(string)
-	GetMyNumber() string
+	MyNumber() string
 	SetMyNumber(string)
-	GetMyXchange() string
+	MyXchange() string
 	SetMyXchange(string)
 
 	EnableExchangeFields(bool, bool)

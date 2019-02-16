@@ -2,13 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
-	"time"
 
-	"github.com/ftl/hellocontest/core"
-
-	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/pkg/errors"
 )
@@ -17,14 +12,9 @@ type mainWindow struct {
 	window *gtk.ApplicationWindow
 
 	*mainMenu
+	*logView
 	*entryView
 	*keyer
-
-	qsoView *gtk.TreeView
-	qsoList *gtk.ListStore
-
-	log   core.Log
-	entry core.EntryController
 }
 
 func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWindow {
@@ -35,107 +25,11 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.window.SetDefaultSize(500, 500)
 
 	result.mainMenu = setupMainMenu(builder)
+	result.logView = setupLogView(builder)
 	result.entryView = setupEntryView(builder)
 	result.keyer = setupKeyer(builder)
 
-	result.qsoView = getUI(builder, "qsoView").(*gtk.TreeView)
-	result.qsoList = setupQsoView(result.qsoView)
-
 	return result
-}
-
-const (
-	qsoColumnUTC int = iota
-	qsoColumnCallsign
-	qsoColumnBand
-	qsoColumnMode
-	qsoColumnMyReport
-	qsoColumnMyNumber
-	qsoColumnMyXchange
-	qsoColumnTheirReport
-	qsoColumnTheirNumber
-	qsoColumnTheirXchange
-)
-
-func setupQsoView(qsoView *gtk.TreeView) *gtk.ListStore {
-	qsoView.AppendColumn(createColumn("UTC", qsoColumnUTC))
-	qsoView.AppendColumn(createColumn("Callsign", qsoColumnCallsign))
-	qsoView.AppendColumn(createColumn("Band", qsoColumnBand))
-	qsoView.AppendColumn(createColumn("Mode", qsoColumnMode))
-	qsoView.AppendColumn(createColumn("My RST", qsoColumnMyReport))
-	qsoView.AppendColumn(createColumn("My #", qsoColumnMyNumber))
-	qsoView.AppendColumn(createColumn("My XChg", qsoColumnMyXchange))
-	qsoView.AppendColumn(createColumn("Th RST", qsoColumnTheirReport))
-	qsoView.AppendColumn(createColumn("Th #", qsoColumnTheirNumber))
-	qsoView.AppendColumn(createColumn("Th XChg", qsoColumnTheirXchange))
-
-	qsoList, err := gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)
-	if err != nil {
-		log.Fatalf("Cannot create QSO list store: %v", err)
-	}
-	qsoView.SetModel(qsoList)
-	return qsoList
-}
-
-func createColumn(title string, id int) *gtk.TreeViewColumn {
-	cellRenderer, err := gtk.CellRendererTextNew()
-	if err != nil {
-		log.Fatalf("Cannot create text cell renderer for column %s: %v", title, err)
-	}
-
-	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "text", id)
-	if err != nil {
-		log.Fatalf("Cannot create column %s: %v", title, err)
-	}
-	return column
-}
-
-func (w *mainWindow) SetLog(log core.Log) {
-	w.log = log
-}
-
-func (w *mainWindow) UpdateAllRows(qsos []core.QSO) {
-	w.qsoList.Clear()
-	for _, qso := range qsos {
-		w.RowAdded(qso)
-	}
-}
-
-func (w *mainWindow) RowAdded(qso core.QSO) {
-	newRow := w.qsoList.Append()
-	err := w.qsoList.Set(newRow,
-		[]int{
-			qsoColumnUTC,
-			qsoColumnCallsign,
-			qsoColumnBand,
-			qsoColumnMode,
-			qsoColumnMyReport,
-			qsoColumnMyNumber,
-			qsoColumnMyXchange,
-			qsoColumnTheirReport,
-			qsoColumnTheirNumber,
-			qsoColumnTheirXchange,
-		},
-		[]interface{}{
-			qso.Time.In(time.UTC).Format("15:04"),
-			qso.Callsign.String(),
-			qso.Band.String(),
-			qso.Mode.String(),
-			qso.MyReport.String(),
-			qso.MyNumber.String(),
-			qso.MyXchange,
-			qso.TheirReport.String(),
-			qso.TheirNumber.String(),
-			qso.TheirXchange,
-		})
-	if err != nil {
-		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)
-	}
-	path, err := w.qsoList.GetPath(newRow)
-	if err != nil {
-		log.Printf("Cannot get path for list item: %s", err)
-	}
-	w.qsoView.SetCursorOnCell(path, w.qsoView.GetColumn(1), nil, false)
 }
 
 func (w *mainWindow) Show() {

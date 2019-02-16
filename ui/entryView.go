@@ -12,7 +12,7 @@ import (
 type entryView struct {
 	controller core.EntryController
 
-	style             *gtk.CssProvider
+	style             *style
 	ignoreComboChange bool
 
 	callsign     *gtk.Entry
@@ -70,7 +70,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 		color: #FFFFFF;
 	}
 	`)
-	addStyleProvider(&result.myNumber.Widget, result.style)
+	result.style.applyTo(&result.myNumber.Widget)
 
 	return result
 }

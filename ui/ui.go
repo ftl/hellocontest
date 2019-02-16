@@ -14,41 +14,45 @@ func getUI(builder *gtk.Builder, name string) interface{} {
 	return obj
 }
 
-func newStyle(style string) *gtk.CssProvider {
+func newStyle(definition string) *style {
 	provider, err := gtk.CssProviderNew()
 	if err != nil {
 		log.Fatalf("Cannot create CSS provider: %v", err)
 	}
-	provider.LoadFromData(style)
-	return provider
+	provider.LoadFromData(definition)
+	return &style{provider: provider}
 }
 
-func addStyleProvider(widget *gtk.Widget, styleProvider *gtk.CssProvider) {
+type style struct {
+	provider *gtk.CssProvider
+}
+
+func (s *style) applyTo(widget *gtk.Widget) {
 	context, err := widget.GetStyleContext()
 	if err != nil {
 		log.Printf("Cannot get style context: %v", err)
 		return
 	}
-	context.AddProvider(styleProvider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+	context.AddProvider(s.provider, gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 }
 
 func addStyleClass(widget *gtk.Widget, class string) {
-	doWithStyle(widget, func(style *gtk.StyleContext) {
-		style.AddClass(class)
+	doWithStyle(widget, func(context *gtk.StyleContext) {
+		context.AddClass(class)
 	})
 }
 
 func removeStyleClass(widget *gtk.Widget, class string) {
-	doWithStyle(widget, func(style *gtk.StyleContext) {
-		style.RemoveClass(class)
+	doWithStyle(widget, func(context *gtk.StyleContext) {
+		context.RemoveClass(class)
 	})
 }
 
 func doWithStyle(widget *gtk.Widget, do func(*gtk.StyleContext)) error {
-	style, err := widget.GetStyleContext()
+	context, err := widget.GetStyleContext()
 	if err != nil {
 		return err
 	}
-	do(style)
+	do(context)
 	return nil
 }

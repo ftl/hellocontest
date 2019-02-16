@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ftl/hellocontest/core"
+
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -29,14 +30,9 @@ type mainWindow struct {
 	logButton    *gtk.Button
 	resetButton  *gtk.Button
 	messageLabel *gtk.Label
-	*keyer
 
-	menuFileNew            *gtk.MenuItem
-	menuFileOpen           *gtk.MenuItem
-	menuFileSaveAs         *gtk.MenuItem
-	menuFileExportCabrillo *gtk.MenuItem
-	menuFileExportADIF     *gtk.MenuItem
-	menuFileQuit           *gtk.MenuItem
+	*mainMenu
+	*keyer
 
 	qsoView *gtk.TreeView
 	qsoList *gtk.ListStore
@@ -44,7 +40,6 @@ type mainWindow struct {
 	ignoreComboChange bool
 
 	log   core.Log
-	app   core.AppController
 	entry core.EntryController
 }
 
@@ -57,13 +52,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.window.SetApplication(application)
 	result.window.SetDefaultSize(500, 500)
 
-	result.menuFileNew = getUI(builder, "menuFileNew").(*gtk.MenuItem)
-	result.menuFileOpen = getUI(builder, "menuFileOpen").(*gtk.MenuItem)
-	result.menuFileSaveAs = getUI(builder, "menuFileSaveAs").(*gtk.MenuItem)
-	result.menuFileExportCabrillo = getUI(builder, "menuFileExportCabrillo").(*gtk.MenuItem)
-	result.menuFileExportADIF = getUI(builder, "menuFileExportADIF").(*gtk.MenuItem)
-
-	result.menuFileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
+	result.mainMenu = setupMainMenu(builder)
+	result.keyer = setupKeyer(builder)
 
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
 	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
@@ -77,8 +67,6 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.resetButton = getUI(builder, "resetButton").(*gtk.Button)
 	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
-
-	result.keyer = setupKeyer(builder, result)
 
 	result.addEntryTraversal(result.callsign)
 	result.addEntryTraversal(result.theirReport)
@@ -101,13 +89,6 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.qsoList = setupQsoView(result.qsoView)
 
 	result.addStyleProvider(&result.myNumber.Widget)
-
-	result.menuFileNew.Connect("activate", result.onNew)
-	result.menuFileOpen.Connect("activate", result.onOpen)
-	result.menuFileSaveAs.Connect("activate", result.onSaveAs)
-	result.menuFileExportCabrillo.Connect("activate", result.onExportCabrillo)
-	result.menuFileExportADIF.Connect("activate", result.onExportADIF)
-	result.menuFileQuit.Connect("activate", result.onQuit)
 
 	return result
 }
@@ -219,34 +200,6 @@ func (w *mainWindow) addEntryTraversal(entry *gtk.Entry) {
 	entry.Connect("key_press_event", w.onEntryKeyPress)
 	entry.Connect("focus_in_event", w.onEntryFocusIn)
 	entry.Connect("focus_out_event", w.onEntryFocusOut)
-}
-
-func (w *mainWindow) onNew() {
-	w.app.New()
-}
-
-func (w *mainWindow) onOpen() {
-	w.app.Open()
-}
-
-func (w *mainWindow) onSaveAs() {
-	w.app.SaveAs()
-}
-
-func (w *mainWindow) onExportCabrillo() {
-	w.app.ExportCabrillo()
-}
-
-func (w *mainWindow) onExportADIF() {
-	w.app.ExportADIF()
-}
-
-func (w *mainWindow) onQuit() {
-	if app, err := w.window.GetApplication(); err != nil {
-		log.Printf("Cannot quit application: %v", err)
-	} else {
-		app.Quit()
-	}
 }
 
 func (w *mainWindow) onEntryKeyPress(widget interface{}, event *gdk.Event) bool {
@@ -566,10 +519,6 @@ func (w *mainWindow) RowAdded(qso core.QSO) {
 		log.Printf("Cannot get path for list item: %s", err)
 	}
 	w.qsoView.SetCursorOnCell(path, w.qsoView.GetColumn(1), nil, false)
-}
-
-func (w *mainWindow) SetAppController(app core.AppController) {
-	w.app = app
 }
 
 func (w *mainWindow) ShowFilename(filename string) {

@@ -17,9 +17,10 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(clock core.Clock, configuration core.Configuration) core.AppController {
+func NewController(clock core.Clock, quitter core.Quitter, configuration core.Configuration) core.AppController {
 	return &controller{
 		clock:         clock,
+		quitter:       quitter,
 		configuration: configuration,
 	}
 }
@@ -34,6 +35,7 @@ type controller struct {
 	log           core.Log
 	store         core.Store
 	cwclient      core.CWClient
+	quitter       core.Quitter
 	entry         core.EntryController
 	keyer         core.KeyerController
 
@@ -44,7 +46,7 @@ type controller struct {
 
 func (c *controller) SetView(view core.AppView) {
 	c.view = view
-	c.view.SetAppController(c)
+	c.view.SetMainMenuController(c)
 	c.view.ShowFilename(c.filename)
 }
 
@@ -90,6 +92,10 @@ func (c *controller) SetEntryView(view core.EntryView) {
 func (c *controller) SetKeyerView(view core.KeyerView) {
 	c.keyerView = view
 	c.keyer.SetView(c.keyerView)
+}
+
+func (c *controller) Quit() {
+	c.quitter.Quit()
 }
 
 func (c *controller) New() {

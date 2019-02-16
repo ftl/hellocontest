@@ -42,19 +42,20 @@ func (app *application) startup() {
 func (app *application) activate() {
 	app.builder = setupBuilder()
 
-	app.mainWindow = setupMainWindow(app.builder, app.app)
-	app.mainWindow.Show()
-
 	configuration, err := cfg.Load()
 	if err != nil {
 		logger.Println(err)
 	}
-	app.controller = coreapp.NewController(clock.New(), configuration)
+	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
+	app.mainWindow = setupMainWindow(app.builder, app.app)
+
 	app.controller.Startup()
 	app.controller.SetView(app.mainWindow)
 	app.controller.SetLogView(app.mainWindow)
 	app.controller.SetEntryView(app.mainWindow)
 	app.controller.SetKeyerView(app.mainWindow)
+
+	app.mainWindow.Show()
 }
 
 func (app *application) shutdown() {

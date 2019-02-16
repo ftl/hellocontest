@@ -17,7 +17,7 @@ type keyer struct {
 	speedEntry *gtk.SpinButton
 }
 
-func setupKeyer(builder *gtk.Builder, parent *mainWindow) *keyer {
+func setupKeyer(builder *gtk.Builder) *keyer {
 	result := new(keyer)
 
 	result.buttons = make([]*gtk.Button, 4)

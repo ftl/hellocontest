@@ -132,6 +132,11 @@ type Clock interface {
 	Now() time.Time
 }
 
+// Quitter allows to quit the application. This interfaces is used to call the actual application framework to quit.
+type Quitter interface {
+	Quit()
+}
+
 // Configuration provides read access to the configuration data.
 type Configuration interface {
 	MyCall() callsign.Callsign

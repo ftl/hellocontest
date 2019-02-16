@@ -79,17 +79,11 @@ type AppController interface {
 	SetLogView(LogView)
 	SetEntryView(EntryView)
 	SetKeyerView(KeyerView)
-
-	New()
-	Open()
-	SaveAs()
-	ExportCabrillo()
-	ExportADIF()
 }
 
 // AppView represents the visual parts of the main application.
 type AppView interface {
-	SetAppController(AppController)
+	SetMainMenuController(MainMenuController)
 
 	ShowFilename(string)
 	SelectOpenFile(string, ...string) (string, bool, error)
@@ -97,6 +91,16 @@ type AppView interface {
 
 	ShowInfoDialog(string, ...interface{})
 	ShowErrorDialog(string, ...interface{})
+}
+
+// MainMenuController provides the functionality for the main menu.
+type MainMenuController interface {
+	New()
+	Open()
+	SaveAs()
+	ExportCabrillo()
+	ExportADIF()
+	Quit()
 }
 
 // KeyerController controls the keyer.

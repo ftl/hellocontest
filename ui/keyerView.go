@@ -8,7 +8,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
-type keyer struct {
+type keyerView struct {
 	controller core.KeyerController
 
 	buttons    []*gtk.Button
@@ -17,8 +17,8 @@ type keyer struct {
 	speedEntry *gtk.SpinButton
 }
 
-func setupKeyer(builder *gtk.Builder) *keyer {
-	result := new(keyer)
+func setupKeyerView(builder *gtk.Builder) *keyerView {
+	result := new(keyerView)
 
 	result.buttons = make([]*gtk.Button, 4)
 	result.entries = make([]*gtk.Entry, 4)
@@ -37,7 +37,7 @@ func setupKeyer(builder *gtk.Builder) *keyer {
 	return result
 }
 
-func (k *keyer) onButton(index int) func(button *gtk.Button) bool {
+func (k *keyerView) onButton(index int) func(button *gtk.Button) bool {
 	return func(button *gtk.Button) bool {
 		if k.controller == nil {
 			log.Println("no keyer controller")
@@ -48,7 +48,7 @@ func (k *keyer) onButton(index int) func(button *gtk.Button) bool {
 	}
 }
 
-func (k *keyer) onEntryChanged(index int) func(entry *gtk.Entry) bool {
+func (k *keyerView) onEntryChanged(index int) func(entry *gtk.Entry) bool {
 	return func(entry *gtk.Entry) bool {
 		if k.controller == nil {
 			log.Println("no keyer controller")
@@ -64,7 +64,7 @@ func (k *keyer) onEntryChanged(index int) func(entry *gtk.Entry) bool {
 	}
 }
 
-func (k *keyer) onStop(button *gtk.Button) bool {
+func (k *keyerView) onStop(button *gtk.Button) bool {
 	if k.controller == nil {
 		log.Println("no keyer controller")
 		return false
@@ -73,7 +73,7 @@ func (k *keyer) onStop(button *gtk.Button) bool {
 	return true
 }
 
-func (k *keyer) onSpeedChanged(button *gtk.SpinButton) bool {
+func (k *keyerView) onSpeedChanged(button *gtk.SpinButton) bool {
 	if k.controller == nil {
 		log.Println("no keyer controller")
 		return false
@@ -83,23 +83,23 @@ func (k *keyer) onSpeedChanged(button *gtk.SpinButton) bool {
 	return true
 }
 
-func (k *keyer) SetKeyerController(controller core.KeyerController) {
+func (k *keyerView) SetKeyerController(controller core.KeyerController) {
 	k.controller = controller
 }
 
-func (k *keyer) Pattern(index int) string {
+func (k *keyerView) Pattern(index int) string {
 	text, _ := k.entries[index].GetText()
 	return text
 }
 
-func (k *keyer) SetPattern(index int, text string) {
+func (k *keyerView) SetPattern(index int, text string) {
 	k.entries[index].SetText(text)
 }
 
-func (k *keyer) Speed() int {
+func (k *keyerView) Speed() int {
 	return int(k.speedEntry.GetValue())
 }
 
-func (k *keyer) SetSpeed(speed int) {
+func (k *keyerView) SetSpeed(speed int) {
 	k.speedEntry.SetValue(float64(speed))
 }

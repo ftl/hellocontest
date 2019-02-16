@@ -14,7 +14,7 @@ type mainWindow struct {
 	*mainMenu
 	*logView
 	*entryView
-	*keyer
+	*keyerView
 }
 
 func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWindow {
@@ -27,7 +27,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.mainMenu = setupMainMenu(builder)
 	result.logView = setupLogView(builder)
 	result.entryView = setupEntryView(builder)
-	result.keyer = setupKeyer(builder)
+	result.keyerView = setupKeyerView(builder)
 
 	return result
 }

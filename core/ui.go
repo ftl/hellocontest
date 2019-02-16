@@ -116,8 +116,8 @@ type KeyerView interface {
 
 	ShowMessage(...interface{})
 
-	GetPattern(int) string
+	Pattern(int) string
 	SetPattern(int, string)
-	GetSpeed() int
+	Speed() int
 	SetSpeed(int)
 }

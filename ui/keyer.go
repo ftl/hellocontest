@@ -87,7 +87,7 @@ func (k *keyer) SetKeyerController(controller core.KeyerController) {
 	k.controller = controller
 }
 
-func (k *keyer) GetPattern(index int) string {
+func (k *keyer) Pattern(index int) string {
 	text, _ := k.entries[index].GetText()
 	return text
 }
@@ -96,7 +96,7 @@ func (k *keyer) SetPattern(index int, text string) {
 	k.entries[index].SetText(text)
 }
 
-func (k *keyer) GetSpeed() int {
+func (k *keyer) Speed() int {
 	return int(k.speedEntry.GetValue())
 }
 

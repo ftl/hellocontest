@@ -403,7 +403,7 @@ func (m *KeyerView) ShowMessage(args ...interface{}) {
 	m.Called(args)
 }
 
-func (m *KeyerView) GetPattern(index int) string {
+func (m *KeyerView) Pattern(index int) string {
 	args := m.Called(index)
 	return args.String(0)
 }
@@ -412,7 +412,7 @@ func (m *KeyerView) SetPattern(index int, pattern string) {
 	m.Called(index, pattern)
 }
 
-func (m *KeyerView) GetSpeed() int {
+func (m *KeyerView) Speed() int {
 	args := m.Called()
 	return args.Int(0)
 }

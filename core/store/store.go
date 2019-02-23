@@ -13,7 +13,7 @@ import (
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
-	"github.com/ftl/hellocontest/pb"
+	"github.com/ftl/hellocontest/core/pb"
 	"github.com/golang/protobuf/proto"
 )
 

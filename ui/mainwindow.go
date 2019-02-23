@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/ftl/hellocontest/ui/geometry"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/pkg/errors"
 )
+
+var geometryID = geometry.ID("main")
 
 type mainWindow struct {
 	window *gtk.ApplicationWindow
@@ -17,12 +20,14 @@ type mainWindow struct {
 	*keyerView
 }
 
-func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWindow {
+func setupMainWindow(builder *gtk.Builder, application *gtk.Application, windowGeometry geometry.Windows) *mainWindow {
 	result := new(mainWindow)
 
 	result.window = getUI(builder, "mainWindow").(*gtk.ApplicationWindow)
 	result.window.SetApplication(application)
 	result.window.SetDefaultSize(500, 500)
+
+	result.window.Connect("configure-event", windowGeometry.Connect(result.window, geometryID))
 
 	result.mainMenu = setupMainMenu(builder)
 	result.logView = setupLogView(builder)

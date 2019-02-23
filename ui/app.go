@@ -7,6 +7,7 @@ import (
 	coreapp "github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
+	"github.com/ftl/hellocontest/ui/geometry"
 	"github.com/ftl/hellocontest/ui/glade"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
@@ -29,14 +30,24 @@ func Run(args []string) {
 }
 
 type application struct {
-	id         string
-	app        *gtk.Application
-	builder    *gtk.Builder
-	mainWindow *mainWindow
-	controller core.AppController
+	id             string
+	app            *gtk.Application
+	builder        *gtk.Builder
+	windowGeometry geometry.Windows
+	mainWindow     *mainWindow
+	controller     core.AppController
 }
 
 func (app *application) startup() {
+	// TODO load window geometry
+	app.windowGeometry = geometry.NewWindows()
+	app.windowGeometry["main"] = &geometry.Window{
+		ID:     "main",
+		X:      300,
+		Y:      100,
+		Width:  569,
+		Height: 700,
+	}
 }
 
 func (app *application) activate() {
@@ -47,7 +58,7 @@ func (app *application) activate() {
 		logger.Println(err)
 	}
 	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
-	app.mainWindow = setupMainWindow(app.builder, app.app)
+	app.mainWindow = setupMainWindow(app.builder, app.app, app.windowGeometry)
 
 	app.controller.Startup()
 	app.controller.SetView(app.mainWindow)
@@ -60,6 +71,7 @@ func (app *application) activate() {
 
 func (app *application) shutdown() {
 	app.controller.Shutdown()
+	// TODO store window geometry
 }
 
 func setupBuilder() *gtk.Builder {

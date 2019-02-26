@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/ftl/hellocontest/ui/geometry"
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/pkg/errors"
 )
@@ -27,7 +28,18 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application, windowG
 	result.window.SetApplication(application)
 	result.window.SetDefaultSize(500, 500)
 
-	result.window.Connect("configure-event", windowGeometry.Connect(result.window, geometryID))
+	result.window.Connect("configure-event", func(_ interface{}, event *gdk.Event) {
+		e := gdk.EventConfigureNewFromEvent(event)
+		w := windowGeometry.Get(geometryID)
+		w.SetPosition(e.X(), e.Y())
+		w.SetSize(e.Width(), e.Height())
+	})
+	result.window.Connect("window-state-event", func(_ interface{}, event *gdk.Event) {
+		e := gdk.EventWindowStateNewFromEvent(event)
+		if e.ChangedMask()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED {
+			windowGeometry.Get(geometryID).SetMaximized(e.NewWindowState()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED)
+		}
+	})
 
 	result.mainMenu = setupMainMenu(builder)
 	result.logView = setupLogView(builder)
@@ -64,7 +76,7 @@ func (w *mainWindow) SelectOpenFile(title string, patterns ...string) (string, b
 	}
 
 	result := dlg.Run()
-	if result != int(gtk.RESPONSE_ACCEPT) {
+	if result != gtk.RESPONSE_ACCEPT {
 		return "", false, nil
 	}
 
@@ -92,7 +104,7 @@ func (w *mainWindow) SelectSaveFile(title string, patterns ...string) (string, b
 	}
 
 	result := dlg.Run()
-	if result != int(gtk.RESPONSE_ACCEPT) {
+	if result != gtk.RESPONSE_ACCEPT {
 		return "", false, nil
 	}
 

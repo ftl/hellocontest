@@ -28,15 +28,24 @@ func (w *Window) Apply(a Applyable) {
 	}
 }
 
-func (w *Window) Observe(o Observable) func() {
-	return func() {
-		w.Maximized = o.IsMaximized()
-		if !w.Maximized {
-			w.X, w.Y = o.GetPosition()
-			w.Width, w.Height = o.GetSize()
-		}
-		fmt.Println(w)
+func (w *Window) SetPosition(x, y int) {
+	if w.Maximized {
+		return
 	}
+	w.X = x
+	w.Y = y
+}
+
+func (w *Window) SetSize(width, height int) {
+	if w.Maximized {
+		return
+	}
+	w.Width = width
+	w.Height = height
+}
+
+func (w *Window) SetMaximized(maximized bool) {
+	w.Maximized = maximized
 }
 
 type Applyable interface {
@@ -70,7 +79,7 @@ func (w Windows) Store(writer io.Writer) error {
 	return nil
 }
 
-func (w Windows) Connect(c Connectable, id ID) func() {
+func (w Windows) Get(id ID) *Window {
 	g, ok := w[id]
 	if !ok {
 		g = &Window{
@@ -78,7 +87,5 @@ func (w Windows) Connect(c Connectable, id ID) func() {
 		}
 		w[id] = g
 	}
-
-	g.Apply(c)
-	return g.Observe(c)
+	return g
 }

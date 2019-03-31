@@ -2,6 +2,11 @@ package ui
 
 import (
 	logger "log"
+	"os"
+	"path/filepath"
+
+	"github.com/gotk3/gotk3/glib"
+	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
 	coreapp "github.com/ftl/hellocontest/core/app"
@@ -9,8 +14,6 @@ import (
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/ui/geometry"
 	"github.com/ftl/hellocontest/ui/glade"
-	"github.com/gotk3/gotk3/glib"
-	"github.com/gotk3/gotk3/gtk"
 )
 
 // Run the application
@@ -39,7 +42,24 @@ type application struct {
 }
 
 func (app *application) startup() {
-	// TODO load window geometry
+	filename := filepath.Join(cfg.Directory(), "hellocontest.geometry")
+	logger.Printf("Loading window geometry from %s", filename)
+
+	f, err := os.Open(filename)
+	if err != nil {
+		app.useDefaultWindowGeometry(err)
+		return
+	}
+	defer f.Close()
+
+	app.windowGeometry, err = geometry.LoadWindows(f)
+	if err != nil {
+		app.useDefaultWindowGeometry(err)
+	}
+}
+
+func (app *application) useDefaultWindowGeometry(cause error) {
+	logger.Printf("Cannot load window geometry, using defaults instead: %v", cause)
 	app.windowGeometry = geometry.NewWindows()
 	app.windowGeometry["main"] = &geometry.Window{
 		ID:     "main",
@@ -71,7 +91,21 @@ func (app *application) activate() {
 
 func (app *application) shutdown() {
 	app.controller.Shutdown()
-	// TODO store window geometry
+
+	filename := filepath.Join(cfg.Directory(), "hellocontest.geometry")
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		logger.Printf("Cannot open window geometry file: %v", err)
+		return
+	}
+	defer f.Close()
+
+	err = app.windowGeometry.Store(f)
+	if err != nil {
+		logger.Printf("Cannot store window geometry: %v", err)
+	} else {
+		logger.Printf("Stored window geometry in %s", f.Name())
+	}
 }
 
 func setupBuilder() *gtk.Builder {

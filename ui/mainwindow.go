@@ -28,6 +28,13 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application, windowG
 	result.window.SetApplication(application)
 	result.window.SetDefaultSize(500, 500)
 
+	geo := windowGeometry.Get(geometryID)
+	result.window.Move(geo.X, geo.Y)
+	result.window.Resize(geo.Width, geo.Height)
+	if geo.Maximized {
+		result.window.Maximize()
+	}
+
 	result.window.Connect("configure-event", func(_ interface{}, event *gdk.Event) {
 		e := gdk.EventConfigureNewFromEvent(event)
 		w := windowGeometry.Get(geometryID)

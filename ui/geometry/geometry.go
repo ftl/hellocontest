@@ -3,6 +3,12 @@ package geometry
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
+
+	"github.com/ftl/hellocontest/ui/pb"
 )
 
 type ID string
@@ -71,11 +77,53 @@ func NewWindows() Windows {
 	return make(map[ID]*Window)
 }
 
-func LoadWindows(w io.Writer) (Windows, error) {
-	return NewWindows(), nil
+func LoadWindows(r io.Reader) (Windows, error) {
+	buffer, err := ioutil.ReadAll(r)
+	if err != nil {
+		return NewWindows(), err
+	}
+	pbWindows := new(pb.Windows)
+	err = proto.Unmarshal(buffer, pbWindows)
+	if err != nil {
+		return NewWindows(), err
+	}
+	result := NewWindows()
+	for _, pbWindow := range pbWindows.Windows {
+		window := Window{
+			ID:        ID(pbWindow.Name),
+			X:         int(pbWindow.Position.X),
+			Y:         int(pbWindow.Position.Y),
+			Width:     int(pbWindow.Size.Width),
+			Height:    int(pbWindow.Size.Height),
+			Maximized: pbWindow.Maximized,
+		}
+		result[window.ID] = &window
+	}
+	return result, nil
 }
 
 func (w Windows) Store(writer io.Writer) error {
+	pbWindows := new(pb.Windows)
+	for _, window := range w {
+		pbWindow := pb.Window{
+			Name:      string(window.ID),
+			Position:  &pb.Position{X: int32(window.X), Y: int32(window.Y)},
+			Size:      &pb.Size{Width: int32(window.Width), Height: int32(window.Height)},
+			Maximized: window.Maximized,
+		}
+		pbWindows.Windows = append(pbWindows.Windows, &pbWindow)
+	}
+	bytes, err := proto.Marshal(pbWindows)
+	if err != nil {
+		return errors.Wrap(err, "cannot marshal the windows")
+	}
+	n, err := writer.Write(bytes)
+	if err != nil {
+		return errors.Wrap(err, "cannot write windows")
+	}
+	if n != len(bytes) {
+		return errors.Errorf("could only write %d of %d bytes", n, len(bytes))
+	}
 	return nil
 }
 
@@ -88,4 +136,12 @@ func (w Windows) Get(id ID) *Window {
 		w[id] = g
 	}
 	return g
+}
+
+func (w Windows) String() string {
+	result := ""
+	for _, window := range w {
+		result += fmt.Sprintf("%v\n", window)
+	}
+	return result
 }

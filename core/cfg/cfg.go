@@ -4,6 +4,8 @@ import (
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
+	"github.com/pkg/errors"
+
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -24,6 +26,15 @@ func Static(myCall callsign.Callsign, myLocator locator.Locator) core.Configurat
 		myCall:    myCall,
 		myLocator: myLocator,
 	}
+}
+
+// Directory returns the configuration directory. It panics if the directory could not be determined.
+func Directory() string {
+	dir, err := cfg.Directory("")
+	if err != nil {
+		panic(errors.Wrap(err, "cannot determine configuration directory"))
+	}
+	return dir
 }
 
 const (

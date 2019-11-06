@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/core/mocked"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNew(t *testing.T) {
@@ -145,14 +146,33 @@ func TestLog_UniqueQsosOrderedByMyNumber(t *testing.T) {
 	assert.Equal(t, core.QSONumber(4), actual[3].MyNumber)
 }
 
+func TestLog_UniqueQsosOrderedByMyNumber_Multiband(t *testing.T) {
+	log := New(clock.New())
+	log.Log(core.QSO{Callsign: callsign.MustParse("AA3B"), MyNumber: core.QSONumber(4)})
+	log.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(1), Band: core.Band80m})
+	log.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(5), Band: core.Band40m})
+	log.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: core.QSONumber(3)})
+	log.Log(core.QSO{Callsign: callsign.MustParse("S50A"), MyNumber: core.QSONumber(2)})
+
+	actual := log.UniqueQsosOrderedByMyNumber()
+
+	assert.Equal(t, core.QSONumber(1), actual[0].MyNumber)
+	assert.Equal(t, core.QSONumber(2), actual[1].MyNumber)
+	assert.Equal(t, core.QSONumber(3), actual[2].MyNumber)
+	assert.Equal(t, core.QSONumber(4), actual[3].MyNumber)
+	assert.Equal(t, core.QSONumber(5), actual[4].MyNumber)
+}
+
 func TestUnique(t *testing.T) {
 	c := clock.New()
 	aa3b := callsign.MustParse("AA3B")
 	qso1 := core.QSO{
+		MyNumber:     core.QSONumber(1),
 		Callsign:     aa3b,
 		LogTimestamp: c.Now().Add(-10 * time.Minute),
 	}
 	qso2 := core.QSO{
+		MyNumber:     core.QSONumber(1),
 		Callsign:     aa3b,
 		LogTimestamp: c.Now(),
 	}
@@ -161,6 +181,67 @@ func TestUnique(t *testing.T) {
 
 	assert.Equal(t, 1, len(actual))
 	assert.Equal(t, qso2, actual[0])
+}
+
+func TestUnique_Multiband(t *testing.T) {
+	c := clock.New()
+	aa3b := callsign.MustParse("AA3B")
+	qso1 := core.QSO{
+		MyNumber:     core.QSONumber(1),
+		Callsign:     aa3b,
+		Band:         core.Band20m,
+		LogTimestamp: c.Now().Add(-10 * time.Minute),
+	}
+	qso2 := core.QSO{
+		MyNumber:     core.QSONumber(1),
+		Callsign:     aa3b,
+		Band:         core.Band40m,
+		LogTimestamp: c.Now().Add(-5 * time.Minute),
+	}
+	qso3 := core.QSO{
+		MyNumber:     core.QSONumber(2),
+		Callsign:     aa3b,
+		Band:         core.Band80m,
+		LogTimestamp: c.Now(),
+	}
+
+	actual := byMyNumber(unique([]core.QSO{qso1, qso2, qso3}))
+
+	require.Equal(t, 2, len(actual))
+	assert.Equal(t, qso2, actual[0])
+	assert.Equal(t, qso3, actual[1])
+}
+
+func TestUnique_Multimode(t *testing.T) {
+	c := clock.New()
+	aa3b := callsign.MustParse("AA3B")
+	qso1 := core.QSO{
+		MyNumber:     core.QSONumber(1),
+		Callsign:     aa3b,
+		Band:         core.Band20m,
+		Mode:         core.ModeCW,
+		LogTimestamp: c.Now().Add(-10 * time.Minute),
+	}
+	qso2 := core.QSO{
+		MyNumber:     core.QSONumber(1),
+		Callsign:     aa3b,
+		Band:         core.Band20m,
+		Mode:         core.ModeSSB,
+		LogTimestamp: c.Now().Add(-5 * time.Minute),
+	}
+	qso3 := core.QSO{
+		MyNumber:     core.QSONumber(2),
+		Callsign:     aa3b,
+		Band:         core.Band20m,
+		Mode:         core.ModeDigital,
+		LogTimestamp: c.Now(),
+	}
+
+	actual := byMyNumber(unique([]core.QSO{qso1, qso2, qso3}))
+
+	require.Equal(t, 2, len(actual))
+	assert.Equal(t, qso2, actual[0])
+	assert.Equal(t, qso3, actual[1])
 }
 
 func TestByMyNumber(t *testing.T) {

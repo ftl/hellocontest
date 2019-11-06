@@ -155,19 +155,19 @@ func byMyNumber(qsos []core.QSO) []core.QSO {
 }
 
 func unique(qsos []core.QSO) []core.QSO {
-	result := make([]core.QSO, 0, len(qsos))
-	index := make(map[callsign.Callsign]int)
+	index := make(map[core.QSONumber]core.QSO)
 	for _, qso := range qsos {
-		i, ok := index[qso.Callsign]
-		if !ok {
-			i = len(result)
-			result = append(result, qso)
-			index[qso.Callsign] = i
-			continue
+		former, ok := index[qso.MyNumber]
+		if !ok || qso.LogTimestamp.After(former.LogTimestamp) {
+			index[qso.MyNumber] = qso
 		}
-		if qso.LogTimestamp.After(result[i].LogTimestamp) {
-			result[i] = qso
-		}
+	}
+
+	result := make([]core.QSO, len(index))
+	i := 0
+	for _, qso := range index {
+		result[i] = qso
+		i++
 	}
 	return result
 }

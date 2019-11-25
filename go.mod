@@ -1,6 +1,6 @@
 module github.com/ftl/hellocontest
 
-go 1.12
+go 1.13
 
 require (
 	github.com/ftl/hamradio v0.0.0-20190616142531-0ed92a2499b1

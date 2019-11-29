@@ -72,6 +72,7 @@ func (c *controller) Startup() {
 		c.configuration.AllowMultiMode(),
 	)
 	c.log.OnRowSelected(c.entry.QSOSelected)
+
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 }
@@ -127,6 +128,7 @@ func (c *controller) New() {
 		c.configuration.AllowMultiBand(),
 		c.configuration.AllowMultiMode(),
 	)
+	c.log.OnRowSelected(c.entry.QSOSelected)
 
 	c.view.ShowFilename(c.filename)
 	c.log.SetView(c.logView)
@@ -162,6 +164,7 @@ func (c *controller) Open() {
 		c.configuration.AllowMultiBand(),
 		c.configuration.AllowMultiMode(),
 	)
+	c.log.OnRowSelected(c.entry.QSOSelected)
 
 	c.view.ShowFilename(c.filename)
 	c.log.SetView(c.logView)

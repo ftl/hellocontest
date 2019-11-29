@@ -15,6 +15,7 @@ type entryView struct {
 	style             *style
 	ignoreComboChange bool
 
+	entryRoot    *gtk.Grid
 	callsign     *gtk.Entry
 	theirReport  *gtk.Entry
 	theirNumber  *gtk.Entry
@@ -32,6 +33,7 @@ type entryView struct {
 func setupEntryView(builder *gtk.Builder) *entryView {
 	result := new(entryView)
 
+	result.entryRoot = getUI(builder, "entryGrid").(*gtk.Grid)
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
 	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
 	result.theirNumber = getUI(builder, "theirNumberEntry").(*gtk.Entry)
@@ -69,8 +71,11 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 		background-color: #FF0000; 
 		color: #FFFFFF;
 	}
+	.editing {
+		background-color: #66AAFF;
+	}
 	`)
-	result.style.applyTo(&result.myNumber.Widget)
+	result.style.applyTo(&result.entryRoot.Widget)
 
 	return result
 }
@@ -350,9 +355,17 @@ func (v *entryView) entryToField(entry *gtk.Entry) core.EntryField {
 
 func (v *entryView) SetDuplicateMarker(duplicate bool) {
 	if duplicate {
-		addStyleClass(&v.myNumber.Widget, "duplicate")
+		addStyleClass(&v.entryRoot.Widget, "duplicate")
 	} else {
-		removeStyleClass(&v.myNumber.Widget, "duplicate")
+		removeStyleClass(&v.entryRoot.Widget, "duplicate")
+	}
+}
+
+func (v *entryView) SetEditingMarker(editing bool) {
+	if editing {
+		addStyleClass(&v.entryRoot.Widget, "editing")
+	} else {
+		removeStyleClass(&v.entryRoot.Widget, "editing")
 	}
 }
 

@@ -23,9 +23,10 @@ const (
 )
 
 type logView struct {
-	view *gtk.TreeView
-	list *gtk.ListStore
-	log  core.Log
+	view      *gtk.TreeView
+	list      *gtk.ListStore
+	selection *gtk.TreeSelection
+	log       core.Log
 }
 
 func setupLogView(builder *gtk.Builder) *logView {
@@ -50,6 +51,9 @@ func setupLogView(builder *gtk.Builder) *logView {
 		log.Fatalf("Cannot create QSO list store: %v", err)
 	}
 	result.view.SetModel(result.list)
+
+	result.selection = getUI(builder, "logSelection").(*gtk.TreeSelection)
+	result.selection.Connect("changed", result.onSelectionChanged)
 	return result
 }
 
@@ -112,4 +116,15 @@ func (v *logView) RowAdded(qso core.QSO) {
 		log.Printf("Cannot get path for list item: %s", err)
 	}
 	v.view.SetCursorOnCell(path, v.view.GetColumn(1), nil, false)
+}
+
+func (v *logView) onSelectionChanged(selection *gtk.TreeSelection) bool {
+	model, _ := v.view.GetModel()
+	rows := selection.GetSelectedRows(model)
+	if rows.Length() == 1 {
+		row := rows.NthData(0).(*gtk.TreePath)
+		index := row.GetIndices()[0]
+		v.log.Select(index)
+	}
+	return true
 }

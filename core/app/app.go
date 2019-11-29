@@ -71,6 +71,7 @@ func (c *controller) Startup() {
 		c.configuration.AllowMultiBand(),
 		c.configuration.AllowMultiMode(),
 	)
+	c.log.OnRowSelected(c.entry.QSOSelected)
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 }

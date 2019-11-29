@@ -104,12 +104,12 @@ func TestLog_Find(t *testing.T) {
 
 func TestLog_FindAll(t *testing.T) {
 	log := New(clock.New())
-	aa1zzz, _ := callsign.Parse("AA1ZZZ")
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY})
+	aa1zzz := callsign.MustParse("AA1ZZZ")
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW, MyNumber: core.QSONumber(3)})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB, MyNumber: core.QSONumber(4)})
+	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY, MyNumber: core.QSONumber(5)})
 
 	testCases := []struct {
 		band        core.Band
@@ -129,6 +129,28 @@ func TestLog_FindAll(t *testing.T) {
 			assert.Equal(t, tC.expectedLen, len(qsos))
 		})
 	}
+}
+
+func TestLog_DoNotFindEditedCallsign(t *testing.T) {
+	log := New(clock.New())
+	aa1zzz := callsign.MustParse("AA1ZZZ")
+	a1bc := callsign.MustParse("A1BC")
+	log.Log(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
+	log.Log(core.QSO{Callsign: a1bc, MyNumber: core.QSONumber(5)})
+
+	_, foundOldCall := log.Find(aa1zzz)
+	newQso, foundNewCall := log.Find(a1bc)
+
+	assert.False(t, foundOldCall)
+	assert.True(t, foundNewCall)
+	assert.Equal(t, core.QSONumber(5), newQso.MyNumber)
+	assert.Equal(t, a1bc, newQso.Callsign)
+
+	assert.Empty(t, log.FindAll(aa1zzz, core.NoBand, core.NoMode))
+	newQSOs := log.FindAll(a1bc, core.NoBand, core.NoMode)
+	require.Equal(t, 1, len(newQSOs))
+	assert.Equal(t, core.QSONumber(5), newQSOs[0].MyNumber)
+	assert.Equal(t, a1bc, newQSOs[0].Callsign)
 }
 
 func TestLog_UniqueQsosOrderedByMyNumber(t *testing.T) {

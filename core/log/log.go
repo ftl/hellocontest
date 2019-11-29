@@ -48,15 +48,20 @@ func lastNumber(qsos []core.QSO) int {
 }
 
 type log struct {
-	clock        core.Clock
-	qsos         []core.QSO
-	myLastNumber int
+	clock           core.Clock
+	qsos            []core.QSO
+	myLastNumber    int
+	ignoreSelection bool
 
-	view              core.LogView
-	rowAddedListeners []core.RowAddedListener
+	view                 core.LogView
+	rowAddedListeners    []core.RowAddedListener
+	rowSelectedListeners []core.RowSelectedListener
 }
 
 func (l *log) SetView(view core.LogView) {
+	l.ignoreSelection = true
+	defer func() { l.ignoreSelection = false }()
+
 	l.view = view
 	l.view.SetLog(l)
 	l.view.UpdateAllRows(l.qsos)
@@ -79,6 +84,32 @@ func (l *log) emitRowAdded(qso core.QSO) {
 	}
 }
 
+func (l *log) OnRowSelected(listener core.RowSelectedListener) {
+	l.rowSelectedListeners = append(l.rowSelectedListeners, listener)
+}
+
+func (l *log) ClearRowSelectedListeners() {
+	l.rowSelectedListeners = make([]core.RowSelectedListener, 0)
+}
+
+func (l *log) emitRowSelected(qso core.QSO) {
+	for _, listener := range l.rowSelectedListeners {
+		listener(qso)
+	}
+}
+
+func (l *log) Select(i int) {
+	if i < 0 || i >= len(l.qsos) {
+		logger.Printf("invalid QSO index %d", i)
+		return
+	}
+	if l.ignoreSelection {
+		return
+	}
+	qso := l.qsos[i]
+	l.emitRowSelected(qso)
+}
+
 func (l *log) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
 }
@@ -98,6 +129,9 @@ func (l *log) LastMode() core.Mode {
 }
 
 func (l *log) Log(qso core.QSO) {
+	l.ignoreSelection = true
+	defer func() { l.ignoreSelection = false }()
+
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
@@ -107,8 +141,14 @@ func (l *log) Log(qso core.QSO) {
 }
 
 func (l *log) Find(callsign callsign.Callsign) (core.QSO, bool) {
+	checkedNumbers := make(map[core.QSONumber]bool)
 	for i := len(l.qsos) - 1; i >= 0; i-- {
 		qso := l.qsos[i]
+		if checkedNumbers[qso.MyNumber] {
+			continue
+		}
+		checkedNumbers[qso.MyNumber] = true
+
 		if callsign == qso.Callsign {
 			return qso, true
 		}
@@ -117,8 +157,15 @@ func (l *log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 }
 
 func (l *log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	checkedNumbers := make(map[core.QSONumber]bool)
 	result := make([]core.QSO, 0)
-	for _, qso := range l.qsos {
+	for i := len(l.qsos) - 1; i >= 0; i-- {
+		qso := l.qsos[i]
+		if checkedNumbers[qso.MyNumber] {
+			continue
+		}
+		checkedNumbers[qso.MyNumber] = true
+
 		if callsign != qso.Callsign {
 			continue
 		}
@@ -129,7 +176,6 @@ func (l *log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode
 			continue
 		}
 		result = append(result, qso)
-
 	}
 	return result
 }

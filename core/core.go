@@ -13,10 +13,13 @@ type Log interface {
 	SetView(LogView)
 	OnRowAdded(RowAddedListener)
 	ClearRowAddedListeners()
+	OnRowSelected(RowSelectedListener)
+	ClearRowSelectedListeners()
 
 	NextNumber() QSONumber
 	LastBand() Band
 	LastMode() Mode
+	Select(int)
 	Log(QSO)
 	Find(callsign.Callsign) (QSO, bool)
 	FindAll(callsign.Callsign, Band, Mode) []QSO
@@ -44,6 +47,9 @@ type Store interface {
 
 // RowAddedListener is notified when a new row is added to the log.
 type RowAddedListener func(QSO) error
+
+// RowSelectedListener is notified when a row is selected in the log view.
+type RowSelectedListener func(QSO)
 
 func (l RowAddedListener) Write(qso QSO) error {
 	return l(qso)

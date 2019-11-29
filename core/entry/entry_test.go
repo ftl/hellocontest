@@ -26,6 +26,7 @@ func TestEntryController_Reset(t *testing.T) {
 	view.On("SetTheirXchange", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
+	view.On("SetEditingMarker", false).Once()
 	view.On("ClearMessage").Once()
 
 	controller.Reset()
@@ -50,6 +51,7 @@ func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
 	view.On("SetTheirXchange", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
+	view.On("SetEditingMarker", false).Once()
 	view.On("ClearMessage").Once()
 
 	controller.BandSelected("30m")
@@ -191,6 +193,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	view.On("SetTheirXchange", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
+	view.On("SetEditingMarker", false).Once()
 	view.On("ClearMessage").Once()
 
 	controller.Log()
@@ -336,6 +339,40 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
 	view.On("ClearMessage").Once()
 	controller.EnterCallsign("DL1ABC")
+	view.AssertExpectations(t)
+}
+
+func TestEntryController_SelectRowForEditing(t *testing.T) {
+	clock, _, view, controller := setupEntryTest()
+	view.Activate()
+
+	dl1abc, _ := callsign.Parse("DL1ABC")
+	qso := core.QSO{
+		Band:         core.Band80m,
+		Mode:         core.ModeCW,
+		Callsign:     dl1abc,
+		Time:         clock.Now(),
+		TheirReport:  core.RST("559"),
+		TheirNumber:  12,
+		TheirXchange: "A01",
+		MyReport:     core.RST("579"),
+		MyNumber:     34,
+		MyXchange:    "B36",
+	}
+
+	view.On("SetBand", "80m").Once()
+	view.On("SetMode", "CW").Once()
+	view.On("SetCallsign", "DL1ABC").Once()
+	view.On("SetTheirReport", "559").Once()
+	view.On("SetTheirNumber", "012").Once()
+	view.On("SetTheirXchange", "A01").Once()
+	view.On("SetMyReport", "579").Once()
+	view.On("SetMyNumber", "034").Once()
+	view.On("SetMyXchange", "B36").Once()
+	view.On("SetActiveField", core.CallsignField).Once()
+	view.On("SetEditingMarker", true).Once()
+	controller.QSOSelected(qso)
+
 	view.AssertExpectations(t)
 }
 

@@ -61,6 +61,4 @@ func TestRoundtripWithFile(t *testing.T) {
 
 	assert.Equal(t, initialMain, loaded.Get(main))
 	assert.Equal(t, initialDialog, loaded.Get(dialog))
-
-	assert.Fail(t, writeFile.Name())
 }

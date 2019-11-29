@@ -36,6 +36,8 @@ type controller struct {
 	activeField       core.EntryField
 	selectedBand      core.Band
 	selectedMode      core.Mode
+	editing           bool
+	editQSO           core.QSO
 }
 
 func (c *controller) SetView(view core.EntryView) {
@@ -165,6 +167,24 @@ func (c *controller) EnterCallsign(s string) {
 	c.view.ShowMessage(fmt.Sprintf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()))
 }
 
+func (c *controller) QSOSelected(qso core.QSO) {
+	logger.Printf("QSO selected: %v", qso)
+	c.editing = true
+	c.editQSO = qso
+
+	c.view.SetBand(string(qso.Band))
+	c.view.SetMode(string(qso.Mode))
+	c.view.SetCallsign(qso.Callsign.String())
+	c.view.SetTheirReport(string(qso.TheirReport))
+	c.view.SetTheirNumber(qso.TheirNumber.String())
+	c.view.SetTheirXchange(qso.TheirXchange)
+	c.view.SetMyReport(string(qso.MyReport))
+	c.view.SetMyNumber(qso.MyNumber.String())
+	c.view.SetMyXchange(qso.MyXchange)
+	c.view.SetActiveField(core.CallsignField)
+	c.view.SetEditingMarker(true)
+}
+
 func (c *controller) Log() {
 	var err error
 	qso := core.QSO{}
@@ -173,7 +193,11 @@ func (c *controller) Log() {
 		c.showErrorOnField(err, core.CallsignField)
 		return
 	}
-	qso.Time = c.clock.Now()
+	if c.editing {
+		qso.Time = c.editQSO.Time
+	} else {
+		qso.Time = c.clock.Now()
+	}
 
 	qso.Band, err = parse.Band(c.view.Band())
 	if err != nil {
@@ -247,6 +271,9 @@ func (c *controller) showErrorOnField(err error, field core.EntryField) {
 }
 
 func (c *controller) Reset() {
+	c.editing = false
+	c.editQSO = core.QSO{}
+
 	nextNumber := c.log.NextNumber()
 	c.activeField = core.CallsignField
 	c.view.SetCallsign("")
@@ -268,6 +295,7 @@ func (c *controller) Reset() {
 	c.view.SetMyNumber(nextNumber.String())
 	c.view.SetActiveField(c.activeField)
 	c.view.SetDuplicateMarker(false)
+	c.view.SetEditingMarker(false)
 	c.view.ClearMessage()
 }
 

@@ -40,6 +40,27 @@ func (m *Log) ClearRowAddedListeners() {
 	m.Called()
 }
 
+func (m *Log) OnRowSelected(listener core.RowSelectedListener) {
+	if !m.active {
+		return
+	}
+	m.Called(listener)
+}
+
+func (m *Log) ClearRowSelectedListeners() {
+	if !m.active {
+		return
+	}
+	m.Called()
+}
+
+func (m *Log) Select(i int) {
+	if !m.active {
+		return
+	}
+	m.Called(i)
+}
+
 func (m *Log) NextNumber() core.QSONumber {
 	if !m.active {
 		return core.QSONumber(0)
@@ -332,6 +353,13 @@ func (m *EntryView) SetActiveField(field core.EntryField) {
 }
 
 func (m *EntryView) SetDuplicateMarker(active bool) {
+	if !m.active {
+		return
+	}
+	m.Called(active)
+}
+
+func (m *EntryView) SetEditingMarker(active bool) {
 	if !m.active {
 		return
 	}

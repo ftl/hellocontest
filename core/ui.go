@@ -19,6 +19,7 @@ type EntryController interface {
 	BandSelected(string)
 	ModeSelected(string)
 	EnterCallsign(string)
+	QSOSelected(QSO)
 
 	Log()
 	Reset()
@@ -51,6 +52,7 @@ type EntryView interface {
 	EnableExchangeFields(bool, bool)
 	SetActiveField(EntryField)
 	SetDuplicateMarker(bool)
+	SetEditingMarker(bool)
 	ShowMessage(...interface{})
 	ClearMessage()
 }

@@ -37,15 +37,21 @@ func (s *style) applyTo(widget *gtk.Widget) {
 }
 
 func addStyleClass(widget *gtk.Widget, class string) {
-	doWithStyle(widget, func(context *gtk.StyleContext) {
+	err := doWithStyle(widget, func(context *gtk.StyleContext) {
 		context.AddClass(class)
 	})
+	if err != nil {
+		log.Printf("Cannot add style class: %v", err)
+	}
 }
 
 func removeStyleClass(widget *gtk.Widget, class string) {
-	doWithStyle(widget, func(context *gtk.StyleContext) {
+	err := doWithStyle(widget, func(context *gtk.StyleContext) {
 		context.RemoveClass(class)
 	})
+	if err != nil {
+		log.Printf("Cannot add style class: %v", err)
+	}
 }
 
 func doWithStyle(widget *gtk.Widget, do func(*gtk.StyleContext)) error {

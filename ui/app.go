@@ -2,12 +2,12 @@ package ui
 
 import (
 	logger "log"
-	"os"
 	"path/filepath"
 
+	"github.com/ftl/gmtry"
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
-	"github.com/ftl/gmtry"
 
 	"github.com/ftl/hellocontest/core"
 	coreapp "github.com/ftl/hellocontest/core/app"
@@ -36,38 +36,21 @@ type application struct {
 	id             string
 	app            *gtk.Application
 	builder        *gtk.Builder
-	windowGeometry gmtry.Windows
+	windowGeometry *gmtry.Geometry
 	mainWindow     *mainWindow
 	controller     core.AppController
 }
 
 func (app *application) startup() {
 	filename := filepath.Join(cfg.Directory(), "hellocontest.geometry")
-	logger.Printf("Loading window geometry from %s", filename)
 
-	f, err := os.Open(filename)
-	if err != nil {
-		app.useDefaultWindowGeometry(err)
-		return
-	}
-	defer f.Close()
-
-	app.windowGeometry, err = gmtry.LoadWindows(f)
-	if err != nil {
-		app.useDefaultWindowGeometry(err)
-	}
+	app.windowGeometry = gmtry.NewGeometry(filename)
 }
 
 func (app *application) useDefaultWindowGeometry(cause error) {
 	logger.Printf("Cannot load window geometry, using defaults instead: %v", cause)
-	app.windowGeometry = gmtry.NewWindows()
-	app.windowGeometry["main"] = &gmtry.Window{
-		ID:     "main",
-		X:      300,
-		Y:      100,
-		Width:  569,
-		Height: 700,
-	}
+	app.mainWindow.Window.Move(300, 100)
+	app.mainWindow.Window.Window.Resize(569, 700)
 }
 
 func (app *application) activate() {
@@ -78,7 +61,7 @@ func (app *application) activate() {
 		logger.Println(err)
 	}
 	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
-	app.mainWindow = setupMainWindow(app.builder, app.app, app.windowGeometry)
+	app.mainWindow = setupMainWindow(app.builder, app.app)
 
 	app.controller.Startup()
 	app.controller.SetView(app.mainWindow)
@@ -86,25 +69,21 @@ func (app *application) activate() {
 	app.controller.SetEntryView(app.mainWindow)
 	app.controller.SetKeyerView(app.mainWindow)
 
+	connectToGeometry(app.windowGeometry, "main", &app.mainWindow.Window.Window)
+	err = app.windowGeometry.Restore()
+	if err != nil {
+		app.useDefaultWindowGeometry(err)
+	}
+
 	app.mainWindow.Show()
 }
 
 func (app *application) shutdown() {
 	app.controller.Shutdown()
 
-	filename := filepath.Join(cfg.Directory(), "hellocontest.geometry")
-	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		logger.Printf("Cannot open window geometry file: %v", err)
-		return
-	}
-	defer f.Close()
-
-	err = app.windowGeometry.Store(f)
+	err := app.windowGeometry.Store()
 	if err != nil {
 		logger.Printf("Cannot store window geometry: %v", err)
-	} else {
-		logger.Printf("Stored window geometry in %s", f.Name())
 	}
 }
 
@@ -118,4 +97,21 @@ func setupBuilder() *gtk.Builder {
 	builder.AddFromString(glade.MustAssetString("contest.glade"))
 
 	return builder
+}
+
+func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window) {
+	geometry.Add(id, window)
+
+	window.Connect("configure-event", func(_ interface{}, event *gdk.Event) {
+		e := gdk.EventConfigureNewFromEvent(event)
+		w := geometry.Get(id)
+		w.SetPosition(e.X(), e.Y())
+		w.SetSize(e.Width(), e.Height())
+	})
+	window.Connect("window-state-event", func(_ interface{}, event *gdk.Event) {
+		e := gdk.EventWindowStateNewFromEvent(event)
+		if e.ChangedMask()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED {
+			geometry.Get(id).SetMaximized(e.NewWindowState()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED)
+		}
+	})
 }

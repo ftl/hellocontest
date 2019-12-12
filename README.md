@@ -32,12 +32,3 @@ go generate ./...
 ```
 
 This wil generate the related Go-code into the package `ui/glade`.
-
-### Protobuf
-To generate the Go-code related to Protobuf, use the following command:
-
-```
-go generate ./...
-```
-
-This will generate the Go-code into the packge `pb`.

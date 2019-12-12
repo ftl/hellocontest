@@ -7,12 +7,12 @@ import (
 
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/ftl/gmtry"
 
 	"github.com/ftl/hellocontest/core"
 	coreapp "github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
-	"github.com/ftl/hellocontest/ui/geometry"
 	"github.com/ftl/hellocontest/ui/glade"
 )
 
@@ -36,7 +36,7 @@ type application struct {
 	id             string
 	app            *gtk.Application
 	builder        *gtk.Builder
-	windowGeometry geometry.Windows
+	windowGeometry gmtry.Windows
 	mainWindow     *mainWindow
 	controller     core.AppController
 }
@@ -52,7 +52,7 @@ func (app *application) startup() {
 	}
 	defer f.Close()
 
-	app.windowGeometry, err = geometry.LoadWindows(f)
+	app.windowGeometry, err = gmtry.LoadWindows(f)
 	if err != nil {
 		app.useDefaultWindowGeometry(err)
 	}
@@ -60,8 +60,8 @@ func (app *application) startup() {
 
 func (app *application) useDefaultWindowGeometry(cause error) {
 	logger.Printf("Cannot load window geometry, using defaults instead: %v", cause)
-	app.windowGeometry = geometry.NewWindows()
-	app.windowGeometry["main"] = &geometry.Window{
+	app.windowGeometry = gmtry.NewWindows()
+	app.windowGeometry["main"] = &gmtry.Window{
 		ID:     "main",
 		X:      300,
 		Y:      100,

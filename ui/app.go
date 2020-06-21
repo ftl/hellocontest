@@ -25,6 +25,8 @@ func Run(args []string) {
 		logger.Fatal("Cannot create application: ", err)
 	}
 
+	gdk.SetAllowedBackends("x11")
+
 	app.app.Connect("startup", app.startup)
 	app.app.Connect("activate", app.activate)
 	app.app.Connect("shutdown", app.shutdown)

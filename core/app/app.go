@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	"github.com/ftl/hamradio/cwclient"
+
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callinfo"
 	"github.com/ftl/hellocontest/core/entry"
@@ -80,6 +81,7 @@ func (c *controller) Startup() {
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 
 	c.callinfo = callinfo.NewController()
+	c.entry.SetCallinfo(c.callinfo)
 }
 
 func (c *controller) Shutdown() {
@@ -269,4 +271,5 @@ func (c *controller) ExportADIF() {
 
 func (c *controller) Callinfo() {
 	c.callinfo.Show()
+	c.view.BringToFront()
 }

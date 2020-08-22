@@ -26,8 +26,10 @@ func NewController(clock core.Clock, log core.Log, enterTheirNumber, enterTheirX
 }
 
 type controller struct {
-	clock             core.Clock
-	log               core.Log
+	clock    core.Clock
+	log      core.Log
+	callinfo core.CallinfoController
+
 	enterTheirNumber  bool
 	enterTheirXchange bool
 	allowMultiBand    bool
@@ -47,6 +49,10 @@ func (c *controller) SetView(view core.EntryView) {
 	c.view.SetMode(c.selectedMode.String())
 	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
 	c.Reset()
+}
+
+func (c *controller) SetCallinfo(callinfo core.CallinfoController) {
+	c.callinfo = callinfo
 }
 
 func (c *controller) GotoNextField() core.EntryField {
@@ -153,6 +159,10 @@ func (c *controller) ModeSelected(s string) {
 }
 
 func (c *controller) EnterCallsign(s string) {
+	if c.callinfo != nil {
+		c.callinfo.ShowCallsign(s)
+	}
+
 	callsign, err := callsign.Parse(s)
 	if err != nil {
 		return

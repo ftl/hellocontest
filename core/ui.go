@@ -11,6 +11,7 @@ type LogView interface {
 // EntryController controls the entry of QSO data.
 type EntryController interface {
 	SetView(EntryView)
+	SetCallinfo(CallinfoController)
 
 	GotoNextField() EntryField
 	GetActiveField() EntryField
@@ -87,6 +88,7 @@ type AppController interface {
 // AppView represents the visual parts of the main application.
 type AppView interface {
 	SetMainMenuController(MainMenuController)
+	BringToFront()
 
 	ShowFilename(string)
 	SelectOpenFile(string, ...string) (string, bool, error)
@@ -135,6 +137,8 @@ type CallinfoController interface {
 
 	Show()
 	Hide()
+
+	ShowCallsign(string)
 }
 
 type CallinfoView interface {
@@ -142,4 +146,7 @@ type CallinfoView interface {
 	Show()
 	Hide()
 	Visible() bool
+
+	SetCallsign(string)
+	SetDXCC(string, string, int, int, bool)
 }

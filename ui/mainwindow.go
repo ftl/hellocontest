@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gtk"
@@ -48,6 +49,11 @@ func (w *mainWindow) UseDefaultWindowGeometry() {
 
 func (w *mainWindow) ConnectToGeometry(geometry *gmtry.Geometry) {
 	connectToGeometry(geometry, "main", &w.window.Window)
+}
+
+func (w *mainWindow) BringToFront() {
+	ts := uint32(time.Now().Unix())
+	w.window.PresentWithTime(ts)
 }
 
 func (w *mainWindow) SelectOpenFile(title string, patterns ...string) (string, bool, error) {

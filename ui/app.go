@@ -40,6 +40,7 @@ type application struct {
 	builder        *gtk.Builder
 	windowGeometry *gmtry.Geometry
 	mainWindow     *mainWindow
+	callinfoWindow *callinfoWindow
 	controller     core.AppController
 }
 
@@ -51,8 +52,7 @@ func (app *application) startup() {
 
 func (app *application) useDefaultWindowGeometry(cause error) {
 	logger.Printf("Cannot load window geometry, using defaults instead: %v", cause)
-	app.mainWindow.Window.Move(300, 100)
-	app.mainWindow.Window.Window.Resize(569, 700)
+	app.mainWindow.UseDefaultWindowGeometry()
 }
 
 func (app *application) activate() {
@@ -64,14 +64,17 @@ func (app *application) activate() {
 	}
 	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
 	app.mainWindow = setupMainWindow(app.builder, app.app)
+	app.callinfoWindow = setupCallinfoWindow(app.builder)
 
 	app.controller.Startup()
 	app.controller.SetView(app.mainWindow)
 	app.controller.SetLogView(app.mainWindow)
 	app.controller.SetEntryView(app.mainWindow)
 	app.controller.SetKeyerView(app.mainWindow)
+	app.controller.SetCallinfoView(app.callinfoWindow)
 
-	connectToGeometry(app.windowGeometry, "main", &app.mainWindow.Window.Window)
+	app.mainWindow.ConnectToGeometry(app.windowGeometry)
+	app.callinfoWindow.ConnectToGeometry(app.windowGeometry)
 	err = app.windowGeometry.Restore()
 	if err != nil {
 		app.useDefaultWindowGeometry(err)
@@ -105,12 +108,18 @@ func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window
 	geometry.Add(id, window)
 
 	window.Connect("configure-event", func(_ interface{}, event *gdk.Event) {
+		if !window.IsVisible() {
+			return
+		}
 		e := gdk.EventConfigureNewFromEvent(event)
 		w := geometry.Get(id)
 		w.SetPosition(e.X(), e.Y())
 		w.SetSize(e.Width(), e.Height())
 	})
 	window.Connect("window-state-event", func(_ interface{}, event *gdk.Event) {
+		if !window.IsVisible() {
+			return
+		}
 		e := gdk.EventWindowStateNewFromEvent(event)
 		if e.ChangedMask()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED {
 			geometry.Get(id).SetMaximized(e.NewWindowState()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED)

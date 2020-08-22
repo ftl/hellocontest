@@ -1,9 +1,9 @@
 package ui
 
 import (
-	"github.com/ftl/hellocontest/core"
-
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 type mainMenu struct {
@@ -15,6 +15,7 @@ type mainMenu struct {
 	fileExportCabrillo *gtk.MenuItem
 	fileExportADIF     *gtk.MenuItem
 	fileQuit           *gtk.MenuItem
+	windowCallinfo     *gtk.MenuItem
 }
 
 func setupMainMenu(builder *gtk.Builder) *mainMenu {
@@ -26,6 +27,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportCabrillo = getUI(builder, "menuFileExportCabrillo").(*gtk.MenuItem)
 	result.fileExportADIF = getUI(builder, "menuFileExportADIF").(*gtk.MenuItem)
 	result.fileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
+	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 
 	result.fileNew.Connect("activate", result.onNew)
 	result.fileOpen.Connect("activate", result.onOpen)
@@ -33,6 +35,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportCabrillo.Connect("activate", result.onExportCabrillo)
 	result.fileExportADIF.Connect("activate", result.onExportADIF)
 	result.fileQuit.Connect("activate", result.onQuit)
+	result.windowCallinfo.Connect("activate", result.onCallinfo)
 
 	return result
 }
@@ -63,4 +66,8 @@ func (m *mainMenu) onExportADIF() {
 
 func (m *mainMenu) onQuit() {
 	m.controller.Quit()
+}
+
+func (m *mainMenu) onCallinfo() {
+	m.controller.Callinfo()
 }

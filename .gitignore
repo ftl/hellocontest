@@ -3,3 +3,4 @@
 *.cabrillo
 *.adif
 hellocontest
+ui/glade/#contest.glade#

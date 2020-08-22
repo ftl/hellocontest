@@ -8,6 +8,7 @@ import (
 
 	"github.com/ftl/hamradio/cwclient"
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/callinfo"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
@@ -38,10 +39,12 @@ type controller struct {
 	quitter       core.Quitter
 	entry         core.EntryController
 	keyer         core.KeyerController
+	callinfo      core.CallinfoController
 
-	logView   core.LogView
-	entryView core.EntryView
-	keyerView core.KeyerView
+	logView      core.LogView
+	entryView    core.EntryView
+	keyerView    core.KeyerView
+	callinfoView core.CallinfoView
 }
 
 func (c *controller) SetView(view core.AppView) {
@@ -75,6 +78,8 @@ func (c *controller) Startup() {
 
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
+
+	c.callinfo = callinfo.NewController()
 }
 
 func (c *controller) Shutdown() {
@@ -94,6 +99,11 @@ func (c *controller) SetEntryView(view core.EntryView) {
 func (c *controller) SetKeyerView(view core.KeyerView) {
 	c.keyerView = view
 	c.keyer.SetView(c.keyerView)
+}
+
+func (c *controller) SetCallinfoView(view core.CallinfoView) {
+	c.callinfoView = view
+	c.callinfo.SetView(c.callinfoView)
 }
 
 func (c *controller) Quit() {
@@ -255,4 +265,8 @@ func (c *controller) ExportADIF() {
 		c.view.ShowErrorDialog("Cannot export ADIF to %s: %v", filename, err)
 		return
 	}
+}
+
+func (c *controller) Callinfo() {
+	c.callinfo.Show()
 }

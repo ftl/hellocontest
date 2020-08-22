@@ -81,6 +81,7 @@ type AppController interface {
 	SetLogView(LogView)
 	SetEntryView(EntryView)
 	SetKeyerView(KeyerView)
+	SetCallinfoView(CallinfoView)
 }
 
 // AppView represents the visual parts of the main application.
@@ -103,6 +104,7 @@ type MainMenuController interface {
 	ExportCabrillo()
 	ExportADIF()
 	Quit()
+	Callinfo()
 }
 
 // KeyerController controls the keyer.
@@ -126,4 +128,18 @@ type KeyerView interface {
 	SetPattern(int, string)
 	Speed() int
 	SetSpeed(int)
+}
+
+type CallinfoController interface {
+	SetView(CallinfoView)
+
+	Show()
+	Hide()
+}
+
+type CallinfoView interface {
+	SetCallinfoController(CallinfoController)
+	Show()
+	Hide()
+	Visible() bool
 }

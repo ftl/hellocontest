@@ -548,6 +548,7 @@
                 <property name="input_purpose">digits</property>
                 <property name="adjustment">speedAdjustment</property>
                 <property name="numeric">True</property>
+                <accelerator key="s" signal="grab-focus" modifiers="GDK_CONTROL_MASK"/>
               </object>
               <packing>
                 <property name="left_attach">3</property>

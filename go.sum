@@ -4,6 +4,8 @@ github.com/ftl/gmtry v0.0.0-20200425131616-16f55bac18a0 h1:KTMhxzSCMrZT1KQFJO4Sn
 github.com/ftl/gmtry v0.0.0-20200425131616-16f55bac18a0/go.mod h1:AQpbHYBSPV1Bc1nqG8vv8BK3qxXMZIn32OQBi/4A7Sc=
 github.com/ftl/hamradio v0.0.0-20200610191216-39c81ce8e29d h1:QuLXDs2yxmIVtC33Ky97chScbGPIFpGE728zABt4Nbo=
 github.com/ftl/hamradio v0.0.0-20200610191216-39c81ce8e29d/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
+github.com/ftl/hamradio v0.0.0-20200721200456-334cc249f095 h1:2Wcq7hZy6OYMtaE5ykWVreA0rbwV4UX4v5WtJo4yJCg=
+github.com/ftl/hamradio v0.0.0-20200721200456-334cc249f095/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9/go.mod h1:4sZLCxjgn++exy5u0muVzlvnahfanPuiHLQo0GJQnPA=
 github.com/golang/protobuf v1.4.0-rc.1/go.mod h1:ceaxUfeHdC40wWswd/P6IGgMaK3YpKi5j83Wpe3EHw8=
 github.com/golang/protobuf v1.4.0-rc.1.0.20200221234624-67d41d38c208/go.mod h1:xKAWHe0F5eneWXFV3EuXVDTCmh+JuBKY0li0aMyXATA=
@@ -19,6 +21,8 @@ github.com/google/go-cmp v0.4.0 h1:xsAVV57WRhGj6kEIi8ReJzQlHHqcBYCElAvkovg3B/4=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/gotk3/gotk3 v0.0.0-20200621125936-10ee8f07c02e h1:4VOdrF68v8VkDGa2cmYhkW4nTqE9Qn4/Z3eByHi2ATw=
 github.com/gotk3/gotk3 v0.0.0-20200621125936-10ee8f07c02e/go.mod h1:/hqFpkNa9T3JgNAE2fLvCdov7c5bw//FHNZrZ3Uv9/Q=
+github.com/gotk3/gotk3 v0.0.0-20200818170417-35882c3063fa h1:HR27pyF7zNUyOkzWIevm4vib2s6fqrPZN0by6JthNdg=
+github.com/gotk3/gotk3 v0.0.0-20200818170417-35882c3063fa/go.mod h1:/hqFpkNa9T3JgNAE2fLvCdov7c5bw//FHNZrZ3Uv9/Q=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

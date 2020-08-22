@@ -149,4 +149,5 @@ type CallinfoView interface {
 
 	SetCallsign(string)
 	SetDXCC(string, string, int, int, bool)
+	SetSupercheck(callsigns []string)
 }

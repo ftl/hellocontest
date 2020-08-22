@@ -12,12 +12,13 @@ import (
 type callinfoView struct {
 	controller core.CallinfoController
 
-	callsignLabel  *gtk.Label
-	dxccLabel      *gtk.Label
-	continentLabel *gtk.Label
-	ituLabel       *gtk.Label
-	cqLabel        *gtk.Label
-	arrlLabel      *gtk.Label
+	callsignLabel   *gtk.Label
+	dxccLabel       *gtk.Label
+	continentLabel  *gtk.Label
+	ituLabel        *gtk.Label
+	cqLabel         *gtk.Label
+	arrlLabel       *gtk.Label
+	supercheckLabel *gtk.Label
 }
 
 func setupCallinfoView(builder *gtk.Builder) *callinfoView {
@@ -29,6 +30,7 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result.ituLabel = getUI(builder, "ituLabel").(*gtk.Label)
 	result.cqLabel = getUI(builder, "cqLabel").(*gtk.Label)
 	result.arrlLabel = getUI(builder, "arrlLabel").(*gtk.Label)
+	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
 
 	return result
 }
@@ -70,4 +72,9 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 		arrlText = "not compl."
 	}
 	v.arrlLabel.SetText(fmt.Sprintf("ARRL: %s", arrlText))
+}
+
+func (v *callinfoView) SetSupercheck(callsigns []string) {
+	text := strings.Join(callsigns, ", ")
+	v.supercheckLabel.SetText(text)
 }

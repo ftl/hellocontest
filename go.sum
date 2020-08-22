@@ -8,6 +8,8 @@ github.com/ftl/hamradio v0.0.0-20200721200456-334cc249f095 h1:2Wcq7hZy6OYMtaE5yk
 github.com/ftl/hamradio v0.0.0-20200721200456-334cc249f095/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
 github.com/ftl/hamradio v0.0.0-20200822113006-0cfcf67cfa2b h1:vuhm5lEYqmuyZzdaJKaImHFjVvE/vaGSvFXyxfJ08CI=
 github.com/ftl/hamradio v0.0.0-20200822113006-0cfcf67cfa2b/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
+github.com/ftl/hamradio v0.0.0-20200822182745-a65dd9467ebf h1:0EsqEBYHsZGIChZIknnAErWV3nfwx25HnDl+iS2ZumE=
+github.com/ftl/hamradio v0.0.0-20200822182745-a65dd9467ebf/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 h1:ORI3EUKpLTsfA372C6xpuZFDXw+ckmCzLaCcJvakG24=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9/go.mod h1:4sZLCxjgn++exy5u0muVzlvnahfanPuiHLQo0GJQnPA=
 github.com/golang/protobuf v1.4.0-rc.1/go.mod h1:ceaxUfeHdC40wWswd/P6IGgMaK3YpKi5j83Wpe3EHw8=

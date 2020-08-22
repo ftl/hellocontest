@@ -208,6 +208,7 @@
                 <property name="name">callsignEntry</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Their Callsign</property>
                 <property name="placeholder_text" translatable="yes">Call</property>
               </object>
               <packing>
@@ -221,6 +222,7 @@
                 <property name="name">theirReportEntry</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Their Report</property>
                 <property name="max_length">3</property>
                 <property name="width_chars">3</property>
                 <property name="max_width_chars">3</property>
@@ -237,6 +239,7 @@
                 <property name="name">theirNumberEntry</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Their Number</property>
                 <property name="width_chars">5</property>
                 <property name="placeholder_text" translatable="yes">#</property>
                 <property name="input_purpose">digits</property>
@@ -251,6 +254,7 @@
                 <property name="name">myReportEntry</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">My Report (Ctrl-r)</property>
                 <property name="max_length">3</property>
                 <property name="width_chars">3</property>
                 <property name="max_width_chars">3</property>
@@ -269,6 +273,7 @@
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">My Number</property>
                 <property name="width_chars">5</property>
                 <property name="placeholder_text" translatable="yes">#</property>
                 <property name="input_purpose">digits</property>
@@ -309,6 +314,7 @@
               <object class="GtkComboBoxText" id="bandCombo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Band (Ctrl+b)</property>
                 <accelerator key="b" signal="popup" modifiers="GDK_CONTROL_MASK"/>
               </object>
               <packing>
@@ -320,6 +326,7 @@
               <object class="GtkComboBoxText" id="modeCombo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Mode (Ctrl-m)</property>
                 <accelerator key="m" signal="popup" modifiers="GDK_CONTROL_MASK"/>
               </object>
               <packing>
@@ -333,6 +340,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Reset (&lt;ESC&gt;)</property>
               </object>
               <packing>
                 <property name="left_attach">6</property>
@@ -345,6 +353,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Log the QSO (&lt;Enter&gt;)</property>
               </object>
               <packing>
                 <property name="left_attach">6</property>
@@ -356,6 +365,7 @@
                 <property name="name">myXchangeEntry</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">My Exchange</property>
                 <property name="width_chars">6</property>
                 <property name="placeholder_text" translatable="yes">XChg</property>
               </object>
@@ -369,6 +379,7 @@
                 <property name="name">theirXchangeEntry</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">Their Exchange</property>
                 <property name="width_chars">6</property>
                 <property name="placeholder_text" translatable="yes">XChg</property>
               </object>
@@ -401,6 +412,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Send Marcro (F1)</property>
                 <accelerator key="F1" signal="clicked"/>
               </object>
               <packing>
@@ -414,6 +426,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Send Marcro (F2)</property>
                 <accelerator key="F2" signal="clicked"/>
               </object>
               <packing>
@@ -427,6 +440,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Send Marcro (F3)</property>
                 <accelerator key="F3" signal="clicked"/>
               </object>
               <packing>
@@ -440,6 +454,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Send Marcro (F5)</property>
                 <accelerator key="F4" signal="clicked"/>
               </object>
               <packing>
@@ -502,6 +517,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <property name="tooltip_text" translatable="yes">Stop the CW transmission (F5)</property>
                 <accelerator key="F5" signal="clicked"/>
               </object>
               <packing>
@@ -540,6 +556,7 @@
               <object class="GtkSpinButton" id="speedEntry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">CW Speed (Ctrl-s)</property>
                 <property name="halign">center</property>
                 <property name="hexpand">False</property>
                 <property name="max_length">2</property>

@@ -20,13 +20,13 @@ import (
 func Run(args []string) {
 	var err error
 	app := &application{id: "ft.hellocontest"}
+
+	gdk.SetAllowedBackends("x11")
+
 	app.app, err = gtk.ApplicationNew(app.id, glib.APPLICATION_FLAGS_NONE)
 	if err != nil {
 		logger.Fatal("Cannot create application: ", err)
 	}
-
-	gdk.SetAllowedBackends("x11")
-
 	app.app.Connect("startup", app.startup)
 	app.app.Connect("activate", app.activate)
 	app.app.Connect("shutdown", app.shutdown)
@@ -109,16 +109,16 @@ func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window
 
 	window.Connect("configure-event", func(_ interface{}, event *gdk.Event) {
 		if !window.IsVisible() {
-			return
+			// return
 		}
 		e := gdk.EventConfigureNewFromEvent(event)
 		w := geometry.Get(id)
-		w.SetPosition(e.X(), e.Y())
+		w.SetPosition(window.GetPosition())
 		w.SetSize(e.Width(), e.Height())
 	})
 	window.Connect("window-state-event", func(_ interface{}, event *gdk.Event) {
 		if !window.IsVisible() {
-			return
+			// return
 		}
 		e := gdk.EventWindowStateNewFromEvent(event)
 		if e.ChangedMask()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED {

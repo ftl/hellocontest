@@ -101,7 +101,15 @@ func (k *keyer) Send(index int) {
 		k.view.ShowMessage(err)
 		return
 	}
+	k.send(message)
+}
 
+func (k *keyer) SendQuestion(q string) {
+	s := strings.TrimSpace(q) + "?"
+	k.send(s)
+}
+
+func (k *keyer) send(s string) {
 	if !k.client.IsConnected() {
 		err := k.client.Connect()
 		if err != nil {
@@ -111,8 +119,8 @@ func (k *keyer) Send(index int) {
 		k.client.Speed(k.speed)
 	}
 
-	log.Printf("sending %s\n", message)
-	k.client.Send(message)
+	log.Printf("sending %s", s)
+	k.client.Send(s)
 }
 
 func (k *keyer) Stop() {

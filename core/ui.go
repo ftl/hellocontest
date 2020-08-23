@@ -11,6 +11,7 @@ type LogView interface {
 // EntryController controls the entry of QSO data.
 type EntryController interface {
 	SetView(EntryView)
+	SetKeyer(KeyerController)
 	SetCallinfo(CallinfoController)
 
 	GotoNextField() EntryField
@@ -20,6 +21,7 @@ type EntryController interface {
 	BandSelected(string)
 	ModeSelected(string)
 	EnterCallsign(string)
+	SendQuestion()
 	QSOSelected(QSO)
 
 	Log()
@@ -115,6 +117,7 @@ type KeyerController interface {
 	SetPatterns([]string)
 
 	Send(int)
+	SendQuestion(q string)
 	Stop()
 	EnterPattern(int, string)
 	EnterSpeed(int)

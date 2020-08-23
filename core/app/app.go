@@ -79,6 +79,7 @@ func (c *controller) Startup() {
 
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
+	c.entry.SetKeyer(c.keyer)
 
 	c.callinfo = callinfo.NewController()
 	c.entry.SetCallinfo(c.callinfo)

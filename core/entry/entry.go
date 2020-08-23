@@ -28,6 +28,7 @@ func NewController(clock core.Clock, log core.Log, enterTheirNumber, enterTheirX
 type controller struct {
 	clock    core.Clock
 	log      core.Log
+	keyer    core.KeyerController
 	callinfo core.CallinfoController
 
 	enterTheirNumber  bool
@@ -49,6 +50,10 @@ func (c *controller) SetView(view core.EntryView) {
 	c.view.SetMode(c.selectedMode.String())
 	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
 	c.Reset()
+}
+
+func (c *controller) SetKeyer(keyer core.KeyerController) {
+	c.keyer = keyer
 }
 
 func (c *controller) SetCallinfo(callinfo core.CallinfoController) {
@@ -155,6 +160,20 @@ func (c *controller) ModeSelected(s string) {
 		}
 
 		c.EnterCallsign(c.view.Callsign())
+	}
+}
+
+func (c *controller) SendQuestion() {
+	if c.keyer == nil {
+		return
+	}
+
+	switch c.activeField {
+	case core.TheirReportField, core.TheirNumberField, core.TheirXchangeField:
+		c.keyer.SendQuestion("nr")
+	default:
+		callsign := c.view.Callsign()
+		c.keyer.SendQuestion(callsign)
 	}
 }
 

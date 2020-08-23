@@ -121,6 +121,9 @@ func (v *entryView) onEntryKeyPress(widget interface{}, event *gdk.Event) bool {
 	case gdk.KEY_Escape:
 		v.controller.Reset()
 		return true
+	case gdk.KEY_question:
+		v.controller.SendQuestion()
+		return true
 	default:
 		return false
 	}

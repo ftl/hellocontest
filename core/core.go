@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hamradio/locator"
 )
 
@@ -160,6 +161,21 @@ type Configuration interface {
 	KeyerRunPatterns() []string
 }
 
+// EntryField represents an entry field in the visual part.
+type EntryField int
+
+// The entry fields.
+const (
+	CallsignField EntryField = iota
+	TheirReportField
+	TheirNumberField
+	TheirXchangeField
+	MyReportField
+	MyNumberField
+	MyXchangeField
+	OtherField
+)
+
 // KeyerValues contains the values that can be used as variables in the keyer templates.
 type KeyerValues struct {
 	TheirCall string
@@ -179,4 +195,14 @@ type CWClient interface {
 	Speed(int)
 	Send(text string)
 	Abort()
+}
+
+// DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
+type DXCCFinder interface {
+	Find(string) ([]*dxcc.Prefix, bool)
+}
+
+// CallsignFinder returns a list of matching callsigns for the given partial string.
+type CallsignFinder interface {
+	Find(string) ([]string, error)
 }

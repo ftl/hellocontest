@@ -60,21 +60,6 @@ type EntryView interface {
 	ClearMessage()
 }
 
-// EntryField represents an entry field in the visual part.
-type EntryField int
-
-// The entry fields.
-const (
-	CallsignField EntryField = iota
-	TheirReportField
-	TheirNumberField
-	TheirXchangeField
-	MyReportField
-	MyNumberField
-	MyXchangeField
-	OtherField
-)
-
 // AppController controls the main functions of the application.
 type AppController interface {
 	Startup()

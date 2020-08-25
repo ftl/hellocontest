@@ -7,6 +7,8 @@ import (
 	"text/template"
 
 	"github.com/ftl/hamradio/cwclient"
+	"github.com/ftl/hamradio/dxcc"
+	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callinfo"
@@ -81,8 +83,52 @@ func (c *controller) Startup() {
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 	c.entry.SetKeyer(c.keyer)
 
-	c.callinfo = callinfo.NewController()
+	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck())
 	c.entry.SetCallinfo(c.callinfo)
+}
+
+func setupDXCC() *dxcc.Prefixes {
+	localFilename, err := dxcc.LocalFilename()
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+	updated, err := dxcc.Update(dxcc.DefaultURL, localFilename)
+	if err != nil {
+		log.Printf("update of local copy of DXCC prefixes failed: %v", err)
+	}
+	if updated {
+		log.Printf("updated local copy of DXCC prefixes: %v", localFilename)
+	}
+
+	result, err := dxcc.LoadLocal(localFilename)
+	if err != nil {
+		log.Printf("cannot load DXCC prefixes: %v", err)
+		return nil
+	}
+	return result
+}
+
+func setupSupercheck() *scp.Database {
+	localFilename, err := scp.LocalFilename()
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+	updated, err := scp.Update(scp.DefaultURL, localFilename)
+	if err != nil {
+		log.Printf("update of local copy of Supercheck database failed: %v", err)
+	}
+	if updated {
+		log.Printf("updated local copy of Supercheck database: %v", localFilename)
+	}
+
+	result, err := scp.LoadLocal(localFilename)
+	if err != nil {
+		log.Printf("cannot load Supercheck database: %v", err)
+		return nil
+	}
+	return result
 }
 
 func (c *controller) Shutdown() {

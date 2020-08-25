@@ -4,70 +4,23 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ftl/hamradio/dxcc"
-	"github.com/ftl/hamradio/scp"
-
 	"github.com/ftl/hellocontest/core"
 )
 
-func NewController() core.CallinfoController {
+func NewController(prefixes core.DXCCFinder, callsigns core.CallsignFinder) core.CallinfoController {
 	result := &callinfo{
-		prefixes:   setupDXCC(),
-		supercheck: setupSupercheck(),
+		prefixes:  prefixes,
+		callsigns: callsigns,
 	}
 
-	return result
-}
-
-func setupDXCC() *dxcc.Prefixes {
-	localFilename, err := dxcc.LocalFilename()
-	if err != nil {
-		log.Print(err)
-		return nil
-	}
-	updated, err := dxcc.Update(dxcc.DefaultURL, localFilename)
-	if err != nil {
-		log.Printf("update of local copy of DXCC prefixes failed: %v", err)
-	}
-	if updated {
-		log.Printf("updated local copy of DXCC prefixes: %v", localFilename)
-	}
-
-	result, err := dxcc.LoadLocal(localFilename)
-	if err != nil {
-		log.Printf("cannot load DXCC prefixes: %v", err)
-		return nil
-	}
-	return result
-}
-
-func setupSupercheck() *scp.Database {
-	localFilename, err := scp.LocalFilename()
-	if err != nil {
-		log.Print(err)
-		return nil
-	}
-	updated, err := scp.Update(scp.DefaultURL, localFilename)
-	if err != nil {
-		log.Printf("update of local copy of Supercheck database failed: %v", err)
-	}
-	if updated {
-		log.Printf("updated local copy of Supercheck database: %v", localFilename)
-	}
-
-	result, err := scp.LoadLocal(localFilename)
-	if err != nil {
-		log.Printf("cannot load Supercheck database: %v", err)
-		return nil
-	}
 	return result
 }
 
 type callinfo struct {
 	view core.CallinfoView
 
-	prefixes   *dxcc.Prefixes
-	supercheck *scp.Database
+	prefixes  core.DXCCFinder
+	callsigns core.CallsignFinder
 }
 
 func (c *callinfo) SetView(view core.CallinfoView) {
@@ -113,9 +66,9 @@ func (c *callinfo) showDXCC(callsign string) {
 }
 
 func (c *callinfo) showSupercheck(callsign string) {
-	matches, err := c.supercheck.Find(callsign)
+	matches, err := c.callsigns.Find(callsign)
 	if err != nil {
-		log.Printf("Supercheck failed for %s: %v", callsign, err)
+		log.Printf("Callsign search for failed for %s: %v", callsign, err)
 		return
 	}
 

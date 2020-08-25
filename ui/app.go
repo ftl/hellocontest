@@ -62,10 +62,10 @@ func (app *application) activate() {
 	if err != nil {
 		log.Println(err)
 	}
-	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
 	app.mainWindow = setupMainWindow(app.builder, app.app)
 	app.callinfoWindow = setupCallinfoWindow(app.builder)
 
+	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
 	app.controller.Startup()
 	app.controller.SetView(app.mainWindow)
 	app.controller.SetLogbookView(app.mainWindow)

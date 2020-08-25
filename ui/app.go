@@ -1,7 +1,7 @@
 package ui
 
 import (
-	logger "log"
+	"log"
 	"path/filepath"
 
 	"github.com/ftl/gmtry"
@@ -25,7 +25,7 @@ func Run(args []string) {
 
 	app.app, err = gtk.ApplicationNew(app.id, glib.APPLICATION_FLAGS_NONE)
 	if err != nil {
-		logger.Fatal("Cannot create application: ", err)
+		log.Fatal("Cannot create application: ", err)
 	}
 	app.app.Connect("startup", app.startup)
 	app.app.Connect("activate", app.activate)
@@ -51,7 +51,7 @@ func (app *application) startup() {
 }
 
 func (app *application) useDefaultWindowGeometry(cause error) {
-	logger.Printf("Cannot load window geometry, using defaults instead: %v", cause)
+	log.Printf("Cannot load window geometry, using defaults instead: %v", cause)
 	app.mainWindow.UseDefaultWindowGeometry()
 }
 
@@ -60,7 +60,7 @@ func (app *application) activate() {
 
 	configuration, err := cfg.Load()
 	if err != nil {
-		logger.Println(err)
+		log.Println(err)
 	}
 	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
 	app.mainWindow = setupMainWindow(app.builder, app.app)
@@ -88,14 +88,14 @@ func (app *application) shutdown() {
 
 	err := app.windowGeometry.Store()
 	if err != nil {
-		logger.Printf("Cannot store window geometry: %v", err)
+		log.Printf("Cannot store window geometry: %v", err)
 	}
 }
 
 func setupBuilder() *gtk.Builder {
 	builder, err := gtk.BuilderNew()
 	if err != nil {
-		logger.Fatal("Cannot create builder: ", err)
+		log.Fatal("Cannot create builder: ", err)
 	}
 
 	// builder.AddFromFile("ui/glade/contest.glade")

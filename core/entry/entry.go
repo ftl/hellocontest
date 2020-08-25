@@ -3,7 +3,7 @@ package entry
 import (
 	"errors"
 	"fmt"
-	logger "log"
+	"log"
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
@@ -140,7 +140,7 @@ func (c *controller) SetActiveField(field core.EntryField) {
 
 func (c *controller) BandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
-		logger.Printf("Band selected: %v", band)
+		log.Printf("Band selected: %v", band)
 		c.selectedBand = band
 		c.EnterCallsign(c.view.Callsign())
 	}
@@ -148,7 +148,7 @@ func (c *controller) BandSelected(s string) {
 
 func (c *controller) ModeSelected(s string) {
 	if mode, err := parse.Mode(s); err == nil {
-		logger.Printf("Mode selected: %v", mode)
+		log.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
 
 		if c.selectedMode == core.ModeSSB {
@@ -197,7 +197,7 @@ func (c *controller) EnterCallsign(s string) {
 }
 
 func (c *controller) QSOSelected(qso core.QSO) {
-	logger.Printf("QSO selected: %v", qso)
+	log.Printf("QSO selected: %v", qso)
 	c.editing = true
 	c.editQSO = qso
 

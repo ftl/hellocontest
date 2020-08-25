@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"io"
 	"io/ioutil"
-	logger "log"
+	"log"
 	"os"
 	"time"
 
@@ -43,7 +43,7 @@ func (f *fileStore) ReadAll() ([]core.QSO, error) {
 			return nil, err
 		}
 		qsos = append(qsos, qso)
-		logger.Printf("QSO loaded: %s", qso.String())
+		log.Printf("QSO loaded: %s", qso.String())
 	}
 }
 
@@ -136,7 +136,7 @@ func write(writer io.Writer, qso core.QSO) error {
 		return err
 	}
 
-	logger.Printf("QSO written: %s", qso.String())
+	log.Printf("QSO written: %s", qso.String())
 	return nil
 }
 

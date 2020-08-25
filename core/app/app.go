@@ -1,7 +1,7 @@
 package app
 
 import (
-	logger "log"
+	"log"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -61,7 +61,7 @@ func (c *controller) Startup() {
 	c.store = store.New(c.filename)
 	c.logbook, err = logbook.Load(c.clock, c.store)
 	if err != nil {
-		logger.Println(err)
+		log.Println(err)
 		c.logbook = logbook.New(c.clock)
 	}
 	c.logbook.OnRowAdded(c.store.Write)

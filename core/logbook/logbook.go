@@ -1,7 +1,7 @@
 package logbook
 
 import (
-	logger "log"
+	"log"
 	"math"
 	"sort"
 
@@ -22,7 +22,7 @@ func New(clock core.Clock) core.Logbook {
 
 // Load creates a new log and loads it with the entries from the given reader.
 func Load(clock core.Clock, reader core.Reader) (core.Logbook, error) {
-	logger.Print("Loading QSOs")
+	log.Print("Loading QSOs")
 	logbook := &logbook{
 		clock:             clock,
 		view:              &nullLogbookView{},
@@ -79,7 +79,7 @@ func (l *logbook) emitRowAdded(qso core.QSO) {
 	for _, listener := range l.rowAddedListeners {
 		err := listener(qso)
 		if err != nil {
-			logger.Printf("Error on rowAdded: %T, %v", listener, err)
+			log.Printf("Error on rowAdded: %T, %v", listener, err)
 		}
 	}
 }
@@ -100,7 +100,7 @@ func (l *logbook) emitRowSelected(qso core.QSO) {
 
 func (l *logbook) Select(i int) {
 	if i < 0 || i >= len(l.qsos) {
-		logger.Printf("invalid QSO index %d", i)
+		log.Printf("invalid QSO index %d", i)
 		return
 	}
 	if l.ignoreSelection {
@@ -137,7 +137,7 @@ func (l *logbook) Log(qso core.QSO) {
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
 	l.view.RowAdded(qso)
 	l.emitRowAdded(qso)
-	logger.Printf("QSO added: %s", qso.String())
+	log.Printf("QSO added: %s", qso.String())
 }
 
 func (l *logbook) Find(callsign callsign.Callsign) (core.QSO, bool) {

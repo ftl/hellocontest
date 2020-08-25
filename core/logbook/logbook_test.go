@@ -1,4 +1,4 @@
-package log
+package logbook
 
 import (
 	"fmt"
@@ -15,10 +15,10 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	log := New(clock.New())
+	logbook := New(clock.New())
 
-	assert.Equal(t, core.QSONumber(1), log.NextNumber(), "next number of empty log should be 1")
-	assert.Empty(t, log.QsosOrderedByMyNumber(), "empty log should not contain any QSO")
+	assert.Equal(t, core.QSONumber(1), logbook.NextNumber(), "next number of empty log should be 1")
+	assert.Empty(t, logbook.QsosOrderedByMyNumber(), "empty log should not contain any QSO")
 }
 
 func TestLoad(t *testing.T) {
@@ -27,22 +27,22 @@ func TestLoad(t *testing.T) {
 		{MyNumber: 123},
 	}, nil)
 
-	log, err := Load(clock.New(), reader)
+	logbook, err := Load(clock.New(), reader)
 	require.NoError(t, err)
 
-	assert.Equal(t, core.QSONumber(124), log.NextNumber())
+	assert.Equal(t, core.QSONumber(124), logbook.NextNumber())
 }
 
 func TestLog_Log(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
-	log := New(clock)
+	logbook := New(clock)
 
 	qso := core.QSO{MyNumber: 1}
-	log.Log(qso)
+	logbook.Log(qso)
 
-	require.Equal(t, 1, len(log.QsosOrderedByMyNumber()), "after logging one QSO, the log should have one item")
-	loggedQso := log.QsosOrderedByMyNumber()[0]
+	require.Equal(t, 1, len(logbook.QsosOrderedByMyNumber()), "after logging one QSO, the log should have one item")
+	loggedQso := logbook.QsosOrderedByMyNumber()[0]
 	assert.Equal(t, now, loggedQso.LogTimestamp, "LogTimestamp is wrong")
 }
 
@@ -50,18 +50,18 @@ func TestLog_LogAgain(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	then := time.Date(2006, time.January, 2, 15, 5, 0, 0, time.UTC)
 	clock := new(mocked.Clock)
-	log := New(clock)
+	logbook := New(clock)
 
 	clock.On("Now").Once().Return(now)
 	qso := core.QSO{MyNumber: 1, TheirNumber: 1}
-	log.Log(qso)
+	logbook.Log(qso)
 
 	clock.On("Now").Once().Return(then)
 	qso.TheirNumber = 2
-	log.Log(qso)
+	logbook.Log(qso)
 
-	require.Equal(t, 2, len(log.QsosOrderedByMyNumber()), "log should have two items")
-	lastQso := log.QsosOrderedByMyNumber()[1]
+	require.Equal(t, 2, len(logbook.QsosOrderedByMyNumber()), "log should have two items")
+	lastQso := logbook.QsosOrderedByMyNumber()[1]
 	assert.Equal(t, then, lastQso.LogTimestamp, "last item should have last timestamp")
 	assert.Equal(t, core.QSONumber(2), lastQso.TheirNumber, "last item should have latest data")
 }
@@ -69,47 +69,47 @@ func TestLog_LogAgain(t *testing.T) {
 func TestLog_EmitRowAdded(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
-	log := New(clock)
+	logbook := New(clock)
 	emitted := false
-	log.OnRowAdded(func(core.QSO) error {
+	logbook.OnRowAdded(func(core.QSO) error {
 		emitted = true
 		return nil
 	})
 
 	qso := core.QSO{MyNumber: 1}
-	log.Log(qso)
+	logbook.Log(qso)
 
 	assert.True(t, emitted)
 }
 
 func TestLog_NextNumber(t *testing.T) {
-	log := New(clock.New())
+	logbook := New(clock.New())
 
 	qso := core.QSO{MyNumber: 123}
-	log.Log(qso)
+	logbook.Log(qso)
 
-	assert.Equal(t, core.QSONumber(124), log.NextNumber(), "next number should be the highest existing number + 1")
+	assert.Equal(t, core.QSONumber(124), logbook.NextNumber(), "next number should be the highest existing number + 1")
 }
 
 func TestLog_Find(t *testing.T) {
-	log := New(clock.New())
+	logbook := New(clock.New())
 	aa3b, _ := callsign.Parse("AA3B")
 	qso := core.QSO{Callsign: aa3b}
 
-	log.Log(qso)
-	loggedQso, ok := log.Find(aa3b)
+	logbook.Log(qso)
+	loggedQso, ok := logbook.Find(aa3b)
 	assert.True(t, ok, "qso found")
 	assert.Equal(t, aa3b, loggedQso.Callsign, "callsign")
 }
 
 func TestLog_FindAll(t *testing.T) {
-	log := New(clock.New())
+	logbook := New(clock.New())
 	aa1zzz := callsign.MustParse("AA1ZZZ")
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW, MyNumber: core.QSONumber(3)})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB, MyNumber: core.QSONumber(4)})
-	log.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY, MyNumber: core.QSONumber(5)})
+	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
+	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
+	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW, MyNumber: core.QSONumber(3)})
+	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB, MyNumber: core.QSONumber(4)})
+	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY, MyNumber: core.QSONumber(5)})
 
 	testCases := []struct {
 		band        core.Band
@@ -125,42 +125,42 @@ func TestLog_FindAll(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(fmt.Sprintf("%v, %v", tC.band, tC.mode), func(t *testing.T) {
-			qsos := log.FindAll(aa1zzz, tC.band, tC.mode)
+			qsos := logbook.FindAll(aa1zzz, tC.band, tC.mode)
 			assert.Equal(t, tC.expectedLen, len(qsos))
 		})
 	}
 }
 
 func TestLog_DoNotFindEditedCallsign(t *testing.T) {
-	log := New(clock.New())
+	logbook := New(clock.New())
 	aa1zzz := callsign.MustParse("AA1ZZZ")
 	a1bc := callsign.MustParse("A1BC")
-	log.Log(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
-	log.Log(core.QSO{Callsign: a1bc, MyNumber: core.QSONumber(5)})
+	logbook.Log(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
+	logbook.Log(core.QSO{Callsign: a1bc, MyNumber: core.QSONumber(5)})
 
-	_, foundOldCall := log.Find(aa1zzz)
-	newQso, foundNewCall := log.Find(a1bc)
+	_, foundOldCall := logbook.Find(aa1zzz)
+	newQso, foundNewCall := logbook.Find(a1bc)
 
 	assert.False(t, foundOldCall)
 	assert.True(t, foundNewCall)
 	assert.Equal(t, core.QSONumber(5), newQso.MyNumber)
 	assert.Equal(t, a1bc, newQso.Callsign)
 
-	assert.Empty(t, log.FindAll(aa1zzz, core.NoBand, core.NoMode))
-	newQSOs := log.FindAll(a1bc, core.NoBand, core.NoMode)
+	assert.Empty(t, logbook.FindAll(aa1zzz, core.NoBand, core.NoMode))
+	newQSOs := logbook.FindAll(a1bc, core.NoBand, core.NoMode)
 	require.Equal(t, 1, len(newQSOs))
 	assert.Equal(t, core.QSONumber(5), newQSOs[0].MyNumber)
 	assert.Equal(t, a1bc, newQSOs[0].Callsign)
 }
 
 func TestLog_UniqueQsosOrderedByMyNumber(t *testing.T) {
-	log := New(clock.New())
-	log.Log(core.QSO{Callsign: callsign.MustParse("AA3B"), MyNumber: core.QSONumber(4)})
-	log.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(1)})
-	log.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: core.QSONumber(3)})
-	log.Log(core.QSO{Callsign: callsign.MustParse("S50A"), MyNumber: core.QSONumber(2)})
+	logbook := New(clock.New())
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("AA3B"), MyNumber: core.QSONumber(4)})
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(1)})
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: core.QSONumber(3)})
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("S50A"), MyNumber: core.QSONumber(2)})
 
-	actual := log.UniqueQsosOrderedByMyNumber()
+	actual := logbook.UniqueQsosOrderedByMyNumber()
 
 	assert.Equal(t, core.QSONumber(1), actual[0].MyNumber)
 	assert.Equal(t, core.QSONumber(2), actual[1].MyNumber)
@@ -169,14 +169,14 @@ func TestLog_UniqueQsosOrderedByMyNumber(t *testing.T) {
 }
 
 func TestLog_UniqueQsosOrderedByMyNumber_Multiband(t *testing.T) {
-	log := New(clock.New())
-	log.Log(core.QSO{Callsign: callsign.MustParse("AA3B"), MyNumber: core.QSONumber(4)})
-	log.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(1), Band: core.Band80m})
-	log.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(5), Band: core.Band40m})
-	log.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: core.QSONumber(3)})
-	log.Log(core.QSO{Callsign: callsign.MustParse("S50A"), MyNumber: core.QSONumber(2)})
+	logbook := New(clock.New())
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("AA3B"), MyNumber: core.QSONumber(4)})
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(1), Band: core.Band80m})
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("AA1ZZZ"), MyNumber: core.QSONumber(5), Band: core.Band40m})
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: core.QSONumber(3)})
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("S50A"), MyNumber: core.QSONumber(2)})
 
-	actual := log.UniqueQsosOrderedByMyNumber()
+	actual := logbook.UniqueQsosOrderedByMyNumber()
 
 	assert.Equal(t, core.QSONumber(1), actual[0].MyNumber)
 	assert.Equal(t, core.QSONumber(2), actual[1].MyNumber)

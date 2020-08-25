@@ -14,7 +14,7 @@ import (
 	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
 	"github.com/ftl/hellocontest/core/keyer"
-	"github.com/ftl/hellocontest/core/log"
+	"github.com/ftl/hellocontest/core/logbook"
 	"github.com/ftl/hellocontest/core/store"
 )
 
@@ -34,7 +34,7 @@ type controller struct {
 
 	clock         core.Clock
 	configuration core.Configuration
-	log           core.Log
+	logbook       core.Logbook
 	store         core.Store
 	cwclient      core.CWClient
 	quitter       core.Quitter
@@ -42,7 +42,7 @@ type controller struct {
 	keyer         core.KeyerController
 	callinfo      core.CallinfoController
 
-	logView      core.LogView
+	logbookView  core.LogbookView
 	entryView    core.EntryView
 	keyerView    core.KeyerView
 	callinfoView core.CallinfoView
@@ -59,23 +59,23 @@ func (c *controller) Startup() {
 	c.filename = "current.log"
 
 	c.store = store.New(c.filename)
-	c.log, err = log.Load(c.clock, c.store)
+	c.logbook, err = logbook.Load(c.clock, c.store)
 	if err != nil {
 		logger.Println(err)
-		c.log = log.New(c.clock)
+		c.logbook = logbook.New(c.clock)
 	}
-	c.log.OnRowAdded(c.store.Write)
+	c.logbook.OnRowAdded(c.store.Write)
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
 
 	c.entry = entry.NewController(
 		c.clock,
-		c.log,
+		c.logbook,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
 		c.configuration.AllowMultiBand(),
 		c.configuration.AllowMultiMode(),
 	)
-	c.log.OnRowSelected(c.entry.QSOSelected)
+	c.logbook.OnRowSelected(c.entry.QSOSelected)
 
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
@@ -89,9 +89,9 @@ func (c *controller) Shutdown() {
 	c.cwclient.Disconnect()
 }
 
-func (c *controller) SetLogView(view core.LogView) {
-	c.logView = view
-	c.log.SetView(c.logView)
+func (c *controller) SetLogbookView(view core.LogbookView) {
+	c.logbookView = view
+	c.logbook.SetView(c.logbookView)
 }
 
 func (c *controller) SetEntryView(view core.EntryView) {
@@ -131,20 +131,20 @@ func (c *controller) New() {
 
 	c.filename = filename
 	c.store = store
-	c.log = log.New(c.clock)
-	c.log.OnRowAdded(c.store.Write)
+	c.logbook = logbook.New(c.clock)
+	c.logbook.OnRowAdded(c.store.Write)
 	c.entry = entry.NewController(
 		c.clock,
-		c.log,
+		c.logbook,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
 		c.configuration.AllowMultiBand(),
 		c.configuration.AllowMultiMode(),
 	)
-	c.log.OnRowSelected(c.entry.QSOSelected)
+	c.logbook.OnRowSelected(c.entry.QSOSelected)
 
 	c.view.ShowFilename(c.filename)
-	c.log.SetView(c.logView)
+	c.logbook.SetView(c.logbookView)
 	c.entry.SetView(c.entryView)
 }
 
@@ -159,7 +159,7 @@ func (c *controller) Open() {
 	}
 
 	store := store.New(filename)
-	log, err := log.Load(c.clock, store)
+	log, err := logbook.Load(c.clock, store)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open %s: %v", filepath.Base(filename), err)
 		return
@@ -167,20 +167,20 @@ func (c *controller) Open() {
 
 	c.filename = filename
 	c.store = store
-	c.log = log
-	c.log.OnRowAdded(c.store.Write)
+	c.logbook = log
+	c.logbook.OnRowAdded(c.store.Write)
 	c.entry = entry.NewController(
 		c.clock,
-		c.log,
+		c.logbook,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
 		c.configuration.AllowMultiBand(),
 		c.configuration.AllowMultiMode(),
 	)
-	c.log.OnRowSelected(c.entry.QSOSelected)
+	c.logbook.OnRowSelected(c.entry.QSOSelected)
 
 	c.view.ShowFilename(c.filename)
-	c.log.SetView(c.logView)
+	c.logbook.SetView(c.logbookView)
 	c.entry.SetView(c.entryView)
 }
 
@@ -200,16 +200,16 @@ func (c *controller) SaveAs() {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
 		return
 	}
-	err = c.log.WriteAll(store)
+	err = c.logbook.WriteAll(store)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
 		return
 	}
 
-	c.log.ClearRowAddedListeners()
+	c.logbook.ClearRowAddedListeners()
 	c.filename = filename
 	c.store = store
-	c.log.OnRowAdded(c.store.Write)
+	c.logbook.OnRowAdded(c.store.Write)
 
 	c.view.ShowFilename(c.filename)
 }
@@ -240,7 +240,7 @@ func (c *controller) ExportCabrillo() {
 		file,
 		template,
 		c.configuration.MyCall(),
-		c.log.UniqueQsosOrderedByMyNumber()...)
+		c.logbook.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
@@ -263,7 +263,7 @@ func (c *controller) ExportADIF() {
 		return
 	}
 	defer file.Close()
-	err = adif.Export(file, c.log.UniqueQsosOrderedByMyNumber()...)
+	err = adif.Export(file, c.logbook.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export ADIF to %s: %v", filename, err)
 		return

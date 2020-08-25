@@ -1,4 +1,4 @@
-package log
+package logbook
 
 import (
 	logger "log"
@@ -10,33 +10,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-// New creates a new empty log.
-func New(clock core.Clock) core.Log {
-	return &log{
+// New creates a new empty logbook.
+func New(clock core.Clock) core.Logbook {
+	return &logbook{
 		clock:             clock,
 		qsos:              make([]core.QSO, 0, 1000),
-		view:              &nullLogView{},
+		view:              &nullLogbookView{},
 		rowAddedListeners: make([]core.RowAddedListener, 0),
 	}
 }
 
 // Load creates a new log and loads it with the entries from the given reader.
-func Load(clock core.Clock, reader core.Reader) (core.Log, error) {
+func Load(clock core.Clock, reader core.Reader) (core.Logbook, error) {
 	logger.Print("Loading QSOs")
-	log := &log{
+	logbook := &logbook{
 		clock:             clock,
-		view:              &nullLogView{},
+		view:              &nullLogbookView{},
 		rowAddedListeners: make([]core.RowAddedListener, 0),
 	}
 
 	var err error
-	log.qsos, err = reader.ReadAll()
+	logbook.qsos, err = reader.ReadAll()
 	if err != nil {
 		return nil, err
 	}
 
-	log.myLastNumber = lastNumber(log.qsos)
-	return log, nil
+	logbook.myLastNumber = lastNumber(logbook.qsos)
+	return logbook, nil
 }
 
 func lastNumber(qsos []core.QSO) int {
@@ -47,35 +47,35 @@ func lastNumber(qsos []core.QSO) int {
 	return lastNumber
 }
 
-type log struct {
+type logbook struct {
 	clock           core.Clock
 	qsos            []core.QSO
 	myLastNumber    int
 	ignoreSelection bool
 
-	view                 core.LogView
+	view                 core.LogbookView
 	rowAddedListeners    []core.RowAddedListener
 	rowSelectedListeners []core.RowSelectedListener
 }
 
-func (l *log) SetView(view core.LogView) {
+func (l *logbook) SetView(view core.LogbookView) {
 	l.ignoreSelection = true
 	defer func() { l.ignoreSelection = false }()
 
 	l.view = view
-	l.view.SetLog(l)
+	l.view.SetLogbook(l)
 	l.view.UpdateAllRows(l.qsos)
 }
 
-func (l *log) OnRowAdded(listener core.RowAddedListener) {
+func (l *logbook) OnRowAdded(listener core.RowAddedListener) {
 	l.rowAddedListeners = append(l.rowAddedListeners, listener)
 }
 
-func (l *log) ClearRowAddedListeners() {
+func (l *logbook) ClearRowAddedListeners() {
 	l.rowAddedListeners = make([]core.RowAddedListener, 0)
 }
 
-func (l *log) emitRowAdded(qso core.QSO) {
+func (l *logbook) emitRowAdded(qso core.QSO) {
 	for _, listener := range l.rowAddedListeners {
 		err := listener(qso)
 		if err != nil {
@@ -84,21 +84,21 @@ func (l *log) emitRowAdded(qso core.QSO) {
 	}
 }
 
-func (l *log) OnRowSelected(listener core.RowSelectedListener) {
+func (l *logbook) OnRowSelected(listener core.RowSelectedListener) {
 	l.rowSelectedListeners = append(l.rowSelectedListeners, listener)
 }
 
-func (l *log) ClearRowSelectedListeners() {
+func (l *logbook) ClearRowSelectedListeners() {
 	l.rowSelectedListeners = make([]core.RowSelectedListener, 0)
 }
 
-func (l *log) emitRowSelected(qso core.QSO) {
+func (l *logbook) emitRowSelected(qso core.QSO) {
 	for _, listener := range l.rowSelectedListeners {
 		listener(qso)
 	}
 }
 
-func (l *log) Select(i int) {
+func (l *logbook) Select(i int) {
 	if i < 0 || i >= len(l.qsos) {
 		logger.Printf("invalid QSO index %d", i)
 		return
@@ -110,25 +110,25 @@ func (l *log) Select(i int) {
 	l.emitRowSelected(qso)
 }
 
-func (l *log) NextNumber() core.QSONumber {
+func (l *logbook) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
 }
 
-func (l *log) LastBand() core.Band {
+func (l *logbook) LastBand() core.Band {
 	if len(l.qsos) == 0 {
 		return core.NoBand
 	}
 	return l.qsos[len(l.qsos)-1].Band
 }
 
-func (l *log) LastMode() core.Mode {
+func (l *logbook) LastMode() core.Mode {
 	if len(l.qsos) == 0 {
 		return core.NoMode
 	}
 	return l.qsos[len(l.qsos)-1].Mode
 }
 
-func (l *log) Log(qso core.QSO) {
+func (l *logbook) Log(qso core.QSO) {
 	l.ignoreSelection = true
 	defer func() { l.ignoreSelection = false }()
 
@@ -140,7 +140,7 @@ func (l *log) Log(qso core.QSO) {
 	logger.Printf("QSO added: %s", qso.String())
 }
 
-func (l *log) Find(callsign callsign.Callsign) (core.QSO, bool) {
+func (l *logbook) Find(callsign callsign.Callsign) (core.QSO, bool) {
 	checkedNumbers := make(map[core.QSONumber]bool)
 	for i := len(l.qsos) - 1; i >= 0; i-- {
 		qso := l.qsos[i]
@@ -156,7 +156,7 @@ func (l *log) Find(callsign callsign.Callsign) (core.QSO, bool) {
 	return core.QSO{}, false
 }
 
-func (l *log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+func (l *logbook) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	checkedNumbers := make(map[core.QSONumber]bool)
 	result := make([]core.QSO, 0)
 	for i := len(l.qsos) - 1; i >= 0; i-- {
@@ -180,11 +180,11 @@ func (l *log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode
 	return result
 }
 
-func (l *log) QsosOrderedByMyNumber() []core.QSO {
+func (l *logbook) QsosOrderedByMyNumber() []core.QSO {
 	return byMyNumber(l.qsos)
 }
 
-func (l *log) UniqueQsosOrderedByMyNumber() []core.QSO {
+func (l *logbook) UniqueQsosOrderedByMyNumber() []core.QSO {
 	return byMyNumber(unique(l.qsos))
 }
 
@@ -218,7 +218,7 @@ func unique(qsos []core.QSO) []core.QSO {
 	return result
 }
 
-func (l *log) WriteAll(writer core.Writer) error {
+func (l *logbook) WriteAll(writer core.Writer) error {
 	for _, qso := range l.qsos {
 		err := writer.Write(qso)
 		if err != nil {
@@ -228,8 +228,8 @@ func (l *log) WriteAll(writer core.Writer) error {
 	return nil
 }
 
-type nullLogView struct{}
+type nullLogbookView struct{}
 
-func (d *nullLogView) SetLog(core.Log)          {}
-func (d *nullLogView) UpdateAllRows([]core.QSO) {}
-func (d *nullLogView) RowAdded(core.QSO)        {}
+func (d *nullLogbookView) SetLogbook(core.Logbook)  {}
+func (d *nullLogbookView) UpdateAllRows([]core.QSO) {}
+func (d *nullLogbookView) RowAdded(core.QSO)        {}

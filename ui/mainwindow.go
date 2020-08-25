@@ -14,7 +14,7 @@ type mainWindow struct {
 	window *gtk.ApplicationWindow
 
 	*mainMenu
-	*logView
+	*logbookView
 	*entryView
 	*keyerView
 }
@@ -27,7 +27,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.window.SetDefaultSize(569, 700)
 
 	result.mainMenu = setupMainMenu(builder)
-	result.logView = setupLogView(builder)
+	result.logbookView = setupLogbookView(builder)
 	result.entryView = setupEntryView(builder)
 	result.keyerView = setupKeyerView(builder)
 

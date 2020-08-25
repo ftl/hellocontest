@@ -12,22 +12,22 @@ import (
 )
 
 // NewController returns a new EntryController.
-func NewController(clock core.Clock, log core.Log, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) core.EntryController {
+func NewController(clock core.Clock, logbook core.Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) core.EntryController {
 	return &controller{
 		clock:             clock,
-		log:               log,
+		logbook:           logbook,
 		enterTheirNumber:  enterTheirNumber,
 		enterTheirXchange: enterTheirXchange,
 		allowMultiBand:    allowMultiBand,
 		allowMultiMode:    allowMultiMode,
-		selectedBand:      log.LastBand(),
-		selectedMode:      log.LastMode(),
+		selectedBand:      logbook.LastBand(),
+		selectedMode:      logbook.LastMode(),
 	}
 }
 
 type controller struct {
 	clock    core.Clock
-	log      core.Log
+	logbook  core.Logbook
 	keyer    core.KeyerController
 	callinfo core.CallinfoController
 
@@ -123,7 +123,7 @@ func (c *controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	if c.allowMultiMode {
 		mode = c.selectedMode
 	}
-	qsos := c.log.FindAll(callsign, band, mode)
+	qsos := c.logbook.FindAll(callsign, band, mode)
 	if len(qsos) == 0 {
 		return core.QSO{}, false
 	}
@@ -289,7 +289,7 @@ func (c *controller) Log() {
 		return
 	}
 
-	c.log.Log(qso)
+	c.logbook.Log(qso)
 	c.Reset()
 }
 
@@ -303,7 +303,7 @@ func (c *controller) Reset() {
 	c.editing = false
 	c.editQSO = core.QSO{}
 
-	nextNumber := c.log.NextNumber()
+	nextNumber := c.logbook.NextNumber()
 	c.activeField = core.CallsignField
 	c.view.SetCallsign("")
 	if c.selectedMode == core.ModeSSB {

@@ -1,8 +1,8 @@
 package core
 
 // LogView represents the visual part of the log.
-type LogView interface {
-	SetLog(Log)
+type LogbookView interface {
+	SetLogbook(Logbook)
 
 	UpdateAllRows([]QSO)
 	RowAdded(QSO)
@@ -81,7 +81,7 @@ type AppController interface {
 	Shutdown()
 
 	SetView(AppView)
-	SetLogView(LogView)
+	SetLogbookView(LogbookView)
 	SetEntryView(EntryView)
 	SetKeyerView(KeyerView)
 	SetCallinfoView(CallinfoView)

@@ -22,15 +22,15 @@ const (
 	columnTheirXchange
 )
 
-type logView struct {
+type logbookView struct {
 	view      *gtk.TreeView
 	list      *gtk.ListStore
 	selection *gtk.TreeSelection
-	log       core.Log
+	logbook   core.Logbook
 }
 
-func setupLogView(builder *gtk.Builder) *logView {
-	result := new(logView)
+func setupLogbookView(builder *gtk.Builder) *logbookView {
+	result := new(logbookView)
 
 	result.view = getUI(builder, "logView").(*gtk.TreeView)
 
@@ -70,18 +70,18 @@ func createColumn(title string, id int) *gtk.TreeViewColumn {
 	return column
 }
 
-func (v *logView) SetLog(log core.Log) {
-	v.log = log
+func (v *logbookView) SetLogbook(logbook core.Logbook) {
+	v.logbook = logbook
 }
 
-func (v *logView) UpdateAllRows(qsos []core.QSO) {
+func (v *logbookView) UpdateAllRows(qsos []core.QSO) {
 	v.list.Clear()
 	for _, qso := range qsos {
 		v.RowAdded(qso)
 	}
 }
 
-func (v *logView) RowAdded(qso core.QSO) {
+func (v *logbookView) RowAdded(qso core.QSO) {
 	newRow := v.list.Append()
 	err := v.list.Set(newRow,
 		[]int{
@@ -118,13 +118,13 @@ func (v *logView) RowAdded(qso core.QSO) {
 	v.view.SetCursorOnCell(path, v.view.GetColumn(1), nil, false)
 }
 
-func (v *logView) onSelectionChanged(selection *gtk.TreeSelection) bool {
+func (v *logbookView) onSelectionChanged(selection *gtk.TreeSelection) bool {
 	model, _ := v.view.GetModel()
 	rows := selection.GetSelectedRows(model)
 	if rows.Length() == 1 {
 		row := rows.NthData(0).(*gtk.TreePath)
 		index := row.GetIndices()[0]
-		v.log.Select(index)
+		v.logbook.Select(index)
 	}
 	return true
 }

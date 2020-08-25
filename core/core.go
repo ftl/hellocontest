@@ -9,8 +9,8 @@ import (
 )
 
 // Log describes the functionality of the log component.
-type Log interface {
-	SetView(LogView)
+type Logbook interface {
+	SetView(LogbookView)
 	OnRowAdded(RowAddedListener)
 	ClearRowAddedListeners()
 	OnRowSelected(RowSelectedListener)

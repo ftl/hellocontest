@@ -19,7 +19,7 @@ func (m *Log) Activate() {
 	m.active = true
 }
 
-func (m *Log) SetView(view core.LogView) {
+func (m *Log) SetView(view core.LogbookView) {
 	if !m.active {
 		return
 	}
@@ -162,19 +162,19 @@ func (m *AppView) ShowErrorDialog(format string, args ...interface{}) {
 	m.Called(format, args)
 }
 
-type LogView struct {
+type LogbookView struct {
 	mock.Mock
 }
 
-func (m *LogView) SetLog(log core.Log) {
-	m.Called(log)
+func (m *LogbookView) SetLogbook(logbook core.Logbook) {
+	m.Called(logbook)
 }
 
-func (m *LogView) UpdateAllRows(qsos []core.QSO) {
+func (m *LogbookView) UpdateAllRows(qsos []core.QSO) {
 	m.Called(qsos)
 }
 
-func (m *LogView) RowAdded(qso core.QSO) {
+func (m *LogbookView) RowAdded(qso core.QSO) {
 	m.Called(qso)
 }
 

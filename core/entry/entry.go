@@ -97,7 +97,7 @@ func (c *controller) leaveCallsignField() {
 		return
 	}
 
-	qso, found := c.isDuplicate(callsign)
+	qso, found := c.IsDuplicate(callsign)
 	if !found {
 		c.view.SetDuplicateMarker(false)
 		return
@@ -114,7 +114,7 @@ func (c *controller) leaveCallsignField() {
 	c.view.SetDuplicateMarker(true)
 }
 
-func (c *controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
+func (c *controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	band := core.NoBand
 	if c.allowMultiBand {
 		band = c.selectedBand
@@ -187,7 +187,7 @@ func (c *controller) EnterCallsign(s string) {
 		return
 	}
 
-	qso, found := c.isDuplicate(callsign)
+	qso, found := c.IsDuplicate(callsign)
 	if !found {
 		c.view.ClearMessage()
 		return
@@ -283,7 +283,7 @@ func (c *controller) Log() {
 
 	qso.MyXchange = c.view.MyXchange()
 
-	duplicateQso, duplicate := c.isDuplicate(qso.Callsign)
+	duplicateQso, duplicate := c.IsDuplicate(qso.Callsign)
 	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
 		c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, duplicateQso.MyNumber.String()), core.CallsignField)
 		return

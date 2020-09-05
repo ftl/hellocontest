@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
-func NewController(prefixes core.DXCCFinder, callsigns core.CallsignFinder) core.CallinfoController {
+func NewController(prefixes core.DXCCFinder, callsigns core.CallsignFinder, dupCheck core.DupChecker) core.CallinfoController {
 	result := &callinfo{
 		prefixes:  prefixes,
 		callsigns: callsigns,
+		dupCheck:  dupCheck,
 	}
 
 	return result
@@ -21,6 +23,7 @@ type callinfo struct {
 
 	prefixes  core.DXCCFinder
 	callsigns core.CallsignFinder
+	dupCheck  core.DupChecker
 }
 
 func (c *callinfo) SetView(view core.CallinfoView) {
@@ -41,10 +44,17 @@ func (c *callinfo) Hide() {
 	c.view.Hide()
 }
 
-func (c *callinfo) ShowCallsign(callsign string) {
-	c.view.SetCallsign(callsign)
-	c.showDXCC(callsign)
-	c.showSupercheck(callsign)
+func (c *callinfo) ShowCallsign(s string) {
+	var duplicate bool
+	cs, err := callsign.Parse(s)
+	if err == nil {
+		_, duplicate = c.dupCheck.IsDuplicate(cs)
+	}
+
+	c.view.SetDuplicateMarker(duplicate)
+	c.view.SetCallsign(s)
+	c.showDXCC(s)
+	c.showSupercheck(s)
 }
 
 func (c *callinfo) showDXCC(callsign string) {

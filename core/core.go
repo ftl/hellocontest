@@ -206,3 +206,8 @@ type DXCCFinder interface {
 type CallsignFinder interface {
 	Find(string) ([]string, error)
 }
+
+// DupChecker can be used to find out if the given callsign was already worked, according to the contest rules.
+type DupChecker interface {
+	IsDuplicate(callsign callsign.Callsign) (QSO, bool)
+}

@@ -12,6 +12,8 @@ import (
 type callinfoView struct {
 	controller core.CallinfoController
 
+	style *style
+
 	callsignLabel   *gtk.Label
 	dxccLabel       *gtk.Label
 	continentLabel  *gtk.Label
@@ -32,6 +34,14 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result.arrlLabel = getUI(builder, "arrlLabel").(*gtk.Label)
 	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
 
+	result.style = newStyle(`
+	.duplicate {
+		background-color: #FF0000; 
+		color: #FFFFFF;
+	}
+	`)
+	result.style.applyTo(&result.callsignLabel.Widget)
+
 	return result
 }
 
@@ -45,6 +55,14 @@ func (v *callinfoView) SetCallsign(callsign string) {
 		v.callsignLabel.SetText(normalized)
 	} else {
 		v.callsignLabel.SetText("-")
+	}
+}
+
+func (v *callinfoView) SetDuplicateMarker(duplicate bool) {
+	if duplicate {
+		addStyleClass(&v.callsignLabel.Widget, "duplicate")
+	} else {
+		removeStyleClass(&v.callsignLabel.Widget, "duplicate")
 	}
 }
 

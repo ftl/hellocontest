@@ -10,6 +10,8 @@ type LogbookView interface {
 
 // EntryController controls the entry of QSO data.
 type EntryController interface {
+	DupChecker
+
 	SetView(EntryView)
 	SetKeyer(KeyerController)
 	SetCallinfo(CallinfoController)
@@ -136,6 +138,7 @@ type CallinfoView interface {
 	Visible() bool
 
 	SetCallsign(string)
+	SetDuplicateMarker(bool)
 	SetDXCC(string, string, int, int, bool)
 	SetSupercheck(callsigns []string)
 }

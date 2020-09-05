@@ -83,7 +83,7 @@ func (c *controller) Startup() {
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 	c.entry.SetKeyer(c.keyer)
 
-	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck())
+	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck(), c.entry)
 	c.entry.SetCallinfo(c.callinfo)
 }
 

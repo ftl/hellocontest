@@ -92,7 +92,19 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 	v.arrlLabel.SetText(fmt.Sprintf("ARRL: %s", arrlText))
 }
 
-func (v *callinfoView) SetSupercheck(callsigns []string) {
-	text := strings.Join(callsigns, ", ")
-	v.supercheckLabel.SetText(text)
+func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
+	text := ""
+	for _, callsign := range callsigns {
+		var renderedCallsign string
+		if callsign.Duplicate {
+			renderedCallsign = fmt.Sprintf("<span foreground='red'>%s</span>", callsign.Callsign)
+		} else {
+			renderedCallsign = callsign.Callsign.String()
+		}
+		if text != "" {
+			text += ", "
+		}
+		text += renderedCallsign
+	}
+	v.supercheckLabel.SetMarkup(text)
 }

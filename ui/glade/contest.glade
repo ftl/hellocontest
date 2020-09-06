@@ -111,6 +111,7 @@
                     <property name="valign">start</property>
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
+                    <property name="use_markup">True</property>
                     <property name="wrap">True</property>
                   </object>
                 </child>

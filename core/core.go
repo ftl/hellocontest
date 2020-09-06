@@ -211,3 +211,9 @@ type CallsignFinder interface {
 type DupChecker interface {
 	IsDuplicate(callsign callsign.Callsign) (QSO, bool)
 }
+
+// AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
+type AnnotatedCallsign struct {
+	Callsign  callsign.Callsign
+	Duplicate bool
+}

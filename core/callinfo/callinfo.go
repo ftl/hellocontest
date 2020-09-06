@@ -75,12 +75,26 @@ func (c *callinfo) showDXCC(callsign string) {
 	c.view.SetDXCC(dxccName, prefix[0].Continent, int(prefix[0].ITUZone), int(prefix[0].CQZone), !prefix[0].NotARRLCompliant)
 }
 
-func (c *callinfo) showSupercheck(callsign string) {
-	matches, err := c.callsigns.Find(callsign)
+func (c *callinfo) showSupercheck(s string) {
+	matches, err := c.callsigns.Find(s)
 	if err != nil {
-		log.Printf("Callsign search for failed for %s: %v", callsign, err)
+		log.Printf("Callsign search for failed for %s: %v", s, err)
 		return
 	}
 
-	c.view.SetSupercheck(matches)
+	annotatedMatches := make([]core.AnnotatedCallsign, len(matches))
+	for i, match := range matches {
+		cs, err := callsign.Parse(match)
+		if err != nil {
+			log.Printf("Supercheck match %s is not a valid callsign: %v", match, err)
+			continue
+		}
+		_, duplicate := c.dupCheck.IsDuplicate(cs)
+		annotatedMatches[i] = core.AnnotatedCallsign{
+			Callsign:  cs,
+			Duplicate: duplicate,
+		}
+	}
+
+	c.view.SetSupercheck(annotatedMatches)
 }

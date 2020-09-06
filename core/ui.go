@@ -140,5 +140,5 @@ type CallinfoView interface {
 	SetCallsign(string)
 	SetDuplicateMarker(bool)
 	SetDXCC(string, string, int, int, bool)
-	SetSupercheck(callsigns []string)
+	SetSupercheck(callsigns []AnnotatedCallsign)
 }

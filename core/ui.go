@@ -70,6 +70,7 @@ type AppController interface {
 	SetView(AppView)
 	SetLogbookView(LogbookView)
 	SetEntryView(EntryView)
+	SetWorkmodeView(WorkmodeView)
 	SetKeyerView(KeyerView)
 	SetCallinfoView(CallinfoView)
 }
@@ -95,13 +96,14 @@ type MainMenuController interface {
 	ExportCabrillo()
 	ExportADIF()
 	Quit()
-	Callinfo()
+	ShowCallinfo()
 }
 
 // KeyerController controls the keyer.
 type KeyerController interface {
 	SetView(KeyerView)
 	SetPatterns([]string)
+	GetPattern(index int) string
 
 	Send(int)
 	SendQuestion(q string)
@@ -141,4 +143,17 @@ type CallinfoView interface {
 	SetDuplicateMarker(bool)
 	SetDXCC(string, string, int, int, bool)
 	SetSupercheck(callsigns []AnnotatedCallsign)
+}
+
+type WorkmodeController interface {
+	SetView(WorkmodeView)
+	SetKeyer(KeyerController)
+
+	SetWorkmode(Workmode)
+}
+
+type WorkmodeView interface {
+	SetWorkmodeController(WorkmodeController)
+
+	SetWorkmode(Workmode)
 }

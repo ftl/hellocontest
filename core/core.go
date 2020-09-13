@@ -144,6 +144,15 @@ type Quitter interface {
 	Quit()
 }
 
+// Workmode is either search&pounce or run.
+type Workmode int
+
+// All work modes.
+const (
+	SearchPounce Workmode = iota
+	Run
+)
+
 // Configuration provides read access to the configuration data.
 type Configuration interface {
 	MyCall() callsign.Callsign

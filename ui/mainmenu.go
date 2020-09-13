@@ -69,5 +69,5 @@ func (m *mainMenu) onQuit() {
 }
 
 func (m *mainMenu) onCallinfo() {
-	m.controller.Callinfo()
+	m.controller.ShowCallinfo()
 }

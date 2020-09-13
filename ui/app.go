@@ -70,6 +70,7 @@ func (app *application) activate() {
 	app.controller.SetView(app.mainWindow)
 	app.controller.SetLogbookView(app.mainWindow)
 	app.controller.SetEntryView(app.mainWindow)
+	app.controller.SetWorkmodeView(app.mainWindow)
 	app.controller.SetKeyerView(app.mainWindow)
 	app.controller.SetCallinfoView(app.callinfoWindow)
 

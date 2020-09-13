@@ -64,6 +64,9 @@ func (k *keyer) SetPatterns(patterns []string) {
 	for i, pattern := range patterns {
 		k.patterns[i] = pattern
 		k.templates[i], _ = template.New("").Parse(patterns[i])
+		if k.view != nil {
+			k.view.SetPattern(i, pattern)
+		}
 	}
 }
 

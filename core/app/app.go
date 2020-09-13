@@ -18,6 +18,7 @@ import (
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
 	"github.com/ftl/hellocontest/core/store"
+	"github.com/ftl/hellocontest/core/workmode"
 )
 
 // NewController returns a new instance of the AppController interface.
@@ -41,11 +42,13 @@ type controller struct {
 	cwclient      core.CWClient
 	quitter       core.Quitter
 	entry         core.EntryController
+	workmode      core.WorkmodeController
 	keyer         core.KeyerController
 	callinfo      core.CallinfoController
 
 	logbookView  core.LogbookView
 	entryView    core.EntryView
+	workmodeView core.WorkmodeView
 	keyerView    core.KeyerView
 	callinfoView core.CallinfoView
 }
@@ -79,9 +82,12 @@ func (c *controller) Startup() {
 	)
 	c.logbook.OnRowSelected(c.entry.QSOSelected)
 
+	c.workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
+
 	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 	c.entry.SetKeyer(c.keyer)
+	c.workmode.SetKeyer(c.keyer)
 
 	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck(), c.entry)
 	c.entry.SetCallinfo(c.callinfo)
@@ -143,6 +149,11 @@ func (c *controller) SetLogbookView(view core.LogbookView) {
 func (c *controller) SetEntryView(view core.EntryView) {
 	c.entryView = view
 	c.entry.SetView(c.entryView)
+}
+
+func (c *controller) SetWorkmodeView(view core.WorkmodeView) {
+	c.workmodeView = view
+	c.workmode.SetView(c.workmodeView)
 }
 
 func (c *controller) SetKeyerView(view core.KeyerView) {
@@ -316,7 +327,7 @@ func (c *controller) ExportADIF() {
 	}
 }
 
-func (c *controller) Callinfo() {
+func (c *controller) ShowCallinfo() {
 	c.callinfo.Show()
 	c.view.BringToFront()
 }

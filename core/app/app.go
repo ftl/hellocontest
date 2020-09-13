@@ -84,7 +84,7 @@ func (c *controller) Startup() {
 
 	c.workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
 
-	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.entry.CurrentValues)
+	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM(), c.entry.CurrentValues)
 	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 	c.entry.SetKeyer(c.keyer)
 	c.workmode.SetKeyer(c.keyer)

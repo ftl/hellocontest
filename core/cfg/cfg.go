@@ -45,6 +45,7 @@ const (
 	cabrilloQSOTemplate cfg.Key = "hellocontest.cabrillo.qso"
 	keyerHost           cfg.Key = "hellocontest.keyer.host"
 	keyerPort           cfg.Key = "hellocontest.keyer.port"
+	keyerWPM            cfg.Key = "hellocontest.keyer.wpm"
 	keyerSPPatterns     cfg.Key = "hellocontest.keyer.sp"
 	keyerRunPatterns    cfg.Key = "hellocontest.keyer.run"
 )
@@ -94,6 +95,10 @@ func (l loaded) KeyerPort() int {
 	return int(l.configuration.Get(keyerPort, 0.0).(float64))
 }
 
+func (l loaded) KeyerWPM() int {
+	return int(l.configuration.Get(keyerWPM, 25.0).(float64))
+}
+
 func (l loaded) KeyerSPPatterns() []string {
 	return l.configuration.GetStrings(keyerSPPatterns, []string{})
 }
@@ -141,6 +146,10 @@ func (s static) KeyerHost() string {
 
 func (s static) KeyerPort() int {
 	return 0
+}
+
+func (s static) KeyerWPM() int {
+	return 25
 }
 
 func (s static) KeyerSPPatterns() []string {

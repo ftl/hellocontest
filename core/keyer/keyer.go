@@ -11,10 +11,10 @@ import (
 )
 
 // NewController returns a new Keyer that has no patterns or templates defined yet.
-func NewController(client core.CWClient, myCall callsign.Callsign, values core.KeyerValueProvider) core.KeyerController {
+func NewController(client core.CWClient, myCall callsign.Callsign, speed int, values core.KeyerValueProvider) core.KeyerController {
 	return &keyer{
 		myCall:    myCall,
-		speed:     20,
+		speed:     speed,
 		patterns:  make(map[int]string),
 		templates: make(map[int]*template.Template),
 		client:    client,

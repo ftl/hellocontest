@@ -166,6 +166,7 @@ type Configuration interface {
 
 	KeyerHost() string
 	KeyerPort() int
+	KeyerWPM() int
 	KeyerSPPatterns() []string
 	KeyerRunPatterns() []string
 }

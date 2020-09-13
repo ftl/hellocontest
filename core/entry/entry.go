@@ -265,6 +265,7 @@ func (c *controller) Log() {
 		qso.TheirXchange = c.view.TheirXchange()
 		if qso.TheirXchange == "" {
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
+			return
 		}
 	}
 

@@ -257,6 +257,46 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	assert.Equal(t, core.TheirNumberField, controller.GetActiveField())
 }
 
+func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
+	_, log, view, controller := setupEntryWithOnlyNumberTest()
+	log.Activate()
+	view.Activate()
+
+	view.On("Callsign").Once().Return("DL1ABC")
+	view.On("Band").Once().Return("40m")
+	view.On("Mode").Once().Return("CW")
+	view.On("TheirReport").Once().Return("559")
+	view.On("TheirNumber").Once().Return("")
+	view.On("SetActiveField", core.TheirNumberField).Once()
+	view.On("ShowMessage", mock.Anything).Once()
+
+	controller.Log()
+
+	view.AssertExpectations(t)
+	log.AssertNotCalled(t, "Log", mock.Anything)
+	assert.Equal(t, core.TheirNumberField, controller.GetActiveField())
+}
+
+func TestEntryController_LogWithoutMandatoryTheirXchange(t *testing.T) {
+	_, log, view, controller := setupEntryWithOnlyExchangeTest()
+	log.Activate()
+	view.Activate()
+
+	view.On("Callsign").Once().Return("DL1ABC")
+	view.On("Band").Once().Return("40m")
+	view.On("Mode").Once().Return("CW")
+	view.On("TheirReport").Once().Return("559")
+	view.On("TheirXchange").Once().Return("")
+	view.On("SetActiveField", core.TheirXchangeField).Once()
+	view.On("ShowMessage", mock.Anything).Once()
+
+	controller.Log()
+
+	view.AssertExpectations(t)
+	log.AssertNotCalled(t, "Log", mock.Anything)
+	assert.Equal(t, core.TheirXchangeField, controller.GetActiveField())
+}
+
 func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 	log.Activate()
@@ -384,6 +424,28 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, *controller) 
 	log := new(mocked.Log)
 	view := new(mocked.EntryView)
 	controller := NewController(clock, log, true, true, false, false).(*controller)
+	controller.SetView(view)
+
+	return clock, log, view, controller
+}
+
+func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.EntryView, *controller) {
+	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
+	clock := clock.Static(now)
+	log := new(mocked.Log)
+	view := new(mocked.EntryView)
+	controller := NewController(clock, log, true, false, false, false).(*controller)
+	controller.SetView(view)
+
+	return clock, log, view, controller
+}
+
+func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.EntryView, *controller) {
+	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
+	clock := clock.Static(now)
+	log := new(mocked.Log)
+	view := new(mocked.EntryView)
+	controller := NewController(clock, log, false, true, false, false).(*controller)
 	controller.SetView(view)
 
 	return clock, log, view, controller

@@ -62,32 +62,6 @@ type EntryView interface {
 	ClearMessage()
 }
 
-// AppController controls the main functions of the application.
-type AppController interface {
-	Startup()
-	Shutdown()
-
-	SetView(AppView)
-	SetLogbookView(LogbookView)
-	SetEntryView(EntryView)
-	SetWorkmodeView(WorkmodeView)
-	SetKeyerView(KeyerView)
-	SetCallinfoView(CallinfoView)
-}
-
-// AppView represents the visual parts of the main application.
-type AppView interface {
-	SetMainMenuController(MainMenuController)
-	BringToFront()
-
-	ShowFilename(string)
-	SelectOpenFile(string, ...string) (string, bool, error)
-	SelectSaveFile(string, ...string) (string, bool, error)
-
-	ShowInfoDialog(string, ...interface{})
-	ShowErrorDialog(string, ...interface{})
-}
-
 // MainMenuController provides the functionality for the main menu.
 type MainMenuController interface {
 	New()

@@ -9,8 +9,7 @@ import (
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
-	"github.com/ftl/hellocontest/core"
-	coreapp "github.com/ftl/hellocontest/core/app"
+	"github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/ui/glade"
@@ -41,53 +40,55 @@ type application struct {
 	windowGeometry *gmtry.Geometry
 	mainWindow     *mainWindow
 	callinfoWindow *callinfoWindow
-	controller     core.AppController
+	controller     *app.Controller
 }
 
-func (app *application) startup() {
+func (a *application) startup() {
 	filename := filepath.Join(cfg.Directory(), "hellocontest.geometry")
 
-	app.windowGeometry = gmtry.NewGeometry(filename)
+	a.windowGeometry = gmtry.NewGeometry(filename)
 }
 
-func (app *application) useDefaultWindowGeometry(cause error) {
+func (a *application) useDefaultWindowGeometry(cause error) {
 	log.Printf("Cannot load window geometry, using defaults instead: %v", cause)
-	app.mainWindow.UseDefaultWindowGeometry()
+	a.mainWindow.UseDefaultWindowGeometry()
 }
 
-func (app *application) activate() {
-	app.builder = setupBuilder()
+func (a *application) activate() {
+	a.builder = setupBuilder()
 
 	configuration, err := cfg.Load()
 	if err != nil {
 		log.Println(err)
 	}
-	app.mainWindow = setupMainWindow(app.builder, app.app)
-	app.callinfoWindow = setupCallinfoWindow(app.builder)
+	a.mainWindow = setupMainWindow(a.builder, a.app)
+	a.callinfoWindow = setupCallinfoWindow(a.builder)
 
-	app.controller = coreapp.NewController(clock.New(), app.app, configuration)
-	app.controller.Startup()
-	app.controller.SetView(app.mainWindow)
-	app.controller.SetLogbookView(app.mainWindow)
-	app.controller.SetEntryView(app.mainWindow)
-	app.controller.SetWorkmodeView(app.mainWindow)
-	app.controller.SetKeyerView(app.mainWindow)
-	app.controller.SetCallinfoView(app.callinfoWindow)
+	a.controller = app.NewController(clock.New(), a.app, configuration)
+	a.controller.Startup()
+	a.controller.SetView(a.mainWindow)
+	a.controller.SetLogbookView(a.mainWindow)
+	a.controller.SetEntryView(a.mainWindow)
+	a.controller.SetWorkmodeView(a.mainWindow)
+	a.controller.SetKeyerView(a.mainWindow)
+	a.controller.SetCallinfoView(a.callinfoWindow)
 
-	app.mainWindow.ConnectToGeometry(app.windowGeometry)
-	app.callinfoWindow.ConnectToGeometry(app.windowGeometry)
-	err = app.windowGeometry.Restore()
+	a.mainWindow.SetMainMenuController(a.controller)
+
+	a.mainWindow.ConnectToGeometry(a.windowGeometry)
+	a.callinfoWindow.ConnectToGeometry(a.windowGeometry)
+	err = a.windowGeometry.Restore()
 	if err != nil {
-		app.useDefaultWindowGeometry(err)
+		a.useDefaultWindowGeometry(err)
 	}
 
-	app.mainWindow.Show()
+	a.mainWindow.Show()
 }
 
-func (app *application) shutdown() {
-	app.controller.Shutdown()
+func (a *application) shutdown() {
+	a.controller.Shutdown()
 
-	err := app.windowGeometry.Store()
+	err := a.windowGeometry.Store()
 	if err != nil {
 		log.Printf("Cannot store window geometry: %v", err)
 	}

@@ -22,16 +22,16 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(clock core.Clock, quitter core.Quitter, configuration core.Configuration) core.AppController {
-	return &controller{
+func NewController(clock core.Clock, quitter core.Quitter, configuration core.Configuration) *Controller {
+	return &Controller{
 		clock:         clock,
 		quitter:       quitter,
 		configuration: configuration,
 	}
 }
 
-type controller struct {
-	view core.AppView
+type Controller struct {
+	view View
 
 	filename string
 
@@ -53,13 +53,22 @@ type controller struct {
 	callinfoView core.CallinfoView
 }
 
-func (c *controller) SetView(view core.AppView) {
+// View defines the visual functionality of the main application window.
+type View interface {
+	BringToFront()
+	ShowFilename(string)
+	SelectOpenFile(string, ...string) (string, bool, error)
+	SelectSaveFile(string, ...string) (string, bool, error)
+	ShowInfoDialog(string, ...interface{})
+	ShowErrorDialog(string, ...interface{})
+}
+
+func (c *Controller) SetView(view View) {
 	c.view = view
-	c.view.SetMainMenuController(c)
 	c.view.ShowFilename(c.filename)
 }
 
-func (c *controller) Startup() {
+func (c *Controller) Startup() {
 	var err error
 	c.filename = "current.log"
 
@@ -137,40 +146,40 @@ func setupSupercheck() *scp.Database {
 	return result
 }
 
-func (c *controller) Shutdown() {
+func (c *Controller) Shutdown() {
 	c.cwclient.Disconnect()
 }
 
-func (c *controller) SetLogbookView(view core.LogbookView) {
+func (c *Controller) SetLogbookView(view core.LogbookView) {
 	c.logbookView = view
 	c.logbook.SetView(c.logbookView)
 }
 
-func (c *controller) SetEntryView(view core.EntryView) {
+func (c *Controller) SetEntryView(view core.EntryView) {
 	c.entryView = view
 	c.entry.SetView(c.entryView)
 }
 
-func (c *controller) SetWorkmodeView(view core.WorkmodeView) {
+func (c *Controller) SetWorkmodeView(view core.WorkmodeView) {
 	c.workmodeView = view
 	c.workmode.SetView(c.workmodeView)
 }
 
-func (c *controller) SetKeyerView(view core.KeyerView) {
+func (c *Controller) SetKeyerView(view core.KeyerView) {
 	c.keyerView = view
 	c.keyer.SetView(c.keyerView)
 }
 
-func (c *controller) SetCallinfoView(view core.CallinfoView) {
+func (c *Controller) SetCallinfoView(view core.CallinfoView) {
 	c.callinfoView = view
 	c.callinfo.SetView(c.callinfoView)
 }
 
-func (c *controller) Quit() {
+func (c *Controller) Quit() {
 	c.quitter.Quit()
 }
 
-func (c *controller) New() {
+func (c *Controller) New() {
 	filename, ok, err := c.view.SelectSaveFile("New Logfile", "*.log")
 	if !ok {
 		return
@@ -205,7 +214,7 @@ func (c *controller) New() {
 	c.entry.SetView(c.entryView)
 }
 
-func (c *controller) Open() {
+func (c *Controller) Open() {
 	filename, ok, err := c.view.SelectOpenFile("Open Logfile", "*.log")
 	if !ok {
 		return
@@ -241,7 +250,7 @@ func (c *controller) Open() {
 	c.entry.SetView(c.entryView)
 }
 
-func (c *controller) SaveAs() {
+func (c *Controller) SaveAs() {
 	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", "*.log")
 	if !ok {
 		return
@@ -271,7 +280,7 @@ func (c *controller) SaveAs() {
 	c.view.ShowFilename(c.filename)
 }
 
-func (c *controller) ExportCabrillo() {
+func (c *Controller) ExportCabrillo() {
 	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", "*.cabrillo")
 	if !ok {
 		return
@@ -304,7 +313,7 @@ func (c *controller) ExportCabrillo() {
 	}
 }
 
-func (c *controller) ExportADIF() {
+func (c *Controller) ExportADIF() {
 	filename, ok, err := c.view.SelectSaveFile("Export ADIF File", "*.adif")
 	if !ok {
 		return
@@ -327,7 +336,7 @@ func (c *controller) ExportADIF() {
 	}
 }
 
-func (c *controller) ShowCallinfo() {
+func (c *Controller) ShowCallinfo() {
 	c.callinfo.Show()
 	c.view.BringToFront()
 }

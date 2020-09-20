@@ -203,6 +203,8 @@ func (c *controller) New() {
 	c.view.ShowFilename(c.filename)
 	c.logbook.SetView(c.logbookView)
 	c.entry.SetView(c.entryView)
+	c.entry.SetKeyer(c.keyer)
+	c.entry.SetCallinfo(c.callinfo)
 }
 
 func (c *controller) Open() {
@@ -239,6 +241,8 @@ func (c *controller) Open() {
 	c.view.ShowFilename(c.filename)
 	c.logbook.SetView(c.logbookView)
 	c.entry.SetView(c.entryView)
+	c.entry.SetKeyer(c.keyer)
+	c.entry.SetCallinfo(c.callinfo)
 }
 
 func (c *controller) SaveAs() {

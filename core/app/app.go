@@ -89,7 +89,8 @@ func (c *controller) Startup() {
 	c.entry.SetKeyer(c.keyer)
 	c.workmode.SetKeyer(c.keyer)
 
-	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck(), c.entry)
+	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck())
+	c.callinfo.SetDupChecker(c.entry)
 	c.entry.SetCallinfo(c.callinfo)
 }
 
@@ -205,6 +206,7 @@ func (c *controller) New() {
 	c.entry.SetView(c.entryView)
 	c.entry.SetKeyer(c.keyer)
 	c.entry.SetCallinfo(c.callinfo)
+	c.callinfo.SetDupChecker(c.entry)
 }
 
 func (c *controller) Open() {
@@ -243,6 +245,7 @@ func (c *controller) Open() {
 	c.entry.SetView(c.entryView)
 	c.entry.SetKeyer(c.keyer)
 	c.entry.SetCallinfo(c.callinfo)
+	c.callinfo.SetDupChecker(c.entry)
 }
 
 func (c *controller) SaveAs() {

@@ -22,11 +22,16 @@ const (
 	columnTheirXchange
 )
 
+// Logbook represents the logbook.
+type Logbook interface {
+	Select(int)
+}
+
 type logbookView struct {
-	view      *gtk.TreeView
-	list      *gtk.ListStore
-	selection *gtk.TreeSelection
-	logbook   core.Logbook
+	view        *gtk.TreeView
+	list        *gtk.ListStore
+	selection   *gtk.TreeSelection
+	onSelection func(int)
 }
 
 func setupLogbookView(builder *gtk.Builder) *logbookView {
@@ -70,8 +75,8 @@ func createColumn(title string, id int) *gtk.TreeViewColumn {
 	return column
 }
 
-func (v *logbookView) SetLogbook(logbook core.Logbook) {
-	v.logbook = logbook
+func (v *logbookView) OnSelection(handler func(int)) {
+	v.onSelection = handler
 }
 
 func (v *logbookView) UpdateAllRows(qsos []core.QSO) {
@@ -124,7 +129,9 @@ func (v *logbookView) onSelectionChanged(selection *gtk.TreeSelection) bool {
 	if rows.Length() == 1 {
 		row := rows.NthData(0).(*gtk.TreePath)
 		index := row.GetIndices()[0]
-		v.logbook.Select(index)
+		if v.onSelection != nil {
+			v.onSelection(index)
+		}
 	}
 	return true
 }

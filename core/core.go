@@ -9,26 +9,6 @@ import (
 	"github.com/ftl/hamradio/locator"
 )
 
-// Log describes the functionality of the log component.
-type Logbook interface {
-	SetView(LogbookView)
-	OnRowAdded(RowAddedListener)
-	ClearRowAddedListeners()
-	OnRowSelected(RowSelectedListener)
-	ClearRowSelectedListeners()
-
-	NextNumber() QSONumber
-	LastBand() Band
-	LastMode() Mode
-	Select(int)
-	Log(QSO)
-	Find(callsign.Callsign) (QSO, bool)
-	FindAll(callsign.Callsign, Band, Mode) []QSO
-	QsosOrderedByMyNumber() []QSO
-	UniqueQsosOrderedByMyNumber() []QSO
-	WriteAll(Writer) error
-}
-
 // Reader reads log entries.
 type Reader interface {
 	ReadAll() ([]QSO, error)

@@ -37,7 +37,7 @@ type Controller struct {
 
 	clock         core.Clock
 	configuration core.Configuration
-	logbook       core.Logbook
+	logbook       *logbook.Logbook
 	store         core.Store
 	cwclient      core.CWClient
 	quitter       core.Quitter
@@ -46,7 +46,7 @@ type Controller struct {
 	keyer         core.KeyerController
 	callinfo      core.CallinfoController
 
-	logbookView  core.LogbookView
+	logbookView  logbook.View
 	entryView    core.EntryView
 	workmodeView core.WorkmodeView
 	keyerView    core.KeyerView
@@ -151,7 +151,7 @@ func (c *Controller) Shutdown() {
 	c.cwclient.Disconnect()
 }
 
-func (c *Controller) SetLogbookView(view core.LogbookView) {
+func (c *Controller) SetLogbookView(view logbook.View) {
 	c.logbookView = view
 	c.logbook.SetView(c.logbookView)
 }
@@ -196,26 +196,7 @@ func (c *Controller) New() {
 		return
 	}
 
-	c.filename = filename
-	c.store = store
-	c.logbook = logbook.New(c.clock)
-	c.logbook.OnRowAdded(c.store.Write)
-	c.entry = entry.NewController(
-		c.clock,
-		c.logbook,
-		c.configuration.EnterTheirNumber(),
-		c.configuration.EnterTheirXchange(),
-		c.configuration.AllowMultiBand(),
-		c.configuration.AllowMultiMode(),
-	)
-	c.logbook.OnRowSelected(c.entry.QSOSelected)
-
-	c.view.ShowFilename(c.filename)
-	c.logbook.SetView(c.logbookView)
-	c.entry.SetView(c.entryView)
-	c.entry.SetKeyer(c.keyer)
-	c.entry.SetCallinfo(c.callinfo)
-	c.callinfo.SetDupChecker(c.entry)
+	c.changeLogbook(filename, store, logbook.New(c.clock))
 }
 
 func (c *Controller) Open() {
@@ -235,10 +216,17 @@ func (c *Controller) Open() {
 		return
 	}
 
+	c.changeLogbook(filename, store, log)
+}
+
+func (c *Controller) changeLogbook(filename string, store core.Store, logbook *logbook.Logbook) {
 	c.filename = filename
+	c.view.ShowFilename(c.filename)
 	c.store = store
-	c.logbook = log
+
+	c.logbook = logbook
 	c.logbook.OnRowAdded(c.store.Write)
+	c.logbook.SetView(c.logbookView)
 	c.entry = entry.NewController(
 		c.clock,
 		c.logbook,
@@ -249,8 +237,6 @@ func (c *Controller) Open() {
 	)
 	c.logbook.OnRowSelected(c.entry.QSOSelected)
 
-	c.view.ShowFilename(c.filename)
-	c.logbook.SetView(c.logbookView)
 	c.entry.SetView(c.entryView)
 	c.entry.SetKeyer(c.keyer)
 	c.entry.SetCallinfo(c.callinfo)

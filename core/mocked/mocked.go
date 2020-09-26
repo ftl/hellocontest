@@ -19,13 +19,6 @@ func (m *Log) Activate() {
 	m.active = true
 }
 
-func (m *Log) SetView(view core.LogbookView) {
-	if !m.active {
-		return
-	}
-	m.Called(view)
-}
-
 func (m *Log) OnRowAdded(listener core.RowAddedListener) {
 	if !m.active {
 		return
@@ -160,10 +153,6 @@ func (m *AppView) ShowErrorDialog(format string, args ...interface{}) {
 
 type LogbookView struct {
 	mock.Mock
-}
-
-func (m *LogbookView) SetLogbook(logbook core.Logbook) {
-	m.Called(logbook)
 }
 
 func (m *LogbookView) UpdateAllRows(qsos []core.QSO) {

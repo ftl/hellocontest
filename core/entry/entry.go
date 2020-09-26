@@ -11,8 +11,17 @@ import (
 	"github.com/ftl/hellocontest/core/parse"
 )
 
+// Logbook defines the logbook functionality used for handling QSO entry.
+type Logbook interface {
+	NextNumber() core.QSONumber
+	LastBand() core.Band
+	LastMode() core.Mode
+	Log(core.QSO)
+	FindAll(callsign.Callsign, core.Band, core.Mode) []core.QSO
+}
+
 // NewController returns a new EntryController.
-func NewController(clock core.Clock, logbook core.Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) core.EntryController {
+func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) core.EntryController {
 	return &controller{
 		clock:             clock,
 		logbook:           logbook,
@@ -27,7 +36,7 @@ func NewController(clock core.Clock, logbook core.Logbook, enterTheirNumber, ent
 
 type controller struct {
 	clock    core.Clock
-	logbook  core.Logbook
+	logbook  Logbook
 	keyer    core.KeyerController
 	callinfo core.CallinfoController
 

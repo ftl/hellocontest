@@ -1,13 +1,5 @@
 package core
 
-// LogView represents the visual part of the log.
-type LogbookView interface {
-	SetLogbook(Logbook)
-
-	UpdateAllRows([]QSO)
-	RowAdded(QSO)
-}
-
 // EntryController controls the entry of QSO data.
 type EntryController interface {
 	DupChecker
@@ -101,7 +93,7 @@ type KeyerView interface {
 type CallinfoController interface {
 	SetView(CallinfoView)
 	SetDupChecker(DupChecker)
-	
+
 	Show()
 	Hide()
 

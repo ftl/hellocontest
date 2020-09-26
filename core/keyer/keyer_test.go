@@ -28,7 +28,7 @@ func TestSend(t *testing.T) {
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
 	cwClient.On("IsConnected").Return(true)
 
-	keyer := NewController(cwClient, myCall, values)
+	keyer := NewController(cwClient, myCall, 25, values)
 	keyer.SetView(view)
 	keyer.EnterPattern(0, "{{.MyCall}} {{.TheirCall}} {{.MyNumber}} {{.MyReport}} {{.MyXchange}}")
 

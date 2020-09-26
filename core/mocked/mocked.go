@@ -136,10 +136,6 @@ type AppView struct {
 	mock.Mock
 }
 
-func (m *AppView) SetAppController(controller core.AppController) {
-	m.Called(controller)
-}
-
 func (m *AppView) ShowFilename(filename string) {
 	m.Called(filename)
 }

@@ -8,11 +8,10 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func NewController(prefixes core.DXCCFinder, callsigns core.CallsignFinder, dupCheck core.DupChecker) core.CallinfoController {
+func NewController(prefixes core.DXCCFinder, callsigns core.CallsignFinder) core.CallinfoController {
 	result := &callinfo{
 		prefixes:  prefixes,
 		callsigns: callsigns,
-		dupCheck:  dupCheck,
 	}
 
 	return result
@@ -28,6 +27,10 @@ type callinfo struct {
 
 func (c *callinfo) SetView(view core.CallinfoView) {
 	c.view = view
+}
+
+func (c *callinfo) SetDupChecker(dupChecker core.DupChecker) {
+	c.dupCheck = dupChecker
 }
 
 func (c *callinfo) Show() {

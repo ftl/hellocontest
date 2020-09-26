@@ -98,7 +98,8 @@ func (c *Controller) Startup() {
 	c.entry.SetKeyer(c.keyer)
 	c.workmode.SetKeyer(c.keyer)
 
-	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck(), c.entry)
+	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck())
+	c.callinfo.SetDupChecker(c.entry)
 	c.entry.SetCallinfo(c.callinfo)
 }
 
@@ -212,6 +213,9 @@ func (c *Controller) New() {
 	c.view.ShowFilename(c.filename)
 	c.logbook.SetView(c.logbookView)
 	c.entry.SetView(c.entryView)
+	c.entry.SetKeyer(c.keyer)
+	c.entry.SetCallinfo(c.callinfo)
+	c.callinfo.SetDupChecker(c.entry)
 }
 
 func (c *Controller) Open() {
@@ -248,6 +252,9 @@ func (c *Controller) Open() {
 	c.view.ShowFilename(c.filename)
 	c.logbook.SetView(c.logbookView)
 	c.entry.SetView(c.entryView)
+	c.entry.SetKeyer(c.keyer)
+	c.entry.SetCallinfo(c.callinfo)
+	c.callinfo.SetDupChecker(c.entry)
 }
 
 func (c *Controller) SaveAs() {

@@ -100,7 +100,8 @@ type KeyerView interface {
 
 type CallinfoController interface {
 	SetView(CallinfoView)
-
+	SetDupChecker(DupChecker)
+	
 	Show()
 	Hide()
 

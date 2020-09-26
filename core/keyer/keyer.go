@@ -11,14 +11,14 @@ import (
 )
 
 // NewController returns a new Keyer that has no patterns or templates defined yet.
-func NewController(client core.CWClient, myCall callsign.Callsign, speed int, values core.KeyerValueProvider) core.KeyerController {
+func NewController(client core.CWClient, myCall callsign.Callsign, speed int) core.KeyerController {
 	return &keyer{
 		myCall:    myCall,
 		speed:     speed,
 		patterns:  make(map[int]string),
 		templates: make(map[int]*template.Template),
 		client:    client,
-		values:    values}
+		values:    noValues}
 }
 
 type keyer struct {
@@ -38,6 +38,10 @@ func (k *keyer) SetView(view core.KeyerView) {
 		k.view.SetPattern(i, pattern)
 	}
 	k.view.SetSpeed(k.speed)
+}
+
+func (k *keyer) SetValues(values core.KeyerValueProvider) {
+	k.values = values
 }
 
 func (k *keyer) EnterSpeed(speed int) {
@@ -164,4 +168,8 @@ func cut(s string) string {
 		result = strings.Replace(result, digit, cut, -1)
 	}
 	return result
+}
+
+func noValues() core.KeyerValues {
+	return core.KeyerValues{}
 }

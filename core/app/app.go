@@ -37,20 +37,21 @@ type Controller struct {
 
 	clock         core.Clock
 	configuration core.Configuration
-	logbook       *logbook.Logbook
 	store         core.Store
 	cwclient      core.CWClient
 	quitter       core.Quitter
-	entry         core.EntryController
-	workmode      core.WorkmodeController
-	keyer         core.KeyerController
-	callinfo      core.CallinfoController
 
-	logbookView  logbook.View
-	entryView    core.EntryView
+	Logbook  *logbook.Logbook
+	Entry    *entry.Controller
+	workmode core.WorkmodeController
+	keyer    core.KeyerController
+	callinfo core.CallinfoController
+
 	workmodeView core.WorkmodeView
 	keyerView    core.KeyerView
 	callinfoView core.CallinfoView
+
+	OnLogbookChanged func()
 }
 
 // View defines the visual functionality of the main application window.
@@ -70,37 +71,26 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) Startup() {
 	var err error
-	c.filename = "current.log"
+	filename := "current.log"
 
-	c.store = store.New(c.filename)
-	c.logbook, err = logbook.Load(c.clock, c.store)
+	store := store.New(filename)
+	newLogbook, err := logbook.Load(c.clock, store)
 	if err != nil {
 		log.Println(err)
-		c.logbook = logbook.New(c.clock)
+		newLogbook = logbook.New(c.clock)
 	}
-	c.logbook.OnRowAdded(c.store.Write)
+
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
 
-	c.entry = entry.NewController(
-		c.clock,
-		c.logbook,
-		c.configuration.EnterTheirNumber(),
-		c.configuration.EnterTheirXchange(),
-		c.configuration.AllowMultiBand(),
-		c.configuration.AllowMultiMode(),
-	)
-	c.logbook.OnRowSelected(c.entry.QSOSelected)
+	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
+	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 
 	c.workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
-
-	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM(), c.entry.CurrentValues)
-	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
-	c.entry.SetKeyer(c.keyer)
 	c.workmode.SetKeyer(c.keyer)
 
 	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck())
-	c.callinfo.SetDupChecker(c.entry)
-	c.entry.SetCallinfo(c.callinfo)
+
+	c.changeLogbook(filename, store, newLogbook)
 }
 
 func setupDXCC() *dxcc.Prefixes {
@@ -149,16 +139,6 @@ func setupSupercheck() *scp.Database {
 
 func (c *Controller) Shutdown() {
 	c.cwclient.Disconnect()
-}
-
-func (c *Controller) SetLogbookView(view logbook.View) {
-	c.logbookView = view
-	c.logbook.SetView(c.logbookView)
-}
-
-func (c *Controller) SetEntryView(view core.EntryView) {
-	c.entryView = view
-	c.entry.SetView(c.entryView)
 }
 
 func (c *Controller) SetWorkmodeView(view core.WorkmodeView) {
@@ -221,26 +201,32 @@ func (c *Controller) Open() {
 
 func (c *Controller) changeLogbook(filename string, store core.Store, logbook *logbook.Logbook) {
 	c.filename = filename
-	c.view.ShowFilename(c.filename)
 	c.store = store
 
-	c.logbook = logbook
-	c.logbook.OnRowAdded(c.store.Write)
-	c.logbook.SetView(c.logbookView)
-	c.entry = entry.NewController(
+	c.Logbook = logbook
+	c.Logbook.OnRowAdded(c.store.Write)
+	c.Entry = entry.NewController(
 		c.clock,
-		c.logbook,
+		c.Logbook,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
 		c.configuration.AllowMultiBand(),
 		c.configuration.AllowMultiMode(),
 	)
-	c.logbook.OnRowSelected(c.entry.QSOSelected)
+	c.Logbook.OnRowSelected(c.Entry.QSOSelected)
 
-	c.entry.SetView(c.entryView)
-	c.entry.SetKeyer(c.keyer)
-	c.entry.SetCallinfo(c.callinfo)
-	c.callinfo.SetDupChecker(c.entry)
+	c.Entry.SetKeyer(c.keyer)
+	c.Entry.SetCallinfo(c.callinfo)
+
+	c.keyer.SetValues(c.Entry.CurrentValues)
+	c.callinfo.SetDupChecker(c.Entry)
+
+	if c.view != nil {
+		c.view.ShowFilename(c.filename)
+	}
+	if c.OnLogbookChanged != nil {
+		c.OnLogbookChanged()
+	}
 }
 
 func (c *Controller) SaveAs() {
@@ -259,16 +245,16 @@ func (c *Controller) SaveAs() {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
 		return
 	}
-	err = c.logbook.WriteAll(store)
+	err = c.Logbook.WriteAll(store)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
 		return
 	}
 
-	c.logbook.ClearRowAddedListeners()
+	c.Logbook.ClearRowAddedListeners()
 	c.filename = filename
 	c.store = store
-	c.logbook.OnRowAdded(c.store.Write)
+	c.Logbook.OnRowAdded(c.store.Write)
 
 	c.view.ShowFilename(c.filename)
 }
@@ -299,7 +285,7 @@ func (c *Controller) ExportCabrillo() {
 		file,
 		template,
 		c.configuration.MyCall(),
-		c.logbook.UniqueQsosOrderedByMyNumber()...)
+		c.Logbook.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
@@ -322,7 +308,7 @@ func (c *Controller) ExportADIF() {
 		return
 	}
 	defer file.Close()
-	err = adif.Export(file, c.logbook.UniqueQsosOrderedByMyNumber()...)
+	err = adif.Export(file, c.Logbook.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export ADIF to %s: %v", filename, err)
 		return

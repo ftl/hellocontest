@@ -1,59 +1,5 @@
 package core
 
-// EntryController controls the entry of QSO data.
-type EntryController interface {
-	DupChecker
-
-	SetView(EntryView)
-	SetKeyer(KeyerController)
-	SetCallinfo(CallinfoController)
-
-	GotoNextField() EntryField
-	GetActiveField() EntryField
-	SetActiveField(EntryField)
-
-	BandSelected(string)
-	ModeSelected(string)
-	EnterCallsign(string)
-	SendQuestion()
-	QSOSelected(QSO)
-
-	Log()
-	Reset()
-	CurrentValues() KeyerValues
-}
-
-// EntryView represents the visual part of the QSO data entry.
-type EntryView interface {
-	SetEntryController(EntryController)
-
-	Callsign() string
-	SetCallsign(string)
-	TheirReport() string
-	SetTheirReport(string)
-	TheirNumber() string
-	SetTheirNumber(string)
-	TheirXchange() string
-	SetTheirXchange(string)
-	Band() string
-	SetBand(text string)
-	Mode() string
-	SetMode(text string)
-	MyReport() string
-	SetMyReport(string)
-	MyNumber() string
-	SetMyNumber(string)
-	MyXchange() string
-	SetMyXchange(string)
-
-	EnableExchangeFields(bool, bool)
-	SetActiveField(EntryField)
-	SetDuplicateMarker(bool)
-	SetEditingMarker(bool)
-	ShowMessage(...interface{})
-	ClearMessage()
-}
-
 // MainMenuController provides the functionality for the main menu.
 type MainMenuController interface {
 	New()
@@ -68,6 +14,7 @@ type MainMenuController interface {
 // KeyerController controls the keyer.
 type KeyerController interface {
 	SetView(KeyerView)
+	SetValues(KeyerValueProvider)
 	SetPatterns([]string)
 	GetPattern(index int) string
 

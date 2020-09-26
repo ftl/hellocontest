@@ -9,8 +9,22 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
+// EntryController controls the entry of QSO data.
+type EntryController interface {
+	GotoNextField() core.EntryField
+	SetActiveField(core.EntryField)
+
+	BandSelected(string)
+	ModeSelected(string)
+	EnterCallsign(string)
+	SendQuestion()
+
+	Log()
+	Reset()
+}
+
 type entryView struct {
-	controller core.EntryController
+	controller EntryController
 
 	style             *style
 	ignoreComboChange bool
@@ -96,7 +110,7 @@ func setupModeCombo(combo *gtk.ComboBoxText) {
 	combo.SetActive(0)
 }
 
-func (v *entryView) SetEntryController(controller core.EntryController) {
+func (v *entryView) SetEntryController(controller EntryController) {
 	v.controller = controller
 }
 

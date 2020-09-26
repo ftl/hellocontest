@@ -181,13 +181,6 @@ func (m *EntryView) Activate() {
 	m.active = true
 }
 
-func (m *EntryView) SetEntryController(controller core.EntryController) {
-	if !m.active {
-		return
-	}
-	m.Called(controller)
-}
-
 func (m *EntryView) Callsign() string {
 	if !m.active {
 		return ""

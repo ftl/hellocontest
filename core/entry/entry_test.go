@@ -418,34 +418,34 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 
 // Helpers
 
-func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, *controller) {
+func setupEntryTest() (core.Clock, *mocked.Log, *mocked.EntryView, *Controller) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, log, true, true, false, false).(*controller)
+	controller := NewController(clock, log, true, true, false, false)
 	controller.SetView(view)
 
 	return clock, log, view, controller
 }
 
-func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.EntryView, *controller) {
+func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.EntryView, *Controller) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, log, true, false, false, false).(*controller)
+	controller := NewController(clock, log, true, false, false, false)
 	controller.SetView(view)
 
 	return clock, log, view, controller
 }
 
-func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.EntryView, *controller) {
+func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.EntryView, *Controller) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, log, false, true, false, false).(*controller)
+	controller := NewController(clock, log, false, true, false, false)
 	controller.SetView(view)
 
 	return clock, log, view, controller

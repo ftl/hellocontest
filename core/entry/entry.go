@@ -11,7 +11,36 @@ import (
 	"github.com/ftl/hellocontest/core/parse"
 )
 
-// Logbook defines the logbook functionality used for handling QSO entry.
+// View represents the visual part of the QSO data entry.
+type View interface {
+	Callsign() string
+	SetCallsign(string)
+	TheirReport() string
+	SetTheirReport(string)
+	TheirNumber() string
+	SetTheirNumber(string)
+	TheirXchange() string
+	SetTheirXchange(string)
+	Band() string
+	SetBand(text string)
+	Mode() string
+	SetMode(text string)
+	MyReport() string
+	SetMyReport(string)
+	MyNumber() string
+	SetMyNumber(string)
+	MyXchange() string
+	SetMyXchange(string)
+
+	EnableExchangeFields(bool, bool)
+	SetActiveField(core.EntryField)
+	SetDuplicateMarker(bool)
+	SetEditingMarker(bool)
+	ShowMessage(...interface{})
+	ClearMessage()
+}
+
+// Logbook functionality used for QSO entry.
 type Logbook interface {
 	NextNumber() core.QSONumber
 	LastBand() core.Band
@@ -20,9 +49,19 @@ type Logbook interface {
 	FindAll(callsign.Callsign, core.Band, core.Mode) []core.QSO
 }
 
-// NewController returns a new EntryController.
-func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) core.EntryController {
-	return &controller{
+// Keyer functionality used for QSO entry.
+type Keyer interface {
+	SendQuestion(q string)
+}
+
+// Callinfo functionality used for QSO entry.
+type Callinfo interface {
+	ShowCallsign(string)
+}
+
+// NewController returns a new entry Controller.
+func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) *Controller {
+	return &Controller{
 		clock:             clock,
 		logbook:           logbook,
 		enterTheirNumber:  enterTheirNumber,
@@ -34,42 +73,42 @@ func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterThe
 	}
 }
 
-type controller struct {
+type Controller struct {
 	clock    core.Clock
+	view     View
 	logbook  Logbook
-	keyer    core.KeyerController
-	callinfo core.CallinfoController
+	keyer    Keyer
+	callinfo Callinfo
 
 	enterTheirNumber  bool
 	enterTheirXchange bool
 	allowMultiBand    bool
 	allowMultiMode    bool
-	view              core.EntryView
-	activeField       core.EntryField
-	selectedBand      core.Band
-	selectedMode      core.Mode
-	editing           bool
-	editQSO           core.QSO
+
+	activeField  core.EntryField
+	selectedBand core.Band
+	selectedMode core.Mode
+	editing      bool
+	editQSO      core.QSO
 }
 
-func (c *controller) SetView(view core.EntryView) {
+func (c *Controller) SetView(view View) {
 	c.view = view
-	c.view.SetEntryController(c)
 	c.view.SetBand(c.selectedBand.String())
 	c.view.SetMode(c.selectedMode.String())
 	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
 	c.Reset()
 }
 
-func (c *controller) SetKeyer(keyer core.KeyerController) {
+func (c *Controller) SetKeyer(keyer Keyer) {
 	c.keyer = keyer
 }
 
-func (c *controller) SetCallinfo(callinfo core.CallinfoController) {
+func (c *Controller) SetCallinfo(callinfo Callinfo) {
 	c.callinfo = callinfo
 }
 
-func (c *controller) GotoNextField() core.EntryField {
+func (c *Controller) GotoNextField() core.EntryField {
 	switch c.activeField {
 	case core.CallsignField:
 		c.leaveCallsignField()
@@ -99,7 +138,7 @@ func (c *controller) GotoNextField() core.EntryField {
 	return c.activeField
 }
 
-func (c *controller) leaveCallsignField() {
+func (c *Controller) leaveCallsignField() {
 	callsign, err := callsign.Parse(c.view.Callsign())
 	if err != nil {
 		fmt.Println(err)
@@ -123,7 +162,7 @@ func (c *controller) leaveCallsignField() {
 	c.view.SetDuplicateMarker(true)
 }
 
-func (c *controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
+func (c *Controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	band := core.NoBand
 	if c.allowMultiBand {
 		band = c.selectedBand
@@ -139,15 +178,15 @@ func (c *controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	return qsos[len(qsos)-1], true
 }
 
-func (c *controller) GetActiveField() core.EntryField {
+func (c *Controller) GetActiveField() core.EntryField {
 	return c.activeField
 }
 
-func (c *controller) SetActiveField(field core.EntryField) {
+func (c *Controller) SetActiveField(field core.EntryField) {
 	c.activeField = field
 }
 
-func (c *controller) BandSelected(s string) {
+func (c *Controller) BandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
 		log.Printf("Band selected: %v", band)
 		c.selectedBand = band
@@ -155,7 +194,7 @@ func (c *controller) BandSelected(s string) {
 	}
 }
 
-func (c *controller) ModeSelected(s string) {
+func (c *Controller) ModeSelected(s string) {
 	if mode, err := parse.Mode(s); err == nil {
 		log.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
@@ -172,7 +211,7 @@ func (c *controller) ModeSelected(s string) {
 	}
 }
 
-func (c *controller) SendQuestion() {
+func (c *Controller) SendQuestion() {
 	if c.keyer == nil {
 		return
 	}
@@ -186,7 +225,7 @@ func (c *controller) SendQuestion() {
 	}
 }
 
-func (c *controller) EnterCallsign(s string) {
+func (c *Controller) EnterCallsign(s string) {
 	if c.callinfo != nil {
 		c.callinfo.ShowCallsign(s)
 	}
@@ -205,7 +244,7 @@ func (c *controller) EnterCallsign(s string) {
 	c.view.ShowMessage(fmt.Sprintf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()))
 }
 
-func (c *controller) QSOSelected(qso core.QSO) {
+func (c *Controller) QSOSelected(qso core.QSO) {
 	log.Printf("QSO selected: %v", qso)
 	c.editing = true
 	c.editQSO = qso
@@ -223,7 +262,7 @@ func (c *controller) QSOSelected(qso core.QSO) {
 	c.view.SetEditingMarker(true)
 }
 
-func (c *controller) Log() {
+func (c *Controller) Log() {
 	var err error
 	qso := core.QSO{}
 	qso.Callsign, err = callsign.Parse(c.view.Callsign())
@@ -303,13 +342,13 @@ func (c *controller) Log() {
 	c.Reset()
 }
 
-func (c *controller) showErrorOnField(err error, field core.EntryField) {
+func (c *Controller) showErrorOnField(err error, field core.EntryField) {
 	c.activeField = field
 	c.view.SetActiveField(c.activeField)
 	c.view.ShowMessage(err)
 }
 
-func (c *controller) Reset() {
+func (c *Controller) Reset() {
 	c.editing = false
 	c.editQSO = core.QSO{}
 
@@ -338,7 +377,7 @@ func (c *controller) Reset() {
 	c.view.ClearMessage()
 }
 
-func (c *controller) CurrentValues() core.KeyerValues {
+func (c *Controller) CurrentValues() core.KeyerValues {
 	myNumber, _ := strconv.Atoi(c.view.MyNumber())
 
 	values := core.KeyerValues{}

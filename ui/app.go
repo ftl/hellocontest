@@ -65,15 +65,21 @@ func (a *application) activate() {
 	a.callinfoWindow = setupCallinfoWindow(a.builder)
 
 	a.controller = app.NewController(clock.New(), a.app, configuration)
+	a.controller.OnLogbookChanged = func() {
+		a.controller.Logbook.SetView(a.mainWindow)
+		a.controller.Entry.SetView(a.mainWindow)
+		a.mainWindow.SetEntryController(a.controller.Entry)
+	}
 	a.controller.Startup()
 	a.controller.SetView(a.mainWindow)
-	a.controller.SetLogbookView(a.mainWindow)
-	a.controller.SetEntryView(a.mainWindow)
+	a.controller.Logbook.SetView(a.mainWindow)
+	a.controller.Entry.SetView(a.mainWindow)
 	a.controller.SetWorkmodeView(a.mainWindow)
 	a.controller.SetKeyerView(a.mainWindow)
 	a.controller.SetCallinfoView(a.callinfoWindow)
 
 	a.mainWindow.SetMainMenuController(a.controller)
+	a.mainWindow.SetEntryController(a.controller.Entry)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)
 	a.callinfoWindow.ConnectToGeometry(a.windowGeometry)

@@ -1,16 +1,5 @@
 package core
 
-// MainMenuController provides the functionality for the main menu.
-type MainMenuController interface {
-	New()
-	Open()
-	SaveAs()
-	ExportCabrillo()
-	ExportADIF()
-	Quit()
-	ShowCallinfo()
-}
-
 // KeyerController controls the keyer.
 type KeyerController interface {
 	SetView(KeyerView)

@@ -2,12 +2,21 @@ package ui
 
 import (
 	"github.com/gotk3/gotk3/gtk"
-
-	"github.com/ftl/hellocontest/core"
 )
 
+// MainMenuController provides the functionality for the main menu.
+type MainMenuController interface {
+	New()
+	Open()
+	SaveAs()
+	ExportCabrillo()
+	ExportADIF()
+	Quit()
+	ShowCallinfo()
+}
+
 type mainMenu struct {
-	controller core.MainMenuController
+	controller MainMenuController
 
 	fileNew            *gtk.MenuItem
 	fileOpen           *gtk.MenuItem
@@ -40,7 +49,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	return result
 }
 
-func (m *mainMenu) SetMainMenuController(controller core.MainMenuController) {
+func (m *mainMenu) SetMainMenuController(controller MainMenuController) {
 	m.controller = controller
 }
 

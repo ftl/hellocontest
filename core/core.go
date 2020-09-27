@@ -5,36 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hamradio/dxcc"
-	"github.com/ftl/hamradio/locator"
 )
-
-// Reader reads log entries.
-type Reader interface {
-	ReadAll() ([]QSO, error)
-}
-
-// Writer writes log entries.
-type Writer interface {
-	Write(QSO) error
-}
-
-// Store allows to read and write log entries.
-type Store interface {
-	Reader
-	Writer
-	Clear() error
-}
-
-// RowAddedListener is notified when a new row is added to the log.
-type RowAddedListener func(QSO) error
-
-// RowSelectedListener is notified when a row is selected in the log view.
-type RowSelectedListener func(QSO)
-
-func (l RowAddedListener) Write(qso QSO) error {
-	return l(qso)
-}
 
 // QSO contains the details about one radio contact.
 type QSO struct {
@@ -128,24 +99,6 @@ const (
 	Run
 )
 
-// Configuration provides read access to the configuration data.
-type Configuration interface {
-	MyCall() callsign.Callsign
-	MyLocator() locator.Locator
-
-	EnterTheirNumber() bool
-	EnterTheirXchange() bool
-	CabrilloQSOTemplate() string
-	AllowMultiBand() bool
-	AllowMultiMode() bool
-
-	KeyerHost() string
-	KeyerPort() int
-	KeyerWPM() int
-	KeyerSPPatterns() []string
-	KeyerRunPatterns() []string
-}
-
 // EntryField represents an entry field in the visual part.
 type EntryField int
 
@@ -167,34 +120,6 @@ type KeyerValues struct {
 	MyNumber  QSONumber
 	MyReport  RST
 	MyXchange string
-}
-
-// KeyerValueProvider provides the variable values for the Keyer templates on demand.
-type KeyerValueProvider func() KeyerValues
-
-// CWClient defines the interface used by the Keyer to output the CW.
-type CWClient interface {
-	Connect() error
-	Disconnect()
-	IsConnected() bool
-	Speed(int)
-	Send(text string)
-	Abort()
-}
-
-// DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
-type DXCCFinder interface {
-	Find(string) ([]*dxcc.Prefix, bool)
-}
-
-// CallsignFinder returns a list of matching callsigns for the given partial string.
-type CallsignFinder interface {
-	Find(string) ([]string, error)
-}
-
-// DupChecker can be used to find out if the given callsign was already worked, according to the contest rules.
-type DupChecker interface {
-	IsDuplicate(callsign callsign.Callsign) (QSO, bool)
 }
 
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.

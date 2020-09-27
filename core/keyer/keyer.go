@@ -7,11 +7,12 @@ import (
 	"text/template"
 
 	"github.com/ftl/hamradio/callsign"
+
 	"github.com/ftl/hellocontest/core"
 )
 
 // New returns a new Keyer that has no patterns or templates defined yet.
-func New(client core.CWClient, myCall callsign.Callsign, speed int) *Keyer {
+func New(client CWClient, myCall callsign.Callsign, speed int) *Keyer {
 	return &Keyer{
 		myCall:    myCall,
 		speed:     speed,
@@ -22,13 +23,14 @@ func New(client core.CWClient, myCall callsign.Callsign, speed int) *Keyer {
 }
 
 type Keyer struct {
+	view   View
+	client CWClient
+	values KeyerValueProvider
+
 	myCall    callsign.Callsign
 	speed     int
 	patterns  map[int]string
 	templates map[int]*template.Template
-	client    core.CWClient
-	values    core.KeyerValueProvider
-	view      View
 }
 
 // View represents the visual parts of the keyer.
@@ -38,6 +40,18 @@ type View interface {
 	SetSpeed(int)
 }
 
+// CWClient defines the interface used by the Keyer to output the CW.
+type CWClient interface {
+	Connect() error
+	IsConnected() bool
+	Speed(int)
+	Send(text string)
+	Abort()
+}
+
+// KeyerValueProvider provides the variable values for the Keyer templates on demand.
+type KeyerValueProvider func() core.KeyerValues
+
 func (k *Keyer) SetView(view View) {
 	k.view = view
 	for i, pattern := range k.patterns {
@@ -46,7 +60,7 @@ func (k *Keyer) SetView(view View) {
 	k.view.SetSpeed(k.speed)
 }
 
-func (k *Keyer) SetValues(values core.KeyerValueProvider) {
+func (k *Keyer) SetValues(values KeyerValueProvider) {
 	k.values = values
 }
 

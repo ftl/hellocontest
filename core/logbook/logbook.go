@@ -16,17 +16,17 @@ func New(clock core.Clock) *Logbook {
 		clock:             clock,
 		qsos:              make([]core.QSO, 0, 1000),
 		view:              &nullView{},
-		rowAddedListeners: make([]core.RowAddedListener, 0),
+		rowAddedListeners: make([]RowAddedListener, 0),
 	}
 }
 
 // Load creates a new log and loads it with the entries from the given reader.
-func Load(clock core.Clock, reader core.Reader) (*Logbook, error) {
+func Load(clock core.Clock, reader Reader) (*Logbook, error) {
 	log.Print("Loading QSOs")
 	logbook := &Logbook{
 		clock:             clock,
 		view:              &nullView{},
-		rowAddedListeners: make([]core.RowAddedListener, 0),
+		rowAddedListeners: make([]RowAddedListener, 0),
 	}
 
 	var err error
@@ -54,14 +54,41 @@ type Logbook struct {
 	ignoreSelection bool
 
 	view                 View
-	rowAddedListeners    []core.RowAddedListener
-	rowSelectedListeners []core.RowSelectedListener
+	rowAddedListeners    []RowAddedListener
+	rowSelectedListeners []RowSelectedListener
 }
 
 // View represents the visual part of the log.
 type View interface {
 	UpdateAllRows([]core.QSO)
 	RowAdded(core.QSO)
+}
+
+// Reader reads log entries.
+type Reader interface {
+	ReadAll() ([]core.QSO, error)
+}
+
+// Writer writes log entries.
+type Writer interface {
+	Write(core.QSO) error
+}
+
+// Store allows to read and write log entries.
+type Store interface {
+	Reader
+	Writer
+	Clear() error
+}
+
+// RowAddedListener is notified when a new row is added to the log.
+type RowAddedListener func(core.QSO) error
+
+// RowSelectedListener is notified when a row is selected in the log view.
+type RowSelectedListener func(core.QSO)
+
+func (l RowAddedListener) Write(qso core.QSO) error {
+	return l(qso)
 }
 
 func (l *Logbook) SetView(view View) {
@@ -77,12 +104,12 @@ func (l *Logbook) SetView(view View) {
 	l.ignoreSelection = false
 }
 
-func (l *Logbook) OnRowAdded(listener core.RowAddedListener) {
+func (l *Logbook) OnRowAdded(listener RowAddedListener) {
 	l.rowAddedListeners = append(l.rowAddedListeners, listener)
 }
 
 func (l *Logbook) ClearRowAddedListeners() {
-	l.rowAddedListeners = make([]core.RowAddedListener, 0)
+	l.rowAddedListeners = make([]RowAddedListener, 0)
 }
 
 func (l *Logbook) emitRowAdded(qso core.QSO) {
@@ -94,12 +121,12 @@ func (l *Logbook) emitRowAdded(qso core.QSO) {
 	}
 }
 
-func (l *Logbook) OnRowSelected(listener core.RowSelectedListener) {
+func (l *Logbook) OnRowSelected(listener RowSelectedListener) {
 	l.rowSelectedListeners = append(l.rowSelectedListeners, listener)
 }
 
 func (l *Logbook) ClearRowSelectedListeners() {
-	l.rowSelectedListeners = make([]core.RowSelectedListener, 0)
+	l.rowSelectedListeners = make([]RowSelectedListener, 0)
 }
 
 func (l *Logbook) emitRowSelected(qso core.QSO) {
@@ -228,7 +255,7 @@ func unique(qsos []core.QSO) []core.QSO {
 	return result
 }
 
-func (l *Logbook) WriteAll(writer core.Writer) error {
+func (l *Logbook) WriteAll(writer Writer) error {
 	for _, qso := range l.qsos {
 		err := writer.Write(qso)
 		if err != nil {

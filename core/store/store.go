@@ -11,22 +11,23 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/golang/protobuf/proto"
+
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
 	"github.com/ftl/hellocontest/core/pb"
-	"github.com/golang/protobuf/proto"
 )
 
-// New returns a new file based Store.
-func New(filename string) core.Store {
-	return &fileStore{filename}
+// NewFileStore returns a new file based Store.
+func NewFileStore(filename string) *FileStore {
+	return &FileStore{filename}
 }
 
-type fileStore struct {
+type FileStore struct {
 	filename string
 }
 
-func (f *fileStore) ReadAll() ([]core.QSO, error) {
+func (f *FileStore) ReadAll() ([]core.QSO, error) {
 	b, err := ioutil.ReadFile(f.filename)
 	if err != nil {
 		return []core.QSO{}, err
@@ -96,7 +97,7 @@ func read(reader *bufio.Reader) (core.QSO, error) {
 	return qso, nil
 }
 
-func (f *fileStore) Write(qso core.QSO) error {
+func (f *FileStore) Write(qso core.QSO) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -140,7 +141,7 @@ func write(writer io.Writer, qso core.QSO) error {
 	return nil
 }
 
-func (f *fileStore) Clear() error {
+func (f *FileStore) Clear() error {
 	file, err := os.Create(f.filename)
 	if err != nil {
 		return err

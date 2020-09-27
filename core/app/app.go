@@ -6,8 +6,10 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cwclient"
 	"github.com/ftl/hamradio/dxcc"
+	"github.com/ftl/hamradio/locator"
 	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
@@ -22,7 +24,7 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(clock core.Clock, quitter Quitter, configuration core.Configuration) *Controller {
+func NewController(clock core.Clock, quitter Quitter, configuration Configuration) *Controller {
 	return &Controller{
 		clock:         clock,
 		quitter:       quitter,
@@ -36,10 +38,10 @@ type Controller struct {
 	filename string
 
 	clock         core.Clock
-	configuration core.Configuration
-	store         core.Store
-	cwclient      core.CWClient
+	configuration Configuration
 	quitter       Quitter
+	store         *store.FileStore
+	cwclient      *cwclient.Client
 
 	Logbook  *logbook.Logbook
 	Entry    *entry.Controller
@@ -60,6 +62,24 @@ type View interface {
 	ShowErrorDialog(string, ...interface{})
 }
 
+// Configuration provides read access to the configuration data.
+type Configuration interface {
+	MyCall() callsign.Callsign
+	MyLocator() locator.Locator
+
+	EnterTheirNumber() bool
+	EnterTheirXchange() bool
+	CabrilloQSOTemplate() string
+	AllowMultiBand() bool
+	AllowMultiMode() bool
+
+	KeyerHost() string
+	KeyerPort() int
+	KeyerWPM() int
+	KeyerSPPatterns() []string
+	KeyerRunPatterns() []string
+}
+
 // Quitter allows to quit the application. This interfaces is used to call the actual application framework to quit.
 type Quitter interface {
 	Quit()
@@ -74,7 +94,7 @@ func (c *Controller) Startup() {
 	var err error
 	filename := "current.log"
 
-	store := store.New(filename)
+	store := store.NewFileStore(filename)
 	newLogbook, err := logbook.Load(c.clock, store)
 	if err != nil {
 		log.Println(err)
@@ -155,7 +175,7 @@ func (c *Controller) New() {
 		c.view.ShowErrorDialog("Cannot select a file: %v", err)
 		return
 	}
-	store := store.New(filename)
+	store := store.NewFileStore(filename)
 	err = store.Clear()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
@@ -175,7 +195,7 @@ func (c *Controller) Open() {
 		return
 	}
 
-	store := store.New(filename)
+	store := store.NewFileStore(filename)
 	log, err := logbook.Load(c.clock, store)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open %s: %v", filepath.Base(filename), err)
@@ -185,7 +205,7 @@ func (c *Controller) Open() {
 	c.changeLogbook(filename, store, log)
 }
 
-func (c *Controller) changeLogbook(filename string, store core.Store, logbook *logbook.Logbook) {
+func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {
 	c.filename = filename
 	c.store = store
 
@@ -213,7 +233,7 @@ func (c *Controller) changeLogbook(filename string, store core.Store, logbook *l
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.Keyer.SetValues(c.Entry.CurrentValues)
-	c.Callinfo.SetDupChecker(c.Entry)
+	c.Callinfo.SetDupeChecker(c.Entry)
 
 	if c.view != nil {
 		c.view.ShowFilename(c.filename)
@@ -233,7 +253,7 @@ func (c *Controller) SaveAs() {
 		return
 	}
 
-	store := store.New(filename)
+	store := store.NewFileStore(filename)
 	err = store.Clear()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)

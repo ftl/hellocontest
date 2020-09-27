@@ -5,11 +5,12 @@ import (
 	"log"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(prefixes core.DXCCFinder, callsigns core.CallsignFinder) *Callinfo {
+func New(prefixes DXCCFinder, callsigns CallsignFinder) *Callinfo {
 	result := &Callinfo{
 		prefixes:  prefixes,
 		callsigns: callsigns,
@@ -21,9 +22,24 @@ func New(prefixes core.DXCCFinder, callsigns core.CallsignFinder) *Callinfo {
 type Callinfo struct {
 	view View
 
-	prefixes  core.DXCCFinder
-	callsigns core.CallsignFinder
-	dupCheck  core.DupChecker
+	prefixes    DXCCFinder
+	callsigns   CallsignFinder
+	dupeChecker DupeChecker
+}
+
+// DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
+type DXCCFinder interface {
+	Find(string) ([]*dxcc.Prefix, bool)
+}
+
+// CallsignFinder returns a list of matching callsigns for the given partial string.
+type CallsignFinder interface {
+	Find(string) ([]string, error)
+}
+
+// DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
+type DupeChecker interface {
+	IsDuplicate(callsign callsign.Callsign) (core.QSO, bool)
 }
 
 // View defines the visual part of the call information window.
@@ -41,8 +57,8 @@ func (c *Callinfo) SetView(view View) {
 	c.view = view
 }
 
-func (c *Callinfo) SetDupChecker(dupChecker core.DupChecker) {
-	c.dupCheck = dupChecker
+func (c *Callinfo) SetDupeChecker(dupeChecker DupeChecker) {
+	c.dupeChecker = dupeChecker
 }
 
 func (c *Callinfo) Show() {
@@ -63,7 +79,7 @@ func (c *Callinfo) ShowCallsign(s string) {
 	var duplicate bool
 	cs, err := callsign.Parse(s)
 	if err == nil {
-		_, duplicate = c.dupCheck.IsDuplicate(cs)
+		_, duplicate = c.dupeChecker.IsDuplicate(cs)
 	}
 
 	c.view.SetDuplicateMarker(duplicate)
@@ -104,7 +120,7 @@ func (c *Callinfo) showSupercheck(s string) {
 			log.Printf("Supercheck match %s is not a valid callsign: %v", match, err)
 			continue
 		}
-		_, duplicate := c.dupCheck.IsDuplicate(cs)
+		_, duplicate := c.dupeChecker.IsDuplicate(cs)
 		annotatedMatches[i] = core.AnnotatedCallsign{
 			Callsign:  cs,
 			Duplicate: duplicate,

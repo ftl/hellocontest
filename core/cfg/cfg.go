@@ -5,24 +5,22 @@ import (
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
 	"github.com/pkg/errors"
-
-	"github.com/ftl/hellocontest/core"
 )
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadDefault())
-func Load() (core.Configuration, error) {
+func Load() (*LoadedConfiguration, error) {
 	configuration, err := cfg.LoadDefault()
 	if err != nil {
 		return nil, err
 	}
-	return &loaded{
+	return &LoadedConfiguration{
 		configuration: configuration,
 	}, nil
 }
 
 // Static creates a static configuration instance with the given data.
-func Static(myCall callsign.Callsign, myLocator locator.Locator) core.Configuration {
-	return &static{
+func Static(myCall callsign.Callsign, myLocator locator.Locator) *StaticConfiguration {
+	return &StaticConfiguration{
 		myCall:    myCall,
 		myLocator: myLocator,
 	}
@@ -50,112 +48,112 @@ const (
 	keyerRunPatterns    cfg.Key = "hellocontest.keyer.run"
 )
 
-type loaded struct {
+type LoadedConfiguration struct {
 	configuration cfg.Configuration
 }
 
-func (l loaded) MyCall() callsign.Callsign {
+func (l *LoadedConfiguration) MyCall() callsign.Callsign {
 	value := l.configuration.Get(cfg.MyCall, "").(string)
 	myCall, _ := callsign.Parse(value)
 	return myCall
 }
 
-func (l loaded) MyLocator() locator.Locator {
+func (l *LoadedConfiguration) MyLocator() locator.Locator {
 	value := l.configuration.Get(cfg.MyLocator, "").(string)
 	myLocator, _ := locator.Parse(value)
 	return myLocator
 }
 
-func (l loaded) EnterTheirNumber() bool {
+func (l *LoadedConfiguration) EnterTheirNumber() bool {
 	return l.configuration.Get(enterTheirNumber, true).(bool)
 }
 
-func (l loaded) EnterTheirXchange() bool {
+func (l *LoadedConfiguration) EnterTheirXchange() bool {
 	return l.configuration.Get(enterTheirXchange, true).(bool)
 }
 
-func (l loaded) CabrilloQSOTemplate() string {
+func (l *LoadedConfiguration) CabrilloQSOTemplate() string {
 	defaultTemplate := "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"
 	return l.configuration.Get(cabrilloQSOTemplate, defaultTemplate).(string)
 }
 
-func (l loaded) AllowMultiBand() bool {
+func (l *LoadedConfiguration) AllowMultiBand() bool {
 	return l.configuration.Get(allowMultiBand, false).(bool)
 }
 
-func (l loaded) AllowMultiMode() bool {
+func (l *LoadedConfiguration) AllowMultiMode() bool {
 	return l.configuration.Get(allowMultiMode, false).(bool)
 }
 
-func (l loaded) KeyerHost() string {
+func (l *LoadedConfiguration) KeyerHost() string {
 	return l.configuration.Get(keyerHost, "").(string)
 }
 
-func (l loaded) KeyerPort() int {
+func (l *LoadedConfiguration) KeyerPort() int {
 	return int(l.configuration.Get(keyerPort, 0.0).(float64))
 }
 
-func (l loaded) KeyerWPM() int {
+func (l *LoadedConfiguration) KeyerWPM() int {
 	return int(l.configuration.Get(keyerWPM, 25.0).(float64))
 }
 
-func (l loaded) KeyerSPPatterns() []string {
+func (l *LoadedConfiguration) KeyerSPPatterns() []string {
 	return l.configuration.GetStrings(keyerSPPatterns, []string{})
 }
 
-func (l loaded) KeyerRunPatterns() []string {
+func (l *LoadedConfiguration) KeyerRunPatterns() []string {
 	return l.configuration.GetStrings(keyerRunPatterns, []string{})
 }
 
-type static struct {
+type StaticConfiguration struct {
 	myCall    callsign.Callsign
 	myLocator locator.Locator
 }
 
-func (s static) MyCall() callsign.Callsign {
+func (s *StaticConfiguration) MyCall() callsign.Callsign {
 	return s.myCall
 }
 
-func (s static) MyLocator() locator.Locator {
+func (s *StaticConfiguration) MyLocator() locator.Locator {
 	return s.myLocator
 }
 
-func (s static) EnterTheirNumber() bool {
+func (s *StaticConfiguration) EnterTheirNumber() bool {
 	return true
 }
 
-func (s static) EnterTheirXchange() bool {
+func (s *StaticConfiguration) EnterTheirXchange() bool {
 	return true
 }
 
-func (s static) CabrilloQSOTemplate() string {
+func (s *StaticConfiguration) CabrilloQSOTemplate() string {
 	return "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"
 }
 
-func (s static) AllowMultiBand() bool {
+func (s *StaticConfiguration) AllowMultiBand() bool {
 	return false
 }
 
-func (s static) AllowMultiMode() bool {
+func (s *StaticConfiguration) AllowMultiMode() bool {
 	return false
 }
 
-func (s static) KeyerHost() string {
+func (s *StaticConfiguration) KeyerHost() string {
 	return ""
 }
 
-func (s static) KeyerPort() int {
+func (s *StaticConfiguration) KeyerPort() int {
 	return 0
 }
 
-func (s static) KeyerWPM() int {
+func (s *StaticConfiguration) KeyerWPM() int {
 	return 25
 }
 
-func (s static) KeyerSPPatterns() []string {
+func (s *StaticConfiguration) KeyerSPPatterns() []string {
 	return []string{}
 }
 
-func (s static) KeyerRunPatterns() []string {
+func (s *StaticConfiguration) KeyerRunPatterns() []string {
 	return []string{}
 }

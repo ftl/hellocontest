@@ -60,8 +60,8 @@ func TestLoaded_KeyerSPPatterns(t *testing.T) {
 	}
 }
 
-func loadFromString(t *testing.T, s string) *loaded {
+func loadFromString(t *testing.T, s string) *LoadedConfiguration {
 	raw, err := cfg.Read(bytes.NewBufferString(s))
 	require.NoError(t, err)
-	return &loaded{configuration: raw}
+	return &LoadedConfiguration{configuration: raw}
 }

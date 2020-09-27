@@ -19,25 +19,11 @@ func (m *Log) Activate() {
 	m.active = true
 }
 
-func (m *Log) OnRowAdded(listener core.RowAddedListener) {
-	if !m.active {
-		return
-	}
-	m.Called(listener)
-}
-
 func (m *Log) ClearRowAddedListeners() {
 	if !m.active {
 		return
 	}
 	m.Called()
-}
-
-func (m *Log) OnRowSelected(listener core.RowSelectedListener) {
-	if !m.active {
-		return
-	}
-	m.Called(listener)
 }
 
 func (m *Log) ClearRowSelectedListeners() {
@@ -115,14 +101,6 @@ func (m *Log) UniqueQsosOrderedByMyNumber() []core.QSO {
 	}
 	args := m.Called()
 	return args.Get(0).([]core.QSO)
-}
-
-func (m *Log) WriteAll(writer core.Writer) error {
-	if !m.active {
-		return nil
-	}
-	args := m.Called(writer)
-	return args.Error(0)
 }
 
 type AppView struct {

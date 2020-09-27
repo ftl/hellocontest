@@ -66,13 +66,16 @@ func (a *application) activate() {
 
 	a.controller = app.NewController(clock.New(), a.app, configuration)
 	a.controller.OnLogbookChanged = func() {
+		a.mainWindow.SetLogbookController(a.controller.Logbook)
+		a.mainWindow.SetEntryController(a.controller.Entry)
+
 		a.controller.Logbook.SetView(a.mainWindow)
 		a.controller.Entry.SetView(a.mainWindow)
-		a.mainWindow.SetEntryController(a.controller.Entry)
 	}
 	a.controller.Startup()
 
 	a.mainWindow.SetMainMenuController(a.controller)
+	a.mainWindow.SetLogbookController(a.controller.Logbook)
 	a.mainWindow.SetEntryController(a.controller.Entry)
 	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
 	a.mainWindow.SetKeyerController(a.controller.Keyer)

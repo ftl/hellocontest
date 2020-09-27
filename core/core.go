@@ -119,11 +119,6 @@ type Clock interface {
 	Now() time.Time
 }
 
-// Quitter allows to quit the application. This interfaces is used to call the actual application framework to quit.
-type Quitter interface {
-	Quit()
-}
-
 // Workmode is either search&pounce or run.
 type Workmode int
 

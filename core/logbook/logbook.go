@@ -62,16 +62,10 @@ type Logbook struct {
 type View interface {
 	UpdateAllRows([]core.QSO)
 	RowAdded(core.QSO)
-	OnSelection(func(int))
 }
 
 func (l *Logbook) SetView(view View) {
 	l.ignoreSelection = true
-	defer func() { l.ignoreSelection = false }()
-
-	if l.view != nil {
-		l.view.OnSelection(nil)
-	}
 
 	if view == nil {
 		l.view = &nullView{}
@@ -80,7 +74,7 @@ func (l *Logbook) SetView(view View) {
 
 	l.view = view
 	l.view.UpdateAllRows(l.qsos)
-	l.view.OnSelection(l.Select)
+	l.ignoreSelection = false
 }
 
 func (l *Logbook) OnRowAdded(listener core.RowAddedListener) {

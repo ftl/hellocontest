@@ -22,7 +22,7 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(clock core.Clock, quitter core.Quitter, configuration core.Configuration) *Controller {
+func NewController(clock core.Clock, quitter Quitter, configuration core.Configuration) *Controller {
 	return &Controller{
 		clock:         clock,
 		quitter:       quitter,
@@ -39,7 +39,7 @@ type Controller struct {
 	configuration core.Configuration
 	store         core.Store
 	cwclient      core.CWClient
-	quitter       core.Quitter
+	quitter       Quitter
 
 	Logbook  *logbook.Logbook
 	Entry    *entry.Controller
@@ -58,6 +58,11 @@ type View interface {
 	SelectSaveFile(string, ...string) (string, bool, error)
 	ShowInfoDialog(string, ...interface{})
 	ShowErrorDialog(string, ...interface{})
+}
+
+// Quitter allows to quit the application. This interfaces is used to call the actual application framework to quit.
+type Quitter interface {
+	Quit()
 }
 
 func (c *Controller) SetView(view View) {

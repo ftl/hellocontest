@@ -22,16 +22,17 @@ const (
 	columnTheirXchange
 )
 
-// Logbook represents the logbook.
-type Logbook interface {
+// LogbookController represents the logbook controller.
+type LogbookController interface {
 	Select(int)
 }
 
 type logbookView struct {
-	view        *gtk.TreeView
-	list        *gtk.ListStore
-	selection   *gtk.TreeSelection
-	onSelection func(int)
+	controller LogbookController
+
+	view      *gtk.TreeView
+	list      *gtk.ListStore
+	selection *gtk.TreeSelection
 }
 
 func setupLogbookView(builder *gtk.Builder) *logbookView {
@@ -75,8 +76,8 @@ func createColumn(title string, id int) *gtk.TreeViewColumn {
 	return column
 }
 
-func (v *logbookView) OnSelection(handler func(int)) {
-	v.onSelection = handler
+func (v *logbookView) SetLogbookController(controller LogbookController) {
+	v.controller = controller
 }
 
 func (v *logbookView) UpdateAllRows(qsos []core.QSO) {
@@ -129,8 +130,8 @@ func (v *logbookView) onSelectionChanged(selection *gtk.TreeSelection) bool {
 	if rows.Length() == 1 {
 		row := rows.NthData(0).(*gtk.TreePath)
 		index := row.GetIndices()[0]
-		if v.onSelection != nil {
-			v.onSelection(index)
+		if v.controller != nil {
+			v.controller.Select(index)
 		}
 	}
 	return true

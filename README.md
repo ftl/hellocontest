@@ -1,7 +1,7 @@
 # Hello Contest
 A simple HF contest log for Linux, written in Go using [gotk3](https://github.com/gotk3) for the UI. As I'm using this only for CW contests on HF, the program might not be very useful for other modes or higher frequencies. Anyway, here are some highlights:
 
-* Export the logbook in the Cabrillo or ADIF format.
+* Export the logbook in the [Cabrillo](https://wwrof.org/cabrillo/) or [ADIF](http://adif.org) format.
 * Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases.
 * Use the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
 * Define different macros for running and search&pounce working mode.

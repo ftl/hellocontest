@@ -71,15 +71,18 @@ func (a *application) activate() {
 		a.mainWindow.SetEntryController(a.controller.Entry)
 	}
 	a.controller.Startup()
-	a.controller.SetView(a.mainWindow)
-	a.controller.Logbook.SetView(a.mainWindow)
-	a.controller.Entry.SetView(a.mainWindow)
-	a.controller.SetWorkmodeView(a.mainWindow)
-	a.controller.SetKeyerView(a.mainWindow)
-	a.controller.SetCallinfoView(a.callinfoWindow)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetEntryController(a.controller.Entry)
+	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
+	a.mainWindow.SetKeyerController(a.controller.Keyer)
+
+	a.controller.SetView(a.mainWindow)
+	a.controller.Logbook.SetView(a.mainWindow)
+	a.controller.Entry.SetView(a.mainWindow)
+	a.controller.Workmode.SetView(a.mainWindow)
+	a.controller.Keyer.SetView(a.mainWindow)
+	a.controller.Callinfo.SetView(a.callinfoWindow)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)
 	a.callinfoWindow.ConnectToGeometry(a.windowGeometry)

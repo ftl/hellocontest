@@ -10,13 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// View represents the visual part of the log.
-type View interface {
-	UpdateAllRows([]core.QSO)
-	RowAdded(core.QSO)
-	OnSelection(func(int))
-}
-
 // New creates a new empty logbook.
 func New(clock core.Clock) *Logbook {
 	return &Logbook{
@@ -65,9 +58,25 @@ type Logbook struct {
 	rowSelectedListeners []core.RowSelectedListener
 }
 
+// View represents the visual part of the log.
+type View interface {
+	UpdateAllRows([]core.QSO)
+	RowAdded(core.QSO)
+	OnSelection(func(int))
+}
+
 func (l *Logbook) SetView(view View) {
 	l.ignoreSelection = true
 	defer func() { l.ignoreSelection = false }()
+
+	if l.view != nil {
+		l.view.OnSelection(nil)
+	}
+
+	if view == nil {
+		l.view = &nullView{}
+		return
+	}
 
 	l.view = view
 	l.view.UpdateAllRows(l.qsos)

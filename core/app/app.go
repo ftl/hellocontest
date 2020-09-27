@@ -43,13 +43,9 @@ type Controller struct {
 
 	Logbook  *logbook.Logbook
 	Entry    *entry.Controller
-	workmode core.WorkmodeController
-	keyer    core.KeyerController
-	callinfo core.CallinfoController
-
-	workmodeView core.WorkmodeView
-	keyerView    core.KeyerView
-	callinfoView core.CallinfoView
+	Workmode *workmode.Controller
+	Keyer    *keyer.Keyer
+	Callinfo *callinfo.Callinfo
 
 	OnLogbookChanged func()
 }
@@ -82,13 +78,13 @@ func (c *Controller) Startup() {
 
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
 
-	c.keyer = keyer.NewController(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
-	c.keyer.SetPatterns(c.configuration.KeyerSPPatterns())
+	c.Keyer = keyer.New(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
+	c.Keyer.SetPatterns(c.configuration.KeyerSPPatterns())
 
-	c.workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
-	c.workmode.SetKeyer(c.keyer)
+	c.Workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
+	c.Workmode.SetKeyer(c.Keyer)
 
-	c.callinfo = callinfo.NewController(setupDXCC(), setupSupercheck())
+	c.Callinfo = callinfo.New(setupDXCC(), setupSupercheck())
 
 	c.changeLogbook(filename, store, newLogbook)
 }
@@ -141,21 +137,6 @@ func (c *Controller) Shutdown() {
 	c.cwclient.Disconnect()
 }
 
-func (c *Controller) SetWorkmodeView(view core.WorkmodeView) {
-	c.workmodeView = view
-	c.workmode.SetView(c.workmodeView)
-}
-
-func (c *Controller) SetKeyerView(view core.KeyerView) {
-	c.keyerView = view
-	c.keyer.SetView(c.keyerView)
-}
-
-func (c *Controller) SetCallinfoView(view core.CallinfoView) {
-	c.callinfoView = view
-	c.callinfo.SetView(c.callinfoView)
-}
-
 func (c *Controller) Quit() {
 	c.quitter.Quit()
 }
@@ -203,6 +184,14 @@ func (c *Controller) changeLogbook(filename string, store core.Store, logbook *l
 	c.filename = filename
 	c.store = store
 
+	if c.Logbook != nil {
+		c.Logbook.SetView(nil)
+		c.Logbook.ClearRowSelectedListeners()
+	}
+	if c.Entry != nil {
+		c.Entry.SetView(nil)
+	}
+
 	c.Logbook = logbook
 	c.Logbook.OnRowAdded(c.store.Write)
 	c.Entry = entry.NewController(
@@ -215,11 +204,11 @@ func (c *Controller) changeLogbook(filename string, store core.Store, logbook *l
 	)
 	c.Logbook.OnRowSelected(c.Entry.QSOSelected)
 
-	c.Entry.SetKeyer(c.keyer)
-	c.Entry.SetCallinfo(c.callinfo)
+	c.Entry.SetKeyer(c.Keyer)
+	c.Entry.SetCallinfo(c.Callinfo)
 
-	c.keyer.SetValues(c.Entry.CurrentValues)
-	c.callinfo.SetDupChecker(c.Entry)
+	c.Keyer.SetValues(c.Entry.CurrentValues)
+	c.Callinfo.SetDupChecker(c.Entry)
 
 	if c.view != nil {
 		c.view.ShowFilename(c.filename)
@@ -316,6 +305,6 @@ func (c *Controller) ExportADIF() {
 }
 
 func (c *Controller) ShowCallinfo() {
-	c.callinfo.Show()
+	c.Callinfo.Show()
 	c.view.BringToFront()
 }

@@ -401,10 +401,6 @@ type KeyerView struct {
 	mock.Mock
 }
 
-func (m *KeyerView) SetKeyerController(controller core.KeyerController) {
-	m.Called(controller)
-}
-
 func (m *KeyerView) ShowMessage(args ...interface{}) {
 	m.Called(args)
 }

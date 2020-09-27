@@ -40,6 +40,8 @@ type View interface {
 	ClearMessage()
 }
 
+var instance = 0
+
 // Logbook functionality used for QSO entry.
 type Logbook interface {
 	NextNumber() core.QSONumber
@@ -59,10 +61,13 @@ type Callinfo interface {
 	ShowCallsign(string)
 }
 
-// NewController returns a new entry Controller.
+// NewController returns a new entry controller.
 func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) *Controller {
+	instance++
 	return &Controller{
+		instance:          instance,
 		clock:             clock,
+		view:              &nullView{},
 		logbook:           logbook,
 		enterTheirNumber:  enterTheirNumber,
 		enterTheirXchange: enterTheirXchange,
@@ -74,6 +79,7 @@ func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterThe
 }
 
 type Controller struct {
+	instance int
 	clock    core.Clock
 	view     View
 	logbook  Logbook
@@ -93,6 +99,10 @@ type Controller struct {
 }
 
 func (c *Controller) SetView(view View) {
+	if view == nil {
+		c.view = &nullView{}
+		return
+	}
 	c.view = view
 	c.view.SetBand(c.selectedBand.String())
 	c.view.SetMode(c.selectedMode.String())
@@ -245,7 +255,7 @@ func (c *Controller) EnterCallsign(s string) {
 }
 
 func (c *Controller) QSOSelected(qso core.QSO) {
-	log.Printf("QSO selected: %v", qso)
+	log.Printf("%d: QSO selected: %v", c.instance, qso)
 	c.editing = true
 	c.editQSO = qso
 
@@ -388,3 +398,30 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 
 	return values
 }
+
+type nullView struct{}
+
+func (n *nullView) Callsign() string                { return "" }
+func (n *nullView) SetCallsign(string)              {}
+func (n *nullView) TheirReport() string             { return "" }
+func (n *nullView) SetTheirReport(string)           {}
+func (n *nullView) TheirNumber() string             { return "" }
+func (n *nullView) SetTheirNumber(string)           {}
+func (n *nullView) TheirXchange() string            { return "" }
+func (n *nullView) SetTheirXchange(string)          {}
+func (n *nullView) Band() string                    { return "" }
+func (n *nullView) SetBand(text string)             {}
+func (n *nullView) Mode() string                    { return "" }
+func (n *nullView) SetMode(text string)             {}
+func (n *nullView) MyReport() string                { return "" }
+func (n *nullView) SetMyReport(string)              {}
+func (n *nullView) MyNumber() string                { return "" }
+func (n *nullView) SetMyNumber(string)              {}
+func (n *nullView) MyXchange() string               { return "" }
+func (n *nullView) SetMyXchange(string)             {}
+func (n *nullView) EnableExchangeFields(bool, bool) {}
+func (n *nullView) SetActiveField(core.EntryField)  {}
+func (n *nullView) SetDuplicateMarker(bool)         {}
+func (n *nullView) SetEditingMarker(bool)           {}
+func (n *nullView) ShowMessage(...interface{})      {}
+func (n *nullView) ClearMessage()                   {}

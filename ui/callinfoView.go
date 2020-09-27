@@ -10,8 +10,6 @@ import (
 )
 
 type callinfoView struct {
-	controller core.CallinfoController
-
 	style *style
 
 	callsignLabel   *gtk.Label
@@ -43,10 +41,6 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result.style.applyTo(&result.callsignLabel.Widget)
 
 	return result
-}
-
-func (v *callinfoView) SetCallinfoController(controller core.CallinfoController) {
-	v.controller = controller
 }
 
 func (v *callinfoView) SetCallsign(callsign string) {

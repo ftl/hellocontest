@@ -4,12 +4,19 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gtk"
 )
 
+// KeyerController controls the keyer.
+type KeyerController interface {
+	Send(int)
+	Stop()
+	EnterPattern(int, string)
+	EnterSpeed(int)
+}
+
 type keyerView struct {
-	controller core.KeyerController
+	controller KeyerController
 
 	buttons    []*gtk.Button
 	entries    []*gtk.Entry
@@ -40,7 +47,7 @@ func setupKeyerView(builder *gtk.Builder) *keyerView {
 func (k *keyerView) onButton(index int) func(button *gtk.Button) bool {
 	return func(button *gtk.Button) bool {
 		if k.controller == nil {
-			log.Println("no keyer controller")
+			log.Println("onButton: no keyer controller")
 			return false
 		}
 		k.controller.Send(index)
@@ -51,7 +58,7 @@ func (k *keyerView) onButton(index int) func(button *gtk.Button) bool {
 func (k *keyerView) onEntryChanged(index int) func(entry *gtk.Entry) bool {
 	return func(entry *gtk.Entry) bool {
 		if k.controller == nil {
-			log.Println("no keyer controller")
+			log.Println("onEntryChanged: no keyer controller")
 			return false
 		}
 		text, err := entry.GetText()
@@ -66,7 +73,7 @@ func (k *keyerView) onEntryChanged(index int) func(entry *gtk.Entry) bool {
 
 func (k *keyerView) onStop(button *gtk.Button) bool {
 	if k.controller == nil {
-		log.Println("no keyer controller")
+		log.Println("onStop: no keyer controller")
 		return false
 	}
 	k.controller.Stop()
@@ -75,7 +82,7 @@ func (k *keyerView) onStop(button *gtk.Button) bool {
 
 func (k *keyerView) onSpeedChanged(button *gtk.SpinButton) bool {
 	if k.controller == nil {
-		log.Println("no keyer controller")
+		log.Println("onSpeedChanged: no keyer controller")
 		return false
 	}
 
@@ -83,7 +90,7 @@ func (k *keyerView) onSpeedChanged(button *gtk.SpinButton) bool {
 	return true
 }
 
-func (k *keyerView) SetKeyerController(controller core.KeyerController) {
+func (k *keyerView) SetKeyerController(controller KeyerController) {
 	k.controller = controller
 }
 

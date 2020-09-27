@@ -5,11 +5,12 @@ import (
 	"log"
 
 	"github.com/ftl/hamradio/callsign"
+
 	"github.com/ftl/hellocontest/core"
 )
 
-func NewController(prefixes core.DXCCFinder, callsigns core.CallsignFinder) core.CallinfoController {
-	result := &callinfo{
+func New(prefixes core.DXCCFinder, callsigns core.CallsignFinder) *Callinfo {
+	result := &Callinfo{
 		prefixes:  prefixes,
 		callsigns: callsigns,
 	}
@@ -17,37 +18,48 @@ func NewController(prefixes core.DXCCFinder, callsigns core.CallsignFinder) core
 	return result
 }
 
-type callinfo struct {
-	view core.CallinfoView
+type Callinfo struct {
+	view View
 
 	prefixes  core.DXCCFinder
 	callsigns core.CallsignFinder
 	dupCheck  core.DupChecker
 }
 
-func (c *callinfo) SetView(view core.CallinfoView) {
+// View defines the visual part of the call information window.
+type View interface {
+	Show()
+	Hide()
+
+	SetCallsign(string)
+	SetDuplicateMarker(bool)
+	SetDXCC(string, string, int, int, bool)
+	SetSupercheck(callsigns []core.AnnotatedCallsign)
+}
+
+func (c *Callinfo) SetView(view View) {
 	c.view = view
 }
 
-func (c *callinfo) SetDupChecker(dupChecker core.DupChecker) {
+func (c *Callinfo) SetDupChecker(dupChecker core.DupChecker) {
 	c.dupCheck = dupChecker
 }
 
-func (c *callinfo) Show() {
+func (c *Callinfo) Show() {
 	if c.view == nil {
 		return
 	}
 	c.view.Show()
 }
 
-func (c *callinfo) Hide() {
+func (c *Callinfo) Hide() {
 	if c.view == nil {
 		return
 	}
 	c.view.Hide()
 }
 
-func (c *callinfo) ShowCallsign(s string) {
+func (c *Callinfo) ShowCallsign(s string) {
 	var duplicate bool
 	cs, err := callsign.Parse(s)
 	if err == nil {
@@ -60,7 +72,7 @@ func (c *callinfo) ShowCallsign(s string) {
 	c.showSupercheck(s)
 }
 
-func (c *callinfo) showDXCC(callsign string) {
+func (c *Callinfo) showDXCC(callsign string) {
 	if c.prefixes == nil {
 		c.view.SetDXCC("", "", 0, 0, false)
 		return
@@ -78,7 +90,7 @@ func (c *callinfo) showDXCC(callsign string) {
 	c.view.SetDXCC(dxccName, prefix[0].Continent, int(prefix[0].ITUZone), int(prefix[0].CQZone), !prefix[0].NotARRLCompliant)
 }
 
-func (c *callinfo) showSupercheck(s string) {
+func (c *Callinfo) showSupercheck(s string) {
 	matches, err := c.callsigns.Find(s)
 	if err != nil {
 		log.Printf("Callsign search for failed for %s: %v", s, err)

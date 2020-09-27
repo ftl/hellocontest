@@ -10,9 +10,9 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-// NewController returns a new Keyer that has no patterns or templates defined yet.
-func NewController(client core.CWClient, myCall callsign.Callsign, speed int) core.KeyerController {
-	return &keyer{
+// New returns a new Keyer that has no patterns or templates defined yet.
+func New(client core.CWClient, myCall callsign.Callsign, speed int) *Keyer {
+	return &Keyer{
 		myCall:    myCall,
 		speed:     speed,
 		patterns:  make(map[int]string),
@@ -21,30 +21,36 @@ func NewController(client core.CWClient, myCall callsign.Callsign, speed int) co
 		values:    noValues}
 }
 
-type keyer struct {
+type Keyer struct {
 	myCall    callsign.Callsign
 	speed     int
 	patterns  map[int]string
 	templates map[int]*template.Template
 	client    core.CWClient
 	values    core.KeyerValueProvider
-	view      core.KeyerView
+	view      View
 }
 
-func (k *keyer) SetView(view core.KeyerView) {
+// View represents the visual parts of the keyer.
+type View interface {
+	ShowMessage(...interface{})
+	SetPattern(int, string)
+	SetSpeed(int)
+}
+
+func (k *Keyer) SetView(view View) {
 	k.view = view
-	k.view.SetKeyerController(k)
 	for i, pattern := range k.patterns {
 		k.view.SetPattern(i, pattern)
 	}
 	k.view.SetSpeed(k.speed)
 }
 
-func (k *keyer) SetValues(values core.KeyerValueProvider) {
+func (k *Keyer) SetValues(values core.KeyerValueProvider) {
 	k.values = values
 }
 
-func (k *keyer) EnterSpeed(speed int) {
+func (k *Keyer) EnterSpeed(speed int) {
 	k.speed = speed
 	if !k.client.IsConnected() {
 		return
@@ -53,7 +59,7 @@ func (k *keyer) EnterSpeed(speed int) {
 	k.client.Speed(k.speed)
 }
 
-func (k *keyer) EnterPattern(index int, pattern string) {
+func (k *Keyer) EnterPattern(index int, pattern string) {
 	k.patterns[index] = pattern
 	var err error
 	k.templates[index], err = template.New("").Parse(pattern)
@@ -64,7 +70,7 @@ func (k *keyer) EnterPattern(index int, pattern string) {
 	}
 }
 
-func (k *keyer) SetPatterns(patterns []string) {
+func (k *Keyer) SetPatterns(patterns []string) {
 	for i, pattern := range patterns {
 		k.patterns[i] = pattern
 		k.templates[i], _ = template.New("").Parse(patterns[i])
@@ -74,11 +80,11 @@ func (k *keyer) SetPatterns(patterns []string) {
 	}
 }
 
-func (k *keyer) GetPattern(index int) string {
+func (k *Keyer) GetPattern(index int) string {
 	return k.patterns[index]
 }
 
-func (k *keyer) GetText(index int) (string, error) {
+func (k *Keyer) GetText(index int) (string, error) {
 	buffer := bytes.NewBufferString("")
 	template, ok := k.templates[index]
 	if !ok {
@@ -91,7 +97,7 @@ func (k *keyer) GetText(index int) (string, error) {
 	return buffer.String(), nil
 }
 
-func (k *keyer) fillins() map[string]string {
+func (k *Keyer) fillins() map[string]string {
 	values := k.values()
 	return map[string]string{
 		"MyCall":    k.myCall.String(),
@@ -102,7 +108,7 @@ func (k *keyer) fillins() map[string]string {
 	}
 }
 
-func (k *keyer) Send(index int) {
+func (k *Keyer) Send(index int) {
 	message, err := k.GetText(index)
 	if err != nil {
 		k.view.ShowMessage(err)
@@ -111,12 +117,12 @@ func (k *keyer) Send(index int) {
 	k.send(message)
 }
 
-func (k *keyer) SendQuestion(q string) {
+func (k *Keyer) SendQuestion(q string) {
 	s := strings.TrimSpace(q) + "?"
 	k.send(s)
 }
 
-func (k *keyer) send(s string) {
+func (k *Keyer) send(s string) {
 	if !k.client.IsConnected() {
 		err := k.client.Connect()
 		if err != nil {
@@ -130,7 +136,7 @@ func (k *keyer) send(s string) {
 	k.client.Send(s)
 }
 
-func (k *keyer) Stop() {
+func (k *Keyer) Stop() {
 	if !k.client.IsConnected() {
 		return
 	}

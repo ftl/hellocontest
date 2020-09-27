@@ -8,8 +8,13 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+// WorkmodeController controls the workmode handling.
+type WorkmodeController interface {
+	SetWorkmode(core.Workmode)
+}
+
 type workmodeView struct {
-	controller core.WorkmodeController
+	controller WorkmodeController
 
 	searchPounceModeButton *gtk.RadioButton
 	runModeButton          *gtk.RadioButton
@@ -41,7 +46,7 @@ func (v *workmodeView) onRunModeButtonToggled(button *gtk.RadioButton) bool {
 	return true
 }
 
-func (v *workmodeView) SetWorkmodeController(controller core.WorkmodeController) {
+func (v *workmodeView) SetWorkmodeController(controller WorkmodeController) {
 	v.controller = controller
 }
 

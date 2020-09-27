@@ -2,8 +2,8 @@ package workmode
 
 import "github.com/ftl/hellocontest/core"
 
-func NewController(spPatterns, runPatterns []string) core.WorkmodeController {
-	return &controller{
+func NewController(spPatterns, runPatterns []string) *Controller {
+	return &Controller{
 		workmode: core.SearchPounce,
 		patterns: [][]string{
 			spPatterns,
@@ -12,28 +12,38 @@ func NewController(spPatterns, runPatterns []string) core.WorkmodeController {
 	}
 }
 
-type controller struct {
-	keyer core.KeyerController
-	view  core.WorkmodeView
+type Controller struct {
+	view  View
+	keyer Keyer
 
 	workmode core.Workmode
 	patterns [][]string
 }
 
-func (c *controller) SetView(view core.WorkmodeView) {
+// View represents the visual part of the workmode handling.
+type View interface {
+	SetWorkmode(core.Workmode)
+}
+
+// Keyer functionality used by the workmode controller.
+type Keyer interface {
+	SetPatterns([]string)
+	GetPattern(index int) string
+}
+
+func (c *Controller) SetView(view View) {
 	c.view = view
-	c.view.SetWorkmodeController(c)
 	c.view.SetWorkmode(c.workmode)
 }
 
-func (c *controller) SetKeyer(keyer core.KeyerController) {
+func (c *Controller) SetKeyer(keyer Keyer) {
 	c.keyer = keyer
 	if c.keyer != nil {
 		c.keyer.SetPatterns(c.patterns[c.workmode])
 	}
 }
 
-func (c *controller) SetWorkmode(workmode core.Workmode) {
+func (c *Controller) SetWorkmode(workmode core.Workmode) {
 	if c.workmode == workmode {
 		return
 	}

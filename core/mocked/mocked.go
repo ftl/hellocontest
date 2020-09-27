@@ -4,8 +4,9 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hellocontest/core"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 //nolint

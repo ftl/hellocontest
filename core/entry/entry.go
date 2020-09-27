@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
+
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
 )

@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 // EntryController controls the entry of QSO data.

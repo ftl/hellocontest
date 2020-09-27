@@ -6,8 +6,9 @@ import (
 	"sort"
 
 	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hellocontest/core"
 	"github.com/pkg/errors"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 // New creates a new empty logbook.

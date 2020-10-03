@@ -1,10 +1,11 @@
 package cfg
 
 import (
+	"github.com/pkg/errors"
+
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
-	"github.com/pkg/errors"
 )
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadDefault())
@@ -46,6 +47,7 @@ const (
 	keyerWPM            cfg.Key = "hellocontest.keyer.wpm"
 	keyerSPPatterns     cfg.Key = "hellocontest.keyer.sp"
 	keyerRunPatterns    cfg.Key = "hellocontest.keyer.run"
+	hamlibAddress       cfg.Key = "hellocontest.hamlib.address"
 )
 
 type LoadedConfiguration struct {
@@ -105,6 +107,10 @@ func (l *LoadedConfiguration) KeyerRunPatterns() []string {
 	return l.configuration.GetStrings(keyerRunPatterns, []string{})
 }
 
+func (l *LoadedConfiguration) HamlibAddress() string {
+	return l.configuration.Get(hamlibAddress, "").(string)
+}
+
 type StaticConfiguration struct {
 	myCall    callsign.Callsign
 	myLocator locator.Locator
@@ -156,4 +162,8 @@ func (s *StaticConfiguration) KeyerSPPatterns() []string {
 
 func (s *StaticConfiguration) KeyerRunPatterns() []string {
 	return []string{}
+}
+
+func (s *StaticConfiguration) HamlibAddress() string {
+	return ""
 }

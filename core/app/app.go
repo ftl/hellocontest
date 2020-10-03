@@ -17,6 +17,7 @@ import (
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
+	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
 	"github.com/ftl/hellocontest/core/store"
@@ -42,6 +43,7 @@ type Controller struct {
 	quitter       Quitter
 	store         *store.FileStore
 	cwclient      *cwclient.Client
+	hamlibClient  *hamlib.Client
 
 	Logbook  *logbook.Logbook
 	Entry    *entry.Controller
@@ -78,6 +80,8 @@ type Configuration interface {
 	KeyerWPM() int
 	KeyerSPPatterns() []string
 	KeyerRunPatterns() []string
+
+	HamlibAddress() string
 }
 
 // Quitter allows to quit the application. This interfaces is used to call the actual application framework to quit.
@@ -102,6 +106,12 @@ func (c *Controller) Startup() {
 	}
 
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
+
+	hamlibAddress := c.configuration.HamlibAddress()
+	c.hamlibClient = hamlib.New(hamlibAddress)
+	if hamlibAddress != "" {
+		c.hamlibClient.KeepOpen()
+	}
 
 	c.Keyer = keyer.New(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
 	c.Keyer.SetPatterns(c.configuration.KeyerSPPatterns())
@@ -229,8 +239,11 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 	)
 	c.Logbook.OnRowSelected(c.Entry.QSOSelected)
 
+	c.hamlibClient.SetVFOController(c.Entry)
+
 	c.Entry.SetKeyer(c.Keyer)
 	c.Entry.SetCallinfo(c.Callinfo)
+	c.Entry.SetVFO(c.hamlibClient)
 
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Callinfo.SetDupeChecker(c.Entry)

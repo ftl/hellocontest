@@ -41,8 +41,6 @@ type View interface {
 	ClearMessage()
 }
 
-var instance = 0
-
 // Logbook functionality used for QSO entry.
 type Logbook interface {
 	NextNumber() core.QSONumber
@@ -62,13 +60,19 @@ type Callinfo interface {
 	ShowCallsign(string)
 }
 
+// VFO functionality used for QSO entry.
+type VFO interface {
+	SetBand(core.Band)
+	SetMode(core.Mode)
+	Refresh()
+}
+
 // NewController returns a new entry controller.
 func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) *Controller {
-	instance++
 	return &Controller{
-		instance:          instance,
 		clock:             clock,
 		view:              &nullView{},
+		vfo:               &nullVFO{},
 		logbook:           logbook,
 		enterTheirNumber:  enterTheirNumber,
 		enterTheirXchange: enterTheirXchange,
@@ -80,12 +84,12 @@ func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterThe
 }
 
 type Controller struct {
-	instance int
 	clock    core.Clock
 	view     View
 	logbook  Logbook
 	keyer    Keyer
 	callinfo Callinfo
+	vfo      VFO
 
 	enterTheirNumber  bool
 	enterTheirXchange bool
@@ -117,6 +121,11 @@ func (c *Controller) SetKeyer(keyer Keyer) {
 
 func (c *Controller) SetCallinfo(callinfo Callinfo) {
 	c.callinfo = callinfo
+}
+
+func (c *Controller) SetVFO(vfo VFO) {
+	c.vfo = vfo
+	vfo.Refresh()
 }
 
 func (c *Controller) GotoNextField() core.EntryField {
@@ -201,14 +210,24 @@ func (c *Controller) BandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
 		log.Printf("Band selected: %v", band)
 		c.selectedBand = band
+		c.vfo.SetBand(band)
 		c.EnterCallsign(c.view.Callsign())
 	}
+}
+
+func (c *Controller) SetBand(band core.Band) {
+	if c.selectedBand == band {
+		return
+	}
+	c.selectedBand = band
+	c.view.SetBand(string(c.selectedBand))
 }
 
 func (c *Controller) ModeSelected(s string) {
 	if mode, err := parse.Mode(s); err == nil {
 		log.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
+		c.vfo.SetMode(mode)
 
 		if c.selectedMode == core.ModeSSB {
 			c.view.SetTheirReport("59")
@@ -220,6 +239,14 @@ func (c *Controller) ModeSelected(s string) {
 
 		c.EnterCallsign(c.view.Callsign())
 	}
+}
+
+func (c *Controller) SetMode(mode core.Mode) {
+	if c.selectedMode == mode {
+		return
+	}
+	c.selectedMode = mode
+	c.view.SetMode(string(c.selectedMode))
 }
 
 func (c *Controller) SendQuestion() {
@@ -256,7 +283,7 @@ func (c *Controller) EnterCallsign(s string) {
 }
 
 func (c *Controller) QSOSelected(qso core.QSO) {
-	log.Printf("%d: QSO selected: %v", c.instance, qso)
+	log.Printf("QSO selected: %v", qso)
 	c.editing = true
 	c.editQSO = qso
 
@@ -426,3 +453,9 @@ func (n *nullView) SetDuplicateMarker(bool)         {}
 func (n *nullView) SetEditingMarker(bool)           {}
 func (n *nullView) ShowMessage(...interface{})      {}
 func (n *nullView) ClearMessage()                   {}
+
+type nullVFO struct{}
+
+func (n *nullVFO) SetBand(core.Band) {}
+func (n *nullVFO) SetMode(core.Mode) {}
+func (n *nullVFO) Refresh()          {}

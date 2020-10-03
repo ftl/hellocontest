@@ -5,6 +5,7 @@ A simple HF contest log for Linux, written in Go using [gotk3](https://github.co
 * Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases.
 * Use the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
 * Define different macros for running and search&pounce working mode.
+* Connect to your transceiver through hamlib to keep the band and mode information in sync.
 
 I use this little project mainly as training ground to learn how to develop a desktop application in Go and to improve my Go-Fu.
 

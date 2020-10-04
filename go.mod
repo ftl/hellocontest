@@ -7,7 +7,7 @@ go 1.14
 
 require (
 	github.com/ftl/gmtry v0.0.0-20200425131616-16f55bac18a0
-	github.com/ftl/hamradio v0.0.0-20201003091320-2b75dd1926fc
+	github.com/ftl/hamradio v0.0.0-20201004085606-43104f6828a1
 	github.com/ftl/rigproxy v0.0.0-20200812132905-1b8d78e5c89e
 	github.com/golang/protobuf v1.4.2
 	github.com/gotk3/gotk3 v0.5.0

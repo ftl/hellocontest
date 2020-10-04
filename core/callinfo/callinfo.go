@@ -29,7 +29,7 @@ type Callinfo struct {
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
 type DXCCFinder interface {
-	Find(string) ([]*dxcc.Prefix, bool)
+	Find(string) ([]dxcc.Prefix, bool)
 }
 
 // CallsignFinder returns a list of matching callsigns for the given partial string.

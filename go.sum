@@ -3,8 +3,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/ftl/gmtry v0.0.0-20200425131616-16f55bac18a0 h1:KTMhxzSCMrZT1KQFJO4SnmhH7tlpsMinL9AZqD3Yjrw=
 github.com/ftl/gmtry v0.0.0-20200425131616-16f55bac18a0/go.mod h1:AQpbHYBSPV1Bc1nqG8vv8BK3qxXMZIn32OQBi/4A7Sc=
 github.com/ftl/hamradio v0.0.0-20200721200456-334cc249f095/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
-github.com/ftl/hamradio v0.0.0-20201003091320-2b75dd1926fc h1:HMfrK5EoBIuaJQJZarU5eQlbs7/RkbPjMRYQueOn15Y=
-github.com/ftl/hamradio v0.0.0-20201003091320-2b75dd1926fc/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
+github.com/ftl/hamradio v0.0.0-20201004085606-43104f6828a1 h1:TjcWYaEc1si0L3uD8mlsX+W5eQS+p2QHNYBgdsCLuMw=
+github.com/ftl/hamradio v0.0.0-20201004085606-43104f6828a1/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 h1:ORI3EUKpLTsfA372C6xpuZFDXw+ckmCzLaCcJvakG24=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9/go.mod h1:4sZLCxjgn++exy5u0muVzlvnahfanPuiHLQo0GJQnPA=
 github.com/ftl/rigproxy v0.0.0-20200812132905-1b8d78e5c89e h1:iUR2RSSZ2huc/cOSYJqwdVqJAIbqu6Fy5KK/z0kFssk=

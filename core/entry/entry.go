@@ -64,7 +64,6 @@ type Callinfo interface {
 type VFO interface {
 	SetBand(core.Band)
 	SetMode(core.Mode)
-	Refresh()
 }
 
 // NewController returns a new entry controller.
@@ -125,7 +124,6 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 
 func (c *Controller) SetVFO(vfo VFO) {
 	c.vfo = vfo
-	vfo.Refresh()
 }
 
 func (c *Controller) GotoNextField() core.EntryField {

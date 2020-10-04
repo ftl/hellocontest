@@ -195,14 +195,14 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 	)
 	c.Logbook.OnRowSelected(c.Entry.QSOSelected)
 
-	c.hamlibClient.SetVFOController(c.Entry)
-
 	c.Entry.SetKeyer(c.Keyer)
 	c.Entry.SetCallinfo(c.Callinfo)
 	c.Entry.SetVFO(c.hamlibClient)
 
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Callinfo.SetDupeChecker(c.Entry)
+	c.hamlibClient.SetVFOController(c.Entry)
+	c.hamlibClient.Refresh()
 
 	if c.view != nil {
 		c.view.ShowFilename(c.filename)

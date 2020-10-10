@@ -1,4 +1,4 @@
-name: Go
+name: CI-Build
 
 on:
   push:
@@ -36,7 +36,13 @@ jobs:
       run: go get -v -t -d ./...
 
     - name: Build
-      run: go build -v .
+      run: go build -v -ldflags "-X main.version=$GITHUB_SHA" .
 
     - name: Test
       run: go test -v ./...
+      
+    - name: 'Upload binary for linux_x86_64'
+      uses: actions/upload-artifact@v2
+      with:
+        name: hellocontest-binary
+        path: ./hellocontest

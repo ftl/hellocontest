@@ -16,9 +16,9 @@ import (
 )
 
 // Run the application
-func Run(args []string) {
+func Run(version string, args []string) {
 	var err error
-	app := &application{id: "ft.hellocontest"}
+	app := &application{id: "ft.hellocontest", version: version}
 
 	gdk.SetAllowedBackends("x11")
 
@@ -35,6 +35,7 @@ func Run(args []string) {
 
 type application struct {
 	id             string
+	version        string
 	app            *gtk.Application
 	builder        *gtk.Builder
 	windowGeometry *gmtry.Geometry
@@ -64,7 +65,7 @@ func (a *application) activate() {
 	a.mainWindow = setupMainWindow(a.builder, a.app)
 	a.callinfoWindow = setupCallinfoWindow(a.builder)
 
-	a.controller = app.NewController(clock.New(), a.app, configuration)
+	a.controller = app.NewController(a.version, clock.New(), a.app, configuration)
 	a.controller.OnLogbookChanged = func() {
 		a.mainWindow.SetLogbookController(a.controller.Logbook)
 		a.mainWindow.SetEntryController(a.controller.Entry)

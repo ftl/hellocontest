@@ -25,8 +25,9 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(clock core.Clock, quitter Quitter, configuration Configuration) *Controller {
+func NewController(version string, clock core.Clock, quitter Quitter, configuration Configuration) *Controller {
 	return &Controller{
+		version:       version,
 		clock:         clock,
 		quitter:       quitter,
 		configuration: configuration,
@@ -38,6 +39,7 @@ type Controller struct {
 
 	filename string
 
+	version       string
 	clock         core.Clock
 	configuration Configuration
 	quitter       Quitter
@@ -126,6 +128,10 @@ func (c *Controller) Startup() {
 
 func (c *Controller) Shutdown() {
 	c.cwclient.Disconnect()
+}
+
+func (c *Controller) About() {
+	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\nThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version)
 }
 
 func (c *Controller) Quit() {

@@ -6,6 +6,7 @@ import (
 
 // MainMenuController provides the functionality for the main menu.
 type MainMenuController interface {
+	About()
 	New()
 	Open()
 	SaveAs()
@@ -25,6 +26,7 @@ type mainMenu struct {
 	fileExportADIF     *gtk.MenuItem
 	fileQuit           *gtk.MenuItem
 	windowCallinfo     *gtk.MenuItem
+	helpAbout          *gtk.MenuItem
 }
 
 func setupMainMenu(builder *gtk.Builder) *mainMenu {
@@ -37,6 +39,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportADIF = getUI(builder, "menuFileExportADIF").(*gtk.MenuItem)
 	result.fileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
+	result.helpAbout = getUI(builder, "menuHelpAbout").(*gtk.MenuItem)
 
 	result.fileNew.Connect("activate", result.onNew)
 	result.fileOpen.Connect("activate", result.onOpen)
@@ -45,12 +48,17 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportADIF.Connect("activate", result.onExportADIF)
 	result.fileQuit.Connect("activate", result.onQuit)
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
+	result.helpAbout.Connect("activate", result.onAbout)
 
 	return result
 }
 
 func (m *mainMenu) SetMainMenuController(controller MainMenuController) {
 	m.controller = controller
+}
+
+func (m *mainMenu) onAbout() {
+	m.controller.About()
 }
 
 func (m *mainMenu) onNew() {

@@ -6,6 +6,8 @@ import (
 	"github.com/ftl/hellocontest/ui"
 )
 
+var version = "development"
+
 func main() {
-	ui.Run(os.Args)
+	ui.Run(version, os.Args)
 }

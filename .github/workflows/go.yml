@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Install Linux packages
-      run: sudo apt update && sudo apt upgrade && sudo apt install -y --no-install-recommends libgtk-3-0 libpango-1.0-0 libpangocairo-1.0-0
+      run: sudo apt update && sudo apt install -y --no-install-recommends libgtk-3-0 libpango-1.0-0 libpangocairo-1.0-0
       
     - name: Set up Go 1.14
       uses: actions/setup-go@v2

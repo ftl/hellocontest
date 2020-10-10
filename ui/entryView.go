@@ -15,9 +15,7 @@ type EntryController interface {
 	GotoNextField() core.EntryField
 	SetActiveField(core.EntryField)
 
-	BandSelected(string)
-	ModeSelected(string)
-	EnterCallsign(string)
+	Enter(string)
 	SendQuestion()
 
 	Log()
@@ -27,8 +25,8 @@ type EntryController interface {
 type entryView struct {
 	controller EntryController
 
-	style             *style
-	ignoreComboChange bool
+	style       *style
+	ignoreInput bool
 
 	entryRoot    *gtk.Grid
 	callsign     *gtk.Entry
@@ -62,19 +60,16 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.resetButton = getUI(builder, "resetButton").(*gtk.Button)
 	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
 
-	result.addEntryTraversal(result.callsign)
-	result.addEntryTraversal(result.theirReport)
-	result.addEntryTraversal(result.theirNumber)
-	result.addEntryTraversal(result.theirXchange)
-	result.addEntryTraversal(result.myReport)
-	result.addEntryTraversal(result.myNumber)
-	result.addEntryTraversal(result.myXchange)
-	result.addOtherWidgetTraversal(&result.band.Widget)
-	result.addOtherWidgetTraversal(&result.mode.Widget)
+	result.addEntryEventHandlers(&result.callsign.Widget)
+	result.addEntryEventHandlers(&result.theirReport.Widget)
+	result.addEntryEventHandlers(&result.theirNumber.Widget)
+	result.addEntryEventHandlers(&result.theirXchange.Widget)
+	result.addEntryEventHandlers(&result.myReport.Widget)
+	result.addEntryEventHandlers(&result.myNumber.Widget)
+	result.addEntryEventHandlers(&result.myXchange.Widget)
+	result.addEntryEventHandlers(&result.band.Widget)
+	result.addEntryEventHandlers(&result.mode.Widget)
 
-	result.callsign.Connect("changed", result.onCallsignChanged)
-	result.band.Connect("changed", result.onBandChanged)
-	result.mode.Connect("changed", result.onModeChanged)
 	result.logButton.Connect("clicked", result.onLogButtonClicked)
 	result.resetButton.Connect("clicked", result.onResetButtonClicked)
 
@@ -115,13 +110,14 @@ func (v *entryView) SetEntryController(controller EntryController) {
 	v.controller = controller
 }
 
-func (v *entryView) addEntryTraversal(entry *gtk.Entry) {
-	entry.Connect("key_press_event", v.onEntryKeyPress)
-	entry.Connect("focus_in_event", v.onEntryFocusIn)
-	entry.Connect("focus_out_event", v.onEntryFocusOut)
+func (v *entryView) addEntryEventHandlers(w *gtk.Widget) {
+	w.Connect("key_press_event", v.onEntryKeyPress)
+	w.Connect("focus_in_event", v.onEntryFocusIn)
+	w.Connect("focus_out_event", v.onEntryFocusOut)
+	w.Connect("changed", v.onEntryChanged)
 }
 
-func (v *entryView) onEntryKeyPress(widget interface{}, event *gdk.Event) bool {
+func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 	keyEvent := gdk.EventKeyNewFromEvent(event)
 	switch keyEvent.KeyVal() {
 	case gdk.KEY_Tab:
@@ -144,60 +140,49 @@ func (v *entryView) onEntryKeyPress(widget interface{}, event *gdk.Event) bool {
 	}
 }
 
-func (v *entryView) onEntryFocusIn(entry *gtk.Entry, event *gdk.Event) bool {
-	entryField := v.entryToField(entry)
-	v.controller.SetActiveField(entryField)
-	return false
-}
-
-func (v *entryView) onEntryFocusOut(entry *gtk.Entry, event *gdk.Event) bool {
-	entry.SelectRegion(0, 0)
-	return false
-}
-
-func (v *entryView) addOtherWidgetTraversal(widget *gtk.Widget) {
-	widget.Connect("key_press_event", v.onOtherWidgetKeyPress)
-}
-
-func (v *entryView) onOtherWidgetKeyPress(widget interface{}, event *gdk.Event) bool {
-	keyEvent := gdk.EventKeyNewFromEvent(event)
-	switch keyEvent.KeyVal() {
-	case gdk.KEY_Tab:
-		v.controller.SetActiveField(core.CallsignField)
-		v.SetActiveField(core.CallsignField)
-		return true
-	case gdk.KEY_space:
-		v.controller.SetActiveField(core.CallsignField)
-		v.SetActiveField(core.CallsignField)
-		return true
+func (v *entryView) onEntryFocusIn(widget interface{}, _ *gdk.Event) bool {
+	var field core.EntryField
+	switch w := widget.(type) {
+	case *gtk.Entry:
+		field = v.widgetToField(&w.Widget)
+	case *gtk.ComboBoxText:
+		field = v.widgetToField(&w.Widget)
 	default:
-		return false
+		field = core.OtherField
 	}
+	v.controller.SetActiveField(field)
+	return false
 }
 
-func (v *entryView) onCallsignChanged(widget *gtk.Entry) bool {
+func (v *entryView) onEntryFocusOut(widget interface{}, _ *gdk.Event) bool {
+	if entry, ok := widget.(*gtk.Entry); ok {
+		entry.SelectRegion(0, 0)
+	}
+	return false
+}
+
+func (v *entryView) onEntryChanged(widget interface{}) bool {
 	if v.controller == nil {
 		return false
 	}
-	callsign, err := widget.GetText()
-	if err != nil {
+	if v.ignoreInput {
 		return false
 	}
-	v.controller.EnterCallsign(callsign)
-	return false
-}
 
-func (v *entryView) onBandChanged(widget *gtk.ComboBoxText) bool {
-	if v.controller != nil && !v.ignoreComboChange {
-		v.controller.BandSelected(widget.GetActiveText())
+	switch w := widget.(type) {
+	case *gtk.Entry:
+		text, err := w.GetText()
+		if err != nil {
+			return false
+		}
+		v.controller.Enter(text)
+	case *gtk.ComboBoxText:
+		activeField := v.widgetToField(&w.Widget)
+		v.controller.SetActiveField(activeField)
+		text := w.GetActiveText()
+		v.controller.Enter(text)
 	}
-	return false
-}
 
-func (v *entryView) onModeChanged(widget *gtk.ComboBoxText) bool {
-	if v.controller != nil && !v.ignoreComboChange {
-		v.controller.ModeSelected(widget.GetActiveText())
-	}
 	return false
 }
 
@@ -211,108 +196,46 @@ func (v *entryView) onResetButtonClicked(button *gtk.Button) bool {
 	return true
 }
 
-func (v *entryView) Callsign() string {
-	text, err := v.callsign.GetText()
-	if err != nil {
-		log.Printf("Error getting text: %v", err)
-	}
-	return text
+func (v *entryView) setTextWithoutChangeEvent(f func(string), value string) {
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	f(value)
 }
 
 func (v *entryView) SetCallsign(text string) {
-	v.callsign.SetText(text)
-}
-
-func (v *entryView) TheirReport() string {
-	text, err := v.theirReport.GetText()
-	if err != nil {
-		log.Printf("Error getting text: %v", err)
-	}
-	return text
+	v.setTextWithoutChangeEvent(v.callsign.SetText, text)
 }
 
 func (v *entryView) SetTheirReport(text string) {
-	v.theirReport.SetText(text)
-}
-
-func (v *entryView) TheirNumber() string {
-	text, err := v.theirNumber.GetText()
-	if err != nil {
-		log.Printf("Error getting text: %v", err)
-	}
-	return text
+	v.setTextWithoutChangeEvent(v.theirReport.SetText, text)
 }
 
 func (v *entryView) SetTheirNumber(text string) {
-	v.theirNumber.SetText(text)
-}
-
-func (v *entryView) TheirXchange() string {
-	text, err := v.theirXchange.GetText()
-	if err != nil {
-		log.Printf("Error getting text: %v", err)
-	}
-	return text
+	v.setTextWithoutChangeEvent(v.theirNumber.SetText, text)
 }
 
 func (v *entryView) SetTheirXchange(text string) {
-	v.theirXchange.SetText(text)
-}
-
-func (v *entryView) Band() string {
-	return v.band.GetActiveText()
+	v.setTextWithoutChangeEvent(v.theirXchange.SetText, text)
 }
 
 func (v *entryView) SetBand(text string) {
-	v.ignoreComboChange = true
-	defer func() { v.ignoreComboChange = false }()
-	v.band.SetActiveID(text)
-}
-
-func (v *entryView) Mode() string {
-	return v.mode.GetActiveText()
+	v.setTextWithoutChangeEvent(func(s string) { v.band.SetActiveID(s) }, text)
 }
 
 func (v *entryView) SetMode(text string) {
-	v.ignoreComboChange = true
-	defer func() { v.ignoreComboChange = false }()
-	v.mode.SetActiveID(text)
-}
-
-func (v *entryView) MyReport() string {
-	text, err := v.myReport.GetText()
-	if err != nil {
-		log.Printf("Error getting text: %v", err)
-	}
-	return text
+	v.setTextWithoutChangeEvent(func(s string) { v.mode.SetActiveID(s) }, text)
 }
 
 func (v *entryView) SetMyReport(text string) {
-	v.myReport.SetText(text)
-}
-
-func (v *entryView) MyNumber() string {
-	text, err := v.myNumber.GetText()
-	if err != nil {
-		log.Printf("Error getting text: %v", err)
-	}
-	return text
+	v.setTextWithoutChangeEvent(v.myReport.SetText, text)
 }
 
 func (v *entryView) SetMyNumber(text string) {
-	v.myNumber.SetText(text)
-}
-
-func (v *entryView) MyXchange() string {
-	text, err := v.myXchange.GetText()
-	if err != nil {
-		log.Printf("Error getting text: %v", err)
-	}
-	return text
+	v.setTextWithoutChangeEvent(v.myNumber.SetText, text)
 }
 
 func (v *entryView) SetMyXchange(text string) {
-	v.myXchange.SetText(text)
+	v.setTextWithoutChangeEvent(v.myXchange.SetText, text)
 }
 
 func (v *entryView) EnableExchangeFields(theirNumber, theirXchange bool) {
@@ -321,36 +244,40 @@ func (v *entryView) EnableExchangeFields(theirNumber, theirXchange bool) {
 }
 
 func (v *entryView) SetActiveField(field core.EntryField) {
-	entry := v.fieldToEntry(field)
-	entry.GrabFocus()
+	widget := v.fieldToWidget(field)
+	widget.GrabFocus()
 }
 
-func (v *entryView) fieldToEntry(field core.EntryField) *gtk.Entry {
+func (v *entryView) fieldToWidget(field core.EntryField) *gtk.Widget {
 	switch field {
 	case core.CallsignField:
-		return v.callsign
+		return &v.callsign.Widget
 	case core.TheirReportField:
-		return v.theirReport
+		return &v.theirReport.Widget
 	case core.TheirNumberField:
-		return v.theirNumber
+		return &v.theirNumber.Widget
 	case core.TheirXchangeField:
-		return v.theirXchange
+		return &v.theirXchange.Widget
 	case core.MyReportField:
-		return v.myReport
+		return &v.myReport.Widget
 	case core.MyNumberField:
-		return v.myNumber
+		return &v.myNumber.Widget
 	case core.MyXchangeField:
-		return v.myXchange
+		return &v.myXchange.Widget
+	case core.BandField:
+		return &v.band.Widget
+	case core.ModeField:
+		return &v.mode.Widget
 	case core.OtherField:
-		return v.callsign
+		return &v.callsign.Widget
 	default:
 		log.Fatalf("Unknown entry field %d", field)
 	}
 	panic("this is never reached")
 }
 
-func (v *entryView) entryToField(entry *gtk.Entry) core.EntryField {
-	name, _ := entry.GetName()
+func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {
+	name, _ := widget.GetName()
 	switch name {
 	case "callsignEntry":
 		return core.CallsignField
@@ -366,6 +293,10 @@ func (v *entryView) entryToField(entry *gtk.Entry) core.EntryField {
 		return core.MyNumberField
 	case "myXchangeEntry":
 		return core.MyXchangeField
+	case "bandCombo":
+		return core.BandField
+	case "modeCombo":
+		return core.ModeField
 	default:
 		return core.OtherField
 	}

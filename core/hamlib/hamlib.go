@@ -159,6 +159,9 @@ func (c *Client) SetBand(band core.Band) {
 		log.Printf("unknown band %v", c.outgoing.band)
 		return
 	}
+	if c.conn == nil || c.conn.Closed() {
+		return
+	}
 	c.conn.SwitchToBand(c.withRequestTimeout(), outgoingBand)
 
 	log.Printf("outgoing band: %v", band)
@@ -171,6 +174,9 @@ func (c *Client) SetMode(mode core.Mode) {
 	c.outgoing.mode = mode
 
 	outgoingMode := toClientMode(c.outgoing.mode)
+	if c.conn == nil || c.conn.Closed() {
+		return
+	}
 	c.conn.SetModeAndPassband(c.withRequestTimeout(), outgoingMode, 0)
 
 	log.Printf("outgoing mode: %v", mode)

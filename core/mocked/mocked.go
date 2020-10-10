@@ -160,27 +160,11 @@ func (m *EntryView) Activate() {
 	m.active = true
 }
 
-func (m *EntryView) Callsign() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
-}
-
 func (m *EntryView) SetCallsign(callsign string) {
 	if !m.active {
 		return
 	}
 	m.Called(callsign)
-}
-
-func (m *EntryView) TheirReport() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
 }
 
 func (m *EntryView) SetTheirReport(report string) {
@@ -190,27 +174,11 @@ func (m *EntryView) SetTheirReport(report string) {
 	m.Called(report)
 }
 
-func (m *EntryView) TheirNumber() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
-}
-
 func (m *EntryView) SetTheirNumber(number string) {
 	if !m.active {
 		return
 	}
 	m.Called(number)
-}
-
-func (m *EntryView) TheirXchange() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
 }
 
 func (m *EntryView) SetTheirXchange(xchange string) {
@@ -220,27 +188,11 @@ func (m *EntryView) SetTheirXchange(xchange string) {
 	m.Called(xchange)
 }
 
-func (m *EntryView) Band() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
-}
-
 func (m *EntryView) SetBand(text string) {
 	if !m.active {
 		return
 	}
 	m.Called(text)
-}
-
-func (m *EntryView) Mode() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
 }
 
 func (m *EntryView) SetMode(text string) {
@@ -250,14 +202,6 @@ func (m *EntryView) SetMode(text string) {
 	m.Called(text)
 }
 
-func (m *EntryView) MyReport() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
-}
-
 func (m *EntryView) SetMyReport(report string) {
 	if !m.active {
 		return
@@ -265,27 +209,11 @@ func (m *EntryView) SetMyReport(report string) {
 	m.Called(report)
 }
 
-func (m *EntryView) MyNumber() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
-}
-
 func (m *EntryView) SetMyNumber(number string) {
 	if !m.active {
 		return
 	}
 	m.Called(number)
-}
-
-func (m *EntryView) MyXchange() string {
-	if !m.active {
-		return ""
-	}
-	args := m.Called()
-	return args.String(0)
 }
 
 func (m *EntryView) SetMyXchange(xchange string) {

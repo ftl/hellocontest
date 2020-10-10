@@ -111,6 +111,8 @@ const (
 	MyReportField
 	MyNumberField
 	MyXchangeField
+	BandField
+	ModeField
 	OtherField
 )
 

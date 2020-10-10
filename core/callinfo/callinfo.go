@@ -76,6 +76,9 @@ func (c *Callinfo) Hide() {
 }
 
 func (c *Callinfo) ShowCallsign(s string) {
+	if c.view == nil {
+		return
+	}
 	var duplicate bool
 	cs, err := callsign.Parse(s)
 	if err == nil {

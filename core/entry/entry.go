@@ -14,23 +14,14 @@ import (
 
 // View represents the visual part of the QSO data entry.
 type View interface {
-	Callsign() string
 	SetCallsign(string)
-	TheirReport() string
 	SetTheirReport(string)
-	TheirNumber() string
 	SetTheirNumber(string)
-	TheirXchange() string
 	SetTheirXchange(string)
-	Band() string
 	SetBand(text string)
-	Mode() string
 	SetMode(text string)
-	MyReport() string
 	SetMyReport(string)
-	MyNumber() string
 	SetMyNumber(string)
-	MyXchange() string
 	SetMyXchange(string)
 
 	EnableExchangeFields(bool, bool)
@@ -39,6 +30,18 @@ type View interface {
 	SetEditingMarker(bool)
 	ShowMessage(...interface{})
 	ClearMessage()
+}
+
+type input struct {
+	callsign     string
+	theirReport  string
+	theirNumber  string
+	theirXchange string
+	myReport     string
+	myNumber     string
+	myXchange    string
+	band         string
+	mode         string
 }
 
 // Logbook functionality used for QSO entry.
@@ -95,6 +98,7 @@ type Controller struct {
 	allowMultiBand    bool
 	allowMultiMode    bool
 
+	input        input
 	activeField  core.EntryField
 	selectedBand core.Band
 	selectedMode core.Mode
@@ -108,10 +112,8 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
-	c.view.SetBand(c.selectedBand.String())
-	c.view.SetMode(c.selectedMode.String())
-	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
 	c.Reset()
+	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
 }
 
 func (c *Controller) SetKeyer(keyer Keyer) {
@@ -137,6 +139,8 @@ func (c *Controller) GotoNextField() core.EntryField {
 		core.TheirXchangeField: core.CallsignField,
 		core.MyReportField:     core.CallsignField,
 		core.MyNumberField:     core.CallsignField,
+		core.BandField:         core.CallsignField,
+		core.ModeField:         core.CallsignField,
 	}
 	if c.enterTheirNumber && c.enterTheirXchange {
 		transitions[core.TheirReportField] = core.TheirNumberField
@@ -157,7 +161,7 @@ func (c *Controller) GotoNextField() core.EntryField {
 }
 
 func (c *Controller) leaveCallsignField() {
-	callsign, err := callsign.Parse(c.view.Callsign())
+	callsign, err := callsign.Parse(c.input.callsign)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -168,16 +172,42 @@ func (c *Controller) leaveCallsignField() {
 		c.view.SetDuplicateMarker(false)
 		return
 	}
+	if c.editing {
+		c.view.SetDuplicateMarker(c.editQSO.Callsign != qso.Callsign)
+		return
+	}
 
-	c.view.SetBand(string(qso.Band))
-	c.view.SetMode(string(qso.Mode))
-	c.view.SetTheirReport(string(qso.TheirReport))
-	c.view.SetTheirNumber(qso.TheirNumber.String())
-	c.view.SetTheirXchange(qso.TheirXchange)
-	c.view.SetMyReport(string(qso.MyReport))
-	c.view.SetMyNumber(qso.MyNumber.String())
-	c.view.SetMyXchange(qso.MyXchange)
+	c.showQSO(qso)
 	c.view.SetDuplicateMarker(true)
+}
+
+func (c *Controller) showQSO(qso core.QSO) {
+	c.input.callsign = qso.Callsign.String()
+	c.input.theirReport = qso.TheirReport.String()
+	c.input.theirNumber = qso.TheirNumber.String()
+	c.input.theirXchange = qso.TheirXchange
+	c.input.myReport = qso.MyReport.String()
+	c.input.myNumber = qso.MyNumber.String()
+	c.input.myXchange = qso.MyXchange
+	c.input.band = qso.Band.String()
+	c.input.mode = qso.Mode.String()
+
+	c.selectedBand = qso.Band
+	c.selectedMode = qso.Mode
+
+	c.showInput()
+}
+
+func (c *Controller) showInput() {
+	c.view.SetCallsign(c.input.callsign)
+	c.view.SetTheirReport(c.input.theirReport)
+	c.view.SetTheirNumber(c.input.theirNumber)
+	c.view.SetTheirXchange(c.input.theirXchange)
+	c.view.SetMyReport(c.input.myReport)
+	c.view.SetMyNumber(c.input.myNumber)
+	c.view.SetMyXchange(c.input.myXchange)
+	c.view.SetBand(c.input.band)
+	c.view.SetMode(c.input.mode)
 }
 
 func (c *Controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
@@ -196,20 +226,42 @@ func (c *Controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	return qsos[len(qsos)-1], true
 }
 
-func (c *Controller) GetActiveField() core.EntryField {
-	return c.activeField
-}
-
 func (c *Controller) SetActiveField(field core.EntryField) {
 	c.activeField = field
 }
 
-func (c *Controller) BandSelected(s string) {
+func (c *Controller) Enter(text string) {
+	switch c.activeField {
+	case core.CallsignField:
+		c.input.callsign = text
+		c.enterCallsign(text)
+	case core.TheirReportField:
+		c.input.theirReport = text
+	case core.TheirNumberField:
+		c.input.theirNumber = text
+	case core.TheirXchangeField:
+		c.input.theirXchange = text
+	case core.MyReportField:
+		c.input.myReport = text
+	case core.MyNumberField:
+		c.input.myNumber = text
+	case core.MyXchangeField:
+		c.input.myXchange = text
+	case core.BandField:
+		c.input.band = text
+		c.bandSelected(text)
+	case core.ModeField:
+		c.input.mode = text
+		c.modeSelected(text)
+	}
+}
+
+func (c *Controller) bandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
 		log.Printf("Band selected: %v", band)
 		c.selectedBand = band
 		c.vfo.SetBand(band)
-		c.EnterCallsign(c.view.Callsign())
+		c.enterCallsign(c.input.callsign)
 	}
 }
 
@@ -218,24 +270,25 @@ func (c *Controller) SetBand(band core.Band) {
 		return
 	}
 	c.selectedBand = band
-	c.view.SetBand(string(c.selectedBand))
+	c.input.band = c.selectedBand.String()
+	c.view.SetBand(c.input.band)
 }
 
-func (c *Controller) ModeSelected(s string) {
+func (c *Controller) modeSelected(s string) {
 	if mode, err := parse.Mode(s); err == nil {
 		log.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
 		c.vfo.SetMode(mode)
 
 		if c.selectedMode == core.ModeSSB {
-			c.view.SetTheirReport("59")
-			c.view.SetMyReport("59")
+			c.input.theirReport = "59"
+			c.input.myReport = "59"
 		} else {
-			c.view.SetMyReport("599")
-			c.view.SetTheirReport("599")
+			c.input.myReport = "599"
+			c.input.theirReport = "599"
 		}
 
-		c.EnterCallsign(c.view.Callsign())
+		c.enterCallsign(c.input.callsign)
 	}
 }
 
@@ -244,7 +297,8 @@ func (c *Controller) SetMode(mode core.Mode) {
 		return
 	}
 	c.selectedMode = mode
-	c.view.SetMode(string(c.selectedMode))
+	c.input.mode = c.selectedMode.String()
+	c.view.SetMode(c.input.mode)
 }
 
 func (c *Controller) SendQuestion() {
@@ -256,12 +310,11 @@ func (c *Controller) SendQuestion() {
 	case core.TheirReportField, core.TheirNumberField, core.TheirXchangeField:
 		c.keyer.SendQuestion("nr")
 	default:
-		callsign := c.view.Callsign()
-		c.keyer.SendQuestion(callsign)
+		c.keyer.SendQuestion(c.input.callsign)
 	}
 }
 
-func (c *Controller) EnterCallsign(s string) {
+func (c *Controller) enterCallsign(s string) {
 	if c.callinfo != nil {
 		c.callinfo.ShowCallsign(s)
 	}
@@ -285,15 +338,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.editing = true
 	c.editQSO = qso
 
-	c.view.SetBand(string(qso.Band))
-	c.view.SetMode(string(qso.Mode))
-	c.view.SetCallsign(qso.Callsign.String())
-	c.view.SetTheirReport(string(qso.TheirReport))
-	c.view.SetTheirNumber(qso.TheirNumber.String())
-	c.view.SetTheirXchange(qso.TheirXchange)
-	c.view.SetMyReport(string(qso.MyReport))
-	c.view.SetMyNumber(qso.MyNumber.String())
-	c.view.SetMyXchange(qso.MyXchange)
+	c.showQSO(qso)
 	c.view.SetActiveField(core.CallsignField)
 	c.view.SetEditingMarker(true)
 }
@@ -301,7 +346,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 func (c *Controller) Log() {
 	var err error
 	qso := core.QSO{}
-	qso.Callsign, err = callsign.Parse(c.view.Callsign())
+	qso.Callsign, err = callsign.Parse(c.input.callsign)
 	if err != nil {
 		c.showErrorOnField(err, core.CallsignField)
 		return
@@ -312,26 +357,26 @@ func (c *Controller) Log() {
 		qso.Time = c.clock.Now()
 	}
 
-	qso.Band, err = parse.Band(c.view.Band())
+	qso.Band, err = parse.Band(c.input.band)
 	if err != nil {
 		c.view.ShowMessage(err)
 		return
 	}
 
-	qso.Mode, err = parse.Mode(c.view.Mode())
+	qso.Mode, err = parse.Mode(c.input.mode)
 	if err != nil {
 		c.view.ShowMessage(err)
 		return
 	}
 
-	qso.TheirReport, err = parse.RST(c.view.TheirReport())
+	qso.TheirReport, err = parse.RST(c.input.theirReport)
 	if err != nil {
 		c.showErrorOnField(err, core.TheirReportField)
 		return
 	}
 
 	if c.enterTheirNumber {
-		value := c.view.TheirNumber()
+		value := c.input.theirNumber
 		if value == "" {
 			c.showErrorOnField(errors.New("their number is missing"), core.TheirNumberField)
 			return
@@ -346,27 +391,27 @@ func (c *Controller) Log() {
 	}
 
 	if c.enterTheirXchange {
-		qso.TheirXchange = c.view.TheirXchange()
+		qso.TheirXchange = c.input.theirXchange
 		if qso.TheirXchange == "" {
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
 			return
 		}
 	}
 
-	qso.MyReport, err = parse.RST(c.view.MyReport())
+	qso.MyReport, err = parse.RST(c.input.myReport)
 	if err != nil {
 		c.showErrorOnField(err, core.MyReportField)
 		return
 	}
 
-	myNumber, err := strconv.Atoi(c.view.MyNumber())
+	myNumber, err := strconv.Atoi(c.input.myNumber)
 	if err != nil {
 		c.showErrorOnField(err, core.MyNumberField)
 		return
 	}
 	qso.MyNumber = core.QSONumber(myNumber)
 
-	qso.MyXchange = c.view.MyXchange()
+	qso.MyXchange = c.input.myXchange
 
 	duplicateQso, duplicate := c.IsDuplicate(qso.Callsign)
 	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
@@ -390,23 +435,25 @@ func (c *Controller) Reset() {
 
 	nextNumber := c.logbook.NextNumber()
 	c.activeField = core.CallsignField
-	c.view.SetCallsign("")
+	c.input.callsign = ""
 	if c.selectedMode == core.ModeSSB {
-		c.view.SetMyReport("59")
-		c.view.SetTheirReport("59")
+		c.input.myReport = "59"
+		c.input.theirReport = "59"
 	} else {
-		c.view.SetMyReport("599")
-		c.view.SetTheirReport("599")
+		c.input.myReport = "599"
+		c.input.theirReport = "599"
 	}
-	c.view.SetTheirNumber("")
-	c.view.SetTheirXchange("")
+	c.input.theirNumber = ""
+	c.input.theirXchange = ""
 	if c.selectedBand != core.NoBand {
-		c.view.SetBand(c.selectedBand.String())
+		c.input.band = c.selectedBand.String()
 	}
 	if c.selectedMode != core.NoMode {
-		c.view.SetMode(c.selectedMode.String())
+		c.input.mode = c.selectedMode.String()
 	}
-	c.view.SetMyNumber(nextNumber.String())
+	c.input.myNumber = nextNumber.String()
+
+	c.showInput()
 	c.view.SetActiveField(c.activeField)
 	c.view.SetDuplicateMarker(false)
 	c.view.SetEditingMarker(false)
@@ -414,36 +461,27 @@ func (c *Controller) Reset() {
 }
 
 func (c *Controller) CurrentValues() core.KeyerValues {
-	myNumber, _ := strconv.Atoi(c.view.MyNumber())
+	myNumber, _ := strconv.Atoi(c.input.myNumber)
 
 	values := core.KeyerValues{}
-	values.MyReport, _ = parse.RST(c.view.MyReport())
+	values.MyReport, _ = parse.RST(c.input.myReport)
 	values.MyNumber = core.QSONumber(myNumber)
-	values.MyXchange = c.view.MyXchange()
-	values.TheirCall = c.view.Callsign()
+	values.MyXchange = c.input.myXchange
+	values.TheirCall = c.input.callsign
 
 	return values
 }
 
 type nullView struct{}
 
-func (n *nullView) Callsign() string                { return "" }
 func (n *nullView) SetCallsign(string)              {}
-func (n *nullView) TheirReport() string             { return "" }
 func (n *nullView) SetTheirReport(string)           {}
-func (n *nullView) TheirNumber() string             { return "" }
 func (n *nullView) SetTheirNumber(string)           {}
-func (n *nullView) TheirXchange() string            { return "" }
 func (n *nullView) SetTheirXchange(string)          {}
-func (n *nullView) Band() string                    { return "" }
 func (n *nullView) SetBand(text string)             {}
-func (n *nullView) Mode() string                    { return "" }
 func (n *nullView) SetMode(text string)             {}
-func (n *nullView) MyReport() string                { return "" }
 func (n *nullView) SetMyReport(string)              {}
-func (n *nullView) MyNumber() string                { return "" }
 func (n *nullView) SetMyNumber(string)              {}
-func (n *nullView) MyXchange() string               { return "" }
 func (n *nullView) SetMyXchange(string)             {}
 func (n *nullView) EnableExchangeFields(bool, bool) {}
 func (n *nullView) SetActiveField(core.EntryField)  {}

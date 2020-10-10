@@ -460,6 +460,7 @@
             </child>
             <child>
               <object class="GtkComboBoxText" id="bandCombo">
+                <property name="name">bandCombo</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Band (Ctrl+b)</property>
@@ -472,6 +473,7 @@
             </child>
             <child>
               <object class="GtkComboBoxText" id="modeCombo">
+                <property name="name">modeCombo</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="tooltip_text" translatable="yes">Mode (Ctrl-m)</property>

@@ -13,17 +13,38 @@ import (
 )
 
 func TestEntryController_Reset(t *testing.T) {
+	_, log, _, controller := setupEntryTest()
+	log.Activate()
+	log.On("NextNumber").Once().Return(core.QSONumber(1))
+
+	controller.Reset()
+
+	assert.Equal(t, controller.input.myReport, "599")
+	assert.Equal(t, controller.input.myNumber, "001")
+	assert.Equal(t, controller.input.myXchange, "")
+	assert.Equal(t, controller.input.callsign, "")
+	assert.Equal(t, controller.input.theirReport, "599")
+	assert.Equal(t, controller.input.theirNumber, "")
+	assert.Equal(t, controller.input.theirXchange, "")
+	assert.Equal(t, controller.input.band, "")
+	assert.Equal(t, controller.input.mode, "")
+}
+
+func TestEntryController_ResetView(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 	log.Activate()
-	view.Activate()
-
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
+
+	view.Activate()
 	view.On("SetMyReport", "599").Once()
 	view.On("SetMyNumber", "001").Once()
+	view.On("SetMyXchange", "").Once()
 	view.On("SetCallsign", "").Once()
 	view.On("SetTheirReport", "599").Once()
 	view.On("SetTheirNumber", "").Once()
 	view.On("SetTheirXchange", "").Once()
+	view.On("SetBand", "").Once()
+	view.On("SetMode", "").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
 	view.On("SetEditingMarker", false).Once()
@@ -35,30 +56,20 @@ func TestEntryController_Reset(t *testing.T) {
 }
 
 func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
-	_, log, view, controller := setupEntryTest()
+	_, log, _, controller := setupEntryTest()
 	log.Activate()
-	view.Activate()
-
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
-	view.On("SetBand", "30m").Once()
-	view.On("SetMode", "RTTY").Once()
-	view.On("Callsign").Twice().Return("")
-	view.On("SetMyReport", "599").Twice()
-	view.On("SetTheirReport", "599").Twice()
-	view.On("SetMyNumber", "001").Once()
-	view.On("SetCallsign", "").Once()
-	view.On("SetTheirNumber", "").Once()
-	view.On("SetTheirXchange", "").Once()
-	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("SetDuplicateMarker", false).Once()
-	view.On("SetEditingMarker", false).Once()
-	view.On("ClearMessage").Once()
 
-	controller.BandSelected("30m")
-	controller.ModeSelected("RTTY")
+	controller.SetActiveField(core.BandField)
+	controller.Enter("30m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("RTTY")
 	controller.Reset()
 
-	view.AssertExpectations(t)
+	assert.Equal(t, "30m", controller.input.band)
+	assert.Equal(t, core.Band30m, controller.selectedBand)
+	assert.Equal(t, "RTTY", controller.input.mode)
+	assert.Equal(t, core.ModeRTTY, controller.selectedMode)
 }
 
 func TestEntryController_GotoNextField(t *testing.T) {
@@ -68,7 +79,7 @@ func TestEntryController_GotoNextField(t *testing.T) {
 	view.On("Callsign").Return("").Maybe()
 	view.On("SetActiveField", mock.Anything).Times(10)
 
-	assert.Equal(t, core.CallsignField, controller.GetActiveField(), "callsign should be active at start")
+	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")
 
 	testCases := []struct {
 		enterTheirNumber, enterTheirXchange bool
@@ -91,7 +102,7 @@ func TestEntryController_GotoNextField(t *testing.T) {
 		controller.SetActiveField(tc.active)
 		actual := controller.GotoNextField()
 		assert.Equal(t, tc.next, actual)
-		assert.Equal(t, tc.next, controller.GetActiveField())
+		assert.Equal(t, tc.next, controller.activeField)
 	}
 
 	view.AssertExpectations(t)
@@ -100,14 +111,17 @@ func TestEntryController_GotoNextField(t *testing.T) {
 func TestEntryController_EnterNewCallsign(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 	log.Activate()
-	view.Activate()
-
 	log.On("FindAll", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
-	view.On("Callsign").Once().Return("DL1ABC")
+
+	view.Activate()
 	view.On("SetDuplicateMarker", false).Once()
+	view.On("ClearMessage").Once()
 	view.On("SetActiveField", core.TheirReportField).Once()
 
+	controller.Enter("DL1ABC")
 	controller.GotoNextField()
+
+	assert.Equal(t, "DL1ABC", controller.input.callsign)
 
 	log.AssertExpectations(t)
 	view.AssertExpectations(t)
@@ -115,8 +129,6 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 
 func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
-	log.Activate()
-	view.Activate()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -129,10 +141,14 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 		MyNumber:    1,
 	}
 
-	log.On("FindAll", dl1abc, core.NoBand, core.NoMode).Return([]core.QSO{qso}).Once()
+	log.Activate()
+	log.On("FindAll", dl1abc, core.NoBand, core.NoMode).Return([]core.QSO{qso}).Twice()
+
+	view.Activate()
 	view.On("SetDuplicateMarker", true).Once()
+	view.On("ShowMessage", mock.Anything).Once()
 	view.On("SetActiveField", core.TheirReportField).Once()
-	view.On("Callsign").Once().Return("DL1ABC")
+	view.On("SetCallsign", "DL1ABC").Once()
 	view.On("SetBand", "20m").Once()
 	view.On("SetMode", "SSB").Once()
 	view.On("SetTheirReport", "599").Once()
@@ -142,16 +158,18 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	view.On("SetMyNumber", "001").Once()
 	view.On("SetMyXchange", "").Once()
 
+	controller.Enter("DL1ABC")
 	controller.GotoNextField()
+
+	assertQSOInput(t, qso, controller)
+	assert.False(t, controller.editing)
 
 	log.AssertExpectations(t)
 	view.AssertExpectations(t)
 }
 
 func TestEntryController_LogNewQSO(t *testing.T) {
-	clock, log, view, controller := setupEntryTest()
-	log.Activate()
-	view.Activate()
+	clock, log, _, controller := setupEntryTest()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -167,66 +185,66 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 		MyXchange:    "myx",
 	}
 
-	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
-	view.On("SetDuplicateMarker", false).Once()
-	view.On("SetActiveField", core.TheirReportField).Once()
-	view.On("Callsign").Once().Return("DL1ABC")
+	log.Activate()
+	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
+	log.On("NextNumber").Return(core.QSONumber(1))
+	log.On("Log", qso).Once()
+
+	controller.Reset()
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.SetActiveField(core.MyReportField)
+	controller.Enter("579")
+	controller.SetActiveField(core.MyXchangeField)
+	controller.Enter("myx")
 	controller.GotoNextField()
 
-	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
-	log.On("NextNumber").Once().Return(core.QSONumber(1))
-	log.On("Log", qso).Once()
-	view.On("Callsign").Once().Return("DL1ABC")
-	view.On("Band").Once().Return("40m")
-	view.On("Mode").Once().Return("CW")
-	view.On("TheirReport").Once().Return("559")
-	view.On("TheirNumber").Once().Return("012")
-	view.On("TheirXchange").Once().Return("thx")
-	view.On("MyReport").Once().Return("579")
-	view.On("MyNumber").Once().Return("001")
-	view.On("MyXchange").Once().Return("myx")
-	view.On("SetMyReport", "599").Once()
-	view.On("SetMyNumber", "001").Once()
-	view.On("SetCallsign", "").Once()
-	view.On("SetTheirReport", "599").Once()
-	view.On("SetTheirNumber", "").Once()
-	view.On("SetTheirXchange", "").Once()
-	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("SetDuplicateMarker", false).Once()
-	view.On("SetEditingMarker", false).Once()
-	view.On("ClearMessage").Once()
+	controller.Enter("DL1ABC")
+	controller.GotoNextField()
+	controller.Enter("559")
+	controller.GotoNextField()
+	controller.Enter("012")
+	controller.GotoNextField()
+	controller.Enter("thx")
 
 	controller.Log()
 
 	log.AssertExpectations(t)
-	assert.Equal(t, core.CallsignField, controller.GetActiveField())
+	assert.Equal(t, core.CallsignField, controller.activeField)
 }
 
 func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 	log.Activate()
-	view.Activate()
 
-	view.On("Callsign").Once().Return("DL")
+	view.Activate()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
+	controller.Enter("DL")
 	controller.Log()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.CallsignField, controller.GetActiveField())
+	assert.Equal(t, core.CallsignField, controller.activeField)
 }
 
 func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
+
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.GotoNextField()
+	controller.Enter("DL1ABC")
+	controller.GotoNextField()
+	controller.Enter("000")
+
 	log.Activate()
 	view.Activate()
-
-	view.On("Callsign").Once().Return("DL1ABC")
-	view.On("Band").Once().Return("40m")
-	view.On("Mode").Once().Return("CW")
-	view.On("TheirReport").Once().Return("000")
 	view.On("SetActiveField", core.TheirReportField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
@@ -234,19 +252,25 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirReportField, controller.GetActiveField())
+	assert.Equal(t, core.TheirReportField, controller.activeField)
 }
 
 func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
+
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.GotoNextField()
+	controller.Enter("DL1ABC")
+	controller.GotoNextField()
+	controller.Enter("559")
+	controller.GotoNextField()
+	controller.Enter("abc")
+
 	log.Activate()
 	view.Activate()
-
-	view.On("Callsign").Once().Return("DL1ABC")
-	view.On("Band").Once().Return("40m")
-	view.On("Mode").Once().Return("CW")
-	view.On("TheirReport").Once().Return("559")
-	view.On("TheirNumber").Once().Return("abc")
 	view.On("SetActiveField", core.TheirNumberField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
@@ -254,19 +278,23 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirNumberField, controller.GetActiveField())
+	assert.Equal(t, core.TheirNumberField, controller.activeField)
 }
 
 func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	_, log, view, controller := setupEntryWithOnlyNumberTest()
+
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.GotoNextField()
+	controller.Enter("DL1ABC")
+	controller.GotoNextField()
+	controller.Enter("559")
+
 	log.Activate()
 	view.Activate()
-
-	view.On("Callsign").Once().Return("DL1ABC")
-	view.On("Band").Once().Return("40m")
-	view.On("Mode").Once().Return("CW")
-	view.On("TheirReport").Once().Return("559")
-	view.On("TheirNumber").Once().Return("")
 	view.On("SetActiveField", core.TheirNumberField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
@@ -274,19 +302,23 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirNumberField, controller.GetActiveField())
+	assert.Equal(t, core.TheirNumberField, controller.activeField)
 }
 
 func TestEntryController_LogWithoutMandatoryTheirXchange(t *testing.T) {
 	_, log, view, controller := setupEntryWithOnlyExchangeTest()
+
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.GotoNextField()
+	controller.Enter("DL1ABC")
+	controller.GotoNextField()
+	controller.Enter("559")
+
 	log.Activate()
 	view.Activate()
-
-	view.On("Callsign").Once().Return("DL1ABC")
-	view.On("Band").Once().Return("40m")
-	view.On("Mode").Once().Return("CW")
-	view.On("TheirReport").Once().Return("559")
-	view.On("TheirXchange").Once().Return("")
 	view.On("SetActiveField", core.TheirXchangeField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
@@ -294,21 +326,29 @@ func TestEntryController_LogWithoutMandatoryTheirXchange(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirXchangeField, controller.GetActiveField())
+	assert.Equal(t, core.TheirXchangeField, controller.activeField)
 }
 
 func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
+
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.SetActiveField(core.MyReportField)
+	controller.Enter("000")
+	controller.GotoNextField()
+	controller.Enter("DL1ABC")
+	controller.GotoNextField()
+	controller.Enter("559")
+	controller.GotoNextField()
+	controller.Enter("1")
+	controller.GotoNextField()
+	controller.Enter("abc")
+
 	log.Activate()
 	view.Activate()
-
-	view.On("Callsign").Once().Return("DL1ABC")
-	view.On("Band").Once().Return("40m")
-	view.On("Mode").Once().Return("CW")
-	view.On("TheirReport").Once().Return("599")
-	view.On("TheirNumber").Once().Return("1")
-	view.On("TheirXchange").Once().Return("abc")
-	view.On("MyReport").Once().Return("000")
 	view.On("SetActiveField", core.MyReportField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
@@ -316,13 +356,11 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.MyReportField, controller.GetActiveField())
+	assert.Equal(t, core.MyReportField, controller.activeField)
 }
 
 func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 	clock, log, view, controller := setupEntryTest()
-	log.Activate()
-	view.Activate()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -336,16 +374,30 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 		MyXchange:    "def",
 	}
 
-	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
-	view.On("Callsign").Once().Return("DL1ABC")
-	view.On("Band").Once().Return("40m")
-	view.On("Mode").Once().Return("CW")
-	view.On("TheirReport").Once().Return("599")
-	view.On("TheirNumber").Once().Return("1")
-	view.On("TheirXchange").Once().Return("abc")
-	view.On("MyReport").Once().Return("579")
-	view.On("MyNumber").Once().Return("013")
-	view.On("MyXchange").Once().Return("def")
+	log.Activate()
+	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
+	log.On("NextNumber").Return(core.QSONumber(1))
+
+	controller.Reset()
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.SetActiveField(core.MyReportField)
+	controller.Enter("579")
+	controller.SetActiveField(core.MyXchangeField)
+	controller.Enter("myx")
+
+	controller.SetActiveField(core.TheirReportField)
+	controller.Enter("559")
+	controller.GotoNextField()
+	controller.Enter("012")
+	controller.GotoNextField()
+	controller.Enter("thx")
+	controller.GotoNextField()
+	controller.Enter("DL1ABC")
+
+	view.Activate()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
@@ -373,12 +425,12 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 
 	log.On("FindAll", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
 	view.On("ShowMessage", mock.Anything).Once()
-	controller.EnterCallsign("DL1AB")
+	controller.Enter("DL1AB")
 	view.AssertExpectations(t)
 
 	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
 	view.On("ClearMessage").Once()
-	controller.EnterCallsign("DL1ABC")
+	controller.Enter("DL1ABC")
 	view.AssertExpectations(t)
 }
 
@@ -411,7 +463,10 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 	view.On("SetMyXchange", "B36").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetEditingMarker", true).Once()
+
 	controller.QSOSelected(qso)
+
+	assertQSOInput(t, qso, controller)
 
 	view.AssertExpectations(t)
 }
@@ -449,4 +504,18 @@ func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.EntryVie
 	controller.SetView(view)
 
 	return clock, log, view, controller
+}
+
+func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
+	assert.Equal(t, qso.Callsign.String(), controller.input.callsign)
+	assert.Equal(t, qso.TheirReport.String(), controller.input.theirReport)
+	assert.Equal(t, qso.TheirNumber.String(), controller.input.theirNumber)
+	assert.Equal(t, qso.TheirXchange, controller.input.theirXchange)
+	assert.Equal(t, qso.MyReport.String(), controller.input.myReport)
+	assert.Equal(t, qso.MyNumber.String(), controller.input.myNumber)
+	assert.Equal(t, qso.MyXchange, controller.input.myXchange)
+	assert.Equal(t, qso.Band.String(), controller.input.band, "input band")
+	assert.Equal(t, qso.Band, controller.selectedBand, "selected band")
+	assert.Equal(t, qso.Mode.String(), controller.input.mode, "input mode")
+	assert.Equal(t, qso.Mode, controller.selectedMode, "selected mode")
 }

@@ -51,6 +51,8 @@ type Logbook interface {
 	LastMode() core.Mode
 	Log(core.QSO)
 	FindAll(callsign.Callsign, core.Band, core.Mode) []core.QSO
+	SelectQSO(core.QSO)
+	SelectLastQSO()
 }
 
 // Keyer functionality used for QSO entry.
@@ -179,6 +181,7 @@ func (c *Controller) leaveCallsignField() {
 
 	c.showQSO(qso)
 	c.view.SetDuplicateMarker(true)
+	c.logbook.SelectQSO(qso)
 }
 
 func (c *Controller) showQSO(qso core.QSO) {
@@ -458,6 +461,7 @@ func (c *Controller) Reset() {
 	c.view.SetDuplicateMarker(false)
 	c.view.SetEditingMarker(false)
 	c.view.ClearMessage()
+	c.logbook.SelectLastQSO()
 }
 
 func (c *Controller) CurrentValues() core.KeyerValues {

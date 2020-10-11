@@ -41,6 +41,20 @@ func (m *Log) Select(i int) {
 	m.Called(i)
 }
 
+func (m *Log) SelectQSO(qso core.QSO) {
+	if !m.active {
+		return
+	}
+	m.Called(qso)
+}
+
+func (m *Log) SelectLastQSO() {
+	if !m.active {
+		return
+	}
+	m.Called()
+}
+
 func (m *Log) NextNumber() core.QSONumber {
 	if !m.active {
 		return core.QSONumber(0)

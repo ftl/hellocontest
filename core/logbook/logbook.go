@@ -63,6 +63,7 @@ type Logbook struct {
 type View interface {
 	UpdateAllRows([]core.QSO)
 	RowAdded(core.QSO)
+	SelectRow(int)
 }
 
 // Reader reads log entries.
@@ -85,12 +86,12 @@ type Store interface {
 // RowAddedListener is notified when a new row is added to the log.
 type RowAddedListener func(core.QSO) error
 
-// RowSelectedListener is notified when a row is selected in the log view.
-type RowSelectedListener func(core.QSO)
-
 func (l RowAddedListener) Write(qso core.QSO) error {
 	return l(qso)
 }
+
+// RowSelectedListener is notified when a row is selected in the log view.
+type RowSelectedListener func(core.QSO)
 
 func (l *Logbook) SetView(view View) {
 	l.ignoreSelection = true
@@ -146,6 +147,33 @@ func (l *Logbook) Select(i int) {
 	}
 	qso := l.qsos[i]
 	l.emitRowSelected(qso)
+}
+
+func (l *Logbook) SelectQSO(qso core.QSO) {
+	log.Printf("select qso #%d", qso.MyNumber)
+	index, ok := l.indexOf(qso)
+	if !ok {
+		log.Print("qso not found")
+		return
+	}
+
+	l.view.SelectRow(index)
+}
+
+func (l *Logbook) indexOf(qso core.QSO) (int, bool) {
+	for i := len(l.qsos) - 1; i >= 0; i-- {
+		if l.qsos[i].MyNumber == qso.MyNumber {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func (l *Logbook) SelectLastQSO() {
+	if len(l.qsos) == 0 {
+		return
+	}
+	l.view.SelectRow(len(l.qsos) - 1)
 }
 
 func (l *Logbook) NextNumber() core.QSONumber {
@@ -270,4 +298,4 @@ type nullView struct{}
 
 func (d *nullView) UpdateAllRows([]core.QSO) {}
 func (d *nullView) RowAdded(core.QSO)        {}
-func (d *nullView) OnSelection(func(int))    {}
+func (d *nullView) SelectRow(int)            {}

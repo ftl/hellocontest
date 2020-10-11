@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -31,9 +32,11 @@ type LogbookController interface {
 type logbookView struct {
 	controller LogbookController
 
-	view      *gtk.TreeView
-	list      *gtk.ListStore
-	selection *gtk.TreeSelection
+	view *gtk.TreeView
+	list *gtk.ListStore
+
+	selection       *gtk.TreeSelection
+	ignoreSelection bool
 }
 
 func setupLogbookView(builder *gtk.Builder) *logbookView {
@@ -117,15 +120,44 @@ func (v *logbookView) RowAdded(qso core.QSO) {
 		})
 	if err != nil {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)
+		return
 	}
+
 	path, err := v.list.GetPath(newRow)
 	if err != nil {
-		log.Printf("Cannot get path for list item: %s", err)
+		log.Printf("Cannot get path for list item: %v", err)
+		return
 	}
 	v.view.SetCursorOnCell(path, v.view.GetColumn(1), nil, false)
+	v.view.ScrollToCell(path, v.view.GetColumn(1), false, 0, 0)
+}
+
+func (v *logbookView) SelectRow(index int) {
+	v.ignoreSelection = true
+	defer func() {
+		v.ignoreSelection = false
+	}()
+	log.Printf("select row %d", index)
+	row, err := v.list.GetIterFromString(fmt.Sprintf("%d", index))
+	if err != nil {
+		log.Printf("cannot get iter: %v", err)
+		return
+	}
+	path, err := v.list.GetPath(row)
+	if err != nil {
+		log.Printf("Cannot get path for list item: %v", err)
+		return
+	}
+	v.view.SetCursorOnCell(path, v.view.GetColumn(1), nil, false)
+	v.view.ScrollToCell(path, v.view.GetColumn(1), false, 0, 0)
 }
 
 func (v *logbookView) onSelectionChanged(selection *gtk.TreeSelection) bool {
+	if v.ignoreSelection {
+		return false
+	}
+	log.Print("selection changed")
+
 	model, _ := v.view.GetModel()
 	rows := selection.GetSelectedRows(model)
 	if rows.Length() == 1 {

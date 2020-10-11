@@ -15,7 +15,8 @@ import (
 func TestEntryController_Reset(t *testing.T) {
 	_, log, _, controller := setupEntryTest()
 	log.Activate()
-	log.On("NextNumber").Once().Return(core.QSONumber(1))
+	log.On("NextNumber").Return(core.QSONumber(1)).Once()
+	log.On("SelectLastQSO").Once()
 
 	controller.Reset()
 
@@ -34,6 +35,7 @@ func TestEntryController_ResetView(t *testing.T) {
 	_, log, view, controller := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
+	log.On("SelectLastQSO").Once()
 
 	view.Activate()
 	view.On("SetMyReport", "599").Once()
@@ -59,6 +61,7 @@ func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
 	_, log, _, controller := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
+	log.On("SelectLastQSO").Once()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("30m")
@@ -143,6 +146,7 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 
 	log.Activate()
 	log.On("FindAll", dl1abc, core.NoBand, core.NoMode).Return([]core.QSO{qso}).Twice()
+	log.On("SelectQSO", qso).Once()
 
 	view.Activate()
 	view.On("SetDuplicateMarker", true).Once()
@@ -189,6 +193,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
 	log.On("NextNumber").Return(core.QSONumber(1))
 	log.On("Log", qso).Once()
+	log.On("SelectLastQSO").Twice()
 
 	controller.Reset()
 	controller.SetActiveField(core.BandField)
@@ -377,6 +382,7 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 	log.Activate()
 	log.On("FindAll", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
 	log.On("NextNumber").Return(core.QSONumber(1))
+	log.On("SelectLastQSO").Once()
 
 	controller.Reset()
 	controller.SetActiveField(core.BandField)

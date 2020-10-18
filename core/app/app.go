@@ -16,6 +16,7 @@ import (
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
+	"github.com/ftl/hellocontest/core/export/csv"
 	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
@@ -46,6 +47,7 @@ type Controller struct {
 	store         *store.FileStore
 	cwclient      *cwclient.Client
 	hamlibClient  *hamlib.Client
+	dxccFinder    *dxcc.Finder
 
 	Logbook  *logbook.Logbook
 	Entry    *entry.Controller
@@ -108,6 +110,7 @@ func (c *Controller) Startup() {
 	}
 
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
+	c.dxccFinder = dxcc.New()
 
 	hamlibAddress := c.configuration.HamlibAddress()
 	c.hamlibClient = hamlib.New(hamlibAddress)
@@ -121,7 +124,7 @@ func (c *Controller) Startup() {
 	c.Workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
 	c.Workmode.SetKeyer(c.Keyer)
 
-	c.Callinfo = callinfo.New(dxcc.New(), scp.New())
+	c.Callinfo = callinfo.New(c.dxccFinder, scp.New())
 
 	c.changeLogbook(filename, store, newLogbook)
 }
@@ -300,6 +303,33 @@ func (c *Controller) ExportADIF() {
 	err = adif.Export(file, c.Logbook.UniqueQsosOrderedByMyNumber()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export ADIF to %s: %v", filename, err)
+		return
+	}
+}
+
+func (c *Controller) ExportCSV() {
+	filename, ok, err := c.view.SelectSaveFile("Export CSV File", "*.csv")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
+		return
+	}
+	defer file.Close()
+	err = csv.Export(
+		file,
+		c.dxccFinder,
+		c.configuration.MyCall(),
+		c.Logbook.UniqueQsosOrderedByMyNumber()...)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
 	}
 }

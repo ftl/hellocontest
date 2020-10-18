@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/dxcc"
 )
 
 // QSO contains the details about one radio contact.
@@ -20,6 +21,7 @@ type QSO struct {
 	TheirNumber  QSONumber
 	TheirXchange string
 	LogTimestamp time.Time
+	DXCC         *dxcc.Prefix
 }
 
 func (qso *QSO) String() string {

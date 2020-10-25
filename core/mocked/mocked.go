@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/dxcc"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/ftl/hellocontest/core"
@@ -342,4 +343,13 @@ func (m *KeyerView) Speed() int {
 
 func (m *KeyerView) SetSpeed(speed int) {
 	m.Called(speed)
+}
+
+type DXCCFinder struct {
+	mock.Mock
+}
+
+func (m *DXCCFinder) Find(callsign string) ([]dxcc.Prefix, bool) {
+	args := m.Called(callsign)
+	return args.Get(0).([]dxcc.Prefix), args.Get(1).(bool)
 }

@@ -21,7 +21,7 @@ type QSO struct {
 	TheirNumber  QSONumber
 	TheirXchange string
 	LogTimestamp time.Time
-	DXCC         *dxcc.Prefix
+	DXCC         dxcc.Prefix
 }
 
 func (qso *QSO) String() string {

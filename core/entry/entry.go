@@ -47,10 +47,14 @@ type input struct {
 // Logbook functionality used for QSO entry.
 type Logbook interface {
 	NextNumber() core.QSONumber
+	Log(core.QSO)
+}
+
+// QSOList functionality used for QSO entry.
+type QSOList interface {
 	LastBand() core.Band
 	LastMode() core.Mode
-	Log(core.QSO)
-	FindAll(callsign.Callsign, core.Band, core.Mode) []core.QSO
+	Find(callsign.Callsign, core.Band, core.Mode) []core.QSO
 	SelectQSO(core.QSO)
 	SelectLastQSO()
 }
@@ -72,18 +76,19 @@ type VFO interface {
 }
 
 // NewController returns a new entry controller.
-func NewController(clock core.Clock, logbook Logbook, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) *Controller {
+func NewController(clock core.Clock, qsoList QSOList, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) *Controller {
 	return &Controller{
 		clock:             clock,
-		view:              &nullView{},
-		vfo:               &nullVFO{},
-		logbook:           logbook,
+		view:              new(nullView),
+		logbook:           new(nullLogbook),
+		vfo:               new(nullVFO),
+		qsoList:           qsoList,
 		enterTheirNumber:  enterTheirNumber,
 		enterTheirXchange: enterTheirXchange,
 		allowMultiBand:    allowMultiBand,
 		allowMultiMode:    allowMultiMode,
-		selectedBand:      logbook.LastBand(),
-		selectedMode:      logbook.LastMode(),
+		selectedBand:      qsoList.LastBand(),
+		selectedMode:      qsoList.LastMode(),
 	}
 }
 
@@ -91,6 +96,7 @@ type Controller struct {
 	clock    core.Clock
 	view     View
 	logbook  Logbook
+	qsoList  QSOList
 	keyer    Keyer
 	callinfo Callinfo
 	vfo      VFO
@@ -100,12 +106,13 @@ type Controller struct {
 	allowMultiBand    bool
 	allowMultiMode    bool
 
-	input        input
-	activeField  core.EntryField
-	selectedBand core.Band
-	selectedMode core.Mode
-	editing      bool
-	editQSO      core.QSO
+	input              input
+	activeField        core.EntryField
+	selectedBand       core.Band
+	selectedMode       core.Mode
+	editing            bool
+	editQSO            core.QSO
+	ignoreQSOSelection bool
 }
 
 func (c *Controller) SetView(view View) {
@@ -116,6 +123,12 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 	c.Reset()
 	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
+}
+
+func (c *Controller) SetLogbook(logbook Logbook) {
+	c.logbook = logbook
+	c.selectedBand = c.qsoList.LastBand()
+	c.selectedMode = c.qsoList.LastMode()
 }
 
 func (c *Controller) SetKeyer(keyer Keyer) {
@@ -181,7 +194,7 @@ func (c *Controller) leaveCallsignField() {
 
 	c.showQSO(qso)
 	c.view.SetDuplicateMarker(true)
-	c.logbook.SelectQSO(qso)
+	c.selectQSO(qso)
 }
 
 func (c *Controller) showQSO(qso core.QSO) {
@@ -213,6 +226,12 @@ func (c *Controller) showInput() {
 	c.view.SetMode(c.input.mode)
 }
 
+func (c *Controller) selectQSO(qso core.QSO) {
+	c.ignoreQSOSelection = true
+	c.qsoList.SelectQSO(qso)
+	c.ignoreQSOSelection = false
+}
+
 func (c *Controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	band := core.NoBand
 	if c.allowMultiBand {
@@ -222,7 +241,7 @@ func (c *Controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	if c.allowMultiMode {
 		mode = c.selectedMode
 	}
-	qsos := c.logbook.FindAll(callsign, band, mode)
+	qsos := c.qsoList.Find(callsign, band, mode)
 	if len(qsos) == 0 {
 		return core.QSO{}, false
 	}
@@ -337,6 +356,10 @@ func (c *Controller) enterCallsign(s string) {
 }
 
 func (c *Controller) QSOSelected(qso core.QSO) {
+	if c.ignoreQSOSelection {
+		return
+	}
+
 	log.Printf("QSO selected: %v", qso)
 	c.editing = true
 	c.editQSO = qso
@@ -461,7 +484,16 @@ func (c *Controller) Reset() {
 	c.view.SetDuplicateMarker(false)
 	c.view.SetEditingMarker(false)
 	c.view.ClearMessage()
-	c.logbook.SelectLastQSO()
+	c.selectLastQSO()
+	if c.callinfo != nil {
+		c.callinfo.ShowCallsign("")
+	}
+}
+
+func (c *Controller) selectLastQSO() {
+	c.ignoreQSOSelection = true
+	c.qsoList.SelectLastQSO()
+	c.ignoreQSOSelection = false
 }
 
 func (c *Controller) CurrentValues() core.KeyerValues {
@@ -499,3 +531,8 @@ type nullVFO struct{}
 func (n *nullVFO) SetBand(core.Band) {}
 func (n *nullVFO) SetMode(core.Mode) {}
 func (n *nullVFO) Refresh()          {}
+
+type nullLogbook struct{}
+
+func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
+func (n *nullLogbook) Log(core.QSO)               {}

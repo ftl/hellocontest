@@ -66,23 +66,16 @@ func (a *application) activate() {
 	a.callinfoWindow = setupCallinfoWindow(a.builder)
 
 	a.controller = app.NewController(a.version, clock.New(), a.app, configuration)
-	a.controller.OnLogbookChanged = func() {
-		a.mainWindow.SetLogbookController(a.controller.Logbook)
-		a.mainWindow.SetEntryController(a.controller.Entry)
-
-		a.controller.Logbook.SetView(a.mainWindow)
-		a.controller.Entry.SetView(a.mainWindow)
-	}
 	a.controller.Startup()
 
 	a.mainWindow.SetMainMenuController(a.controller)
-	a.mainWindow.SetLogbookController(a.controller.Logbook)
+	a.mainWindow.SetLogbookController(a.controller.QSOList)
 	a.mainWindow.SetEntryController(a.controller.Entry)
 	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
 	a.mainWindow.SetKeyerController(a.controller.Keyer)
 
 	a.controller.SetView(a.mainWindow)
-	a.controller.Logbook.SetView(a.mainWindow)
+	a.controller.QSOList.Notify(a.mainWindow)
 	a.controller.Entry.SetView(a.mainWindow)
 	a.controller.Workmode.SetView(a.mainWindow)
 	a.controller.Keyer.SetView(a.mainWindow)
@@ -96,6 +89,7 @@ func (a *application) activate() {
 	}
 
 	a.mainWindow.Show()
+	a.controller.Refresh()
 }
 
 func (a *application) shutdown() {

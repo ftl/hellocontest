@@ -1,9 +1,23 @@
 package logbook
 
 import (
+	"log"
+
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
+
 	"github.com/ftl/hellocontest/core"
 )
+
+type QSOsClearedListener interface {
+	QSOsCleared()
+}
+
+type QSOsClearedListenerFunc func()
+
+func (f QSOsClearedListenerFunc) Clear() {
+	f()
+}
 
 type QSOAddedListener interface {
 	QSOAdded(core.QSO)
@@ -35,6 +49,26 @@ func (f QSOUpdatedListenerFunc) QSOUpdated(index int, old, new core.QSO) {
 	f(index, old, new)
 }
 
+type QSOSelectedListener interface {
+	QSOSelected(core.QSO)
+}
+
+type QSOSelectedListenerFunc func(core.QSO)
+
+func (f QSOSelectedListenerFunc) QSOSelected(qso core.QSO) {
+	f(qso)
+}
+
+type RowSelectedListener interface {
+	RowSelected(int)
+}
+
+type RowSelectedListenerFunc func(int)
+
+func (f RowSelectedListenerFunc) RowSelected(index int) {
+	f(index)
+}
+
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
 type DXCCFinder interface {
 	Find(string) ([]dxcc.Prefix, bool)
@@ -51,6 +85,11 @@ func NewQSOList(dxccFinder DXCCFinder) *QSOList {
 		list:       make([]core.QSO, 0),
 		dxccFinder: dxccFinder,
 	}
+}
+
+func (l *QSOList) Clear() {
+	l.list = make([]core.QSO, 0)
+	l.emitQSOsCleared()
 }
 
 func (l *QSOList) Put(qso core.QSO) {
@@ -123,8 +162,87 @@ func (l *QSOList) All() []core.QSO {
 	return l.list
 }
 
+func (l *QSOList) SelectRow(index int) {
+	if index < 0 || index >= len(l.list) {
+		log.Printf("invalid QSO index %d", index)
+		return
+	}
+
+	qso := l.list[index]
+	l.emitQSOSelected(qso)
+	l.emitRowSelected(index)
+}
+
+func (l *QSOList) SelectQSO(qso core.QSO) {
+	index, ok := l.findIndex(qso.MyNumber)
+	if !ok {
+		log.Print("qso not found")
+		return
+	}
+
+	l.emitQSOSelected(qso)
+	l.emitRowSelected(index)
+}
+
+func (l *QSOList) SelectLastQSO() {
+	if len(l.list) == 0 {
+		return
+	}
+
+	index := len(l.list) - 1
+	qso := l.list[index]
+	l.emitQSOSelected(qso)
+	l.emitRowSelected(index)
+}
+
+func (l *QSOList) lastQSO() core.QSO {
+	if len(l.list) == 0 {
+		return core.QSO{}
+	}
+	return l.list[len(l.list)-1]
+}
+
+func (l *QSOList) LastBand() core.Band {
+	return l.lastQSO().Band
+}
+
+func (l *QSOList) LastMode() core.Mode {
+	return l.lastQSO().Mode
+}
+
+func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	checkedNumbers := make(map[core.QSONumber]bool)
+	result := make([]core.QSO, 0)
+	for _, qso := range l.list {
+		if checkedNumbers[qso.MyNumber] {
+			continue
+		}
+		checkedNumbers[qso.MyNumber] = true
+
+		if callsign != qso.Callsign {
+			continue
+		}
+		if band != core.NoBand && band != qso.Band {
+			continue
+		}
+		if mode != core.NoMode && mode != qso.Mode {
+			continue
+		}
+		result = append(result, qso)
+	}
+	return result
+}
+
 func (l *QSOList) Notify(listener interface{}) {
 	l.listeners = append(l.listeners, listener)
+}
+
+func (l *QSOList) emitQSOsCleared() {
+	for _, listener := range l.listeners {
+		if qsosClearedListener, ok := listener.(QSOsClearedListener); ok {
+			qsosClearedListener.QSOsCleared()
+		}
+	}
 }
 
 func (l *QSOList) emitQSOAdded(qso core.QSO) {
@@ -147,6 +265,22 @@ func (l *QSOList) emitQSOUpdated(index int, old, new core.QSO) {
 	for _, listener := range l.listeners {
 		if qsoUpdatedListener, ok := listener.(QSOUpdatedListener); ok {
 			qsoUpdatedListener.QSOUpdated(index, old, new)
+		}
+	}
+}
+
+func (l *QSOList) emitQSOSelected(qso core.QSO) {
+	for _, listener := range l.listeners {
+		if qsoSelectedListener, ok := listener.(QSOSelectedListener); ok {
+			qsoSelectedListener.QSOSelected(qso)
+		}
+	}
+}
+
+func (l *QSOList) emitRowSelected(index int) {
+	for _, listener := range l.listeners {
+		if rowSelectedListener, ok := listener.(RowSelectedListener); ok {
+			rowSelectedListener.RowSelected(index)
 		}
 	}
 }

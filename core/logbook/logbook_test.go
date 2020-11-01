@@ -1,7 +1,6 @@
 package logbook
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -71,9 +70,8 @@ func TestLog_EmitRowAdded(t *testing.T) {
 	clock := clock.Static(now)
 	logbook := New(clock)
 	emitted := false
-	logbook.OnRowAdded(func(core.QSO) error {
+	logbook.OnRowAdded(func(core.QSO) {
 		emitted = true
-		return nil
 	})
 
 	qso := core.QSO{MyNumber: 1}
@@ -89,68 +87,6 @@ func TestLog_NextNumber(t *testing.T) {
 	logbook.Log(qso)
 
 	assert.Equal(t, core.QSONumber(124), logbook.NextNumber(), "next number should be the highest existing number + 1")
-}
-
-func TestLog_Find(t *testing.T) {
-	logbook := New(clock.New())
-	aa3b, _ := callsign.Parse("AA3B")
-	qso := core.QSO{Callsign: aa3b}
-
-	logbook.Log(qso)
-	loggedQso, ok := logbook.Find(aa3b)
-	assert.True(t, ok, "qso found")
-	assert.Equal(t, aa3b, loggedQso.Callsign, "callsign")
-}
-
-func TestLog_FindAll(t *testing.T) {
-	logbook := New(clock.New())
-	aa1zzz := callsign.MustParse("AA1ZZZ")
-	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
-	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
-	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW, MyNumber: core.QSONumber(3)})
-	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB, MyNumber: core.QSONumber(4)})
-	logbook.Log(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY, MyNumber: core.QSONumber(5)})
-
-	testCases := []struct {
-		band        core.Band
-		mode        core.Mode
-		expectedLen int
-	}{
-		{core.NoBand, core.NoMode, 5},
-		{core.Band10m, core.NoMode, 2},
-		{core.Band20m, core.NoMode, 3},
-		{core.Band10m, core.ModeCW, 1},
-		{core.Band10m, core.ModeRTTY, 0},
-		{core.NoBand, core.ModeCW, 2},
-	}
-	for _, tC := range testCases {
-		t.Run(fmt.Sprintf("%v, %v", tC.band, tC.mode), func(t *testing.T) {
-			qsos := logbook.FindAll(aa1zzz, tC.band, tC.mode)
-			assert.Equal(t, tC.expectedLen, len(qsos))
-		})
-	}
-}
-
-func TestLog_DoNotFindEditedCallsign(t *testing.T) {
-	logbook := New(clock.New())
-	aa1zzz := callsign.MustParse("AA1ZZZ")
-	a1bc := callsign.MustParse("A1BC")
-	logbook.Log(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
-	logbook.Log(core.QSO{Callsign: a1bc, MyNumber: core.QSONumber(5)})
-
-	_, foundOldCall := logbook.Find(aa1zzz)
-	newQso, foundNewCall := logbook.Find(a1bc)
-
-	assert.False(t, foundOldCall)
-	assert.True(t, foundNewCall)
-	assert.Equal(t, core.QSONumber(5), newQso.MyNumber)
-	assert.Equal(t, a1bc, newQso.Callsign)
-
-	assert.Empty(t, logbook.FindAll(aa1zzz, core.NoBand, core.NoMode))
-	newQSOs := logbook.FindAll(a1bc, core.NoBand, core.NoMode)
-	require.Equal(t, 1, len(newQSOs))
-	assert.Equal(t, core.QSONumber(5), newQSOs[0].MyNumber)
-	assert.Equal(t, a1bc, newQSOs[0].Callsign)
 }
 
 func TestLog_UniqueQsosOrderedByMyNumber(t *testing.T) {

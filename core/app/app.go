@@ -50,6 +50,7 @@ type Controller struct {
 	dxccFinder    *dxcc.Finder
 
 	Logbook  *logbook.Logbook
+	QSOList  *logbook.QSOList
 	Entry    *entry.Controller
 	Workmode *workmode.Controller
 	Keyer    *keyer.Keyer
@@ -118,15 +119,55 @@ func (c *Controller) Startup() {
 		c.hamlibClient.KeepOpen()
 	}
 
+	c.QSOList = logbook.NewQSOList(c.dxccFinder)
+	c.Entry = entry.NewController(
+		c.clock,
+		c.QSOList,
+		c.configuration.EnterTheirNumber(),
+		c.configuration.EnterTheirXchange(),
+		c.configuration.AllowMultiBand(),
+		c.configuration.AllowMultiMode(),
+	)
+	c.QSOList.Notify(c.Entry)
+
+	c.Entry.SetVFO(c.hamlibClient)
+	c.hamlibClient.SetVFOController(c.Entry)
+
 	c.Keyer = keyer.New(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
 	c.Keyer.SetPatterns(c.configuration.KeyerSPPatterns())
+	c.Keyer.SetValues(c.Entry.CurrentValues)
+	c.Entry.SetKeyer(c.Keyer)
 
 	c.Workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
 	c.Workmode.SetKeyer(c.Keyer)
 
 	c.Callinfo = callinfo.New(c.dxccFinder, scp.New())
+	c.Callinfo.SetDupeChecker(c.Entry)
+	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.changeLogbook(filename, store, newLogbook)
+}
+
+func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {
+	c.QSOList.Clear()
+
+	c.filename = filename
+	c.store = store
+	c.Logbook = logbook
+	c.Logbook.SetWriter(c.store)
+	c.Logbook.OnRowAdded(c.QSOList.Put)
+	c.Logbook.ReplayAll()
+	c.Entry.SetLogbook(c.Logbook)
+
+	if c.view != nil {
+		c.view.ShowFilename(c.filename)
+	}
+	if c.OnLogbookChanged != nil {
+		c.OnLogbookChanged()
+	}
+
+	c.hamlibClient.Refresh()
+	c.Entry.Reset()
 }
 
 func (c *Controller) Shutdown() {
@@ -180,47 +221,6 @@ func (c *Controller) Open() {
 	c.changeLogbook(filename, store, log)
 }
 
-func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {
-	c.filename = filename
-	c.store = store
-
-	if c.Logbook != nil {
-		c.Logbook.SetView(nil)
-		c.Logbook.ClearRowSelectedListeners()
-	}
-	if c.Entry != nil {
-		c.Entry.SetView(nil)
-	}
-
-	c.Logbook = logbook
-	c.Logbook.OnRowAdded(c.store.Write)
-	c.Entry = entry.NewController(
-		c.clock,
-		c.Logbook,
-		c.configuration.EnterTheirNumber(),
-		c.configuration.EnterTheirXchange(),
-		c.configuration.AllowMultiBand(),
-		c.configuration.AllowMultiMode(),
-	)
-	c.Logbook.OnRowSelected(c.Entry.QSOSelected)
-
-	c.Entry.SetKeyer(c.Keyer)
-	c.Entry.SetCallinfo(c.Callinfo)
-	c.Entry.SetVFO(c.hamlibClient)
-
-	c.Keyer.SetValues(c.Entry.CurrentValues)
-	c.Callinfo.SetDupeChecker(c.Entry)
-	c.hamlibClient.SetVFOController(c.Entry)
-	c.hamlibClient.Refresh()
-
-	if c.view != nil {
-		c.view.ShowFilename(c.filename)
-	}
-	if c.OnLogbookChanged != nil {
-		c.OnLogbookChanged()
-	}
-}
-
 func (c *Controller) SaveAs() {
 	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", "*.log")
 	if !ok {
@@ -243,10 +243,9 @@ func (c *Controller) SaveAs() {
 		return
 	}
 
-	c.Logbook.ClearRowAddedListeners()
 	c.filename = filename
 	c.store = store
-	c.Logbook.OnRowAdded(c.store.Write)
+	c.Logbook.SetWriter(store)
 
 	c.view.ShowFilename(c.filename)
 }
@@ -337,4 +336,10 @@ func (c *Controller) ExportCSV() {
 func (c *Controller) ShowCallinfo() {
 	c.Callinfo.Show()
 	c.view.BringToFront()
+}
+
+func (c *Controller) Refresh() {
+	c.QSOList.Clear()
+	c.Logbook.ReplayAll()
+	c.Entry.Reset()
 }

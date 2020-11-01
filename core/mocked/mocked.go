@@ -28,34 +28,6 @@ func (m *Log) ClearRowAddedListeners() {
 	m.Called()
 }
 
-func (m *Log) ClearRowSelectedListeners() {
-	if !m.active {
-		return
-	}
-	m.Called()
-}
-
-func (m *Log) Select(i int) {
-	if !m.active {
-		return
-	}
-	m.Called(i)
-}
-
-func (m *Log) SelectQSO(qso core.QSO) {
-	if !m.active {
-		return
-	}
-	m.Called(qso)
-}
-
-func (m *Log) SelectLastQSO() {
-	if !m.active {
-		return
-	}
-	m.Called()
-}
-
 func (m *Log) NextNumber() core.QSONumber {
 	if !m.active {
 		return core.QSONumber(0)
@@ -64,43 +36,11 @@ func (m *Log) NextNumber() core.QSONumber {
 	return args.Get(0).(core.QSONumber)
 }
 
-func (m *Log) LastBand() core.Band {
-	if !m.active {
-		return core.NoBand
-	}
-	args := m.Called()
-	return args.Get(0).(core.Band)
-}
-
-func (m *Log) LastMode() core.Mode {
-	if !m.active {
-		return core.NoMode
-	}
-	args := m.Called()
-	return args.Get(0).(core.Mode)
-}
-
 func (m *Log) Log(qso core.QSO) {
 	if !m.active {
 		return
 	}
 	m.Called(qso)
-}
-
-func (m *Log) Find(callsign callsign.Callsign) (core.QSO, bool) {
-	if !m.active {
-		return core.QSO{}, false
-	}
-	args := m.Called(callsign)
-	return args.Get(0).(core.QSO), args.Bool(1)
-}
-
-func (m *Log) FindAll(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
-	if !m.active {
-		return []core.QSO{}
-	}
-	args := m.Called(callsign, band, mode)
-	return args.Get(0).([]core.QSO)
 }
 
 func (m *Log) QsosOrderedByMyNumber() []core.QSO {
@@ -117,6 +57,53 @@ func (m *Log) UniqueQsosOrderedByMyNumber() []core.QSO {
 	}
 	args := m.Called()
 	return args.Get(0).([]core.QSO)
+}
+
+type QSOList struct {
+	mock.Mock
+	active bool
+}
+
+func (m *QSOList) Activate() {
+	m.active = true
+}
+
+func (m *QSOList) LastBand() core.Band {
+	if !m.active {
+		return core.NoBand
+	}
+	args := m.Called()
+	return args.Get(0).(core.Band)
+}
+
+func (m *QSOList) LastMode() core.Mode {
+	if !m.active {
+		return core.NoMode
+	}
+	args := m.Called()
+	return args.Get(0).(core.Mode)
+}
+
+func (m *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	if !m.active {
+		return []core.QSO{}
+	}
+	args := m.Called(callsign, band, mode)
+	return args.Get(0).([]core.QSO)
+}
+
+func (m *QSOList) SelectQSO(qso core.QSO) {
+	if !m.active {
+		return
+	}
+	m.Called(qso)
+}
+
+func (m *QSOList) SelectLastQSO() {
+	if !m.active {
+		return
+	}
+	m.Called()
 }
 
 type AppView struct {

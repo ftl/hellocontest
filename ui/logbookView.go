@@ -26,7 +26,7 @@ const (
 
 // LogbookController represents the logbook controller.
 type LogbookController interface {
-	Select(int)
+	SelectRow(int)
 }
 
 type logbookView struct {
@@ -84,14 +84,11 @@ func (v *logbookView) SetLogbookController(controller LogbookController) {
 	v.controller = controller
 }
 
-func (v *logbookView) UpdateAllRows(qsos []core.QSO) {
+func (v *logbookView) QSOsCleared() {
 	v.list.Clear()
-	for _, qso := range qsos {
-		v.RowAdded(qso)
-	}
 }
 
-func (v *logbookView) RowAdded(qso core.QSO) {
+func (v *logbookView) QSOAdded(qso core.QSO) {
 	newRow := v.list.Append()
 	err := v.list.Set(newRow,
 		[]int{
@@ -122,22 +119,52 @@ func (v *logbookView) RowAdded(qso core.QSO) {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)
 		return
 	}
-
-	path, err := v.list.GetPath(newRow)
-	if err != nil {
-		log.Printf("Cannot get path for list item: %v", err)
-		return
-	}
-	v.view.SetCursorOnCell(path, v.view.GetColumn(1), nil, false)
-	v.view.ScrollToCell(path, v.view.GetColumn(1), false, 0, 0)
 }
 
-func (v *logbookView) SelectRow(index int) {
-	v.ignoreSelection = true
-	defer func() {
-		v.ignoreSelection = false
-	}()
-	log.Printf("select row %d", index)
+func (v *logbookView) QSOInserted(index int, qso core.QSO) {
+	// insertion is currently not supported as it does not happen in practice
+	log.Printf("qso %d inserted at %d", qso.MyNumber, index)
+}
+
+func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
+	row, err := v.list.GetIterFromString(fmt.Sprintf("%d", index))
+	if err != nil {
+		log.Printf("cannot get iter: %v", err)
+		return
+	}
+
+	err = v.list.Set(row,
+		[]int{
+			columnUTC,
+			columnCallsign,
+			columnBand,
+			columnMode,
+			columnMyReport,
+			columnMyNumber,
+			columnMyXchange,
+			columnTheirReport,
+			columnTheirNumber,
+			columnTheirXchange,
+		},
+		[]interface{}{
+			qso.Time.In(time.UTC).Format("15:04"),
+			qso.Callsign.String(),
+			qso.Band.String(),
+			qso.Mode.String(),
+			qso.MyReport.String(),
+			qso.MyNumber.String(),
+			qso.MyXchange,
+			qso.TheirReport.String(),
+			qso.TheirNumber.String(),
+			qso.TheirXchange,
+		})
+	if err != nil {
+		log.Printf("Cannot update QSO row %s: %v", qso.String(), err)
+		return
+	}
+}
+
+func (v *logbookView) RowSelected(index int) {
 	row, err := v.list.GetIterFromString(fmt.Sprintf("%d", index))
 	if err != nil {
 		log.Printf("cannot get iter: %v", err)
@@ -164,7 +191,7 @@ func (v *logbookView) onSelectionChanged(selection *gtk.TreeSelection) bool {
 		row := rows.NthData(0).(*gtk.TreePath)
 		index := row.GetIndices()[0]
 		if v.controller != nil {
-			v.controller.Select(index)
+			v.controller.SelectRow(index)
 		}
 	}
 	return true

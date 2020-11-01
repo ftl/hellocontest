@@ -1,6 +1,7 @@
 package logbook
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -134,6 +135,132 @@ func TestPut_UpdatePrefix(t *testing.T) {
 	qsos := list.All()
 
 	assert.Equal(t, kPrefix, qsos[0].DXCC, qsos[0])
+}
+
+func TestSelectQSO(t *testing.T) {
+	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
+	list := NewQSOList(new(nullDXCCFinder))
+	list.Put(qso)
+	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
+	qsoNotified := false
+	indexNotified := false
+	list.Notify(QSOSelectedListenerFunc(func(selectedQSO core.QSO) {
+		qsoNotified = true
+		assert.Equal(t, qso, selectedQSO)
+	}))
+	list.Notify(RowSelectedListenerFunc(func(index int) {
+		indexNotified = true
+		assert.Equal(t, 0, index)
+	}))
+
+	list.SelectQSO(qso)
+
+	assert.True(t, qsoNotified, "qsoNotified")
+	assert.True(t, indexNotified, "indexNotified")
+}
+
+func TestSelectRow(t *testing.T) {
+	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
+	list := NewQSOList(new(nullDXCCFinder))
+	list.Put(qso)
+	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
+	qsoNotified := false
+	indexNotified := false
+	list.Notify(QSOSelectedListenerFunc(func(selectedQSO core.QSO) {
+		qsoNotified = true
+		assert.Equal(t, qso, selectedQSO)
+	}))
+	list.Notify(RowSelectedListenerFunc(func(index int) {
+		indexNotified = true
+		assert.Equal(t, 0, index)
+	}))
+
+	list.SelectRow(0)
+
+	assert.True(t, qsoNotified, "qsoNotified")
+	assert.True(t, indexNotified, "indexNotified")
+}
+
+func TestSelectLastQSO(t *testing.T) {
+	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
+	lastQSO := core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2}
+	list := NewQSOList(new(nullDXCCFinder))
+	list.Put(qso)
+	list.Put(lastQSO)
+	qsoNotified := false
+	indexNotified := false
+	list.Notify(QSOSelectedListenerFunc(func(selectedQSO core.QSO) {
+		qsoNotified = true
+		assert.Equal(t, lastQSO, selectedQSO)
+	}))
+	list.Notify(RowSelectedListenerFunc(func(index int) {
+		indexNotified = true
+		assert.Equal(t, 1, index)
+	}))
+
+	list.SelectLastQSO()
+
+	assert.True(t, qsoNotified, "qsoNotified")
+	assert.True(t, indexNotified, "indexNotified")
+}
+
+func TestLastBand(t *testing.T) {
+	list := NewQSOList(new(nullDXCCFinder))
+	assert.Equal(t, core.NoBand, list.LastBand())
+
+	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Band: core.Band80m})
+	assert.Equal(t, core.Band80m, list.LastBand())
+}
+
+func TestLastMode(t *testing.T) {
+	list := NewQSOList(new(nullDXCCFinder))
+	assert.Equal(t, core.NoMode, list.LastMode())
+
+	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Mode: core.ModeDigital})
+	assert.Equal(t, core.ModeDigital, list.LastMode())
+}
+
+func TestFind(t *testing.T) {
+	list := NewQSOList(new(nullDXCCFinder))
+	aa1zzz := callsign.MustParse("AA1ZZZ")
+	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
+	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
+	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW, MyNumber: core.QSONumber(3)})
+	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB, MyNumber: core.QSONumber(4)})
+	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY, MyNumber: core.QSONumber(5)})
+
+	testCases := []struct {
+		band        core.Band
+		mode        core.Mode
+		expectedLen int
+	}{
+		{core.NoBand, core.NoMode, 5},
+		{core.Band10m, core.NoMode, 2},
+		{core.Band20m, core.NoMode, 3},
+		{core.Band10m, core.ModeCW, 1},
+		{core.Band10m, core.ModeRTTY, 0},
+		{core.NoBand, core.ModeCW, 2},
+	}
+	for _, tC := range testCases {
+		t.Run(fmt.Sprintf("%v, %v", tC.band, tC.mode), func(t *testing.T) {
+			qsos := list.Find(aa1zzz, tC.band, tC.mode)
+			assert.Equal(t, tC.expectedLen, len(qsos))
+		})
+	}
+}
+
+func TestDoNotFindEditedCallsign(t *testing.T) {
+	list := NewQSOList(new(nullDXCCFinder))
+	aa1zzz := callsign.MustParse("AA1ZZZ")
+	a1bc := callsign.MustParse("A1BC")
+	list.Put(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
+	list.Put(core.QSO{Callsign: a1bc, MyNumber: core.QSONumber(5)})
+
+	assert.Empty(t, list.Find(aa1zzz, core.NoBand, core.NoMode))
+	newQSOs := list.Find(a1bc, core.NoBand, core.NoMode)
+	require.Equal(t, 1, len(newQSOs))
+	assert.Equal(t, core.QSONumber(5), newQSOs[0].MyNumber)
+	assert.Equal(t, a1bc, newQSOs[0].Callsign)
 }
 
 func TestQSOAddedListener(t *testing.T) {

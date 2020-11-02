@@ -8,14 +8,51 @@ import (
 	"github.com/ftl/hamradio/locator"
 )
 
-// Load loads the configuration from the default location (see github.com/ftl/cfg/LoadDefault())
+const Filename = "hellocontest.json"
+
+var Default = Data{
+	MyCall:              "DL0ABC",
+	MyLocator:           "AA00zz",
+	EnterTheirNumber:    true,
+	EnterTheirXchange:   true,
+	AllowMultiBand:      true,
+	AllowMultiMode:      true,
+	CabrilloQSOTemplate: "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}",
+	HamlibAddress:       "localhost:4532",
+	KeyerHost:           "localhost",
+	KeyerPort:           6789,
+	KeyerWPM:            20,
+	KeyerSPMacros: []string{
+		"{{.MyCall}}",
+		"rr {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
+		"tu gl",
+		"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+	},
+	KeyerRunMacros: []string{
+		"cq {{.MyCall}} test",
+		"{{.TheirCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
+		"tu {{.MyCall}} test",
+		"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+	},
+}
+
+// Load loads the configuration from the default location (see github.com/ftl/cfg/LoadJSON()).
 func Load() (*LoadedConfiguration, error) {
-	configuration, err := cfg.LoadDefault()
+	if !cfg.Exists("", Filename) {
+		cfg.PrepareDirectory("")
+		err := cfg.SaveJSON("", Filename, Default)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var data Data
+	err := cfg.LoadJSON("", Filename, &data)
 	if err != nil {
 		return nil, err
 	}
 	return &LoadedConfiguration{
-		configuration: configuration,
+		data: data,
 	}, nil
 }
 
@@ -36,79 +73,84 @@ func Directory() string {
 	return dir
 }
 
-const (
-	enterTheirNumber    cfg.Key = "hellocontest.enter.theirNumber"
-	enterTheirXchange   cfg.Key = "hellocontest.enter.theirXchange"
-	allowMultiBand      cfg.Key = "hellocontest.enter.allowMultiBand"
-	allowMultiMode      cfg.Key = "hellocontest.enter.allowMultiMode"
-	cabrilloQSOTemplate cfg.Key = "hellocontest.cabrillo.qso"
-	keyerHost           cfg.Key = "hellocontest.keyer.host"
-	keyerPort           cfg.Key = "hellocontest.keyer.port"
-	keyerWPM            cfg.Key = "hellocontest.keyer.wpm"
-	keyerSPPatterns     cfg.Key = "hellocontest.keyer.sp"
-	keyerRunPatterns    cfg.Key = "hellocontest.keyer.run"
-	hamlibAddress       cfg.Key = "hellocontest.hamlib.address"
-)
+type Data struct {
+	MyCall              string   `json:"mycall"`
+	MyLocator           string   `json:"locator"`
+	EnterTheirNumber    bool     `json:"enter_their_number"`
+	EnterTheirXchange   bool     `json:"enter_their_xchange"`
+	AllowMultiBand      bool     `json:"allow_multi_band"`
+	AllowMultiMode      bool     `json:"allow_multi_mode"`
+	CabrilloQSOTemplate string   `json:"cabrillo_qso"`
+	KeyerHost           string   `json:"keyer_host"`
+	KeyerPort           int      `json:"keyer_port"`
+	KeyerWPM            int      `json:"keyer_wpm"`
+	KeyerSPMacros       []string `json:"keyer_sp_macros"`
+	KeyerRunMacros      []string `json:"keyer_run_macros"`
+	HamlibAddress       string   `json:"hamlib_address"`
+}
 
 type LoadedConfiguration struct {
-	configuration cfg.Configuration
+	data Data
 }
 
 func (l *LoadedConfiguration) MyCall() callsign.Callsign {
-	value := l.configuration.Get(cfg.MyCall, "").(string)
-	myCall, _ := callsign.Parse(value)
+	myCall, _ := callsign.Parse(l.data.MyCall)
 	return myCall
 }
 
 func (l *LoadedConfiguration) MyLocator() locator.Locator {
-	value := l.configuration.Get(cfg.MyLocator, "").(string)
-	myLocator, _ := locator.Parse(value)
+	myLocator, _ := locator.Parse(l.data.MyLocator)
 	return myLocator
 }
 
 func (l *LoadedConfiguration) EnterTheirNumber() bool {
-	return l.configuration.Get(enterTheirNumber, true).(bool)
+	return l.data.EnterTheirNumber
 }
 
 func (l *LoadedConfiguration) EnterTheirXchange() bool {
-	return l.configuration.Get(enterTheirXchange, true).(bool)
+	return l.data.EnterTheirXchange
 }
 
 func (l *LoadedConfiguration) CabrilloQSOTemplate() string {
-	defaultTemplate := "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"
-	return l.configuration.Get(cabrilloQSOTemplate, defaultTemplate).(string)
+	return l.data.CabrilloQSOTemplate
 }
 
 func (l *LoadedConfiguration) AllowMultiBand() bool {
-	return l.configuration.Get(allowMultiBand, false).(bool)
+	return l.data.AllowMultiBand
 }
 
 func (l *LoadedConfiguration) AllowMultiMode() bool {
-	return l.configuration.Get(allowMultiMode, false).(bool)
+	return l.data.AllowMultiMode
 }
 
 func (l *LoadedConfiguration) KeyerHost() string {
-	return l.configuration.Get(keyerHost, "").(string)
+	return l.data.KeyerHost
 }
 
 func (l *LoadedConfiguration) KeyerPort() int {
-	return int(l.configuration.Get(keyerPort, 0.0).(float64))
+	return l.data.KeyerPort
 }
 
 func (l *LoadedConfiguration) KeyerWPM() int {
-	return int(l.configuration.Get(keyerWPM, 25.0).(float64))
+	return l.data.KeyerWPM
 }
 
-func (l *LoadedConfiguration) KeyerSPPatterns() []string {
-	return l.configuration.GetStrings(keyerSPPatterns, []string{})
+func (l *LoadedConfiguration) KeyerSPMacros() []string {
+	if l.data.KeyerSPMacros == nil {
+		return []string{}
+	}
+	return l.data.KeyerSPMacros
 }
 
-func (l *LoadedConfiguration) KeyerRunPatterns() []string {
-	return l.configuration.GetStrings(keyerRunPatterns, []string{})
+func (l *LoadedConfiguration) KeyerRunMacros() []string {
+	if l.data.KeyerRunMacros == nil {
+		return []string{}
+	}
+	return l.data.KeyerRunMacros
 }
 
 func (l *LoadedConfiguration) HamlibAddress() string {
-	return l.configuration.Get(hamlibAddress, "").(string)
+	return l.data.HamlibAddress
 }
 
 type StaticConfiguration struct {
@@ -156,11 +198,11 @@ func (s *StaticConfiguration) KeyerWPM() int {
 	return 25
 }
 
-func (s *StaticConfiguration) KeyerSPPatterns() []string {
+func (s *StaticConfiguration) KeyerSPMacros() []string {
 	return []string{}
 }
 
-func (s *StaticConfiguration) KeyerRunPatterns() []string {
+func (s *StaticConfiguration) KeyerRunMacros() []string {
 	return []string{}
 }
 

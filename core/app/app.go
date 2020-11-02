@@ -83,8 +83,8 @@ type Configuration interface {
 	KeyerHost() string
 	KeyerPort() int
 	KeyerWPM() int
-	KeyerSPPatterns() []string
-	KeyerRunPatterns() []string
+	KeyerSPMacros() []string
+	KeyerRunMacros() []string
 
 	HamlibAddress() string
 }
@@ -134,11 +134,11 @@ func (c *Controller) Startup() {
 	c.hamlibClient.SetVFOController(c.Entry)
 
 	c.Keyer = keyer.New(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
-	c.Keyer.SetPatterns(c.configuration.KeyerSPPatterns())
+	c.Keyer.SetPatterns(c.configuration.KeyerSPMacros())
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Entry.SetKeyer(c.Keyer)
 
-	c.Workmode = workmode.NewController(c.configuration.KeyerSPPatterns(), c.configuration.KeyerRunPatterns())
+	c.Workmode = workmode.NewController(c.configuration.KeyerSPMacros(), c.configuration.KeyerRunMacros())
 	c.Workmode.SetKeyer(c.Keyer)
 
 	c.Callinfo = callinfo.New(c.dxccFinder, scp.New())

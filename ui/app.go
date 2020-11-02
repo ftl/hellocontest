@@ -60,7 +60,7 @@ func (a *application) activate() {
 
 	configuration, err := cfg.Load()
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 	a.mainWindow = setupMainWindow(a.builder, a.app)
 	a.callinfoWindow = setupCallinfoWindow(a.builder)

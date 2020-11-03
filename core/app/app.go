@@ -156,7 +156,6 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 	c.Logbook = logbook
 	c.Logbook.SetWriter(c.store)
 	c.Logbook.OnRowAdded(c.QSOList.Put)
-	c.Logbook.ReplayAll()
 	c.Entry.SetLogbook(c.Logbook)
 
 	if c.view != nil {
@@ -199,6 +198,7 @@ func (c *Controller) New() {
 	}
 
 	c.changeLogbook(filename, store, logbook.New(c.clock))
+	c.Refresh()
 }
 
 func (c *Controller) Open() {
@@ -219,6 +219,7 @@ func (c *Controller) Open() {
 	}
 
 	c.changeLogbook(filename, store, log)
+	c.Refresh()
 }
 
 func (c *Controller) SaveAs() {

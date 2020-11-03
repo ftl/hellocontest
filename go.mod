@@ -1,6 +1,6 @@
 module github.com/ftl/hellocontest
 
-go 1.14
+go 1.15
 
 // replace github.com/ftl/gmtry => ../gmtry
 // replace github.com/ftl/hamradio => ../hamradio

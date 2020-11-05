@@ -26,7 +26,15 @@ jobs:
         
     - name: Get Gtk version and the environment
       run: pkg-config --modversion gtk+-3.0;env
-      
+
+    - name: Caching build artifacts and modules
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
+
     - name: Get dependencies
       run: go get -v -t -d ./...
 

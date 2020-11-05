@@ -1,0 +1,58 @@
+name: Release-Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Install Linux packages
+      run: sudo apt update && sudo apt install -y --no-install-recommends libgtk-3-0 libgtk-3-dev libpango-1.0-0 libpango1.0-dev libpangocairo-1.0-0
+      
+    - name: Set up Go 1.14
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.14
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+        
+    - name: Get Gtk version and the environment
+      run: |
+        pkg-config --modversion gtk+-3.0
+        env
+      
+    - name: Get dependencies
+      run: go get -v -t -d ./...
+
+    - name: Build
+      run: go build -v -ldflags "-X main.version=$GITHUB_SHA" .
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Create package structure
+      run: |
+        mkdir -p ./.debpkg/usr/local/bin
+        cp ./hellocontest ./.debpkg/usr/bin/hellocontest
+        chmod +x ./.debpkg/usr/local/bin/hellocontest
+    - name: Create deb package
+      uses: jiro4989/build-deb-action@v2
+      with:
+        package: hellocontest
+        package_root: ./.debpkg
+        maintainer: 'Florian Thienel/DL3NEY <ftl@thecodingflow.com>'
+        version: ${{ github.ref }} # refs/tags/v*.*.*
+        arch: 'amd64'
+        desc: 'hellocontest is a simple HF contest log for Linux'
+
+    - name: 'Upload package for linux_x86_64'
+      uses: actions/upload-artifact@v2
+      with:
+        name: hellocontest-package
+        path: ./hellocontest*.deb

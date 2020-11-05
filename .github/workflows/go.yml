@@ -23,17 +23,9 @@ jobs:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
-
-    - name: Caching build artifacts and modules
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-        key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
-           
-    - name: Get Gtk version
-      run: pkg-config --modversion gtk+-3.0
+        
+    - name: Get Gtk version and the environment
+      run: pkg-config --modversion gtk+-3.0;env
       
     - name: Get dependencies
       run: go get -v -t -d ./...

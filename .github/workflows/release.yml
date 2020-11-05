@@ -42,8 +42,9 @@ jobs:
 
     - name: Build
       run: |
-        export THE_VERSION=`echo '${{ github.ref }} | sed -E 's#refs/tags/v##`
-        go build -v -ldflags "-X main.version=$THE_VERSION" .
+        export THE_VERSION=`echo '${{github.ref}} | sed -E 's#refs/tags/v##`
+        echo {{$env.THE_VERSION}}
+        go build -v -ldflags "-X main.version=${{env.THE_VERSION}}" .
 
     - name: Test
       run: go test -v ./...

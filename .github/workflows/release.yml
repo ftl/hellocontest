@@ -70,3 +70,10 @@ jobs:
       with:
         name: hellocontest-package
         path: ./hellocontest*.deb
+
+    - name: Upload package to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ./hellocontest*.deb
+        tag: ${{ github.ref }}

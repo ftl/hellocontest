@@ -43,8 +43,7 @@ jobs:
     - name: Build
       run: |
         export THE_VERSION=`echo '${{github.ref}}' | sed -E 's#refs/tags/v##'`
-        echo $THE_VERSION
-        echo ${{ env.THE_VERSION }}
+        echo "Version $THE_VERSION"
         go build -v -ldflags "-X main.version=$THE_VERSION" .
 
     - name: Test

@@ -45,10 +45,8 @@ jobs:
 
     - name: Build
       run: |
-        export THE_VERSION=`echo '${{github.ref}}' | sed -E 's#refs/tags/v##'`
-        echo "Version $THE_VERSION"
-        echo ${{ steps.version_number.outputs.version_number }}
-        go build -v -ldflags "-X main.version=$THE_VERSION" .
+        echo "Version ${{ steps.version_number.outputs.version_number }}"
+        go build -v -ldflags "-X main.version=${{ steps.version_number.outputs.version_number }}" .
 
     - name: Test
       run: go test -v ./...
@@ -70,7 +68,7 @@ jobs:
         desc: 'hellocontest is a simple HF contest log for Linux'
 
     - id: package_filename
-      run: echo "::set-output name=package_filename::$(ls ./hellocontest*.deb | | head -n 1)"
+      run: echo "::set-output name=package_filename::$(ls ./hellocontest*.deb | head -n 1)"
 
     - name: 'Upload package for linux_x86_64'
       uses: actions/upload-artifact@v2

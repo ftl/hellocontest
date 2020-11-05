@@ -10,6 +10,9 @@ jobs:
     name: Build
     runs-on: ubuntu-20.04
     steps:
+    - id: version_number
+      run: echo "::set-output name=version_number::$(echo '${{github.ref}}' | sed -E 's#refs/tags/v##')"
+ 
     - uses: actions/checkout@v2
     
     - name: Install Linux packages
@@ -44,6 +47,7 @@ jobs:
       run: |
         export THE_VERSION=`echo '${{github.ref}}' | sed -E 's#refs/tags/v##'`
         echo "Version $THE_VERSION"
+        echo ${{ steps.version_number.outputs.version_number }}
         go build -v -ldflags "-X main.version=$THE_VERSION" .
 
     - name: Test
@@ -54,6 +58,7 @@ jobs:
         mkdir -p ./.debpkg/usr/local/bin
         cp ./hellocontest ./.debpkg/usr/local/bin/hellocontest
         chmod +x ./.debpkg/usr/local/bin/hellocontest
+
     - name: Create deb package
       uses: jiro4989/build-deb-action@v2
       with:
@@ -63,6 +68,9 @@ jobs:
         version: ${{ github.ref }}
         arch: 'amd64'
         desc: 'hellocontest is a simple HF contest log for Linux'
+
+    - id: package_filename
+      run: echo "::set-output name=package_filename::$(ls ./hellocontest*.deb | | head -n 1)"
 
     - name: 'Upload package for linux_x86_64'
       uses: actions/upload-artifact@v2
@@ -74,5 +82,5 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ./hellocontest*.deb
+        file: ${{ steps.package_filename.outputs.package_filename }}
         tag: ${{ github.ref }}

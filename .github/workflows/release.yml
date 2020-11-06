@@ -53,9 +53,9 @@ jobs:
 
     - name: Create package structure
       run: |
-        mkdir -p ./.debpkg/usr/local/bin
-        cp ./hellocontest ./.debpkg/usr/local/bin/hellocontest
-        chmod +x ./.debpkg/usr/local/bin/hellocontest
+        mkdir -p ./.debpkg/usr/bin
+        cp ./hellocontest ./.debpkg/usr/bin/hellocontest
+        chmod +x ./.debpkg/usr/bin/hellocontest
 
     - name: Create deb package
       uses: jiro4989/build-deb-action@v2

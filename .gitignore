@@ -3,4 +3,5 @@
 *.cabrillo
 *.adif
 hellocontest
+hellocontest*.deb
 ui/glade/#contest.glade#

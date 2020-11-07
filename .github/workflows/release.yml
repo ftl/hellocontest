@@ -58,14 +58,7 @@ jobs:
         chmod +x ./.debpkg/usr/bin/hellocontest
 
     - name: Create deb package
-      uses: jiro4989/build-deb-action@v2
-      with:
-        package: hellocontest
-        package_root: ./.debpkg
-        maintainer: 'Florian Thienel/DL3NEY <ftl@thecodingflow.com>'
-        version: ${{ github.ref }}
-        arch: 'amd64'
-        desc: 'hellocontest is a simple HF contest log for Linux'
+      run: ./build-ppa.sh ${{ steps.version_number.outputs.version_number }}
 
     - id: package_filename
       run: echo "::set-output name=package_filename::$(ls ./hellocontest*.deb | head -n 1)"

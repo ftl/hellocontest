@@ -20,6 +20,7 @@ import (
 	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
+	"github.com/ftl/hellocontest/core/multis"
 	"github.com/ftl/hellocontest/core/scp"
 	"github.com/ftl/hellocontest/core/store"
 	"github.com/ftl/hellocontest/core/workmode"
@@ -55,6 +56,7 @@ type Controller struct {
 	Workmode *workmode.Controller
 	Keyer    *keyer.Keyer
 	Callinfo *callinfo.Callinfo
+	Multis   *multis.Counter
 
 	OnLogbookChanged func()
 }
@@ -143,6 +145,28 @@ func (c *Controller) Startup() {
 
 	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.Entry)
 	c.Entry.SetCallinfo(c.Callinfo)
+
+	c.Multis = multis.NewCounter()
+	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Multis.Clear))
+	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Multis.Add))
+	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Multis.Update(o, n) }))
+
+	c.dxccFinder.WhenAvailable(func() {
+		if myPrefix, found := c.dxccFinder.Find(c.configuration.MyCall().String()); found {
+			c.Multis.SetMyPrefix(myPrefix)
+		}
+		c.Multis.Clear()
+		c.QSOList.ForEach(func(qso *core.QSO) {
+			if prefix, found := c.dxccFinder.Find(qso.Callsign.String()); found {
+				qso.DXCC = prefix
+			}
+			c.Multis.Add(*qso)
+		})
+	})
+
+	c.Multis.Notify(multis.MultisUpdatedListenerFunc(func(m core.Multis) {
+		log.Printf("Multis: %v", m)
+	}))
 
 	c.changeLogbook(filename, store, newLogbook)
 }

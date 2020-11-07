@@ -133,3 +133,10 @@ type AnnotatedCallsign struct {
 	Worked     bool
 	ExactMatch bool
 }
+
+type Multis struct {
+	TotalCount         int
+	SameCountry        int
+	SameContinent      int
+	DifferentContinent int
+}

@@ -15,7 +15,7 @@ type QSOsClearedListener interface {
 
 type QSOsClearedListenerFunc func()
 
-func (f QSOsClearedListenerFunc) Clear() {
+func (f QSOsClearedListenerFunc) QSOsCleared() {
 	f()
 }
 
@@ -71,7 +71,7 @@ func (f RowSelectedListenerFunc) RowSelected(index int) {
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
 type DXCCFinder interface {
-	Find(string) ([]dxcc.Prefix, bool)
+	Find(string) (dxcc.Prefix, bool)
 }
 
 type QSOList struct {
@@ -138,9 +138,8 @@ func (l *QSOList) append(qso core.QSO) {
 }
 
 func (l *QSOList) setDXCC(qso *core.QSO) {
-	prefixes, found := l.dxccFinder.Find(qso.Callsign.String())
-	if found {
-		qso.DXCC = prefixes[0]
+	if prefix, found := l.dxccFinder.Find(qso.Callsign.String()); found {
+		qso.DXCC = prefix
 	}
 }
 
@@ -212,6 +211,13 @@ func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 	return result
 }
 
+func (l *QSOList) ForEach(f func(qso *core.QSO)) {
+	for i, qso := range l.list {
+		f(&qso)
+		l.list[i] = qso
+	}
+}
+
 func (l *QSOList) Notify(listener interface{}) {
 	l.listeners = append(l.listeners, listener)
 }
@@ -266,6 +272,6 @@ func (l *QSOList) emitRowSelected(index int) {
 
 type nullDXCCFinder struct{}
 
-func (f *nullDXCCFinder) Find(string) ([]dxcc.Prefix, bool) {
-	return []dxcc.Prefix{}, false
+func (f *nullDXCCFinder) Find(string) (dxcc.Prefix, bool) {
+	return dxcc.Prefix{}, false
 }

@@ -31,7 +31,7 @@ type Callinfo struct {
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
 type DXCCFinder interface {
-	Find(string) ([]dxcc.Prefix, bool)
+	Find(string) (dxcc.Prefix, bool)
 }
 
 // CallsignFinder returns a list of matching callsigns for the given partial string.
@@ -100,12 +100,8 @@ func (c *Callinfo) showDXCC(callsign string) {
 		c.view.SetDXCC("", "", 0, 0, false)
 		return
 	}
-	if len(prefix) != 1 {
-		c.view.SetDXCC("", "", 0, 0, false)
-		return
-	}
-	dxccName := fmt.Sprintf("%s (%s)", prefix[0].Name, prefix[0].PrimaryPrefix)
-	c.view.SetDXCC(dxccName, prefix[0].Continent, int(prefix[0].ITUZone), int(prefix[0].CQZone), !prefix[0].NotARRLCompliant)
+	dxccName := fmt.Sprintf("%s (%s)", prefix.Name, prefix.PrimaryPrefix)
+	c.view.SetDXCC(dxccName, prefix.Continent, int(prefix.ITUZone), int(prefix.CQZone), !prefix.NotARRLCompliant)
 }
 
 func (c *Callinfo) showSupercheck(s string) {

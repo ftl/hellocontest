@@ -7,25 +7,45 @@ import (
 )
 
 func New() *Finder {
-	result := &Finder{}
+	result := &Finder{
+		available: make(chan struct{}),
+	}
 
 	go func() {
 		result.prefixes = setupPrefixes()
 		log.Print("DXCC prefix database available")
+		close(result.available)
 	}()
 
 	return result
 }
 
 type Finder struct {
-	prefixes *dxcc.Prefixes
+	prefixes  *dxcc.Prefixes
+	available chan struct{}
 }
 
-func (f *Finder) Find(s string) ([]dxcc.Prefix, bool) {
-	if f.prefixes == nil {
-		return []dxcc.Prefix{}, false
+func (f *Finder) WhenAvailable(callback func()) {
+	go func() {
+		<-f.available
+		callback()
+	}()
+}
+
+func (f *Finder) Find(s string) (prefix dxcc.Prefix, found bool) {
+	if prefixes := f.FindAll(s); len(prefixes) > 0 {
+		prefix = prefixes[0]
+		found = true
 	}
-	return f.prefixes.Find(s)
+	return
+}
+
+func (f *Finder) FindAll(s string) []dxcc.Prefix {
+	if f.prefixes == nil {
+		return []dxcc.Prefix{}
+	}
+	result, _ := f.prefixes.Find(s)
+	return result
 }
 
 func setupPrefixes() *dxcc.Prefixes {

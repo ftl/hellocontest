@@ -13,7 +13,7 @@ import (
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
 type DXCCFinder interface {
-	Find(string) ([]dxcc.Prefix, bool)
+	Find(string) (dxcc.Prefix, bool)
 }
 
 // Export writes the given QSOs to the given writer in the CSV format.
@@ -51,10 +51,10 @@ func writeQSO(w io.Writer, dxccFinder DXCCFinder, mycall callsign.Callsign, qso 
 	}
 
 	if dxccInfo, found := dxccFinder.Find(qso.Callsign.String()); found {
-		fillins["TheirPrefix"] = dxccInfo[0].PrimaryPrefix
-		fillins["TheirContinent"] = dxccInfo[0].Continent
-		fillins["TheirITUZone"] = fmt.Sprintf("%d", dxccInfo[0].ITUZone)
-		fillins["TheirCQZone"] = fmt.Sprintf("%d", dxccInfo[0].CQZone)
+		fillins["TheirPrefix"] = dxccInfo.PrimaryPrefix
+		fillins["TheirContinent"] = dxccInfo.Continent
+		fillins["TheirITUZone"] = fmt.Sprintf("%d", dxccInfo.ITUZone)
+		fillins["TheirCQZone"] = fmt.Sprintf("%d", dxccInfo.CQZone)
 	}
 
 	err := csvTemplate.Execute(w, fillins)

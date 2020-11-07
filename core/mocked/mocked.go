@@ -336,7 +336,7 @@ type DXCCFinder struct {
 	mock.Mock
 }
 
-func (m *DXCCFinder) Find(callsign string) ([]dxcc.Prefix, bool) {
+func (m *DXCCFinder) Find(callsign string) (dxcc.Prefix, bool) {
 	args := m.Called(callsign)
-	return args.Get(0).([]dxcc.Prefix), args.Get(1).(bool)
+	return args.Get(0).(dxcc.Prefix), args.Get(1).(bool)
 }

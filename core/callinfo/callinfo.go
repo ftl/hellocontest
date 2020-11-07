@@ -3,6 +3,7 @@ package callinfo
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
@@ -10,10 +11,11 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(prefixes DXCCFinder, callsigns CallsignFinder) *Callinfo {
+func New(prefixes DXCCFinder, callsigns CallsignFinder, dupeChecker DupeChecker) *Callinfo {
 	result := &Callinfo{
-		prefixes:  prefixes,
-		callsigns: callsigns,
+		prefixes:    prefixes,
+		callsigns:   callsigns,
+		dupeChecker: dupeChecker,
 	}
 
 	return result
@@ -39,7 +41,7 @@ type CallsignFinder interface {
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
 type DupeChecker interface {
-	IsDuplicate(callsign callsign.Callsign) (core.QSO, bool)
+	IsWorked(callsign callsign.Callsign) ([]core.QSO, bool)
 }
 
 // View defines the visual part of the call information window.
@@ -47,18 +49,13 @@ type View interface {
 	Show()
 	Hide()
 
-	SetCallsign(string)
-	SetDuplicateMarker(bool)
+	SetCallsign(callsign string, worked, duplicate bool)
 	SetDXCC(string, string, int, int, bool)
 	SetSupercheck(callsigns []core.AnnotatedCallsign)
 }
 
 func (c *Callinfo) SetView(view View) {
 	c.view = view
-}
-
-func (c *Callinfo) SetDupeChecker(dupeChecker DupeChecker) {
-	c.dupeChecker = dupeChecker
 }
 
 func (c *Callinfo) Show() {
@@ -79,14 +76,16 @@ func (c *Callinfo) ShowCallsign(s string) {
 	if c.view == nil {
 		return
 	}
-	var duplicate bool
+
+	worked := false
+	duplicate := false
 	cs, err := callsign.Parse(s)
 	if err == nil {
-		_, duplicate = c.dupeChecker.IsDuplicate(cs)
+		var qsos []core.QSO
+		qsos, duplicate = c.dupeChecker.IsWorked(cs)
+		worked = len(qsos) > 0
 	}
-
-	c.view.SetDuplicateMarker(duplicate)
-	c.view.SetCallsign(s)
+	c.view.SetCallsign(s, worked, duplicate)
 	c.showDXCC(s)
 	c.showSupercheck(s)
 }
@@ -110,6 +109,7 @@ func (c *Callinfo) showDXCC(callsign string) {
 }
 
 func (c *Callinfo) showSupercheck(s string) {
+	normalizedInput := strings.TrimSpace(strings.ToUpper(s))
 	matches, err := c.callsigns.Find(s)
 	if err != nil {
 		log.Printf("Callsign search for failed for %s: %v", s, err)
@@ -123,10 +123,13 @@ func (c *Callinfo) showSupercheck(s string) {
 			log.Printf("Supercheck match %s is not a valid callsign: %v", match, err)
 			continue
 		}
-		_, duplicate := c.dupeChecker.IsDuplicate(cs)
+		qsos, duplicate := c.dupeChecker.IsWorked(cs)
+		exactMatch := (match == normalizedInput)
 		annotatedMatches[i] = core.AnnotatedCallsign{
-			Callsign:  cs,
-			Duplicate: duplicate,
+			Callsign:   cs,
+			Duplicate:  duplicate,
+			Worked:     len(qsos) > 0,
+			ExactMatch: exactMatch,
 		}
 	}
 

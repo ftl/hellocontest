@@ -141,8 +141,7 @@ func (c *Controller) Startup() {
 	c.Workmode = workmode.NewController(c.configuration.KeyerSPMacros(), c.configuration.KeyerRunMacros())
 	c.Workmode.SetKeyer(c.Keyer)
 
-	c.Callinfo = callinfo.New(c.dxccFinder, scp.New())
-	c.Callinfo.SetDupeChecker(c.Entry)
+	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.Entry)
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.changeLogbook(filename, store, newLogbook)

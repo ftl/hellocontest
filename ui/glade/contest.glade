@@ -19,6 +19,7 @@
             <property name="margin_left">2</property>
             <property name="margin_right">2</property>
             <property name="hexpand">True</property>
+            <property name="use_markup">True</property>
             <attributes>
               <attribute name="scale" value="4"/>
             </attributes>

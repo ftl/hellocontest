@@ -33,32 +33,27 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result.arrlLabel = getUI(builder, "arrlLabel").(*gtk.Label)
 	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
 
-	result.style = newStyle(`
-	.duplicate {
-		background-color: #FF0000; 
-		color: #FFFFFF;
-	}
-	`)
-	result.style.applyTo(&result.callsignLabel.Widget)
-
 	return result
 }
 
-func (v *callinfoView) SetCallsign(callsign string) {
+func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 	normalized := strings.ToUpper(strings.TrimSpace(callsign))
-	if normalized != "" {
-		v.callsignLabel.SetText(normalized)
-	} else {
-		v.callsignLabel.SetText("-")
+	if normalized == "" {
+		v.callsignLabel.SetMarkup("-")
+		return
 	}
-}
 
-func (v *callinfoView) SetDuplicateMarker(duplicate bool) {
+	// see https://developer.gnome.org/pango/stable/pango-Markup.html for reference
+	attributes := make([]string, 0)
 	if duplicate {
-		addStyleClass(&v.callsignLabel.Widget, "duplicate")
-	} else {
-		removeStyleClass(&v.callsignLabel.Widget, "duplicate")
+		attributes = append(attributes, "background='red' foreground='white'")
+	} else if worked {
+		attributes = append(attributes, "foreground='blue'")
 	}
+	attributeString := strings.Join(attributes, " ")
+
+	renderedCallsign := fmt.Sprintf("<span %s>%s</span>", attributeString, normalized)
+	v.callsignLabel.SetMarkup(renderedCallsign)
 }
 
 func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlCompliant bool) {
@@ -90,12 +85,20 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 	text := ""
 	for _, callsign := range callsigns {
-		var renderedCallsign string
+		// see https://developer.gnome.org/pango/stable/pango-Markup.html for reference
+		attributes := make([]string, 0)
 		if callsign.Duplicate {
-			renderedCallsign = fmt.Sprintf("<span foreground='red'>%s</span>", callsign.Callsign)
-		} else {
-			renderedCallsign = callsign.Callsign.String()
+			attributes = append(attributes, "foreground='red'")
+		} else if callsign.Worked {
+			attributes = append(attributes, "foreground='blue'")
 		}
+		if callsign.ExactMatch {
+			attributes = append(attributes, "font-weight='heavy' font-size='large'")
+		}
+		attributeString := strings.Join(attributes, " ")
+
+		renderedCallsign := fmt.Sprintf("<span %s>%s</span>", attributeString, callsign.Callsign)
+
 		if text != "" {
 			text += ", "
 		}

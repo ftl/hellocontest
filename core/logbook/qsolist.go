@@ -196,14 +196,8 @@ func (l *QSOList) SelectLastQSO() {
 }
 
 func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
-	checkedNumbers := make(map[core.QSONumber]bool)
 	result := make([]core.QSO, 0)
 	for _, qso := range l.list {
-		if checkedNumbers[qso.MyNumber] {
-			continue
-		}
-		checkedNumbers[qso.MyNumber] = true
-
 		if callsign != qso.Callsign {
 			continue
 		}

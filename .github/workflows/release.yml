@@ -58,7 +58,7 @@ jobs:
         chmod +x ./.debpkg/usr/bin/hellocontest
 
     - name: Create deb package
-      run: ./build-ppa.sh ${{ steps.version_number.outputs.version_number }}
+      run: ./build-debpkg.sh ${{ steps.version_number.outputs.version_number }}
 
     - id: package_filename
       run: echo "::set-output name=package_filename::$(ls ./hellocontest*.deb | head -n 1)"

@@ -47,13 +47,13 @@ type input struct {
 // Logbook functionality used for QSO entry.
 type Logbook interface {
 	NextNumber() core.QSONumber
+	LastBand() core.Band
+	LastMode() core.Mode
 	Log(core.QSO)
 }
 
 // QSOList functionality used for QSO entry.
 type QSOList interface {
-	LastBand() core.Band
-	LastMode() core.Mode
 	Find(callsign.Callsign, core.Band, core.Mode) []core.QSO
 	SelectQSO(core.QSO)
 	SelectLastQSO()
@@ -87,8 +87,6 @@ func NewController(clock core.Clock, qsoList QSOList, enterTheirNumber, enterThe
 		enterTheirXchange: enterTheirXchange,
 		allowMultiBand:    allowMultiBand,
 		allowMultiMode:    allowMultiMode,
-		selectedBand:      qsoList.LastBand(),
-		selectedMode:      qsoList.LastMode(),
 	}
 }
 
@@ -127,8 +125,8 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) SetLogbook(logbook Logbook) {
 	c.logbook = logbook
-	c.selectedBand = c.qsoList.LastBand()
-	c.selectedMode = c.qsoList.LastMode()
+	c.selectedBand = c.logbook.LastBand()
+	c.selectedMode = c.logbook.LastMode()
 }
 
 func (c *Controller) SetKeyer(keyer Keyer) {
@@ -535,4 +533,6 @@ func (n *nullVFO) Refresh()          {}
 type nullLogbook struct{}
 
 func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
+func (n *nullLogbook) LastBand() core.Band        { return core.NoBand }
+func (n *nullLogbook) LastMode() core.Mode        { return core.NoMode }
 func (n *nullLogbook) Log(core.QSO)               {}

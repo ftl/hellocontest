@@ -36,6 +36,22 @@ func (m *Log) NextNumber() core.QSONumber {
 	return args.Get(0).(core.QSONumber)
 }
 
+func (m *Log) LastBand() core.Band {
+	if !m.active {
+		return core.NoBand
+	}
+	args := m.Called()
+	return args.Get(0).(core.Band)
+}
+
+func (m *Log) LastMode() core.Mode {
+	if !m.active {
+		return core.NoMode
+	}
+	args := m.Called()
+	return args.Get(0).(core.Mode)
+}
+
 func (m *Log) Log(qso core.QSO) {
 	if !m.active {
 		return
@@ -66,22 +82,6 @@ type QSOList struct {
 
 func (m *QSOList) Activate() {
 	m.active = true
-}
-
-func (m *QSOList) LastBand() core.Band {
-	if !m.active {
-		return core.NoBand
-	}
-	args := m.Called()
-	return args.Get(0).(core.Band)
-}
-
-func (m *QSOList) LastMode() core.Mode {
-	if !m.active {
-		return core.NoMode
-	}
-	args := m.Called()
-	return args.Get(0).(core.Mode)
 }
 
 func (m *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {

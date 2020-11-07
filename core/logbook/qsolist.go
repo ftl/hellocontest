@@ -195,21 +195,6 @@ func (l *QSOList) SelectLastQSO() {
 	l.emitRowSelected(index)
 }
 
-func (l *QSOList) lastQSO() core.QSO {
-	if len(l.list) == 0 {
-		return core.QSO{}
-	}
-	return l.list[len(l.list)-1]
-}
-
-func (l *QSOList) LastBand() core.Band {
-	return l.lastQSO().Band
-}
-
-func (l *QSOList) LastMode() core.Mode {
-	return l.lastQSO().Mode
-}
-
 func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	checkedNumbers := make(map[core.QSONumber]bool)
 	result := make([]core.QSO, 0)

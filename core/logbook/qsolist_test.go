@@ -204,22 +204,6 @@ func TestSelectLastQSO(t *testing.T) {
 	assert.True(t, indexNotified, "indexNotified")
 }
 
-func TestLastBand(t *testing.T) {
-	list := NewQSOList(new(nullDXCCFinder))
-	assert.Equal(t, core.NoBand, list.LastBand())
-
-	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Band: core.Band80m})
-	assert.Equal(t, core.Band80m, list.LastBand())
-}
-
-func TestLastMode(t *testing.T) {
-	list := NewQSOList(new(nullDXCCFinder))
-	assert.Equal(t, core.NoMode, list.LastMode())
-
-	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Mode: core.ModeDigital})
-	assert.Equal(t, core.ModeDigital, list.LastMode())
-}
-
 func TestFind(t *testing.T) {
 	list := NewQSOList(new(nullDXCCFinder))
 	aa1zzz := callsign.MustParse("AA1ZZZ")

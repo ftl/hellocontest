@@ -107,6 +107,21 @@ func (l *Logbook) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
 }
 
+func (l *Logbook) lastQSO() core.QSO {
+	if len(l.qsos) == 0 {
+		return core.QSO{}
+	}
+	return l.qsos[len(l.qsos)-1]
+}
+
+func (l *Logbook) LastBand() core.Band {
+	return l.lastQSO().Band
+}
+
+func (l *Logbook) LastMode() core.Mode {
+	return l.lastQSO().Mode
+}
+
 func (l *Logbook) Log(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)

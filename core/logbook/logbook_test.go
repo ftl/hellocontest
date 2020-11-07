@@ -89,6 +89,22 @@ func TestLog_NextNumber(t *testing.T) {
 	assert.Equal(t, core.QSONumber(124), logbook.NextNumber(), "next number should be the highest existing number + 1")
 }
 
+func TestLastBand(t *testing.T) {
+	logbook := New(clock.New())
+	assert.Equal(t, core.NoBand, logbook.LastBand())
+
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Band: core.Band80m})
+	assert.Equal(t, core.Band80m, logbook.LastBand())
+}
+
+func TestLastMode(t *testing.T) {
+	logbook := New(clock.New())
+	assert.Equal(t, core.NoMode, logbook.LastMode())
+
+	logbook.Log(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Mode: core.ModeDigital})
+	assert.Equal(t, core.ModeDigital, logbook.LastMode())
+}
+
 func TestLog_UniqueQsosOrderedByMyNumber(t *testing.T) {
 	logbook := New(clock.New())
 	logbook.Log(core.QSO{Callsign: callsign.MustParse("AA3B"), MyNumber: core.QSONumber(4)})

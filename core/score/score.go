@@ -22,7 +22,7 @@ func NewCounter() *Counter {
 			ScorePerBand: make(map[core.Band]core.BandScore),
 		},
 		multisPerBand: make(map[core.Band]*multis),
-		totalMultis:   newMultis(),
+		overallMultis: newMultis(),
 	}
 }
 
@@ -33,7 +33,7 @@ type Counter struct {
 	listeners []interface{}
 
 	multisPerBand map[core.Band]*multis
-	totalMultis   *multis
+	overallMultis *multis
 }
 
 func (c *Counter) Notify(listener interface{}) {
@@ -49,7 +49,7 @@ func (c *Counter) Clear() {
 		ScorePerBand: make(map[core.Band]core.BandScore),
 	}
 	c.multisPerBand = make(map[core.Band]*multis)
-	c.totalMultis = newMultis()
+	c.overallMultis = newMultis()
 	c.emitScoreUpdated(c.Score)
 }
 
@@ -58,15 +58,18 @@ func (c *Counter) Add(qso core.QSO) {
 
 	qsoScore := c.qsoScore(1, qso.DXCC)
 	c.TotalScore.Add(qsoScore)
+	c.OverallScore.Add(qsoScore)
 	bandScore.Add(qsoScore)
 
-	c.TotalScore.Add(c.totalMultis.Add(1, qso.DXCC))
+	c.OverallScore.Add(c.overallMultis.Add(1, qso.DXCC))
 	multisPerBand, ok := c.multisPerBand[qso.Band]
 	if !ok {
 		multisPerBand = newMultis()
 		c.multisPerBand[qso.Band] = multisPerBand
 	}
-	bandScore.Add(multisPerBand.Add(1, qso.DXCC))
+	bandMultiScore := multisPerBand.Add(1, qso.DXCC)
+	c.TotalScore.Add(bandMultiScore)
+	bandScore.Add(bandMultiScore)
 
 	c.ScorePerBand[qso.Band] = bandScore
 	c.emitScoreUpdated(c.Score)
@@ -77,6 +80,7 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 		return
 	}
 	totalScore := c.TotalScore
+	overallScore := c.OverallScore
 	oldBandScore := c.ScorePerBand[oldQSO.Band]
 	var newBandScore *core.BandScore
 	if oldQSO.Band == newQSO.Band {
@@ -88,27 +92,31 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 
 	oldQSOScore := c.qsoScore(-1, oldQSO.DXCC)
 	totalScore.Add(oldQSOScore)
+	overallScore.Add(oldQSOScore)
 	oldBandScore.Add(oldQSOScore)
 
 	newQSOScore := c.qsoScore(1, newQSO.DXCC)
 	totalScore.Add(newQSOScore)
+	overallScore.Add(newQSOScore)
 	newBandScore.Add(newQSOScore)
 
-	oldMultiScore := c.totalMultis.Add(-1, oldQSO.DXCC)
-	totalScore.Add(oldMultiScore)
+	overallScore.Add(c.overallMultis.Add(-1, oldQSO.DXCC))
 	oldMultisPerBand, ok := c.multisPerBand[oldQSO.Band]
 	if ok {
-		oldBandScore.Add(oldMultisPerBand.Add(-1, oldQSO.DXCC))
+		oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.DXCC)
+		oldBandScore.Add(oldBandMultiScore)
+		totalScore.Add(oldBandMultiScore)
 	}
 
-	newMultiScore := c.totalMultis.Add(1, newQSO.DXCC)
-	totalScore.Add(newMultiScore)
+	overallScore.Add(c.overallMultis.Add(1, newQSO.DXCC))
 	newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
 	if !ok {
 		newMultisPerBand = newMultis()
 		c.multisPerBand[newQSO.Band] = newMultisPerBand
 	}
-	newBandScore.Add(newMultisPerBand.Add(1, newQSO.DXCC))
+	newBandMultiScore := newMultisPerBand.Add(1, newQSO.DXCC)
+	newBandScore.Add(newBandMultiScore)
+	totalScore.Add(newBandMultiScore)
 
 	c.TotalScore = totalScore
 	c.ScorePerBand[oldQSO.Band] = oldBandScore

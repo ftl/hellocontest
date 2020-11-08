@@ -134,8 +134,8 @@ type AnnotatedCallsign struct {
 	ExactMatch bool
 }
 
-type Multis struct {
-	TotalCount         int
+type Score struct {
+	TotalQSOs          int
 	SameCountry        int
 	SameContinent      int
 	DifferentContinent int

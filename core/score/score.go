@@ -1,4 +1,4 @@
-package multis
+package score
 
 import (
 	"github.com/ftl/hamradio/dxcc"
@@ -6,14 +6,14 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-type MultisUpdatedListener interface {
-	MultisUpdated(core.Multis)
+type ScoreUpdatedListener interface {
+	ScoreUpdated(core.Score)
 }
 
-type MultisUpdatedListenerFunc func(core.Multis)
+type ScoreUpdatedListenerFunc func(core.Score)
 
-func (f MultisUpdatedListenerFunc) MultisUpdated(multis core.Multis) {
-	f(multis)
+func (f ScoreUpdatedListenerFunc) ScoreUpdated(Score core.Score) {
+	f(Score)
 }
 
 func NewCounter() *Counter {
@@ -21,7 +21,7 @@ func NewCounter() *Counter {
 }
 
 type Counter struct {
-	core.Multis
+	core.Score
 	myPrefix  dxcc.Prefix
 	listeners []interface{}
 }
@@ -35,14 +35,14 @@ func (c *Counter) SetMyPrefix(myPrefix dxcc.Prefix) {
 }
 
 func (c *Counter) Clear() {
-	c.Multis = core.Multis{}
-	c.emitMultisUpdated(c.Multis)
+	c.Score = core.Score{}
+	c.emitScoreUpdated(c.Score)
 }
 
 func (c *Counter) Add(qso core.QSO) {
-	c.TotalCount++
+	c.TotalQSOs++
 	c.addCountry(qso.DXCC)
-	c.emitMultisUpdated(c.Multis)
+	c.emitScoreUpdated(c.Score)
 }
 
 func (c *Counter) Update(oldQSO, newQSO core.QSO) {
@@ -52,14 +52,14 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 		c.addCountry(oldQSO.DXCC)
 	}
 	if updated {
-		c.emitMultisUpdated(c.Multis)
+		c.emitScoreUpdated(c.Score)
 	}
 }
 
-func (c *Counter) emitMultisUpdated(multis core.Multis) {
+func (c *Counter) emitScoreUpdated(score core.Score) {
 	for _, listener := range c.listeners {
-		if multisUpdatedListener, ok := listener.(MultisUpdatedListener); ok {
-			multisUpdatedListener.MultisUpdated(multis)
+		if scoreUpdatedListener, ok := listener.(ScoreUpdatedListener); ok {
+			scoreUpdatedListener.ScoreUpdated(score)
 		}
 	}
 }

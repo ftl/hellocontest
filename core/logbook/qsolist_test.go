@@ -105,9 +105,9 @@ func TestPut_Update(t *testing.T) {
 func TestPut_AddPrefix(t *testing.T) {
 	dlPrefix := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
 	dxccFinder := new(mocked.DXCCFinder)
-	dxccFinder.On("Find", "DL1ABC").Return([]dxcc.Prefix{dlPrefix}, true)
-	dxccFinder.On("Find", "DK9ZZ").Return([]dxcc.Prefix{dlPrefix}, true)
-	dxccFinder.On("Find", "K3LR").Return([]dxcc.Prefix{}, false)
+	dxccFinder.On("Find", "DL1ABC").Return(dlPrefix, true)
+	dxccFinder.On("Find", "DK9ZZ").Return(dlPrefix, true)
+	dxccFinder.On("Find", "K3LR").Return(dxcc.Prefix{}, false)
 	list := NewQSOList(dxccFinder)
 
 	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1})
@@ -125,8 +125,8 @@ func TestPut_UpdatePrefix(t *testing.T) {
 	dlPrefix := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
 	kPrefix := dxcc.Prefix{Name: "United States", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}
 	dxccFinder := new(mocked.DXCCFinder)
-	dxccFinder.On("Find", "DL1ABC").Return([]dxcc.Prefix{dlPrefix}, true)
-	dxccFinder.On("Find", "K3LR").Return([]dxcc.Prefix{kPrefix}, true)
+	dxccFinder.On("Find", "DL1ABC").Return(dlPrefix, true)
+	dxccFinder.On("Find", "K3LR").Return(kPrefix, true)
 	list := NewQSOList(dxccFinder)
 
 	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1})

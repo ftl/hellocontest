@@ -15,6 +15,7 @@ type MainMenuController interface {
 	ExportCSV()
 	Quit()
 	ShowCallinfo()
+	ShowScore()
 }
 
 type mainMenu struct {
@@ -28,6 +29,7 @@ type mainMenu struct {
 	fileExportCSV      *gtk.MenuItem
 	fileQuit           *gtk.MenuItem
 	windowCallinfo     *gtk.MenuItem
+	windowScore        *gtk.MenuItem
 	helpAbout          *gtk.MenuItem
 }
 
@@ -42,6 +44,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportCSV = getUI(builder, "menuFileExportCSV").(*gtk.MenuItem)
 	result.fileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
+	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.helpAbout = getUI(builder, "menuHelpAbout").(*gtk.MenuItem)
 
 	result.fileNew.Connect("activate", result.onNew)
@@ -52,6 +55,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportCSV.Connect("activate", result.onExportCSV)
 	result.fileQuit.Connect("activate", result.onQuit)
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
+	result.windowScore.Connect("activate", result.onScore)
 	result.helpAbout.Connect("activate", result.onAbout)
 
 	return result
@@ -95,4 +99,8 @@ func (m *mainMenu) onQuit() {
 
 func (m *mainMenu) onCallinfo() {
 	m.controller.ShowCallinfo()
+}
+
+func (m *mainMenu) onScore() {
+	m.controller.ShowScore()
 }

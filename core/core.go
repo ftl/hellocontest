@@ -145,8 +145,10 @@ func (s Score) String() string {
 	buf := bytes.NewBufferString("")
 	fmt.Fprintf(buf, "Band CtyQ ConQ OthQ Pts     CQ ITU Cty\n")
 	fmt.Fprintf(buf, "--------------------------------------\n")
-	for band, score := range s.ScorePerBand {
-		fmt.Fprintf(buf, "%4s %s\n", band, score)
+	for _, band := range Bands {
+		if score, ok := s.ScorePerBand[band]; ok {
+			fmt.Fprintf(buf, "%4s %s\n", band, score)
+		}
 	}
 	fmt.Fprintf(buf, "--------------------------------------\n")
 	fmt.Fprintf(buf, "Tot  %s\n", s.TotalScore)

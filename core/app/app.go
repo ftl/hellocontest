@@ -164,10 +164,6 @@ func (c *Controller) Startup() {
 		})
 	})
 
-	c.Score.Notify(score.ScoreUpdatedListenerFunc(func(s core.Score) {
-		log.Printf("Score:\n%s", s.String())
-	}))
-
 	c.changeLogbook(filename, store, newLogbook)
 }
 
@@ -359,6 +355,11 @@ func (c *Controller) ExportCSV() {
 
 func (c *Controller) ShowCallinfo() {
 	c.Callinfo.Show()
+	c.view.BringToFront()
+}
+
+func (c *Controller) ShowScore() {
+	c.Score.Show()
 	c.view.BringToFront()
 }
 

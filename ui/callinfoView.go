@@ -11,8 +11,6 @@ import (
 )
 
 type callinfoView struct {
-	style *style
-
 	callsignLabel   *gtk.Label
 	dxccLabel       *gtk.Label
 	continentLabel  *gtk.Label

@@ -28,12 +28,41 @@ func NewCounter() *Counter {
 
 type Counter struct {
 	core.Score
+	view View
 
 	myPrefix  dxcc.Prefix
 	listeners []interface{}
 
 	multisPerBand map[core.Band]*multis
 	overallMultis *multis
+}
+
+type View interface {
+	Show()
+	Hide()
+
+	ShowScore(score core.Score)
+}
+
+func (c *Counter) SetView(view View) {
+	c.view = view
+	if c.view != nil {
+		c.view.ShowScore(c.Score)
+	}
+}
+
+func (c *Counter) Show() {
+	if c.view == nil {
+		return
+	}
+	c.view.Show()
+}
+
+func (c *Counter) Hide() {
+	if c.view == nil {
+		return
+	}
+	c.view.Hide()
 }
 
 func (c *Counter) Notify(listener interface{}) {
@@ -125,6 +154,9 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 }
 
 func (c *Counter) emitScoreUpdated(score core.Score) {
+	if c.view != nil {
+		c.view.ShowScore(score)
+	}
 	for _, listener := range c.listeners {
 		if scoreUpdatedListener, ok := listener.(ScoreUpdatedListener); ok {
 			scoreUpdatedListener.ScoreUpdated(score)

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -135,8 +136,50 @@ type AnnotatedCallsign struct {
 }
 
 type Score struct {
-	TotalQSOs          int
-	SameCountry        int
-	SameContinent      int
-	DifferentContinent int
+	ScorePerBand map[Band]BandScore
+	TotalScore   BandScore
 }
+
+func (s Score) String() string {
+	buf := bytes.NewBufferString("")
+	fmt.Fprintf(buf, "Band CtyQ ConQ OthQ Pts   CQ ITU Cty\n")
+	fmt.Fprintf(buf, "------------------------------------\n")
+	for band, score := range s.ScorePerBand {
+		fmt.Fprintf(buf, "%4s %s\n", band, score)
+	}
+	fmt.Fprintf(buf, "------------------------------------\n")
+	fmt.Fprintf(buf, "Tot  %s\n", s.TotalScore)
+	return buf.String()
+}
+
+type BandScore struct {
+	SameCountryQSOs   int
+	SameContinentQSOs int
+	OtherQSOs         int
+	Points            int
+	CQZones           int
+	ITUZones          int
+	PrimaryPrefixes   int
+}
+
+func (s BandScore) String() string {
+	return fmt.Sprintf("%4d %4d %4d %5d %2d %3d %3d", s.SameCountryQSOs, s.SameContinentQSOs, s.OtherQSOs, s.Points, s.CQZones, s.ITUZones, s.PrimaryPrefixes)
+}
+
+func (s *BandScore) Add(other BandScore) {
+	s.SameCountryQSOs += other.SameCountryQSOs
+	s.SameContinentQSOs += other.SameContinentQSOs
+	s.OtherQSOs += other.OtherQSOs
+	s.Points += other.Points
+	s.CQZones += other.CQZones
+	s.ITUZones += other.ITUZones
+	s.PrimaryPrefixes += other.PrimaryPrefixes
+}
+
+type MultiplierState int
+
+const (
+	NoMultiplier MultiplierState = iota
+	NewBandMultiplier
+	NewMultiplier
+)

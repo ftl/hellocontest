@@ -164,8 +164,8 @@ func (c *Controller) Startup() {
 		})
 	})
 
-	c.Score.Notify(score.ScoreUpdatedListenerFunc(func(m core.Score) {
-		log.Printf("Score: %v", m)
+	c.Score.Notify(score.ScoreUpdatedListenerFunc(func(s core.Score) {
+		log.Printf("Score:\n%s", s.String())
 	}))
 
 	c.changeLogbook(filename, store, newLogbook)

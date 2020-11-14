@@ -40,28 +40,24 @@ type Counter struct {
 type View interface {
 	Show()
 	Hide()
+	Visible() bool
 
 	ShowScore(score core.Score)
 }
 
 func (c *Counter) SetView(view View) {
 	c.view = view
-	if c.view != nil {
+	if c.view.Visible() {
 		c.view.ShowScore(c.Score)
 	}
 }
 
 func (c *Counter) Show() {
-	if c.view == nil {
-		return
-	}
 	c.view.Show()
+	c.view.ShowScore(c.Score)
 }
 
 func (c *Counter) Hide() {
-	if c.view == nil {
-		return
-	}
 	c.view.Hide()
 }
 
@@ -154,7 +150,7 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 }
 
 func (c *Counter) emitScoreUpdated(score core.Score) {
-	if c.view != nil {
+	if c.view != nil && c.view.Visible() {
 		c.view.ShowScore(score)
 	}
 	for _, listener := range c.listeners {

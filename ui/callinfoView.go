@@ -46,7 +46,7 @@ func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 	if duplicate {
 		attributes = append(attributes, "background='red' foreground='white'")
 	} else if worked {
-		attributes = append(attributes, "foreground='blue'")
+		attributes = append(attributes, "foreground='cyan'")
 	}
 	attributeString := strings.Join(attributes, " ")
 
@@ -88,7 +88,7 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 		if callsign.Duplicate {
 			attributes = append(attributes, "foreground='red'")
 		} else if callsign.Worked {
-			attributes = append(attributes, "foreground='blue'")
+			attributes = append(attributes, "foreground='cyan'")
 		}
 		if callsign.ExactMatch {
 			attributes = append(attributes, "font-weight='heavy' font-size='large'")

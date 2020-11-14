@@ -48,6 +48,7 @@ type DupeChecker interface {
 type View interface {
 	Show()
 	Hide()
+	Visible() bool
 
 	SetCallsign(callsign string, worked, duplicate bool)
 	SetDXCC(string, string, int, int, bool)
@@ -59,21 +60,15 @@ func (c *Callinfo) SetView(view View) {
 }
 
 func (c *Callinfo) Show() {
-	if c.view == nil {
-		return
-	}
 	c.view.Show()
 }
 
 func (c *Callinfo) Hide() {
-	if c.view == nil {
-		return
-	}
 	c.view.Hide()
 }
 
 func (c *Callinfo) ShowCallsign(s string) {
-	if c.view == nil {
+	if c.view == nil || !c.view.Visible() {
 		return
 	}
 

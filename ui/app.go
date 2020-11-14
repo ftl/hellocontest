@@ -64,8 +64,8 @@ func (a *application) activate() {
 		log.Fatal(err)
 	}
 	a.mainWindow = setupMainWindow(a.builder, a.app)
-	a.callinfoWindow = setupCallinfoWindow(a.builder)
-	a.scoreWindow = setupScoreWindow(a.builder)
+	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
+	a.scoreWindow = setupScoreWindow(a.windowGeometry)
 
 	a.controller = app.NewController(a.version, clock.New(), a.app, configuration)
 	a.controller.Startup()
@@ -85,8 +85,6 @@ func (a *application) activate() {
 	a.controller.Score.SetView(a.scoreWindow)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)
-	a.callinfoWindow.ConnectToGeometry(a.windowGeometry)
-	a.scoreWindow.ConnectToGeometry(a.windowGeometry)
 	err = a.windowGeometry.Restore()
 	if err != nil {
 		a.useDefaultWindowGeometry(err)

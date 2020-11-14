@@ -5,41 +5,58 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
+const ScoreWindowID = "score"
+
 type scoreWindow struct {
-	window *gtk.Window
+	window   *gtk.Window
+	geometry *gmtry.Geometry
 
 	*scoreView
 }
 
-func setupScoreWindow(builder *gtk.Builder) *scoreWindow {
-	result := new(scoreWindow)
-
-	result.window = getUI(builder, "scoreWindow").(*gtk.Window)
-	result.window.SetDefaultSize(300, 500)
-	result.window.SetTitle("Score")
-
-	result.scoreView = setupScoreView(builder)
+func setupScoreWindow(geometry *gmtry.Geometry) *scoreWindow {
+	result := &scoreWindow{
+		geometry: geometry,
+	}
 
 	return result
 }
 
 func (w *scoreWindow) Show() {
+	if w.window == nil {
+		builder := setupBuilder()
+		w.window = getUI(builder, "scoreWindow").(*gtk.Window)
+		w.window.SetDefaultSize(300, 500)
+		w.window.SetTitle("Score")
+		w.window.Connect("destroy", w.onDestroy)
+		w.scoreView = setupScoreView(builder)
+		connectToGeometry(w.geometry, ScoreWindowID, w.window)
+	}
 	w.window.ShowAll()
 }
 
 func (w *scoreWindow) Hide() {
+	if w.window == nil {
+		return
+	}
 	w.window.Close()
 }
 
 func (w *scoreWindow) Visible() bool {
+	if w.window == nil {
+		return false
+	}
 	return w.window.IsVisible()
 }
 
 func (w *scoreWindow) UseDefaultWindowGeometry() {
+	if w.window == nil {
+		return
+	}
 	w.window.Move(0, 100)
 	w.window.Resize(300, 500)
 }
 
-func (w *scoreWindow) ConnectToGeometry(geometry *gmtry.Geometry) {
-	connectToGeometry(geometry, "score", w.window)
+func (w *scoreWindow) onDestroy() {
+	w.window = nil
 }

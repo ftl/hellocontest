@@ -386,6 +386,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.showQSO(qso)
 	c.view.SetActiveField(core.CallsignField)
 	c.view.SetEditingMarker(true)
+	c.callinfo.ShowCallsign(qso.Callsign.String())
 }
 
 func (c *Controller) Log() {

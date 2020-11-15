@@ -1,11 +1,12 @@
 # Hello Contest
 A simple HF contest log for Linux, written in Go using [gotk3](https://github.com/gotk3) for the UI. As I'm using this only for CW contests on HF, the program might not be very useful for other modes or higher frequencies. Anyway, here are some highlights:
 
+* Calculate points, multis, and score per band and overall. The calculation rules can be changed in the configuration file.
 * Export the logbook in the [Cabrillo](https://wwrof.org/cabrillo/) or [ADIF](http://adif.org) format.
 * Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases.
 * Use the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
 * Define different macros for running and search&pounce working mode.
-* Connect to your transceiver through hamlib to keep the band and mode information in sync.
+* Connect to your transceiver through [hamlib](https://github.com/Hamlib/Hamlib) to keep the band and mode information in sync.
 
 I use this little project mainly as training ground to learn how to develop a desktop application in Go and to improve my Go-Fu.
 

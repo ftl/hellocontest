@@ -16,12 +16,23 @@ func (f ScoreUpdatedListenerFunc) ScoreUpdated(Score core.Score) {
 	f(Score)
 }
 
-func NewCounter() *Counter {
+type Configuration interface {
+	CountPerBand() bool
+	SameCountryPoints() int
+	SameContinentPoints() int
+	OtherPoints() int
+	SpecificCountryPoints() int
+	SpecificCountryPrefix() string
+	Multis() []string
+}
+
+func NewCounter(configuration Configuration) *Counter {
 	return &Counter{
 		Score: core.Score{
 			ScorePerBand: make(map[core.Band]core.BandScore),
 		},
 		view:          new(nullView),
+		configuration: configuration,
 		multisPerBand: make(map[core.Band]*multis),
 		overallMultis: newMultis(),
 	}
@@ -31,8 +42,9 @@ type Counter struct {
 	core.Score
 	view View
 
-	myPrefix  dxcc.Prefix
-	listeners []interface{}
+	configuration Configuration
+	myPrefix      dxcc.Prefix
+	listeners     []interface{}
 
 	multisPerBand map[core.Band]*multis
 	overallMultis *multis
@@ -165,13 +177,14 @@ func (c *Counter) qsoScore(value int, prefix dxcc.Prefix) core.BandScore {
 	switch {
 	case prefix.PrimaryPrefix == c.myPrefix.PrimaryPrefix:
 		result.SameCountryQSOs += value
+		result.Points += value * c.configuration.SameCountryPoints()
 	case prefix.Continent == c.myPrefix.Continent:
 		result.SameContinentQSOs += value
+		result.Points += value * c.configuration.SameContinentPoints()
 	default:
 		result.OtherQSOs += value
+		result.Points += value * c.configuration.OtherPoints()
 	}
-
-	// TODO add points
 
 	return result
 }

@@ -91,6 +91,8 @@ type Configuration interface {
 	KeyerRunMacros() []string
 
 	HamlibAddress() string
+
+	score.Configuration
 }
 
 // Quitter allows to quit the application. This interfaces is used to call the actual application framework to quit.
@@ -148,7 +150,7 @@ func (c *Controller) Startup() {
 	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.Entry)
 	c.Entry.SetCallinfo(c.Callinfo)
 
-	c.Score = score.NewCounter()
+	c.Score = score.NewCounter(c.configuration)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Score.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))

@@ -36,6 +36,15 @@ var Default = Data{
 		"tu {{.MyCall}} test",
 		"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
 	},
+	Score: Score{
+		CountPerBand:          true,
+		SameCountryPoints:     1,
+		SameContinentPoints:   3,
+		OtherPoints:           5,
+		SpecificCountryPoints: 0,
+		SpecificCountryPrefix: "",
+		Multis:                []string{"CQ", "DXCC"},
+	},
 }
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadJSON()).
@@ -93,70 +102,112 @@ type Data struct {
 	KeyerSPMacros       []string `json:"keyer_sp_macros"`
 	KeyerRunMacros      []string `json:"keyer_run_macros"`
 	HamlibAddress       string   `json:"hamlib_address"`
+	Score               Score    `json:"score"`
+}
+
+type Score struct {
+	CountPerBand bool `json:"count_per_band"`
+
+	SameCountryPoints   int `json:"same_country_points"`
+	SameContinentPoints int `json:"same_continent_points"`
+	OtherPoints         int `json:"other_points"`
+
+	SpecificCountryPoints int    `json:"specific_country_points"`
+	SpecificCountryPrefix string `json:"specific_country_prefix"`
+
+	Multis []string `json:"multis"`
 }
 
 type LoadedConfiguration struct {
 	data Data
 }
 
-func (l *LoadedConfiguration) MyCall() callsign.Callsign {
-	myCall, _ := callsign.Parse(l.data.MyCall)
+func (c *LoadedConfiguration) MyCall() callsign.Callsign {
+	myCall, _ := callsign.Parse(c.data.MyCall)
 	return myCall
 }
 
-func (l *LoadedConfiguration) MyLocator() locator.Locator {
-	myLocator, _ := locator.Parse(l.data.MyLocator)
+func (c *LoadedConfiguration) MyLocator() locator.Locator {
+	myLocator, _ := locator.Parse(c.data.MyLocator)
 	return myLocator
 }
 
-func (l *LoadedConfiguration) EnterTheirNumber() bool {
-	return l.data.EnterTheirNumber
+func (c *LoadedConfiguration) EnterTheirNumber() bool {
+	return c.data.EnterTheirNumber
 }
 
-func (l *LoadedConfiguration) EnterTheirXchange() bool {
-	return l.data.EnterTheirXchange
+func (c *LoadedConfiguration) EnterTheirXchange() bool {
+	return c.data.EnterTheirXchange
 }
 
-func (l *LoadedConfiguration) CabrilloQSOTemplate() string {
-	return l.data.CabrilloQSOTemplate
+func (c *LoadedConfiguration) CabrilloQSOTemplate() string {
+	return c.data.CabrilloQSOTemplate
 }
 
-func (l *LoadedConfiguration) AllowMultiBand() bool {
-	return l.data.AllowMultiBand
+func (c *LoadedConfiguration) AllowMultiBand() bool {
+	return c.data.AllowMultiBand
 }
 
-func (l *LoadedConfiguration) AllowMultiMode() bool {
-	return l.data.AllowMultiMode
+func (c *LoadedConfiguration) AllowMultiMode() bool {
+	return c.data.AllowMultiMode
 }
 
-func (l *LoadedConfiguration) KeyerHost() string {
-	return l.data.KeyerHost
+func (c *LoadedConfiguration) KeyerHost() string {
+	return c.data.KeyerHost
 }
 
-func (l *LoadedConfiguration) KeyerPort() int {
-	return l.data.KeyerPort
+func (c *LoadedConfiguration) KeyerPort() int {
+	return c.data.KeyerPort
 }
 
-func (l *LoadedConfiguration) KeyerWPM() int {
-	return l.data.KeyerWPM
+func (c *LoadedConfiguration) KeyerWPM() int {
+	return c.data.KeyerWPM
 }
 
-func (l *LoadedConfiguration) KeyerSPMacros() []string {
-	if l.data.KeyerSPMacros == nil {
+func (c *LoadedConfiguration) KeyerSPMacros() []string {
+	if c.data.KeyerSPMacros == nil {
 		return []string{}
 	}
-	return l.data.KeyerSPMacros
+	return c.data.KeyerSPMacros
 }
 
-func (l *LoadedConfiguration) KeyerRunMacros() []string {
-	if l.data.KeyerRunMacros == nil {
+func (c *LoadedConfiguration) KeyerRunMacros() []string {
+	if c.data.KeyerRunMacros == nil {
 		return []string{}
 	}
-	return l.data.KeyerRunMacros
+	return c.data.KeyerRunMacros
 }
 
-func (l *LoadedConfiguration) HamlibAddress() string {
-	return l.data.HamlibAddress
+func (c *LoadedConfiguration) HamlibAddress() string {
+	return c.data.HamlibAddress
+}
+
+func (c *LoadedConfiguration) CountPerBand() bool {
+	return c.data.Score.CountPerBand
+}
+
+func (c *LoadedConfiguration) SameCountryPoints() int {
+	return c.data.Score.SameCountryPoints
+}
+
+func (c *LoadedConfiguration) SameContinentPoints() int {
+	return c.data.Score.SameContinentPoints
+}
+
+func (c *LoadedConfiguration) OtherPoints() int {
+	return c.data.Score.OtherPoints
+}
+
+func (c *LoadedConfiguration) SpecificCountryPoints() int {
+	return c.data.Score.SpecificCountryPoints
+}
+
+func (c *LoadedConfiguration) SpecificCountryPrefix() string {
+	return c.data.Score.SpecificCountryPrefix
+}
+
+func (c *LoadedConfiguration) Multis() []string {
+	return c.data.Score.Multis
 }
 
 type StaticConfiguration struct {
@@ -164,54 +215,82 @@ type StaticConfiguration struct {
 	myLocator locator.Locator
 }
 
-func (s *StaticConfiguration) MyCall() callsign.Callsign {
-	return s.myCall
+func (c *StaticConfiguration) MyCall() callsign.Callsign {
+	return c.myCall
 }
 
-func (s *StaticConfiguration) MyLocator() locator.Locator {
-	return s.myLocator
+func (c *StaticConfiguration) MyLocator() locator.Locator {
+	return c.myLocator
 }
 
-func (s *StaticConfiguration) EnterTheirNumber() bool {
+func (c *StaticConfiguration) EnterTheirNumber() bool {
 	return true
 }
 
-func (s *StaticConfiguration) EnterTheirXchange() bool {
+func (c *StaticConfiguration) EnterTheirXchange() bool {
 	return true
 }
 
-func (s *StaticConfiguration) CabrilloQSOTemplate() string {
+func (c *StaticConfiguration) CabrilloQSOTemplate() string {
 	return "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"
 }
 
-func (s *StaticConfiguration) AllowMultiBand() bool {
+func (c *StaticConfiguration) AllowMultiBand() bool {
 	return false
 }
 
-func (s *StaticConfiguration) AllowMultiMode() bool {
+func (c *StaticConfiguration) AllowMultiMode() bool {
 	return false
 }
 
-func (s *StaticConfiguration) KeyerHost() string {
+func (c *StaticConfiguration) KeyerHost() string {
 	return ""
 }
 
-func (s *StaticConfiguration) KeyerPort() int {
+func (c *StaticConfiguration) KeyerPort() int {
 	return 0
 }
 
-func (s *StaticConfiguration) KeyerWPM() int {
+func (c *StaticConfiguration) KeyerWPM() int {
 	return 25
 }
 
-func (s *StaticConfiguration) KeyerSPMacros() []string {
+func (c *StaticConfiguration) KeyerSPMacros() []string {
 	return []string{}
 }
 
-func (s *StaticConfiguration) KeyerRunMacros() []string {
+func (c *StaticConfiguration) KeyerRunMacros() []string {
 	return []string{}
 }
 
-func (s *StaticConfiguration) HamlibAddress() string {
+func (c *StaticConfiguration) HamlibAddress() string {
 	return ""
+}
+
+func (c *StaticConfiguration) CountPerBand() bool {
+	return true
+}
+
+func (c *StaticConfiguration) SameCountryPoints() int {
+	return 1
+}
+
+func (c *StaticConfiguration) SameContinentPoints() int {
+	return 3
+}
+
+func (c *StaticConfiguration) OtherPoints() int {
+	return 5
+}
+
+func (c *StaticConfiguration) SpecificCountryPoints() int {
+	return 0
+}
+
+func (c *StaticConfiguration) SpecificCountryPrefix() string {
+	return ""
+}
+
+func (c *StaticConfiguration) Multis() []string {
+	return []string{}
 }

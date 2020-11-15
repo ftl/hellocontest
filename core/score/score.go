@@ -1,6 +1,8 @@
 package score
 
 import (
+	"log"
+	"regexp"
 	"strings"
 
 	"github.com/ftl/hamradio/dxcc"
@@ -26,12 +28,14 @@ type Configuration interface {
 	SpecificCountryPoints() int
 	SpecificCountryPrefixes() []string
 	Multis() []string
+	XchangeMultiPattern() string
 }
 
 const (
 	CQZoneMulti     = "CQ"
 	ITUZoneMulti    = "ITU"
 	DXCCEntityMulti = "DXCC"
+	XchangeMulti    = "XCHANGE"
 )
 
 func NewCounter(configuration Configuration) *Counter {
@@ -43,12 +47,20 @@ func NewCounter(configuration Configuration) *Counter {
 		configuration:           configuration,
 		specificCountryPrefixes: make(map[string]bool),
 		multisPerBand:           make(map[core.Band]*multis),
-		overallMultis:           newMultis(configuration.Multis()),
 	}
 
 	for _, prefix := range configuration.SpecificCountryPrefixes() {
 		result.specificCountryPrefixes[strings.ToUpper(prefix)] = true
 	}
+
+	exp, err := regexp.Compile(configuration.XchangeMultiPattern())
+	if err != nil {
+		log.Printf("Invalid regular expression for Xchange Multis: %v", err)
+	} else {
+		result.xchangeMultiExpression = exp
+		log.Printf("Using pattern %q for Xchange Multis", result.xchangeMultiExpression)
+	}
+	result.overallMultis = newMultis(configuration.Multis(), result.xchangeMultiExpression)
 
 	return result
 }
@@ -60,6 +72,7 @@ type Counter struct {
 	configuration           Configuration
 	myPrefix                dxcc.Prefix
 	specificCountryPrefixes map[string]bool
+	xchangeMultiExpression  *regexp.Regexp
 	listeners               []interface{}
 
 	multisPerBand map[core.Band]*multis
@@ -104,7 +117,7 @@ func (c *Counter) Clear() {
 		ScorePerBand: make(map[core.Band]core.BandScore),
 	}
 	c.multisPerBand = make(map[core.Band]*multis)
-	c.overallMultis = newMultis(c.configuration.Multis())
+	c.overallMultis = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
 	c.emitScoreUpdated(c.Score)
 }
 
@@ -116,14 +129,14 @@ func (c *Counter) Add(qso core.QSO) {
 	c.OverallScore.Add(qsoScore)
 	bandScore.Add(qsoScore)
 
-	overallMultiScore := c.overallMultis.Add(1, qso.DXCC)
+	overallMultiScore := c.overallMultis.Add(1, qso.DXCC, qso.TheirXchange)
 	c.OverallScore.Add(overallMultiScore)
 	multisPerBand, ok := c.multisPerBand[qso.Band]
 	if !ok {
-		multisPerBand = newMultis(c.configuration.Multis())
+		multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
 		c.multisPerBand[qso.Band] = multisPerBand
 	}
-	bandMultiScore := multisPerBand.Add(1, qso.DXCC)
+	bandMultiScore := multisPerBand.Add(1, qso.DXCC, qso.TheirXchange)
 	c.TotalScore.Add(bandMultiScore)
 	bandScore.Add(bandMultiScore)
 
@@ -156,23 +169,23 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 	overallScore.Add(newQSOScore)
 	newBandScore.Add(newQSOScore)
 
-	oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.DXCC)
+	oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.DXCC, oldQSO.TheirXchange)
 	overallScore.Add(oldOverallMultiScore)
 	oldMultisPerBand, ok := c.multisPerBand[oldQSO.Band]
 	if ok {
-		oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.DXCC)
+		oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.DXCC, oldQSO.TheirXchange)
 		oldBandScore.Add(oldBandMultiScore)
 		totalScore.Add(oldBandMultiScore)
 	}
 
-	newOverallMultiScore := c.overallMultis.Add(1, newQSO.DXCC)
+	newOverallMultiScore := c.overallMultis.Add(1, newQSO.DXCC, newQSO.TheirXchange)
 	overallScore.Add(newOverallMultiScore)
 	newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
 	if !ok {
-		newMultisPerBand = newMultis(c.configuration.Multis())
+		newMultisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
 		c.multisPerBand[newQSO.Band] = newMultisPerBand
 	}
-	newBandMultiScore := newMultisPerBand.Add(1, newQSO.DXCC)
+	newBandMultiScore := newMultisPerBand.Add(1, newQSO.DXCC, newQSO.TheirXchange)
 	newBandScore.Add(newBandMultiScore)
 	totalScore.Add(newBandMultiScore)
 
@@ -215,23 +228,27 @@ func (c *Counter) isSpecificCountry(prefix dxcc.Prefix) bool {
 	return c.specificCountryPrefixes[prefix.PrimaryPrefix]
 }
 
-func newMultis(countingMultis []string) *multis {
+func newMultis(countingMultis []string, xchangeMultiExpression *regexp.Regexp) *multis {
 	return &multis{
-		CountingMultis:  countingMultis,
-		CQZones:         make(map[dxcc.CQZone]int),
-		ITUZones:        make(map[dxcc.ITUZone]int),
-		PrimaryPrefixes: make(map[string]int),
+		CountingMultis:         countingMultis,
+		XchangeMultiExpression: xchangeMultiExpression,
+		CQZones:                make(map[dxcc.CQZone]int),
+		ITUZones:               make(map[dxcc.ITUZone]int),
+		PrimaryPrefixes:        make(map[string]int),
+		XchangeValues:          make(map[string]int),
 	}
 }
 
 type multis struct {
-	CountingMultis  []string
-	CQZones         map[dxcc.CQZone]int
-	ITUZones        map[dxcc.ITUZone]int
-	PrimaryPrefixes map[string]int
+	CountingMultis         []string
+	XchangeMultiExpression *regexp.Regexp
+	CQZones                map[dxcc.CQZone]int
+	ITUZones               map[dxcc.ITUZone]int
+	PrimaryPrefixes        map[string]int
+	XchangeValues          map[string]int
 }
 
-func (m *multis) Add(value int, prefix dxcc.Prefix) core.BandScore {
+func (m *multis) Add(value int, prefix dxcc.Prefix, xchange string) core.BandScore {
 	var result core.BandScore
 
 	oldCQZoneCount := m.CQZones[prefix.CQZone]
@@ -255,6 +272,23 @@ func (m *multis) Add(value int, prefix dxcc.Prefix) core.BandScore {
 		result.PrimaryPrefixes += value
 	}
 
+	xchange = strings.ToUpper(strings.TrimSpace(xchange))
+	if m.XchangeMultiExpression != nil {
+		matches := m.XchangeMultiExpression.FindStringSubmatch(xchange)
+		if len(matches) > 0 {
+			xchangeValue := matches[0]
+			if len(matches) > 1 {
+				xchangeValue = matches[1]
+			}
+			oldXchangeValuesCount := m.XchangeValues[xchangeValue]
+			newXchangeValuesCount := oldXchangeValuesCount + value
+			m.XchangeValues[xchangeValue] = newXchangeValuesCount
+			if oldXchangeValuesCount == 0 || newXchangeValuesCount == 0 {
+				result.XchangeValues += value
+			}
+		}
+	}
+
 	for _, token := range m.CountingMultis {
 		switch strings.ToUpper(token) {
 		case CQZoneMulti:
@@ -263,6 +297,8 @@ func (m *multis) Add(value int, prefix dxcc.Prefix) core.BandScore {
 			result.Multis += result.ITUZones
 		case DXCCEntityMulti:
 			result.Multis += result.PrimaryPrefixes
+		case XchangeMulti:
+			result.Multis += result.XchangeValues
 		}
 	}
 

@@ -44,6 +44,7 @@ var Default = Data{
 		SpecificCountryPoints:   0,
 		SpecificCountryPrefixes: []string{},
 		Multis:                  []string{"CQ", "DXCC"},
+		XchangeMultiPattern:     "",
 	},
 }
 
@@ -115,7 +116,8 @@ type Score struct {
 	SpecificCountryPoints   int      `json:"specific_country_points"`
 	SpecificCountryPrefixes []string `json:"specific_country_prefixes"`
 
-	Multis []string `json:"multis"`
+	Multis              []string `json:"multis"`
+	XchangeMultiPattern string   `json:"xchange_multi_pattern"`
 }
 
 type LoadedConfiguration struct {
@@ -210,6 +212,10 @@ func (c *LoadedConfiguration) Multis() []string {
 	return c.data.Score.Multis
 }
 
+func (c *LoadedConfiguration) XchangeMultiPattern() string {
+	return c.data.Score.XchangeMultiPattern
+}
+
 type StaticConfiguration struct {
 	myCall    callsign.Callsign
 	myLocator locator.Locator
@@ -293,4 +299,8 @@ func (c *StaticConfiguration) SpecificCountryPrefixes() []string {
 
 func (c *StaticConfiguration) Multis() []string {
 	return []string{}
+}
+
+func (c *StaticConfiguration) XchangeMultiPattern() string {
+	return ""
 }

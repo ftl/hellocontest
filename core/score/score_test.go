@@ -109,6 +109,23 @@ func TestCalculateMultipliers(t *testing.T) {
 	assert.Equal(t, 2, counter.OverallScore.Multis, "overall")
 }
 
+func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
+	counter := NewCounter(&testConfig{
+		multis:              []string{"Xchange"},
+		xchangeMultiPattern: `\d*([A-Za-z])[A-Za-z]*\d*`,
+	})
+	counter.SetMyPrefix(myTestPrefix)
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band40m, TheirXchange: "B05", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
+
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band80m].Multis, "80m")
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band40m].Multis, "40m")
+	assert.Equal(t, 0, counter.ScorePerBand[core.Band20m].Multis, "20m")
+	assert.Equal(t, 2, counter.TotalScore.Multis, "total")
+	assert.Equal(t, 1, counter.OverallScore.Multis, "overall")
+}
+
 type testConfig struct {
 	countPerBand            bool
 	sameCountryPoints       int
@@ -117,6 +134,7 @@ type testConfig struct {
 	specificCountryPoints   int
 	specificCountryPrefixes []string
 	multis                  []string
+	xchangeMultiPattern     string
 }
 
 func (c *testConfig) CountPerBand() bool {
@@ -145,4 +163,8 @@ func (c *testConfig) SpecificCountryPrefixes() []string {
 
 func (c *testConfig) Multis() []string {
 	return c.multis
+}
+
+func (c *testConfig) XchangeMultiPattern() string {
+	return c.xchangeMultiPattern
 }

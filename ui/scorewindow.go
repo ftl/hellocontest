@@ -59,4 +59,5 @@ func (w *scoreWindow) UseDefaultWindowGeometry() {
 
 func (w *scoreWindow) onDestroy() {
 	w.window = nil
+	w.scoreView = nil
 }

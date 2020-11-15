@@ -21,6 +21,7 @@ func NewCounter() *Counter {
 		Score: core.Score{
 			ScorePerBand: make(map[core.Band]core.BandScore),
 		},
+		view:          new(nullView),
 		multisPerBand: make(map[core.Band]*multis),
 		overallMultis: newMultis(),
 	}
@@ -40,16 +41,17 @@ type Counter struct {
 type View interface {
 	Show()
 	Hide()
-	Visible() bool
 
 	ShowScore(score core.Score)
 }
 
 func (c *Counter) SetView(view View) {
-	c.view = view
-	if c.view.Visible() {
-		c.view.ShowScore(c.Score)
+	if view == nil {
+		c.view = new(nullView)
+		return
 	}
+	c.view = view
+	c.view.ShowScore(c.Score)
 }
 
 func (c *Counter) Show() {
@@ -150,9 +152,7 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 }
 
 func (c *Counter) emitScoreUpdated(score core.Score) {
-	if c.view != nil && c.view.Visible() {
-		c.view.ShowScore(score)
-	}
+	c.view.ShowScore(score)
 	for _, listener := range c.listeners {
 		if scoreUpdatedListener, ok := listener.(ScoreUpdatedListener); ok {
 			scoreUpdatedListener.ScoreUpdated(score)
@@ -216,3 +216,9 @@ func (m *multis) Add(value int, prefix dxcc.Prefix) core.BandScore {
 
 	return result
 }
+
+type nullView struct{}
+
+func (v *nullView) Show()                      {}
+func (v *nullView) Hide()                      {}
+func (v *nullView) ShowScore(score core.Score) {}

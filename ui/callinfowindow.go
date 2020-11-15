@@ -8,10 +8,10 @@ import (
 const CallinfoWindowID = gmtry.ID("callinfo")
 
 type callinfoWindow struct {
+	*callinfoView
+
 	window   *gtk.Window
 	geometry *gmtry.Geometry
-
-	*callinfoView
 }
 
 func setupCallinfoWindow(geometry *gmtry.Geometry) *callinfoWindow {
@@ -59,4 +59,5 @@ func (w *callinfoWindow) UseDefaultWindowGeometry() {
 
 func (w *callinfoWindow) onDestroy() {
 	w.window = nil
+	w.callinfoView = nil
 }

@@ -35,6 +35,10 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 }
 
 func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
+	if v == nil {
+		return
+	}
+
 	normalized := strings.ToUpper(strings.TrimSpace(callsign))
 	if normalized == "" {
 		v.callsignLabel.SetMarkup("-")
@@ -55,6 +59,10 @@ func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 }
 
 func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlCompliant bool) {
+	if v == nil {
+		return
+	}
+
 	v.dxccLabel.SetText(name)
 	v.continentLabel.SetText(continent)
 	var ituText string
@@ -81,7 +89,11 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 }
 
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
-	text := ""
+	if v == nil {
+		return
+	}
+
+	var text string
 	for _, callsign := range callsigns {
 		// see https://developer.gnome.org/pango/stable/pango-Markup.html for reference
 		attributes := make([]string, 0)

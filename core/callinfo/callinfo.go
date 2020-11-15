@@ -13,6 +13,7 @@ import (
 
 func New(prefixes DXCCFinder, callsigns CallsignFinder, dupeChecker DupeChecker) *Callinfo {
 	result := &Callinfo{
+		view:        new(nullView),
 		prefixes:    prefixes,
 		callsigns:   callsigns,
 		dupeChecker: dupeChecker,
@@ -48,7 +49,6 @@ type DupeChecker interface {
 type View interface {
 	Show()
 	Hide()
-	Visible() bool
 
 	SetCallsign(callsign string, worked, duplicate bool)
 	SetDXCC(string, string, int, int, bool)
@@ -56,6 +56,10 @@ type View interface {
 }
 
 func (c *Callinfo) SetView(view View) {
+	if view == nil {
+		c.view = new(nullView)
+		return
+	}
 	c.view = view
 }
 
@@ -68,10 +72,6 @@ func (c *Callinfo) Hide() {
 }
 
 func (c *Callinfo) ShowCallsign(s string) {
-	if c.view == nil || !c.view.Visible() {
-		return
-	}
-
 	worked := false
 	duplicate := false
 	cs, err := callsign.Parse(s)
@@ -126,3 +126,11 @@ func (c *Callinfo) showSupercheck(s string) {
 
 	c.view.SetSupercheck(annotatedMatches)
 }
+
+type nullView struct{}
+
+func (v *nullView) Show()                                               {}
+func (v *nullView) Hide()                                               {}
+func (v *nullView) SetCallsign(callsign string, worked, duplicate bool) {}
+func (v *nullView) SetDXCC(string, string, int, int, bool)              {}
+func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)    {}

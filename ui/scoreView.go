@@ -21,6 +21,10 @@ func setupScoreView(builder *gtk.Builder) *scoreView {
 }
 
 func (v *scoreView) ShowScore(score core.Score) {
+	if v == nil {
+		return
+	}
+
 	renderedScore := fmt.Sprintf("<span allow_breaks='true' font_family='monospace'>%s</span>", score)
 	v.tableLabel.SetMarkup(renderedScore)
 }

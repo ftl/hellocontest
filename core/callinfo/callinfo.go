@@ -28,6 +28,8 @@ type Callinfo struct {
 	prefixes    DXCCFinder
 	callsigns   CallsignFinder
 	dupeChecker DupeChecker
+
+	lastCallsign string
 }
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -65,6 +67,7 @@ func (c *Callinfo) SetView(view View) {
 
 func (c *Callinfo) Show() {
 	c.view.Show()
+	c.ShowCallsign(c.lastCallsign)
 }
 
 func (c *Callinfo) Hide() {
@@ -72,6 +75,7 @@ func (c *Callinfo) Hide() {
 }
 
 func (c *Callinfo) ShowCallsign(s string) {
+	c.lastCallsign = s
 	worked := false
 	duplicate := false
 	cs, err := callsign.Parse(s)

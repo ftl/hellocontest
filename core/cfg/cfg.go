@@ -37,13 +37,13 @@ var Default = Data{
 		"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
 	},
 	Score: Score{
-		CountPerBand:          true,
-		SameCountryPoints:     1,
-		SameContinentPoints:   3,
-		OtherPoints:           5,
-		SpecificCountryPoints: 0,
-		SpecificCountryPrefix: "",
-		Multis:                []string{"CQ", "DXCC"},
+		CountPerBand:            true,
+		SameCountryPoints:       1,
+		SameContinentPoints:     3,
+		OtherPoints:             5,
+		SpecificCountryPoints:   0,
+		SpecificCountryPrefixes: []string{},
+		Multis:                  []string{"CQ", "DXCC"},
 	},
 }
 
@@ -112,8 +112,8 @@ type Score struct {
 	SameContinentPoints int `json:"same_continent_points"`
 	OtherPoints         int `json:"other_points"`
 
-	SpecificCountryPoints int    `json:"specific_country_points"`
-	SpecificCountryPrefix string `json:"specific_country_prefix"`
+	SpecificCountryPoints   int      `json:"specific_country_points"`
+	SpecificCountryPrefixes []string `json:"specific_country_prefixes"`
 
 	Multis []string `json:"multis"`
 }
@@ -202,8 +202,8 @@ func (c *LoadedConfiguration) SpecificCountryPoints() int {
 	return c.data.Score.SpecificCountryPoints
 }
 
-func (c *LoadedConfiguration) SpecificCountryPrefix() string {
-	return c.data.Score.SpecificCountryPrefix
+func (c *LoadedConfiguration) SpecificCountryPrefixes() []string {
+	return c.data.Score.SpecificCountryPrefixes
 }
 
 func (c *LoadedConfiguration) Multis() []string {
@@ -287,8 +287,8 @@ func (c *StaticConfiguration) SpecificCountryPoints() int {
 	return 0
 }
 
-func (c *StaticConfiguration) SpecificCountryPrefix() string {
-	return ""
+func (c *StaticConfiguration) SpecificCountryPrefixes() []string {
+	return []string{}
 }
 
 func (c *StaticConfiguration) Multis() []string {

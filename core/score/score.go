@@ -1,6 +1,8 @@
 package score
 
 import (
+	"strings"
+
 	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
@@ -22,7 +24,7 @@ type Configuration interface {
 	SameContinentPoints() int
 	OtherPoints() int
 	SpecificCountryPoints() int
-	SpecificCountryPrefix() string
+	SpecificCountryPrefixes() []string
 	Multis() []string
 }
 
@@ -33,24 +35,32 @@ const (
 )
 
 func NewCounter(configuration Configuration) *Counter {
-	return &Counter{
+	result := &Counter{
 		Score: core.Score{
 			ScorePerBand: make(map[core.Band]core.BandScore),
 		},
-		view:          new(nullView),
-		configuration: configuration,
-		multisPerBand: make(map[core.Band]*multis),
-		overallMultis: newMultis(configuration.Multis()),
+		view:                    new(nullView),
+		configuration:           configuration,
+		specificCountryPrefixes: make(map[string]bool),
+		multisPerBand:           make(map[core.Band]*multis),
+		overallMultis:           newMultis(configuration.Multis()),
 	}
+
+	for _, prefix := range configuration.SpecificCountryPrefixes() {
+		result.specificCountryPrefixes[strings.ToUpper(prefix)] = true
+	}
+
+	return result
 }
 
 type Counter struct {
 	core.Score
 	view View
 
-	configuration Configuration
-	myPrefix      dxcc.Prefix
-	listeners     []interface{}
+	configuration           Configuration
+	myPrefix                dxcc.Prefix
+	specificCountryPrefixes map[string]bool
+	listeners               []interface{}
 
 	multisPerBand map[core.Band]*multis
 	overallMultis *multis
@@ -184,6 +194,9 @@ func (c *Counter) emitScoreUpdated(score core.Score) {
 func (c *Counter) qsoScore(value int, prefix dxcc.Prefix) core.BandScore {
 	var result core.BandScore
 	switch {
+	case c.isSpecificCountry(prefix):
+		result.SpecificCountryQSOs += value
+		result.Points += value * c.configuration.SpecificCountryPoints()
 	case prefix.PrimaryPrefix == c.myPrefix.PrimaryPrefix:
 		result.SameCountryQSOs += value
 		result.Points += value * c.configuration.SameCountryPoints()
@@ -196,6 +209,10 @@ func (c *Counter) qsoScore(value int, prefix dxcc.Prefix) core.BandScore {
 	}
 
 	return result
+}
+
+func (c *Counter) isSpecificCountry(prefix dxcc.Prefix) bool {
+	return c.specificCountryPrefixes[prefix.PrimaryPrefix]
 }
 
 func newMultis(countingMultis []string) *multis {
@@ -239,7 +256,7 @@ func (m *multis) Add(value int, prefix dxcc.Prefix) core.BandScore {
 	}
 
 	for _, token := range m.CountingMultis {
-		switch token {
+		switch strings.ToUpper(token) {
 		case CQZoneMulti:
 			result.Multis += result.CQZones
 		case ITUZoneMulti:

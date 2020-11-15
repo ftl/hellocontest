@@ -3,6 +3,7 @@ package app
 import (
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"text/template"
 
@@ -12,6 +13,7 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callinfo"
+	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/adif"
@@ -194,6 +196,14 @@ func (c *Controller) Shutdown() {
 
 func (c *Controller) About() {
 	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\nThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version)
+}
+
+func (c *Controller) Settings() {
+	cmd := exec.Command("xdg-open", cfg.AbsoluteFilename())
+	err := cmd.Run()
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot open the settings file: %v", err)
+	}
 }
 
 func (c *Controller) Quit() {

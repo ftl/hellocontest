@@ -1,6 +1,8 @@
 package cfg
 
 import (
+	"path/filepath"
+
 	"github.com/pkg/errors"
 
 	"github.com/ftl/hamradio/callsign"
@@ -71,6 +73,10 @@ func Directory() string {
 		panic(errors.Wrap(err, "cannot determine configuration directory"))
 	}
 	return dir
+}
+
+func AbsoluteFilename() string {
+	return filepath.Join(Directory(), Filename)
 }
 
 type Data struct {

@@ -76,6 +76,22 @@ func TestCalculatePoints(t *testing.T) {
 	assert.Equal(t, 9, counter.OverallScore.Points, "overall")
 }
 
+func TestCalculateMultipliers(t *testing.T) {
+	counter := NewCounter(&testConfig{
+		multis: []string{"CQ"},
+	})
+	counter.SetMyPrefix(myTestPrefix)
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("EA0ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "EA", PrimaryPrefix: "EA", Continent: "EU", CQZone: 14, ITUZone: 37}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
+
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band80m].Multis, "same country")
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band40m].Multis, "same continent")
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band20m].Multis, "other")
+	assert.Equal(t, 3, counter.TotalScore.Multis, "total")
+	assert.Equal(t, 2, counter.OverallScore.Multis, "overall")
+}
+
 type testConfig struct {
 	countPerBand          bool
 	sameCountryPoints     int

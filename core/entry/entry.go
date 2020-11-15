@@ -81,6 +81,7 @@ func NewController(clock core.Clock, qsoList QSOList, enterTheirNumber, enterThe
 		clock:             clock,
 		view:              new(nullView),
 		logbook:           new(nullLogbook),
+		callinfo:          new(nullCallinfo),
 		vfo:               new(nullVFO),
 		qsoList:           qsoList,
 		enterTheirNumber:  enterTheirNumber,
@@ -558,3 +559,7 @@ func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
 func (n *nullLogbook) LastBand() core.Band        { return core.NoBand }
 func (n *nullLogbook) LastMode() core.Mode        { return core.NoMode }
 func (n *nullLogbook) Log(core.QSO)               {}
+
+type nullCallinfo struct{}
+
+func (n *nullCallinfo) ShowCallsign(string) {}

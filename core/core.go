@@ -143,14 +143,14 @@ type Score struct {
 
 func (s Score) String() string {
 	buf := bytes.NewBufferString("")
-	fmt.Fprintf(buf, "Band CtyQ ConQ OthQ Pts     CQ ITU Cty\n")
-	fmt.Fprintf(buf, "--------------------------------------\n")
+	fmt.Fprintf(buf, "Band CtyQ ConQ OthQ Pts     P/Q  CQ ITU Cty Mult Q/M  Result \n")
+	fmt.Fprintf(buf, "-------------------------------------------------------------\n")
 	for _, band := range Bands {
 		if score, ok := s.ScorePerBand[band]; ok {
 			fmt.Fprintf(buf, "%4s %s\n", band, score)
 		}
 	}
-	fmt.Fprintf(buf, "--------------------------------------\n")
+	fmt.Fprintf(buf, "-------------------------------------------------------------\n")
 	fmt.Fprintf(buf, "Tot  %s\n", s.TotalScore)
 	fmt.Fprintf(buf, "Ovr  %s\n", s.OverallScore)
 	return buf.String()
@@ -164,10 +164,11 @@ type BandScore struct {
 	CQZones           int
 	ITUZones          int
 	PrimaryPrefixes   int
+	Multis            int
 }
 
 func (s BandScore) String() string {
-	return fmt.Sprintf("%4d %4d %4d %7d %2d %3d %3d", s.SameCountryQSOs, s.SameContinentQSOs, s.OtherQSOs, s.Points, s.CQZones, s.ITUZones, s.PrimaryPrefixes)
+	return fmt.Sprintf("%4d %4d %4d %7d %4.1f %2d %3d %3d %4d %4.1f %7d", s.SameCountryQSOs, s.SameContinentQSOs, s.OtherQSOs, s.Points, s.PointsPerQSO(), s.CQZones, s.ITUZones, s.PrimaryPrefixes, s.Multis, s.QSOsPerMulti(), s.Result())
 }
 
 func (s *BandScore) Add(other BandScore) {
@@ -178,6 +179,34 @@ func (s *BandScore) Add(other BandScore) {
 	s.CQZones += other.CQZones
 	s.ITUZones += other.ITUZones
 	s.PrimaryPrefixes += other.PrimaryPrefixes
+	s.Multis += other.Multis
+}
+
+func (s *BandScore) QSOs() int {
+	return s.SameCountryQSOs + s.SameContinentQSOs + s.OtherQSOs
+}
+
+func (s *BandScore) PointsPerQSO() float64 {
+	qsos := s.QSOs()
+	if qsos == 0 {
+		return 0
+	}
+	return float64(s.Points) / float64(qsos)
+}
+
+func (s *BandScore) QSOsPerMulti() float64 {
+	qsos := s.QSOs()
+	if qsos == 0 {
+		return 0
+	}
+	if s.Multis == 0 {
+		return 0
+	}
+	return float64(qsos) / float64(s.Multis)
+}
+
+func (s *BandScore) Result() int {
+	return s.Points * s.Multis
 }
 
 type MultiplierState int

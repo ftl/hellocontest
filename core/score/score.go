@@ -26,6 +26,12 @@ type Configuration interface {
 	Multis() []string
 }
 
+const (
+	CQZoneMulti     = "CQ"
+	ITUZoneMulti    = "ITU"
+	DXCCEntityMulti = "DXCC"
+)
+
 func NewCounter(configuration Configuration) *Counter {
 	return &Counter{
 		Score: core.Score{
@@ -34,7 +40,7 @@ func NewCounter(configuration Configuration) *Counter {
 		view:          new(nullView),
 		configuration: configuration,
 		multisPerBand: make(map[core.Band]*multis),
-		overallMultis: newMultis(),
+		overallMultis: newMultis(configuration.Multis()),
 	}
 }
 
@@ -88,7 +94,7 @@ func (c *Counter) Clear() {
 		ScorePerBand: make(map[core.Band]core.BandScore),
 	}
 	c.multisPerBand = make(map[core.Band]*multis)
-	c.overallMultis = newMultis()
+	c.overallMultis = newMultis(c.configuration.Multis())
 	c.emitScoreUpdated(c.Score)
 }
 
@@ -100,10 +106,11 @@ func (c *Counter) Add(qso core.QSO) {
 	c.OverallScore.Add(qsoScore)
 	bandScore.Add(qsoScore)
 
-	c.OverallScore.Add(c.overallMultis.Add(1, qso.DXCC))
+	overallMultiScore := c.overallMultis.Add(1, qso.DXCC)
+	c.OverallScore.Add(overallMultiScore)
 	multisPerBand, ok := c.multisPerBand[qso.Band]
 	if !ok {
-		multisPerBand = newMultis()
+		multisPerBand = newMultis(c.configuration.Multis())
 		c.multisPerBand[qso.Band] = multisPerBand
 	}
 	bandMultiScore := multisPerBand.Add(1, qso.DXCC)
@@ -139,7 +146,8 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 	overallScore.Add(newQSOScore)
 	newBandScore.Add(newQSOScore)
 
-	overallScore.Add(c.overallMultis.Add(-1, oldQSO.DXCC))
+	oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.DXCC)
+	overallScore.Add(oldOverallMultiScore)
 	oldMultisPerBand, ok := c.multisPerBand[oldQSO.Band]
 	if ok {
 		oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.DXCC)
@@ -147,10 +155,11 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 		totalScore.Add(oldBandMultiScore)
 	}
 
-	overallScore.Add(c.overallMultis.Add(1, newQSO.DXCC))
+	newOverallMultiScore := c.overallMultis.Add(1, newQSO.DXCC)
+	overallScore.Add(newOverallMultiScore)
 	newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
 	if !ok {
-		newMultisPerBand = newMultis()
+		newMultisPerBand = newMultis(c.configuration.Multis())
 		c.multisPerBand[newQSO.Band] = newMultisPerBand
 	}
 	newBandMultiScore := newMultisPerBand.Add(1, newQSO.DXCC)
@@ -189,8 +198,9 @@ func (c *Counter) qsoScore(value int, prefix dxcc.Prefix) core.BandScore {
 	return result
 }
 
-func newMultis() *multis {
+func newMultis(countingMultis []string) *multis {
 	return &multis{
+		CountingMultis:  countingMultis,
 		CQZones:         make(map[dxcc.CQZone]int),
 		ITUZones:        make(map[dxcc.ITUZone]int),
 		PrimaryPrefixes: make(map[string]int),
@@ -198,6 +208,7 @@ func newMultis() *multis {
 }
 
 type multis struct {
+	CountingMultis  []string
 	CQZones         map[dxcc.CQZone]int
 	ITUZones        map[dxcc.ITUZone]int
 	PrimaryPrefixes map[string]int
@@ -225,6 +236,17 @@ func (m *multis) Add(value int, prefix dxcc.Prefix) core.BandScore {
 	m.PrimaryPrefixes[prefix.PrimaryPrefix] = newPrimaryPrefixCount
 	if oldPrimaryPrefixCount == 0 || newPrimaryPrefixCount == 0 {
 		result.PrimaryPrefixes += value
+	}
+
+	for _, token := range m.CountingMultis {
+		switch token {
+		case CQZoneMulti:
+			result.Multis += result.CQZones
+		case ITUZoneMulti:
+			result.Multis += result.ITUZones
+		case DXCCEntityMulti:
+			result.Multis += result.PrimaryPrefixes
+		}
 	}
 
 	return result

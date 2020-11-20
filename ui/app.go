@@ -67,7 +67,7 @@ func (a *application) activate() {
 	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
 	a.scoreWindow = setupScoreWindow(a.windowGeometry)
 
-	a.controller = app.NewController(a.version, clock.New(), a.app, configuration)
+	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration)
 	a.controller.Startup()
 
 	a.mainWindow.SetMainMenuController(a.controller)
@@ -91,6 +91,9 @@ func (a *application) activate() {
 	}
 
 	a.mainWindow.Show()
+	a.callinfoWindow.RestoreVisibility()
+	a.scoreWindow.RestoreVisibility()
+
 	a.controller.Refresh()
 }
 
@@ -101,6 +104,13 @@ func (a *application) shutdown() {
 	if err != nil {
 		log.Printf("Cannot store window geometry: %v", err)
 	}
+}
+
+func (a *application) runAsync(f func()) {
+	glib.IdleAdd(func() bool {
+		f()
+		return false
+	})
 }
 
 func setupBuilder() *gtk.Builder {
@@ -119,21 +129,23 @@ func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window
 	geometry.Add(id, window)
 
 	window.Connect("configure-event", func(_ interface{}, event *gdk.Event) {
-		if !window.IsVisible() {
-			// return
-		}
 		e := gdk.EventConfigureNewFromEvent(event)
 		w := geometry.Get(id)
 		w.SetPosition(window.GetPosition())
 		w.SetSize(e.Width(), e.Height())
 	})
 	window.Connect("window-state-event", func(_ interface{}, event *gdk.Event) {
-		if !window.IsVisible() {
-			// return
-		}
 		e := gdk.EventWindowStateNewFromEvent(event)
 		if e.ChangedMask()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED {
 			geometry.Get(id).SetMaximized(e.NewWindowState()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED)
 		}
+	})
+	window.Connect("show", func() {
+		w := geometry.Get(id)
+		w.SetVisible(true)
+	})
+	window.Connect("hide", func() {
+		w := geometry.Get(id)
+		w.SetVisible(false)
 	})
 }

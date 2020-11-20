@@ -22,6 +22,15 @@ func setupScoreWindow(geometry *gmtry.Geometry) *scoreWindow {
 	return result
 }
 
+func (w *scoreWindow) RestoreVisibility() {
+	visible := w.geometry.Get(ScoreWindowID).Visible
+	if visible {
+		w.Show()
+	} else {
+		w.Hide()
+	}
+}
+
 func (w *scoreWindow) Show() {
 	if w.window == nil {
 		builder := setupBuilder()

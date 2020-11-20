@@ -1,7 +1,7 @@
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ftl/gmtry v0.0.0-20201114194151-5aa436d15ada h1:JPGfSTElwXlLETtnZ3Af7BXPE9YT6U+c0mY/SSyGfZg=
-github.com/ftl/gmtry v0.0.0-20201114194151-5aa436d15ada/go.mod h1:AQpbHYBSPV1Bc1nqG8vv8BK3qxXMZIn32OQBi/4A7Sc=
+github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04 h1:S7z3LXqDYk4avXKj+B2orGWquOo/A+1ZJbcUPx0duLo=
+github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04/go.mod h1:AQpbHYBSPV1Bc1nqG8vv8BK3qxXMZIn32OQBi/4A7Sc=
 github.com/ftl/hamradio v0.0.0-20200721200456-334cc249f095/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
 github.com/ftl/hamradio v0.0.0-20201102205700-7193f38ca7ac h1:Btjy6H5E/qIVVOcWhuR3u+jXo7Tzj/BuY5P6915GHJQ=
 github.com/ftl/hamradio v0.0.0-20201102205700-7193f38ca7ac/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=

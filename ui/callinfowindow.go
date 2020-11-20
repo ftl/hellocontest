@@ -22,6 +22,15 @@ func setupCallinfoWindow(geometry *gmtry.Geometry) *callinfoWindow {
 	return result
 }
 
+func (w *callinfoWindow) RestoreVisibility() {
+	visible := w.geometry.Get(CallinfoWindowID).Visible
+	if visible {
+		w.Show()
+	} else {
+		w.Hide()
+	}
+}
+
 func (w *callinfoWindow) Show() {
 	if w.window == nil {
 		builder := setupBuilder()

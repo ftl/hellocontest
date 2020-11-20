@@ -29,14 +29,17 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(version string, clock core.Clock, quitter Quitter, configuration Configuration) *Controller {
+func NewController(version string, clock core.Clock, quitter Quitter, asyncRunner AsyncRunner, configuration Configuration) *Controller {
 	return &Controller{
 		version:       version,
 		clock:         clock,
 		quitter:       quitter,
+		asyncRunner:   asyncRunner,
 		configuration: configuration,
 	}
 }
+
+type AsyncRunner func(func())
 
 type Controller struct {
 	view View
@@ -47,6 +50,7 @@ type Controller struct {
 	clock         core.Clock
 	configuration Configuration
 	quitter       Quitter
+	asyncRunner   AsyncRunner
 	store         *store.FileStore
 	cwclient      *cwclient.Client
 	hamlibClient  *hamlib.Client
@@ -156,15 +160,17 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))
 
 	c.dxccFinder.WhenAvailable(func() {
-		if myPrefix, found := c.dxccFinder.Find(c.configuration.MyCall().String()); found {
-			c.Score.SetMyPrefix(myPrefix)
-		}
-		c.Score.Clear()
-		c.QSOList.ForEach(func(qso *core.QSO) {
-			if prefix, found := c.dxccFinder.Find(qso.Callsign.String()); found {
-				qso.DXCC = prefix
+		c.asyncRunner(func() {
+			if myPrefix, found := c.dxccFinder.Find(c.configuration.MyCall().String()); found {
+				c.Score.SetMyPrefix(myPrefix)
 			}
-			c.Score.Add(*qso)
+			c.Score.Clear()
+			c.QSOList.ForEach(func(qso *core.QSO) {
+				if prefix, found := c.dxccFinder.Find(qso.Callsign.String()); found {
+					qso.DXCC = prefix
+				}
+				c.Score.Add(*qso)
+			})
 		})
 	})
 

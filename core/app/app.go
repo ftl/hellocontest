@@ -391,6 +391,11 @@ func (c *Controller) ShowScore() {
 	c.view.BringToFront()
 }
 
+func (c *Controller) ShowRate() {
+	c.Rate.Show()
+	c.view.BringToFront()
+}
+
 func (c *Controller) Refresh() {
 	c.QSOList.Clear()
 	c.Logbook.ReplayAll()

@@ -17,6 +17,7 @@ type MainMenuController interface {
 	Quit()
 	ShowCallinfo()
 	ShowScore()
+	ShowRate()
 }
 
 type mainMenu struct {
@@ -32,6 +33,7 @@ type mainMenu struct {
 	fileQuit           *gtk.MenuItem
 	windowCallinfo     *gtk.MenuItem
 	windowScore        *gtk.MenuItem
+	windowRate         *gtk.MenuItem
 	helpAbout          *gtk.MenuItem
 }
 
@@ -48,6 +50,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
+	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
 	result.helpAbout = getUI(builder, "menuHelpAbout").(*gtk.MenuItem)
 
 	result.fileNew.Connect("activate", result.onNew)
@@ -60,6 +63,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileQuit.Connect("activate", result.onQuit)
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
 	result.windowScore.Connect("activate", result.onScore)
+	result.windowRate.Connect("activate", result.onRate)
 	result.helpAbout.Connect("activate", result.onAbout)
 
 	return result
@@ -111,4 +115,8 @@ func (m *mainMenu) onCallinfo() {
 
 func (m *mainMenu) onScore() {
 	m.controller.ShowScore()
+}
+
+func (m *mainMenu) onRate() {
+	m.controller.ShowRate()
 }

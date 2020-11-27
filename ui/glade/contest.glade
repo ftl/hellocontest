@@ -164,6 +164,41 @@
       </object>
     </child>
   </object>
+  <object class="GtkWindow" id="rateWindow">
+    <property name="can_focus">False</property>
+    <property name="accept_focus">False</property>
+    <child type="titlebar">
+      <placeholder/>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow" id="rateTableContainer">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="hexpand">True</property>
+        <property name="vexpand">True</property>
+        <property name="shadow_type">in</property>
+        <child>
+          <object class="GtkViewport">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel" id="rateTableLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="use_markup">True</property>
+                <property name="selectable">True</property>
+                <property name="track_visited_links">False</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
   <object class="GtkAdjustment" id="speedAdjustment">
     <property name="lower">5</property>
     <property name="upper">60</property>
@@ -307,6 +342,14 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Score</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuWindowRate">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">QSO Rate</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>

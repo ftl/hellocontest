@@ -122,6 +122,10 @@ func (l *Logbook) LastMode() core.Mode {
 	return l.lastQSO().Mode
 }
 
+func (l *Logbook) LastXchange() string {
+	return l.lastQSO().MyXchange
+}
+
 func (l *Logbook) Log(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)

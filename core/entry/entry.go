@@ -49,6 +49,7 @@ type Logbook interface {
 	NextNumber() core.QSONumber
 	LastBand() core.Band
 	LastMode() core.Mode
+	LastXchange() string
 	Log(core.QSO)
 }
 
@@ -128,6 +129,9 @@ func (c *Controller) SetLogbook(logbook Logbook) {
 	c.logbook = logbook
 	c.selectedBand = c.logbook.LastBand()
 	c.selectedMode = c.logbook.LastMode()
+	c.input.myXchange = c.logbook.LastXchange()
+
+	c.showInput()
 }
 
 func (c *Controller) SetKeyer(keyer Keyer) {
@@ -558,6 +562,7 @@ type nullLogbook struct{}
 func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
 func (n *nullLogbook) LastBand() core.Band        { return core.NoBand }
 func (n *nullLogbook) LastMode() core.Mode        { return core.NoMode }
+func (n *nullLogbook) LastXchange() string        { return "" }
 func (n *nullLogbook) Log(core.QSO)               {}
 
 type nullCallinfo struct{}

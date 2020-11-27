@@ -52,6 +52,14 @@ func (m *Log) LastMode() core.Mode {
 	return args.Get(0).(core.Mode)
 }
 
+func (m *Log) LastXchange() string {
+	if !m.active {
+		return ""
+	}
+	args := m.Called()
+	return args.Get(0).(string)
+}
+
 func (m *Log) Log(qso core.QSO) {
 	if !m.active {
 		return

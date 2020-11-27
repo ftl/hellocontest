@@ -22,6 +22,7 @@ import (
 	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
+	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
 	"github.com/ftl/hellocontest/core/scp"
 	"github.com/ftl/hellocontest/core/store"
@@ -63,6 +64,7 @@ type Controller struct {
 	Keyer    *keyer.Keyer
 	Callinfo *callinfo.Callinfo
 	Score    *score.Counter
+	Rate     *rate.Counter
 
 	OnLogbookChanged func()
 }
@@ -158,6 +160,14 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Score.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))
+
+	c.Rate = rate.NewCounter()
+	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
+	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
+	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
+	c.Rate.Notify(rate.RateUpdatedListenerFunc(func(rate core.QSORate) {
+		log.Printf("Rate: last 60 Min: %d Q/h last 5 Min: %d Q/h", rate.LastHourRate, rate.Last5MinRate)
+	}))
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {

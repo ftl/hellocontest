@@ -220,3 +220,33 @@ const (
 	NewBandMultiplier
 	NewMultiplier
 )
+
+// Hour is used as reference to calculate the number of QSOs per hour.
+type Hour time.Time
+
+// HourOf returns the given time to the hour.
+func HourOf(t time.Time) Hour {
+	return Hour(time.Date(
+		t.Year(),
+		t.Month(),
+		t.Day(),
+		t.Hour(),
+		0,
+		0,
+		0,
+		t.Location(),
+	))
+}
+
+// QSOsPerHour is the rate of QSOs per one hour
+type QSOsPerHour int
+
+// QSOsPerHours contains the complete QSO rate statistic mapping each Hour in the contest to the rate of QSOs within this Hour
+type QSOsPerHours map[Hour]QSOsPerHour
+
+// QSORate contains all statistics regarding the rate of QSOs in a contest.
+type QSORate struct {
+	LastHourRate QSOsPerHour
+	Last5MinRate QSOsPerHour
+	QSOsPerHours QSOsPerHours
+}

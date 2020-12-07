@@ -24,7 +24,27 @@ func Export(w io.Writer, qsos ...core.QSO) error {
 	return nil
 }
 
+var qrg = map[core.Band]string{
+	core.NoBand:   "",
+	core.Band160m: "1.800",
+	core.Band80m:  "3.500",
+	core.Band60m:  "5.351",
+	core.Band40m:  "7.000",
+	core.Band30m:  "10.100",
+	core.Band20m:  "14.000",
+	core.Band17m:  "18.100",
+	core.Band15m:  "21.000",
+	core.Band12m:  "24.890",
+	core.Band10m:  "28.000",
+}
+
 func record(w io.Writer, qso core.QSO) error {
+	var frequency string
+	if qso.Frequency == 0 {
+		frequency = qrg[qso.Band]
+	} else {
+		frequency = fmt.Sprintf("%5.3f", qso.Frequency/1000000.0)
+	}
 	fields := []struct {
 		name string
 		data string
@@ -33,6 +53,7 @@ func record(w io.Writer, qso core.QSO) error {
 		{"TIME_ON", qso.Time.In(time.UTC).Format("1504")},
 		{"TIME_OFF", qso.Time.In(time.UTC).Format("1504")},
 		{"CALL", qso.Callsign.String()},
+		{"FREQ", frequency},
 		{"BAND", qso.Band.String()},
 		{"MODE", qso.Mode.String()},
 		{"RST_SENT", qso.MyReport.String()},

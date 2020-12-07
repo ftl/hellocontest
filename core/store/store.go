@@ -73,6 +73,7 @@ func read(reader *bufio.Reader) (core.QSO, error) {
 		return core.QSO{}, err
 	}
 	qso.Time = time.Unix(pbQSO.Timestamp, 0)
+	qso.Frequency = core.Frequency(pbQSO.Frequency)
 	qso.Band, err = parse.Band(pbQSO.Band)
 	if err != nil {
 		return core.QSO{}, err
@@ -110,6 +111,7 @@ func write(writer io.Writer, qso core.QSO) error {
 	pbQSO := &pb.QSO{
 		Callsign:     qso.Callsign.String(),
 		Timestamp:    qso.Time.Unix(),
+		Frequency:    float64(qso.Frequency),
 		Band:         qso.Band.String(),
 		Mode:         qso.Mode.String(),
 		MyReport:     qso.MyReport.String(),

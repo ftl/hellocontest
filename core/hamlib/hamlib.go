@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/bandplan"
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/rigproxy/pkg/client"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 func New(address string) *Client {
@@ -43,13 +44,15 @@ type Client struct {
 }
 
 type VFOController interface {
+	SetFrequency(core.Frequency)
 	SetBand(core.Band)
 	SetMode(core.Mode)
 }
 
 type vfoSettings struct {
-	band core.Band
-	mode core.Mode
+	frequency core.Frequency
+	band      core.Band
+	mode      core.Mode
 }
 
 func (c *Client) SetVFOController(controller VFOController) {
@@ -127,6 +130,14 @@ func (c *Client) withRequestTimeout() context.Context {
 }
 
 func (c *Client) setIncomingFrequency(frequency client.Frequency) {
+	incomingFrequency := core.Frequency(frequency)
+	if c.incoming.frequency == incomingFrequency {
+		return
+	}
+	c.incoming.frequency = incomingFrequency
+	c.controller.SetFrequency(c.incoming.frequency)
+	log.Printf("incoming frequency: %s", c.incoming.frequency)
+
 	band := c.bandplan.ByFrequency(frequency)
 	incomingBand := toCoreBand(band.Name)
 	if incomingBand == c.incoming.band {
@@ -145,6 +156,16 @@ func (c *Client) setIncomingModeAndPassband(mode client.Mode, _ client.Frequency
 	c.incoming.mode = incomingMode
 	c.controller.SetMode(c.incoming.mode)
 	log.Printf("incoming mode %v", incomingMode)
+}
+
+func (c *Client) SetFrequency(f core.Frequency) {
+	if f == c.outgoing.frequency {
+		return
+	}
+	c.outgoing.frequency = f
+	c.conn.SetFrequency(c.withRequestTimeout(), client.Frequency(f))
+
+	log.Printf("outgoing frequency: %s", f)
 }
 
 func (c *Client) SetBand(band core.Band) {
@@ -183,6 +204,10 @@ func (c *Client) SetMode(mode core.Mode) {
 }
 
 func (c *Client) Refresh() {
+	if c.incoming.frequency != 0 {
+		log.Printf("Refreshing VFO frequency")
+		c.controller.SetFrequency(c.incoming.frequency)
+	}
 	if c.incoming.band != core.NoBand {
 		log.Printf("Refreshing VFO band")
 		c.controller.SetBand(c.incoming.band)
@@ -243,5 +268,6 @@ func toClientMode(mode core.Mode) client.Mode {
 
 type nullController struct{}
 
-func (c *nullController) SetBand(core.Band) {}
-func (c *nullController) SetMode(core.Mode) {}
+func (c *nullController) SetFrequency(core.Frequency) {}
+func (c *nullController) SetBand(core.Band)           {}
+func (c *nullController) SetMode(core.Mode)           {}

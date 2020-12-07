@@ -18,6 +18,7 @@ type View interface {
 	SetTheirReport(string)
 	SetTheirNumber(string)
 	SetTheirXchange(string)
+	SetFrequency(core.Frequency)
 	SetBand(text string)
 	SetMode(text string)
 	SetMyReport(string)
@@ -108,6 +109,7 @@ type Controller struct {
 
 	input              input
 	activeField        core.EntryField
+	selectedFrequency  core.Frequency
 	selectedBand       core.Band
 	selectedMode       core.Mode
 	editing            bool
@@ -127,6 +129,7 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) SetLogbook(logbook Logbook) {
 	c.logbook = logbook
+	c.selectedFrequency = 0
 	c.selectedBand = c.logbook.LastBand()
 	c.selectedMode = c.logbook.LastMode()
 	c.input.myXchange = c.logbook.LastXchange()
@@ -211,6 +214,7 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.input.band = qso.Band.String()
 	c.input.mode = qso.Mode.String()
 
+	c.selectedFrequency = qso.Frequency
 	c.selectedBand = qso.Band
 	c.selectedMode = qso.Mode
 
@@ -300,6 +304,14 @@ func (c *Controller) Enter(text string) {
 		c.input.mode = text
 		c.modeSelected(text)
 	}
+}
+
+func (c *Controller) SetFrequency(frequency core.Frequency) {
+	if c.selectedFrequency == frequency {
+		return
+	}
+	c.selectedFrequency = frequency
+	c.view.SetFrequency(c.selectedFrequency)
 }
 
 func (c *Controller) bandSelected(s string) {
@@ -407,6 +419,8 @@ func (c *Controller) Log() {
 	} else {
 		qso.Time = c.clock.Now()
 	}
+
+	qso.Frequency = c.selectedFrequency
 
 	qso.Band, err = parse.Band(c.input.band)
 	if err != nil {
@@ -539,6 +553,7 @@ func (n *nullView) SetCallsign(string)              {}
 func (n *nullView) SetTheirReport(string)           {}
 func (n *nullView) SetTheirNumber(string)           {}
 func (n *nullView) SetTheirXchange(string)          {}
+func (n *nullView) SetFrequency(core.Frequency)     {}
 func (n *nullView) SetBand(text string)             {}
 func (n *nullView) SetMode(text string)             {}
 func (n *nullView) SetMyReport(string)              {}

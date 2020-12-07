@@ -198,6 +198,13 @@ func (m *EntryView) SetTheirXchange(xchange string) {
 	m.Called(xchange)
 }
 
+func (m *EntryView) SetFrequency(frequency core.Frequency) {
+	if !m.active {
+		return
+	}
+	m.Called(frequency)
+}
+
 func (m *EntryView) SetBand(text string) {
 	if !m.active {
 		return

@@ -218,6 +218,10 @@ func (v *entryView) SetTheirXchange(text string) {
 	v.setTextWithoutChangeEvent(v.theirXchange.SetText, text)
 }
 
+func (v *entryView) SetFrequency(frequency core.Frequency) {
+	// ignore
+}
+
 func (v *entryView) SetBand(text string) {
 	v.setTextWithoutChangeEvent(func(s string) { v.band.SetActiveID(s) }, text)
 }

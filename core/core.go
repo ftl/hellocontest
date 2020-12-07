@@ -13,6 +13,7 @@ import (
 type QSO struct {
 	Callsign     callsign.Callsign
 	Time         time.Time
+	Frequency    Frequency
 	Band         Band
 	Mode         Mode
 	MyReport     RST
@@ -26,7 +27,14 @@ type QSO struct {
 }
 
 func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%-10s|%4s|%-4s|%s|%s|%s|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String())
+	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String())
+}
+
+// Frequency in Hz.
+type Frequency float64
+
+func (f Frequency) String() string {
+	return fmt.Sprintf("%.0fHz", float64(f))
 }
 
 // Band represents an amateur radio band.
@@ -47,7 +55,7 @@ const (
 	Band10m  Band = "10m"
 )
 
-// Bands are all HF bands.
+// Bands are all supported HF bands.
 var Bands = []Band{Band160m, Band80m, Band60m, Band40m, Band30m, Band20m, Band17m, Band15m, Band12m, Band10m}
 
 func (band *Band) String() string {

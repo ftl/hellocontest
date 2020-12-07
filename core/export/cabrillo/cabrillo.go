@@ -67,8 +67,14 @@ var mode = map[core.Mode]string{
 }
 
 func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso core.QSO) error {
+	var frequency string
+	if qso.Frequency == 0 {
+		frequency = qrg[qso.Band]
+	} else {
+		frequency = fmt.Sprintf("%5.0f", qso.Frequency/1000.0)
+	}
 	fillins := map[string]string{
-		"QRG":          qrg[qso.Band],
+		"QRG":          frequency,
 		"Mode":         mode[qso.Mode],
 		"Date":         qso.Time.In(time.UTC).Format("2006-01-02"),
 		"Time":         qso.Time.In(time.UTC).Format("1504"),

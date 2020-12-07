@@ -165,9 +165,6 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
-	c.Rate.Notify(rate.RateUpdatedListenerFunc(func(rate core.QSORate) {
-		log.Printf("Rate: last 60 Min: %d Q/h last 5 Min: %d Q/h", rate.LastHourRate, rate.Last5MinRate)
-	}))
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {

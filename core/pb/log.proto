@@ -13,4 +13,5 @@ message QSO {
     int64 log_timestamp = 9;
     string my_xchange = 10;
     string their_xchange = 11;
+    double frequency = 12;
 }

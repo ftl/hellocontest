@@ -33,6 +33,9 @@ type Counter struct {
 	listeners []interface{}
 
 	lastHourQSOs qsoList
+	lastQSOTime  time.Time
+	ticker       *time.Ticker
+	stopTicker   chan struct{}
 }
 
 type View interface {
@@ -77,6 +80,11 @@ func (c *Counter) Refresh() {
 	c.lastHourQSOs.RemoveBefore(now.Add(-1 * time.Hour))
 	c.LastHourRate = core.QSOsPerHour(c.lastHourQSOs.Length())
 	c.Last5MinRate = core.QSOsPerHour(c.lastHourQSOs.LengthAfter(now.Add(-5*time.Minute)) * 12)
+	if c.lastQSOTime.IsZero() {
+		c.SinceLastQSO = 0
+	} else {
+		c.SinceLastQSO = now.Sub(c.lastQSOTime)
+	}
 	c.emitRateUpdated(c.QSORate)
 }
 
@@ -90,6 +98,9 @@ func (c *Counter) emitRateUpdated(rate core.QSORate) {
 }
 
 func (c *Counter) Add(qso core.QSO) {
+	if c.lastQSOTime.Before(qso.Time) {
+		c.lastQSOTime = qso.Time
+	}
 	c.lastHourQSOs.Add(qso)
 
 	hour := core.HourOf(qso.Time)

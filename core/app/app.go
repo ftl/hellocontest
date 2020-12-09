@@ -49,6 +49,7 @@ type Controller struct {
 
 	version       string
 	clock         core.Clock
+	refreshTicker *refreshTicker
 	configuration Configuration
 	quitter       Quitter
 	asyncRunner   AsyncRunner
@@ -182,6 +183,8 @@ func (c *Controller) Startup() {
 	})
 
 	c.changeLogbook(filename, store, newLogbook)
+	c.refreshTicker = newRefreshTicker(c.Rate.Refresh)
+	c.refreshTicker.Start()
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {

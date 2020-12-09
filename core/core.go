@@ -257,4 +257,20 @@ type QSORate struct {
 	LastHourRate QSOsPerHour
 	Last5MinRate QSOsPerHour
 	QSOsPerHours QSOsPerHours
+	SinceLastQSO time.Duration
+}
+
+func (r QSORate) SinceLastQSOFormatted() string {
+	total := int(r.SinceLastQSO.Truncate(time.Second).Seconds())
+	hours := int(total / (60 * 60))
+	minutes := int(total/60) % 60
+	seconds := int(total % 60)
+	switch {
+	case total < 60:
+		return fmt.Sprintf("%2ds", seconds)
+	case total < 60*60:
+		return fmt.Sprintf("%02d:%02d", minutes, seconds)
+	default:
+		return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
+	}
 }

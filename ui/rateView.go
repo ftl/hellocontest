@@ -25,6 +25,11 @@ func (v *rateView) ShowRate(rate core.QSORate) {
 		return
 	}
 
-	renderedRate := fmt.Sprintf("<span allow_breaks='true' font_family='monospace'>last 60min: %3d Q/h\nlast  5min: %3d Q/h</span>", rate.LastHourRate, rate.Last5MinRate)
+	text := `<span allow_breaks='true' font_family='monospace'>last 60min: %3d Q/h
+last  5min: %3d Q/h
+last QSO: %9s
+</span>`
+
+	renderedRate := fmt.Sprintf(text, rate.LastHourRate, rate.Last5MinRate, rate.SinceLastQSOFormatted())
 	v.tableLabel.SetMarkup(renderedRate)
 }

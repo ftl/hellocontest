@@ -1,20 +1,20 @@
-package app
+package ticker
 
 import "time"
 
-func newRefreshTicker(callback func()) *refreshTicker {
-	return &refreshTicker{
+func New(callback func()) *Ticker {
+	return &Ticker{
 		callback: callback,
 	}
 }
 
-type refreshTicker struct {
+type Ticker struct {
 	callback   func()
 	ticker     *time.Ticker
 	stopTicker chan struct{}
 }
 
-func (t *refreshTicker) Start() {
+func (t *Ticker) Start() {
 	if t.ticker != nil {
 		return
 	}
@@ -42,7 +42,7 @@ func tilNextSecond(now time.Time) time.Duration {
 	return currentSecond.Add(1 * time.Second).Sub(now)
 }
 
-func (t *refreshTicker) Stop() {
+func (t *Ticker) Stop() {
 	t.ticker.Stop()
 	t.ticker = nil
 	close(t.stopTicker)

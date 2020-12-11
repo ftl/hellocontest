@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/ticker"
 )
 
 type RateUpdatedListener interface {
@@ -18,12 +19,15 @@ func (f RateUpdatedListenerFunc) RateUpdated(Score core.QSORate) {
 }
 
 func NewCounter() *Counter {
-	return &Counter{
+	result := &Counter{
 		QSORate: core.QSORate{
 			QSOsPerHours: make(core.QSOsPerHours),
 		},
 		view: new(nullView),
 	}
+	result.refreshTicker = ticker.New(result.Refresh)
+	result.refreshTicker.Start()
+	return result
 }
 
 type Counter struct {
@@ -32,10 +36,9 @@ type Counter struct {
 
 	listeners []interface{}
 
-	lastHourQSOs qsoList
-	lastQSOTime  time.Time
-	ticker       *time.Ticker
-	stopTicker   chan struct{}
+	lastHourQSOs  qsoList
+	lastQSOTime   time.Time
+	refreshTicker *ticker.Ticker
 }
 
 type View interface {

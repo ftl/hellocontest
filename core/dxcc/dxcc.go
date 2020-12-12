@@ -12,7 +12,7 @@ func New() *Finder {
 	}
 
 	go func() {
-		result.prefixes = setupPrefixes()
+		result.entities = setupEntities()
 		log.Print("DXCC prefix database available")
 		close(result.available)
 	}()
@@ -21,7 +21,7 @@ func New() *Finder {
 }
 
 type Finder struct {
-	prefixes  *dxcc.Prefixes
+	entities  *dxcc.Prefixes
 	available chan struct{}
 }
 
@@ -32,23 +32,23 @@ func (f *Finder) WhenAvailable(callback func()) {
 	}()
 }
 
-func (f *Finder) Find(s string) (prefix dxcc.Prefix, found bool) {
-	if prefixes := f.FindAll(s); len(prefixes) > 0 {
-		prefix = prefixes[0]
+func (f *Finder) Find(s string) (entity dxcc.Prefix, found bool) {
+	if entities := f.FindAll(s); len(entities) > 0 {
+		entity = entities[0]
 		found = true
 	}
 	return
 }
 
 func (f *Finder) FindAll(s string) []dxcc.Prefix {
-	if f.prefixes == nil {
+	if f.entities == nil {
 		return []dxcc.Prefix{}
 	}
-	result, _ := f.prefixes.Find(s)
+	result, _ := f.entities.Find(s)
 	return result
 }
 
-func setupPrefixes() *dxcc.Prefixes {
+func setupEntities() *dxcc.Prefixes {
 	localFilename, err := dxcc.LocalFilename()
 	if err != nil {
 		log.Print(err)

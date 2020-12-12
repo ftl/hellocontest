@@ -70,7 +70,7 @@ type Counter struct {
 	view View
 
 	configuration           Configuration
-	myPrefix                dxcc.Prefix
+	myEntity                dxcc.Prefix
 	specificCountryPrefixes map[string]bool
 	xchangeMultiExpression  *regexp.Regexp
 	listeners               []interface{}
@@ -108,8 +108,8 @@ func (c *Counter) Notify(listener interface{}) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Counter) SetMyPrefix(myPrefix dxcc.Prefix) {
-	c.myPrefix = myPrefix
+func (c *Counter) SetMyEntity(myEntity dxcc.Prefix) {
+	c.myEntity = myEntity
 }
 
 func (c *Counter) Clear() {
@@ -204,16 +204,16 @@ func (c *Counter) emitScoreUpdated(score core.Score) {
 	}
 }
 
-func (c *Counter) qsoScore(value int, prefix dxcc.Prefix) core.BandScore {
+func (c *Counter) qsoScore(value int, entity dxcc.Prefix) core.BandScore {
 	var result core.BandScore
 	switch {
-	case c.isSpecificCountry(prefix):
+	case c.isSpecificCountry(entity):
 		result.SpecificCountryQSOs += value
 		result.Points += value * c.configuration.SpecificCountryPoints()
-	case prefix.PrimaryPrefix == c.myPrefix.PrimaryPrefix:
+	case entity.PrimaryPrefix == c.myEntity.PrimaryPrefix:
 		result.SameCountryQSOs += value
 		result.Points += value * c.configuration.SameCountryPoints()
-	case prefix.Continent == c.myPrefix.Continent:
+	case entity.Continent == c.myEntity.Continent:
 		result.SameContinentQSOs += value
 		result.Points += value * c.configuration.SameContinentPoints()
 	default:
@@ -224,8 +224,23 @@ func (c *Counter) qsoScore(value int, prefix dxcc.Prefix) core.BandScore {
 	return result
 }
 
-func (c *Counter) isSpecificCountry(prefix dxcc.Prefix) bool {
-	return c.specificCountryPrefixes[prefix.PrimaryPrefix]
+func (c *Counter) isSpecificCountry(entity dxcc.Prefix) bool {
+	return c.specificCountryPrefixes[entity.PrimaryPrefix]
+}
+
+func (c *Counter) ValuePerBand(band core.Band, entity dxcc.Prefix, xchange string) (points, multis int) {
+	qsoScore := c.qsoScore(1, entity)
+	multisPerBand, ok := c.multisPerBand[band]
+	if !ok {
+		multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
+	}
+
+	return qsoScore.Points, multisPerBand.Value(entity, xchange)
+}
+
+func (c *Counter) OverallValue(entity dxcc.Prefix, xchange string) (points, multis int) {
+	qsoScore := c.qsoScore(1, entity)
+	return qsoScore.Points, c.overallMultis.Value(entity, xchange)
 }
 
 func newMultis(countingMultis []string, xchangeMultiExpression *regexp.Regexp) *multis {
@@ -248,26 +263,70 @@ type multis struct {
 	XchangeValues          map[string]int
 }
 
-func (m *multis) Add(value int, prefix dxcc.Prefix, xchange string) core.BandScore {
+func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
+	var cqZoneValue int
+	if m.CQZones[entity.CQZone] == 0 {
+		cqZoneValue = 1
+	}
+	var ituZoneValue int
+	if m.ITUZones[entity.ITUZone] == 0 {
+		ituZoneValue = 1
+	}
+	var primaryPrefixValue int
+	if m.PrimaryPrefixes[entity.PrimaryPrefix] == 0 {
+		primaryPrefixValue = 1
+	}
+	var xchangeQSOValue int
+	xchange = strings.ToUpper(strings.TrimSpace(xchange))
+	if m.XchangeMultiExpression != nil {
+		matches := m.XchangeMultiExpression.FindStringSubmatch(xchange)
+		if len(matches) > 0 {
+			xchangeValue := matches[0]
+			if len(matches) > 1 {
+				xchangeValue = matches[1]
+			}
+			if m.XchangeValues[xchangeValue] == 0 {
+				xchangeQSOValue = 1
+			}
+		}
+	}
+
+	var result int
+	for _, token := range m.CountingMultis {
+		switch strings.ToUpper(token) {
+		case CQZoneMulti:
+			result += cqZoneValue
+		case ITUZoneMulti:
+			result += ituZoneValue
+		case DXCCEntityMulti:
+			result += primaryPrefixValue
+		case XchangeMulti:
+			result += xchangeQSOValue
+		}
+	}
+	return result
+}
+
+func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandScore {
 	var result core.BandScore
 
-	oldCQZoneCount := m.CQZones[prefix.CQZone]
+	oldCQZoneCount := m.CQZones[entity.CQZone]
 	newCQZoneCount := oldCQZoneCount + value
-	m.CQZones[prefix.CQZone] = newCQZoneCount
+	m.CQZones[entity.CQZone] = newCQZoneCount
 	if oldCQZoneCount == 0 || newCQZoneCount == 0 {
 		result.CQZones += value
 	}
 
-	oldITUZoneCount := m.ITUZones[prefix.ITUZone]
+	oldITUZoneCount := m.ITUZones[entity.ITUZone]
 	newITUZoneCount := oldITUZoneCount + value
-	m.ITUZones[prefix.ITUZone] = newITUZoneCount
+	m.ITUZones[entity.ITUZone] = newITUZoneCount
 	if oldITUZoneCount == 0 || newITUZoneCount == 0 {
 		result.ITUZones += value
 	}
 
-	oldPrimaryPrefixCount := m.PrimaryPrefixes[prefix.PrimaryPrefix]
+	oldPrimaryPrefixCount := m.PrimaryPrefixes[entity.PrimaryPrefix]
 	newPrimaryPrefixCount := oldPrimaryPrefixCount + value
-	m.PrimaryPrefixes[prefix.PrimaryPrefix] = newPrimaryPrefixCount
+	m.PrimaryPrefixes[entity.PrimaryPrefix] = newPrimaryPrefixCount
 	if oldPrimaryPrefixCount == 0 || newPrimaryPrefixCount == 0 {
 		result.PrimaryPrefixes += value
 	}

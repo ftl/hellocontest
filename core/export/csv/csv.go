@@ -3,6 +3,7 @@ package csv
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -18,9 +19,9 @@ type DXCCFinder interface {
 
 // Export writes the given QSOs to the given writer in the CSV format.
 // The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, dxccFinder DXCCFinder, mycall callsign.Callsign, qsos ...core.QSO) error {
+func Export(w io.Writer, mycall callsign.Callsign, qsos ...core.QSO) error {
 	for _, qso := range qsos {
-		if err := writeQSO(w, dxccFinder, mycall, qso); err != nil {
+		if err := writeQSO(w, mycall, qso); err != nil {
 			return err
 		}
 	}
@@ -28,11 +29,12 @@ func Export(w io.Writer, dxccFinder DXCCFinder, mycall callsign.Callsign, qsos .
 }
 
 var csvTemplate = template.Must(template.New("").Parse(
-	`{{.Band}};{{.Mode}};{{.Date}};{{.Time}};{{.MyCall}};{{.MyReport}};{{.MyNumber}};"{{.MyXchange}}";{{.TheirCall}};{{.TheirReport}};{{.TheirNumber}};"{{.TheirXchange}}";"{{.TheirPrefix}}";"{{.TheirContinent}}";"{{.TheirITUZone}}";"{{.TheirCQZone}}"`))
+	`{{.Band}};{{.Frequency}};{{.Mode}};{{.Date}};{{.Time}};{{.MyCall}};{{.MyReport}};{{.MyNumber}};"{{.MyXchange}}";{{.TheirCall}};{{.TheirReport}};{{.TheirNumber}};"{{.TheirXchange}}";"{{.TheirPrefix}}";"{{.TheirContinent}}";"{{.TheirITUZone}}";"{{.TheirCQZone}}";{{.Points}};{{.Multis}}`))
 
-func writeQSO(w io.Writer, dxccFinder DXCCFinder, mycall callsign.Callsign, qso core.QSO) error {
+func writeQSO(w io.Writer, mycall callsign.Callsign, qso core.QSO) error {
 	fillins := map[string]string{
 		"Band":           qso.Band.String(),
+		"Frequency":      fmt.Sprintf("%5.3f", float64(qso.Frequency/1000000.0)),
 		"Mode":           qso.Mode.String(),
 		"Date":           qso.Time.In(time.UTC).Format("2006-01-02"),
 		"Time":           qso.Time.In(time.UTC).Format("1504"),
@@ -44,17 +46,12 @@ func writeQSO(w io.Writer, dxccFinder DXCCFinder, mycall callsign.Callsign, qso 
 		"TheirReport":    qso.TheirReport.String(),
 		"TheirNumber":    qso.TheirNumber.String(),
 		"TheirXchange":   qso.TheirXchange,
-		"TheirPrefix":    "",
-		"TheirContinent": "",
-		"TheirITUZone":   "",
-		"TheirCQZone":    "",
-	}
-
-	if dxccInfo, found := dxccFinder.Find(qso.Callsign.String()); found {
-		fillins["TheirPrefix"] = dxccInfo.PrimaryPrefix
-		fillins["TheirContinent"] = dxccInfo.Continent
-		fillins["TheirITUZone"] = fmt.Sprintf("%d", dxccInfo.ITUZone)
-		fillins["TheirCQZone"] = fmt.Sprintf("%d", dxccInfo.CQZone)
+		"TheirPrefix":    qso.DXCC.PrimaryPrefix,
+		"TheirContinent": qso.DXCC.Continent,
+		"TheirITUZone":   fmt.Sprintf("%d", qso.DXCC.ITUZone),
+		"TheirCQZone":    fmt.Sprintf("%d", qso.DXCC.CQZone),
+		"Points":         strconv.Itoa(qso.Points),
+		"Multis":         strconv.Itoa(qso.Multis),
 	}
 
 	err := csvTemplate.Execute(w, fillins)

@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -17,6 +16,16 @@ type QSOsClearedListenerFunc func()
 
 func (f QSOsClearedListenerFunc) QSOsCleared() {
 	f()
+}
+
+type QSOFiller interface {
+	FillQSO(*core.QSO)
+}
+
+type QSOFillerFunc func(*core.QSO)
+
+func (f QSOFillerFunc) FillQSO(qso *core.QSO) {
+	f(qso)
 }
 
 type QSOAddedListener interface {
@@ -69,21 +78,14 @@ func (f RowSelectedListenerFunc) RowSelected(index int) {
 	f(index)
 }
 
-// DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
-type DXCCFinder interface {
-	Find(string) (dxcc.Prefix, bool)
-}
-
 type QSOList struct {
-	list       []core.QSO
-	listeners  []interface{}
-	dxccFinder DXCCFinder
+	list      []core.QSO
+	listeners []interface{}
 }
 
-func NewQSOList(dxccFinder DXCCFinder) *QSOList {
+func NewQSOList() *QSOList {
 	return &QSOList{
-		list:       make([]core.QSO, 0),
-		dxccFinder: dxccFinder,
+		list: make([]core.QSO, 0),
 	}
 }
 
@@ -132,26 +134,20 @@ func (l *QSOList) findIndex(myNumber core.QSONumber) (int, bool) {
 }
 
 func (l *QSOList) append(qso core.QSO) {
-	l.setDXCC(&qso)
+	l.fillQSO(&qso)
 	l.list = append(l.list, qso)
 	l.emitQSOAdded(qso)
 }
 
-func (l *QSOList) setDXCC(qso *core.QSO) {
-	if prefix, found := l.dxccFinder.Find(qso.Callsign.String()); found {
-		qso.DXCC = prefix
-	}
-}
-
 func (l *QSOList) insert(index int, qso core.QSO) {
-	l.setDXCC(&qso)
+	l.fillQSO(&qso)
 	l.list = append(l.list[:index+1], l.list[index:]...)
 	l.list[index] = qso
 	l.emitQSOInserted(index, qso)
 }
 
 func (l *QSOList) update(index int, qso core.QSO) {
-	l.setDXCC(&qso)
+	l.fillQSO(&qso)
 	old := l.list[index]
 	l.list[index] = qso
 	l.emitQSOUpdated(index, old, qso)
@@ -222,6 +218,14 @@ func (l *QSOList) Notify(listener interface{}) {
 	l.listeners = append(l.listeners, listener)
 }
 
+func (l *QSOList) fillQSO(qso *core.QSO) {
+	for _, listener := range l.listeners {
+		if qsoFiller, ok := listener.(QSOFiller); ok {
+			qsoFiller.FillQSO(qso)
+		}
+	}
+}
+
 func (l *QSOList) emitQSOsCleared() {
 	for _, listener := range l.listeners {
 		if qsosClearedListener, ok := listener.(QSOsClearedListener); ok {
@@ -268,10 +272,4 @@ func (l *QSOList) emitRowSelected(index int) {
 			rowSelectedListener.RowSelected(index)
 		}
 	}
-}
-
-type nullDXCCFinder struct{}
-
-func (f *nullDXCCFinder) Find(string) (dxcc.Prefix, bool) {
-	return dxcc.Prefix{}, false
 }

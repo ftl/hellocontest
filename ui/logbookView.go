@@ -22,6 +22,8 @@ const (
 	columnTheirReport
 	columnTheirNumber
 	columnTheirXchange
+	columnPoints
+	columnMultis
 )
 
 // LogbookController represents the logbook controller.
@@ -54,9 +56,11 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	result.view.AppendColumn(createColumn("Th RST", columnTheirReport))
 	result.view.AppendColumn(createColumn("Th #", columnTheirNumber))
 	result.view.AppendColumn(createColumn("Th XChg", columnTheirXchange))
+	result.view.AppendColumn(createColumn("Pts", columnPoints))
+	result.view.AppendColumn(createColumn("Mul", columnMultis))
 
 	var err error
-	result.list, err = gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)
+	result.list, err = gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_INT, glib.TYPE_INT)
 	if err != nil {
 		log.Fatalf("Cannot create QSO list store: %v", err)
 	}
@@ -102,6 +106,8 @@ func (v *logbookView) QSOAdded(qso core.QSO) {
 			columnTheirReport,
 			columnTheirNumber,
 			columnTheirXchange,
+			columnPoints,
+			columnMultis,
 		},
 		[]interface{}{
 			qso.Time.In(time.UTC).Format("15:04"),
@@ -114,6 +120,8 @@ func (v *logbookView) QSOAdded(qso core.QSO) {
 			qso.TheirReport.String(),
 			qso.TheirNumber.String(),
 			qso.TheirXchange,
+			qso.Points,
+			qso.Multis,
 		})
 	if err != nil {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)
@@ -145,6 +153,8 @@ func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 			columnTheirReport,
 			columnTheirNumber,
 			columnTheirXchange,
+			columnPoints,
+			columnMultis,
 		},
 		[]interface{}{
 			qso.Time.In(time.UTC).Format("15:04"),
@@ -157,6 +167,8 @@ func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 			qso.TheirReport.String(),
 			qso.TheirNumber.String(),
 			qso.TheirXchange,
+			qso.Points,
+			qso.Multis,
 		})
 	if err != nil {
 		log.Printf("Cannot update QSO row %s: %v", qso.String(), err)

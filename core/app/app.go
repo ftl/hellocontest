@@ -131,7 +131,7 @@ func (c *Controller) Startup() {
 		c.hamlibClient.KeepOpen()
 	}
 
-	c.QSOList = logbook.NewQSOList(c.dxccFinder)
+	c.QSOList = logbook.NewQSOList()
 	c.Entry = entry.NewController(
 		c.clock,
 		c.QSOList,
@@ -160,6 +160,7 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Score.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))
+	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
 
 	c.Rate = rate.NewCounter()
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
@@ -168,20 +169,29 @@ func (c *Controller) Startup() {
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {
-			if myPrefix, found := c.dxccFinder.Find(c.configuration.MyCall().String()); found {
-				c.Score.SetMyPrefix(myPrefix)
+			if myEntity, found := c.dxccFinder.Find(c.configuration.MyCall().String()); found {
+				c.Score.SetMyEntity(myEntity)
 			}
 			c.Score.Clear()
 			c.QSOList.ForEach(func(qso *core.QSO) {
-				if prefix, found := c.dxccFinder.Find(qso.Callsign.String()); found {
-					qso.DXCC = prefix
-				}
+				c.fillQSO(qso)
 				c.Score.Add(*qso)
 			})
 		})
 	})
 
 	c.changeLogbook(filename, store, newLogbook)
+}
+
+func (c *Controller) fillQSO(qso *core.QSO) {
+	if entity, found := c.dxccFinder.Find(qso.Callsign.String()); found {
+		qso.DXCC = entity
+	}
+	if c.configuration.AllowMultiBand() {
+		qso.Points, qso.Multis = c.Score.ValuePerBand(qso.Band, qso.DXCC, qso.TheirXchange)
+	} else {
+		qso.Points, qso.Multis = c.Score.OverallValue(qso.DXCC, qso.TheirXchange)
+	}
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {
@@ -321,7 +331,7 @@ func (c *Controller) ExportCabrillo() {
 		file,
 		template,
 		c.configuration.MyCall(),
-		c.Logbook.UniqueQsosOrderedByMyNumber()...)
+		c.QSOList.All()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
@@ -344,7 +354,7 @@ func (c *Controller) ExportADIF() {
 		return
 	}
 	defer file.Close()
-	err = adif.Export(file, c.Logbook.UniqueQsosOrderedByMyNumber()...)
+	err = adif.Export(file, c.QSOList.All()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export ADIF to %s: %v", filename, err)
 		return
@@ -369,9 +379,8 @@ func (c *Controller) ExportCSV() {
 	defer file.Close()
 	err = csv.Export(
 		file,
-		c.dxccFinder,
 		c.configuration.MyCall(),
-		c.Logbook.UniqueQsosOrderedByMyNumber()...)
+		c.QSOList.All()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return

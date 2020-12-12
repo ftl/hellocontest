@@ -10,7 +10,7 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-var myTestPrefix = dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
+var myTestEntity = dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
 
 func TestNewCounter(t *testing.T) {
 	counter := NewCounter(new(testConfig))
@@ -20,7 +20,7 @@ func TestNewCounter(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	counter := NewCounter(new(testConfig))
-	counter.SetMyPrefix(myTestPrefix)
+	counter.SetMyEntity(myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 
@@ -41,7 +41,7 @@ func TestUpdateSameBandAndPrimaryPrefix(t *testing.T) {
 	oldQSO := core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	newQSO := core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	counter := NewCounter(new(testConfig))
-	counter.SetMyPrefix(myTestPrefix)
+	counter.SetMyEntity(myTestEntity)
 	counter.Add(oldQSO)
 	counter.Update(oldQSO, newQSO)
 
@@ -64,7 +64,7 @@ func TestCalculatePoints(t *testing.T) {
 		sameContinentPoints: 3,
 		otherPoints:         5,
 	})
-	counter.SetMyPrefix(myTestPrefix)
+	counter.SetMyEntity(myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("EA0ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "EA", PrimaryPrefix: "EA", Continent: "EU", CQZone: 14, ITUZone: 37}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
@@ -81,7 +81,7 @@ func TestCalculatePointsForSpecificCountry(t *testing.T) {
 		specificCountryPoints:   1,
 		specificCountryPrefixes: []string{"DL", "EA"},
 	})
-	counter.SetMyPrefix(myTestPrefix)
+	counter.SetMyEntity(myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("EA0ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "EA", PrimaryPrefix: "EA", Continent: "EU", CQZone: 14, ITUZone: 37}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
@@ -97,7 +97,7 @@ func TestCalculateMultipliers(t *testing.T) {
 	counter := NewCounter(&testConfig{
 		multis: []string{"CQ"},
 	})
-	counter.SetMyPrefix(myTestPrefix)
+	counter.SetMyEntity(myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("EA0ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "EA", PrimaryPrefix: "EA", Continent: "EU", CQZone: 14, ITUZone: 37}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
@@ -114,7 +114,7 @@ func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
 		multis:              []string{"Xchange"},
 		xchangeMultiPattern: `\d*([A-Za-z])[A-Za-z]*\d*`,
 	})
-	counter.SetMyPrefix(myTestPrefix)
+	counter.SetMyEntity(myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band40m, TheirXchange: "B05", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})

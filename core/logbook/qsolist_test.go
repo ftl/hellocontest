@@ -10,7 +10,6 @@ import (
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hellocontest/core"
-	"github.com/ftl/hellocontest/core/mocked"
 )
 
 func TestFindIndex(t *testing.T) {
@@ -53,7 +52,7 @@ func TestPut_Append(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{list: tc.qsos, dxccFinder: new(nullDXCCFinder)}
+			list := &QSOList{list: tc.qsos}
 			list.Put(core.QSO{MyNumber: tc.number})
 			require.True(t, len(list.list) > 0, "list must not be empty")
 			assert.Equal(t, tc.number, list.list[len(list.list)-1].MyNumber)
@@ -73,7 +72,7 @@ func TestPut_Insert(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{list: tc.qsos, dxccFinder: new(nullDXCCFinder)}
+			list := &QSOList{list: tc.qsos}
 			list.Put(core.QSO{MyNumber: tc.number})
 			require.Equal(t, len(tc.expectedQSOs), len(list.list), "list has wrong length")
 			assert.Equal(t, tc.expectedQSOs, list.list)
@@ -94,7 +93,7 @@ func TestPut_Update(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{list: tc.qsos, dxccFinder: new(nullDXCCFinder)}
+			list := &QSOList{list: tc.qsos}
 			expectedQSO := core.QSO{MyNumber: tc.number, TheirNumber: 100}
 			list.Put(expectedQSO)
 			assert.Equal(t, expectedQSO, list.list[tc.expectedIndex])
@@ -102,13 +101,17 @@ func TestPut_Update(t *testing.T) {
 	}
 }
 
-func TestPut_AddPrefix(t *testing.T) {
-	dlPrefix := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
-	dxccFinder := new(mocked.DXCCFinder)
-	dxccFinder.On("Find", "DL1ABC").Return(dlPrefix, true)
-	dxccFinder.On("Find", "DK9ZZ").Return(dlPrefix, true)
-	dxccFinder.On("Find", "K3LR").Return(dxcc.Prefix{}, false)
-	list := NewQSOList(dxccFinder)
+func TestPut_Add_FillQSO(t *testing.T) {
+	dlEntity := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
+	list := NewQSOList()
+	list.Notify(QSOFillerFunc(func(qso *core.QSO) {
+		switch qso.Callsign.String() {
+		case "DL1ABC", "DK9ZZ":
+			qso.DXCC = dlEntity
+		default:
+			qso.DXCC = dxcc.Prefix{}
+		}
+	}))
 
 	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1})
 	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 3})
@@ -116,30 +119,37 @@ func TestPut_AddPrefix(t *testing.T) {
 
 	qsos := list.All()
 
-	assert.Equal(t, dlPrefix, qsos[0].DXCC, qsos[0])
-	assert.Equal(t, dlPrefix, qsos[1].DXCC, qsos[1])
+	assert.Equal(t, dlEntity, qsos[0].DXCC, qsos[0])
+	assert.Equal(t, dlEntity, qsos[1].DXCC, qsos[1])
 	assert.Equal(t, dxcc.Prefix{}, qsos[2].DXCC, qsos[2])
 }
 
-func TestPut_UpdatePrefix(t *testing.T) {
-	dlPrefix := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
-	kPrefix := dxcc.Prefix{Name: "United States", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}
-	dxccFinder := new(mocked.DXCCFinder)
-	dxccFinder.On("Find", "DL1ABC").Return(dlPrefix, true)
-	dxccFinder.On("Find", "K3LR").Return(kPrefix, true)
-	list := NewQSOList(dxccFinder)
+func TestPut_Update_FillQSO(t *testing.T) {
+	dlEntity := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
+	kEntity := dxcc.Prefix{Name: "United States", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}
+	list := NewQSOList()
+	list.Notify(QSOFillerFunc(func(qso *core.QSO) {
+		switch qso.Callsign.String() {
+		case "DL1ABC":
+			qso.DXCC = dlEntity
+		case "K3LR":
+			qso.DXCC = kEntity
+		default:
+			qso.DXCC = dxcc.Prefix{}
+		}
+	}))
 
 	list.Put(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1})
 	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 1})
 
 	qsos := list.All()
 
-	assert.Equal(t, kPrefix, qsos[0].DXCC, qsos[0])
+	assert.Equal(t, kEntity, qsos[0].DXCC, qsos[0])
 }
 
 func TestSelectQSO(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
-	list := NewQSOList(new(nullDXCCFinder))
+	list := NewQSOList()
 	list.Put(qso)
 	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
 	qsoNotified := false
@@ -161,7 +171,7 @@ func TestSelectQSO(t *testing.T) {
 
 func TestSelectRow(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
-	list := NewQSOList(new(nullDXCCFinder))
+	list := NewQSOList()
 	list.Put(qso)
 	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
 	qsoNotified := false
@@ -184,7 +194,7 @@ func TestSelectRow(t *testing.T) {
 func TestSelectLastQSO(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
 	lastQSO := core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2}
-	list := NewQSOList(new(nullDXCCFinder))
+	list := NewQSOList()
 	list.Put(qso)
 	list.Put(lastQSO)
 	qsoNotified := false
@@ -205,7 +215,7 @@ func TestSelectLastQSO(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	list := NewQSOList(new(nullDXCCFinder))
+	list := NewQSOList()
 	aa1zzz := callsign.MustParse("AA1ZZZ")
 	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
 	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
@@ -234,7 +244,7 @@ func TestFind(t *testing.T) {
 }
 
 func TestDoNotFindEditedCallsign(t *testing.T) {
-	list := NewQSOList(new(nullDXCCFinder))
+	list := NewQSOList()
 	aa1zzz := callsign.MustParse("AA1ZZZ")
 	a1bc := callsign.MustParse("A1BC")
 	list.Put(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
@@ -248,7 +258,7 @@ func TestDoNotFindEditedCallsign(t *testing.T) {
 }
 
 func TestQSOAddedListener(t *testing.T) {
-	list := NewQSOList(new(nullDXCCFinder))
+	list := NewQSOList()
 	qso := core.QSO{MyNumber: 1}
 	notified := false
 	list.Notify(QSOAddedListenerFunc(func(addedQSO core.QSO) {
@@ -297,7 +307,7 @@ func toQSOList(numbers ...int) *QSOList {
 	for i, number := range numbers {
 		qsos[i] = core.QSO{MyNumber: core.QSONumber(number)}
 	}
-	return &QSOList{list: qsos, dxccFinder: new(nullDXCCFinder)}
+	return &QSOList{list: qsos}
 }
 
 func toQSOs(numbers ...int) []core.QSO {

@@ -24,10 +24,12 @@ type QSO struct {
 	TheirXchange string
 	LogTimestamp time.Time
 	DXCC         dxcc.Prefix
+	Points       int
+	Multis       int
 }
 
 func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String())
+	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%2d|%2d", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String(), qso.Points, qso.Multis)
 }
 
 // Frequency in Hz.
@@ -220,14 +222,6 @@ func (s *BandScore) QSOsPerMulti() float64 {
 func (s *BandScore) Result() int {
 	return s.Points * s.Multis
 }
-
-type MultiplierState int
-
-const (
-	NoMultiplier MultiplierState = iota
-	NewBandMultiplier
-	NewMultiplier
-)
 
 // Hour is used as reference to calculate the number of QSOs per hour.
 type Hour time.Time

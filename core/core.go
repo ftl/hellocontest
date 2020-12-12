@@ -143,6 +143,8 @@ type AnnotatedCallsign struct {
 	Duplicate  bool
 	Worked     bool
 	ExactMatch bool
+	Points     int
+	Multis     int
 }
 
 type Score struct {

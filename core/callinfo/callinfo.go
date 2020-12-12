@@ -11,12 +11,13 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(prefixes DXCCFinder, callsigns CallsignFinder, dupeChecker DupeChecker) *Callinfo {
+func New(entities DXCCFinder, callsigns CallsignFinder, dupeChecker DupeChecker, valuer Valuer) *Callinfo {
 	result := &Callinfo{
 		view:        new(nullView),
-		prefixes:    prefixes,
+		entities:    entities,
 		callsigns:   callsigns,
 		dupeChecker: dupeChecker,
+		valuer:      valuer,
 	}
 
 	return result
@@ -25,11 +26,15 @@ func New(prefixes DXCCFinder, callsigns CallsignFinder, dupeChecker DupeChecker)
 type Callinfo struct {
 	view View
 
-	prefixes    DXCCFinder
+	entities    DXCCFinder
 	callsigns   CallsignFinder
 	dupeChecker DupeChecker
+	valuer      Valuer
 
 	lastCallsign string
+	lastBand     core.Band
+	lastMode     core.Mode
+	lastXchange  string
 }
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -47,6 +52,11 @@ type DupeChecker interface {
 	IsWorked(callsign callsign.Callsign) ([]core.QSO, bool)
 }
 
+// Valuer provides the points and multis of a QSO based on the given information.
+type Valuer interface {
+	Value(entity dxcc.Prefix, band core.Band, mode core.Mode, xchange string) (points, multis int)
+}
+
 // View defines the visual part of the call information window.
 type View interface {
 	Show()
@@ -54,6 +64,7 @@ type View interface {
 
 	SetCallsign(callsign string, worked, duplicate bool)
 	SetDXCC(string, string, int, int, bool)
+	SetValue(points, multis int)
 	SetSupercheck(callsigns []core.AnnotatedCallsign)
 }
 
@@ -67,40 +78,48 @@ func (c *Callinfo) SetView(view View) {
 
 func (c *Callinfo) Show() {
 	c.view.Show()
-	c.ShowCallsign(c.lastCallsign)
+	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastXchange)
 }
 
 func (c *Callinfo) Hide() {
 	c.view.Hide()
 }
 
-func (c *Callinfo) ShowCallsign(s string) {
-	c.lastCallsign = s
+func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange string) {
+	c.lastCallsign = call
+	c.lastBand = band
+	c.lastMode = mode
+	c.lastXchange = xchange
 	worked := false
 	duplicate := false
-	cs, err := callsign.Parse(s)
+	cs, err := callsign.Parse(call)
 	if err == nil {
 		var qsos []core.QSO
 		qsos, duplicate = c.dupeChecker.IsWorked(cs)
 		worked = len(qsos) > 0
 	}
-	c.view.SetCallsign(s, worked, duplicate)
-	c.showDXCC(s)
-	c.showSupercheck(s)
+	c.view.SetCallsign(call, worked, duplicate)
+	c.showDXCCAndValue(call, band, mode, xchange)
+	c.showSupercheck(call)
 }
 
-func (c *Callinfo) showDXCC(callsign string) {
-	if c.prefixes == nil {
+func (c *Callinfo) showDXCCAndValue(callsign string, band core.Band, mode core.Mode, xchange string) {
+	if c.entities == nil {
 		c.view.SetDXCC("", "", 0, 0, false)
+		c.view.SetValue(0, 0)
 		return
 	}
-	prefix, found := c.prefixes.Find(callsign)
+	entity, found := c.entities.Find(callsign)
 	if !found {
 		c.view.SetDXCC("", "", 0, 0, false)
+		c.view.SetValue(0, 0)
 		return
 	}
-	dxccName := fmt.Sprintf("%s (%s)", prefix.Name, prefix.PrimaryPrefix)
-	c.view.SetDXCC(dxccName, prefix.Continent, int(prefix.ITUZone), int(prefix.CQZone), !prefix.NotARRLCompliant)
+
+	dxccName := fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
+	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
+	points, multis := c.valuer.Value(entity, band, mode, xchange)
+	c.view.SetValue(points, multis)
 }
 
 func (c *Callinfo) showSupercheck(s string) {
@@ -118,6 +137,11 @@ func (c *Callinfo) showSupercheck(s string) {
 			log.Printf("Supercheck match %s is not a valid callsign: %v", match, err)
 			continue
 		}
+		entity, entityFound := c.entities.Find(match)
+		var points, multis int
+		if entityFound {
+			points, multis = c.valuer.Value(entity, c.lastBand, c.lastMode, "") // TODO predict exchange
+		}
 		qsos, duplicate := c.dupeChecker.IsWorked(cs)
 		exactMatch := (match == normalizedInput)
 		annotatedMatches[i] = core.AnnotatedCallsign{
@@ -125,6 +149,8 @@ func (c *Callinfo) showSupercheck(s string) {
 			Duplicate:  duplicate,
 			Worked:     len(qsos) > 0,
 			ExactMatch: exactMatch,
+			Points:     points,
+			Multis:     multis,
 		}
 	}
 
@@ -137,4 +163,5 @@ func (v *nullView) Show()                                               {}
 func (v *nullView) Hide()                                               {}
 func (v *nullView) SetCallsign(callsign string, worked, duplicate bool) {}
 func (v *nullView) SetDXCC(string, string, int, int, bool)              {}
+func (v *nullView) SetValue(points, multis int)                         {}
 func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)    {}

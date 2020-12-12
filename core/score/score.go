@@ -228,17 +228,16 @@ func (c *Counter) isSpecificCountry(entity dxcc.Prefix) bool {
 	return c.specificCountryPrefixes[entity.PrimaryPrefix]
 }
 
-func (c *Counter) ValuePerBand(band core.Band, entity dxcc.Prefix, xchange string) (points, multis int) {
-	qsoScore := c.qsoScore(1, entity)
-	multisPerBand, ok := c.multisPerBand[band]
-	if !ok {
-		multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
+func (c *Counter) Value(entity dxcc.Prefix, band core.Band, _ core.Mode, xchange string) (points, multis int) {
+	if c.configuration.CountPerBand() {
+		qsoScore := c.qsoScore(1, entity)
+		multisPerBand, ok := c.multisPerBand[band]
+		if !ok {
+			multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
+		}
+
+		return qsoScore.Points, multisPerBand.Value(entity, xchange)
 	}
-
-	return qsoScore.Points, multisPerBand.Value(entity, xchange)
-}
-
-func (c *Counter) OverallValue(entity dxcc.Prefix, xchange string) (points, multis int) {
 	qsoScore := c.qsoScore(1, entity)
 	return qsoScore.Points, c.overallMultis.Value(entity, xchange)
 }

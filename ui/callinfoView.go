@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/gotk3/gotk3/gtk"
@@ -13,10 +12,7 @@ import (
 type callinfoView struct {
 	callsignLabel   *gtk.Label
 	dxccLabel       *gtk.Label
-	continentLabel  *gtk.Label
-	ituLabel        *gtk.Label
-	cqLabel         *gtk.Label
-	arrlLabel       *gtk.Label
+	valueLabel      *gtk.Label
 	supercheckLabel *gtk.Label
 }
 
@@ -25,10 +21,7 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 
 	result.callsignLabel = getUI(builder, "callsignLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "dxccLabel").(*gtk.Label)
-	result.continentLabel = getUI(builder, "continentLabel").(*gtk.Label)
-	result.ituLabel = getUI(builder, "ituLabel").(*gtk.Label)
-	result.cqLabel = getUI(builder, "cqLabel").(*gtk.Label)
-	result.arrlLabel = getUI(builder, "arrlLabel").(*gtk.Label)
+	result.valueLabel = getUI(builder, "valueLabel").(*gtk.Label)
 	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
 
 	return result
@@ -63,29 +56,49 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 		return
 	}
 
-	v.dxccLabel.SetText(name)
-	v.continentLabel.SetText(continent)
-	var ituText string
-	if itu == 0 {
-		ituText = "-"
-	} else {
-		ituText = strconv.Itoa(itu)
+	if name == "" {
+		v.dxccLabel.SetMarkup("")
+		return
 	}
-	v.ituLabel.SetText(fmt.Sprintf("ITU: %s", ituText))
-	var cqText string
-	if cq == 0 {
-		cqText = "-"
-	} else {
-		cqText = strconv.Itoa(cq)
+
+	text := fmt.Sprintf("%s, %s", name, continent)
+	if itu != 0 {
+		text += fmt.Sprintf(", ITU %d", itu)
 	}
-	v.cqLabel.SetText(fmt.Sprintf("CQ: %s", cqText))
-	var arrlText string
-	if arrlCompliant {
-		arrlText = "compliant"
-	} else {
-		arrlText = "not compl."
+	if cq != 0 {
+		text += fmt.Sprintf(", CQ %d", cq)
 	}
-	v.arrlLabel.SetText(fmt.Sprintf("ARRL: %s", arrlText))
+	if name != "" && !arrlCompliant {
+		text += fmt.Sprintf(", <span foreground='red' font-weight='heavy'>not ARRL compliant</span>")
+	}
+
+	v.dxccLabel.SetMarkup(text)
+}
+
+func (v *callinfoView) SetValue(points, multis int) {
+	if v == nil {
+		return
+	}
+
+	var pointsMarkup string
+	switch {
+	case points < 1:
+		pointsMarkup = "foreground='silver'"
+	case points > 1:
+		pointsMarkup = "font-weight='heavy'"
+	}
+
+	var multisMarkup string
+	switch {
+	case points < 1:
+		multisMarkup = "foreground='silver'"
+	case multis > 1:
+		multisMarkup = "font-weight='heavy'"
+	}
+
+	text := fmt.Sprintf("<span %s>%d points</span> / <span %s>%d multis</span>", pointsMarkup, points, multisMarkup, multis)
+
+	v.valueLabel.SetMarkup(text)
 }
 
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
@@ -97,10 +110,13 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 	for _, callsign := range callsigns {
 		// see https://developer.gnome.org/pango/stable/pango-Markup.html for reference
 		attributes := make([]string, 0)
-		if callsign.Duplicate {
+		switch {
+		case callsign.Duplicate:
 			attributes = append(attributes, "foreground='red'")
-		} else if callsign.Worked {
+		case callsign.Worked:
 			attributes = append(attributes, "foreground='cyan'")
+		case (callsign.Points == 0) && (callsign.Multis == 0):
+			attributes = append(attributes, "foreground='silver'")
 		}
 		if callsign.ExactMatch {
 			attributes = append(attributes, "font-weight='heavy' font-size='large'")

@@ -88,8 +88,8 @@ func TestEntryController_GotoNextField(t *testing.T) {
 	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")
 
 	testCases := []struct {
-		enterTheirNumber, enterTheirXchange bool
-		active, next                        core.EntryField
+		enableTheirNumberField, enableTheirXchangeField bool
+		active, next                                    core.EntryField
 	}{
 		{true, true, core.CallsignField, core.TheirReportField},
 		{true, true, core.TheirReportField, core.TheirNumberField},
@@ -103,8 +103,8 @@ func TestEntryController_GotoNextField(t *testing.T) {
 		{true, true, core.OtherField, core.CallsignField},
 	}
 	for _, tc := range testCases {
-		controller.enterTheirNumber = tc.enterTheirNumber
-		controller.enterTheirXchange = tc.enterTheirXchange
+		controller.enableTheirNumberField = tc.enableTheirNumberField
+		controller.enableTheirXchangeField = tc.enableTheirXchangeField
 		controller.SetActiveField(tc.active)
 		actual := controller.GotoNextField()
 		assert.Equal(t, tc.next, actual)

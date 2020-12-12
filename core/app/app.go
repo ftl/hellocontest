@@ -153,9 +153,6 @@ func (c *Controller) Startup() {
 	c.Workmode = workmode.NewController(c.configuration.KeyerSPMacros(), c.configuration.KeyerRunMacros())
 	c.Workmode.SetKeyer(c.Keyer)
 
-	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.Entry)
-	c.Entry.SetCallinfo(c.Callinfo)
-
 	c.Score = score.NewCounter(c.configuration)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Score.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
@@ -166,6 +163,9 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
+
+	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.Entry, c.Score)
+	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {
@@ -187,11 +187,7 @@ func (c *Controller) fillQSO(qso *core.QSO) {
 	if entity, found := c.dxccFinder.Find(qso.Callsign.String()); found {
 		qso.DXCC = entity
 	}
-	if c.configuration.AllowMultiBand() {
-		qso.Points, qso.Multis = c.Score.ValuePerBand(qso.Band, qso.DXCC, qso.TheirXchange)
-	} else {
-		qso.Points, qso.Multis = c.Score.OverallValue(qso.DXCC, qso.TheirXchange)
-	}
+	qso.Points, qso.Multis = c.Score.Value(qso.DXCC, qso.Band, qso.Mode, qso.TheirXchange)
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {

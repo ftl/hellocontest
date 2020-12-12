@@ -21,6 +21,7 @@
             <property name="margin_right">2</property>
             <property name="hexpand">True</property>
             <property name="use_markup">True</property>
+            <property name="wrap">True</property>
             <attributes>
               <attribute name="scale" value="4"/>
             </attributes>
@@ -28,7 +29,6 @@
           <packing>
             <property name="left_attach">0</property>
             <property name="top_attach">0</property>
-            <property name="width">4</property>
           </packing>
         </child>
         <child>
@@ -39,54 +39,27 @@
             <property name="margin_left">2</property>
             <property name="margin_right">2</property>
             <property name="hexpand">True</property>
+            <property name="use_markup">True</property>
             <property name="wrap">True</property>
           </object>
           <packing>
             <property name="left_attach">0</property>
             <property name="top_attach">1</property>
-            <property name="width">4</property>
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="continentLabel">
+          <object class="GtkLabel" id="valueLabel">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="halign">start</property>
+            <property name="margin_left">2</property>
+            <property name="margin_right">2</property>
+            <property name="hexpand">True</property>
+            <property name="use_markup">True</property>
+            <property name="wrap">True</property>
           </object>
           <packing>
             <property name="left_attach">0</property>
-            <property name="top_attach">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="ituLabel">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">ITU: -</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="top_attach">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="cqLabel">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">CQ: -</property>
-          </object>
-          <packing>
-            <property name="left_attach">2</property>
-            <property name="top_attach">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="arrlLabel">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">ARRL: -</property>
-          </object>
-          <packing>
-            <property name="left_attach">3</property>
             <property name="top_attach">2</property>
           </packing>
         </child>
@@ -123,43 +96,7 @@
           <packing>
             <property name="left_attach">0</property>
             <property name="top_attach">3</property>
-            <property name="width">4</property>
           </packing>
-        </child>
-      </object>
-    </child>
-  </object>
-  <object class="GtkWindow" id="scoreWindow">
-    <property name="can_focus">False</property>
-    <property name="accept_focus">False</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
-    <child>
-      <object class="GtkScrolledWindow" id="tableContainer">
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="hexpand">True</property>
-        <property name="vexpand">True</property>
-        <property name="shadow_type">in</property>
-        <child>
-          <object class="GtkViewport">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <child>
-              <object class="GtkLabel" id="tableLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="halign">start</property>
-                <property name="valign">start</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-                <property name="use_markup">True</property>
-                <property name="selectable">True</property>
-                <property name="track_visited_links">False</property>
-              </object>
-            </child>
-          </object>
         </child>
       </object>
     </child>
@@ -183,6 +120,41 @@
             <property name="can_focus">False</property>
             <child>
               <object class="GtkLabel" id="rateTableLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="use_markup">True</property>
+                <property name="selectable">True</property>
+                <property name="track_visited_links">False</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkWindow" id="scoreWindow">
+    <property name="can_focus">False</property>
+    <property name="accept_focus">False</property>
+    <child type="titlebar">
+      <placeholder/>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow" id="tableContainer">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="hexpand">True</property>
+        <property name="vexpand">True</property>
+        <property name="shadow_type">in</property>
+        <child>
+          <object class="GtkViewport">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <child>
+              <object class="GtkLabel" id="tableLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>

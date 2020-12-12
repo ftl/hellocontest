@@ -68,7 +68,7 @@ type Keyer interface {
 
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
-	ShowCallsign(string)
+	ShowInfo(call string, band core.Band, mode core.Mode, xchange string)
 }
 
 // VFO functionality used for QSO entry.
@@ -78,18 +78,18 @@ type VFO interface {
 }
 
 // NewController returns a new entry controller.
-func NewController(clock core.Clock, qsoList QSOList, enterTheirNumber, enterTheirXchange, allowMultiBand, allowMultiMode bool) *Controller {
+func NewController(clock core.Clock, qsoList QSOList, enableTheirNumberField, enableTheirXchangeField, allowMultiBand, allowMultiMode bool) *Controller {
 	return &Controller{
-		clock:             clock,
-		view:              new(nullView),
-		logbook:           new(nullLogbook),
-		callinfo:          new(nullCallinfo),
-		vfo:               new(nullVFO),
-		qsoList:           qsoList,
-		enterTheirNumber:  enterTheirNumber,
-		enterTheirXchange: enterTheirXchange,
-		allowMultiBand:    allowMultiBand,
-		allowMultiMode:    allowMultiMode,
+		clock:                   clock,
+		view:                    new(nullView),
+		logbook:                 new(nullLogbook),
+		callinfo:                new(nullCallinfo),
+		vfo:                     new(nullVFO),
+		qsoList:                 qsoList,
+		enableTheirNumberField:  enableTheirNumberField,
+		enableTheirXchangeField: enableTheirXchangeField,
+		allowMultiBand:          allowMultiBand,
+		allowMultiMode:          allowMultiMode,
 	}
 }
 
@@ -102,10 +102,10 @@ type Controller struct {
 	callinfo Callinfo
 	vfo      VFO
 
-	enterTheirNumber  bool
-	enterTheirXchange bool
-	allowMultiBand    bool
-	allowMultiMode    bool
+	enableTheirNumberField  bool
+	enableTheirXchangeField bool
+	allowMultiBand          bool
+	allowMultiMode          bool
 
 	input              input
 	activeField        core.EntryField
@@ -124,7 +124,7 @@ func (c *Controller) SetView(view View) {
 	}
 	c.view = view
 	c.Reset()
-	c.view.EnableExchangeFields(c.enterTheirNumber, c.enterTheirXchange)
+	c.view.EnableExchangeFields(c.enableTheirNumberField, c.enableTheirXchangeField)
 }
 
 func (c *Controller) SetLogbook(logbook Logbook) {
@@ -163,16 +163,16 @@ func (c *Controller) GotoNextField() core.EntryField {
 		core.BandField:         core.CallsignField,
 		core.ModeField:         core.CallsignField,
 	}
-	if c.enterTheirNumber && c.enterTheirXchange {
+	if c.enableTheirNumberField && c.enableTheirXchangeField {
 		transitions[core.TheirReportField] = core.TheirNumberField
 		transitions[core.TheirNumberField] = core.TheirXchangeField
-	} else if !c.enterTheirNumber && c.enterTheirXchange {
+	} else if !c.enableTheirNumberField && c.enableTheirXchangeField {
 		transitions[core.TheirReportField] = core.TheirXchangeField
 		transitions[core.TheirNumberField] = core.CallsignField
-	} else if c.enterTheirNumber && !c.enterTheirXchange {
+	} else if c.enableTheirNumberField && !c.enableTheirXchangeField {
 		transitions[core.TheirReportField] = core.TheirNumberField
 		transitions[core.TheirNumberField] = core.CallsignField
-	} else if !c.enterTheirNumber && !c.enterTheirXchange {
+	} else if !c.enableTheirNumberField && !c.enableTheirXchangeField {
 		transitions[core.TheirReportField] = core.CallsignField
 		transitions[core.TheirNumberField] = core.CallsignField
 	}
@@ -291,6 +291,7 @@ func (c *Controller) Enter(text string) {
 		c.input.theirNumber = text
 	case core.TheirXchangeField:
 		c.input.theirXchange = text
+		c.enterTheirXchange(text)
 	case core.MyReportField:
 		c.input.myReport = text
 	case core.MyNumberField:
@@ -374,7 +375,7 @@ func (c *Controller) SendQuestion() {
 
 func (c *Controller) enterCallsign(s string) {
 	if c.callinfo != nil {
-		c.callinfo.ShowCallsign(s)
+		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirXchange)
 	}
 
 	callsign, err := callsign.Parse(s)
@@ -391,6 +392,12 @@ func (c *Controller) enterCallsign(s string) {
 	c.view.ShowMessage(fmt.Sprintf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()))
 }
 
+func (c *Controller) enterTheirXchange(s string) {
+	if c.callinfo != nil {
+		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirXchange)
+	}
+}
+
 func (c *Controller) QSOSelected(qso core.QSO) {
 	if c.ignoreQSOSelection {
 		return
@@ -403,7 +410,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.showQSO(qso)
 	c.view.SetActiveField(core.CallsignField)
 	c.view.SetEditingMarker(true)
-	c.callinfo.ShowCallsign(qso.Callsign.String())
+	c.callinfo.ShowInfo(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirXchange)
 }
 
 func (c *Controller) Log() {
@@ -440,7 +447,7 @@ func (c *Controller) Log() {
 		return
 	}
 
-	if c.enterTheirNumber {
+	if c.enableTheirNumberField {
 		value := c.input.theirNumber
 		if value == "" {
 			c.showErrorOnField(errors.New("their number is missing"), core.TheirNumberField)
@@ -455,7 +462,7 @@ func (c *Controller) Log() {
 		qso.TheirNumber = core.QSONumber(theirNumber)
 	}
 
-	if c.enterTheirXchange {
+	if c.enableTheirXchangeField {
 		qso.TheirXchange = c.input.theirXchange
 		if qso.TheirXchange == "" {
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
@@ -525,7 +532,7 @@ func (c *Controller) Reset() {
 	c.view.ClearMessage()
 	c.selectLastQSO()
 	if c.callinfo != nil {
-		c.callinfo.ShowCallsign("")
+		c.callinfo.ShowInfo("", core.NoBand, core.NoMode, "")
 	}
 }
 
@@ -582,4 +589,4 @@ func (n *nullLogbook) Log(core.QSO)               {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) ShowCallsign(string) {}
+func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, string) {}

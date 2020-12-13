@@ -132,6 +132,7 @@ func (c *Controller) Startup() {
 	}
 
 	c.QSOList = logbook.NewQSOList()
+	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
 	c.Entry = entry.NewController(
 		c.clock,
 		c.QSOList,
@@ -157,7 +158,6 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Score.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))
-	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
 
 	c.Rate = rate.NewCounter()
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
@@ -172,11 +172,9 @@ func (c *Controller) Startup() {
 			if myEntity, found := c.dxccFinder.Find(c.configuration.MyCall().String()); found {
 				c.Score.SetMyEntity(myEntity)
 			}
-			c.Score.Clear()
-			c.QSOList.ForEach(func(qso *core.QSO) {
-				c.fillQSO(qso)
-				c.Score.Add(*qso)
-			})
+			c.QSOList.Clear()
+			c.Logbook.ReplayAll()
+			c.Entry.Reset()
 		})
 	})
 
@@ -187,7 +185,7 @@ func (c *Controller) fillQSO(qso *core.QSO) {
 	if entity, found := c.dxccFinder.Find(qso.Callsign.String()); found {
 		qso.DXCC = entity
 	}
-	qso.Points, qso.Multis = c.Score.Value(qso.DXCC, qso.Band, qso.Mode, qso.TheirXchange)
+	qso.Points, _ = c.Score.Value(qso.DXCC, qso.Band, qso.Mode, qso.TheirXchange)
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {

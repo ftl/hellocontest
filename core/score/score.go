@@ -145,7 +145,7 @@ func (c *Counter) Add(qso core.QSO) {
 }
 
 func (c *Counter) Update(oldQSO, newQSO core.QSO) {
-	if oldQSO.DXCC == newQSO.DXCC {
+	if (oldQSO.DXCC == newQSO.DXCC) && (oldQSO.TheirXchange == newQSO.TheirXchange) {
 		return
 	}
 	totalScore := c.TotalScore
@@ -190,6 +190,7 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 	totalScore.Add(newBandMultiScore)
 
 	c.TotalScore = totalScore
+	c.OverallScore = overallScore
 	c.ScorePerBand[oldQSO.Band] = oldBandScore
 	c.ScorePerBand[newQSO.Band] = *newBandScore
 	c.emitScoreUpdated(c.Score)

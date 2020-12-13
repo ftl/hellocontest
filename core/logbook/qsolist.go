@@ -207,13 +207,6 @@ func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 	return result
 }
 
-func (l *QSOList) ForEach(f func(qso *core.QSO)) {
-	for i, qso := range l.list {
-		f(&qso)
-		l.list[i] = qso
-	}
-}
-
 func (l *QSOList) Notify(listener interface{}) {
 	l.listeners = append(l.listeners, listener)
 }

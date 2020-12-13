@@ -3,7 +3,6 @@ package logbook
 import (
 	"log"
 	"math"
-	"sort"
 
 	"github.com/pkg/errors"
 
@@ -135,42 +134,8 @@ func (l *Logbook) Log(qso core.QSO) {
 	log.Printf("QSO added: %s", qso.String())
 }
 
-func (l *Logbook) QsosOrderedByMyNumber() []core.QSO { // TODO use QSOList instead
-	return byMyNumber(l.qsos)
-}
-
-func (l *Logbook) UniqueQsosOrderedByMyNumber() []core.QSO { // TODO use QSOList instead
-	return byMyNumber(unique(l.qsos))
-}
-
-func byMyNumber(qsos []core.QSO) []core.QSO {
-	result := make([]core.QSO, len(qsos))
-	copy(result, qsos)
-	sort.Slice(result, func(i, j int) bool {
-		if result[i].MyNumber == result[j].MyNumber {
-			return result[i].LogTimestamp.Before(result[j].LogTimestamp)
-		}
-		return result[i].MyNumber < result[j].MyNumber
-	})
-	return result
-}
-
-func unique(qsos []core.QSO) []core.QSO {
-	index := make(map[core.QSONumber]core.QSO)
-	for _, qso := range qsos {
-		former, ok := index[qso.MyNumber]
-		if !ok || qso.LogTimestamp.After(former.LogTimestamp) {
-			index[qso.MyNumber] = qso
-		}
-	}
-
-	result := make([]core.QSO, len(index))
-	i := 0
-	for _, qso := range index {
-		result[i] = qso
-		i++
-	}
-	return result
+func (l *Logbook) All() []core.QSO {
+	return l.qsos
 }
 
 func (l *Logbook) WriteAll(writer Writer) error {

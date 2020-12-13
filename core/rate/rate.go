@@ -41,6 +41,8 @@ type Counter struct {
 	refreshTicker *ticker.Ticker
 }
 
+var zeroTime time.Time
+
 type View interface {
 	Show()
 	Hide()
@@ -72,6 +74,7 @@ func (c *Counter) Notify(listener interface{}) {
 
 func (c *Counter) Clear() {
 	c.lastHourQSOs.Clear()
+	c.lastQSOTime = zeroTime
 
 	c.LastHourRate = 0
 	c.Last5MinRate = 0

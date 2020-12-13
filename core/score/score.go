@@ -275,19 +275,10 @@ func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
 	if m.PrimaryPrefixes[entity.PrimaryPrefix] == 0 {
 		primaryPrefixValue = 1
 	}
-	var xchangeQSOValue int
-	xchange = strings.ToUpper(strings.TrimSpace(xchange))
-	if m.XchangeMultiExpression != nil {
-		matches := m.XchangeMultiExpression.FindStringSubmatch(xchange)
-		if len(matches) > 0 {
-			xchangeValue := matches[0]
-			if len(matches) > 1 {
-				xchangeValue = matches[1]
-			}
-			if m.XchangeValues[xchangeValue] == 0 {
-				xchangeQSOValue = 1
-			}
-		}
+	var xchangeValue int
+	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
+	if xchangeMatch && m.XchangeValues[xchangeMulti] == 0 {
+		xchangeValue = 1
 	}
 
 	var result int
@@ -300,7 +291,7 @@ func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
 		case DXCCEntityMulti:
 			result += primaryPrefixValue
 		case XchangeMulti:
-			result += xchangeQSOValue
+			result += xchangeValue
 		}
 	}
 	return result
@@ -330,20 +321,13 @@ func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandSco
 		result.PrimaryPrefixes += value
 	}
 
-	xchange = strings.ToUpper(strings.TrimSpace(xchange))
-	if m.XchangeMultiExpression != nil {
-		matches := m.XchangeMultiExpression.FindStringSubmatch(xchange)
-		if len(matches) > 0 {
-			xchangeValue := matches[0]
-			if len(matches) > 1 {
-				xchangeValue = matches[1]
-			}
-			oldXchangeValuesCount := m.XchangeValues[xchangeValue]
-			newXchangeValuesCount := oldXchangeValuesCount + value
-			m.XchangeValues[xchangeValue] = newXchangeValuesCount
-			if oldXchangeValuesCount == 0 || newXchangeValuesCount == 0 {
-				result.XchangeValues += value
-			}
+	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
+	if xchangeMatch {
+		oldXchangeValuesCount := m.XchangeValues[xchangeMulti]
+		newXchangeValuesCount := oldXchangeValuesCount + value
+		m.XchangeValues[xchangeMulti] = newXchangeValuesCount
+		if oldXchangeValuesCount == 0 || newXchangeValuesCount == 0 {
+			result.XchangeValues += value
 		}
 	}
 
@@ -361,6 +345,27 @@ func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandSco
 	}
 
 	return result
+}
+
+func (m *multis) matchXchange(xchange string) (string, bool) {
+	xchange = strings.ToUpper(strings.TrimSpace(xchange))
+	if m.XchangeMultiExpression == nil {
+		return xchange, true
+	}
+
+	matches := m.XchangeMultiExpression.FindStringSubmatch(xchange)
+	if len(matches) == 0 {
+		return "", false
+	}
+
+	multiIndex := m.XchangeMultiExpression.SubexpIndex("multi")
+	var multi string
+	if multiIndex == -1 {
+		multi = matches[0]
+	} else {
+		multi = matches[multiIndex]
+	}
+	return multi, (multi != "")
 }
 
 type nullView struct{}

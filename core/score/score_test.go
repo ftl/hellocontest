@@ -1,12 +1,14 @@
 package score
 
 import (
+	"fmt"
+	"regexp"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -112,7 +114,7 @@ func TestCalculateMultipliers(t *testing.T) {
 func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
 	counter := NewCounter(&testConfig{
 		multis:              []string{"Xchange"},
-		xchangeMultiPattern: `\d*([A-Za-z])[A-Za-z]*\d*`,
+		xchangeMultiPattern: `(\d+)|(\d*(?P<multi>[A-Za-z])[A-Za-z]*\d*)`,
 	})
 	counter.SetMyEntity(myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
@@ -124,6 +126,35 @@ func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
 	assert.Equal(t, 0, counter.ScorePerBand[core.Band20m].Multis, "20m")
 	assert.Equal(t, 2, counter.TotalScore.Multis, "total")
 	assert.Equal(t, 1, counter.OverallScore.Multis, "overall")
+}
+
+func TestMatchXchange(t *testing.T) {
+	tt := []struct {
+		expression string
+		value      string
+		multi      string
+		match      bool
+	}{
+		{"", "no expression", "NO EXPRESSION", true},
+		{`\d+`, "no digit", "", false},
+		{`(\d+)|([A-Za-z]+)`, "digitsorchars", "DIGITSORCHARS", true},
+		{`(?P<multi>\d+)|([A-Za-z]+)`, "digitsaremulti", "", false},
+		{`(?P<multi>\d+)|([A-Za-z]+)`, "123", "123", true},
+		{`(\d+)|(\d*(?P<multi>[A-Za-z])[A-Za-z]*\d*)`, "123", "", false},
+		{`(\d+)|(\d*(?P<multi>[A-Za-z])[A-Za-z]*\d*)`, "b36", "B", true},
+	}
+	for _, tc := range tt {
+		t.Run(fmt.Sprintf("%s %s", tc.expression, tc.value), func(t *testing.T) {
+			var expression *regexp.Regexp
+			if tc.expression != "" {
+				expression = regexp.MustCompile(tc.expression)
+			}
+			m := &multis{XchangeMultiExpression: expression}
+			actualMulti, actualMatch := m.matchXchange(tc.value)
+			assert.Equal(t, tc.multi, actualMulti)
+			assert.Equal(t, tc.match, actualMatch)
+		})
+	}
 }
 
 type testConfig struct {

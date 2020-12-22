@@ -180,6 +180,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
+		ID:           core.NewID(),
 		Callsign:     dl1abc,
 		Time:         clock.Now(),
 		Band:         core.Band40m,
@@ -193,6 +194,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	}
 
 	log.Activate()
+	log.On("NewID").Return(qso.ID)
 	log.On("NextNumber").Return(core.QSONumber(1))
 	log.On("Log", qso).Once()
 	qsoList.Activate()
@@ -228,6 +230,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 	_, log, _, view, controller := setupEntryTest()
 	log.Activate()
+	log.On("NewID").Return(core.NoID)
 
 	view.Activate()
 	view.On("SetActiveField", core.CallsignField).Once()
@@ -254,6 +257,7 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	controller.Enter("000")
 
 	log.Activate()
+	log.On("NewID").Return(core.NoID)
 	view.Activate()
 	view.On("SetActiveField", core.TheirReportField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -280,6 +284,7 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	controller.Enter("abc")
 
 	log.Activate()
+	log.On("NewID").Return(core.NoID)
 	view.Activate()
 	view.On("SetActiveField", core.TheirNumberField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -304,6 +309,7 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	controller.Enter("559")
 
 	log.Activate()
+	log.On("NewID").Return(core.NoID)
 	view.Activate()
 	view.On("SetActiveField", core.TheirNumberField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -328,6 +334,7 @@ func TestEntryController_LogWithoutMandatoryTheirXchange(t *testing.T) {
 	controller.Enter("559")
 
 	log.Activate()
+	log.On("NewID").Return(core.NoID)
 	view.Activate()
 	view.On("SetActiveField", core.TheirXchangeField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -358,6 +365,7 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	controller.Enter("abc")
 
 	log.Activate()
+	log.On("NewID").Return(core.NoID)
 	view.Activate()
 	view.On("SetActiveField", core.MyReportField).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -374,6 +382,7 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
+		ID:           core.NewID(),
 		Callsign:     dl1abc,
 		Time:         clock.Now(),
 		TheirReport:  core.RST("559"),
@@ -385,6 +394,7 @@ func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
 	}
 
 	log.Activate()
+	log.On("NewID").Return(qso.ID)
 	log.On("NextNumber").Return(core.QSONumber(1))
 	qsoList.Activate()
 	qsoList.On("Find", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
@@ -481,6 +491,39 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 	assertQSOInput(t, qso, controller)
 
 	view.AssertExpectations(t)
+}
+
+func TestEntryController_EditQSO(t *testing.T) {
+	clock, log, _, _, controller := setupEntryTest()
+
+	id := core.NewID()
+	dl1abc, _ := callsign.Parse("DL1ABC")
+	qso := core.QSO{
+		ID:           id,
+		Band:         core.Band80m,
+		Mode:         core.ModeCW,
+		Callsign:     dl1abc,
+		Time:         clock.Now(),
+		TheirReport:  core.RST("559"),
+		TheirNumber:  12,
+		TheirXchange: "A01",
+		MyReport:     core.RST("579"),
+		MyNumber:     34,
+		MyXchange:    "B36",
+	}
+	changedQSO := qso
+	changedQSO.TheirXchange = "B02"
+
+	controller.QSOSelected(qso)
+	controller.SetActiveField(core.TheirXchangeField)
+	controller.Enter("B02")
+
+	log.Activate()
+	log.On("Log", changedQSO).Once()
+	log.On("NextNumber").Return(core.QSONumber(35))
+	controller.Log()
+
+	log.AssertExpectations(t)
 }
 
 // Helpers

@@ -15,5 +15,6 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/gotk3/gotk3 v0.5.1
 	github.com/pkg/errors v0.9.1
+	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.6.1
 )

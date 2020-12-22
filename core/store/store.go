@@ -20,11 +20,15 @@ import (
 
 // NewFileStore returns a new file based Store.
 func NewFileStore(filename string) *FileStore {
-	return &FileStore{filename}
+	return &FileStore{
+		filename: filename,
+		ids:      make(map[core.QSONumber]core.ID),
+	}
 }
 
 type FileStore struct {
 	filename string
+	ids      map[core.QSONumber]core.ID
 }
 
 func (f *FileStore) ReadAll() ([]core.QSO, error) {
@@ -43,9 +47,23 @@ func (f *FileStore) ReadAll() ([]core.QSO, error) {
 		} else if err != nil {
 			return nil, err
 		}
+		f.fixQSOID(&qso)
 		qsos = append(qsos, qso)
 		log.Printf("QSO loaded: %s", qso.String())
 	}
+}
+
+func (f *FileStore) fixQSOID(qso *core.QSO) {
+	if qso.ID != core.NoID {
+		f.ids[qso.MyNumber] = qso.ID
+		return
+	}
+	id, ok := f.ids[qso.MyNumber]
+	if !ok {
+		id = core.NewID()
+		f.ids[qso.MyNumber] = id
+	}
+	qso.ID = id
 }
 
 func read(reader *bufio.Reader) (core.QSO, error) {
@@ -68,6 +86,7 @@ func read(reader *bufio.Reader) (core.QSO, error) {
 	}
 
 	qso := core.QSO{}
+	qso.ID = core.IDFromStringOrNil(pbQSO.Id)
 	qso.Callsign, err = callsign.Parse(pbQSO.Callsign)
 	if err != nil {
 		return core.QSO{}, err
@@ -109,6 +128,7 @@ func (f *FileStore) Write(qso core.QSO) error {
 
 func write(writer io.Writer, qso core.QSO) error {
 	pbQSO := &pb.QSO{
+		Id:           qso.ID.String(),
 		Callsign:     qso.Callsign.String(),
 		Timestamp:    qso.Time.Unix(),
 		Frequency:    float64(qso.Frequency),

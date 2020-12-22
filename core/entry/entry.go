@@ -47,6 +47,7 @@ type input struct {
 
 // Logbook functionality used for QSO entry.
 type Logbook interface {
+	NewID() core.ID
 	NextNumber() core.QSONumber
 	LastBand() core.Band
 	LastMode() core.Mode
@@ -416,15 +417,18 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 func (c *Controller) Log() {
 	var err error
 	qso := core.QSO{}
+	if c.editing {
+		qso.ID = c.editQSO.ID
+		qso.Time = c.editQSO.Time
+	} else {
+		qso.ID = c.logbook.NewID()
+		qso.Time = c.clock.Now()
+	}
+
 	qso.Callsign, err = callsign.Parse(c.input.callsign)
 	if err != nil {
 		c.showErrorOnField(err, core.CallsignField)
 		return
-	}
-	if c.editing {
-		qso.Time = c.editQSO.Time
-	} else {
-		qso.Time = c.clock.Now()
 	}
 
 	qso.Frequency = c.selectedFrequency
@@ -581,6 +585,7 @@ func (n *nullVFO) Refresh()          {}
 
 type nullLogbook struct{}
 
+func (n *nullLogbook) NewID() core.ID             { return core.NoID }
 func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
 func (n *nullLogbook) LastBand() core.Band        { return core.NoBand }
 func (n *nullLogbook) LastMode() core.Mode        { return core.NoMode }

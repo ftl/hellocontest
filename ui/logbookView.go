@@ -23,6 +23,7 @@ const (
 	columnTheirNumber
 	columnTheirXchange
 	columnPoints
+	columnDuplicate
 )
 
 // LogbookController represents the logbook controller.
@@ -56,9 +57,10 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	result.view.AppendColumn(createColumn("Th #", columnTheirNumber))
 	result.view.AppendColumn(createColumn("Th XChg", columnTheirXchange))
 	result.view.AppendColumn(createColumn("Pts", columnPoints))
+	result.view.AppendColumn(createColumn("D", columnDuplicate))
 
 	var err error
-	result.list, err = gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_INT)
+	result.list, err = gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_INT, glib.TYPE_STRING)
 	if err != nil {
 		log.Fatalf("Cannot create QSO list store: %v", err)
 	}
@@ -105,6 +107,7 @@ func (v *logbookView) QSOAdded(qso core.QSO) {
 			columnTheirNumber,
 			columnTheirXchange,
 			columnPoints,
+			columnDuplicate,
 		},
 		[]interface{}{
 			qso.Time.In(time.UTC).Format("15:04"),
@@ -118,11 +121,19 @@ func (v *logbookView) QSOAdded(qso core.QSO) {
 			qso.TheirNumber.String(),
 			qso.TheirXchange,
 			qso.Points,
+			boolToCheckmark(qso.Duplicate),
 		})
 	if err != nil {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)
 		return
 	}
+}
+
+func boolToCheckmark(value bool) string {
+	if value {
+		return "✓"
+	}
+	return ""
 }
 
 func (v *logbookView) QSOInserted(index int, qso core.QSO) {
@@ -150,6 +161,7 @@ func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 			columnTheirNumber,
 			columnTheirXchange,
 			columnPoints,
+			columnDuplicate,
 		},
 		[]interface{}{
 			qso.Time.In(time.UTC).Format("15:04"),
@@ -163,6 +175,7 @@ func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 			qso.TheirNumber.String(),
 			qso.TheirXchange,
 			qso.Points,
+			boolToCheckmark(qso.Duplicate),
 		})
 	if err != nil {
 		log.Printf("Cannot update QSO row %s: %v", qso.String(), err)

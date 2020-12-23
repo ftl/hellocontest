@@ -144,6 +144,7 @@ func (l *QSOList) append(qso core.QSO) {
 	l.fillQSO(&qso)
 	l.list = append(l.list, qso)
 	l.emitQSOAdded(qso)
+	l.updateDuplicateMarkers(qso)
 }
 
 func (l *QSOList) insert(index int, qso core.QSO) {
@@ -151,6 +152,7 @@ func (l *QSOList) insert(index int, qso core.QSO) {
 	l.list = append(l.list[:index+1], l.list[index:]...)
 	l.list[index] = qso
 	l.emitQSOInserted(index, qso)
+	l.updateDuplicateMarkers(qso)
 }
 
 func (l *QSOList) update(index int, qso core.QSO) {
@@ -158,6 +160,7 @@ func (l *QSOList) update(index int, qso core.QSO) {
 	old := l.list[index]
 	l.list[index] = qso
 	l.emitQSOUpdated(index, old, qso)
+	l.updateDuplicateMarkers(qso)
 }
 
 func (l *QSOList) All() []core.QSO {
@@ -254,6 +257,40 @@ func (l *QSOList) fillQSO(qso *core.QSO) {
 		if qsoFiller, ok := listener.(QSOFiller); ok {
 			qsoFiller.FillQSO(qso)
 		}
+	}
+}
+
+func (l *QSOList) updateDuplicateMarkers(qso core.QSO) {
+	band := qso.Band
+	if !l.configuration.AllowMultiBand() {
+		band = core.NoBand
+	}
+	mode := qso.Mode
+	if !l.configuration.AllowMultiMode() {
+		mode = core.NoMode
+	}
+	first := true
+	for i, q := range l.list {
+		if qso.Callsign != q.Callsign {
+			continue
+		}
+		if band != core.NoBand && band != q.Band {
+			continue
+		}
+		if mode != core.NoMode && mode != q.Mode {
+			continue
+		}
+		oldQ := q
+		if first {
+			q.Duplicate = false
+		} else {
+			q.Duplicate = true
+		}
+		l.list[i] = q
+		if oldQ.Duplicate != q.Duplicate {
+			l.emitQSOUpdated(i, oldQ, q)
+		}
+		first = false
 	}
 }
 

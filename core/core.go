@@ -25,10 +25,11 @@ type QSO struct {
 	LogTimestamp time.Time
 	DXCC         dxcc.Prefix
 	Points       int
+	Duplicate    bool
 }
 
 func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%2d", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String(), qso.Points)
+	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%2d|%t", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String(), qso.Points, qso.Duplicate)
 }
 
 // Frequency in Hz.

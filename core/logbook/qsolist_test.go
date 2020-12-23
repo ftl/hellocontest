@@ -52,7 +52,7 @@ func TestPut_Append(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{list: tc.qsos}
+			list := &QSOList{configuration: new(testConfiguration), list: tc.qsos}
 			list.Put(core.QSO{MyNumber: tc.number})
 			require.True(t, len(list.list) > 0, "list must not be empty")
 			assert.Equal(t, tc.number, list.list[len(list.list)-1].MyNumber)
@@ -64,7 +64,7 @@ func TestPut_Insert(t *testing.T) {
 	tt := []struct {
 		name         string
 		qsos         []core.QSO
-		number       core.QSONumber
+		number       int
 		expectedQSOs []core.QSO
 	}{
 		{"first", toQSOs(2), 1, toQSOs(1, 2)},
@@ -72,8 +72,8 @@ func TestPut_Insert(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{list: tc.qsos}
-			list.Put(core.QSO{MyNumber: tc.number})
+			list := &QSOList{configuration: new(testConfiguration), list: tc.qsos}
+			list.Put(toQSO(tc.number))
 			require.Equal(t, len(tc.expectedQSOs), len(list.list), "list has wrong length")
 			assert.Equal(t, tc.expectedQSOs, list.list)
 		})
@@ -84,7 +84,7 @@ func TestPut_Update(t *testing.T) {
 	tt := []struct {
 		name          string
 		qsos          []core.QSO
-		number        core.QSONumber
+		number        int
 		expectedIndex int
 	}{
 		{"first", toQSOs(1, 2), 1, 0},
@@ -93,8 +93,9 @@ func TestPut_Update(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{list: tc.qsos}
-			expectedQSO := core.QSO{MyNumber: tc.number, TheirNumber: 100}
+			list := &QSOList{configuration: new(testConfiguration), list: tc.qsos}
+			expectedQSO := toQSO(tc.number)
+			expectedQSO.TheirNumber = 100
 			list.Put(expectedQSO)
 			assert.Equal(t, expectedQSO, list.list[tc.expectedIndex])
 		})
@@ -103,7 +104,7 @@ func TestPut_Update(t *testing.T) {
 
 func TestPut_Add_FillQSO(t *testing.T) {
 	dlEntity := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	list.Notify(QSOFillerFunc(func(qso *core.QSO) {
 		switch qso.Callsign.String() {
 		case "DL1ABC", "DK9ZZ":
@@ -127,7 +128,7 @@ func TestPut_Add_FillQSO(t *testing.T) {
 func TestPut_Update_FillQSO(t *testing.T) {
 	dlEntity := dxcc.Prefix{Name: "Fed. Rep. of Germany", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
 	kEntity := dxcc.Prefix{Name: "United States", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	list.Notify(QSOFillerFunc(func(qso *core.QSO) {
 		switch qso.Callsign.String() {
 		case "DL1ABC":
@@ -149,7 +150,7 @@ func TestPut_Update_FillQSO(t *testing.T) {
 
 func TestSelectQSO(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	list.Put(qso)
 	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
 	qsoNotified := false
@@ -171,7 +172,7 @@ func TestSelectQSO(t *testing.T) {
 
 func TestSelectRow(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	list.Put(qso)
 	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
 	qsoNotified := false
@@ -194,7 +195,7 @@ func TestSelectRow(t *testing.T) {
 func TestSelectLastQSO(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
 	lastQSO := core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2}
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	list.Put(qso)
 	list.Put(lastQSO)
 	qsoNotified := false
@@ -215,7 +216,7 @@ func TestSelectLastQSO(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	aa1zzz := callsign.MustParse("AA1ZZZ")
 	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
 	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
@@ -244,7 +245,7 @@ func TestFind(t *testing.T) {
 }
 
 func TestDoNotFindEditedCallsign(t *testing.T) {
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	aa1zzz := callsign.MustParse("AA1ZZZ")
 	a1bc := callsign.MustParse("A1BC")
 	list.Put(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
@@ -258,7 +259,7 @@ func TestDoNotFindEditedCallsign(t *testing.T) {
 }
 
 func TestQSOAddedListener(t *testing.T) {
-	list := NewQSOList(nil)
+	list := NewQSOList(new(testConfiguration))
 	qso := core.QSO{MyNumber: 1}
 	notified := false
 	list.Notify(QSOAddedListenerFunc(func(addedQSO core.QSO) {
@@ -305,15 +306,27 @@ func TestQSOUpdatedListener(t *testing.T) {
 func toQSOList(numbers ...int) *QSOList {
 	qsos := make([]core.QSO, len(numbers))
 	for i, number := range numbers {
-		qsos[i] = core.QSO{MyNumber: core.QSONumber(number)}
+		qsos[i] = toQSO(number)
 	}
-	return &QSOList{list: qsos}
+	return &QSOList{configuration: new(testConfiguration), list: qsos}
 }
 
 func toQSOs(numbers ...int) []core.QSO {
 	result := make([]core.QSO, len(numbers))
 	for i, number := range numbers {
-		result[i] = core.QSO{MyNumber: core.QSONumber(number)}
+		result[i] = toQSO(number)
 	}
 	return result
 }
+
+func toQSO(number int) core.QSO {
+	return core.QSO{Callsign: callsign.MustParse(fmt.Sprintf("DL%dNN", number)), MyNumber: core.QSONumber(number)}
+}
+
+type testConfiguration struct {
+	allowMultiBand bool
+	allowMultiMode bool
+}
+
+func (c *testConfiguration) AllowMultiBand() bool { return c.allowMultiBand }
+func (c *testConfiguration) AllowMultiMode() bool { return c.allowMultiMode }

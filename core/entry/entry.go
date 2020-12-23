@@ -198,9 +198,7 @@ func (c *Controller) leaveCallsignField() {
 		return
 	}
 
-	c.showQSO(qso)
 	c.view.SetDuplicateMarker(true)
-	c.selectQSO(qso)
 }
 
 func (c *Controller) showQSO(qso core.QSO) {
@@ -485,12 +483,6 @@ func (c *Controller) Log() {
 	qso.MyNumber = core.QSONumber(myNumber)
 
 	qso.MyXchange = c.input.myXchange
-
-	duplicateQso, duplicate := c.IsDuplicate(qso.Callsign)
-	if duplicate && duplicateQso.MyNumber != qso.MyNumber {
-		c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, duplicateQso.MyNumber.String()), core.CallsignField)
-		return
-	}
 
 	c.logbook.Log(qso)
 	c.Reset()

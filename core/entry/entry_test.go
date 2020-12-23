@@ -149,28 +149,16 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 
 	qsoList.Activate()
 	qsoList.On("Find", dl1abc, core.NoBand, core.NoMode).Return([]core.QSO{qso}).Twice()
-	qsoList.On("SelectQSO", qso).Once()
 
 	view.Activate()
 	view.On("SetDuplicateMarker", true).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 	view.On("SetActiveField", core.TheirReportField).Once()
-	view.On("SetCallsign", "DL1ABC").Once()
-	view.On("SetBand", "20m").Once()
-	view.On("SetMode", "SSB").Once()
-	view.On("SetTheirReport", "599").Once()
-	view.On("SetTheirNumber", "012").Once()
-	view.On("SetTheirXchange", "").Once()
-	view.On("SetMyReport", "559").Once()
-	view.On("SetMyNumber", "001").Once()
-	view.On("SetMyXchange", "").Once()
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
 
-	assertQSOInput(t, qso, controller)
 	assert.False(t, controller.editing)
-
 	qsoList.AssertExpectations(t)
 	view.AssertExpectations(t)
 }
@@ -369,56 +357,6 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	assert.Equal(t, core.MyReportField, controller.activeField)
 }
 
-func TestEntryController_LogDuplicateBeforeCheckForDuplicate(t *testing.T) {
-	clock, log, qsoList, view, controller := setupEntryTest()
-
-	dl1abc, _ := callsign.Parse("DL1ABC")
-	qso := core.QSO{
-		Callsign:     dl1abc,
-		Time:         clock.Now(),
-		TheirReport:  core.RST("559"),
-		TheirNumber:  12,
-		TheirXchange: "abc",
-		MyReport:     core.RST("579"),
-		MyNumber:     12,
-		MyXchange:    "def",
-	}
-
-	log.Activate()
-	log.On("NextNumber").Return(core.QSONumber(1))
-	qsoList.Activate()
-	qsoList.On("Find", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
-	qsoList.On("SelectLastQSO").Once()
-
-	controller.Reset()
-	controller.SetActiveField(core.BandField)
-	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
-	controller.Enter("CW")
-	controller.SetActiveField(core.MyReportField)
-	controller.Enter("579")
-	controller.SetActiveField(core.MyXchangeField)
-	controller.Enter("myx")
-
-	controller.SetActiveField(core.TheirReportField)
-	controller.Enter("559")
-	controller.GotoNextField()
-	controller.Enter("012")
-	controller.GotoNextField()
-	controller.Enter("thx")
-	controller.GotoNextField()
-	controller.Enter("DL1ABC")
-
-	view.Activate()
-	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("ShowMessage", mock.Anything).Once()
-
-	controller.Log()
-
-	view.AssertExpectations(t)
-	log.AssertNotCalled(t, "Log", mock.Anything)
-}
-
 func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing.T) {
 	clock, _, qsoList, view, controller := setupEntryTest()
 	qsoList.Activate()
@@ -444,6 +382,68 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 	view.On("ClearMessage").Once()
 	controller.Enter("DL1ABC")
 	view.AssertExpectations(t)
+}
+
+func TestEntryController_LogDuplicateQSO(t *testing.T) {
+	clock, log, qsoList, _, controller := setupEntryTest()
+
+	dl1abc, _ := callsign.Parse("DL1ABC")
+	qso := core.QSO{
+		Callsign:     dl1abc,
+		Time:         clock.Now().Add(-1 * time.Minute),
+		Band:         core.Band40m,
+		Mode:         core.ModeCW,
+		TheirReport:  core.RST("559"),
+		TheirNumber:  12,
+		TheirXchange: "thx",
+		MyReport:     core.RST("579"),
+		MyNumber:     1,
+		MyXchange:    "myx",
+	}
+	dupe := core.QSO{
+		Callsign:     dl1abc,
+		Time:         clock.Now(),
+		Band:         core.Band40m,
+		Mode:         core.ModeCW,
+		TheirReport:  core.RST("569"),
+		TheirNumber:  12,
+		TheirXchange: "thx",
+		MyReport:     core.RST("579"),
+		MyNumber:     2,
+		MyXchange:    "myx",
+	}
+
+	log.Activate()
+	log.On("NextNumber").Return(core.QSONumber(2))
+	log.On("Log", dupe).Once()
+	qsoList.Activate()
+	qsoList.On("Find", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
+	qsoList.On("SelectLastQSO").Twice()
+
+	controller.Reset()
+	controller.SetActiveField(core.BandField)
+	controller.Enter("40m")
+	controller.SetActiveField(core.ModeField)
+	controller.Enter("CW")
+	controller.SetActiveField(core.MyReportField)
+	controller.Enter("579")
+	controller.SetActiveField(core.MyXchangeField)
+	controller.Enter("myx")
+	controller.GotoNextField()
+
+	controller.Enter("DL1ABC")
+	controller.GotoNextField()
+	controller.Enter("569")
+	controller.GotoNextField()
+	controller.Enter("012")
+	controller.GotoNextField()
+	controller.Enter("thx")
+
+	controller.Log()
+
+	log.AssertExpectations(t)
+	qsoList.AssertExpectations(t)
+	assert.Equal(t, core.CallsignField, controller.activeField)
 }
 
 func TestEntryController_SelectRowForEditing(t *testing.T) {
@@ -560,13 +560,13 @@ func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.QSOList,
 }
 
 func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
-	assert.Equal(t, qso.Callsign.String(), controller.input.callsign)
-	assert.Equal(t, qso.TheirReport.String(), controller.input.theirReport)
-	assert.Equal(t, qso.TheirNumber.String(), controller.input.theirNumber)
-	assert.Equal(t, qso.TheirXchange, controller.input.theirXchange)
-	assert.Equal(t, qso.MyReport.String(), controller.input.myReport)
-	assert.Equal(t, qso.MyNumber.String(), controller.input.myNumber)
-	assert.Equal(t, qso.MyXchange, controller.input.myXchange)
+	assert.Equal(t, qso.Callsign.String(), controller.input.callsign, "callsign")
+	assert.Equal(t, qso.TheirReport.String(), controller.input.theirReport, "their report")
+	assert.Equal(t, qso.TheirNumber.String(), controller.input.theirNumber, "their number")
+	assert.Equal(t, qso.TheirXchange, controller.input.theirXchange, "their Xchange")
+	assert.Equal(t, qso.MyReport.String(), controller.input.myReport, "my report")
+	assert.Equal(t, qso.MyNumber.String(), controller.input.myNumber, "my number")
+	assert.Equal(t, qso.MyXchange, controller.input.myXchange, "my Xchange")
 	assert.Equal(t, qso.Band.String(), controller.input.band, "input band")
 	assert.Equal(t, qso.Band, controller.selectedBand, "selected band")
 	assert.Equal(t, qso.Mode.String(), controller.input.mode, "input mode")

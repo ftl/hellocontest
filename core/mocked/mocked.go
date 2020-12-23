@@ -100,6 +100,22 @@ func (m *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 	return args.Get(0).([]core.QSO)
 }
 
+func (m *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	if !m.active {
+		return []core.QSO{}
+	}
+	args := m.Called(callsign, band, mode)
+	return args.Get(0).([]core.QSO)
+}
+
+func (m *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
+	if !m.active {
+		return []core.QSO{}, false
+	}
+	args := m.Called(callsign, band, mode)
+	return args.Get(0).([]core.QSO), args.Get(1).(bool)
+}
+
 func (m *QSOList) SelectQSO(qso core.QSO) {
 	if !m.active {
 		return

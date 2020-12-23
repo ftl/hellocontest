@@ -49,7 +49,7 @@ type CallsignFinder interface {
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
 type DupeChecker interface {
-	IsWorked(callsign callsign.Callsign) ([]core.QSO, bool)
+	FindWorkedQSOs(callsign.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
 }
 
 // Valuer provides the points and multis of a QSO based on the given information.
@@ -95,7 +95,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 	cs, err := callsign.Parse(call)
 	if err == nil {
 		var qsos []core.QSO
-		qsos, duplicate = c.dupeChecker.IsWorked(cs)
+		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
 		worked = len(qsos) > 0
 	}
 	c.view.SetCallsign(call, worked, duplicate)
@@ -142,7 +142,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		if entityFound {
 			points, multis = c.valuer.Value(entity, c.lastBand, c.lastMode, "") // TODO predict exchange
 		}
-		qsos, duplicate := c.dupeChecker.IsWorked(cs)
+		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(cs, c.lastBand, c.lastMode)
 		exactMatch := (match == normalizedInput)
 		annotatedMatches[i] = core.AnnotatedCallsign{
 			Callsign:   cs,

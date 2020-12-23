@@ -78,14 +78,21 @@ func (f RowSelectedListenerFunc) RowSelected(index int) {
 	f(index)
 }
 
-type QSOList struct {
-	list      []core.QSO
-	listeners []interface{}
+type Configuration interface {
+	AllowMultiBand() bool
+	AllowMultiMode() bool
 }
 
-func NewQSOList() *QSOList {
+type QSOList struct {
+	configuration Configuration
+	list          []core.QSO
+	listeners     []interface{}
+}
+
+func NewQSOList(configuration Configuration) *QSOList {
 	return &QSOList{
-		list: make([]core.QSO, 0),
+		configuration: configuration,
+		list:          make([]core.QSO, 0),
 	}
 }
 
@@ -205,6 +212,37 @@ func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 		result = append(result, qso)
 	}
 	return result
+}
+
+func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	if !l.configuration.AllowMultiBand() {
+		band = core.NoBand
+	}
+	if !l.configuration.AllowMultiMode() {
+		mode = core.NoMode
+	}
+	return l.Find(callsign, band, mode)
+}
+
+func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
+	qsos := l.Find(callsign, core.NoBand, core.NoMode)
+	if len(qsos) == 0 {
+		return qsos, false
+	}
+
+	duplicate := false
+	for _, qso := range qsos {
+		switch {
+		case qso.Band == band:
+			duplicate = qso.Mode == mode || !l.configuration.AllowMultiMode()
+		case qso.Mode == mode:
+			duplicate = qso.Band == band || !l.configuration.AllowMultiBand()
+		}
+		if duplicate {
+			break
+		}
+	}
+	return qsos, duplicate
 }
 
 func (l *QSOList) Notify(listener interface{}) {

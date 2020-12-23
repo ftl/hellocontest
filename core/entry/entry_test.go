@@ -117,7 +117,7 @@ func TestEntryController_GotoNextField(t *testing.T) {
 func TestEntryController_EnterNewCallsign(t *testing.T) {
 	_, _, qsoList, view, controller := setupEntryTest()
 	qsoList.Activate()
-	qsoList.On("Find", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
+	qsoList.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
 
 	view.Activate()
 	view.On("SetDuplicateMarker", false).Once()
@@ -148,7 +148,7 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	}
 
 	qsoList.Activate()
-	qsoList.On("Find", dl1abc, core.NoBand, core.NoMode).Return([]core.QSO{qso}).Twice()
+	qsoList.On("FindDuplicateQSOs", dl1abc, core.NoBand, core.NoMode).Return([]core.QSO{qso}).Twice()
 
 	view.Activate()
 	view.On("SetDuplicateMarker", true).Once()
@@ -184,7 +184,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	log.On("NextNumber").Return(core.QSONumber(1))
 	log.On("Log", qso).Once()
 	qsoList.Activate()
-	qsoList.On("Find", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
+	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Reset()
@@ -373,12 +373,12 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 		MyNumber:    12,
 	}
 
-	qsoList.On("Find", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
+	qsoList.On("FindDuplicateQSOs", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
 	view.On("ShowMessage", mock.Anything).Once()
 	controller.Enter("DL1AB")
 	view.AssertExpectations(t)
 
-	qsoList.On("Find", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
+	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
 	view.On("ClearMessage").Once()
 	controller.Enter("DL1ABC")
 	view.AssertExpectations(t)
@@ -417,7 +417,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	log.On("NextNumber").Return(core.QSONumber(2))
 	log.On("Log", dupe).Once()
 	qsoList.Activate()
-	qsoList.On("Find", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
+	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Reset()
@@ -526,7 +526,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, qsoList, true, true, false, false)
+	controller := NewController(clock, qsoList, true, true)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -539,7 +539,7 @@ func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, qsoList, true, false, false, false)
+	controller := NewController(clock, qsoList, true, false)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -552,7 +552,7 @@ func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.QSOList,
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, qsoList, false, true, false, false)
+	controller := NewController(clock, qsoList, false, true)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 

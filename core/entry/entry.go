@@ -57,6 +57,7 @@ type Logbook interface {
 // QSOList functionality used for QSO entry.
 type QSOList interface {
 	Find(callsign.Callsign, core.Band, core.Mode) []core.QSO
+	FindDuplicateQSOs(callsign.Callsign, core.Band, core.Mode) []core.QSO
 	SelectQSO(core.QSO)
 	SelectLastQSO()
 }
@@ -78,7 +79,7 @@ type VFO interface {
 }
 
 // NewController returns a new entry controller.
-func NewController(clock core.Clock, qsoList QSOList, enableTheirNumberField, enableTheirXchangeField, allowMultiBand, allowMultiMode bool) *Controller {
+func NewController(clock core.Clock, qsoList QSOList, enableTheirNumberField, enableTheirXchangeField bool) *Controller {
 	return &Controller{
 		clock:                   clock,
 		view:                    new(nullView),
@@ -88,8 +89,6 @@ func NewController(clock core.Clock, qsoList QSOList, enableTheirNumberField, en
 		qsoList:                 qsoList,
 		enableTheirNumberField:  enableTheirNumberField,
 		enableTheirXchangeField: enableTheirXchangeField,
-		allowMultiBand:          allowMultiBand,
-		allowMultiMode:          allowMultiMode,
 	}
 }
 
@@ -104,8 +103,6 @@ type Controller struct {
 
 	enableTheirNumberField  bool
 	enableTheirXchangeField bool
-	allowMultiBand          bool
-	allowMultiMode          bool
 
 	input              input
 	activeField        core.EntryField
@@ -188,13 +185,13 @@ func (c *Controller) leaveCallsignField() {
 		return
 	}
 
-	qso, found := c.IsDuplicate(callsign)
+	_, found := c.isDuplicate(callsign)
 	if !found {
 		c.view.SetDuplicateMarker(false)
 		return
 	}
 	if c.editing {
-		c.view.SetDuplicateMarker(c.editQSO.Callsign != qso.Callsign)
+		c.view.SetDuplicateMarker(c.editQSO.Callsign != callsign)
 		return
 	}
 
@@ -237,41 +234,12 @@ func (c *Controller) selectQSO(qso core.QSO) {
 	c.ignoreQSOSelection = false
 }
 
-func (c *Controller) IsDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
-	band := core.NoBand
-	if c.allowMultiBand {
-		band = c.selectedBand
-	}
-	mode := core.NoMode
-	if c.allowMultiMode {
-		mode = c.selectedMode
-	}
-	qsos := c.qsoList.Find(callsign, band, mode)
+func (c *Controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
+	qsos := c.qsoList.FindDuplicateQSOs(callsign, c.selectedBand, c.selectedMode)
 	if len(qsos) == 0 {
 		return core.QSO{}, false
 	}
 	return qsos[len(qsos)-1], true
-}
-
-func (c *Controller) IsWorked(callsign callsign.Callsign) ([]core.QSO, bool) {
-	qsos := c.qsoList.Find(callsign, core.NoBand, core.NoMode)
-	if len(qsos) == 0 {
-		return qsos, false
-	}
-
-	duplicate := false
-	for _, qso := range qsos {
-		switch {
-		case qso.Band == c.selectedBand:
-			duplicate = qso.Mode == c.selectedMode || !c.allowMultiMode
-		case qso.Mode == c.selectedMode:
-			duplicate = qso.Band == c.selectedBand || !c.allowMultiBand
-		}
-		if duplicate {
-			break
-		}
-	}
-	return qsos, duplicate
 }
 
 func (c *Controller) SetActiveField(field core.EntryField) {
@@ -381,7 +349,7 @@ func (c *Controller) enterCallsign(s string) {
 		return
 	}
 
-	qso, found := c.IsDuplicate(callsign)
+	qso, found := c.isDuplicate(callsign)
 	if !found {
 		c.view.ClearMessage()
 		return

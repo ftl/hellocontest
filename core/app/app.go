@@ -131,15 +131,13 @@ func (c *Controller) Startup() {
 		c.hamlibClient.KeepOpen()
 	}
 
-	c.QSOList = logbook.NewQSOList()
+	c.QSOList = logbook.NewQSOList(c.configuration)
 	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
 	c.Entry = entry.NewController(
 		c.clock,
 		c.QSOList,
 		c.configuration.EnterTheirNumber(),
 		c.configuration.EnterTheirXchange(),
-		c.configuration.AllowMultiBand(),
-		c.configuration.AllowMultiMode(),
 	)
 	c.QSOList.Notify(c.Entry)
 
@@ -164,7 +162,7 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
 
-	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.Entry, c.Score)
+	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.QSOList, c.Score)
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.dxccFinder.WhenAvailable(func() {

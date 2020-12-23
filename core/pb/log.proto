@@ -14,5 +14,5 @@ message QSO {
     string my_xchange = 10;
     string their_xchange = 11;
     double frequency = 12;
-    string id = 13;
+    reserved 13;
 }

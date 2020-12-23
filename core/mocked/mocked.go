@@ -28,14 +28,6 @@ func (m *Log) ClearRowAddedListeners() {
 	m.Called()
 }
 
-func (m *Log) NewID() core.ID {
-	if !m.active {
-		return core.NoID
-	}
-	args := m.Called()
-	return args.Get(0).(core.ID)
-}
-
 func (m *Log) NextNumber() core.QSONumber {
 	if !m.active {
 		return core.QSONumber(0)

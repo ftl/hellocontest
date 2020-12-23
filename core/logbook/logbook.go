@@ -102,10 +102,6 @@ func (l *Logbook) ReplayAll() {
 	}
 }
 
-func (l *Logbook) NewID() core.ID {
-	return core.NewID()
-}
-
 func (l *Logbook) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
 }
@@ -130,11 +126,6 @@ func (l *Logbook) LastXchange() string {
 }
 
 func (l *Logbook) Log(qso core.QSO) {
-	if qso.ID == core.NoID {
-		log.Println("The ID of a logged QSO must not be empty!")
-		qso.ID = core.NewID()
-	}
-
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))

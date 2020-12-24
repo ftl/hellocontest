@@ -52,7 +52,8 @@ func TestPut_Append(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{configuration: new(testConfiguration), list: tc.qsos}
+			list := NewQSOList(new(testConfiguration))
+			list.list = tc.qsos
 			list.Put(core.QSO{MyNumber: tc.number})
 			require.True(t, len(list.list) > 0, "list must not be empty")
 			assert.Equal(t, tc.number, list.list[len(list.list)-1].MyNumber)
@@ -72,7 +73,8 @@ func TestPut_Insert(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{configuration: new(testConfiguration), list: tc.qsos}
+			list := NewQSOList(new(testConfiguration))
+			list.list = tc.qsos
 			list.Put(toQSO(tc.number))
 			require.Equal(t, len(tc.expectedQSOs), len(list.list), "list has wrong length")
 			assert.Equal(t, tc.expectedQSOs, list.list)
@@ -93,7 +95,8 @@ func TestPut_Update(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			list := &QSOList{configuration: new(testConfiguration), list: tc.qsos}
+			list := NewQSOList(new(testConfiguration))
+			list.list = tc.qsos
 			expectedQSO := toQSO(tc.number)
 			expectedQSO.TheirNumber = 100
 			list.Put(expectedQSO)
@@ -146,6 +149,120 @@ func TestPut_Update_FillQSO(t *testing.T) {
 	qsos := list.All()
 
 	assert.Equal(t, kEntity, qsos[0].DXCC, qsos[0])
+}
+
+func TestDuplicateMarkers(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	list := NewQSOList(new(testConfiguration))
+
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	assert.False(t, list.list[0].Duplicate, "first qso")
+
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 3})
+	assert.False(t, list.list[0].Duplicate, "first qso, duplicate")
+	assert.True(t, list.list[1].Duplicate, "duplicate of first qso")
+
+	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 1})
+	assert.False(t, list.list[0].Duplicate, "first qso, edited")
+	assert.False(t, list.list[1].Duplicate, "second qso, after edit")
+
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 2})
+	assert.False(t, list.list[0].Duplicate, "first qso, after insert")
+	assert.False(t, list.list[1].Duplicate, "inserted qso")
+	assert.True(t, list.list[2].Duplicate, "second qso, after insert")
+}
+
+func TestInsertDuplicateUpdateListener(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	dl3abc := callsign.MustParse("DL3ABC")
+	list := NewQSOList(new(testConfiguration))
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 2})
+	list.Put(core.QSO{Callsign: dl3abc, MyNumber: 4})
+	list.Put(core.QSO{Callsign: dl3abc, MyNumber: 5})
+
+	insertedQSOs := []core.QSO{}
+	list.Notify(QSOInsertedListenerFunc(func(_ int, qso core.QSO) {
+		insertedQSOs = append(insertedQSOs, qso)
+	}))
+	updatedQSOs := []core.QSO{}
+	list.Notify(QSOUpdatedListenerFunc(func(_ int, _ core.QSO, qso core.QSO) {
+		updatedQSOs = append(updatedQSOs, qso)
+	}))
+
+	list.Put(core.QSO{Callsign: dl3abc, MyNumber: 3})
+
+	assert.Equal(t, []core.QSO{
+		{Callsign: dl3abc, MyNumber: 3, Duplicate: false},
+	}, insertedQSOs)
+	assert.Equal(t, []core.QSO{
+		{Callsign: dl3abc, MyNumber: 4, Duplicate: true},
+	}, updatedQSOs)
+}
+
+func TestUpdateDuplicateUpdateListener(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	dl3abc := callsign.MustParse("DL3ABC")
+	list := NewQSOList(new(testConfiguration))
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 2})
+	list.Put(core.QSO{Callsign: dl3abc, MyNumber: 3})
+
+	updatedQSOs := []core.QSO{}
+	list.Notify(QSOUpdatedListenerFunc(func(_ int, _ core.QSO, qso core.QSO) {
+		updatedQSOs = append(updatedQSOs, qso)
+	}))
+
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 2})
+	list.Put(core.QSO{Callsign: dl3abc, MyNumber: 2})
+
+	assert.Equal(t, []core.QSO{
+		{Callsign: dl1abc, MyNumber: 2, Duplicate: true},
+		{Callsign: dl3abc, MyNumber: 2, Duplicate: true},
+		{Callsign: dl3abc, MyNumber: 2, Duplicate: false},
+		{Callsign: dl3abc, MyNumber: 3, Duplicate: true},
+	}, updatedQSOs)
+}
+
+func TestFindDuplicateQSOs(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	list := NewQSOList(new(testConfiguration))
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 3})
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 2})
+
+	dupes := list.FindDuplicateQSOs(dl1abc, core.NoBand, core.NoMode)
+	assert.Equal(t, []core.QSO{
+		{Callsign: dl1abc, MyNumber: 1},
+		{Callsign: dl1abc, MyNumber: 2, Duplicate: true},
+	}, dupes)
+}
+
+func TestFindWorkedQSOs(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	list := NewQSOList(new(testConfiguration))
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 3})
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 2})
+	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 2})
+
+	workedDL1ABC, dupeDL1ABC := list.FindWorkedQSOs(dl1abc, core.NoBand, core.NoMode)
+	assert.Equal(t, []core.QSO{
+		{Callsign: dl1abc, MyNumber: 1},
+	}, workedDL1ABC, "dl1abc worked")
+	assert.True(t, dupeDL1ABC, "dl1abc dupe")
+
+	workedDL2ABC, dupeDL2ABC := list.FindWorkedQSOs(dl2abc, core.NoBand, core.NoMode)
+	assert.Equal(t, []core.QSO{
+		{Callsign: dl2abc, MyNumber: 2},
+		{Callsign: dl2abc, MyNumber: 3, Duplicate: true},
+	}, workedDL2ABC, "dl2abc worked")
+	assert.True(t, dupeDL2ABC, "dl2abc dupe")
 }
 
 func TestSelectQSO(t *testing.T) {
@@ -308,7 +425,9 @@ func toQSOList(numbers ...int) *QSOList {
 	for i, number := range numbers {
 		qsos[i] = toQSO(number)
 	}
-	return &QSOList{configuration: new(testConfiguration), list: qsos}
+	result := NewQSOList(new(testConfiguration))
+	result.list = qsos
+	return result
 }
 
 func toQSOs(numbers ...int) []core.QSO {

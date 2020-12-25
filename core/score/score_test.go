@@ -39,6 +39,83 @@ func TestAdd(t *testing.T) {
 	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
 }
 
+func TestAddDuplicate(t *testing.T) {
+	counter := NewCounter(new(testConfig))
+	counter.SetMyEntity(myTestEntity)
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Duplicate: true, Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+
+	assert.Equal(t, 1, counter.TotalScore.SameCountryQSOs, "total same country")
+	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
+	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
+	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 1, counter.TotalScore.Duplicates, "total duplicates")
+
+	assert.Equal(t, 1, counter.OverallScore.Duplicates, "overall duplicates")
+
+	assert.Equal(t, 1, len(counter.ScorePerBand))
+	bandScore := counter.ScorePerBand[core.Band80m]
+	assert.Equal(t, 1, bandScore.SameCountryQSOs, "band same country")
+	assert.Equal(t, 1, bandScore.CQZones, "band cq")
+	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
+	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 1, bandScore.Duplicates, "band duplicates")
+}
+
+func TestUpdateToDuplicate(t *testing.T) {
+	anotherQSO := core.QSO{Callsign: callsign.MustParse("DK0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DK", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
+	oldQSO := core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
+	newQSO := core.QSO{Duplicate: true, Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
+	counter := NewCounter(new(testConfig))
+	counter.SetMyEntity(myTestEntity)
+	counter.Add(anotherQSO)
+	counter.Add(oldQSO)
+	counter.Update(oldQSO, newQSO)
+
+	assert.Equal(t, 1, counter.TotalScore.SameCountryQSOs, "total same country")
+	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
+	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
+	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 1, counter.TotalScore.Duplicates, "total duplicates")
+
+	assert.Equal(t, 1, counter.OverallScore.Duplicates, "overall duplicates")
+
+	assert.Equal(t, 1, len(counter.ScorePerBand))
+	bandScore := counter.ScorePerBand[core.Band80m]
+	assert.Equal(t, 1, bandScore.SameCountryQSOs, "band same country")
+	assert.Equal(t, 1, bandScore.CQZones, "band cq")
+	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
+	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 1, bandScore.Duplicates, "band duplicates")
+}
+
+func TestUpdateFromDuplicate(t *testing.T) {
+	anotherQSO := core.QSO{Callsign: callsign.MustParse("DK0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DK", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
+	oldQSO := core.QSO{Duplicate: true, Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
+	newQSO := core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
+	counter := NewCounter(new(testConfig))
+	counter.SetMyEntity(myTestEntity)
+	counter.Add(anotherQSO)
+	counter.Add(oldQSO)
+	counter.Update(oldQSO, newQSO)
+
+	assert.Equal(t, 2, counter.TotalScore.SameCountryQSOs, "total same country")
+	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
+	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
+	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 0, counter.TotalScore.Duplicates, "total duplicates")
+
+	assert.Equal(t, 0, counter.OverallScore.Duplicates, "overall duplicates")
+
+	assert.Equal(t, 1, len(counter.ScorePerBand))
+	bandScore := counter.ScorePerBand[core.Band80m]
+	assert.Equal(t, 2, bandScore.SameCountryQSOs, "band same country")
+	assert.Equal(t, 1, bandScore.CQZones, "band cq")
+	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
+	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 0, bandScore.Duplicates, "band duplicates")
+}
+
 func TestUpdateSameBandAndPrimaryPrefix(t *testing.T) {
 	oldQSO := core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	newQSO := core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}

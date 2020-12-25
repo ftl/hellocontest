@@ -155,14 +155,14 @@ type Score struct {
 
 func (s Score) String() string {
 	buf := bytes.NewBufferString("")
-	fmt.Fprintf(buf, "Band SpcQ CtyQ ConQ OthQ Pts     P/Q  CQ ITU Cty Xch Mult Q/M  Result \n")
-	fmt.Fprintf(buf, "----------------------------------------------------------------------\n")
+	fmt.Fprintf(buf, "Band SpcQ CtyQ ConQ OthQ Dupe Pts     P/Q  CQ ITU Cty Xch Mult Q/M  Result \n")
+	fmt.Fprintf(buf, "---------------------------------------------------------------------------\n")
 	for _, band := range Bands {
 		if score, ok := s.ScorePerBand[band]; ok {
 			fmt.Fprintf(buf, "%4s %s\n", band, score)
 		}
 	}
-	fmt.Fprintf(buf, "----------------------------------------------------------------------\n")
+	fmt.Fprintf(buf, "---------------------------------------------------------------------------\n")
 	fmt.Fprintf(buf, "Tot  %s\n", s.TotalScore)
 	fmt.Fprintf(buf, "Ovr  %s\n", s.OverallScore)
 	return buf.String()
@@ -173,6 +173,7 @@ type BandScore struct {
 	SameCountryQSOs     int
 	SameContinentQSOs   int
 	OtherQSOs           int
+	Duplicates          int
 	Points              int
 	CQZones             int
 	ITUZones            int
@@ -182,7 +183,7 @@ type BandScore struct {
 }
 
 func (s BandScore) String() string {
-	return fmt.Sprintf("%4d %4d %4d %4d %7d %4.1f %2d %3d %3d %3d %4d %4.1f %7d", s.SpecificCountryQSOs, s.SameCountryQSOs, s.SameContinentQSOs, s.OtherQSOs, s.Points, s.PointsPerQSO(), s.CQZones, s.ITUZones, s.PrimaryPrefixes, s.XchangeValues, s.Multis, s.QSOsPerMulti(), s.Result())
+	return fmt.Sprintf("%4d %4d %4d %4d %4d %7d %4.1f %2d %3d %3d %3d %4d %4.1f %7d", s.SpecificCountryQSOs, s.SameCountryQSOs, s.SameContinentQSOs, s.OtherQSOs, s.Duplicates, s.Points, s.PointsPerQSO(), s.CQZones, s.ITUZones, s.PrimaryPrefixes, s.XchangeValues, s.Multis, s.QSOsPerMulti(), s.Result())
 }
 
 func (s *BandScore) Add(other BandScore) {
@@ -190,6 +191,7 @@ func (s *BandScore) Add(other BandScore) {
 	s.SameCountryQSOs += other.SameCountryQSOs
 	s.SameContinentQSOs += other.SameContinentQSOs
 	s.OtherQSOs += other.OtherQSOs
+	s.Duplicates += other.Duplicates
 	s.Points += other.Points
 	s.CQZones += other.CQZones
 	s.ITUZones += other.ITUZones
@@ -199,7 +201,7 @@ func (s *BandScore) Add(other BandScore) {
 }
 
 func (s *BandScore) QSOs() int {
-	return s.SpecificCountryQSOs + s.SameCountryQSOs + s.SameContinentQSOs + s.OtherQSOs
+	return s.SpecificCountryQSOs + s.SameCountryQSOs + s.SameContinentQSOs + s.OtherQSOs + s.Duplicates
 }
 
 func (s *BandScore) PointsPerQSO() float64 {

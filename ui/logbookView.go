@@ -60,7 +60,7 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	result.view.AppendColumn(createColumn("D", columnDuplicate))
 
 	var err error
-	result.list, err = gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_INT, glib.TYPE_STRING)
+	result.list, err = gtk.ListStoreNew(glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING, glib.TYPE_STRING)
 	if err != nil {
 		log.Fatalf("Cannot create QSO list store: %v", err)
 	}
@@ -120,13 +120,20 @@ func (v *logbookView) QSOAdded(qso core.QSO) {
 			qso.TheirReport.String(),
 			qso.TheirNumber.String(),
 			qso.TheirXchange,
-			qso.Points,
+			pointsToString(qso.Points, qso.Duplicate),
 			boolToCheckmark(qso.Duplicate),
 		})
 	if err != nil {
 		log.Printf("Cannot add QSO row %s: %v", qso.String(), err)
 		return
 	}
+}
+
+func pointsToString(points int, duplicate bool) string {
+	if duplicate {
+		return fmt.Sprintf("(%d)", points)
+	}
+	return fmt.Sprintf("%d", points)
 }
 
 func boolToCheckmark(value bool) string {
@@ -174,7 +181,7 @@ func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 			qso.TheirReport.String(),
 			qso.TheirNumber.String(),
 			qso.TheirXchange,
-			qso.Points,
+			pointsToString(qso.Points, qso.Duplicate),
 			boolToCheckmark(qso.Duplicate),
 		})
 	if err != nil {

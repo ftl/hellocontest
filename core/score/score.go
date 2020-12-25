@@ -277,7 +277,7 @@ func newMultis(countingMultis []string, xchangeMultiExpression *regexp.Regexp) *
 		XchangeMultiExpression: xchangeMultiExpression,
 		CQZones:                make(map[dxcc.CQZone]int),
 		ITUZones:               make(map[dxcc.ITUZone]int),
-		PrimaryPrefixes:        make(map[string]int),
+		DXCCEntities:           make(map[string]int),
 		XchangeValues:          make(map[string]int),
 	}
 }
@@ -287,7 +287,7 @@ type multis struct {
 	XchangeMultiExpression *regexp.Regexp
 	CQZones                map[dxcc.CQZone]int
 	ITUZones               map[dxcc.ITUZone]int
-	PrimaryPrefixes        map[string]int
+	DXCCEntities           map[string]int
 	XchangeValues          map[string]int
 }
 
@@ -300,9 +300,9 @@ func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
 	if m.ITUZones[entity.ITUZone] == 0 {
 		ituZoneValue = 1
 	}
-	var primaryPrefixValue int
-	if m.PrimaryPrefixes[entity.PrimaryPrefix] == 0 {
-		primaryPrefixValue = 1
+	var dxccEntitiesValue int
+	if m.DXCCEntities[entity.PrimaryPrefix] == 0 {
+		dxccEntitiesValue = 1
 	}
 	var xchangeValue int
 	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
@@ -318,7 +318,7 @@ func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
 		case ITUZoneMulti:
 			result += ituZoneValue
 		case DXCCEntityMulti:
-			result += primaryPrefixValue
+			result += dxccEntitiesValue
 		case XchangeMulti:
 			result += xchangeValue
 		}
@@ -343,11 +343,11 @@ func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandSco
 		result.ITUZones += value
 	}
 
-	oldPrimaryPrefixCount := m.PrimaryPrefixes[entity.PrimaryPrefix]
-	newPrimaryPrefixCount := oldPrimaryPrefixCount + value
-	m.PrimaryPrefixes[entity.PrimaryPrefix] = newPrimaryPrefixCount
-	if oldPrimaryPrefixCount == 0 || newPrimaryPrefixCount == 0 {
-		result.PrimaryPrefixes += value
+	oldDXCCEntitiesCount := m.DXCCEntities[entity.PrimaryPrefix]
+	newDXCCEntitiesCount := oldDXCCEntitiesCount + value
+	m.DXCCEntities[entity.PrimaryPrefix] = newDXCCEntitiesCount
+	if oldDXCCEntitiesCount == 0 || newDXCCEntitiesCount == 0 {
+		result.DXCCEntities += value
 	}
 
 	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
@@ -367,7 +367,7 @@ func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandSco
 		case ITUZoneMulti:
 			result.Multis += result.ITUZones
 		case DXCCEntityMulti:
-			result.Multis += result.PrimaryPrefixes
+			result.Multis += result.DXCCEntities
 		case XchangeMulti:
 			result.Multis += result.XchangeValues
 		}

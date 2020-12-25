@@ -177,13 +177,14 @@ type BandScore struct {
 	Points              int
 	CQZones             int
 	ITUZones            int
-	PrimaryPrefixes     int
+	DXCCEntities        int
+	WPXPrefixes         int
 	XchangeValues       int
 	Multis              int
 }
 
 func (s BandScore) String() string {
-	return fmt.Sprintf("%4d %4d %4d %4d %4d %7d %4.1f %2d %3d %3d %3d %4d %4.1f %7d", s.SpecificCountryQSOs, s.SameCountryQSOs, s.SameContinentQSOs, s.OtherQSOs, s.Duplicates, s.Points, s.PointsPerQSO(), s.CQZones, s.ITUZones, s.PrimaryPrefixes, s.XchangeValues, s.Multis, s.QSOsPerMulti(), s.Result())
+	return fmt.Sprintf("%4d %4d %4d %4d %4d %7d %4.1f %2d %3d %3d %3d %3d %4d %4.1f %7d", s.SpecificCountryQSOs, s.SameCountryQSOs, s.SameContinentQSOs, s.OtherQSOs, s.Duplicates, s.Points, s.PointsPerQSO(), s.CQZones, s.ITUZones, s.DXCCEntities, s.WPXPrefixes, s.XchangeValues, s.Multis, s.QSOsPerMulti(), s.Result())
 }
 
 func (s *BandScore) Add(other BandScore) {
@@ -195,7 +196,8 @@ func (s *BandScore) Add(other BandScore) {
 	s.Points += other.Points
 	s.CQZones += other.CQZones
 	s.ITUZones += other.ITUZones
-	s.PrimaryPrefixes += other.PrimaryPrefixes
+	s.DXCCEntities += other.DXCCEntities
+	s.WPXPrefixes += other.WPXPrefixes
 	s.XchangeValues += other.XchangeValues
 	s.Multis += other.Multis
 }

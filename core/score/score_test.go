@@ -29,14 +29,14 @@ func TestAdd(t *testing.T) {
 	assert.Equal(t, 2, counter.TotalScore.SameCountryQSOs, "total same country")
 	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
 	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
-	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 1, counter.TotalScore.DXCCEntities, "total dxcc entities")
 
 	assert.Equal(t, 1, len(counter.ScorePerBand))
 	bandScore := counter.ScorePerBand[core.Band80m]
 	assert.Equal(t, 2, bandScore.SameCountryQSOs, "band same country")
 	assert.Equal(t, 1, bandScore.CQZones, "band cq")
 	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
-	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 1, bandScore.DXCCEntities, "band dxcc entities")
 }
 
 func TestAddDuplicate(t *testing.T) {
@@ -48,7 +48,7 @@ func TestAddDuplicate(t *testing.T) {
 	assert.Equal(t, 1, counter.TotalScore.SameCountryQSOs, "total same country")
 	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
 	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
-	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 1, counter.TotalScore.DXCCEntities, "total dxcc entities")
 	assert.Equal(t, 1, counter.TotalScore.Duplicates, "total duplicates")
 
 	assert.Equal(t, 1, counter.OverallScore.Duplicates, "overall duplicates")
@@ -58,7 +58,7 @@ func TestAddDuplicate(t *testing.T) {
 	assert.Equal(t, 1, bandScore.SameCountryQSOs, "band same country")
 	assert.Equal(t, 1, bandScore.CQZones, "band cq")
 	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
-	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 1, bandScore.DXCCEntities, "band dxcc entities")
 	assert.Equal(t, 1, bandScore.Duplicates, "band duplicates")
 }
 
@@ -75,7 +75,7 @@ func TestUpdateToDuplicate(t *testing.T) {
 	assert.Equal(t, 1, counter.TotalScore.SameCountryQSOs, "total same country")
 	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
 	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
-	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 1, counter.TotalScore.DXCCEntities, "total dxcc entities")
 	assert.Equal(t, 1, counter.TotalScore.Duplicates, "total duplicates")
 
 	assert.Equal(t, 1, counter.OverallScore.Duplicates, "overall duplicates")
@@ -85,7 +85,7 @@ func TestUpdateToDuplicate(t *testing.T) {
 	assert.Equal(t, 1, bandScore.SameCountryQSOs, "band same country")
 	assert.Equal(t, 1, bandScore.CQZones, "band cq")
 	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
-	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 1, bandScore.DXCCEntities, "band dxcc entities")
 	assert.Equal(t, 1, bandScore.Duplicates, "band duplicates")
 }
 
@@ -102,7 +102,7 @@ func TestUpdateFromDuplicate(t *testing.T) {
 	assert.Equal(t, 2, counter.TotalScore.SameCountryQSOs, "total same country")
 	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
 	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
-	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 1, counter.TotalScore.DXCCEntities, "total dxcc entities")
 	assert.Equal(t, 0, counter.TotalScore.Duplicates, "total duplicates")
 
 	assert.Equal(t, 0, counter.OverallScore.Duplicates, "overall duplicates")
@@ -112,7 +112,7 @@ func TestUpdateFromDuplicate(t *testing.T) {
 	assert.Equal(t, 2, bandScore.SameCountryQSOs, "band same country")
 	assert.Equal(t, 1, bandScore.CQZones, "band cq")
 	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
-	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 1, bandScore.DXCCEntities, "band dxcc entities")
 	assert.Equal(t, 0, bandScore.Duplicates, "band duplicates")
 }
 
@@ -127,14 +127,14 @@ func TestUpdateSameBandAndPrimaryPrefix(t *testing.T) {
 	assert.Equal(t, 1, counter.TotalScore.SameCountryQSOs, "total same country")
 	assert.Equal(t, 1, counter.TotalScore.CQZones, "total cq")
 	assert.Equal(t, 1, counter.TotalScore.ITUZones, "total itu")
-	assert.Equal(t, 1, counter.TotalScore.PrimaryPrefixes, "total prefixes")
+	assert.Equal(t, 1, counter.TotalScore.DXCCEntities, "total dxcc entities")
 
 	assert.Equal(t, 1, len(counter.ScorePerBand))
 	bandScore := counter.ScorePerBand[core.Band80m]
 	assert.Equal(t, 1, bandScore.SameCountryQSOs, "band same country")
 	assert.Equal(t, 1, bandScore.CQZones, "band cq")
 	assert.Equal(t, 1, bandScore.ITUZones, "band itu")
-	assert.Equal(t, 1, bandScore.PrimaryPrefixes, "band prefixes")
+	assert.Equal(t, 1, bandScore.DXCCEntities, "band dxcc entities")
 }
 
 func TestCalculatePoints(t *testing.T) {

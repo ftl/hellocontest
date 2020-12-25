@@ -29,7 +29,7 @@ func Export(w io.Writer, mycall callsign.Callsign, qsos ...core.QSO) error {
 }
 
 var csvTemplate = template.Must(template.New("").Parse(
-	`{{.Band}};{{.Frequency}};{{.Mode}};{{.Date}};{{.Time}};{{.MyCall}};{{.MyReport}};{{.MyNumber}};"{{.MyXchange}}";{{.TheirCall}};{{.TheirReport}};{{.TheirNumber}};"{{.TheirXchange}}";"{{.TheirPrefix}}";"{{.TheirContinent}}";"{{.TheirITUZone}}";"{{.TheirCQZone}}";{{.Points}}`))
+	`{{.Band}};{{.Frequency}};{{.Mode}};{{.Date}};{{.Time}};{{.MyCall}};{{.MyReport}};{{.MyNumber}};"{{.MyXchange}}";{{.TheirCall}};{{.TheirReport}};{{.TheirNumber}};"{{.TheirXchange}}";"{{.TheirPrefix}}";"{{.TheirContinent}}";"{{.TheirITUZone}}";"{{.TheirCQZone}}";{{.Points}};"{{.Duplicate}}"`))
 
 func writeQSO(w io.Writer, mycall callsign.Callsign, qso core.QSO) error {
 	fillins := map[string]string{
@@ -51,6 +51,11 @@ func writeQSO(w io.Writer, mycall callsign.Callsign, qso core.QSO) error {
 		"TheirITUZone":   fmt.Sprintf("%d", qso.DXCC.ITUZone),
 		"TheirCQZone":    fmt.Sprintf("%d", qso.DXCC.CQZone),
 		"Points":         strconv.Itoa(qso.Points),
+		"Duplicate":      "",
+	}
+	if qso.Duplicate {
+		fillins["Duplicate"] = "X"
+		fillins["Points"] = "0"
 	}
 
 	err := csvTemplate.Execute(w, fillins)

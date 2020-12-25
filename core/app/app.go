@@ -183,7 +183,7 @@ func (c *Controller) fillQSO(qso *core.QSO) {
 	if entity, found := c.dxccFinder.Find(qso.Callsign.String()); found {
 		qso.DXCC = entity
 	}
-	qso.Points, _ = c.Score.Value(qso.DXCC, qso.Band, qso.Mode, qso.TheirXchange)
+	qso.Points, _ = c.Score.Value(qso.Callsign, qso.DXCC, qso.Band, qso.Mode, qso.TheirXchange)
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {

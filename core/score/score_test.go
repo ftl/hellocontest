@@ -205,6 +205,28 @@ func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
 	assert.Equal(t, 1, counter.OverallScore.Multis, "overall")
 }
 
+func TestCalculateMutlipliersForWPXPrefixes(t *testing.T) {
+	counter := NewCounter(&testConfig{
+		multis: []string{"WPX"},
+	})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("PA/DL0ABC"), Band: core.Band40m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC/P"), Band: core.Band20m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("9A1A"), Band: core.Band20m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("LY1000A"), Band: core.Band15m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("N8BJQ/KH9"), Band: core.Band10m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("NG2M/KH9"), Band: core.Band10m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("N8BJQ/9"), Band: core.Band10m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band80m].Multis, "80m")
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band40m].Multis, "40m")
+	assert.Equal(t, 2, counter.ScorePerBand[core.Band20m].Multis, "20m")
+	assert.Equal(t, 1, counter.ScorePerBand[core.Band15m].Multis, "15m")
+	assert.Equal(t, 2, counter.ScorePerBand[core.Band10m].Multis, "10m")
+	assert.Equal(t, 7, counter.TotalScore.Multis, "total")
+	assert.Equal(t, 6, counter.OverallScore.Multis, "overall")
+}
+
 func TestMatchXchange(t *testing.T) {
 	tt := []struct {
 		expression string
@@ -230,6 +252,27 @@ func TestMatchXchange(t *testing.T) {
 			actualMulti, actualMatch := m.matchXchange(tc.value)
 			assert.Equal(t, tc.multi, actualMulti)
 			assert.Equal(t, tc.match, actualMatch)
+		})
+	}
+}
+
+func TestWPXPrefix(t *testing.T) {
+	tt := []struct {
+		call     string
+		expected string
+	}{
+		{"DL1ABC", "DL1"},
+		{"9A1A", "9A1"},
+		{"LY1000A", "LY1000"},
+		{"DL/9A1A", "DL0"},
+		{"N8BJQ/KH9", "KH9"},
+		{"N8BJQ/9", "N8"},
+		{"DL1ABC/P", "DL1"},
+	}
+	for _, tc := range tt {
+		t.Run(tc.call, func(t *testing.T) {
+			actual := WPXPrefix(callsign.MustParse(tc.call))
+			assert.Equal(t, tc.expected, actual)
 		})
 	}
 }

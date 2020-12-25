@@ -4,7 +4,9 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"unicode"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
@@ -35,6 +37,7 @@ const (
 	CQZoneMulti     = "CQ"
 	ITUZoneMulti    = "ITU"
 	DXCCEntityMulti = "DXCC"
+	WPXPrefixMulti  = "WPX"
 	XchangeMulti    = "XCHANGE"
 )
 
@@ -137,14 +140,14 @@ func (c *Counter) Add(qso core.QSO) {
 	c.OverallScore.Add(qsoScore)
 	bandScore.Add(qsoScore)
 
-	overallMultiScore := c.overallMultis.Add(1, qso.DXCC, qso.TheirXchange)
+	overallMultiScore := c.overallMultis.Add(1, qso.Callsign, qso.DXCC, qso.TheirXchange)
 	c.OverallScore.Add(overallMultiScore)
 	multisPerBand, ok := c.multisPerBand[qso.Band]
 	if !ok {
 		multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
 		c.multisPerBand[qso.Band] = multisPerBand
 	}
-	bandMultiScore := multisPerBand.Add(1, qso.DXCC, qso.TheirXchange)
+	bandMultiScore := multisPerBand.Add(1, qso.Callsign, qso.DXCC, qso.TheirXchange)
 	c.TotalScore.Add(bandMultiScore)
 	bandScore.Add(bandMultiScore)
 
@@ -194,25 +197,25 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 	}
 
 	if !oldQSO.Duplicate {
-		oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.DXCC, oldQSO.TheirXchange)
+		oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.Callsign, oldQSO.DXCC, oldQSO.TheirXchange)
 		overallScore.Add(oldOverallMultiScore)
 		oldMultisPerBand, ok := c.multisPerBand[oldQSO.Band]
 		if ok {
-			oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.DXCC, oldQSO.TheirXchange)
+			oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.Callsign, oldQSO.DXCC, oldQSO.TheirXchange)
 			oldBandScore.Add(oldBandMultiScore)
 			totalScore.Add(oldBandMultiScore)
 		}
 	}
 
 	if !newQSO.Duplicate {
-		newOverallMultiScore := c.overallMultis.Add(1, newQSO.DXCC, newQSO.TheirXchange)
+		newOverallMultiScore := c.overallMultis.Add(1, newQSO.Callsign, newQSO.DXCC, newQSO.TheirXchange)
 		overallScore.Add(newOverallMultiScore)
 		newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
 		if !ok {
 			newMultisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
 			c.multisPerBand[newQSO.Band] = newMultisPerBand
 		}
-		newBandMultiScore := newMultisPerBand.Add(1, newQSO.DXCC, newQSO.TheirXchange)
+		newBandMultiScore := newMultisPerBand.Add(1, newQSO.Callsign, newQSO.DXCC, newQSO.TheirXchange)
 		newBandScore.Add(newBandMultiScore)
 		totalScore.Add(newBandMultiScore)
 	}
@@ -257,7 +260,7 @@ func (c *Counter) isSpecificCountry(entity dxcc.Prefix) bool {
 	return c.specificCountryPrefixes[entity.PrimaryPrefix]
 }
 
-func (c *Counter) Value(entity dxcc.Prefix, band core.Band, _ core.Mode, xchange string) (points, multis int) {
+func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, _ core.Mode, xchange string) (points, multis int) {
 	if c.configuration.CountPerBand() {
 		qsoScore := c.qsoScore(1, entity)
 		multisPerBand, ok := c.multisPerBand[band]
@@ -265,10 +268,10 @@ func (c *Counter) Value(entity dxcc.Prefix, band core.Band, _ core.Mode, xchange
 			multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
 		}
 
-		return qsoScore.Points, multisPerBand.Value(entity, xchange)
+		return qsoScore.Points, multisPerBand.Value(callsign, entity, xchange)
 	}
 	qsoScore := c.qsoScore(1, entity)
-	return qsoScore.Points, c.overallMultis.Value(entity, xchange)
+	return qsoScore.Points, c.overallMultis.Value(callsign, entity, xchange)
 }
 
 func newMultis(countingMultis []string, xchangeMultiExpression *regexp.Regexp) *multis {
@@ -278,6 +281,7 @@ func newMultis(countingMultis []string, xchangeMultiExpression *regexp.Regexp) *
 		CQZones:                make(map[dxcc.CQZone]int),
 		ITUZones:               make(map[dxcc.ITUZone]int),
 		DXCCEntities:           make(map[string]int),
+		WPXPrefixes:            make(map[string]int),
 		XchangeValues:          make(map[string]int),
 	}
 }
@@ -288,10 +292,11 @@ type multis struct {
 	CQZones                map[dxcc.CQZone]int
 	ITUZones               map[dxcc.ITUZone]int
 	DXCCEntities           map[string]int
+	WPXPrefixes            map[string]int
 	XchangeValues          map[string]int
 }
 
-func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
+func (m *multis) Value(callsign callsign.Callsign, entity dxcc.Prefix, xchange string) int {
 	var cqZoneValue int
 	if m.CQZones[entity.CQZone] == 0 {
 		cqZoneValue = 1
@@ -303,6 +308,11 @@ func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
 	var dxccEntitiesValue int
 	if m.DXCCEntities[entity.PrimaryPrefix] == 0 {
 		dxccEntitiesValue = 1
+	}
+	var wpxPrefixesValue int
+	wpxPrefix := WPXPrefix(callsign)
+	if (m.WPXPrefixes[wpxPrefix] == 0) && (wpxPrefix != "") {
+		wpxPrefixesValue = 1
 	}
 	var xchangeValue int
 	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
@@ -319,6 +329,8 @@ func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
 			result += ituZoneValue
 		case DXCCEntityMulti:
 			result += dxccEntitiesValue
+		case WPXPrefixMulti:
+			result += wpxPrefixesValue
 		case XchangeMulti:
 			result += xchangeValue
 		}
@@ -326,7 +338,7 @@ func (m *multis) Value(entity dxcc.Prefix, xchange string) int {
 	return result
 }
 
-func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandScore {
+func (m *multis) Add(value int, callsign callsign.Callsign, entity dxcc.Prefix, xchange string) core.BandScore {
 	var result core.BandScore
 
 	oldCQZoneCount := m.CQZones[entity.CQZone]
@@ -350,6 +362,16 @@ func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandSco
 		result.DXCCEntities += value
 	}
 
+	wpxPrefix := WPXPrefix(callsign)
+	if wpxPrefix != "" {
+		oldWPXPrefixesCount := m.WPXPrefixes[wpxPrefix]
+		newWPXPrefixesCount := oldWPXPrefixesCount + value
+		m.WPXPrefixes[wpxPrefix] = newWPXPrefixesCount
+		if oldWPXPrefixesCount == 0 || newWPXPrefixesCount == 0 {
+			result.WPXPrefixes += value
+		}
+	}
+
 	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
 	if xchangeMatch {
 		oldXchangeValuesCount := m.XchangeValues[xchangeMulti]
@@ -368,6 +390,8 @@ func (m *multis) Add(value int, entity dxcc.Prefix, xchange string) core.BandSco
 			result.Multis += result.ITUZones
 		case DXCCEntityMulti:
 			result.Multis += result.DXCCEntities
+		case WPXPrefixMulti:
+			result.Multis += result.WPXPrefixes
 		case XchangeMulti:
 			result.Multis += result.XchangeValues
 		}
@@ -395,6 +419,29 @@ func (m *multis) matchXchange(xchange string) (string, bool) {
 		multi = matches[multiIndex]
 	}
 	return multi, (multi != "")
+}
+
+var parseWPXPrefixExpression = regexp.MustCompile(`^[A-Z0-9]?[A-Z][0-9]*`)
+
+func WPXPrefix(callsign callsign.Callsign) string {
+	var p string
+	if p == "" && callsign.Prefix != "" {
+		p = parseWPXPrefixExpression.FindString(callsign.Prefix)
+	}
+	if p == "" && callsign.Suffix != "" {
+		p = parseWPXPrefixExpression.FindString(callsign.Suffix)
+	}
+	if p == "" {
+		p = parseWPXPrefixExpression.FindString(callsign.BaseCall)
+	}
+	if p == "" {
+		return ""
+	}
+	runes := []rune(p)
+	if !unicode.IsDigit(runes[len(runes)-1]) {
+		p += "0"
+	}
+	return p
 }
 
 type nullView struct{}

@@ -155,14 +155,14 @@ type Score struct {
 
 func (s Score) String() string {
 	buf := bytes.NewBufferString("")
-	fmt.Fprintf(buf, "Band SpcQ CtyQ ConQ OthQ Dupe Pts     P/Q  CQ ITU Cty Xch Mult Q/M  Result \n")
-	fmt.Fprintf(buf, "---------------------------------------------------------------------------\n")
+	fmt.Fprintf(buf, "Band SpcQ CtyQ ConQ OthQ Dupe Pts     P/Q  CQ ITU Cty PFX Xch Mult Q/M  Result \n")
+	fmt.Fprintf(buf, "-------------------------------------------------------------------------------\n")
 	for _, band := range Bands {
 		if score, ok := s.ScorePerBand[band]; ok {
 			fmt.Fprintf(buf, "%4s %s\n", band, score)
 		}
 	}
-	fmt.Fprintf(buf, "---------------------------------------------------------------------------\n")
+	fmt.Fprintf(buf, "-------------------------------------------------------------------------------\n")
 	fmt.Fprintf(buf, "Tot  %s\n", s.TotalScore)
 	fmt.Fprintf(buf, "Ovr  %s\n", s.OverallScore)
 	return buf.String()

@@ -54,7 +54,7 @@ type DupeChecker interface {
 
 // Valuer provides the points and multis of a QSO based on the given information.
 type Valuer interface {
-	Value(entity dxcc.Prefix, band core.Band, mode core.Mode, xchange string) (points, multis int)
+	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, xchange string) (points, multis int)
 }
 
 // View defines the visual part of the call information window.
@@ -103,22 +103,26 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 	c.showSupercheck(call)
 }
 
-func (c *Callinfo) showDXCCAndValue(callsign string, band core.Band, mode core.Mode, xchange string) {
+func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode, xchange string) {
 	if c.entities == nil {
 		c.view.SetDXCC("", "", 0, 0, false)
 		c.view.SetValue(0, 0)
 		return
 	}
-	entity, found := c.entities.Find(callsign)
+	entity, found := c.entities.Find(call)
 	if !found {
 		c.view.SetDXCC("", "", 0, 0, false)
 		c.view.SetValue(0, 0)
 		return
 	}
+	parsedCall, err := callsign.Parse(call)
+	if err != nil {
+		parsedCall = callsign.Callsign{}
+	}
 
 	dxccName := fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
-	points, multis := c.valuer.Value(entity, band, mode, xchange)
+	points, multis := c.valuer.Value(parsedCall, entity, band, mode, xchange)
 	c.view.SetValue(points, multis)
 }
 
@@ -140,7 +144,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		entity, entityFound := c.entities.Find(match)
 		var points, multis int
 		if entityFound {
-			points, multis = c.valuer.Value(entity, c.lastBand, c.lastMode, "") // TODO predict exchange
+			points, multis = c.valuer.Value(cs, entity, c.lastBand, c.lastMode, "") // TODO predict exchange
 		}
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(cs, c.lastBand, c.lastMode)
 		exactMatch := (match == normalizedInput)

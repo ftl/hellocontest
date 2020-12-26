@@ -208,7 +208,7 @@
                       <object class="GtkMenuItem" id="menuFileNew">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label">New...</property>
+                        <property name="label">_New...</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -216,7 +216,7 @@
                       <object class="GtkMenuItem" id="menuFileOpen">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label">Open...</property>
+                        <property name="label">_Open...</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -224,7 +224,7 @@
                       <object class="GtkMenuItem" id="menuFileSaveAs">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label">Save as...</property>
+                        <property name="label">_Save As...</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -238,7 +238,7 @@
                       <object class="GtkMenuItem" id="menuFileExportCabrillo">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Export Cabrillo...</property>
+                        <property name="label" translatable="yes">Export _Cabrillo...</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -246,7 +246,7 @@
                       <object class="GtkMenuItem" id="menuFileExportADIF">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Export ADIF...</property>
+                        <property name="label" translatable="yes">Export _ADIF...</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -254,7 +254,7 @@
                       <object class="GtkMenuItem" id="menuFileExportCSV">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Export CSV...</property>
+                        <property name="label" translatable="yes">Export CS_V...</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -268,7 +268,7 @@
                       <object class="GtkMenuItem" id="menuFileSettings">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Settings...</property>
+                        <property name="label" translatable="yes">_Settings...</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -282,8 +282,88 @@
                       <object class="GtkMenuItem" id="menuFileQuit">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Quit</property>
+                        <property name="label" translatable="yes">_Quit</property>
                         <property name="use_underline">True</property>
+                        <accelerator key="q" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menuEdit">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">_Edit</property>
+                <property name="use_underline">True</property>
+                <child type="submenu">
+                  <object class="GtkMenu">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkMenuItem" id="menuEditClearEntryFields">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">Clear the entry fields</property>
+                        <property name="label" translatable="yes">_Clear Entry Fields</property>
+                        <property name="use_underline">True</property>
+                        <accelerator key="c" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuEditGotoEntryFields">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Goto _Entry Fields</property>
+                        <property name="use_underline">True</property>
+                        <accelerator key="e" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuEditEditLastQSO">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="tooltip_text" translatable="yes">Edit the last QSO</property>
+                        <property name="label" translatable="yes">Edit _Last QSO</property>
+                        <property name="use_underline">True</property>
+                        <accelerator key="l" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuEditLogQSO">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_Log QSO</property>
+                        <property name="use_underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkRadioMenuItem" id="menuEditSP">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_Search &amp; Pounce</property>
+                        <property name="use_underline">True</property>
+                        <property name="active">True</property>
+                        <property name="draw_as_radio">True</property>
+                        <accelerator key="s" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkRadioMenuItem" id="menuEditRun">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">_Run</property>
+                        <property name="use_underline">True</property>
+                        <property name="draw_as_radio">True</property>
+                        <property name="group">menuEditSP</property>
+                        <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                   </object>
@@ -304,16 +384,15 @@
                       <object class="GtkMenuItem" id="menuWindowCallinfo">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Callinfo</property>
+                        <property name="label" translatable="yes">Call_info</property>
                         <property name="use_underline">True</property>
-                        <accelerator key="i" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                     <child>
                       <object class="GtkMenuItem" id="menuWindowScore">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Score</property>
+                        <property name="label" translatable="yes">_Score</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -321,7 +400,7 @@
                       <object class="GtkMenuItem" id="menuWindowRate">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">QSO Rate</property>
+                        <property name="label" translatable="yes">QSO _Rate</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -343,7 +422,7 @@
                       <object class="GtkMenuItem" id="menuHelpAbout">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label">About</property>
+                        <property name="label">_About</property>
                         <property name="use_underline">True</property>
                       </object>
                     </child>
@@ -567,12 +646,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="resetButton">
-                <property name="label" translatable="yes">Reset</property>
+              <object class="GtkButton" id="clearButton">
+                <property name="label" translatable="yes">Clear</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Reset (&lt;ESC&gt;)</property>
+                <property name="tooltip_text" translatable="yes">Clear the entry fields</property>
               </object>
               <packing>
                 <property name="left_attach">6</property>
@@ -636,6 +715,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Workmode:</property>
+                <property name="xalign">0</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -644,7 +724,7 @@
             </child>
             <child>
               <object class="GtkRadioButton" id="searchPounceModeButton">
-                <property name="label" translatable="yes">Search&amp;Pounce</property>
+                <property name="label" translatable="yes">Search &amp; Pounce</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -863,6 +943,7 @@
                 <property name="margin_left">2</property>
                 <property name="hexpand">True</property>
                 <property name="label" translatable="yes">Stop TX</property>
+                <property name="xalign">0</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>

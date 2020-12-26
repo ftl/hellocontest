@@ -172,7 +172,7 @@ func (c *Controller) Startup() {
 			}
 			c.QSOList.Clear()
 			c.Logbook.ReplayAll()
-			c.Entry.Reset()
+			c.Entry.Clear()
 		})
 	})
 
@@ -204,7 +204,7 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 	}
 
 	c.hamlibClient.Refresh()
-	c.Entry.Reset()
+	c.Entry.Clear()
 }
 
 func (c *Controller) Shutdown() {
@@ -397,5 +397,29 @@ func (c *Controller) ShowRate() {
 func (c *Controller) Refresh() {
 	c.QSOList.Clear()
 	c.Logbook.ReplayAll()
-	c.Entry.Reset()
+	c.Entry.Clear()
+}
+
+func (c *Controller) ClearEntryFields() {
+	c.Entry.Clear()
+}
+
+func (c *Controller) GotoEntryFields() {
+	c.Entry.Activate()
+}
+
+func (c *Controller) EditLastQSO() {
+	c.Entry.EditLastQSO()
+}
+
+func (c *Controller) LogQSO() {
+	c.Entry.Log()
+}
+
+func (c *Controller) SwitchToSPWorkmode() {
+	c.Workmode.SetWorkmode(core.SearchPounce)
+}
+
+func (c *Controller) SwitchToRunWorkmode() {
+	c.Workmode.SetWorkmode(core.Run)
 }

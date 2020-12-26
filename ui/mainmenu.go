@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -18,6 +19,12 @@ type MainMenuController interface {
 	ShowCallinfo()
 	ShowScore()
 	ShowRate()
+	ClearEntryFields()
+	GotoEntryFields()
+	EditLastQSO()
+	LogQSO()
+	SwitchToSPWorkmode()
+	SwitchToRunWorkmode()
 }
 
 type mainMenu struct {
@@ -31,10 +38,18 @@ type mainMenu struct {
 	fileExportCSV      *gtk.MenuItem
 	fileSettings       *gtk.MenuItem
 	fileQuit           *gtk.MenuItem
-	windowCallinfo     *gtk.MenuItem
-	windowScore        *gtk.MenuItem
-	windowRate         *gtk.MenuItem
-	helpAbout          *gtk.MenuItem
+
+	editClearEntryFields *gtk.MenuItem
+	editGotoEntryFields  *gtk.MenuItem
+	editEditLastQSO      *gtk.MenuItem
+	editLogQSO           *gtk.MenuItem
+	editSP               *gtk.RadioMenuItem
+	editRun              *gtk.RadioMenuItem
+
+	windowCallinfo *gtk.MenuItem
+	windowScore    *gtk.MenuItem
+	windowRate     *gtk.MenuItem
+	helpAbout      *gtk.MenuItem
 }
 
 func setupMainMenu(builder *gtk.Builder) *mainMenu {
@@ -48,6 +63,12 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportCSV = getUI(builder, "menuFileExportCSV").(*gtk.MenuItem)
 	result.fileSettings = getUI(builder, "menuFileSettings").(*gtk.MenuItem)
 	result.fileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
+	result.editClearEntryFields = getUI(builder, "menuEditClearEntryFields").(*gtk.MenuItem)
+	result.editGotoEntryFields = getUI(builder, "menuEditGotoEntryFields").(*gtk.MenuItem)
+	result.editEditLastQSO = getUI(builder, "menuEditEditLastQSO").(*gtk.MenuItem)
+	result.editLogQSO = getUI(builder, "menuEditLogQSO").(*gtk.MenuItem)
+	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
+	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
@@ -61,6 +82,12 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportCSV.Connect("activate", result.onExportCSV)
 	result.fileSettings.Connect("activate", result.onSettings)
 	result.fileQuit.Connect("activate", result.onQuit)
+	result.editClearEntryFields.Connect("activate", result.onClearEntryFields)
+	result.editGotoEntryFields.Connect("activate", result.onGotoEntryFields)
+	result.editEditLastQSO.Connect("activate", result.onEditLastQSO)
+	result.editLogQSO.Connect("activate", result.onLogQSO)
+	result.editSP.Connect("toggled", result.onSP)
+	result.editRun.Connect("toggled", result.onRun)
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
 	result.windowScore.Connect("activate", result.onScore)
 	result.windowRate.Connect("activate", result.onRate)
@@ -71,6 +98,21 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 
 func (m *mainMenu) SetMainMenuController(controller MainMenuController) {
 	m.controller = controller
+}
+
+func (m *mainMenu) WorkmodeChanged(workmode core.Workmode) {
+	switch workmode {
+	case core.SearchPounce:
+		if m.editSP.GetActive() {
+			return
+		}
+		m.editSP.SetActive(true)
+	case core.Run:
+		if m.editRun.GetActive() {
+			return
+		}
+		m.editRun.SetActive(true)
+	}
 }
 
 func (m *mainMenu) onAbout() {
@@ -107,6 +149,34 @@ func (m *mainMenu) onSettings() {
 
 func (m *mainMenu) onQuit() {
 	m.controller.Quit()
+}
+
+func (m *mainMenu) onClearEntryFields() {
+	m.controller.ClearEntryFields()
+}
+
+func (m *mainMenu) onGotoEntryFields() {
+	m.controller.GotoEntryFields()
+}
+
+func (m *mainMenu) onEditLastQSO() {
+	m.controller.EditLastQSO()
+}
+
+func (m *mainMenu) onLogQSO() {
+	m.controller.LogQSO()
+}
+
+func (m *mainMenu) onSP() {
+	if m.editSP.GetActive() {
+		m.controller.SwitchToSPWorkmode()
+	}
+}
+
+func (m *mainMenu) onRun() {
+	if m.editRun.GetActive() {
+		m.controller.SwitchToRunWorkmode()
+	}
 }
 
 func (m *mainMenu) onCallinfo() {

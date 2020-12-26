@@ -19,7 +19,7 @@ type EntryController interface {
 	SendQuestion()
 
 	Log()
-	Reset()
+	Clear()
 }
 
 type entryView struct {
@@ -39,7 +39,7 @@ type entryView struct {
 	myNumber     *gtk.Entry
 	myXchange    *gtk.Entry
 	logButton    *gtk.Button
-	resetButton  *gtk.Button
+	clearButton  *gtk.Button
 	messageLabel *gtk.Label
 }
 
@@ -57,7 +57,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.myNumber = getUI(builder, "myNumberEntry").(*gtk.Entry)
 	result.myXchange = getUI(builder, "myXchangeEntry").(*gtk.Entry)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
-	result.resetButton = getUI(builder, "resetButton").(*gtk.Button)
+	result.clearButton = getUI(builder, "clearButton").(*gtk.Button)
 	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
 
 	result.addEntryEventHandlers(&result.callsign.Widget)
@@ -71,7 +71,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.addEntryEventHandlers(&result.mode.Widget)
 
 	result.logButton.Connect("clicked", result.onLogButtonClicked)
-	result.resetButton.Connect("clicked", result.onResetButtonClicked)
+	result.clearButton.Connect("clicked", result.onClearButtonClicked)
 
 	setupBandCombo(result.band)
 	setupModeCombo(result.mode)
@@ -130,7 +130,7 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 		v.controller.Log()
 		return true
 	case gdk.KEY_Escape:
-		v.controller.Reset()
+		v.controller.Clear()
 		return true
 	case gdk.KEY_question:
 		v.controller.SendQuestion()
@@ -191,8 +191,8 @@ func (v *entryView) onLogButtonClicked(button *gtk.Button) bool {
 	return true
 }
 
-func (v *entryView) onResetButtonClicked(button *gtk.Button) bool {
-	v.controller.Reset()
+func (v *entryView) onClearButtonClicked(button *gtk.Button) bool {
+	v.controller.Clear()
 	return true
 }
 

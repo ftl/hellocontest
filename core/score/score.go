@@ -18,8 +18,8 @@ type ScoreUpdatedListener interface {
 
 type ScoreUpdatedListenerFunc func(core.Score)
 
-func (f ScoreUpdatedListenerFunc) ScoreUpdated(Score core.Score) {
-	f(Score)
+func (f ScoreUpdatedListenerFunc) ScoreUpdated(score core.Score) {
+	f(score)
 }
 
 type Configuration interface {

@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestEntryController_Reset(t *testing.T) {
+func TestEntryController_Clear(t *testing.T) {
 	_, log, qsoList, _, controller := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Return(core.QSONumber(1)).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
 
-	controller.Reset()
+	controller.Clear()
 
 	assert.Equal(t, controller.input.myReport, "599")
 	assert.Equal(t, controller.input.myNumber, "001")
@@ -32,7 +32,7 @@ func TestEntryController_Reset(t *testing.T) {
 	assert.Equal(t, controller.input.mode, "")
 }
 
-func TestEntryController_ResetView(t *testing.T) {
+func TestEntryController_ClearView(t *testing.T) {
 	_, log, qsoList, view, controller := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
@@ -54,12 +54,12 @@ func TestEntryController_ResetView(t *testing.T) {
 	view.On("SetEditingMarker", false).Once()
 	view.On("ClearMessage").Once()
 
-	controller.Reset()
+	controller.Clear()
 
 	view.AssertExpectations(t)
 }
 
-func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
+func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
 	_, log, qsoList, _, controller := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
@@ -70,7 +70,7 @@ func TestEntryController_SetLastSelectedBandAndModeOnReset(t *testing.T) {
 	controller.Enter("30m")
 	controller.SetActiveField(core.ModeField)
 	controller.Enter("RTTY")
-	controller.Reset()
+	controller.Clear()
 
 	assert.Equal(t, "30m", controller.input.band)
 	assert.Equal(t, core.Band30m, controller.selectedBand)
@@ -187,7 +187,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
 	qsoList.On("SelectLastQSO").Twice()
 
-	controller.Reset()
+	controller.Clear()
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
 	controller.SetActiveField(core.ModeField)
@@ -420,7 +420,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
 	qsoList.On("SelectLastQSO").Twice()
 
-	controller.Reset()
+	controller.Clear()
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
 	controller.SetActiveField(core.ModeField)

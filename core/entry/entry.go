@@ -120,7 +120,7 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
-	c.Reset()
+	c.Clear()
 	c.view.EnableExchangeFields(c.enableTheirNumberField, c.enableTheirXchangeField)
 }
 
@@ -453,7 +453,7 @@ func (c *Controller) Log() {
 	qso.MyXchange = c.input.myXchange
 
 	c.logbook.Log(qso)
-	c.Reset()
+	c.Clear()
 }
 
 func (c *Controller) showErrorOnField(err error, field core.EntryField) {
@@ -462,7 +462,7 @@ func (c *Controller) showErrorOnField(err error, field core.EntryField) {
 	c.view.ShowMessage(err)
 }
 
-func (c *Controller) Reset() {
+func (c *Controller) Clear() {
 	c.editing = false
 	c.editQSO = core.QSO{}
 
@@ -495,6 +495,15 @@ func (c *Controller) Reset() {
 	if c.callinfo != nil {
 		c.callinfo.ShowInfo("", core.NoBand, core.NoMode, "")
 	}
+}
+
+func (c *Controller) Activate() {
+	c.view.SetActiveField(c.activeField)
+}
+
+func (c *Controller) EditLastQSO() {
+	c.activeField = core.CallsignField
+	c.qsoList.SelectLastQSO()
 }
 
 func (c *Controller) selectLastQSO() {

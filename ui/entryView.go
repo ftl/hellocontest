@@ -130,9 +130,6 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 	case gdk.KEY_Return:
 		v.controller.Log()
 		return true
-	case gdk.KEY_Escape:
-		v.controller.StopTX()
-		return true
 	case gdk.KEY_question:
 		v.controller.SendQuestion()
 		return true

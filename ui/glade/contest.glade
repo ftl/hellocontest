@@ -881,6 +881,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="tooltip_text" translatable="yes">Stop the CW transmission (ESC)</property>
+                <accelerator key="Escape" signal="clicked"/>
               </object>
               <packing>
                 <property name="left_attach">0</property>

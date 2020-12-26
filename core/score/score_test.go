@@ -241,6 +241,7 @@ func TestMatchXchange(t *testing.T) {
 		{`(?P<multi>\d+)|([A-Za-z]+)`, "123", "123", true},
 		{`(\d+)|(\d*(?P<multi>[A-Za-z])[A-Za-z]*\d*)`, "123", "", false},
 		{`(\d+)|(\d*(?P<multi>[A-Za-z])[A-Za-z]*\d*)`, "b36", "B", true},
+		{`(\d+[A-Za-z]+)|([A-Za-z]+\d+)|(\d+[A-Za-z]+\d+)`, "nm", "", false},
 	}
 	for _, tc := range tt {
 		t.Run(fmt.Sprintf("%s %s", tc.expression, tc.value), func(t *testing.T) {

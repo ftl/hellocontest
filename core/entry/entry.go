@@ -65,6 +65,7 @@ type QSOList interface {
 // Keyer functionality used for QSO entry.
 type Keyer interface {
 	SendQuestion(q string)
+	Stop()
 }
 
 // Callinfo functionality used for QSO entry.
@@ -504,6 +505,10 @@ func (c *Controller) Activate() {
 func (c *Controller) EditLastQSO() {
 	c.activeField = core.CallsignField
 	c.qsoList.SelectLastQSO()
+}
+
+func (c *Controller) StopTX() {
+	c.keyer.Stop()
 }
 
 func (c *Controller) selectLastQSO() {

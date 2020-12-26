@@ -875,13 +875,12 @@
             </child>
             <child>
               <object class="GtkButton" id="stopButton">
-                <property name="label" translatable="yes">F5</property>
+                <property name="label" translatable="yes">ESC</property>
                 <property name="name">stopButton</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="tooltip_text" translatable="yes">Stop the CW transmission (F5)</property>
-                <accelerator key="F5" signal="clicked"/>
+                <property name="tooltip_text" translatable="yes">Stop the CW transmission (ESC)</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>

@@ -17,6 +17,7 @@ type EntryController interface {
 
 	Enter(string)
 	SendQuestion()
+	StopTX()
 
 	Log()
 	Clear()
@@ -130,7 +131,7 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 		v.controller.Log()
 		return true
 	case gdk.KEY_Escape:
-		v.controller.Clear()
+		v.controller.StopTX()
 		return true
 	case gdk.KEY_question:
 		v.controller.SendQuestion()

@@ -124,6 +124,10 @@ func (c *Client) connect(whenClosed func()) error {
 	return nil
 }
 
+func (c *Client) Active() bool {
+	return c.connected
+}
+
 func (c *Client) withRequestTimeout() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), c.requestTimeout)
 	return ctx

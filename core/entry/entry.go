@@ -75,6 +75,7 @@ type Callinfo interface {
 
 // VFO functionality used for QSO entry.
 type VFO interface {
+	Active() bool
 	SetBand(core.Band)
 	SetMode(core.Mode)
 }
@@ -127,9 +128,26 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) SetLogbook(logbook Logbook) {
 	c.logbook = logbook
-	c.selectedFrequency = 0
-	c.selectedBand = c.logbook.LastBand()
-	c.selectedMode = c.logbook.LastMode()
+	if c.selectedBand == core.NoBand || !c.vfo.Active() {
+		lastBand := c.logbook.LastBand()
+		if lastBand != core.NoBand {
+			c.selectedBand = lastBand
+			c.input.band = lastBand.String()
+		} else {
+			c.selectedBand = core.Band160m
+			c.input.band = c.selectedBand.String()
+		}
+	}
+	if c.selectedMode == core.NoMode || !c.vfo.Active() {
+		lastMode := c.logbook.LastMode()
+		if lastMode != core.NoMode {
+			c.selectedMode = lastMode
+			c.input.mode = lastMode.String()
+		} else {
+			c.selectedMode = core.ModeCW
+			c.input.mode = c.selectedMode.String()
+		}
+	}
 	c.input.myXchange = c.logbook.LastXchange()
 
 	c.showInput()
@@ -550,9 +568,9 @@ func (n *nullView) ClearMessage()                   {}
 
 type nullVFO struct{}
 
+func (n *nullVFO) Active() bool      { return false }
 func (n *nullVFO) SetBand(core.Band) {}
 func (n *nullVFO) SetMode(core.Mode) {}
-func (n *nullVFO) Refresh()          {}
 
 type nullLogbook struct{}
 

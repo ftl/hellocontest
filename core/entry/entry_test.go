@@ -28,8 +28,8 @@ func TestEntryController_Clear(t *testing.T) {
 	assert.Equal(t, controller.input.theirReport, "599")
 	assert.Equal(t, controller.input.theirNumber, "")
 	assert.Equal(t, controller.input.theirXchange, "")
-	assert.Equal(t, controller.input.band, "")
-	assert.Equal(t, controller.input.mode, "")
+	assert.Equal(t, controller.input.band, "160m")
+	assert.Equal(t, controller.input.mode, "CW")
 }
 
 func TestEntryController_ClearView(t *testing.T) {
@@ -47,8 +47,8 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.On("SetTheirReport", "599").Once()
 	view.On("SetTheirNumber", "").Once()
 	view.On("SetTheirXchange", "").Once()
-	view.On("SetBand", "").Once()
-	view.On("SetMode", "").Once()
+	view.On("SetBand", "160m").Once()
+	view.On("SetMode", "CW").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
 	view.On("SetEditingMarker", false).Once()
@@ -148,7 +148,7 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	}
 
 	qsoList.Activate()
-	qsoList.On("FindDuplicateQSOs", dl1abc, core.NoBand, core.NoMode).Return([]core.QSO{qso}).Twice()
+	qsoList.On("FindDuplicateQSOs", dl1abc, core.Band160m, core.ModeCW).Return([]core.QSO{qso}).Twice()
 
 	view.Activate()
 	view.On("SetDuplicateMarker", true).Once()

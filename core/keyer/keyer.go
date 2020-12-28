@@ -27,6 +27,8 @@ type Keyer struct {
 	client CWClient
 	values KeyerValueProvider
 
+	listeners []interface{}
+
 	myCall    callsign.Callsign
 	speed     int
 	patterns  map[int]string
@@ -141,8 +143,10 @@ func (k *Keyer) send(s string) {
 		err := k.client.Connect()
 		if err != nil {
 			k.view.ShowMessage(err)
+			k.emitStatusChanged(false)
 			return
 		}
+		k.emitStatusChanged(true)
 		k.client.Speed(k.speed)
 	}
 
@@ -156,6 +160,19 @@ func (k *Keyer) Stop() {
 	}
 	log.Println("abort sending")
 	k.client.Abort()
+}
+
+func (k *Keyer) Notify(listener interface{}) {
+	k.listeners = append(k.listeners, listener)
+}
+
+func (k *Keyer) emitStatusChanged(available bool) {
+	log.Printf("cw status changed, notifying %d listeners", len(k.listeners))
+	for _, listener := range k.listeners {
+		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
+			serviceStatusListener.StatusChanged(core.CWDaemonService, available)
+		}
+	}
 }
 
 // softcut replaces 0 and 9 with their "cut" counterparts t and n.

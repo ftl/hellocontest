@@ -7,18 +7,29 @@ import (
 )
 
 func New() *Finder {
-	result := &Finder{}
+	result := &Finder{
+		available: make(chan struct{}),
+	}
 
 	go func() {
 		result.database = setupDatabase()
 		log.Print("Supercheck database available")
+		close(result.available)
 	}()
 
 	return result
 }
 
 type Finder struct {
-	database *scp.Database
+	database  *scp.Database
+	available chan struct{}
+}
+
+func (f *Finder) WhenAvailable(callback func()) {
+	go func() {
+		<-f.available
+		callback()
+	}()
 }
 
 func (f *Finder) Find(s string) ([]string, error) {

@@ -27,6 +27,8 @@ func New(address string) *Client {
 type Client struct {
 	conn *client.Conn
 
+	listeners []interface{}
+
 	address         string
 	pollingInterval time.Duration
 	pollingTimeout  time.Duration
@@ -103,7 +105,7 @@ func (c *Client) connect(whenClosed func()) error {
 
 	c.closed = make(chan struct{})
 	c.connected = true
-	// TODO update status bar to connected
+	c.emitStatusChanged(c.connected)
 
 	c.conn.StartPolling(c.pollingInterval, c.pollingTimeout,
 		client.PollCommand(client.OnFrequency(c.setIncomingFrequency)),
@@ -112,7 +114,7 @@ func (c *Client) connect(whenClosed func()) error {
 
 	c.conn.WhenClosed(func() {
 		c.connected = false
-		// TODO update status bar to disconnected
+		c.emitStatusChanged(c.connected)
 
 		if whenClosed != nil {
 			whenClosed()
@@ -129,7 +131,8 @@ func (c *Client) Active() bool {
 }
 
 func (c *Client) withRequestTimeout() context.Context {
-	ctx, _ := context.WithTimeout(context.Background(), c.requestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), c.requestTimeout)
+	defer cancel()
 	return ctx
 }
 
@@ -219,6 +222,18 @@ func (c *Client) Refresh() {
 	if c.incoming.mode != core.NoMode {
 		log.Printf("Refreshing VFO mode")
 		c.controller.SetMode(c.incoming.mode)
+	}
+}
+
+func (c *Client) Notify(listener interface{}) {
+	c.listeners = append(c.listeners, listener)
+}
+
+func (c *Client) emitStatusChanged(available bool) {
+	for _, listener := range c.listeners {
+		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
+			serviceStatusListener.StatusChanged(core.HamlibService, available)
+		}
 	}
 }
 

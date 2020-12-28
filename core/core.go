@@ -274,3 +274,23 @@ func (r QSORate) SinceLastQSOFormatted() string {
 		return fmt.Sprintf("%02d:%02d:%02d", hours, minutes, seconds)
 	}
 }
+
+type Service int
+
+const (
+	NoService Service = iota
+	HamlibService
+	CWDaemonService
+	DXCCService
+	SCPService
+)
+
+type ServiceStatusListener interface {
+	StatusChanged(service Service, avialable bool)
+}
+
+type ServiceStatusListenerFunc func(Service, bool)
+
+func (f ServiceStatusListenerFunc) StatusChanged(service Service, available bool) {
+	f(service, available)
+}

@@ -56,15 +56,17 @@ type Controller struct {
 	cwclient      *cwclient.Client
 	hamlibClient  *hamlib.Client
 	dxccFinder    *dxcc.Finder
+	scpFinder     *scp.Finder
 
-	Logbook  *logbook.Logbook
-	QSOList  *logbook.QSOList
-	Entry    *entry.Controller
-	Workmode *workmode.Controller
-	Keyer    *keyer.Keyer
-	Callinfo *callinfo.Callinfo
-	Score    *score.Counter
-	Rate     *rate.Counter
+	Logbook       *logbook.Logbook
+	QSOList       *logbook.QSOList
+	Entry         *entry.Controller
+	Workmode      *workmode.Controller
+	Keyer         *keyer.Keyer
+	Callinfo      *callinfo.Callinfo
+	Score         *score.Counter
+	Rate          *rate.Counter
+	ServiceStatus *ServiceStatus
 
 	OnLogbookChanged func()
 }
@@ -122,11 +124,16 @@ func (c *Controller) Startup() {
 		newLogbook = logbook.New(c.clock)
 	}
 
+	c.ServiceStatus = newServiceStatus()
+
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
+
 	c.dxccFinder = dxcc.New()
+	c.scpFinder = scp.New()
 
 	hamlibAddress := c.configuration.HamlibAddress()
 	c.hamlibClient = hamlib.New(hamlibAddress)
+	c.hamlibClient.Notify(c.ServiceStatus)
 	if hamlibAddress != "" {
 		c.hamlibClient.KeepOpen()
 	}
@@ -147,6 +154,7 @@ func (c *Controller) Startup() {
 	c.Keyer = keyer.New(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
 	c.Keyer.SetPatterns(c.configuration.KeyerSPMacros())
 	c.Keyer.SetValues(c.Entry.CurrentValues)
+	c.Keyer.Notify(c.ServiceStatus)
 	c.Entry.SetKeyer(c.Keyer)
 
 	c.Workmode = workmode.NewController(c.configuration.KeyerSPMacros(), c.configuration.KeyerRunMacros())
@@ -162,7 +170,7 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
 
-	c.Callinfo = callinfo.New(c.dxccFinder, scp.New(), c.QSOList, c.Score)
+	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.QSOList, c.Score)
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.dxccFinder.WhenAvailable(func() {
@@ -173,6 +181,12 @@ func (c *Controller) Startup() {
 			c.QSOList.Clear()
 			c.Logbook.ReplayAll()
 			c.Entry.Clear()
+			c.ServiceStatus.StatusChanged(core.DXCCService, true)
+		})
+	})
+	c.scpFinder.WhenAvailable(func() {
+		c.asyncRunner(func() {
+			c.ServiceStatus.StatusChanged(core.SCPService, true)
 		})
 	})
 

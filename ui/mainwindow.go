@@ -17,6 +17,7 @@ type mainWindow struct {
 	*entryView
 	*workmodeView
 	*keyerView
+	*statusView
 }
 
 func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWindow {
@@ -31,6 +32,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.entryView = setupEntryView(builder)
 	result.workmodeView = setupWorkmodeView(builder)
 	result.keyerView = setupKeyerView(builder)
+	result.statusView = setupStatusView(builder)
 
 	return result
 }

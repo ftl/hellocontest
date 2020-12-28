@@ -165,6 +165,21 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	view.AssertExpectations(t)
 }
 
+func TestEntryController_EnterFrequency(t *testing.T) {
+	_, _, _, view, controller, _ := setupEntryTest()
+
+	view.Activate()
+	view.On("SetCallsign", "").Once()
+	view.On("SetFrequency", core.Frequency(7028000)).Once()
+
+	controller.Enter("7028")
+	controller.Log()
+
+	assert.Equal(t, "", controller.input.callsign)
+
+	view.AssertExpectations(t)
+}
+
 func TestEntryController_LogNewQSO(t *testing.T) {
 	clock, log, qsoList, _, controller, _ := setupEntryTest()
 

@@ -77,6 +77,7 @@ type Callinfo interface {
 // VFO functionality used for QSO entry.
 type VFO interface {
 	Active() bool
+	SetFrequency(core.Frequency)
 	SetBand(core.Band)
 	SetMode(core.Mode)
 }
@@ -297,6 +298,16 @@ func (c *Controller) Enter(text string) {
 	}
 }
 
+func (c *Controller) frequencySelected(frequency core.Frequency) {
+	log.Printf("Frequency selected: %s", frequency)
+	c.selectedFrequency = frequency
+	c.vfo.SetFrequency(frequency)
+	c.input.callsign = ""
+	c.enterCallsign(c.input.callsign)
+	c.view.SetCallsign(c.input.callsign)
+	c.view.SetFrequency(frequency)
+}
+
 func (c *Controller) SetFrequency(frequency core.Frequency) {
 	if c.selectedFrequency == frequency {
 		return
@@ -404,6 +415,11 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 }
 
 func (c *Controller) Log() {
+	if f, ok := parseKilohertz(c.input.callsign); ok && c.activeField == core.CallsignField {
+		c.frequencySelected(f)
+		return
+	}
+
 	var err error
 	qso := core.QSO{}
 	if c.editing {
@@ -478,6 +494,14 @@ func (c *Controller) Log() {
 
 	c.logbook.Log(qso)
 	c.Clear()
+}
+
+func parseKilohertz(s string) (core.Frequency, bool) {
+	kHz, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, false
+	}
+	return core.Frequency(kHz * 1000), true
 }
 
 func (c *Controller) showErrorOnField(err error, field core.EntryField) {
@@ -576,9 +600,10 @@ func (n *nullView) ClearMessage()                   {}
 
 type nullVFO struct{}
 
-func (n *nullVFO) Active() bool      { return false }
-func (n *nullVFO) SetBand(core.Band) {}
-func (n *nullVFO) SetMode(core.Mode) {}
+func (n *nullVFO) Active() bool                { return false }
+func (n *nullVFO) SetFrequency(core.Frequency) {}
+func (n *nullVFO) SetBand(core.Band)           {}
+func (n *nullVFO) SetMode(core.Mode)           {}
 
 type nullLogbook struct{}
 

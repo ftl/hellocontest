@@ -10,10 +10,12 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
+	"github.com/ftl/hellocontest/core/ticker"
 )
 
 // View represents the visual part of the QSO data entry.
 type View interface {
+	SetUTC(string)
 	SetMyCall(string)
 	SetFrequency(core.Frequency)
 	SetCallsign(string)
@@ -90,16 +92,19 @@ type Configuration interface {
 }
 
 // NewController returns a new entry controller.
-func NewController(configuration Configuration, clock core.Clock, qsoList QSOList) *Controller {
-	return &Controller{
+func NewController(configuration Configuration, clock core.Clock, qsoList QSOList, asyncRunner core.AsyncRunner) *Controller {
+	result := &Controller{
 		configuration: configuration,
 		clock:         clock,
 		view:          new(nullView),
 		logbook:       new(nullLogbook),
 		callinfo:      new(nullCallinfo),
 		vfo:           new(nullVFO),
+		asyncRunner:   asyncRunner,
 		qsoList:       qsoList,
 	}
+	result.refreshTicker = ticker.New(result.refreshUTC)
+	return result
 }
 
 type Controller struct {
@@ -111,6 +116,9 @@ type Controller struct {
 	keyer         Keyer
 	callinfo      Callinfo
 	vfo           VFO
+
+	asyncRunner   core.AsyncRunner
+	refreshTicker *ticker.Ticker
 
 	input              input
 	activeField        core.EntryField
@@ -129,6 +137,7 @@ func (c *Controller) SetView(view View) {
 	}
 	c.view = view
 	c.Clear()
+	c.refreshUTC()
 	c.view.EnableExchangeFields(c.configuration.EnterTheirNumber(), c.configuration.EnterTheirXchange())
 }
 
@@ -221,6 +230,21 @@ func (c *Controller) leaveCallsignField() {
 	}
 
 	c.view.SetDuplicateMarker(true)
+}
+
+func (c *Controller) StartAutoRefresh() {
+	c.refreshTicker.Start()
+}
+
+func (c *Controller) refreshUTC() {
+	c.asyncRunner(func() {
+		if c.view == nil {
+			return
+		}
+
+		utc := c.clock.Now().UTC()
+		c.view.SetUTC(utc.Format("15:04"))
+	})
 }
 
 func (c *Controller) showQSO(qso core.QSO) {
@@ -580,6 +604,7 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 
 type nullView struct{}
 
+func (n *nullView) SetUTC(string)                   {}
 func (n *nullView) SetMyCall(string)                {}
 func (n *nullView) SetFrequency(core.Frequency)     {}
 func (n *nullView) SetCallsign(string)              {}

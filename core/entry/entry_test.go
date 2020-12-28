@@ -544,7 +544,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
 	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true}
-	controller := NewController(config, clock, qsoList)
+	controller := NewController(config, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -558,7 +558,7 @@ func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
 	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: false}
-	controller := NewController(config, clock, qsoList)
+	controller := NewController(config, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -572,7 +572,7 @@ func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.QSOList,
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
 	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: false, enterTheirXchange: true}
-	controller := NewController(config, clock, qsoList)
+	controller := NewController(config, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -610,3 +610,5 @@ func (c *testConfiguration) EnterTheirNumber() bool {
 func (c *testConfiguration) EnterTheirXchange() bool {
 	return c.enterTheirXchange
 }
+
+func testIgnoreAsync(f func()) {}

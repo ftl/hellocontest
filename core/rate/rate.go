@@ -18,15 +18,15 @@ func (f RateUpdatedListenerFunc) RateUpdated(Score core.QSORate) {
 	f(Score)
 }
 
-func NewCounter() *Counter {
+func NewCounter(asyncRunner core.AsyncRunner) *Counter {
 	result := &Counter{
 		QSORate: core.QSORate{
 			QSOsPerHours: make(core.QSOsPerHours),
 		},
-		view: new(nullView),
+		view:        new(nullView),
+		asyncRunner: asyncRunner,
 	}
 	result.refreshTicker = ticker.New(result.Refresh)
-	result.refreshTicker.Start()
 	return result
 }
 
@@ -36,8 +36,10 @@ type Counter struct {
 
 	listeners []interface{}
 
-	lastHourQSOs  qsoList
-	lastQSOTime   time.Time
+	lastHourQSOs qsoList
+	lastQSOTime  time.Time
+
+	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
 }
 
@@ -48,6 +50,10 @@ type View interface {
 	Hide()
 
 	ShowRate(rate core.QSORate)
+}
+
+func (c *Counter) StartAutoRefresh() {
+	c.refreshTicker.Start()
 }
 
 func (c *Counter) SetView(view View) {
@@ -82,16 +88,18 @@ func (c *Counter) Clear() {
 }
 
 func (c *Counter) Refresh() {
-	now := time.Now()
-	c.lastHourQSOs.RemoveBefore(now.Add(-1 * time.Hour))
-	c.LastHourRate = core.QSOsPerHour(c.lastHourQSOs.Length())
-	c.Last5MinRate = core.QSOsPerHour(c.lastHourQSOs.LengthAfter(now.Add(-5*time.Minute)) * 12)
-	if c.lastQSOTime.IsZero() {
-		c.SinceLastQSO = 0
-	} else {
-		c.SinceLastQSO = now.Sub(c.lastQSOTime)
-	}
-	c.emitRateUpdated(c.QSORate)
+	c.asyncRunner(func() {
+		now := time.Now()
+		c.lastHourQSOs.RemoveBefore(now.Add(-1 * time.Hour))
+		c.LastHourRate = core.QSOsPerHour(c.lastHourQSOs.Length())
+		c.Last5MinRate = core.QSOsPerHour(c.lastHourQSOs.LengthAfter(now.Add(-5*time.Minute)) * 12)
+		if c.lastQSOTime.IsZero() {
+			c.SinceLastQSO = 0
+		} else {
+			c.SinceLastQSO = now.Sub(c.lastQSOTime)
+		}
+		c.emitRateUpdated(c.QSORate)
+	})
 }
 
 func (c *Counter) emitRateUpdated(rate core.QSORate) {

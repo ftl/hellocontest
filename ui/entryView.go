@@ -30,6 +30,7 @@ type entryView struct {
 	ignoreInput bool
 
 	entryRoot    *gtk.Grid
+	utc          *gtk.Label
 	myCall       *gtk.Label
 	frequency    *gtk.Label
 	callsign     *gtk.Entry
@@ -50,6 +51,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result := new(entryView)
 
 	result.entryRoot = getUI(builder, "entryGrid").(*gtk.Grid)
+	result.utc = getUI(builder, "utcLabel").(*gtk.Label)
 	result.myCall = getUI(builder, "myCallLabel").(*gtk.Label)
 	result.frequency = getUI(builder, "frequencyLabel").(*gtk.Label)
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
@@ -202,6 +204,10 @@ func (v *entryView) setTextWithoutChangeEvent(f func(string), value string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
 	f(value)
+}
+
+func (v *entryView) SetUTC(text string) {
+	v.utc.SetText(text)
 }
 
 func (v *entryView) SetMyCall(text string) {

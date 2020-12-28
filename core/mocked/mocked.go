@@ -186,6 +186,13 @@ func (m *EntryView) Activate() {
 	m.active = true
 }
 
+func (m *EntryView) SetUTC(utc string) {
+	if !m.active {
+		return
+	}
+	m.Called(utc)
+}
+
 func (m *EntryView) SetMyCall(mycall string) {
 	if !m.active {
 		return

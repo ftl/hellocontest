@@ -294,3 +294,5 @@ type ServiceStatusListenerFunc func(Service, bool)
 func (f ServiceStatusListenerFunc) StatusChanged(service Service, available bool) {
 	f(service, available)
 }
+
+type AsyncRunner func(func())

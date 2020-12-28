@@ -30,7 +30,7 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(version string, clock core.Clock, quitter Quitter, asyncRunner AsyncRunner, configuration Configuration) *Controller {
+func NewController(version string, clock core.Clock, quitter Quitter, asyncRunner core.AsyncRunner, configuration Configuration) *Controller {
 	return &Controller{
 		version:       version,
 		clock:         clock,
@@ -39,8 +39,6 @@ func NewController(version string, clock core.Clock, quitter Quitter, asyncRunne
 		configuration: configuration,
 	}
 }
-
-type AsyncRunner func(func())
 
 type Controller struct {
 	view View
@@ -51,7 +49,7 @@ type Controller struct {
 	clock         core.Clock
 	configuration Configuration
 	quitter       Quitter
-	asyncRunner   AsyncRunner
+	asyncRunner   core.AsyncRunner
 	store         *store.FileStore
 	cwclient      *cwclient.Client
 	hamlibClient  *hamlib.Client
@@ -144,6 +142,7 @@ func (c *Controller) Startup() {
 		c.configuration,
 		c.clock,
 		c.QSOList,
+		c.asyncRunner,
 	)
 	c.QSOList.Notify(c.Entry)
 
@@ -164,7 +163,7 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))
 
-	c.Rate = rate.NewCounter()
+	c.Rate = rate.NewCounter(c.asyncRunner)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
@@ -188,6 +187,9 @@ func (c *Controller) Startup() {
 			c.ServiceStatus.StatusChanged(core.SCPService, true)
 		})
 	})
+
+	c.Entry.StartAutoRefresh()
+	c.Rate.StartAutoRefresh()
 
 	c.changeLogbook(filename, store, newLogbook)
 }

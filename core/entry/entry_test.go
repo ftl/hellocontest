@@ -13,7 +13,7 @@ import (
 )
 
 func TestEntryController_Clear(t *testing.T) {
-	_, log, qsoList, _, controller := setupEntryTest()
+	_, log, qsoList, _, controller, _ := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Return(core.QSONumber(1)).Once()
 	qsoList.Activate()
@@ -33,7 +33,7 @@ func TestEntryController_Clear(t *testing.T) {
 }
 
 func TestEntryController_ClearView(t *testing.T) {
-	_, log, qsoList, view, controller := setupEntryTest()
+	_, log, qsoList, view, controller, _ := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	qsoList.Activate()
@@ -43,6 +43,8 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.On("SetMyReport", "599").Once()
 	view.On("SetMyNumber", "001").Once()
 	view.On("SetMyXchange", "").Once()
+	view.On("SetMyCall", "DL0ABC").Once()
+	view.On("SetFrequency", mock.Anything).Once()
 	view.On("SetCallsign", "").Once()
 	view.On("SetTheirReport", "599").Once()
 	view.On("SetTheirNumber", "").Once()
@@ -60,7 +62,7 @@ func TestEntryController_ClearView(t *testing.T) {
 }
 
 func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
-	_, log, qsoList, _, controller := setupEntryTest()
+	_, log, qsoList, _, controller, _ := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	qsoList.Activate()
@@ -79,7 +81,7 @@ func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
 }
 
 func TestEntryController_GotoNextField(t *testing.T) {
-	_, _, _, view, controller := setupEntryTest()
+	_, _, _, view, controller, config := setupEntryTest()
 	view.Activate()
 
 	view.On("Callsign").Return("").Maybe()
@@ -88,8 +90,8 @@ func TestEntryController_GotoNextField(t *testing.T) {
 	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")
 
 	testCases := []struct {
-		enableTheirNumberField, enableTheirXchangeField bool
-		active, next                                    core.EntryField
+		enterTheirNumber, enterTheirXchange bool
+		active, next                        core.EntryField
 	}{
 		{true, true, core.CallsignField, core.TheirReportField},
 		{true, true, core.TheirReportField, core.TheirNumberField},
@@ -103,8 +105,8 @@ func TestEntryController_GotoNextField(t *testing.T) {
 		{true, true, core.OtherField, core.CallsignField},
 	}
 	for _, tc := range testCases {
-		controller.enableTheirNumberField = tc.enableTheirNumberField
-		controller.enableTheirXchangeField = tc.enableTheirXchangeField
+		config.enterTheirNumber = tc.enterTheirNumber
+		config.enterTheirXchange = tc.enterTheirXchange
 		controller.SetActiveField(tc.active)
 		actual := controller.GotoNextField()
 		assert.Equal(t, tc.next, actual)
@@ -115,7 +117,7 @@ func TestEntryController_GotoNextField(t *testing.T) {
 }
 
 func TestEntryController_EnterNewCallsign(t *testing.T) {
-	_, _, qsoList, view, controller := setupEntryTest()
+	_, _, qsoList, view, controller, _ := setupEntryTest()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
 
@@ -134,7 +136,7 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 }
 
 func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
-	_, _, qsoList, view, controller := setupEntryTest()
+	_, _, qsoList, view, controller, _ := setupEntryTest()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -164,7 +166,7 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 }
 
 func TestEntryController_LogNewQSO(t *testing.T) {
-	clock, log, qsoList, _, controller := setupEntryTest()
+	clock, log, qsoList, _, controller, _ := setupEntryTest()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -214,7 +216,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 }
 
 func TestEntryController_LogWithWrongCallsign(t *testing.T) {
-	_, log, _, view, controller := setupEntryTest()
+	_, log, _, view, controller, _ := setupEntryTest()
 	log.Activate()
 
 	view.Activate()
@@ -230,7 +232,7 @@ func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 }
 
 func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
-	_, log, _, view, controller := setupEntryTest()
+	_, log, _, view, controller, _ := setupEntryTest()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
@@ -254,7 +256,7 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 }
 
 func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
-	_, log, _, view, controller := setupEntryTest()
+	_, log, _, view, controller, _ := setupEntryTest()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
@@ -328,7 +330,7 @@ func TestEntryController_LogWithoutMandatoryTheirXchange(t *testing.T) {
 }
 
 func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
-	_, log, _, view, controller := setupEntryTest()
+	_, log, _, view, controller, _ := setupEntryTest()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
@@ -358,7 +360,7 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 }
 
 func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing.T) {
-	clock, _, qsoList, view, controller := setupEntryTest()
+	clock, _, qsoList, view, controller, _ := setupEntryTest()
 	qsoList.Activate()
 	view.Activate()
 
@@ -385,7 +387,7 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 }
 
 func TestEntryController_LogDuplicateQSO(t *testing.T) {
-	clock, log, qsoList, _, controller := setupEntryTest()
+	clock, log, qsoList, _, controller, _ := setupEntryTest()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -447,7 +449,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 }
 
 func TestEntryController_SelectRowForEditing(t *testing.T) {
-	clock, _, _, view, controller := setupEntryTest()
+	clock, _, _, view, controller, _ := setupEntryTest()
 	view.Activate()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
@@ -484,7 +486,7 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 }
 
 func TestEntryController_EditQSO(t *testing.T) {
-	clock, log, _, _, controller := setupEntryTest()
+	clock, log, _, _, controller, _ := setupEntryTest()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	dl2abc, _ := callsign.Parse("DL2ABC")
@@ -520,17 +522,18 @@ func TestEntryController_EditQSO(t *testing.T) {
 
 // Helpers
 
-func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller) {
+func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testConfiguration) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, qsoList, true, true)
+	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true}
+	controller := NewController(config, clock, qsoList)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
-	return clock, log, qsoList, view, controller
+	return clock, log, qsoList, view, controller, config
 }
 
 func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller) {
@@ -539,7 +542,8 @@ func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, qsoList, true, false)
+	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: false}
+	controller := NewController(config, clock, qsoList)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -552,7 +556,8 @@ func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.QSOList,
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	controller := NewController(clock, qsoList, false, true)
+	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: false, enterTheirXchange: true}
+	controller := NewController(config, clock, qsoList)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -571,4 +576,22 @@ func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
 	assert.Equal(t, qso.Band, controller.selectedBand, "selected band")
 	assert.Equal(t, qso.Mode.String(), controller.input.mode, "input mode")
 	assert.Equal(t, qso.Mode, controller.selectedMode, "selected mode")
+}
+
+type testConfiguration struct {
+	myCall            string
+	enterTheirNumber  bool
+	enterTheirXchange bool
+}
+
+func (c *testConfiguration) MyCall() callsign.Callsign {
+	return callsign.MustParse(c.myCall)
+}
+
+func (c *testConfiguration) EnterTheirNumber() bool {
+	return c.enterTheirNumber
+}
+
+func (c *testConfiguration) EnterTheirXchange() bool {
+	return c.enterTheirXchange
 }

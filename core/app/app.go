@@ -141,10 +141,9 @@ func (c *Controller) Startup() {
 	c.QSOList = logbook.NewQSOList(c.configuration)
 	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
 	c.Entry = entry.NewController(
+		c.configuration,
 		c.clock,
 		c.QSOList,
-		c.configuration.EnterTheirNumber(),
-		c.configuration.EnterTheirXchange(),
 	)
 	c.QSOList.Notify(c.Entry)
 

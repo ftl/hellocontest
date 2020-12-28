@@ -30,6 +30,8 @@ type entryView struct {
 	ignoreInput bool
 
 	entryRoot    *gtk.Grid
+	myCall       *gtk.Label
+	frequency    *gtk.Label
 	callsign     *gtk.Entry
 	theirReport  *gtk.Entry
 	theirNumber  *gtk.Entry
@@ -48,6 +50,8 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result := new(entryView)
 
 	result.entryRoot = getUI(builder, "entryGrid").(*gtk.Grid)
+	result.myCall = getUI(builder, "myCallLabel").(*gtk.Label)
+	result.frequency = getUI(builder, "frequencyLabel").(*gtk.Label)
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
 	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
 	result.theirNumber = getUI(builder, "theirNumberEntry").(*gtk.Entry)
@@ -200,6 +204,14 @@ func (v *entryView) setTextWithoutChangeEvent(f func(string), value string) {
 	f(value)
 }
 
+func (v *entryView) SetMyCall(text string) {
+	v.myCall.SetText(text)
+}
+
+func (v *entryView) SetFrequency(frequency core.Frequency) {
+	v.frequency.SetText(fmt.Sprintf("%7.2f kHz", frequency/1000.0))
+}
+
 func (v *entryView) SetCallsign(text string) {
 	v.setTextWithoutChangeEvent(v.callsign.SetText, text)
 }
@@ -214,10 +226,6 @@ func (v *entryView) SetTheirNumber(text string) {
 
 func (v *entryView) SetTheirXchange(text string) {
 	v.setTextWithoutChangeEvent(v.theirXchange.SetText, text)
-}
-
-func (v *entryView) SetFrequency(frequency core.Frequency) {
-	// ignore
 }
 
 func (v *entryView) SetBand(text string) {

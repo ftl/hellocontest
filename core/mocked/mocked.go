@@ -186,6 +186,20 @@ func (m *EntryView) Activate() {
 	m.active = true
 }
 
+func (m *EntryView) SetMyCall(mycall string) {
+	if !m.active {
+		return
+	}
+	m.Called(mycall)
+}
+
+func (m *EntryView) SetFrequency(frequency core.Frequency) {
+	if !m.active {
+		return
+	}
+	m.Called(frequency)
+}
+
 func (m *EntryView) SetCallsign(callsign string) {
 	if !m.active {
 		return
@@ -212,13 +226,6 @@ func (m *EntryView) SetTheirXchange(xchange string) {
 		return
 	}
 	m.Called(xchange)
-}
-
-func (m *EntryView) SetFrequency(frequency core.Frequency) {
-	if !m.active {
-		return
-	}
-	m.Called(frequency)
 }
 
 func (m *EntryView) SetBand(text string) {

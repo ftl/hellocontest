@@ -45,7 +45,7 @@ jobs:
       run: go build -v -ldflags "-X main.version=$GITHUB_SHA" .
 
     - name: Test
-      run: go test -v ./...
+      run: go test -v -timeout=30s ./...
       
     - name: 'Upload binary for linux_x86_64'
       uses: actions/upload-artifact@v2

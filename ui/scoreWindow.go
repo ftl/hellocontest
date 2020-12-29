@@ -42,6 +42,7 @@ func (w *scoreWindow) Show() {
 		connectToGeometry(w.geometry, ScoreWindowID, w.window)
 	}
 	w.window.ShowAll()
+	w.window.Present()
 }
 
 func (w *scoreWindow) Hide() {

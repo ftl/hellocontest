@@ -42,6 +42,7 @@ func (w *rateWindow) Show() {
 		connectToGeometry(w.geometry, RateWindowID, w.window)
 	}
 	w.window.ShowAll()
+	w.window.Present()
 }
 
 func (w *rateWindow) Hide() {

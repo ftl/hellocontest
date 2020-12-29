@@ -42,6 +42,7 @@ func (w *callinfoWindow) Show() {
 		connectToGeometry(w.geometry, CallinfoWindowID, w.window)
 	}
 	w.window.ShowAll()
+	w.window.Present()
 }
 
 func (w *callinfoWindow) Hide() {

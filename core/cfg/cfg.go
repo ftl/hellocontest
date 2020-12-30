@@ -3,11 +3,10 @@ package cfg
 import (
 	"path/filepath"
 
-	"github.com/pkg/errors"
-
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
+	"github.com/pkg/errors"
 )
 
 const Filename = "hellocontest.json"
@@ -17,6 +16,7 @@ var Default = Data{
 	MyLocator:           "AA00zz",
 	EnterTheirNumber:    true,
 	EnterTheirXchange:   true,
+	RequireTheirXchange: true,
 	AllowMultiBand:      true,
 	AllowMultiMode:      true,
 	CabrilloQSOTemplate: "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}",
@@ -94,6 +94,7 @@ type Data struct {
 	MyLocator           string   `json:"locator"`
 	EnterTheirNumber    bool     `json:"enter_their_number"`
 	EnterTheirXchange   bool     `json:"enter_their_xchange"`
+	RequireTheirXchange bool     `json:"require_their_xchange"`
 	AllowMultiBand      bool     `json:"allow_multi_band"`
 	AllowMultiMode      bool     `json:"allow_multi_mode"`
 	CabrilloQSOTemplate string   `json:"cabrillo_qso"`
@@ -140,6 +141,10 @@ func (c *LoadedConfiguration) EnterTheirNumber() bool {
 
 func (c *LoadedConfiguration) EnterTheirXchange() bool {
 	return c.data.EnterTheirXchange
+}
+
+func (c *LoadedConfiguration) RequireTheirXchange() bool {
+	return c.data.RequireTheirXchange
 }
 
 func (c *LoadedConfiguration) CabrilloQSOTemplate() string {
@@ -234,6 +239,10 @@ func (c *StaticConfiguration) EnterTheirNumber() bool {
 }
 
 func (c *StaticConfiguration) EnterTheirXchange() bool {
+	return true
+}
+
+func (c *StaticConfiguration) RequireTheirXchange() bool {
 	return true
 }
 

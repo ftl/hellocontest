@@ -571,7 +571,7 @@ func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.QSOList,
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: false, enterTheirXchange: true}
+	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: false, enterTheirXchange: true, requireTheirXchange: true}
 	controller := NewController(config, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
@@ -594,9 +594,10 @@ func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
 }
 
 type testConfiguration struct {
-	myCall            string
-	enterTheirNumber  bool
-	enterTheirXchange bool
+	myCall              string
+	enterTheirNumber    bool
+	enterTheirXchange   bool
+	requireTheirXchange bool
 }
 
 func (c *testConfiguration) MyCall() callsign.Callsign {
@@ -609,6 +610,10 @@ func (c *testConfiguration) EnterTheirNumber() bool {
 
 func (c *testConfiguration) EnterTheirXchange() bool {
 	return c.enterTheirXchange
+}
+
+func (c *testConfiguration) RequireTheirXchange() bool {
+	return c.requireTheirXchange
 }
 
 func testIgnoreAsync(f func()) {}

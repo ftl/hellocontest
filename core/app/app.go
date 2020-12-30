@@ -86,6 +86,7 @@ type Configuration interface {
 
 	EnterTheirNumber() bool
 	EnterTheirXchange() bool
+	RequireTheirXchange() bool
 	CabrilloQSOTemplate() string
 	AllowMultiBand() bool
 	AllowMultiMode() bool

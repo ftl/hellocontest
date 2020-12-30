@@ -89,6 +89,7 @@ type Configuration interface {
 	MyCall() callsign.Callsign
 	EnterTheirNumber() bool
 	EnterTheirXchange() bool
+	RequireTheirXchange() bool
 }
 
 // NewController returns a new entry controller.
@@ -495,7 +496,7 @@ func (c *Controller) Log() {
 
 	if c.configuration.EnterTheirXchange() {
 		qso.TheirXchange = c.input.theirXchange
-		if qso.TheirXchange == "" {
+		if qso.TheirXchange == "" && c.configuration.RequireTheirXchange() {
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
 			return
 		}

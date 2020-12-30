@@ -494,7 +494,7 @@ func (c *Controller) Log() {
 		qso.TheirNumber = core.QSONumber(theirNumber)
 	}
 
-	if c.configuration.EnterTheirXchange() {
+	if c.configuration.EnterTheirXchange() && c.configuration.RequireTheirXchange() {
 		qso.TheirXchange = c.input.theirXchange
 		if qso.TheirXchange == "" && c.configuration.RequireTheirXchange() {
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)

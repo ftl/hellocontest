@@ -43,7 +43,9 @@ type application struct {
 	callinfoWindow *callinfoWindow
 	scoreWindow    *scoreWindow
 	rateWindow     *rateWindow
-	controller     *app.Controller
+	settingsDialog *settingsDialog
+
+	controller *app.Controller
 }
 
 func (a *application) startup() {
@@ -64,13 +66,14 @@ func (a *application) activate() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration)
+	a.controller.Startup()
+
 	a.mainWindow = setupMainWindow(a.builder, a.app)
 	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
 	a.scoreWindow = setupScoreWindow(a.windowGeometry)
 	a.rateWindow = setupRateWindow(a.windowGeometry)
-
-	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration)
-	a.controller.Startup()
+	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetLogbookController(a.controller.QSOList)
@@ -88,6 +91,7 @@ func (a *application) activate() {
 	a.controller.Callinfo.SetView(a.callinfoWindow)
 	a.controller.Score.SetView(a.scoreWindow)
 	a.controller.Rate.SetView(a.rateWindow)
+	a.controller.Settings.SetView(a.settingsDialog)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)
 	err = a.windowGeometry.Restore()

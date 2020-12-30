@@ -14,7 +14,7 @@ type MainMenuController interface {
 	ExportCabrillo()
 	ExportADIF()
 	ExportCSV()
-	Settings()
+	OpenSettings()
 	Quit()
 	ShowCallinfo()
 	ShowScore()
@@ -144,7 +144,7 @@ func (m *mainMenu) onExportCSV() {
 }
 
 func (m *mainMenu) onSettings() {
-	m.controller.Settings()
+	m.controller.OpenSettings()
 }
 
 func (m *mainMenu) onQuit() {

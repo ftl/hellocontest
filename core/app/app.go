@@ -3,7 +3,6 @@ package app
 import (
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"text/template"
 
@@ -13,7 +12,6 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callinfo"
-	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/adif"
@@ -25,6 +23,7 @@ import (
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
 	"github.com/ftl/hellocontest/core/scp"
+	"github.com/ftl/hellocontest/core/settings"
 	"github.com/ftl/hellocontest/core/store"
 	"github.com/ftl/hellocontest/core/workmode"
 )
@@ -65,6 +64,7 @@ type Controller struct {
 	Score         *score.Counter
 	Rate          *rate.Counter
 	ServiceStatus *ServiceStatus
+	Settings      *settings.Settings
 
 	OnLogbookChanged func()
 }
@@ -81,6 +81,9 @@ type View interface {
 
 // Configuration provides read access to the configuration data.
 type Configuration interface {
+	Station() core.Station
+	Contest() core.Contest
+
 	MyCall() callsign.Callsign
 	MyLocator() locator.Locator
 
@@ -116,12 +119,16 @@ func (c *Controller) Startup() {
 	var err error
 	filename := "current.log"
 
-	store := store.NewFileStore(filename)
-	newLogbook, err := logbook.Load(c.clock, store)
-	if err != nil {
-		log.Println(err)
-		newLogbook = logbook.New(c.clock)
-	}
+	c.Settings = settings.New(
+		c.configuration.Station(),
+		c.configuration.Contest(),
+	)
+	c.Settings.Notify(settings.StationListenerFunc(func(s core.Station) {
+		log.Printf("the station changed: %v", s)
+	}))
+	c.Settings.Notify(settings.ContestListenerFunc(func(c core.Contest) {
+		log.Printf("the station changed: %v", c)
+	}))
 
 	c.ServiceStatus = newServiceStatus()
 
@@ -192,6 +199,12 @@ func (c *Controller) Startup() {
 	c.Entry.StartAutoRefresh()
 	c.Rate.StartAutoRefresh()
 
+	store := store.NewFileStore(filename)
+	newLogbook, err := logbook.Load(c.clock, store)
+	if err != nil {
+		log.Println(err)
+		newLogbook = logbook.New(c.clock)
+	}
 	c.changeLogbook(filename, store, newLogbook)
 }
 
@@ -231,12 +244,13 @@ func (c *Controller) About() {
 	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\nThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version)
 }
 
-func (c *Controller) Settings() {
-	cmd := exec.Command("xdg-open", cfg.AbsoluteFilename())
-	err := cmd.Run()
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot open the settings file: %v", err)
-	}
+func (c *Controller) OpenSettings() {
+	// cmd := exec.Command("xdg-open", cfg.AbsoluteFilename())
+	// err := cmd.Run()
+	// if err != nil {
+	// 	c.view.ShowErrorDialog("Cannot open the settings file: %v", err)
+	// }
+	c.Settings.Show()
 }
 
 func (c *Controller) Quit() {

@@ -147,6 +147,39 @@ type AnnotatedCallsign struct {
 	Multis     int
 }
 
+type Station struct {
+	Callsign callsign.Callsign
+	Operator callsign.Callsign
+	Locator  string
+}
+
+type Keyer struct {
+	SPMacros  []string
+	RunMacros []string
+	WPM       int
+}
+
+type Contest struct {
+	Name                string
+	EnterTheirNumber    bool
+	EnterTheirXchange   bool
+	RequireTheirXchange bool
+	AllowMultiBand      bool
+	AllowMultiMode      bool
+	CountPerBand        bool
+
+	SameCountryPoints       int
+	SameContinentPoints     int
+	OtherPoints             int
+	SpecificCountryPoints   int
+	SpecificCountryPrefixes []string
+
+	Multis              []string
+	XchangeMultiPattern string
+
+	CabrilloQSOTemplate string
+}
+
 type Score struct {
 	ScorePerBand map[Band]BandScore
 	TotalScore   BandScore

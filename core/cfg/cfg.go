@@ -7,6 +7,8 @@ import (
 	"github.com/ftl/hamradio/cfg"
 	"github.com/ftl/hamradio/locator"
 	"github.com/pkg/errors"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 const Filename = "hellocontest.json"
@@ -125,6 +127,32 @@ type LoadedConfiguration struct {
 	data Data
 }
 
+func (c *LoadedConfiguration) Station() core.Station {
+	return core.Station{
+		Callsign: c.MyCall(),
+	}
+}
+
+func (c *LoadedConfiguration) Contest() core.Contest {
+	return core.Contest{
+		Name:                    "Default",
+		EnterTheirNumber:        c.EnterTheirNumber(),
+		EnterTheirXchange:       c.EnterTheirXchange(),
+		RequireTheirXchange:     c.RequireTheirXchange(),
+		AllowMultiBand:          c.AllowMultiBand(),
+		AllowMultiMode:          c.AllowMultiMode(),
+		CountPerBand:            c.CountPerBand(),
+		SameCountryPoints:       c.SameCountryPoints(),
+		SameContinentPoints:     c.SameContinentPoints(),
+		OtherPoints:             c.OtherPoints(),
+		SpecificCountryPoints:   c.SpecificCountryPoints(),
+		SpecificCountryPrefixes: c.SpecificCountryPrefixes(),
+		Multis:                  c.Multis(),
+		XchangeMultiPattern:     c.XchangeMultiPattern(),
+		CabrilloQSOTemplate:     c.CabrilloQSOTemplate(),
+	}
+}
+
 func (c *LoadedConfiguration) MyCall() callsign.Callsign {
 	myCall, _ := callsign.Parse(c.data.MyCall)
 	return myCall
@@ -224,6 +252,32 @@ func (c *LoadedConfiguration) XchangeMultiPattern() string {
 type StaticConfiguration struct {
 	myCall    callsign.Callsign
 	myLocator locator.Locator
+}
+
+func (c *StaticConfiguration) Station() core.Station {
+	return core.Station{
+		Callsign: c.MyCall(),
+	}
+}
+
+func (c *StaticConfiguration) Contest() core.Contest {
+	return core.Contest{
+		Name:                    "Default",
+		EnterTheirNumber:        c.EnterTheirNumber(),
+		EnterTheirXchange:       c.EnterTheirXchange(),
+		RequireTheirXchange:     c.RequireTheirXchange(),
+		AllowMultiBand:          c.AllowMultiBand(),
+		AllowMultiMode:          c.AllowMultiMode(),
+		CountPerBand:            c.CountPerBand(),
+		SameCountryPoints:       c.SameCountryPoints(),
+		SameContinentPoints:     c.SameContinentPoints(),
+		OtherPoints:             c.OtherPoints(),
+		SpecificCountryPoints:   c.SpecificCountryPoints(),
+		SpecificCountryPrefixes: c.SpecificCountryPrefixes(),
+		Multis:                  c.Multis(),
+		XchangeMultiPattern:     c.XchangeMultiPattern(),
+		CabrilloQSOTemplate:     c.CabrilloQSOTemplate(),
+	}
 }
 
 func (c *StaticConfiguration) MyCall() callsign.Callsign {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
+	"github.com/ftl/hamradio/locator"
 )
 
 // QSO contains the details about one radio contact.
@@ -147,10 +148,15 @@ type AnnotatedCallsign struct {
 	Multis     int
 }
 
+type Settings interface {
+	Station() Station
+	Contest() Contest
+}
+
 type Station struct {
 	Callsign callsign.Callsign
 	Operator callsign.Callsign
-	Locator  string
+	Locator  locator.Locator
 }
 
 type Keyer struct {

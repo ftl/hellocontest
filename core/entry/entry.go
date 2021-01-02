@@ -84,42 +84,42 @@ type VFO interface {
 	SetMode(core.Mode)
 }
 
-// Configuration of the entry controller.
-type Configuration interface {
-	MyCall() callsign.Callsign
-	EnterTheirNumber() bool
-	EnterTheirXchange() bool
-	RequireTheirXchange() bool
-}
-
 // NewController returns a new entry controller.
-func NewController(configuration Configuration, clock core.Clock, qsoList QSOList, asyncRunner core.AsyncRunner) *Controller {
+func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, asyncRunner core.AsyncRunner) *Controller {
 	result := &Controller{
-		configuration: configuration,
-		clock:         clock,
-		view:          new(nullView),
-		logbook:       new(nullLogbook),
-		callinfo:      new(nullCallinfo),
-		vfo:           new(nullVFO),
-		asyncRunner:   asyncRunner,
-		qsoList:       qsoList,
+		clock:       clock,
+		view:        new(nullView),
+		logbook:     new(nullLogbook),
+		callinfo:    new(nullCallinfo),
+		vfo:         new(nullVFO),
+		asyncRunner: asyncRunner,
+		qsoList:     qsoList,
+
+		stationCallsign:     settings.Station().Callsign.String(),
+		enableTheirNumber:   settings.Contest().EnterTheirNumber,
+		enableTheirXchange:  settings.Contest().EnterTheirXchange,
+		requireTheirXchange: settings.Contest().RequireTheirXchange,
 	}
 	result.refreshTicker = ticker.New(result.refreshUTC)
 	return result
 }
 
 type Controller struct {
-	configuration Configuration
-	clock         core.Clock
-	view          View
-	logbook       Logbook
-	qsoList       QSOList
-	keyer         Keyer
-	callinfo      Callinfo
-	vfo           VFO
+	clock    core.Clock
+	view     View
+	logbook  Logbook
+	qsoList  QSOList
+	keyer    Keyer
+	callinfo Callinfo
+	vfo      VFO
 
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
+
+	stationCallsign     string
+	enableTheirNumber   bool
+	enableTheirXchange  bool
+	requireTheirXchange bool
 
 	input              input
 	activeField        core.EntryField
@@ -139,7 +139,7 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 	c.Clear()
 	c.refreshUTC()
-	c.view.EnableExchangeFields(c.configuration.EnterTheirNumber(), c.configuration.EnterTheirXchange())
+	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
 }
 
 func (c *Controller) SetLogbook(logbook Logbook) {
@@ -195,16 +195,16 @@ func (c *Controller) GotoNextField() core.EntryField {
 		core.BandField:         core.CallsignField,
 		core.ModeField:         core.CallsignField,
 	}
-	if c.configuration.EnterTheirNumber() && c.configuration.EnterTheirXchange() {
+	if c.enableTheirNumber && c.enableTheirXchange {
 		transitions[core.TheirReportField] = core.TheirNumberField
 		transitions[core.TheirNumberField] = core.TheirXchangeField
-	} else if !c.configuration.EnterTheirNumber() && c.configuration.EnterTheirXchange() {
+	} else if !c.enableTheirNumber && c.enableTheirXchange {
 		transitions[core.TheirReportField] = core.TheirXchangeField
 		transitions[core.TheirNumberField] = core.CallsignField
-	} else if c.configuration.EnterTheirNumber() && !c.configuration.EnterTheirXchange() {
+	} else if c.enableTheirNumber && !c.enableTheirXchange {
 		transitions[core.TheirReportField] = core.TheirNumberField
 		transitions[core.TheirNumberField] = core.CallsignField
-	} else if !c.configuration.EnterTheirNumber() && !c.configuration.EnterTheirXchange() {
+	} else if !c.enableTheirNumber && !c.enableTheirXchange {
 		transitions[core.TheirReportField] = core.CallsignField
 		transitions[core.TheirNumberField] = core.CallsignField
 	}
@@ -479,7 +479,7 @@ func (c *Controller) Log() {
 		return
 	}
 
-	if c.configuration.EnterTheirNumber() {
+	if c.enableTheirNumber {
 		value := c.input.theirNumber
 		if value == "" {
 			c.showErrorOnField(errors.New("their number is missing"), core.TheirNumberField)
@@ -494,9 +494,9 @@ func (c *Controller) Log() {
 		qso.TheirNumber = core.QSONumber(theirNumber)
 	}
 
-	if c.configuration.EnterTheirXchange() && c.configuration.RequireTheirXchange() {
+	if c.enableTheirXchange {
 		qso.TheirXchange = c.input.theirXchange
-		if qso.TheirXchange == "" && c.configuration.RequireTheirXchange() {
+		if qso.TheirXchange == "" && c.requireTheirXchange {
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
 			return
 		}
@@ -560,7 +560,7 @@ func (c *Controller) Clear() {
 	c.input.myNumber = nextNumber.String()
 
 	c.showInput()
-	c.view.SetMyCall(c.configuration.MyCall().String())
+	c.view.SetMyCall(c.stationCallsign)
 	c.view.SetFrequency(c.selectedFrequency)
 	c.view.SetActiveField(c.activeField)
 	c.view.SetDuplicateMarker(false)
@@ -601,6 +601,18 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 	values.TheirCall = c.input.callsign
 
 	return values
+}
+
+func (c *Controller) StationChanged(station core.Station) {
+	c.stationCallsign = station.Callsign.String()
+	c.view.SetMyCall(c.stationCallsign)
+}
+
+func (c *Controller) ContestChanged(contest core.Contest) {
+	c.enableTheirNumber = contest.EnterTheirNumber
+	c.enableTheirXchange = contest.EnterTheirXchange
+	c.requireTheirXchange = contest.RequireTheirXchange
+	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
 }
 
 type nullView struct{}

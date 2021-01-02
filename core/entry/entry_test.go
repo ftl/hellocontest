@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/core/mocked"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestEntryController_Clear(t *testing.T) {
@@ -82,10 +83,6 @@ func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
 
 func TestEntryController_GotoNextField(t *testing.T) {
 	_, _, _, view, controller, config := setupEntryTest()
-	view.Activate()
-
-	view.On("Callsign").Return("").Maybe()
-	view.On("SetActiveField", mock.Anything).Times(10)
 
 	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")
 
@@ -104,9 +101,14 @@ func TestEntryController_GotoNextField(t *testing.T) {
 		{true, true, core.MyNumberField, core.CallsignField},
 		{true, true, core.OtherField, core.CallsignField},
 	}
+	view.Activate()
+	view.On("Callsign").Return("").Maybe()
+	view.On("EnableExchangeFields", mock.Anything, mock.Anything).Times(len(testCases))
+	view.On("SetActiveField", mock.Anything).Times(len(testCases))
 	for _, tc := range testCases {
 		config.enterTheirNumber = tc.enterTheirNumber
 		config.enterTheirXchange = tc.enterTheirXchange
+		controller.ContestChanged(config.Contest())
 		controller.SetActiveField(tc.active)
 		actual := controller.GotoNextField()
 		assert.Equal(t, tc.next, actual)
@@ -537,18 +539,18 @@ func TestEntryController_EditQSO(t *testing.T) {
 
 // Helpers
 
-func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testConfiguration) {
+func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true}
-	controller := NewController(config, clock, qsoList, testIgnoreAsync)
+	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true}
+	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
-	return clock, log, qsoList, view, controller, config
+	return clock, log, qsoList, view, controller, settings
 }
 
 func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller) {
@@ -557,8 +559,8 @@ func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: false}
-	controller := NewController(config, clock, qsoList, testIgnoreAsync)
+	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: false}
+	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -571,8 +573,8 @@ func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.QSOList,
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	config := &testConfiguration{myCall: "DL0ABC", enterTheirNumber: false, enterTheirXchange: true, requireTheirXchange: true}
-	controller := NewController(config, clock, qsoList, testIgnoreAsync)
+	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: false, enterTheirXchange: true, requireTheirXchange: true}
+	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 
@@ -593,27 +595,27 @@ func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
 	assert.Equal(t, qso.Mode, controller.selectedMode, "selected mode")
 }
 
-type testConfiguration struct {
+type testSettings struct {
 	myCall              string
 	enterTheirNumber    bool
 	enterTheirXchange   bool
 	requireTheirXchange bool
 }
 
-func (c *testConfiguration) MyCall() callsign.Callsign {
-	return callsign.MustParse(c.myCall)
+func (c *testSettings) Station() core.Station {
+	return core.Station{
+		Callsign: callsign.MustParse(c.myCall),
+	}
 }
 
-func (c *testConfiguration) EnterTheirNumber() bool {
-	return c.enterTheirNumber
-}
+func (c *testSettings) Keyer() core.Keyer { return core.Keyer{} }
 
-func (c *testConfiguration) EnterTheirXchange() bool {
-	return c.enterTheirXchange
-}
-
-func (c *testConfiguration) RequireTheirXchange() bool {
-	return c.requireTheirXchange
+func (c *testSettings) Contest() core.Contest {
+	return core.Contest{
+		EnterTheirNumber:    c.enterTheirNumber,
+		EnterTheirXchange:   c.enterTheirXchange,
+		RequireTheirXchange: c.requireTheirXchange,
+	}
 }
 
 func testIgnoreAsync(f func()) {}

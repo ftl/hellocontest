@@ -133,6 +133,14 @@ func (c *LoadedConfiguration) Station() core.Station {
 	}
 }
 
+func (c *LoadedConfiguration) Keyer() core.Keyer {
+	return core.Keyer{
+		SPMacros:  c.KeyerSPMacros(),
+		RunMacros: c.KeyerRunMacros(),
+		WPM:       c.KeyerWPM(),
+	}
+}
+
 func (c *LoadedConfiguration) Contest() core.Contest {
 	return core.Contest{
 		Name:                    "Default",
@@ -257,6 +265,14 @@ type StaticConfiguration struct {
 func (c *StaticConfiguration) Station() core.Station {
 	return core.Station{
 		Callsign: c.MyCall(),
+	}
+}
+
+func (c *StaticConfiguration) Keyer() core.Keyer {
+	return core.Keyer{
+		SPMacros:  c.KeyerSPMacros(),
+		RunMacros: c.KeyerRunMacros(),
+		WPM:       c.KeyerWPM(),
 	}
 }
 

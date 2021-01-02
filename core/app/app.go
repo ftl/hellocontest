@@ -82,6 +82,7 @@ type View interface {
 // Configuration provides read access to the configuration data.
 type Configuration interface {
 	Station() core.Station
+	Keyer() core.Keyer
 	Contest() core.Contest
 
 	MyCall() callsign.Callsign
@@ -121,6 +122,7 @@ func (c *Controller) Startup() {
 
 	c.Settings = settings.New(
 		c.configuration.Station(),
+		c.configuration.Keyer(),
 		c.configuration.Contest(),
 	)
 	c.Settings.Notify(settings.StationListenerFunc(func(s core.Station) {
@@ -131,8 +133,6 @@ func (c *Controller) Startup() {
 	}))
 
 	c.ServiceStatus = newServiceStatus()
-
-	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
 
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
@@ -157,6 +157,7 @@ func (c *Controller) Startup() {
 	c.Entry.SetVFO(c.hamlibClient)
 	c.hamlibClient.SetVFOController(c.Entry)
 
+	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
 	c.Keyer = keyer.New(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
 	c.Keyer.SetPatterns(c.configuration.KeyerSPMacros())
 	c.Keyer.SetValues(c.Entry.CurrentValues)
@@ -178,6 +179,8 @@ func (c *Controller) Startup() {
 
 	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.QSOList, c.Score)
 	c.Entry.SetCallinfo(c.Callinfo)
+
+	c.Settings.Notify(c.Entry)
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {

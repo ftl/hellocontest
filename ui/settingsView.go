@@ -8,26 +8,41 @@ import (
 )
 
 type SettingsController interface {
+	Save()
+	Reset()
+
 	EnterStationCallsign(string)
+	EnterStationOperator(string)
+	EnterStationLocator(string)
+	EnterContestName(string)
 	EnterContestEnterTheirNumber(bool)
+	EnterContestEnterTheirXchange(bool)
+	EnterContestRequireTheirXchange(bool)
 }
 
 type settingsView struct {
+	parent     *gtk.Dialog
 	controller SettingsController
 
 	ignoreChangedEvent bool
 
 	message *gtk.Label
+	reset   *gtk.Button
+	close   *gtk.Button
 	fields  map[string]interface{}
 }
 
-func setupSettingsView(builder *gtk.Builder, controller SettingsController) *settingsView {
-	log.Println("setting up the settings view")
+func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
 	result := new(settingsView)
+	result.parent = parent
 	result.controller = controller
 	result.fields = make(map[string]interface{})
 
 	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
+	result.reset = getUI(builder, "resetButton").(*gtk.Button)
+	result.reset.Connect("clicked", result.onResetPressed)
+	result.close = getUI(builder, "closeButton").(*gtk.Button)
+	result.close.Connect("clicked", result.onClosePressed)
 
 	result.addEntry(builder, "stationCallsignEntry")
 	result.addEntry(builder, "stationOperatorEntry")
@@ -35,6 +50,9 @@ func setupSettingsView(builder *gtk.Builder, controller SettingsController) *set
 	result.addEntry(builder, "contestNameEntry")
 	result.addCheckButton(builder, "contestEnterTheirNumberButton")
 	result.addCheckButton(builder, "contestEnterTheirXchangeButton")
+	result.addCheckButton(builder, "contestRequireTheirXchangeButton")
+
+	result.parent.Connect("destroy", result.onDestroy)
 
 	return result
 }
@@ -57,7 +75,7 @@ func (v *settingsView) addEntry(builder *gtk.Builder, id string) {
 	v.fields[name] = entry
 
 	widget := &entry.Widget
-	widget.Connect("changed", v.onChanged)
+	widget.Connect("changed", v.onFieldChanged)
 }
 
 func (v *settingsView) addCheckButton(builder *gtk.Builder, id string) {
@@ -66,10 +84,10 @@ func (v *settingsView) addCheckButton(builder *gtk.Builder, id string) {
 	v.fields[name] = button
 
 	widget := &button.Widget
-	widget.Connect("toggled", v.onChanged)
+	widget.Connect("toggled", v.onFieldChanged)
 }
 
-func (v *settingsView) onChanged(w interface{}) bool {
+func (v *settingsView) onFieldChanged(w interface{}) bool {
 	if v.ignoreChangedEvent {
 		return false
 	}
@@ -90,8 +108,18 @@ func (v *settingsView) onChanged(w interface{}) bool {
 	switch field {
 	case "stationCallsign":
 		v.controller.EnterStationCallsign(value.(string))
+	case "stationOperator":
+		v.controller.EnterStationOperator(value.(string))
+	case "stationLocator":
+		v.controller.EnterStationLocator(value.(string))
+	case "contestName":
+		v.controller.EnterContestName(value.(string))
 	case "contestEnterTheirNumber":
 		v.controller.EnterContestEnterTheirNumber(value.(bool))
+	case "contestEnterTheirXchange":
+		v.controller.EnterContestEnterTheirXchange(value.(bool))
+	case "contestRequireTheirXchange":
+		v.controller.EnterContestRequireTheirXchange(value.(bool))
 	default:
 		log.Printf("enter unknown field %s: %v", field, value)
 	}
@@ -99,16 +127,16 @@ func (v *settingsView) onChanged(w interface{}) bool {
 	return false
 }
 
-func (v *settingsView) doIgnoreChanges(f func()) {
-	if v == nil {
-		return
-	}
+func (v *settingsView) onResetPressed(_ *gtk.Button) {
+	v.controller.Reset()
+}
 
-	v.ignoreChangedEvent = true
-	defer func() {
-		v.ignoreChangedEvent = false
-	}()
-	f()
+func (v *settingsView) onClosePressed(_ *gtk.Button) {
+	v.parent.Close()
+}
+
+func (v *settingsView) onDestroy() {
+	v.controller.Save()
 }
 
 func (v *settingsView) setEntryField(field string, value string) {
@@ -123,10 +151,42 @@ func (v *settingsView) setCheckButtonField(field string, value bool) {
 	})
 }
 
+func (v *settingsView) doIgnoreChanges(f func()) {
+	if v == nil {
+		return
+	}
+
+	v.ignoreChangedEvent = true
+	defer func() {
+		v.ignoreChangedEvent = false
+	}()
+	f()
+}
+
 func (v *settingsView) SetStationCallsign(value string) {
 	v.setEntryField("stationCallsign", value)
 }
 
+func (v *settingsView) SetStationOperator(value string) {
+	v.setEntryField("stationOperator", value)
+}
+
+func (v *settingsView) SetStationLocator(value string) {
+	v.setEntryField("stationLocator", value)
+}
+
+func (v *settingsView) SetContestName(value string) {
+	v.setEntryField("contestName", value)
+}
+
 func (v *settingsView) SetContestEnterTheirNumber(value bool) {
 	v.setCheckButtonField("contestEnterTheirNumber", value)
+}
+
+func (v *settingsView) SetContestEnterTheirXchange(value bool) {
+	v.setCheckButtonField("contestEnterTheirXchange", value)
+}
+
+func (v *settingsView) SetContestRequireTheirXchange(value bool) {
+	v.setCheckButtonField("contestRequireTheirXchange", value)
 }

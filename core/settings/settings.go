@@ -76,14 +76,20 @@ type View interface {
 	SetContestCountPerBand(bool)
 }
 
-func New(station core.Station, keyer core.Keyer, contest core.Contest) *Settings {
+func New(station core.Station, keyer core.Keyer, contest core.Contest, cabrillo core.Cabrillo) *Settings {
 	return &Settings{
-		station:        station,
-		keyer:          keyer,
-		contest:        contest,
-		defaultStation: station,
-		defaultKeyer:   keyer,
-		defaultContest: contest,
+		station:         station,
+		keyer:           keyer,
+		contest:         contest,
+		cabrillo:        cabrillo,
+		defaultStation:  station,
+		defaultKeyer:    keyer,
+		defaultContest:  contest,
+		defaultCabrillo: cabrillo,
+		savedStation:    station,
+		savedKeyer:      keyer,
+		savedContest:    contest,
+		savedCabrillo:   cabrillo,
 	}
 }
 
@@ -101,6 +107,11 @@ type Settings struct {
 	defaultKeyer    core.Keyer
 	defaultContest  core.Contest
 	defaultCabrillo core.Cabrillo
+
+	savedStation  core.Station
+	savedKeyer    core.Keyer
+	savedContest  core.Contest
+	savedCabrillo core.Cabrillo
 }
 
 func (s *Settings) SetView(view View) {
@@ -122,7 +133,12 @@ func (s *Settings) Station() core.Station {
 
 func (s *Settings) SetStation(station core.Station) {
 	s.station = station
+	s.savedStation = station
 	s.emitStationChanged(station)
+}
+
+func (s *Settings) StationDirty() bool {
+	return s.savedStation != s.station
 }
 
 func (s *Settings) emitStationChanged(station core.Station) {
@@ -139,7 +155,12 @@ func (s *Settings) Keyer() core.Keyer {
 
 func (s *Settings) SetKeyer(keyer core.Keyer) {
 	s.keyer = keyer
+	s.savedKeyer = keyer
 	s.emitKeyerChanged(keyer)
+}
+
+func (s *Settings) KeyerDirty() bool {
+	return fmt.Sprintf("%v", s.savedKeyer) != fmt.Sprintf("%v", s.keyer)
 }
 
 func (s *Settings) emitKeyerChanged(keyer core.Keyer) {
@@ -156,7 +177,12 @@ func (s *Settings) Contest() core.Contest {
 
 func (s *Settings) SetContest(contest core.Contest) {
 	s.contest = contest
+	s.savedContest = contest
 	s.emitContestChanged(contest)
+}
+
+func (s *Settings) ContestDirty() bool {
+	return fmt.Sprintf("%v", s.savedContest) != fmt.Sprintf("%v", s.contest)
 }
 
 func (s *Settings) emitContestChanged(contest core.Contest) {
@@ -173,7 +199,12 @@ func (s *Settings) Cabrillo() core.Cabrillo {
 
 func (s *Settings) SetCabrillo(cabrillo core.Cabrillo) {
 	s.cabrillo = cabrillo
+	s.savedCabrillo = cabrillo
 	s.emitCabrilloChanged(cabrillo)
+}
+
+func (s *Settings) CabrilloDirty() bool {
+	return fmt.Sprintf("%v", s.savedCabrillo) != fmt.Sprintf("%v", s.cabrillo)
 }
 
 func (s *Settings) emitCabrilloChanged(cabrillo core.Cabrillo) {
@@ -215,6 +246,26 @@ func (s *Settings) showSettings() {
 
 func (s *Settings) Save() {
 	log.Println("save the modified settings")
+	if s.StationDirty() {
+		s.emitStationChanged(s.station)
+		s.savedStation = s.station
+		// TODO write s.savedStation to store
+	}
+	if s.KeyerDirty() {
+		s.emitKeyerChanged(s.keyer)
+		s.savedKeyer = s.keyer
+		// TODO write s.savedKeyer to store
+	}
+	if s.ContestDirty() {
+		s.emitContestChanged(s.contest)
+		s.savedContest = s.contest
+		// TODO write s.savedContest to store
+	}
+	if s.CabrilloDirty() {
+		s.emitCabrilloChanged(s.cabrillo)
+		s.savedCabrillo = s.cabrillo
+		// TODO write s.savedCabrillo to store
+	}
 }
 
 func (s *Settings) Reset() {
@@ -238,7 +289,6 @@ func (s *Settings) EnterStationCallsign(value string) {
 	}
 	s.view.HideMessage()
 	s.station.Callsign = cs
-	s.emitStationChanged(s.station)
 }
 
 func (s *Settings) EnterStationOperator(value string) {
@@ -249,7 +299,6 @@ func (s *Settings) EnterStationOperator(value string) {
 	}
 	s.view.HideMessage()
 	s.station.Operator = cs
-	s.emitStationChanged(s.station)
 }
 
 func (s *Settings) EnterStationLocator(value string) {
@@ -260,37 +309,30 @@ func (s *Settings) EnterStationLocator(value string) {
 	}
 	s.view.HideMessage()
 	s.station.Locator = loc
-	s.emitStationChanged(s.station)
 }
 
 func (s *Settings) EnterContestName(value string) {
 	s.contest.Name = value
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestEnterTheirNumber(value bool) {
 	s.contest.EnterTheirNumber = value
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestEnterTheirXchange(value bool) {
 	s.contest.EnterTheirXchange = value
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestRequireTheirXchange(value bool) {
 	s.contest.RequireTheirXchange = value
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestAllowMultiBand(value bool) {
 	s.contest.AllowMultiBand = value
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestAllowMultiMode(value bool) {
 	s.contest.AllowMultiMode = value
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestSameCountryPoints(value string) {
@@ -301,7 +343,6 @@ func (s *Settings) EnterContestSameCountryPoints(value string) {
 	}
 	s.view.HideMessage()
 	s.contest.SameCountryPoints = points
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestSameContinentPoints(value string) {
@@ -312,7 +353,6 @@ func (s *Settings) EnterContestSameContinentPoints(value string) {
 	}
 	s.view.HideMessage()
 	s.contest.SameContinentPoints = points
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestSpecificCountryPoints(value string) {
@@ -323,7 +363,6 @@ func (s *Settings) EnterContestSpecificCountryPoints(value string) {
 	}
 	s.view.HideMessage()
 	s.contest.SpecificCountryPoints = points
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestSpecificCountryPrefixes(value string) {
@@ -336,7 +375,6 @@ func (s *Settings) EnterContestSpecificCountryPrefixes(value string) {
 		}
 	}
 	s.contest.SpecificCountryPrefixes = prefixes
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestOtherPoints(value string) {
@@ -347,14 +385,12 @@ func (s *Settings) EnterContestOtherPoints(value string) {
 	}
 	s.view.HideMessage()
 	s.contest.OtherPoints = points
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestMultis(dxcc, wpx, xchange bool) {
 	s.contest.Multis.DXCC = dxcc
 	s.contest.Multis.WPX = wpx
 	s.contest.Multis.Xchange = xchange
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestXchangeMultiPattern(value string) {
@@ -364,12 +400,10 @@ func (s *Settings) EnterContestXchangeMultiPattern(value string) {
 	}
 	s.view.HideMessage()
 	s.contest.XchangeMultiPattern = value
-	s.emitContestChanged(s.contest)
 }
 
 func (s *Settings) EnterContestCountPerBand(value bool) {
 	s.contest.CountPerBand = value
-	s.emitContestChanged(s.contest)
 }
 
 type nullView struct{}

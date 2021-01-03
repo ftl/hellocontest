@@ -127,12 +127,6 @@ func (c *Controller) Startup() {
 		c.configuration.Contest(),
 		c.configuration.Cabrillo(),
 	)
-	c.Settings.Notify(settings.StationListenerFunc(func(s core.Station) {
-		log.Printf("the station changed: %v", s)
-	}))
-	c.Settings.Notify(settings.ContestListenerFunc(func(c core.Contest) {
-		log.Printf("the station changed: %v", c)
-	}))
 
 	c.ServiceStatus = newServiceStatus()
 
@@ -183,6 +177,12 @@ func (c *Controller) Startup() {
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.Settings.Notify(c.Entry)
+	c.Settings.Notify(c.QSOList)
+	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
+		if !c.QSOList.Valid() {
+			c.Refresh()
+		}
+	}))
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {

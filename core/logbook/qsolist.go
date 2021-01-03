@@ -78,27 +78,38 @@ func (f RowSelectedListenerFunc) RowSelected(index int) {
 	f(index)
 }
 
-type Configuration interface {
-	AllowMultiBand() bool
-	AllowMultiMode() bool
-}
-
 type QSOList struct {
-	configuration Configuration
-	list          []core.QSO
-	dupes         dupeIndex
-	worked        dupeIndex
+	allowMultiBand bool
+	allowMultiMode bool
+	list           []core.QSO
+	dupes          dupeIndex
+	worked         dupeIndex
+	invalid        bool
 
 	listeners []interface{}
 }
 
-func NewQSOList(configuration Configuration) *QSOList {
+func NewQSOList(settings core.Settings) *QSOList {
 	return &QSOList{
-		configuration: configuration,
-		list:          make([]core.QSO, 0),
-		dupes:         make(dupeIndex),
-		worked:        make(dupeIndex),
+		allowMultiBand: settings.Contest().AllowMultiBand,
+		allowMultiMode: settings.Contest().AllowMultiMode,
+		list:           make([]core.QSO, 0),
+		dupes:          make(dupeIndex),
+		worked:         make(dupeIndex),
 	}
+}
+
+func (l *QSOList) ContestChanged(contest core.Contest) {
+	if l.allowMultiBand == contest.AllowMultiBand && l.allowMultiMode == contest.AllowMultiMode {
+		return
+	}
+	l.allowMultiBand = contest.AllowMultiBand
+	l.allowMultiMode = contest.AllowMultiMode
+	l.invalid = true
+}
+
+func (l *QSOList) Valid() bool {
+	return !l.invalid
 }
 
 func (l *QSOList) Clear() {
@@ -206,10 +217,10 @@ func (l *QSOList) update(index int, qso core.QSO) {
 }
 
 func (l *QSOList) dupeBandAndMode(band core.Band, mode core.Mode) (core.Band, core.Mode) {
-	if !l.configuration.AllowMultiBand() {
+	if !l.allowMultiBand {
 		band = core.NoBand
 	}
-	if !l.configuration.AllowMultiMode() {
+	if !l.allowMultiMode {
 		mode = core.NoMode
 	}
 	return band, mode
@@ -366,9 +377,9 @@ func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mod
 	for _, qso := range qsos {
 		switch {
 		case qso.Band == band:
-			duplicate = qso.Mode == mode || !l.configuration.AllowMultiMode()
+			duplicate = qso.Mode == mode || !l.allowMultiMode
 		case qso.Mode == mode:
-			duplicate = qso.Band == band || !l.configuration.AllowMultiBand()
+			duplicate = qso.Band == band || !l.allowMultiBand
 		}
 		if duplicate {
 			break

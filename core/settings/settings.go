@@ -2,7 +2,6 @@ package settings
 
 import (
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -50,6 +49,16 @@ type CabrilloListenerFunc func(core.Cabrillo)
 
 func (f CabrilloListenerFunc) CabrilloChanged(cabrillo core.Cabrillo) {
 	f(cabrillo)
+}
+
+type SettingsListener interface {
+	SettingsChanged(core.Settings)
+}
+
+type SettingsListenerFunc func(core.Settings)
+
+func (f SettingsListenerFunc) SettingsChanged(settings core.Settings) {
+	f(settings)
 }
 
 type View interface {
@@ -134,17 +143,17 @@ func (s *Settings) Station() core.Station {
 func (s *Settings) SetStation(station core.Station) {
 	s.station = station
 	s.savedStation = station
-	s.emitStationChanged(station)
+	s.emitStationChanged()
 }
 
 func (s *Settings) StationDirty() bool {
 	return s.savedStation != s.station
 }
 
-func (s *Settings) emitStationChanged(station core.Station) {
+func (s *Settings) emitStationChanged() {
 	for _, listener := range s.listeners {
 		if stationListener, ok := listener.(StationListener); ok {
-			stationListener.StationChanged(station)
+			stationListener.StationChanged(s.station)
 		}
 	}
 }
@@ -156,17 +165,17 @@ func (s *Settings) Keyer() core.Keyer {
 func (s *Settings) SetKeyer(keyer core.Keyer) {
 	s.keyer = keyer
 	s.savedKeyer = keyer
-	s.emitKeyerChanged(keyer)
+	s.emitKeyerChanged()
 }
 
 func (s *Settings) KeyerDirty() bool {
 	return fmt.Sprintf("%v", s.savedKeyer) != fmt.Sprintf("%v", s.keyer)
 }
 
-func (s *Settings) emitKeyerChanged(keyer core.Keyer) {
+func (s *Settings) emitKeyerChanged() {
 	for _, listener := range s.listeners {
 		if keyerListener, ok := listener.(KeyerListener); ok {
-			keyerListener.KeyerChanged(keyer)
+			keyerListener.KeyerChanged(s.keyer)
 		}
 	}
 }
@@ -178,17 +187,17 @@ func (s *Settings) Contest() core.Contest {
 func (s *Settings) SetContest(contest core.Contest) {
 	s.contest = contest
 	s.savedContest = contest
-	s.emitContestChanged(contest)
+	s.emitContestChanged()
 }
 
 func (s *Settings) ContestDirty() bool {
 	return fmt.Sprintf("%v", s.savedContest) != fmt.Sprintf("%v", s.contest)
 }
 
-func (s *Settings) emitContestChanged(contest core.Contest) {
+func (s *Settings) emitContestChanged() {
 	for _, listener := range s.listeners {
 		if contestListener, ok := listener.(ContestListener); ok {
-			contestListener.ContestChanged(contest)
+			contestListener.ContestChanged(s.contest)
 		}
 	}
 }
@@ -200,17 +209,25 @@ func (s *Settings) Cabrillo() core.Cabrillo {
 func (s *Settings) SetCabrillo(cabrillo core.Cabrillo) {
 	s.cabrillo = cabrillo
 	s.savedCabrillo = cabrillo
-	s.emitCabrilloChanged(cabrillo)
+	s.emitCabrilloChanged()
 }
 
 func (s *Settings) CabrilloDirty() bool {
 	return fmt.Sprintf("%v", s.savedCabrillo) != fmt.Sprintf("%v", s.cabrillo)
 }
 
-func (s *Settings) emitCabrilloChanged(cabrillo core.Cabrillo) {
+func (s *Settings) emitCabrilloChanged() {
 	for _, listener := range s.listeners {
 		if CabrilloListener, ok := listener.(CabrilloListener); ok {
-			CabrilloListener.CabrilloChanged(cabrillo)
+			CabrilloListener.CabrilloChanged(s.cabrillo)
+		}
+	}
+}
+
+func (s *Settings) emitSettingsChanged() {
+	for _, listener := range s.listeners {
+		if SettingsListener, ok := listener.(SettingsListener); ok {
+			SettingsListener.SettingsChanged(s)
 		}
 	}
 }
@@ -245,26 +262,33 @@ func (s *Settings) showSettings() {
 }
 
 func (s *Settings) Save() {
-	log.Println("save the modified settings")
+	modified := false
 	if s.StationDirty() {
-		s.emitStationChanged(s.station)
+		modified = true
+		s.emitStationChanged()
 		s.savedStation = s.station
 		// TODO write s.savedStation to store
 	}
 	if s.KeyerDirty() {
-		s.emitKeyerChanged(s.keyer)
+		modified = true
+		s.emitKeyerChanged()
 		s.savedKeyer = s.keyer
 		// TODO write s.savedKeyer to store
 	}
 	if s.ContestDirty() {
-		s.emitContestChanged(s.contest)
+		modified = true
+		s.emitContestChanged()
 		s.savedContest = s.contest
 		// TODO write s.savedContest to store
 	}
 	if s.CabrilloDirty() {
-		s.emitCabrilloChanged(s.cabrillo)
+		modified = true
+		s.emitCabrilloChanged()
 		s.savedCabrillo = s.cabrillo
 		// TODO write s.savedCabrillo to store
+	}
+	if modified {
+		s.emitSettingsChanged()
 	}
 }
 
@@ -275,10 +299,10 @@ func (s *Settings) Reset() {
 	s.cabrillo = s.defaultCabrillo
 
 	s.showSettings()
-	s.emitStationChanged(s.station)
-	s.emitKeyerChanged(s.keyer)
-	s.emitContestChanged(s.contest)
-	s.emitCabrilloChanged(s.cabrillo)
+	s.emitStationChanged()
+	s.emitKeyerChanged()
+	s.emitContestChanged()
+	s.emitCabrilloChanged()
 }
 
 func (s *Settings) EnterStationCallsign(value string) {

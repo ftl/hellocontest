@@ -305,7 +305,7 @@
                 <property name="name">stationCallsign</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="primary_icon_tooltip_text" translatable="yes">The station's callsign</property>
+                <property name="tooltip_text" translatable="yes">The station's callsign</property>
                 <property name="placeholder_text" translatable="yes">Callsign</property>
                 <property name="input_hints">GTK_INPUT_HINT_UPPERCASE_CHARS | GTK_INPUT_HINT_NONE</property>
               </object>
@@ -319,7 +319,7 @@
                 <property name="name">stationOperator</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="primary_icon_tooltip_text" translatable="yes">The operator's callsign</property>
+                <property name="tooltip_text" translatable="yes">The operator's callsign</property>
                 <property name="placeholder_text" translatable="yes">Operator Callsign</property>
                 <property name="input_hints">GTK_INPUT_HINT_UPPERCASE_CHARS | GTK_INPUT_HINT_NONE</property>
               </object>
@@ -333,7 +333,7 @@
                 <property name="name">stationLocator</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="primary_icon_tooltip_text" translatable="yes">The station's maidenhead locator</property>
+                <property name="tooltip_text" translatable="yes">The station's maidenhead locator</property>
                 <property name="placeholder_text" translatable="yes">Locator</property>
               </object>
               <packing>
@@ -376,6 +376,7 @@
                 <property name="name">contestName</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">The contest's name</property>
                 <property name="secondary_icon_tooltip_text" translatable="yes">The contest's name</property>
                 <property name="placeholder_text" translatable="yes">Contest</property>
               </object>
@@ -393,7 +394,6 @@
                 <property name="receives_default">False</property>
                 <property name="tooltip_text" translatable="yes">Check this if you will receive a serial number from the opposite station</property>
                 <property name="halign">start</property>
-                <property name="hexpand">False</property>
                 <property name="draw_indicator">True</property>
               </object>
               <packing>
@@ -410,7 +410,6 @@
                 <property name="receives_default">False</property>
                 <property name="tooltip_text" translatable="yes">Check this if you will receive an exchange from the opposite station</property>
                 <property name="halign">start</property>
-                <property name="hexpand">False</property>
                 <property name="draw_indicator">True</property>
               </object>
               <packing>
@@ -427,13 +426,301 @@
                 <property name="receives_default">False</property>
                 <property name="tooltip_text" translatable="yes">Check this if the exchange from the opposite station is mandatory</property>
                 <property name="halign">start</property>
-                <property name="hexpand">False</property>
                 <property name="draw_indicator">True</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
                 <property name="top_attach">8</property>
               </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="contestAllowMultiBandButton">
+                <property name="label" translatable="yes">Multi-Band</property>
+                <property name="name">contestAllowMultiBand</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">Check this if you may work the same station on multiple bands</property>
+                <property name="halign">start</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="contestAllowMultiModeButton">
+                <property name="label" translatable="yes">Multi-Mode</property>
+                <property name="name">contestAllowMultiMode</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">Check this if you may work the same station in multiple modes</property>
+                <property name="halign">start</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkCheckButton" id="contestCountPerBandButton">
+                <property name="label" translatable="yes">Count Multis per Band</property>
+                <property name="name">contestCountPerBand</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="tooltip_text" translatable="yes">Check this if the multipliers count for each band separately</property>
+                <property name="halign">start</property>
+                <property name="draw_indicator">True</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">18</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Points for Same Country</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Points for Same Continent</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Points for Specific Countries</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">13</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Specific Countries Prefixes</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">14</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Points for Other Contacts</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">15</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="label" translatable="yes">Multipliers</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">16</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Xchange-Multi Expression</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">17</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="contestSameCountryPointsEntry">
+                <property name="name">contestSameCountryPoints</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">The points for contacts with stations from the same DXCC entity</property>
+                <property name="input_purpose">digits</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="contestSameContinentPointsEntry">
+                <property name="name">contestSameContinentPoints</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">The points for contacts with stations from the same continent</property>
+                <property name="input_purpose">digits</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="contestSpecificCountryPointsEntry">
+                <property name="name">contestSpecificCountryPoints</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">The points for contacts with stations from specific countries (see next option)</property>
+                <property name="input_purpose">digits</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">13</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="contestSpecificCountryPrefixesEntry">
+                <property name="name">contestSpecificCountryPrefixes</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">A comma-separated list of primary DXCC prefixes</property>
+                <property name="placeholder_text" translatable="yes">DL,F,G</property>
+                <property name="input_hints">GTK_INPUT_HINT_UPPERCASE_CHARS | GTK_INPUT_HINT_NONE</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">14</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="contestOtherPointsEntry">
+                <property name="name">contestOtherPoints</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">The points for contacts with stations that do not match any of the other categories (same country, same continent, specific country)</property>
+                <property name="input_purpose">digits</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">15</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="contestXchangeMultiPatternEntry">
+                <property name="name">contestXchangeMultiPattern</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="tooltip_text" translatable="yes">A regular expression that specifies further which exchange values count as multipliers</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">17</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkCheckButton" id="contestMultiDXCCButton">
+                    <property name="label" translatable="yes">DXCC Entity</property>
+                    <property name="name">contestMultiDXCC</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="tooltip_text" translatable="yes">Check this if the DXCC entity is a multiplier</property>
+                    <property name="halign">start</property>
+                    <property name="draw_indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="contestMultiWPXButton">
+                    <property name="label" translatable="yes">WPX Prefix</property>
+                    <property name="name">contestMultiWPX</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="tooltip_text" translatable="yes">Check this if the prefix according to the CQ WPX rules is a multiplier</property>
+                    <property name="halign">start</property>
+                    <property name="draw_indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkCheckButton" id="contestMultiXchangeButton">
+                    <property name="label" translatable="yes">Their Xchange</property>
+                    <property name="name">contestMultiXchange</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
+                    <property name="tooltip_text" translatable="yes">Check this if the exchange from the opposite station is a multiplier</property>
+                    <property name="halign">start</property>
+                    <property name="draw_indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">16</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -833,7 +1120,7 @@
                 <property name="max_width_chars">3</property>
                 <property name="placeholder_text" translatable="yes">RST</property>
                 <property name="input_purpose">digits</property>
-                <accelerator key="r" signal="grab-focus" modifiers="GDK_CONTROL_MASK"/>
+                <accelerator key="r" signal="grab-focus" modifiers="GDK_MOD1_MASK"/>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -918,6 +1205,7 @@
                 <property name="width_chars">6</property>
                 <property name="placeholder_text" translatable="yes">XChg</property>
                 <property name="input_hints">GTK_INPUT_HINT_UPPERCASE_CHARS | GTK_INPUT_HINT_NONE</property>
+                <accelerator key="x" signal="grab-focus" modifiers="GDK_MOD1_MASK"/>
               </object>
               <packing>
                 <property name="left_attach">4</property>
@@ -1255,7 +1543,7 @@
                 <property name="input_purpose">digits</property>
                 <property name="adjustment">speedAdjustment</property>
                 <property name="numeric">True</property>
-                <accelerator key="s" signal="grab-focus" modifiers="GDK_CONTROL_MASK"/>
+                <accelerator key="s" signal="grab-focus" modifiers="GDK_MOD1_MASK"/>
               </object>
               <packing>
                 <property name="left_attach">3</property>

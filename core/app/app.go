@@ -84,6 +84,7 @@ type Configuration interface {
 	Station() core.Station
 	Keyer() core.Keyer
 	Contest() core.Contest
+	Cabrillo() core.Cabrillo
 
 	MyCall() callsign.Callsign
 	MyLocator() locator.Locator
@@ -106,7 +107,7 @@ type Configuration interface {
 	score.Configuration
 }
 
-// Quitter allows to quit the application. This interfaces is used to call the actual application framework to quit.
+// Quitter allows to quit the application. This interface is used to call the actual application framework to quit.
 type Quitter interface {
 	Quit()
 }
@@ -124,6 +125,7 @@ func (c *Controller) Startup() {
 		c.configuration.Station(),
 		c.configuration.Keyer(),
 		c.configuration.Contest(),
+		c.configuration.Cabrillo(),
 	)
 	c.Settings.Notify(settings.StationListenerFunc(func(s core.Station) {
 		log.Printf("the station changed: %v", s)

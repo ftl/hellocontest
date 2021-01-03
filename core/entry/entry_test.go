@@ -618,4 +618,6 @@ func (c *testSettings) Contest() core.Contest {
 	}
 }
 
+func (c *testSettings) Cabrillo() core.Cabrillo { return core.Cabrillo{} }
+
 func testIgnoreAsync(f func()) {}

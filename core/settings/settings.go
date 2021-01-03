@@ -3,6 +3,9 @@ package settings
 import (
 	"fmt"
 	"log"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
@@ -39,6 +42,16 @@ func (f ContestListenerFunc) ContestChanged(contest core.Contest) {
 	f(contest)
 }
 
+type CabrilloListener interface {
+	CabrilloChanged(core.Cabrillo)
+}
+
+type CabrilloListenerFunc func(core.Cabrillo)
+
+func (f CabrilloListenerFunc) CabrilloChanged(cabrillo core.Cabrillo) {
+	f(cabrillo)
+}
+
 type View interface {
 	Show()
 	ShowMessage(string)
@@ -51,6 +64,16 @@ type View interface {
 	SetContestEnterTheirNumber(bool)
 	SetContestEnterTheirXchange(bool)
 	SetContestRequireTheirXchange(bool)
+	SetContestAllowMultiBand(bool)
+	SetContestAllowMultiMode(bool)
+	SetContestSameCountryPoints(string)
+	SetContestSameContinentPoints(string)
+	SetContestSpecificCountryPoints(string)
+	SetContestSpecificCountryPrefixes(string)
+	SetContestOtherPoints(string)
+	SetContestMultis(dxcc, wpx, xchange bool)
+	SetContestXchangeMultiPattern(string)
+	SetContestCountPerBand(bool)
 }
 
 func New(station core.Station, keyer core.Keyer, contest core.Contest) *Settings {
@@ -69,13 +92,15 @@ type Settings struct {
 
 	listeners []interface{}
 
-	station core.Station
-	keyer   core.Keyer
-	contest core.Contest
+	station  core.Station
+	keyer    core.Keyer
+	contest  core.Contest
+	cabrillo core.Cabrillo
 
-	defaultStation core.Station
-	defaultKeyer   core.Keyer
-	defaultContest core.Contest
+	defaultStation  core.Station
+	defaultKeyer    core.Keyer
+	defaultContest  core.Contest
+	defaultCabrillo core.Cabrillo
 }
 
 func (s *Settings) SetView(view View) {
@@ -142,6 +167,23 @@ func (s *Settings) emitContestChanged(contest core.Contest) {
 	}
 }
 
+func (s *Settings) Cabrillo() core.Cabrillo {
+	return s.cabrillo
+}
+
+func (s *Settings) SetCabrillo(cabrillo core.Cabrillo) {
+	s.cabrillo = cabrillo
+	s.emitCabrilloChanged(cabrillo)
+}
+
+func (s *Settings) emitCabrilloChanged(cabrillo core.Cabrillo) {
+	for _, listener := range s.listeners {
+		if CabrilloListener, ok := listener.(CabrilloListener); ok {
+			CabrilloListener.CabrilloChanged(cabrillo)
+		}
+	}
+}
+
 func (s *Settings) Show() {
 	s.view.Show()
 	s.showSettings()
@@ -159,6 +201,16 @@ func (s *Settings) showSettings() {
 	s.view.SetContestEnterTheirNumber(s.contest.EnterTheirNumber)
 	s.view.SetContestEnterTheirXchange(s.contest.EnterTheirXchange)
 	s.view.SetContestRequireTheirXchange(s.contest.RequireTheirXchange)
+	s.view.SetContestAllowMultiBand(s.contest.AllowMultiBand)
+	s.view.SetContestAllowMultiMode(s.contest.AllowMultiMode)
+	s.view.SetContestSameCountryPoints(strconv.Itoa(s.contest.SameCountryPoints))
+	s.view.SetContestSameContinentPoints(strconv.Itoa(s.contest.SameContinentPoints))
+	s.view.SetContestSpecificCountryPoints(strconv.Itoa(s.contest.SpecificCountryPoints))
+	s.view.SetContestSpecificCountryPrefixes(strings.Join(s.contest.SpecificCountryPrefixes, ","))
+	s.view.SetContestOtherPoints(strconv.Itoa(s.contest.OtherPoints))
+	s.view.SetContestMultis(s.contest.Multis.DXCC, s.contest.Multis.WPX, s.contest.Multis.Xchange)
+	s.view.SetContestXchangeMultiPattern(s.contest.XchangeMultiPattern)
+	s.view.SetContestCountPerBand(s.contest.CountPerBand)
 }
 
 func (s *Settings) Save() {
@@ -166,13 +218,16 @@ func (s *Settings) Save() {
 }
 
 func (s *Settings) Reset() {
-	log.Println("reset the settings to default values")
 	s.station = s.defaultStation
+	s.keyer = s.defaultKeyer
 	s.contest = s.defaultContest
+	s.cabrillo = s.defaultCabrillo
 
 	s.showSettings()
 	s.emitStationChanged(s.station)
+	s.emitKeyerChanged(s.keyer)
 	s.emitContestChanged(s.contest)
+	s.emitCabrilloChanged(s.cabrillo)
 }
 
 func (s *Settings) EnterStationCallsign(value string) {
@@ -228,15 +283,114 @@ func (s *Settings) EnterContestRequireTheirXchange(value bool) {
 	s.emitContestChanged(s.contest)
 }
 
+func (s *Settings) EnterContestAllowMultiBand(value bool) {
+	s.contest.AllowMultiBand = value
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestAllowMultiMode(value bool) {
+	s.contest.AllowMultiMode = value
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestSameCountryPoints(value string) {
+	points, err := strconv.Atoi(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	s.view.HideMessage()
+	s.contest.SameCountryPoints = points
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestSameContinentPoints(value string) {
+	points, err := strconv.Atoi(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	s.view.HideMessage()
+	s.contest.SameContinentPoints = points
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestSpecificCountryPoints(value string) {
+	points, err := strconv.Atoi(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	s.view.HideMessage()
+	s.contest.SpecificCountryPoints = points
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestSpecificCountryPrefixes(value string) {
+	rawPrefixes := strings.Split(value, ",")
+	prefixes := make([]string, 0, len(rawPrefixes))
+	for _, rawPrefix := range rawPrefixes {
+		prefix := strings.TrimSpace(strings.ToUpper(rawPrefix))
+		if prefix != "" {
+			prefixes = append(prefixes, prefix)
+		}
+	}
+	s.contest.SpecificCountryPrefixes = prefixes
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestOtherPoints(value string) {
+	points, err := strconv.Atoi(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	s.view.HideMessage()
+	s.contest.OtherPoints = points
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestMultis(dxcc, wpx, xchange bool) {
+	s.contest.Multis.DXCC = dxcc
+	s.contest.Multis.WPX = wpx
+	s.contest.Multis.Xchange = xchange
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestXchangeMultiPattern(value string) {
+	_, err := regexp.Compile(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+	}
+	s.view.HideMessage()
+	s.contest.XchangeMultiPattern = value
+	s.emitContestChanged(s.contest)
+}
+
+func (s *Settings) EnterContestCountPerBand(value bool) {
+	s.contest.CountPerBand = value
+	s.emitContestChanged(s.contest)
+}
+
 type nullView struct{}
 
-func (v *nullView) Show()                              {}
-func (v *nullView) ShowMessage(string)                 {}
-func (v *nullView) HideMessage()                       {}
-func (v *nullView) SetStationCallsign(string)          {}
-func (v *nullView) SetStationOperator(string)          {}
-func (v *nullView) SetStationLocator(string)           {}
-func (v *nullView) SetContestName(string)              {}
-func (v *nullView) SetContestEnterTheirNumber(bool)    {}
-func (v *nullView) SetContestEnterTheirXchange(bool)   {}
-func (v *nullView) SetContestRequireTheirXchange(bool) {}
+func (v *nullView) Show()                                    {}
+func (v *nullView) ShowMessage(string)                       {}
+func (v *nullView) HideMessage()                             {}
+func (v *nullView) SetStationCallsign(string)                {}
+func (v *nullView) SetStationOperator(string)                {}
+func (v *nullView) SetStationLocator(string)                 {}
+func (v *nullView) SetContestName(string)                    {}
+func (v *nullView) SetContestEnterTheirNumber(bool)          {}
+func (v *nullView) SetContestEnterTheirXchange(bool)         {}
+func (v *nullView) SetContestRequireTheirXchange(bool)       {}
+func (v *nullView) SetContestAllowMultiBand(bool)            {}
+func (v *nullView) SetContestAllowMultiMode(bool)            {}
+func (v *nullView) SetContestSameCountryPoints(string)       {}
+func (v *nullView) SetContestSameContinentPoints(string)     {}
+func (v *nullView) SetContestSpecificCountryPoints(string)   {}
+func (v *nullView) SetContestSpecificCountryPrefixes(string) {}
+func (v *nullView) SetContestOtherPoints(string)             {}
+func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool) {}
+func (v *nullView) SetContestXchangeMultiPattern(string)     {}
+func (v *nullView) SetContestCountPerBand(bool)              {}

@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
@@ -123,6 +124,35 @@ type Score struct {
 	XchangeMultiPattern string   `json:"xchange_multi_pattern"`
 }
 
+func multisToStrings(multis core.Multis) []string {
+	var result []string
+	if multis.DXCC {
+		result = append(result, "DXCC")
+	}
+	if multis.WPX {
+		result = append(result, "WPX")
+	}
+	if multis.Xchange {
+		result = append(result, "XCHANGE")
+	}
+	return result
+}
+
+func stringsToMultis(values []string) core.Multis {
+	var result core.Multis
+	for _, value := range values {
+		switch strings.ToUpper(value) {
+		case "DXCC":
+			result.DXCC = true
+		case "WPX":
+			result.WPX = true
+		case "XCHANGE":
+			result.Xchange = true
+		}
+	}
+	return result
+}
+
 type LoadedConfiguration struct {
 	data Data
 }
@@ -155,9 +185,14 @@ func (c *LoadedConfiguration) Contest() core.Contest {
 		OtherPoints:             c.OtherPoints(),
 		SpecificCountryPoints:   c.SpecificCountryPoints(),
 		SpecificCountryPrefixes: c.SpecificCountryPrefixes(),
-		Multis:                  c.Multis(),
+		Multis:                  stringsToMultis(c.Multis()),
 		XchangeMultiPattern:     c.XchangeMultiPattern(),
-		CabrilloQSOTemplate:     c.CabrilloQSOTemplate(),
+	}
+}
+
+func (c *LoadedConfiguration) Cabrillo() core.Cabrillo {
+	return core.Cabrillo{
+		QSOTemplate: c.CabrilloQSOTemplate(),
 	}
 }
 
@@ -290,9 +325,14 @@ func (c *StaticConfiguration) Contest() core.Contest {
 		OtherPoints:             c.OtherPoints(),
 		SpecificCountryPoints:   c.SpecificCountryPoints(),
 		SpecificCountryPrefixes: c.SpecificCountryPrefixes(),
-		Multis:                  c.Multis(),
+		Multis:                  stringsToMultis(c.Multis()),
 		XchangeMultiPattern:     c.XchangeMultiPattern(),
-		CabrilloQSOTemplate:     c.CabrilloQSOTemplate(),
+	}
+}
+
+func (c *StaticConfiguration) Cabrillo() core.Cabrillo {
+	return core.Cabrillo{
+		QSOTemplate: c.CabrilloQSOTemplate(),
 	}
 }
 

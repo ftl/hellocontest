@@ -150,7 +150,9 @@ type AnnotatedCallsign struct {
 
 type Settings interface {
 	Station() Station
+	Keyer() Keyer
 	Contest() Contest
+	Cabrillo() Cabrillo
 }
 
 type Station struct {
@@ -172,7 +174,6 @@ type Contest struct {
 	RequireTheirXchange bool
 	AllowMultiBand      bool
 	AllowMultiMode      bool
-	CountPerBand        bool
 
 	SameCountryPoints       int
 	SameContinentPoints     int
@@ -180,10 +181,20 @@ type Contest struct {
 	SpecificCountryPoints   int
 	SpecificCountryPrefixes []string
 
-	Multis              []string
+	Multis              Multis
 	XchangeMultiPattern string
+	CountPerBand        bool
+}
 
-	CabrilloQSOTemplate string
+type Multis struct {
+	DXCC    bool
+	WPX     bool
+	Xchange bool
+}
+
+type Cabrillo struct {
+	Headers     []string
+	QSOTemplate string
 }
 
 type Score struct {

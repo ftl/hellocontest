@@ -1,7 +1,6 @@
 package store
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -30,11 +29,7 @@ func formatFromFile(filename string) fileFormat {
 		}
 	}
 
-	var preamble int32
-	err = binary.Read(file, binary.LittleEndian, &preamble)
-	if err != nil {
-		return &unknownFormat{err}
-	}
+	preamble, err := pbReader.ReadPreamble()
 	if preamble != 0 {
 		return new(v0Format)
 	}
@@ -96,4 +91,58 @@ func (f *v0Format) WriteQSO(w pbWriter, qso core.QSO) error {
 
 func (f *v0Format) Clear(pbWriter) error {
 	return nil
+}
+
+type v1Format struct {
+	filename string
+}
+
+func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, core.Station, core.Contest, error) {
+	qsos := []core.QSO{}
+	var (
+		pbFormatInfo pb.FileInfo
+		pbEntry      pb.Entry
+	)
+	_, err := r.ReadPreamble()
+	if err != nil {
+		return nil, core.Station{}, core.Contest{}, err
+	}
+	err = r.Read(&pbFormatInfo)
+	if err != nil {
+		return nil, core.Station{}, core.Contest{}, err
+	}
+
+	for {
+		err := r.Read(&pbEntry)
+		if err == io.EOF {
+			return qsos, core.Station{}, core.Contest{}, nil
+		} else if err != nil {
+			return nil, core.Station{}, core.Contest{}, err
+		}
+
+		if pbQSO := pbEntry.GetQso(); pbQSO != nil {
+			qso, err := pbToQSO(*pbQSO)
+			if err != nil {
+				return nil, core.Station{}, core.Contest{}, err
+			}
+			qsos = append(qsos, qso)
+		}
+	}
+}
+
+func (f *v1Format) WriteQSO(w pbWriter, qso core.QSO) error {
+	pbEntry := new(pb.Entry)
+	pbQSO := qsoToPB(qso)
+	pbEntry.Entry = &pb.Entry_Qso{Qso: &pbQSO}
+	return w.Write(pbEntry)
+}
+
+func (f *v1Format) Clear(w pbWriter) error {
+	err := w.WritePreamble()
+	if err != nil {
+		return err
+	}
+	return w.Write(&pb.FileInfo{
+		FormatVersion: 1,
+	})
 }

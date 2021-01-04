@@ -18,7 +18,7 @@ import (
 	"github.com/ftl/hellocontest/core/pb"
 )
 
-type latestFormat = v0Format
+type latestFormat = v1Format
 
 // NewFileStore returns a new file based Store.
 func NewFileStore(filename string) *FileStore {
@@ -123,10 +123,12 @@ func qsoToPB(qso core.QSO) pb.QSO {
 
 type pbReader interface {
 	Read(pb protoiface.MessageV1) error
+	ReadPreamble() (int32, error)
 }
 
 type pbWriter interface {
 	Write(pb protoiface.MessageV1) error
+	WritePreamble() error
 }
 
 type pbReadWriter struct {
@@ -150,6 +152,15 @@ func (rw *pbReadWriter) Read(pb protoiface.MessageV1) error {
 	return proto.Unmarshal(b, pb)
 }
 
+func (rw *pbReadWriter) ReadPreamble() (int32, error) {
+	var preamble int32
+	err := binary.Read(rw.reader, binary.LittleEndian, &preamble)
+	if err != nil {
+		return 0, err
+	}
+	return preamble, nil
+}
+
 func (rw *pbReadWriter) Write(pb protoiface.MessageV1) error {
 	b, err := proto.Marshal(pb)
 	if err != nil {
@@ -168,4 +179,9 @@ func (rw *pbReadWriter) Write(pb protoiface.MessageV1) error {
 	}
 
 	return nil
+}
+
+func (rw *pbReadWriter) WritePreamble() error {
+	preamble := int32(0)
+	return binary.Write(rw.writer, binary.LittleEndian, preamble)
 }

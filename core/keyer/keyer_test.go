@@ -11,7 +11,6 @@ import (
 )
 
 func TestSend(t *testing.T) {
-	myCall, _ := callsign.Parse("DL1ABC")
 	values := func() core.KeyerValues {
 		return core.KeyerValues{
 			TheirCall: "DL0ZZZ",
@@ -28,7 +27,7 @@ func TestSend(t *testing.T) {
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
 	cwClient.On("IsConnected").Return(true)
 
-	keyer := New(cwClient, myCall, 25)
+	keyer := New(&testSettings{"DL1ABC"}, cwClient, 25)
 	keyer.SetView(view)
 	keyer.SetValues(values)
 	keyer.EnterPattern(0, "{{.MyCall}} {{.TheirCall}} {{.MyNumber}} {{.MyReport}} {{.MyXchange}}")
@@ -44,4 +43,18 @@ func TestSoftcut(t *testing.T) {
 
 func TestCut(t *testing.T) {
 	assert.Equal(t, "tauv4e6gdn", cut("0123456789"))
+}
+
+type testSettings struct {
+	stationCallsign string
+}
+
+func (s *testSettings) Station() core.Station {
+	return core.Station{
+		Callsign: callsign.MustParse(s.stationCallsign),
+	}
+}
+
+func (s *testSettings) Contest() core.Contest {
+	return core.Contest{}
 }

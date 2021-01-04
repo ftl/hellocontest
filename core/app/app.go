@@ -150,7 +150,7 @@ func (c *Controller) Startup() {
 	c.hamlibClient.SetVFOController(c.Entry)
 
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
-	c.Keyer = keyer.New(c.cwclient, c.configuration.MyCall(), c.configuration.KeyerWPM())
+	c.Keyer = keyer.New(c.Settings, c.cwclient, c.configuration.KeyerWPM())
 	c.Keyer.SetPatterns(c.configuration.KeyerSPMacros())
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
@@ -173,6 +173,7 @@ func (c *Controller) Startup() {
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.Settings.Notify(c.Entry)
+	c.Settings.Notify(c.Keyer)
 	c.Settings.Notify(c.QSOList)
 	c.Settings.Notify(c.Score)
 	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {

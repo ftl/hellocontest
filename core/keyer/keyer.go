@@ -11,30 +11,6 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-// New returns a new Keyer that has no patterns or templates defined yet.
-func New(client CWClient, myCall callsign.Callsign, speed int) *Keyer {
-	return &Keyer{
-		myCall:    myCall,
-		speed:     speed,
-		patterns:  make(map[int]string),
-		templates: make(map[int]*template.Template),
-		client:    client,
-		values:    noValues}
-}
-
-type Keyer struct {
-	view   View
-	client CWClient
-	values KeyerValueProvider
-
-	listeners []interface{}
-
-	myCall    callsign.Callsign
-	speed     int
-	patterns  map[int]string
-	templates map[int]*template.Template
-}
-
 // View represents the visual parts of the keyer.
 type View interface {
 	ShowMessage(...interface{})
@@ -54,12 +30,50 @@ type CWClient interface {
 // KeyerValueProvider provides the variable values for the Keyer templates on demand.
 type KeyerValueProvider func() core.KeyerValues
 
+type KeyerListener interface {
+	KeyerChanged(core.Keyer)
+}
+
+type KeyerListenerFunc func(core.Keyer)
+
+func (f KeyerListenerFunc) KeyerChanged(keyer core.Keyer) {
+	f(keyer)
+}
+
+// New returns a new Keyer that has no patterns or templates defined yet.
+func New(settings core.Settings, client CWClient, wpm int) *Keyer {
+	return &Keyer{
+		stationCallsign: settings.Station().Callsign,
+		wpm:             wpm,
+		patterns:        make(map[int]string),
+		templates:       make(map[int]*template.Template),
+		client:          client,
+		values:          noValues}
+}
+
+type Keyer struct {
+	view   View
+	client CWClient
+	values KeyerValueProvider
+
+	listeners []interface{}
+
+	stationCallsign callsign.Callsign
+	wpm             int
+	patterns        map[int]string
+	templates       map[int]*template.Template
+}
+
 func (k *Keyer) SetView(view View) {
 	k.view = view
 	for i, pattern := range k.patterns {
 		k.view.SetPattern(i, pattern)
 	}
-	k.view.SetSpeed(k.speed)
+	k.view.SetSpeed(k.wpm)
+}
+
+func (k *Keyer) StationChanged(station core.Station) {
+	k.stationCallsign = station.Callsign
 }
 
 func (k *Keyer) SetValues(values KeyerValueProvider) {
@@ -67,12 +81,12 @@ func (k *Keyer) SetValues(values KeyerValueProvider) {
 }
 
 func (k *Keyer) EnterSpeed(speed int) {
-	k.speed = speed
+	k.wpm = speed
 	if !k.client.IsConnected() {
 		return
 	}
 	log.Printf("speed entered: %d", speed)
-	k.client.Speed(k.speed)
+	k.client.Speed(k.wpm)
 }
 
 func (k *Keyer) EnterPattern(index int, pattern string) {
@@ -116,7 +130,7 @@ func (k *Keyer) GetText(index int) (string, error) {
 func (k *Keyer) fillins() map[string]string {
 	values := k.values()
 	return map[string]string{
-		"MyCall":    k.myCall.String(),
+		"MyCall":    k.stationCallsign.String(),
 		"MyReport":  softcut(values.MyReport.String()),
 		"MyNumber":  softcut(values.MyNumber.String()),
 		"MyXchange": values.MyXchange,
@@ -147,7 +161,7 @@ func (k *Keyer) send(s string) {
 			return
 		}
 		k.emitStatusChanged(true)
-		k.client.Speed(k.speed)
+		k.client.Speed(k.wpm)
 	}
 
 	log.Printf("sending %s", s)
@@ -171,6 +185,18 @@ func (k *Keyer) emitStatusChanged(available bool) {
 	for _, listener := range k.listeners {
 		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
 			serviceStatusListener.StatusChanged(core.CWDaemonService, available)
+		}
+	}
+}
+
+func (k *Keyer) emitKeyerChanged() {
+	keyer := core.Keyer{
+		WPM: k.wpm,
+		// TODO add patterns here
+	}
+	for _, listener := range k.listeners {
+		if keyerListener, ok := listener.(KeyerListener); ok {
+			keyerListener.KeyerChanged(keyer)
 		}
 	}
 }

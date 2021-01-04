@@ -103,8 +103,6 @@ type Configuration interface {
 	KeyerRunMacros() []string
 
 	HamlibAddress() string
-
-	score.Configuration
 }
 
 // Quitter allows to quit the application. This interface is used to call the actual application framework to quit.
@@ -140,10 +138,10 @@ func (c *Controller) Startup() {
 		c.hamlibClient.KeepOpen()
 	}
 
-	c.QSOList = logbook.NewQSOList(c.configuration)
+	c.QSOList = logbook.NewQSOList(c.Settings)
 	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
 	c.Entry = entry.NewController(
-		c.configuration,
+		c.Settings,
 		c.clock,
 		c.QSOList,
 		c.asyncRunner,
@@ -163,7 +161,7 @@ func (c *Controller) Startup() {
 	c.Workmode = workmode.NewController(c.configuration.KeyerSPMacros(), c.configuration.KeyerRunMacros())
 	c.Workmode.SetKeyer(c.Keyer)
 
-	c.Score = score.NewCounter(c.configuration)
+	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Score.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))
@@ -178,20 +176,26 @@ func (c *Controller) Startup() {
 
 	c.Settings.Notify(c.Entry)
 	c.Settings.Notify(c.QSOList)
+	c.Settings.Notify(c.Score)
 	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
-		if !c.QSOList.Valid() {
+		if !c.dxccFinder.Available() {
+			return
+		}
+		if !c.QSOList.Valid() || !c.Score.Valid() {
 			c.Refresh()
 		}
 	}))
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {
-			if myEntity, found := c.dxccFinder.Find(c.configuration.MyCall().String()); found {
-				c.Score.SetMyEntity(myEntity)
+			if !c.QSOList.Valid() {
+				c.QSOList.ContestChanged(c.Settings.Contest())
 			}
-			c.QSOList.Clear()
-			c.Logbook.ReplayAll()
-			c.Entry.Clear()
+			if !c.Score.Valid() {
+				c.Score.StationChanged(c.Settings.Station())
+				c.Score.ContestChanged(c.Settings.Contest())
+			}
+			c.Refresh()
 			c.ServiceStatus.StatusChanged(core.DXCCService, true)
 		})
 	})

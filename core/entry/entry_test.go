@@ -602,22 +602,22 @@ type testSettings struct {
 	requireTheirXchange bool
 }
 
-func (c *testSettings) Station() core.Station {
+func (s *testSettings) Station() core.Station {
 	return core.Station{
-		Callsign: callsign.MustParse(c.myCall),
+		Callsign: callsign.MustParse(s.myCall),
 	}
 }
 
-func (c *testSettings) Keyer() core.Keyer { return core.Keyer{} }
+func (s *testSettings) Keyer() core.Keyer { return core.Keyer{} }
 
-func (c *testSettings) Contest() core.Contest {
+func (s *testSettings) Contest() core.Contest {
 	return core.Contest{
-		EnterTheirNumber:    c.enterTheirNumber,
-		EnterTheirXchange:   c.enterTheirXchange,
-		RequireTheirXchange: c.requireTheirXchange,
+		EnterTheirNumber:    s.enterTheirNumber,
+		EnterTheirXchange:   s.enterTheirXchange,
+		RequireTheirXchange: s.requireTheirXchange,
 	}
 }
 
-func (c *testSettings) Cabrillo() core.Cabrillo { return core.Cabrillo{} }
+func (s *testSettings) Cabrillo() core.Cabrillo { return core.Cabrillo{} }
 
 func testIgnoreAsync(f func()) {}

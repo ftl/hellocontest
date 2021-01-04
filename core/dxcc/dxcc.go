@@ -25,6 +25,15 @@ type Finder struct {
 	available chan struct{}
 }
 
+func (f *Finder) Available() bool {
+	select {
+	case <-f.available:
+		return true
+	default:
+		return false
+	}
+}
+
 func (f *Finder) WhenAvailable(callback func()) {
 	go func() {
 		<-f.available

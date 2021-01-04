@@ -116,6 +116,7 @@ func (l *QSOList) Clear() {
 	l.list = make([]core.QSO, 0)
 	l.dupes = make(dupeIndex)
 	l.worked = make(dupeIndex)
+	l.invalid = false
 	l.emitQSOsCleared()
 }
 

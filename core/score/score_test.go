@@ -12,17 +12,20 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-var myTestEntity = dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}
+var myTestEntity = testEntities{entity: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 
 func TestNewCounter(t *testing.T) {
-	counter := NewCounter(new(testConfig))
+	counter := NewCounter(&testSettings{stationCallsign: "DL1AAA"}, &myTestEntity)
+	assert.False(t, counter.invalid, "invalid")
+	assert.True(t, counter.Valid(), "valid")
+	assert.Equal(t, myTestEntity.entity, counter.stationEntity, "station entity")
+
 	counter.ScorePerBand[core.Band80m] = core.BandScore{SameCountryQSOs: 5}
 	assert.Equal(t, 5, counter.ScorePerBand[core.Band80m].SameCountryQSOs)
 }
 
 func TestAdd(t *testing.T) {
-	counter := NewCounter(new(testConfig))
-	counter.SetMyEntity(myTestEntity)
+	counter := NewCounter(&testSettings{stationCallsign: "DL1AAA"}, &myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 
@@ -40,8 +43,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddDuplicate(t *testing.T) {
-	counter := NewCounter(new(testConfig))
-	counter.SetMyEntity(myTestEntity)
+	counter := NewCounter(&testSettings{stationCallsign: "DL1AAA"}, &myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Duplicate: true, Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 
@@ -66,8 +68,7 @@ func TestUpdateToDuplicate(t *testing.T) {
 	anotherQSO := core.QSO{Callsign: callsign.MustParse("DK0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DK", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	oldQSO := core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	newQSO := core.QSO{Duplicate: true, Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
-	counter := NewCounter(new(testConfig))
-	counter.SetMyEntity(myTestEntity)
+	counter := NewCounter(&testSettings{stationCallsign: "DL1AAA"}, &myTestEntity)
 	counter.Add(anotherQSO)
 	counter.Add(oldQSO)
 	counter.Update(oldQSO, newQSO)
@@ -93,8 +94,7 @@ func TestUpdateFromDuplicate(t *testing.T) {
 	anotherQSO := core.QSO{Callsign: callsign.MustParse("DK0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DK", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	oldQSO := core.QSO{Duplicate: true, Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	newQSO := core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
-	counter := NewCounter(new(testConfig))
-	counter.SetMyEntity(myTestEntity)
+	counter := NewCounter(&testSettings{stationCallsign: "DL1AAA"}, &myTestEntity)
 	counter.Add(anotherQSO)
 	counter.Add(oldQSO)
 	counter.Update(oldQSO, newQSO)
@@ -119,8 +119,7 @@ func TestUpdateFromDuplicate(t *testing.T) {
 func TestUpdateSameBandAndPrimaryPrefix(t *testing.T) {
 	oldQSO := core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 	newQSO := core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DF", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
-	counter := NewCounter(new(testConfig))
-	counter.SetMyEntity(myTestEntity)
+	counter := NewCounter(&testSettings{stationCallsign: "DL1AAA"}, &myTestEntity)
 	counter.Add(oldQSO)
 	counter.Update(oldQSO, newQSO)
 
@@ -138,12 +137,12 @@ func TestUpdateSameBandAndPrimaryPrefix(t *testing.T) {
 }
 
 func TestCalculatePoints(t *testing.T) {
-	counter := NewCounter(&testConfig{
+	counter := NewCounter(&testSettings{
+		stationCallsign:     "DL1AAA",
 		sameCountryPoints:   1,
 		sameContinentPoints: 3,
 		otherPoints:         5,
-	})
-	counter.SetMyEntity(myTestEntity)
+	}, &myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("EA0ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "EA", PrimaryPrefix: "EA", Continent: "EU", CQZone: 14, ITUZone: 37}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
@@ -156,11 +155,11 @@ func TestCalculatePoints(t *testing.T) {
 }
 
 func TestCalculatePointsForSpecificCountry(t *testing.T) {
-	counter := NewCounter(&testConfig{
+	counter := NewCounter(&testSettings{
+		stationCallsign:         "DL1AAA",
 		specificCountryPoints:   1,
 		specificCountryPrefixes: []string{"DL", "EA"},
-	})
-	counter.SetMyEntity(myTestEntity)
+	}, &myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("EA0ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "EA", PrimaryPrefix: "EA", Continent: "EU", CQZone: 14, ITUZone: 37}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
@@ -173,12 +172,12 @@ func TestCalculatePointsForSpecificCountry(t *testing.T) {
 }
 
 func TestCalculateMultipliers(t *testing.T) {
-	counter := NewCounter(&testConfig{
-		multis: []string{"CQ"},
-	})
-	counter.SetMyEntity(myTestEntity)
+	counter := NewCounter(&testSettings{
+		stationCallsign: "DL1AAA",
+		multis:          core.Multis{DXCC: true},
+	}, &myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("EA0ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "EA", PrimaryPrefix: "EA", Continent: "EU", CQZone: 14, ITUZone: 37}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL1ABC"), Band: core.Band40m, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
 
 	assert.Equal(t, 1, counter.ScorePerBand[core.Band80m].Multis, "same country")
@@ -189,11 +188,11 @@ func TestCalculateMultipliers(t *testing.T) {
 }
 
 func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
-	counter := NewCounter(&testConfig{
-		multis:              []string{"Xchange"},
+	counter := NewCounter(&testSettings{
+		stationCallsign:     "DL1AAA",
+		multis:              core.Multis{Xchange: true},
 		xchangeMultiPattern: `(\d+)|(\d*(?P<multi>[A-Za-z])[A-Za-z]*\d*)`,
-	})
-	counter.SetMyEntity(myTestEntity)
+	}, &myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band40m, TheirXchange: "B05", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
@@ -206,9 +205,10 @@ func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
 }
 
 func TestCalculateMutlipliersForWPXPrefixes(t *testing.T) {
-	counter := NewCounter(&testConfig{
-		multis: []string{"WPX"},
-	})
+	counter := NewCounter(&testSettings{
+		stationCallsign: "DL1AAA",
+		multis:          core.Multis{WPX: true},
+	}, &myTestEntity)
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("PA/DL0ABC"), Band: core.Band40m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC/P"), Band: core.Band20m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
@@ -278,45 +278,45 @@ func TestWPXPrefix(t *testing.T) {
 	}
 }
 
-type testConfig struct {
+type testSettings struct {
+	stationCallsign         string
 	countPerBand            bool
 	sameCountryPoints       int
 	sameContinentPoints     int
 	otherPoints             int
 	specificCountryPoints   int
 	specificCountryPrefixes []string
-	multis                  []string
+	multis                  core.Multis
 	xchangeMultiPattern     string
 }
 
-func (c *testConfig) CountPerBand() bool {
-	return c.countPerBand
+func (s *testSettings) Station() core.Station {
+	return core.Station{
+		Callsign: callsign.MustParse(s.stationCallsign),
+	}
 }
 
-func (c *testConfig) SameCountryPoints() int {
-	return c.sameCountryPoints
+func (s *testSettings) Keyer() core.Keyer { return core.Keyer{} }
+
+func (s *testSettings) Contest() core.Contest {
+	return core.Contest{
+		SameCountryPoints:       s.sameCountryPoints,
+		SameContinentPoints:     s.sameContinentPoints,
+		SpecificCountryPoints:   s.specificCountryPoints,
+		SpecificCountryPrefixes: s.specificCountryPrefixes,
+		OtherPoints:             s.otherPoints,
+		Multis:                  s.multis,
+		XchangeMultiPattern:     s.xchangeMultiPattern,
+		CountPerBand:            s.countPerBand,
+	}
 }
 
-func (c *testConfig) SameContinentPoints() int {
-	return c.sameContinentPoints
+func (s *testSettings) Cabrillo() core.Cabrillo { return core.Cabrillo{} }
+
+type testEntities struct {
+	entity dxcc.Prefix
 }
 
-func (c *testConfig) OtherPoints() int {
-	return c.otherPoints
-}
-
-func (c *testConfig) SpecificCountryPoints() int {
-	return c.specificCountryPoints
-}
-
-func (c *testConfig) SpecificCountryPrefixes() []string {
-	return c.specificCountryPrefixes
-}
-
-func (c *testConfig) Multis() []string {
-	return c.multis
-}
-
-func (c *testConfig) XchangeMultiPattern() string {
-	return c.xchangeMultiPattern
+func (e *testEntities) Find(string) (dxcc.Prefix, bool) {
+	return e.entity, (e.entity.PrimaryPrefix != "")
 }

@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gotk3/gotk3/gtk"
@@ -107,7 +106,7 @@ func (v *settingsView) SetSettingsController(controller SettingsController) {
 	v.controller = controller
 }
 func (v *settingsView) ShowMessage(message string) {
-	v.message.SetMarkup(fmt.Sprintf("<span foreground='red'>%s</span>", message))
+	v.message.SetText(message)
 	v.message.Show()
 }
 

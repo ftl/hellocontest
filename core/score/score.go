@@ -22,71 +22,56 @@ func (f ScoreUpdatedListenerFunc) ScoreUpdated(score core.Score) {
 	f(score)
 }
 
-type Configuration interface {
-	CountPerBand() bool
-	SameCountryPoints() int
-	SameContinentPoints() int
-	OtherPoints() int
-	SpecificCountryPoints() int
-	SpecificCountryPrefixes() []string
-	Multis() []string
-	XchangeMultiPattern() string
+type View interface {
+	Show()
+	Hide()
+
+	ShowScore(score core.Score)
 }
 
-const (
-	CQZoneMulti     = "CQ"
-	ITUZoneMulti    = "ITU"
-	DXCCEntityMulti = "DXCC"
-	WPXPrefixMulti  = "WPX"
-	XchangeMulti    = "XCHANGE"
-)
+// DXCCEntities returns a list of matching DXCC entities for the given string and indicates if there was a match at all.
+type DXCCEntities interface {
+	Find(string) (dxcc.Prefix, bool)
+}
 
-func NewCounter(configuration Configuration) *Counter {
+func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 	result := &Counter{
 		Score: core.Score{
 			ScorePerBand: make(map[core.Band]core.BandScore),
 		},
-		view:                    new(nullView),
-		configuration:           configuration,
+		entities: entities,
+		view:     new(nullView),
+
 		specificCountryPrefixes: make(map[string]bool),
 		multisPerBand:           make(map[core.Band]*multis),
 	}
 
-	for _, prefix := range configuration.SpecificCountryPrefixes() {
-		result.specificCountryPrefixes[strings.ToUpper(prefix)] = true
-	}
-
-	exp, err := regexp.Compile(configuration.XchangeMultiPattern())
-	if err != nil {
-		log.Printf("Invalid regular expression for Xchange Multis: %v", err)
-	} else {
-		result.xchangeMultiExpression = exp
-		log.Printf("Using pattern %q for Xchange Multis", result.xchangeMultiExpression)
-	}
-	result.overallMultis = newMultis(configuration.Multis(), result.xchangeMultiExpression)
+	result.setStation(settings.Station())
+	result.setContest(settings.Contest())
 
 	return result
 }
 
 type Counter struct {
 	core.Score
-	view View
+	view     View
+	entities DXCCEntities
+	invalid  bool
 
-	configuration           Configuration
-	myEntity                dxcc.Prefix
+	stationEntity           dxcc.Prefix
+	countPerBand            bool
+	sameCountryPoints       int
+	sameContinentPoints     int
+	specificCountryPoints   int
 	specificCountryPrefixes map[string]bool
+	otherPoints             int
+	multis                  core.Multis
 	xchangeMultiExpression  *regexp.Regexp
-	listeners               []interface{}
+
+	listeners []interface{}
 
 	multisPerBand map[core.Band]*multis
 	overallMultis *multis
-}
-
-type View interface {
-	Show()
-	Hide()
-
-	ShowScore(score core.Score)
 }
 
 func (c *Counter) SetView(view View) {
@@ -96,6 +81,54 @@ func (c *Counter) SetView(view View) {
 	}
 	c.view = view
 	c.view.ShowScore(c.Score)
+}
+
+func (c *Counter) StationChanged(station core.Station) {
+	oldEntity := c.stationEntity
+	c.setStation(station)
+	c.invalid = (oldEntity != c.stationEntity)
+}
+
+func (c *Counter) setStation(station core.Station) {
+	entity, found := c.entities.Find(station.Callsign.String())
+	if !found {
+		log.Printf("No DXCC entity found for the station callsign %s", station.Callsign)
+		c.stationEntity = dxcc.Prefix{}
+		return
+	}
+	c.stationEntity = entity
+	log.Printf("Using %v as station entity", c.stationEntity)
+}
+
+func (c *Counter) ContestChanged(contest core.Contest) {
+	c.setContest(contest)
+	c.invalid = true
+}
+
+func (c *Counter) setContest(contest core.Contest) {
+	c.sameCountryPoints = contest.SameCountryPoints
+	c.sameContinentPoints = contest.SameContinentPoints
+	c.specificCountryPoints = contest.SpecificCountryPoints
+	c.otherPoints = contest.OtherPoints
+	c.multis = contest.Multis
+	c.countPerBand = contest.CountPerBand
+
+	for _, prefix := range contest.SpecificCountryPrefixes {
+		c.specificCountryPrefixes[strings.ToUpper(prefix)] = true
+	}
+
+	exp, err := regexp.Compile(contest.XchangeMultiPattern)
+	if err != nil {
+		log.Printf("Invalid regular expression for Xchange Multis: %v", err)
+	} else {
+		c.xchangeMultiExpression = exp
+		log.Printf("Using pattern %q for Xchange Multis", c.xchangeMultiExpression)
+	}
+	c.overallMultis = newMultis(contest.Multis, c.xchangeMultiExpression)
+}
+
+func (c *Counter) Valid() bool {
+	return !c.invalid && (c.stationEntity.PrimaryPrefix != "") && (c.stationEntity.Continent != "")
 }
 
 func (c *Counter) Show() {
@@ -111,16 +144,13 @@ func (c *Counter) Notify(listener interface{}) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Counter) SetMyEntity(myEntity dxcc.Prefix) {
-	c.myEntity = myEntity
-}
-
 func (c *Counter) Clear() {
 	c.Score = core.Score{
 		ScorePerBand: make(map[core.Band]core.BandScore),
 	}
 	c.multisPerBand = make(map[core.Band]*multis)
-	c.overallMultis = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
+	c.overallMultis = newMultis(c.multis, c.xchangeMultiExpression)
+	c.invalid = c.stationEntity.Name == ""
 	c.emitScoreUpdated(c.Score)
 }
 
@@ -144,7 +174,7 @@ func (c *Counter) Add(qso core.QSO) {
 	c.OverallScore.Add(overallMultiScore)
 	multisPerBand, ok := c.multisPerBand[qso.Band]
 	if !ok {
-		multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
+		multisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
 		c.multisPerBand[qso.Band] = multisPerBand
 	}
 	bandMultiScore := multisPerBand.Add(1, qso.Callsign, qso.DXCC, qso.TheirXchange)
@@ -212,7 +242,7 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 		overallScore.Add(newOverallMultiScore)
 		newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
 		if !ok {
-			newMultisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
+			newMultisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
 			c.multisPerBand[newQSO.Band] = newMultisPerBand
 		}
 		newBandMultiScore := newMultisPerBand.Add(1, newQSO.Callsign, newQSO.DXCC, newQSO.TheirXchange)
@@ -241,16 +271,16 @@ func (c *Counter) qsoScore(value int, entity dxcc.Prefix) core.BandScore {
 	switch {
 	case c.isSpecificCountry(entity):
 		result.SpecificCountryQSOs += value
-		result.Points += value * c.configuration.SpecificCountryPoints()
-	case entity.PrimaryPrefix == c.myEntity.PrimaryPrefix:
+		result.Points += value * c.specificCountryPoints
+	case entity.PrimaryPrefix == c.stationEntity.PrimaryPrefix:
 		result.SameCountryQSOs += value
-		result.Points += value * c.configuration.SameCountryPoints()
-	case entity.Continent == c.myEntity.Continent:
+		result.Points += value * c.sameCountryPoints
+	case entity.Continent == c.stationEntity.Continent:
 		result.SameContinentQSOs += value
-		result.Points += value * c.configuration.SameContinentPoints()
+		result.Points += value * c.sameContinentPoints
 	default:
 		result.OtherQSOs += value
-		result.Points += value * c.configuration.OtherPoints()
+		result.Points += value * c.otherPoints
 	}
 
 	return result
@@ -261,11 +291,11 @@ func (c *Counter) isSpecificCountry(entity dxcc.Prefix) bool {
 }
 
 func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, _ core.Mode, xchange string) (points, multis int) {
-	if c.configuration.CountPerBand() {
+	if c.countPerBand {
 		qsoScore := c.qsoScore(1, entity)
 		multisPerBand, ok := c.multisPerBand[band]
 		if !ok {
-			multisPerBand = newMultis(c.configuration.Multis(), c.xchangeMultiExpression)
+			multisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
 		}
 
 		return qsoScore.Points, multisPerBand.Value(callsign, entity, xchange)
@@ -274,7 +304,7 @@ func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band cor
 	return qsoScore.Points, c.overallMultis.Value(callsign, entity, xchange)
 }
 
-func newMultis(countingMultis []string, xchangeMultiExpression *regexp.Regexp) *multis {
+func newMultis(countingMultis core.Multis, xchangeMultiExpression *regexp.Regexp) *multis {
 	return &multis{
 		CountingMultis:         countingMultis,
 		XchangeMultiExpression: xchangeMultiExpression,
@@ -287,7 +317,7 @@ func newMultis(countingMultis []string, xchangeMultiExpression *regexp.Regexp) *
 }
 
 type multis struct {
-	CountingMultis         []string
+	CountingMultis         core.Multis
 	XchangeMultiExpression *regexp.Regexp
 	CQZones                map[dxcc.CQZone]int
 	ITUZones               map[dxcc.ITUZone]int
@@ -297,14 +327,6 @@ type multis struct {
 }
 
 func (m *multis) Value(callsign callsign.Callsign, entity dxcc.Prefix, xchange string) int {
-	var cqZoneValue int
-	if m.CQZones[entity.CQZone] == 0 {
-		cqZoneValue = 1
-	}
-	var ituZoneValue int
-	if m.ITUZones[entity.ITUZone] == 0 {
-		ituZoneValue = 1
-	}
 	var dxccEntitiesValue int
 	if m.DXCCEntities[entity.PrimaryPrefix] == 0 {
 		dxccEntitiesValue = 1
@@ -321,19 +343,14 @@ func (m *multis) Value(callsign callsign.Callsign, entity dxcc.Prefix, xchange s
 	}
 
 	var result int
-	for _, token := range m.CountingMultis {
-		switch strings.ToUpper(token) {
-		case CQZoneMulti:
-			result += cqZoneValue
-		case ITUZoneMulti:
-			result += ituZoneValue
-		case DXCCEntityMulti:
-			result += dxccEntitiesValue
-		case WPXPrefixMulti:
-			result += wpxPrefixesValue
-		case XchangeMulti:
-			result += xchangeValue
-		}
+	if m.CountingMultis.DXCC {
+		result += dxccEntitiesValue
+	}
+	if m.CountingMultis.WPX {
+		result += wpxPrefixesValue
+	}
+	if m.CountingMultis.Xchange {
+		result += xchangeValue
 	}
 	return result
 }
@@ -382,19 +399,14 @@ func (m *multis) Add(value int, callsign callsign.Callsign, entity dxcc.Prefix, 
 		}
 	}
 
-	for _, token := range m.CountingMultis {
-		switch strings.ToUpper(token) {
-		case CQZoneMulti:
-			result.Multis += result.CQZones
-		case ITUZoneMulti:
-			result.Multis += result.ITUZones
-		case DXCCEntityMulti:
-			result.Multis += result.DXCCEntities
-		case WPXPrefixMulti:
-			result.Multis += result.WPXPrefixes
-		case XchangeMulti:
-			result.Multis += result.XchangeValues
-		}
+	if m.CountingMultis.DXCC {
+		result.Multis += result.DXCCEntities
+	}
+	if m.CountingMultis.WPX {
+		result.Multis += result.WPXPrefixes
+	}
+	if m.CountingMultis.Xchange {
+		result.Multis += result.XchangeValues
 	}
 
 	return result

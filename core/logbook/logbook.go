@@ -29,7 +29,7 @@ func Load(clock core.Clock, reader Reader) (*Logbook, error) {
 	}
 
 	var err error
-	logbook.qsos, err = reader.ReadAll()
+	logbook.qsos, err = reader.ReadAllQSOs()
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +57,12 @@ type Logbook struct {
 
 // Reader reads log entries.
 type Reader interface {
-	ReadAll() ([]core.QSO, error)
+	ReadAllQSOs() ([]core.QSO, error)
 }
 
 // Writer writes log entries.
 type Writer interface {
-	Write(core.QSO) error
+	WriteQSO(core.QSO) error
 }
 
 // Store allows to read and write log entries.
@@ -129,7 +129,7 @@ func (l *Logbook) Log(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
-	l.writer.Write(qso)
+	l.writer.WriteQSO(qso)
 	l.emitRowAdded(qso)
 	log.Printf("QSO added: %s", qso.String())
 }
@@ -140,7 +140,7 @@ func (l *Logbook) All() []core.QSO {
 
 func (l *Logbook) WriteAll(writer Writer) error {
 	for _, qso := range l.qsos {
-		err := writer.Write(qso)
+		err := writer.WriteQSO(qso)
 		if err != nil {
 			return errors.Wrapf(err, "cannot write QSO %v", qso)
 		}
@@ -150,6 +150,6 @@ func (l *Logbook) WriteAll(writer Writer) error {
 
 type nullWriter struct{}
 
-func (d *nullWriter) Write(core.QSO) error {
+func (d *nullWriter) WriteQSO(core.QSO) error {
 	return nil
 }

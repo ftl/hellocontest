@@ -159,12 +159,6 @@ type Station struct {
 	Locator  locator.Locator
 }
 
-type Keyer struct {
-	SPMacros  []string
-	RunMacros []string
-	WPM       int
-}
-
 type Contest struct {
 	Name                string
 	EnterTheirNumber    bool
@@ -175,9 +169,9 @@ type Contest struct {
 
 	SameCountryPoints       int
 	SameContinentPoints     int
-	OtherPoints             int
 	SpecificCountryPoints   int
 	SpecificCountryPrefixes []string
+	OtherPoints             int
 
 	Multis              Multis
 	XchangeMultiPattern string
@@ -188,6 +182,12 @@ type Multis struct {
 	DXCC    bool
 	WPX     bool
 	Xchange bool
+}
+
+type Keyer struct {
+	SPMacros  []string
+	RunMacros []string
+	WPM       int
 }
 
 type Cabrillo struct {

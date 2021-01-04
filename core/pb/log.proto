@@ -1,6 +1,18 @@
 syntax = "proto3";
 package pb;
 
+message FileInfo {
+    int32 format_version = 1;
+}
+
+message Entry {
+    oneof entry {
+        QSO qso = 1;
+        Station station = 2;
+        Contest contest = 3;
+    }    
+}    
+
 message QSO {
     string callsign = 1;
     int64 timestamp = 2;
@@ -15,4 +27,33 @@ message QSO {
     string their_xchange = 11;
     double frequency = 12;
     reserved 13;
+}
+
+message Station {
+    string callsign = 1;
+    string operator = 2;
+    string locator = 3;
+}
+
+message Contest {
+    string name = 1;
+    bool enter_their_number = 2;
+    bool enter_their_xchange = 3;
+    bool require_their_xchange = 4;
+    bool allow_multi_band = 5;
+    bool allow_multi_mode = 6;
+    int32 same_country_points = 7;
+    int32 same_continent_points = 8;
+    int32 specific_country_points = 9;
+    repeated string specific_country_prefixes = 10;
+    int32 other_points = 11;
+    Multis multis = 12;
+    string xchange_multi_pattern = 13;
+    bool count_per_band = 14;
+}
+
+message Multis {
+    bool dxcc = 1;
+    bool wpx = 2;
+    bool xchange = 3;
 }

@@ -172,7 +172,7 @@ type Reader struct {
 	mock.Mock
 }
 
-func (m *Reader) ReadAll() ([]core.QSO, error) {
+func (m *Reader) ReadAllQSOs() ([]core.QSO, error) {
 	args := m.Called()
 	return args.Get(0).([]core.QSO), args.Error(1)
 }

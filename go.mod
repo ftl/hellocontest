@@ -16,4 +16,5 @@ require (
 	github.com/gotk3/gotk3 v0.5.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
+	google.golang.org/protobuf v1.23.0
 )

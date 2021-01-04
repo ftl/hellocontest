@@ -6,12 +6,12 @@ import (
 	"encoding/binary"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/runtime/protoiface"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
@@ -29,7 +29,7 @@ type FileStore struct {
 	filename string
 }
 
-func (f *FileStore) ReadAll() ([]core.QSO, error) {
+func (f *FileStore) ReadAllQSOs() ([]core.QSO, error) {
 	b, err := ioutil.ReadFile(f.filename)
 	if err != nil {
 		return []core.QSO{}, err
@@ -37,39 +37,47 @@ func (f *FileStore) ReadAll() ([]core.QSO, error) {
 
 	reader := bytes.NewReader(b)
 	bufferedReader := bufio.NewReader(reader)
+	pbReader := &pbReadWriter{reader: bufferedReader}
 	qsos := []core.QSO{}
+	var pbQSO pb.QSO
 	for {
-		qso, err := read(bufferedReader)
+		err = pbReader.Read(&pbQSO)
 		if err == io.EOF {
 			return qsos, nil
 		} else if err != nil {
 			return nil, err
 		}
+		qso, err := pbToQSO(pbQSO)
+		if err != nil {
+			return nil, err
+		}
 		qsos = append(qsos, qso)
-		log.Printf("QSO loaded: %s", qso.String())
 	}
 }
 
-func read(reader *bufio.Reader) (core.QSO, error) {
-	var length int32
-	err := binary.Read(reader, binary.LittleEndian, &length)
+func (f *FileStore) WriteQSO(qso core.QSO) error {
+	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		return core.QSO{}, err
+		return err
 	}
+	defer file.Close()
 
-	b := make([]byte, length)
-	_, err = io.ReadFull(reader, b)
+	pbQSO := qsoToPB(qso)
+	pbWriter := &pbReadWriter{writer: file}
+	return pbWriter.Write(&pbQSO)
+}
+
+func (f *FileStore) Clear() error {
+	file, err := os.Create(f.filename)
 	if err != nil {
-		return core.QSO{}, err
+		return err
 	}
+	return file.Sync()
+}
 
-	pbQSO := &pb.QSO{}
-	err = proto.Unmarshal(b, pbQSO)
-	if err != nil {
-		return core.QSO{}, err
-	}
-
-	qso := core.QSO{}
+func pbToQSO(pbQSO pb.QSO) (core.QSO, error) {
+	var qso core.QSO
+	var err error
 	qso.Callsign, err = callsign.Parse(pbQSO.Callsign)
 	if err != nil {
 		return core.QSO{}, err
@@ -100,17 +108,8 @@ func read(reader *bufio.Reader) (core.QSO, error) {
 	return qso, nil
 }
 
-func (f *FileStore) Write(qso core.QSO) error {
-	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	return write(file, qso)
-}
-
-func write(writer io.Writer, qso core.QSO) error {
-	pbQSO := &pb.QSO{
+func qsoToPB(qso core.QSO) pb.QSO {
+	return pb.QSO{
 		Callsign:     qso.Callsign.String(),
 		Timestamp:    qso.Time.Unix(),
 		Frequency:    float64(qso.Frequency),
@@ -124,31 +123,53 @@ func write(writer io.Writer, qso core.QSO) error {
 		TheirXchange: qso.TheirXchange,
 		LogTimestamp: qso.LogTimestamp.Unix(),
 	}
+}
 
-	b, err := proto.Marshal(pbQSO)
+type pbReader interface {
+	Read(pb protoiface.MessageV1) error
+}
+
+type pbWriter interface {
+	Write(pb protoiface.MessageV1) error
+}
+
+type pbReadWriter struct {
+	reader io.Reader
+	writer io.Writer
+}
+
+func (rw *pbReadWriter) Read(pb protoiface.MessageV1) error {
+	var length int32
+	err := binary.Read(rw.reader, binary.LittleEndian, &length)
+	if err != nil {
+		return err
+	}
+
+	b := make([]byte, length)
+	_, err = io.ReadFull(rw.reader, b)
+	if err != nil {
+		return err
+	}
+
+	return proto.Unmarshal(b, pb)
+}
+
+func (rw *pbReadWriter) Write(pb protoiface.MessageV1) error {
+	b, err := proto.Marshal(pb)
 	if err != nil {
 		return err
 	}
 
 	length := int32(len(b))
-	err = binary.Write(writer, binary.LittleEndian, length)
+	err = binary.Write(rw.writer, binary.LittleEndian, length)
 	if err != nil {
 		return err
 	}
 
-	_, err = writer.Write(b)
+	_, err = rw.writer.Write(b)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("QSO written: %s", qso.String())
 	return nil
-}
-
-func (f *FileStore) Clear() error {
-	file, err := os.Create(f.filename)
-	if err != nil {
-		return err
-	}
-	return file.Sync()
 }

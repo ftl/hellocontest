@@ -22,7 +22,7 @@ func TestNew(t *testing.T) {
 
 func TestLoad(t *testing.T) {
 	reader := new(mocked.Reader)
-	reader.On("ReadAll").Return([]core.QSO{
+	reader.On("ReadAllQSOs").Return([]core.QSO{
 		{MyNumber: 123},
 	}, nil)
 

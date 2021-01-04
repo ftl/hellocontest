@@ -296,8 +296,6 @@ func (s *testSettings) Station() core.Station {
 	}
 }
 
-func (s *testSettings) Keyer() core.Keyer { return core.Keyer{} }
-
 func (s *testSettings) Contest() core.Contest {
 	return core.Contest{
 		SameCountryPoints:       s.sameCountryPoints,
@@ -310,8 +308,6 @@ func (s *testSettings) Contest() core.Contest {
 		CountPerBand:            s.countPerBand,
 	}
 }
-
-func (s *testSettings) Cabrillo() core.Cabrillo { return core.Cabrillo{} }
 
 type testEntities struct {
 	entity dxcc.Prefix

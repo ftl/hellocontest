@@ -608,8 +608,6 @@ func (s *testSettings) Station() core.Station {
 	}
 }
 
-func (s *testSettings) Keyer() core.Keyer { return core.Keyer{} }
-
 func (s *testSettings) Contest() core.Contest {
 	return core.Contest{
 		EnterTheirNumber:    s.enterTheirNumber,
@@ -617,7 +615,5 @@ func (s *testSettings) Contest() core.Contest {
 		RequireTheirXchange: s.requireTheirXchange,
 	}
 }
-
-func (s *testSettings) Cabrillo() core.Cabrillo { return core.Cabrillo{} }
 
 func testIgnoreAsync(f func()) {}

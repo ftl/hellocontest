@@ -150,9 +150,7 @@ type AnnotatedCallsign struct {
 
 type Settings interface {
 	Station() Station
-	Keyer() Keyer
 	Contest() Contest
-	Cabrillo() Cabrillo
 }
 
 type Station struct {

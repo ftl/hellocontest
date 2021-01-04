@@ -121,9 +121,7 @@ func (c *Controller) Startup() {
 
 	c.Settings = settings.New(
 		c.configuration.Station(),
-		c.configuration.Keyer(),
 		c.configuration.Contest(),
-		c.configuration.Cabrillo(),
 	)
 
 	c.ServiceStatus = newServiceStatus()

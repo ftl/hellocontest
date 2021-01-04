@@ -360,7 +360,7 @@ func (c *Controller) ExportCabrillo() {
 	err = cabrillo.Export(
 		file,
 		template,
-		c.configuration.MyCall(),
+		c.Settings.Station().Callsign,
 		c.QSOList.All()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
@@ -409,7 +409,7 @@ func (c *Controller) ExportCSV() {
 	defer file.Close()
 	err = csv.Export(
 		file,
-		c.configuration.MyCall(),
+		c.Settings.Station().Callsign,
 		c.QSOList.All()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)

@@ -18,41 +18,36 @@ import (
 	"github.com/ftl/hellocontest/core/pb"
 )
 
+type latestFormat = v0Format
+
 // NewFileStore returns a new file based Store.
 func NewFileStore(filename string) *FileStore {
 	return &FileStore{
 		filename: filename,
+		format:   formatFromFile(filename),
 	}
 }
 
 type FileStore struct {
 	filename string
+	format   fileFormat
 }
 
-func (f *FileStore) ReadAllQSOs() ([]core.QSO, error) {
+func (f *FileStore) ReadAll() ([]core.QSO, core.Station, core.Contest, error) {
 	b, err := ioutil.ReadFile(f.filename)
 	if err != nil {
-		return []core.QSO{}, err
+		return []core.QSO{}, core.Station{}, core.Contest{}, err
 	}
 
 	reader := bytes.NewReader(b)
 	bufferedReader := bufio.NewReader(reader)
 	pbReader := &pbReadWriter{reader: bufferedReader}
-	qsos := []core.QSO{}
-	var pbQSO pb.QSO
-	for {
-		err = pbReader.Read(&pbQSO)
-		if err == io.EOF {
-			return qsos, nil
-		} else if err != nil {
-			return nil, err
-		}
-		qso, err := pbToQSO(pbQSO)
-		if err != nil {
-			return nil, err
-		}
-		qsos = append(qsos, qso)
-	}
+	return f.format.ReadAll(pbReader)
+}
+
+func (f *FileStore) ReadAllQSOs() ([]core.QSO, error) {
+	qsos, _, _, err := f.ReadAll()
+	return qsos, err
 }
 
 func (f *FileStore) WriteQSO(qso core.QSO) error {
@@ -62,9 +57,7 @@ func (f *FileStore) WriteQSO(qso core.QSO) error {
 	}
 	defer file.Close()
 
-	pbQSO := qsoToPB(qso)
-	pbWriter := &pbReadWriter{writer: file}
-	return pbWriter.Write(&pbQSO)
+	return f.format.WriteQSO(&pbReadWriter{writer: file}, qso)
 }
 
 func (f *FileStore) Clear() error {
@@ -72,6 +65,9 @@ func (f *FileStore) Clear() error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
+	f.format = new(latestFormat)
+	f.format.Clear(&pbReadWriter{writer: file})
 	return file.Sync()
 }
 

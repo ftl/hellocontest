@@ -413,17 +413,21 @@ func (m *multis) Add(value int, callsign callsign.Callsign, entity dxcc.Prefix, 
 }
 
 func (m *multis) matchXchange(xchange string) (string, bool) {
+	return MatchXchange(m.XchangeMultiExpression, xchange)
+}
+
+func MatchXchange(exp *regexp.Regexp, xchange string) (string, bool) {
 	xchange = strings.ToUpper(strings.TrimSpace(xchange))
-	if m.XchangeMultiExpression == nil {
+	if exp == nil {
 		return xchange, true
 	}
 
-	matches := m.XchangeMultiExpression.FindStringSubmatch(xchange)
+	matches := exp.FindStringSubmatch(xchange)
 	if len(matches) == 0 {
 		return "", false
 	}
 
-	multiIndex := m.XchangeMultiExpression.SubexpIndex("multi")
+	multiIndex := exp.SubexpIndex("multi")
 	var multi string
 	if multiIndex == -1 {
 		multi = matches[0]

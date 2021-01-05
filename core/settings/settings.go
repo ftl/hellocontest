@@ -8,6 +8,7 @@ import (
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
+
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -48,6 +49,8 @@ type Writer interface {
 
 type DefaultsOpener func()
 
+type XchangeRegexpMatcher func(*regexp.Regexp, string) (string, bool)
+
 type View interface {
 	Show()
 	ShowMessage(string)
@@ -69,26 +72,30 @@ type View interface {
 	SetContestOtherPoints(string)
 	SetContestMultis(dxcc, wpx, xchange bool)
 	SetContestXchangeMultiPattern(string)
+	SetContestXchangeMultiPatternResult(string)
 	SetContestCountPerBand(bool)
 }
 
-func New(defaultsOpener DefaultsOpener, station core.Station, contest core.Contest) *Settings {
+func New(defaultsOpener DefaultsOpener, xchangeRegexpMatcher XchangeRegexpMatcher, station core.Station, contest core.Contest) *Settings {
 	return &Settings{
-		writer:         new(nullWriter),
-		defaultsOpener: defaultsOpener,
-		station:        station,
-		contest:        contest,
-		defaultStation: station,
-		defaultContest: contest,
-		savedStation:   station,
-		savedContest:   contest,
+		writer:               new(nullWriter),
+		defaultsOpener:       defaultsOpener,
+		xchangeRegexpMatcher: xchangeRegexpMatcher,
+		station:              station,
+		contest:              contest,
+		defaultStation:       station,
+		defaultContest:       contest,
+		savedStation:         station,
+		savedContest:         contest,
 	}
 }
 
 type Settings struct {
-	writer         Writer
-	view           View
-	defaultsOpener DefaultsOpener
+	writer                Writer
+	view                  View
+	defaultsOpener        DefaultsOpener
+	xchangeRegexpMatcher  XchangeRegexpMatcher
+	xchangeMultiTestValue string
 
 	listeners []interface{}
 
@@ -202,6 +209,7 @@ func (s *Settings) showSettings() {
 	s.view.SetContestMultis(s.contest.Multis.DXCC, s.contest.Multis.WPX, s.contest.Multis.Xchange)
 	s.view.SetContestXchangeMultiPattern(s.contest.XchangeMultiPattern)
 	s.view.SetContestCountPerBand(s.contest.CountPerBand)
+	s.updateXchangeMultiPatternResult()
 }
 
 func (s *Settings) Save() {
@@ -355,9 +363,37 @@ func (s *Settings) EnterContestXchangeMultiPattern(value string) {
 	_, err := regexp.Compile(value)
 	if err != nil {
 		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
 	}
 	s.view.HideMessage()
 	s.contest.XchangeMultiPattern = value
+	s.updateXchangeMultiPatternResult()
+}
+
+func (s *Settings) EnterContestTestXchangeValue(value string) {
+	s.xchangeMultiTestValue = value
+	s.updateXchangeMultiPatternResult()
+}
+
+func (s *Settings) updateXchangeMultiPatternResult() {
+	var exp *regexp.Regexp
+	var err error
+	if s.contest.XchangeMultiPattern == "" {
+		exp = nil
+	} else {
+		exp, err = regexp.Compile(s.contest.XchangeMultiPattern)
+	}
+	if err != nil {
+		s.view.SetContestXchangeMultiPatternResult("(invalid)")
+		return
+	}
+
+	multi, matched := s.xchangeRegexpMatcher(exp, s.xchangeMultiTestValue)
+	if !matched {
+		s.view.SetContestXchangeMultiPatternResult("(no match)")
+		return
+	}
+	s.view.SetContestXchangeMultiPatternResult(multi)
 }
 
 func (s *Settings) EnterContestCountPerBand(value bool) {
@@ -371,23 +407,24 @@ func (w *nullWriter) WriteContest(core.Contest) error { return nil }
 
 type nullView struct{}
 
-func (v *nullView) Show()                                    {}
-func (v *nullView) ShowMessage(string)                       {}
-func (v *nullView) HideMessage()                             {}
-func (v *nullView) SetStationCallsign(string)                {}
-func (v *nullView) SetStationOperator(string)                {}
-func (v *nullView) SetStationLocator(string)                 {}
-func (v *nullView) SetContestName(string)                    {}
-func (v *nullView) SetContestEnterTheirNumber(bool)          {}
-func (v *nullView) SetContestEnterTheirXchange(bool)         {}
-func (v *nullView) SetContestRequireTheirXchange(bool)       {}
-func (v *nullView) SetContestAllowMultiBand(bool)            {}
-func (v *nullView) SetContestAllowMultiMode(bool)            {}
-func (v *nullView) SetContestSameCountryPoints(string)       {}
-func (v *nullView) SetContestSameContinentPoints(string)     {}
-func (v *nullView) SetContestSpecificCountryPoints(string)   {}
-func (v *nullView) SetContestSpecificCountryPrefixes(string) {}
-func (v *nullView) SetContestOtherPoints(string)             {}
-func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool) {}
-func (v *nullView) SetContestXchangeMultiPattern(string)     {}
-func (v *nullView) SetContestCountPerBand(bool)              {}
+func (v *nullView) Show()                                      {}
+func (v *nullView) ShowMessage(string)                         {}
+func (v *nullView) HideMessage()                               {}
+func (v *nullView) SetStationCallsign(string)                  {}
+func (v *nullView) SetStationOperator(string)                  {}
+func (v *nullView) SetStationLocator(string)                   {}
+func (v *nullView) SetContestName(string)                      {}
+func (v *nullView) SetContestEnterTheirNumber(bool)            {}
+func (v *nullView) SetContestEnterTheirXchange(bool)           {}
+func (v *nullView) SetContestRequireTheirXchange(bool)         {}
+func (v *nullView) SetContestAllowMultiBand(bool)              {}
+func (v *nullView) SetContestAllowMultiMode(bool)              {}
+func (v *nullView) SetContestSameCountryPoints(string)         {}
+func (v *nullView) SetContestSameContinentPoints(string)       {}
+func (v *nullView) SetContestSpecificCountryPoints(string)     {}
+func (v *nullView) SetContestSpecificCountryPrefixes(string)   {}
+func (v *nullView) SetContestOtherPoints(string)               {}
+func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool)   {}
+func (v *nullView) SetContestXchangeMultiPattern(string)       {}
+func (v *nullView) SetContestXchangeMultiPatternResult(string) {}
+func (v *nullView) SetContestCountPerBand(bool)                {}

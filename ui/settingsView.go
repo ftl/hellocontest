@@ -27,6 +27,7 @@ type SettingsController interface {
 	EnterContestOtherPoints(string)
 	EnterContestMultis(dxcc, wpx, xchange bool)
 	EnterContestXchangeMultiPattern(string)
+	EnterContestTestXchangeValue(string)
 	EnterContestCountPerBand(bool)
 }
 
@@ -51,6 +52,7 @@ const (
 	contestMultiWPX                fieldID = "contestMultiWPX"
 	contestMultiXchange            fieldID = "contestMultiXchange"
 	contestXchangeMultiPattern     fieldID = "contestXchangeMultiPattern"
+	contestTestXchangeMultiPattern fieldID = "contestTestXchangeMultiPattern"
 	contestCountPerBand            fieldID = "contestCountPerBand"
 )
 
@@ -60,11 +62,12 @@ type settingsView struct {
 
 	ignoreChangedEvent bool
 
-	message      *gtk.Label
-	openDefaults *gtk.Button
-	reset        *gtk.Button
-	close        *gtk.Button
-	fields       map[fieldID]interface{}
+	message           *gtk.Label
+	openDefaults      *gtk.Button
+	reset             *gtk.Button
+	close             *gtk.Button
+	xchangeMultiValue *gtk.Label
+	fields            map[fieldID]interface{}
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -74,6 +77,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.fields = make(map[fieldID]interface{})
 
 	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
+	result.xchangeMultiValue = getUI(builder, "xchangeMultiValueLabel").(*gtk.Label)
 	result.openDefaults = getUI(builder, "openDefaultsButton").(*gtk.Button)
 	result.openDefaults.Connect("clicked", result.onOpenDefaultsPressed)
 	result.reset = getUI(builder, "resetButton").(*gtk.Button)
@@ -99,6 +103,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addCheckButton(builder, contestMultiWPX)
 	result.addCheckButton(builder, contestMultiXchange)
 	result.addEntry(builder, contestXchangeMultiPattern)
+	result.addEntry(builder, contestTestXchangeMultiPattern)
 	result.addCheckButton(builder, contestCountPerBand)
 
 	result.parent.Connect("destroy", result.onDestroy)
@@ -187,6 +192,8 @@ func (v *settingsView) onFieldChanged(w interface{}) bool {
 		v.controller.EnterContestMultis(v.multis())
 	case contestXchangeMultiPattern:
 		v.controller.EnterContestXchangeMultiPattern(value.(string))
+	case contestTestXchangeMultiPattern:
+		v.controller.EnterContestTestXchangeValue(value.(string))
 	case contestCountPerBand:
 		v.controller.EnterContestCountPerBand(value.(bool))
 	default:
@@ -307,6 +314,13 @@ func (v *settingsView) SetContestMultis(dxcc, wpx, xchange bool) {
 
 func (v *settingsView) SetContestXchangeMultiPattern(value string) {
 	v.setEntryField(contestXchangeMultiPattern, value)
+}
+
+func (v *settingsView) SetContestXchangeMultiPatternResult(value string) {
+	if v == nil {
+		return
+	}
+	v.xchangeMultiValue.SetText(value)
 }
 
 func (v *settingsView) SetContestCountPerBand(value bool) {

@@ -2,6 +2,7 @@ package keyer
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"strings"
 	"text/template"
@@ -63,10 +64,11 @@ func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode cor
 }
 
 type Keyer struct {
-	writer Writer
-	view   View
-	client CWClient
-	values KeyerValueProvider
+	writer     Writer
+	view       View
+	client     CWClient
+	values     KeyerValueProvider
+	savedKeyer core.Keyer
 
 	listeners []interface{}
 
@@ -101,6 +103,7 @@ func (k *Keyer) SetWriter(writer Writer) {
 }
 
 func (k *Keyer) SetKeyer(keyer core.Keyer) {
+	k.savedKeyer = keyer
 	k.wpm = keyer.WPM
 	for i, pattern := range keyer.SPMacros {
 		k.spPatterns[i] = pattern
@@ -109,6 +112,10 @@ func (k *Keyer) SetKeyer(keyer core.Keyer) {
 	for i, pattern := range keyer.RunMacros {
 		k.runPatterns[i] = pattern
 		k.runTemplates[i], _ = template.New("").Parse(pattern)
+	}
+	k.showPatterns()
+	if k.view != nil {
+		k.view.SetSpeed(k.wpm)
 	}
 }
 
@@ -141,9 +148,41 @@ func (k *Keyer) SetValues(values KeyerValueProvider) {
 }
 
 func (k *Keyer) Save() {
-	log.Println("TODO: persist the keyer settings")
-	// TODO get a core.Keyer from our internal data
-	// TODO err := k.writer.Write(keyer)
+	keyer, modified := k.getKeyerSettings()
+	if !modified {
+		return
+	}
+	k.savedKeyer = keyer
+	k.writer.WriteKeyer(keyer)
+}
+
+func (k *Keyer) KeyerSettings() core.Keyer {
+	keyer, _ := k.getKeyerSettings()
+	return keyer
+}
+
+func (k *Keyer) getKeyerSettings() (core.Keyer, bool) {
+	var keyer core.Keyer
+	keyer.WPM = k.wpm
+	keyer.SPMacros = make([]string, len(k.spPatterns))
+	for i := range keyer.SPMacros {
+		pattern, ok := k.spPatterns[i]
+		if !ok {
+			continue
+		}
+		keyer.SPMacros[i] = pattern
+	}
+	keyer.RunMacros = make([]string, len(k.runPatterns))
+	for i := range keyer.RunMacros {
+		pattern, ok := k.runPatterns[i]
+		if !ok {
+			continue
+		}
+		keyer.RunMacros[i] = pattern
+	}
+
+	modified := (fmt.Sprintf("%v", keyer) != fmt.Sprintf("%v", k.savedKeyer))
+	return keyer, modified
 }
 
 func (k *Keyer) EnterSpeed(speed int) {

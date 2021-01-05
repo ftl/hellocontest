@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -13,6 +14,7 @@ type KeyerController interface {
 	Stop()
 	EnterPattern(int, string)
 	EnterSpeed(int)
+	Save()
 }
 
 type keyerView struct {
@@ -34,14 +36,22 @@ func setupKeyerView(builder *gtk.Builder) *keyerView {
 		result.entries[i] = getUI(builder, fmt.Sprintf("f%dEntry", i+1)).(*gtk.Entry)
 		result.buttons[i].Connect("clicked", result.onButton(i))
 		result.entries[i].Connect("changed", result.onEntryChanged(i))
+		result.entries[i].Connect("focus_out_event", result.onEntryFocusOut)
 	}
-	result.stopButton = getUI(builder, "stopButton").(*gtk.Button)
-	result.speedEntry = getUI(builder, "speedEntry").(*gtk.SpinButton)
 
+	result.stopButton = getUI(builder, "stopButton").(*gtk.Button)
 	result.stopButton.Connect("clicked", result.onStop)
+
+	result.speedEntry = getUI(builder, "speedEntry").(*gtk.SpinButton)
 	result.speedEntry.Connect("value-changed", result.onSpeedChanged)
+	result.speedEntry.Connect("focus_out_event", result.onEntryFocusOut)
 
 	return result
+}
+
+func (v *keyerView) onEntryFocusOut(widget interface{}, _ *gdk.Event) bool {
+	v.controller.Save()
+	return false
 }
 
 func (k *keyerView) onButton(index int) func(button *gtk.Button) bool {

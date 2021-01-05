@@ -11,10 +11,11 @@ import (
 )
 
 type fileFormat interface {
-	ReadAll(pbReader) ([]core.QSO, *core.Station, *core.Contest, error)
+	ReadAll(pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.Keyer, error)
 	WriteQSO(pbWriter, core.QSO) error
 	WriteStation(pbWriter, core.Station) error
 	WriteContest(pbWriter, core.Contest) error
+	WriteKeyer(pbWriter, core.Keyer) error
 	Clear(pbWriter) error
 }
 
@@ -57,8 +58,8 @@ type unknownFormat struct {
 	err error
 }
 
-func (f *unknownFormat) ReadAll(pbReader) ([]core.QSO, *core.Station, *core.Contest, error) {
-	return nil, nil, nil, f.err
+func (f *unknownFormat) ReadAll(pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.Keyer, error) {
+	return nil, nil, nil, nil, f.err
 }
 
 func (f *unknownFormat) WriteQSO(pbWriter, core.QSO) error {
@@ -73,6 +74,10 @@ func (f *unknownFormat) WriteContest(pbWriter, core.Contest) error {
 	return f.err
 }
 
+func (f *unknownFormat) WriteKeyer(pbWriter, core.Keyer) error {
+	return f.err
+}
+
 func (f *unknownFormat) Clear(pbWriter) error {
 	return f.err
 }
@@ -81,19 +86,19 @@ type v0Format struct {
 	filename string
 }
 
-func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest, error) {
+func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.Keyer, error) {
 	qsos := []core.QSO{}
 	var pbQSO pb.QSO
 	for {
 		err := r.Read(&pbQSO)
 		if err == io.EOF {
-			return qsos, nil, nil, nil
+			return qsos, nil, nil, nil, nil
 		} else if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		qso, err := pb.ToQSO(pbQSO)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		qsos = append(qsos, qso)
 	}
@@ -114,6 +119,11 @@ func (f *v0Format) WriteContest(pbWriter, core.Contest) error {
 	return nil
 }
 
+func (f *v0Format) WriteKeyer(pbWriter, core.Keyer) error {
+	log.Println("The V0 file format cannot store keyer data.")
+	return nil
+}
+
 func (f *v0Format) Clear(pbWriter) error {
 	return nil
 }
@@ -122,35 +132,36 @@ type v1Format struct {
 	filename string
 }
 
-func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest, error) {
+func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.Keyer, error) {
 	var (
 		pbFormatInfo pb.FileInfo
 		pbEntry      pb.Entry
 	)
 	_, err := r.ReadPreamble()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	err = r.Read(&pbFormatInfo)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	var qsos []core.QSO
 	var station *core.Station
 	var contest *core.Contest
+	var keyer *core.Keyer
 	for {
 		err := r.Read(&pbEntry)
 		if err == io.EOF {
-			return qsos, station, contest, nil
+			return qsos, station, contest, keyer, nil
 		} else if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		if pbQSO := pbEntry.GetQso(); pbQSO != nil {
 			qso, err := pb.ToQSO(*pbQSO)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, nil, nil, err
 			}
 			qsos = append(qsos, qso)
 		}
@@ -158,14 +169,21 @@ func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 			s, err := pb.ToStation(*pbStation)
 			station = &s
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, nil, nil, err
 			}
 		}
 		if pbContest := pbEntry.GetContest(); pbContest != nil {
 			c, err := pb.ToContest(*pbContest)
 			contest = &c
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, nil, nil, nil, err
+			}
+		}
+		if pbKeyer := pbEntry.GetKeyer(); pbKeyer != nil {
+			k, err := pb.ToKeyer(*pbKeyer)
+			keyer = &k
+			if err != nil {
+				return nil, nil, nil, nil, err
 			}
 		}
 	}
@@ -191,6 +209,14 @@ func (f *v1Format) WriteContest(w pbWriter, contest core.Contest) error {
 	pbContest := pb.ContestToPB(contest)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Contest{Contest: &pbContest},
+	}
+	return w.Write(pbEntry)
+}
+
+func (f *v1Format) WriteKeyer(w pbWriter, keyer core.Keyer) error {
+	pbKeyer := pb.KeyerToPB(keyer)
+	pbEntry := &pb.Entry{
+		Entry: &pb.Entry_Keyer{Keyer: &pbKeyer},
 	}
 	return w.Write(pbEntry)
 }

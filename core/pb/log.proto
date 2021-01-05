@@ -10,6 +10,7 @@ message Entry {
         QSO qso = 1;
         Station station = 2;
         Contest contest = 3;
+        Keyer keyer = 4;
     }    
 }    
 

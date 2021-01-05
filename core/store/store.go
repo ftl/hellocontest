@@ -40,21 +40,16 @@ func (f *FileStore) Exists() bool {
 	return true
 }
 
-func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, error) {
+func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.Keyer, error) {
 	b, err := ioutil.ReadFile(f.filename)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	reader := bytes.NewReader(b)
 	bufferedReader := bufio.NewReader(reader)
 	pbReader := &pbReadWriter{reader: bufferedReader}
 	return f.format.ReadAll(pbReader)
-}
-
-func (f *FileStore) ReadAllQSOs() ([]core.QSO, error) {
-	qsos, _, _, err := f.ReadAll()
-	return qsos, err
 }
 
 func (f *FileStore) WriteQSO(qso core.QSO) error {
@@ -85,6 +80,16 @@ func (f *FileStore) WriteContest(contest core.Contest) error {
 	defer file.Close()
 
 	return f.format.WriteContest(&pbReadWriter{writer: file}, contest)
+}
+
+func (f *FileStore) WriteKeyer(keyer core.Keyer) error {
+	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return f.format.WriteKeyer(&pbReadWriter{writer: file}, keyer)
 }
 
 func (f *FileStore) Clear() error {

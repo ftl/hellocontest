@@ -217,10 +217,15 @@ func (c *Controller) openCurrentLog() error {
 			log.Printf("Cannot write contest settings to %s: %v", filepath.Base(filename), err)
 			return err
 		}
+		err = store.WriteKeyer(c.Keyer.KeyerSettings())
+		if err != nil {
+			log.Printf("Cannot write contest settings to %s: %v", filepath.Base(filename), err)
+			return err
+		}
 	}
 
 	var newLogbook *logbook.Logbook
-	qsos, station, contest, err := store.ReadAll()
+	qsos, station, contest, keyer, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
 		newLogbook = logbook.New(c.clock)
@@ -231,6 +236,10 @@ func (c *Controller) openCurrentLog() error {
 		}
 		if contest != nil {
 			c.Settings.SetContest(*contest)
+		}
+		c.Keyer.SetWriter(store)
+		if keyer != nil {
+			c.Keyer.SetKeyer(*keyer)
 		}
 		newLogbook = logbook.Load(c.clock, qsos)
 	}
@@ -309,8 +318,24 @@ func (c *Controller) New() {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
 		return
 	}
+	err = store.WriteStation(c.Settings.Station())
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		return
+	}
+	err = store.WriteContest(c.Settings.Contest())
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		return
+	}
+	err = store.WriteKeyer(c.Keyer.KeyerSettings())
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		return
+	}
 
 	c.Settings.SetWriter(store)
+	c.Keyer.SetWriter(store)
 	c.changeLogbook(filename, store, logbook.New(c.clock))
 	c.Refresh()
 
@@ -328,7 +353,7 @@ func (c *Controller) Open() {
 	}
 
 	store := store.NewFileStore(filename)
-	qsos, station, contest, err := store.ReadAll()
+	qsos, station, contest, keyer, err := store.ReadAll()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open %s: %v", filepath.Base(filename), err)
 		return
@@ -340,6 +365,10 @@ func (c *Controller) Open() {
 	}
 	if contest != nil {
 		c.Settings.SetContest(*contest)
+	}
+	c.Keyer.SetWriter(store)
+	if keyer != nil {
+		c.Keyer.SetKeyer(*keyer)
 	}
 	log := logbook.Load(c.clock, qsos)
 	c.changeLogbook(filename, store, log)
@@ -368,6 +397,11 @@ func (c *Controller) SaveAs() {
 		return
 	}
 	err = store.WriteContest(c.Settings.Contest())
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		return
+	}
+	err = store.WriteKeyer(c.Keyer.KeyerSettings())
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
 		return

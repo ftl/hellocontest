@@ -15,7 +15,7 @@ import (
 
 func TestFileStore_ReadV0File(t *testing.T) {
 	fs := NewFileStore("testdata/v0.testlog")
-	qsos, err := fs.ReadAllQSOs()
+	qsos, _, _, _, err := fs.ReadAll()
 	require.NoError(t, err)
 
 	assert.IsType(t, new(v0Format), fs.format)
@@ -76,12 +76,13 @@ func TestFileStore_V1QSORoundtrip(t *testing.T) {
 	err = fs.WriteQSO(qso)
 	require.NoError(t, err)
 
-	qsos, station, contest, err := fs.ReadAll()
+	qsos, station, contest, keyer, err := fs.ReadAll()
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(qsos))
 	assert.Equal(t, qso, qsos[0])
 	assert.Nil(t, station)
 	assert.Nil(t, contest)
+	assert.Nil(t, keyer)
 }
 
 func TestFileStore_V1StationRoundtrip(t *testing.T) {
@@ -111,11 +112,12 @@ func TestFileStore_V1StationRoundtrip(t *testing.T) {
 	err = fs.WriteStation(station2)
 	require.NoError(t, err)
 
-	qsos, station, contest, err := fs.ReadAll()
+	qsos, station, contest, keyer, err := fs.ReadAll()
 	require.NoError(t, err)
 	assert.Empty(t, qsos)
 	assert.Equal(t, station2, *station)
 	assert.Nil(t, contest)
+	assert.Nil(t, keyer)
 }
 
 func TestFileStore_V1ContestRoundtrip(t *testing.T) {
@@ -140,9 +142,40 @@ func TestFileStore_V1ContestRoundtrip(t *testing.T) {
 	err = fs.WriteContest(contest2)
 	require.NoError(t, err)
 
-	qsos, station, contest, err := fs.ReadAll()
+	qsos, station, contest, keyer, err := fs.ReadAll()
 	require.NoError(t, err)
 	assert.Empty(t, qsos)
 	assert.Nil(t, station)
 	assert.Equal(t, contest2, *contest)
+	assert.Nil(t, keyer)
+}
+
+func TestFileStore_V1KeyerRoundtrip(t *testing.T) {
+	tmpFile, err := ioutil.TempFile(os.TempDir(), t.Name())
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	fs := &FileStore{
+		filename: tmpFile.Name(),
+		format:   new(v1Format),
+	}
+	err = fs.format.Clear(&pbReadWriter{writer: tmpFile})
+	require.NoError(t, err)
+
+	keyer1 := core.Keyer{
+		WPM: 25,
+	}
+	keyer2 := core.Keyer{
+		WPM: 35,
+	}
+	err = fs.WriteKeyer(keyer1)
+	err = fs.WriteKeyer(keyer2)
+	require.NoError(t, err)
+
+	qsos, station, contest, keyer, err := fs.ReadAll()
+	require.NoError(t, err)
+	assert.Empty(t, qsos)
+	assert.Nil(t, station)
+	assert.Nil(t, contest)
+	assert.Equal(t, keyer2, *keyer)
 }

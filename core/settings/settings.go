@@ -258,7 +258,11 @@ func (s *Settings) EnterStationCallsign(value string) {
 }
 
 func (s *Settings) EnterStationOperator(value string) {
-	cs, err := callsign.Parse(value)
+	var cs callsign.Callsign
+	var err error
+	if value != "" {
+		cs, err = callsign.Parse(value)
+	}
 	if err != nil {
 		s.view.ShowMessage(fmt.Sprintf("%v", err))
 		return
@@ -268,7 +272,11 @@ func (s *Settings) EnterStationOperator(value string) {
 }
 
 func (s *Settings) EnterStationLocator(value string) {
-	loc, err := locator.Parse(value)
+	var loc locator.Locator
+	var err error
+	if value != "" {
+		loc, err = locator.Parse(value)
+	}
 	if err != nil {
 		s.view.ShowMessage(fmt.Sprintf("%v", err))
 		return

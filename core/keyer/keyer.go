@@ -40,18 +40,30 @@ func (f KeyerListenerFunc) KeyerChanged(keyer core.Keyer) {
 	f(keyer)
 }
 
+type Writer interface {
+	WriteKeyer(core.Keyer) error
+}
+
 // New returns a new Keyer that has no patterns or templates defined yet.
-func New(settings core.Settings, client CWClient, wpm int) *Keyer {
-	return &Keyer{
+func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode core.Workmode) *Keyer {
+	result := &Keyer{
+		writer:          new(nullWriter),
 		stationCallsign: settings.Station().Callsign,
-		wpm:             wpm,
-		patterns:        make(map[int]string),
-		templates:       make(map[int]*template.Template),
+		workmode:        workmode,
+		spPatterns:      make(map[int]string),
+		spTemplates:     make(map[int]*template.Template),
+		runPatterns:     make(map[int]string),
+		runTemplates:    make(map[int]*template.Template),
 		client:          client,
-		values:          noValues}
+		values:          noValues,
+	}
+	result.setWorkmode(workmode)
+	result.SetKeyer(keyer)
+	return result
 }
 
 type Keyer struct {
+	writer Writer
 	view   View
 	client CWClient
 	values KeyerValueProvider
@@ -59,17 +71,65 @@ type Keyer struct {
 	listeners []interface{}
 
 	stationCallsign callsign.Callsign
+	workmode        core.Workmode
 	wpm             int
-	patterns        map[int]string
-	templates       map[int]*template.Template
+	spPatterns      map[int]string
+	spTemplates     map[int]*template.Template
+	runPatterns     map[int]string
+	runTemplates    map[int]*template.Template
+	patterns        *map[int]string
+	templates       *map[int]*template.Template
+}
+
+func (k *Keyer) setWorkmode(workmode core.Workmode) {
+	switch workmode {
+	case core.SearchPounce:
+		k.patterns = &k.spPatterns
+		k.templates = &k.spTemplates
+	case core.Run:
+		k.patterns = &k.runPatterns
+		k.templates = &k.runTemplates
+	}
+}
+
+func (k *Keyer) SetWriter(writer Writer) {
+	if writer == nil {
+		k.writer = new(nullWriter)
+		return
+	}
+	k.writer = writer
+}
+
+func (k *Keyer) SetKeyer(keyer core.Keyer) {
+	k.wpm = keyer.WPM
+	for i, pattern := range keyer.SPMacros {
+		k.spPatterns[i] = pattern
+		k.spTemplates[i], _ = template.New("").Parse(pattern)
+	}
+	for i, pattern := range keyer.RunMacros {
+		k.runPatterns[i] = pattern
+		k.runTemplates[i], _ = template.New("").Parse(pattern)
+	}
 }
 
 func (k *Keyer) SetView(view View) {
 	k.view = view
-	for i, pattern := range k.patterns {
+	k.showPatterns()
+	k.view.SetSpeed(k.wpm)
+}
+
+func (k *Keyer) showPatterns() {
+	if k.view == nil {
+		return
+	}
+	for i, pattern := range *k.patterns {
 		k.view.SetPattern(i, pattern)
 	}
-	k.view.SetSpeed(k.wpm)
+}
+
+func (k *Keyer) WorkmodeChanged(workmode core.Workmode) {
+	k.setWorkmode(workmode)
+	k.showPatterns()
 }
 
 func (k *Keyer) StationChanged(station core.Station) {
@@ -78,6 +138,12 @@ func (k *Keyer) StationChanged(station core.Station) {
 
 func (k *Keyer) SetValues(values KeyerValueProvider) {
 	k.values = values
+}
+
+func (k *Keyer) Save() {
+	log.Println("TODO: persist the keyer settings")
+	// TODO get a core.Keyer from our internal data
+	// TODO err := k.writer.Write(keyer)
 }
 
 func (k *Keyer) EnterSpeed(speed int) {
@@ -90,9 +156,9 @@ func (k *Keyer) EnterSpeed(speed int) {
 }
 
 func (k *Keyer) EnterPattern(index int, pattern string) {
-	k.patterns[index] = pattern
+	(*k.patterns)[index] = pattern
 	var err error
-	k.templates[index], err = template.New("").Parse(pattern)
+	(*k.templates)[index], err = template.New("").Parse(pattern)
 	if err != nil {
 		k.view.ShowMessage(err)
 	} else {
@@ -100,23 +166,13 @@ func (k *Keyer) EnterPattern(index int, pattern string) {
 	}
 }
 
-func (k *Keyer) SetPatterns(patterns []string) {
-	for i, pattern := range patterns {
-		k.patterns[i] = pattern
-		k.templates[i], _ = template.New("").Parse(patterns[i])
-		if k.view != nil {
-			k.view.SetPattern(i, pattern)
-		}
-	}
-}
-
 func (k *Keyer) GetPattern(index int) string {
-	return k.patterns[index]
+	return (*k.patterns)[index]
 }
 
 func (k *Keyer) GetText(index int) (string, error) {
 	buffer := bytes.NewBufferString("")
-	template, ok := k.templates[index]
+	template, ok := (*k.templates)[index]
 	if !ok {
 		return "", nil
 	}
@@ -236,3 +292,7 @@ func cut(s string) string {
 func noValues() core.KeyerValues {
 	return core.KeyerValues{}
 }
+
+type nullWriter struct{}
+
+func (w *nullWriter) WriteKeyer(core.Keyer) error { return nil }

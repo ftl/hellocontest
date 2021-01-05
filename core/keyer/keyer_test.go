@@ -11,6 +11,11 @@ import (
 )
 
 func TestSend(t *testing.T) {
+	keyerSettings := core.Keyer{
+		SPMacros:  []string{"", "", "", ""},
+		RunMacros: []string{"", "", "", ""},
+		WPM:       25,
+	}
 	values := func() core.KeyerValues {
 		return core.KeyerValues{
 			TheirCall: "DL0ZZZ",
@@ -23,11 +28,12 @@ func TestSend(t *testing.T) {
 	view.On("SetKeyerController", mock.Anything)
 	view.On("ShowMessage", mock.Anything)
 	view.On("SetSpeed", mock.Anything)
+	view.On("SetPattern", mock.Anything, mock.Anything)
 	cwClient := new(mocked.CWClient)
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
 	cwClient.On("IsConnected").Return(true)
 
-	keyer := New(&testSettings{"DL1ABC"}, cwClient, 25)
+	keyer := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce)
 	keyer.SetView(view)
 	keyer.SetValues(values)
 	keyer.EnterPattern(0, "{{.MyCall}} {{.TheirCall}} {{.MyNumber}} {{.MyReport}} {{.MyXchange}}")

@@ -109,6 +109,7 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) Startup() {
 	c.Settings = settings.New(
+		c.OpenDefaultConfigurationFile,
 		c.configuration.Station(),
 		c.configuration.Contest(),
 	)

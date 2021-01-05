@@ -9,6 +9,7 @@ import (
 type SettingsController interface {
 	Save()
 	Reset()
+	OpenDefaults()
 
 	EnterStationCallsign(string)
 	EnterStationOperator(string)
@@ -59,10 +60,11 @@ type settingsView struct {
 
 	ignoreChangedEvent bool
 
-	message *gtk.Label
-	reset   *gtk.Button
-	close   *gtk.Button
-	fields  map[fieldID]interface{}
+	message      *gtk.Label
+	openDefaults *gtk.Button
+	reset        *gtk.Button
+	close        *gtk.Button
+	fields       map[fieldID]interface{}
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -72,6 +74,8 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.fields = make(map[fieldID]interface{})
 
 	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
+	result.openDefaults = getUI(builder, "openDefaultsButton").(*gtk.Button)
+	result.openDefaults.Connect("clicked", result.onOpenDefaultsPressed)
 	result.reset = getUI(builder, "resetButton").(*gtk.Button)
 	result.reset.Connect("clicked", result.onResetPressed)
 	result.close = getUI(builder, "closeButton").(*gtk.Button)
@@ -197,6 +201,10 @@ func (v *settingsView) multis() (dxcc, wpx, xchange bool) {
 	wpx = v.fields[contestMultiWPX].(*gtk.CheckButton).GetActive()
 	xchange = v.fields[contestMultiXchange].(*gtk.CheckButton).GetActive()
 	return
+}
+
+func (v *settingsView) onOpenDefaultsPressed(_ *gtk.Button) {
+	v.controller.OpenDefaults()
 }
 
 func (v *settingsView) onResetPressed(_ *gtk.Button) {

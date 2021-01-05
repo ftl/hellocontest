@@ -46,6 +46,8 @@ type Writer interface {
 	WriteContest(core.Contest) error
 }
 
+type DefaultsOpener func()
+
 type View interface {
 	Show()
 	ShowMessage(string)
@@ -70,9 +72,10 @@ type View interface {
 	SetContestCountPerBand(bool)
 }
 
-func New(station core.Station, contest core.Contest) *Settings {
+func New(defaultsOpener DefaultsOpener, station core.Station, contest core.Contest) *Settings {
 	return &Settings{
 		writer:         new(nullWriter),
+		defaultsOpener: defaultsOpener,
 		station:        station,
 		contest:        contest,
 		defaultStation: station,
@@ -83,8 +86,9 @@ func New(station core.Station, contest core.Contest) *Settings {
 }
 
 type Settings struct {
-	writer Writer
-	view   View
+	writer         Writer
+	view           View
+	defaultsOpener DefaultsOpener
 
 	listeners []interface{}
 
@@ -226,6 +230,13 @@ func (s *Settings) Reset() {
 	s.showSettings()
 	s.emitStationChanged()
 	s.emitContestChanged()
+}
+
+func (s *Settings) OpenDefaults() {
+	if s.defaultsOpener == nil {
+		return
+	}
+	s.defaultsOpener()
 }
 
 func (s *Settings) EnterStationCallsign(value string) {

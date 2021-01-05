@@ -91,7 +91,7 @@ func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 		} else if err != nil {
 			return nil, nil, nil, err
 		}
-		qso, err := pbToQSO(pbQSO)
+		qso, err := pb.ToQSO(pbQSO)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -100,7 +100,7 @@ func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 }
 
 func (f *v0Format) WriteQSO(w pbWriter, qso core.QSO) error {
-	pbQSO := qsoToPB(qso)
+	pbQSO := pb.QSOToPB(qso)
 	return w.Write(&pbQSO)
 }
 
@@ -148,21 +148,21 @@ func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 		}
 
 		if pbQSO := pbEntry.GetQso(); pbQSO != nil {
-			qso, err := pbToQSO(*pbQSO)
+			qso, err := pb.ToQSO(*pbQSO)
 			if err != nil {
 				return nil, nil, nil, err
 			}
 			qsos = append(qsos, qso)
 		}
 		if pbStation := pbEntry.GetStation(); pbStation != nil {
-			s, err := pbToStation(*pbStation)
+			s, err := pb.ToStation(*pbStation)
 			station = &s
 			if err != nil {
 				return nil, nil, nil, err
 			}
 		}
 		if pbContest := pbEntry.GetContest(); pbContest != nil {
-			c, err := pbToContest(*pbContest)
+			c, err := pb.ToContest(*pbContest)
 			contest = &c
 			if err != nil {
 				return nil, nil, nil, err
@@ -172,7 +172,7 @@ func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 }
 
 func (f *v1Format) WriteQSO(w pbWriter, qso core.QSO) error {
-	pbQSO := qsoToPB(qso)
+	pbQSO := pb.QSOToPB(qso)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Qso{Qso: &pbQSO},
 	}
@@ -180,7 +180,7 @@ func (f *v1Format) WriteQSO(w pbWriter, qso core.QSO) error {
 }
 
 func (f *v1Format) WriteStation(w pbWriter, station core.Station) error {
-	pbStation := stationToPB(station)
+	pbStation := pb.StationToPB(station)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Station{Station: &pbStation},
 	}
@@ -188,7 +188,7 @@ func (f *v1Format) WriteStation(w pbWriter, station core.Station) error {
 }
 
 func (f *v1Format) WriteContest(w pbWriter, contest core.Contest) error {
-	pbContest := contestToPB(contest)
+	pbContest := pb.ContestToPB(contest)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Contest{Contest: &pbContest},
 	}

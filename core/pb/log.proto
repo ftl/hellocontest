@@ -57,3 +57,9 @@ message Multis {
     bool wpx = 2;
     bool xchange = 3;
 }
+
+message Keyer {
+    int32 wpm = 1;
+    repeated string sp_macros = 2;
+    repeated string run_macros = 3;
+}

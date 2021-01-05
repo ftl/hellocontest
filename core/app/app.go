@@ -87,13 +87,8 @@ type Configuration interface {
 	Cabrillo() core.Cabrillo
 
 	CabrilloQSOTemplate() string
-
 	KeyerHost() string
 	KeyerPort() int
-	KeyerWPM() int
-	KeyerSPMacros() []string
-	KeyerRunMacros() []string
-
 	HamlibAddress() string
 }
 
@@ -141,13 +136,13 @@ func (c *Controller) Startup() {
 	c.hamlibClient.SetVFOController(c.Entry)
 
 	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
-	c.Keyer = keyer.New(c.Settings, c.cwclient, c.configuration.KeyerWPM())
-	c.Keyer.SetPatterns(c.configuration.KeyerSPMacros())
+	c.Keyer = keyer.New(c.Settings, c.cwclient, c.configuration.Keyer().WPM)
+	c.Keyer.SetPatterns(c.configuration.Keyer().SPMacros)
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Entry.SetKeyer(c.Keyer)
 
-	c.Workmode = workmode.NewController(c.configuration.KeyerSPMacros(), c.configuration.KeyerRunMacros())
+	c.Workmode = workmode.NewController(c.configuration.Keyer().SPMacros, c.configuration.Keyer().RunMacros)
 	c.Workmode.SetKeyer(c.Keyer)
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)

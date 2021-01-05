@@ -1,54 +1,63 @@
 package cfg
 
 import (
+	"log"
 	"path/filepath"
-	"strings"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cfg"
-	"github.com/ftl/hamradio/locator"
 	"github.com/pkg/errors"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/pb"
 )
 
 const Filename = "hellocontest.json"
 
 var Default = Data{
-	MyCall:              "DL0ABC",
-	MyLocator:           "AA00zz",
-	EnterTheirNumber:    true,
-	EnterTheirXchange:   true,
-	RequireTheirXchange: true,
-	AllowMultiBand:      true,
-	AllowMultiMode:      true,
+	Station: pb.Station{
+		Callsign: "DL0ABC",
+		Operator: "DL1ABC",
+		Locator:  "AA00zz",
+	},
+	Contest: pb.Contest{
+		Name:                    "Default",
+		EnterTheirNumber:        true,
+		EnterTheirXchange:       true,
+		RequireTheirXchange:     true,
+		AllowMultiBand:          true,
+		AllowMultiMode:          true,
+		SameCountryPoints:       1,
+		SameContinentPoints:     3,
+		SpecificCountryPoints:   10,
+		SpecificCountryPrefixes: []string{"DL"},
+		OtherPoints:             5,
+		Multis: &pb.Multis{
+			Dxcc:    true,
+			Wpx:     true,
+			Xchange: true,
+		},
+		XchangeMultiPattern: "\\d+",
+		CountPerBand:        true,
+	},
+	Keyer: pb.Keyer{
+		Wpm: 25,
+		SpMacros: []string{
+			"{{.MyCall}}",
+			"rr {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
+			"tu gl",
+			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+		},
+		RunMacros: []string{
+			"cq {{.MyCall}} test",
+			"{{.TheirCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
+			"tu {{.MyCall}} test",
+			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+		},
+	},
 	CabrilloQSOTemplate: "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}",
 	HamlibAddress:       "localhost:4532",
 	KeyerHost:           "localhost",
 	KeyerPort:           6789,
-	KeyerWPM:            20,
-	KeyerSPMacros: []string{
-		"{{.MyCall}}",
-		"rr {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
-		"tu gl",
-		"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
-	},
-	KeyerRunMacros: []string{
-		"cq {{.MyCall}} test",
-		"{{.TheirCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
-		"tu {{.MyCall}} test",
-		"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
-	},
-	Score: Score{
-		CountPerBand:            true,
-		SameCountryPoints:       1,
-		SameContinentPoints:     3,
-		OtherPoints:             5,
-		SpecificCountryPoints:   0,
-		SpecificCountryPrefixes: []string{},
-		Multis:                  []string{"CQ", "DXCC"},
-		XchangeMultiPattern:     "",
-	},
 }
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadJSON()).
@@ -71,14 +80,6 @@ func Load() (*LoadedConfiguration, error) {
 	}, nil
 }
 
-// Static creates a static configuration instance with the given data.
-func Static(myCall callsign.Callsign, myLocator locator.Locator) *StaticConfiguration {
-	return &StaticConfiguration{
-		myCall:    myCall,
-		myLocator: myLocator,
-	}
-}
-
 // Directory returns the configuration directory. It panics if the directory could not be determined.
 func Directory() string {
 	dir, err := cfg.Directory("")
@@ -93,64 +94,13 @@ func AbsoluteFilename() string {
 }
 
 type Data struct {
-	MyCall              string   `json:"mycall"`
-	MyLocator           string   `json:"locator"`
-	EnterTheirNumber    bool     `json:"enter_their_number"`
-	EnterTheirXchange   bool     `json:"enter_their_xchange"`
-	RequireTheirXchange bool     `json:"require_their_xchange"`
-	AllowMultiBand      bool     `json:"allow_multi_band"`
-	AllowMultiMode      bool     `json:"allow_multi_mode"`
-	CabrilloQSOTemplate string   `json:"cabrillo_qso"`
-	KeyerHost           string   `json:"keyer_host"`
-	KeyerPort           int      `json:"keyer_port"`
-	KeyerWPM            int      `json:"keyer_wpm"`
-	KeyerSPMacros       []string `json:"keyer_sp_macros"`
-	KeyerRunMacros      []string `json:"keyer_run_macros"`
-	HamlibAddress       string   `json:"hamlib_address"`
-	Score               Score    `json:"score"`
-}
-
-type Score struct {
-	CountPerBand bool `json:"count_per_band"`
-
-	SameCountryPoints   int `json:"same_country_points"`
-	SameContinentPoints int `json:"same_continent_points"`
-	OtherPoints         int `json:"other_points"`
-
-	SpecificCountryPoints   int      `json:"specific_country_points"`
-	SpecificCountryPrefixes []string `json:"specific_country_prefixes"`
-
-	Multis              []string `json:"multis"`
-	XchangeMultiPattern string   `json:"xchange_multi_pattern"`
-}
-
-func multisToStrings(multis core.Multis) []string {
-	var result []string
-	if multis.DXCC {
-		result = append(result, "DXCC")
-	}
-	if multis.WPX {
-		result = append(result, "WPX")
-	}
-	if multis.Xchange {
-		result = append(result, "XCHANGE")
-	}
-	return result
-}
-
-func stringsToMultis(values []string) core.Multis {
-	var result core.Multis
-	for _, value := range values {
-		switch strings.ToUpper(value) {
-		case "DXCC":
-			result.DXCC = true
-		case "WPX":
-			result.WPX = true
-		case "XCHANGE":
-			result.Xchange = true
-		}
-	}
-	return result
+	Station             pb.Station
+	Contest             pb.Contest
+	Keyer               pb.Keyer
+	CabrilloQSOTemplate string `json:"cabrillo_qso"`
+	KeyerHost           string `json:"keyer_host"`
+	KeyerPort           int    `json:"keyer_port"`
+	HamlibAddress       string `json:"hamlib_address"`
 }
 
 type LoadedConfiguration struct {
@@ -158,36 +108,22 @@ type LoadedConfiguration struct {
 }
 
 func (c *LoadedConfiguration) Station() core.Station {
-	return core.Station{
-		Callsign: c.MyCall(),
+	result, err := pb.ToStation(c.data.Station)
+	if err != nil {
+		log.Printf("Cannot parse default station settings: %v", err)
+		return core.Station{}
 	}
+	return result
 }
 
 func (c *LoadedConfiguration) Keyer() core.Keyer {
-	return core.Keyer{
-		SPMacros:  c.KeyerSPMacros(),
-		RunMacros: c.KeyerRunMacros(),
-		WPM:       c.KeyerWPM(),
-	}
+	result, _ := pb.ToKeyer(c.data.Keyer)
+	return result
 }
 
 func (c *LoadedConfiguration) Contest() core.Contest {
-	return core.Contest{
-		Name:                    "Default",
-		EnterTheirNumber:        c.EnterTheirNumber(),
-		EnterTheirXchange:       c.EnterTheirXchange(),
-		RequireTheirXchange:     c.RequireTheirXchange(),
-		AllowMultiBand:          c.AllowMultiBand(),
-		AllowMultiMode:          c.AllowMultiMode(),
-		CountPerBand:            c.CountPerBand(),
-		SameCountryPoints:       c.SameCountryPoints(),
-		SameContinentPoints:     c.SameContinentPoints(),
-		OtherPoints:             c.OtherPoints(),
-		SpecificCountryPoints:   c.SpecificCountryPoints(),
-		SpecificCountryPrefixes: c.SpecificCountryPrefixes(),
-		Multis:                  stringsToMultis(c.Multis()),
-		XchangeMultiPattern:     c.XchangeMultiPattern(),
-	}
+	result, _ := pb.ToContest(c.data.Contest)
+	return result
 }
 
 func (c *LoadedConfiguration) Cabrillo() core.Cabrillo {
@@ -196,38 +132,8 @@ func (c *LoadedConfiguration) Cabrillo() core.Cabrillo {
 	}
 }
 
-func (c *LoadedConfiguration) MyCall() callsign.Callsign {
-	myCall, _ := callsign.Parse(c.data.MyCall)
-	return myCall
-}
-
-func (c *LoadedConfiguration) MyLocator() locator.Locator {
-	myLocator, _ := locator.Parse(c.data.MyLocator)
-	return myLocator
-}
-
-func (c *LoadedConfiguration) EnterTheirNumber() bool {
-	return c.data.EnterTheirNumber
-}
-
-func (c *LoadedConfiguration) EnterTheirXchange() bool {
-	return c.data.EnterTheirXchange
-}
-
-func (c *LoadedConfiguration) RequireTheirXchange() bool {
-	return c.data.RequireTheirXchange
-}
-
 func (c *LoadedConfiguration) CabrilloQSOTemplate() string {
 	return c.data.CabrilloQSOTemplate
-}
-
-func (c *LoadedConfiguration) AllowMultiBand() bool {
-	return c.data.AllowMultiBand
-}
-
-func (c *LoadedConfiguration) AllowMultiMode() bool {
-	return c.data.AllowMultiMode
 }
 
 func (c *LoadedConfiguration) KeyerHost() string {
@@ -238,188 +144,6 @@ func (c *LoadedConfiguration) KeyerPort() int {
 	return c.data.KeyerPort
 }
 
-func (c *LoadedConfiguration) KeyerWPM() int {
-	return c.data.KeyerWPM
-}
-
-func (c *LoadedConfiguration) KeyerSPMacros() []string {
-	if c.data.KeyerSPMacros == nil {
-		return []string{}
-	}
-	return c.data.KeyerSPMacros
-}
-
-func (c *LoadedConfiguration) KeyerRunMacros() []string {
-	if c.data.KeyerRunMacros == nil {
-		return []string{}
-	}
-	return c.data.KeyerRunMacros
-}
-
 func (c *LoadedConfiguration) HamlibAddress() string {
 	return c.data.HamlibAddress
-}
-
-func (c *LoadedConfiguration) CountPerBand() bool {
-	return c.data.Score.CountPerBand
-}
-
-func (c *LoadedConfiguration) SameCountryPoints() int {
-	return c.data.Score.SameCountryPoints
-}
-
-func (c *LoadedConfiguration) SameContinentPoints() int {
-	return c.data.Score.SameContinentPoints
-}
-
-func (c *LoadedConfiguration) OtherPoints() int {
-	return c.data.Score.OtherPoints
-}
-
-func (c *LoadedConfiguration) SpecificCountryPoints() int {
-	return c.data.Score.SpecificCountryPoints
-}
-
-func (c *LoadedConfiguration) SpecificCountryPrefixes() []string {
-	return c.data.Score.SpecificCountryPrefixes
-}
-
-func (c *LoadedConfiguration) Multis() []string {
-	return c.data.Score.Multis
-}
-
-func (c *LoadedConfiguration) XchangeMultiPattern() string {
-	return c.data.Score.XchangeMultiPattern
-}
-
-type StaticConfiguration struct {
-	myCall    callsign.Callsign
-	myLocator locator.Locator
-}
-
-func (c *StaticConfiguration) Station() core.Station {
-	return core.Station{
-		Callsign: c.MyCall(),
-	}
-}
-
-func (c *StaticConfiguration) Keyer() core.Keyer {
-	return core.Keyer{
-		SPMacros:  c.KeyerSPMacros(),
-		RunMacros: c.KeyerRunMacros(),
-		WPM:       c.KeyerWPM(),
-	}
-}
-
-func (c *StaticConfiguration) Contest() core.Contest {
-	return core.Contest{
-		Name:                    "Default",
-		EnterTheirNumber:        c.EnterTheirNumber(),
-		EnterTheirXchange:       c.EnterTheirXchange(),
-		RequireTheirXchange:     c.RequireTheirXchange(),
-		AllowMultiBand:          c.AllowMultiBand(),
-		AllowMultiMode:          c.AllowMultiMode(),
-		CountPerBand:            c.CountPerBand(),
-		SameCountryPoints:       c.SameCountryPoints(),
-		SameContinentPoints:     c.SameContinentPoints(),
-		OtherPoints:             c.OtherPoints(),
-		SpecificCountryPoints:   c.SpecificCountryPoints(),
-		SpecificCountryPrefixes: c.SpecificCountryPrefixes(),
-		Multis:                  stringsToMultis(c.Multis()),
-		XchangeMultiPattern:     c.XchangeMultiPattern(),
-	}
-}
-
-func (c *StaticConfiguration) Cabrillo() core.Cabrillo {
-	return core.Cabrillo{
-		QSOTemplate: c.CabrilloQSOTemplate(),
-	}
-}
-
-func (c *StaticConfiguration) MyCall() callsign.Callsign {
-	return c.myCall
-}
-
-func (c *StaticConfiguration) MyLocator() locator.Locator {
-	return c.myLocator
-}
-
-func (c *StaticConfiguration) EnterTheirNumber() bool {
-	return true
-}
-
-func (c *StaticConfiguration) EnterTheirXchange() bool {
-	return true
-}
-
-func (c *StaticConfiguration) RequireTheirXchange() bool {
-	return true
-}
-
-func (c *StaticConfiguration) CabrilloQSOTemplate() string {
-	return "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"
-}
-
-func (c *StaticConfiguration) AllowMultiBand() bool {
-	return false
-}
-
-func (c *StaticConfiguration) AllowMultiMode() bool {
-	return false
-}
-
-func (c *StaticConfiguration) KeyerHost() string {
-	return ""
-}
-
-func (c *StaticConfiguration) KeyerPort() int {
-	return 0
-}
-
-func (c *StaticConfiguration) KeyerWPM() int {
-	return 25
-}
-
-func (c *StaticConfiguration) KeyerSPMacros() []string {
-	return []string{}
-}
-
-func (c *StaticConfiguration) KeyerRunMacros() []string {
-	return []string{}
-}
-
-func (c *StaticConfiguration) HamlibAddress() string {
-	return ""
-}
-
-func (c *StaticConfiguration) CountPerBand() bool {
-	return true
-}
-
-func (c *StaticConfiguration) SameCountryPoints() int {
-	return 1
-}
-
-func (c *StaticConfiguration) SameContinentPoints() int {
-	return 3
-}
-
-func (c *StaticConfiguration) OtherPoints() int {
-	return 5
-}
-
-func (c *StaticConfiguration) SpecificCountryPoints() int {
-	return 0
-}
-
-func (c *StaticConfiguration) SpecificCountryPrefixes() []string {
-	return []string{}
-}
-
-func (c *StaticConfiguration) Multis() []string {
-	return []string{}
-}
-
-func (c *StaticConfiguration) XchangeMultiPattern() string {
-	return ""
 }

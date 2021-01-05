@@ -74,6 +74,14 @@ type Counter struct {
 	overallMultis *multis
 }
 
+func (c *Counter) Result() int {
+	if c.countPerBand {
+		return c.TotalScore.Result()
+	} else {
+		return c.OverallScore.Result()
+	}
+}
+
 func (c *Counter) SetView(view View) {
 	if view == nil {
 		c.view = new(nullView)

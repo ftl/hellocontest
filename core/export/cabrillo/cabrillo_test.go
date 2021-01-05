@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hamradio/locator"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 func TestQsoLine(t *testing.T) {
@@ -66,7 +68,11 @@ func TestQsoLine(t *testing.T) {
 func TestExport(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte{})
 	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.TheirCall}} {{.TheirReport}} {{.TheirXchange}}"))
-	myCall, _ := callsign.Parse("AA1ZZZ")
+	settings := &testSettings{
+		stationCallsign: "AA1ZZZ",
+		stationOperator: "AA2ZZZ",
+		stationLocator:  "AA00AA",
+	}
 	theirCall, _ := callsign.Parse("S50A")
 	qso := core.QSO{
 		Callsign:     theirCall,
@@ -83,12 +89,44 @@ func TestExport(t *testing.T) {
 
 	expected := `START-OF-LOG: 3.0
 CREATED-BY: Hello Contest
+CONTEST: 
 CALLSIGN: AA1ZZZ
+OPERATORS: AA2ZZZ
+GRID-LOCATOR: AA00aa
+CLAIMED-SCORE: 123
+SPECIFIC:
+CATEGORY-ASSISTED: (ASSISTED|NON-ASSISTED)
+CATEGORY-BAND: ALL
+CATEGORY-MODE: (CW|DIGI|FM|RTTY|SSB|MIXED)
+CATEGORY-OPERATOR: (SINGLE-OP|MULTI-OP|CHECKLOG)
+CATEGORY-POWER: (HIGH|LOW|QRP)
+CLUB:
+NAME:
+EMAIL:
 QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 S50A 589 DEF
 END-OF-LOG:
 `
 
-	Export(buffer, template, myCall, qso)
+	Export(buffer, template, settings, 123, qso)
 
 	assert.Equal(t, expected, buffer.String())
+}
+
+type testSettings struct {
+	stationCallsign string
+	stationOperator string
+	stationLocator  string
+}
+
+func (s *testSettings) Station() core.Station {
+	loc, _ := locator.Parse(s.stationLocator)
+	return core.Station{
+		Callsign: callsign.MustParse(s.stationCallsign),
+		Operator: callsign.MustParse(s.stationOperator),
+		Locator:  loc,
+	}
+}
+
+func (s *testSettings) Contest() core.Contest {
+	return core.Contest{}
 }

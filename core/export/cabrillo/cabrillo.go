@@ -12,11 +12,25 @@ import (
 
 // Export writes the given QSOs to the given writer in the Cabrillo format.
 // The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, t *template.Template, mycall callsign.Callsign, qsos ...core.QSO) error {
+func Export(w io.Writer, t *template.Template, settings core.Settings, claimedScore int, qsos ...core.QSO) error {
+	stationCallsign := settings.Station().Callsign
 	head := []string{
 		"START-OF-LOG: 3.0",
 		"CREATED-BY: Hello Contest",
-		fmt.Sprintf("CALLSIGN: %s", mycall),
+		fmt.Sprintf("CONTEST: %s", settings.Contest().Name),
+		fmt.Sprintf("CALLSIGN: %s", settings.Station().Callsign),
+		fmt.Sprintf("OPERATORS: %s", settings.Station().Operator),
+		fmt.Sprintf("GRID-LOCATOR: %s", settings.Station().Locator),
+		fmt.Sprintf("CLAIMED-SCORE: %d", claimedScore),
+		"SPECIFIC:",
+		"CATEGORY-ASSISTED: (ASSISTED|NON-ASSISTED)",
+		"CATEGORY-BAND: ALL",
+		"CATEGORY-MODE: (CW|DIGI|FM|RTTY|SSB|MIXED)",
+		"CATEGORY-OPERATOR: (SINGLE-OP|MULTI-OP|CHECKLOG)",
+		"CATEGORY-POWER: (HIGH|LOW|QRP)",
+		"CLUB:",
+		"NAME:",
+		"EMAIL:",
 	}
 	tail := []string{
 		"END-OF-LOG:",
@@ -29,7 +43,7 @@ func Export(w io.Writer, t *template.Template, mycall callsign.Callsign, qsos ..
 	}
 
 	for _, qso := range qsos {
-		if err := writeQSO(w, t, mycall, qso); err != nil {
+		if err := writeQSO(w, t, stationCallsign, qso); err != nil {
 			return err
 		}
 	}

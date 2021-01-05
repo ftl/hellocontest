@@ -285,7 +285,11 @@ func (c *Controller) OpenSettings() {
 }
 
 func (c *Controller) OpenDefaultConfigurationFile() {
-	cmd := exec.Command("xdg-open", cfg.AbsoluteFilename())
+	c.openTextFile(cfg.AbsoluteFilename())
+}
+
+func (c *Controller) openTextFile(filename string) {
+	cmd := exec.Command("xdg-open", filename)
 	err := cmd.Run()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open the settings file: %v", err)
@@ -410,15 +414,18 @@ func (c *Controller) ExportCabrillo() {
 		return
 	}
 	defer file.Close()
+
 	err = cabrillo.Export(
 		file,
 		template,
-		c.Settings.Station().Callsign,
+		c.Settings,
+		c.Score.Result(),
 		c.QSOList.All()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
 	}
+	c.openTextFile(filename)
 }
 
 func (c *Controller) ExportADIF() {

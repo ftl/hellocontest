@@ -20,22 +20,14 @@ func New(clock core.Clock) *Logbook {
 }
 
 // Load creates a new log and loads it with the entries from the given reader.
-func Load(clock core.Clock, reader Reader) (*Logbook, error) {
-	log.Print("Loading QSOs")
-	logbook := &Logbook{
+func Load(clock core.Clock, qsos []core.QSO) *Logbook {
+	return &Logbook{
 		clock:             clock,
 		writer:            new(nullWriter),
+		qsos:              qsos,
+		myLastNumber:      lastNumber(qsos),
 		rowAddedListeners: make([]RowAddedListener, 0),
 	}
-
-	var err error
-	logbook.qsos, err = reader.ReadAllQSOs()
-	if err != nil {
-		return nil, err
-	}
-
-	logbook.myLastNumber = lastNumber(logbook.qsos)
-	return logbook, nil
 }
 
 func lastNumber(qsos []core.QSO) int {
@@ -55,21 +47,9 @@ type Logbook struct {
 	rowAddedListeners []RowAddedListener
 }
 
-// Reader reads log entries.
-type Reader interface {
-	ReadAllQSOs() ([]core.QSO, error)
-}
-
 // Writer writes log entries.
 type Writer interface {
 	WriteQSO(core.QSO) error
-}
-
-// Store allows to read and write log entries.
-type Store interface {
-	Reader
-	Writer
-	Clear() error
 }
 
 // RowAddedListener is notified when a new row is added to the log.

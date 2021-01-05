@@ -6,10 +6,12 @@ import (
 	"encoding/binary"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/locator"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/runtime/protoiface"
 
@@ -22,9 +24,11 @@ type latestFormat = v1Format
 
 // NewFileStore returns a new file based Store.
 func NewFileStore(filename string) *FileStore {
+	format := formatFromFile(filename)
+	log.Printf("Using %T for %s", format, filename)
 	return &FileStore{
 		filename: filename,
-		format:   formatFromFile(filename),
+		format:   format,
 	}
 }
 
@@ -33,10 +37,18 @@ type FileStore struct {
 	format   fileFormat
 }
 
-func (f *FileStore) ReadAll() ([]core.QSO, core.Station, core.Contest, error) {
+func (f *FileStore) Exists() bool {
+	_, err := os.Stat(f.filename)
+	if err != nil {
+		return !os.IsNotExist(err)
+	}
+	return true
+}
+
+func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, error) {
 	b, err := ioutil.ReadFile(f.filename)
 	if err != nil {
-		return []core.QSO{}, core.Station{}, core.Contest{}, err
+		return nil, nil, nil, err
 	}
 
 	reader := bytes.NewReader(b)
@@ -58,6 +70,26 @@ func (f *FileStore) WriteQSO(qso core.QSO) error {
 	defer file.Close()
 
 	return f.format.WriteQSO(&pbReadWriter{writer: file}, qso)
+}
+
+func (f *FileStore) WriteStation(station core.Station) error {
+	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return f.format.WriteStation(&pbReadWriter{writer: file}, station)
+}
+
+func (f *FileStore) WriteContest(contest core.Contest) error {
+	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return f.format.WriteContest(&pbReadWriter{writer: file}, contest)
 }
 
 func (f *FileStore) Clear() error {
@@ -118,6 +150,81 @@ func qsoToPB(qso core.QSO) pb.QSO {
 		TheirNumber:  int32(qso.TheirNumber),
 		TheirXchange: qso.TheirXchange,
 		LogTimestamp: qso.LogTimestamp.Unix(),
+	}
+}
+
+func pbToStation(pbStation pb.Station) (core.Station, error) {
+	var station core.Station
+	var err error
+	station.Callsign, err = callsign.Parse(pbStation.Callsign)
+	if err != nil {
+		log.Printf("Cannot parse station callsign: %v", err)
+		station.Callsign = callsign.Callsign{}
+	}
+	station.Operator, err = callsign.Parse(pbStation.Operator)
+	if err != nil {
+		log.Printf("Cannot parse station operator: %v", err)
+		station.Operator = callsign.Callsign{}
+	}
+	station.Locator, err = locator.Parse(pbStation.Locator)
+	if err != nil {
+		log.Printf("Cannot parse station locator: %v", err)
+		station.Locator = locator.Locator{}
+	}
+	return station, nil
+}
+
+func stationToPB(station core.Station) pb.Station {
+	return pb.Station{
+		Callsign: station.Callsign.String(),
+		Operator: station.Operator.String(),
+		Locator:  station.Locator.String(),
+	}
+}
+
+func pbToContest(pbContest pb.Contest) (core.Contest, error) {
+	var contest core.Contest
+	contest.Name = pbContest.Name
+	contest.EnterTheirNumber = pbContest.EnterTheirNumber
+	contest.EnterTheirXchange = pbContest.EnterTheirXchange
+	contest.RequireTheirXchange = pbContest.RequireTheirXchange
+	contest.AllowMultiBand = pbContest.AllowMultiBand
+	contest.AllowMultiMode = pbContest.AllowMultiMode
+	contest.SameCountryPoints = int(pbContest.SameCountryPoints)
+	contest.SameContinentPoints = int(pbContest.SameContinentPoints)
+	contest.SpecificCountryPoints = int(pbContest.SpecificCountryPoints)
+	contest.SpecificCountryPrefixes = pbContest.SpecificCountryPrefixes
+	contest.OtherPoints = int(pbContest.OtherPoints)
+	contest.Multis = core.Multis{
+		DXCC:    pbContest.Multis.Dxcc,
+		WPX:     pbContest.Multis.Wpx,
+		Xchange: pbContest.Multis.Xchange,
+	}
+	contest.XchangeMultiPattern = pbContest.XchangeMultiPattern
+	contest.CountPerBand = pbContest.CountPerBand
+	return contest, nil
+}
+
+func contestToPB(contest core.Contest) pb.Contest {
+	return pb.Contest{
+		Name:                    contest.Name,
+		EnterTheirNumber:        contest.EnterTheirNumber,
+		EnterTheirXchange:       contest.EnterTheirXchange,
+		RequireTheirXchange:     contest.RequireTheirXchange,
+		AllowMultiBand:          contest.AllowMultiBand,
+		AllowMultiMode:          contest.AllowMultiMode,
+		SameCountryPoints:       int32(contest.SameCountryPoints),
+		SameContinentPoints:     int32(contest.SameContinentPoints),
+		SpecificCountryPoints:   int32(contest.SpecificCountryPoints),
+		SpecificCountryPrefixes: contest.SpecificCountryPrefixes,
+		OtherPoints:             int32(contest.OtherPoints),
+		Multis: &pb.Multis{
+			Dxcc:    contest.Multis.DXCC,
+			Wpx:     contest.Multis.WPX,
+			Xchange: contest.Multis.Xchange,
+		},
+		XchangeMultiPattern: contest.XchangeMultiPattern,
+		CountPerBand:        contest.CountPerBand,
 	}
 }
 

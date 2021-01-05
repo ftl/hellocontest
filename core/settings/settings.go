@@ -41,6 +41,11 @@ func (f SettingsListenerFunc) SettingsChanged(settings core.Settings) {
 	f(settings)
 }
 
+type Writer interface {
+	WriteStation(core.Station) error
+	WriteContest(core.Contest) error
+}
+
 type View interface {
 	Show()
 	ShowMessage(string)
@@ -67,6 +72,7 @@ type View interface {
 
 func New(station core.Station, contest core.Contest) *Settings {
 	return &Settings{
+		writer:         new(nullWriter),
 		station:        station,
 		contest:        contest,
 		defaultStation: station,
@@ -77,7 +83,8 @@ func New(station core.Station, contest core.Contest) *Settings {
 }
 
 type Settings struct {
-	view View
+	writer Writer
+	view   View
 
 	listeners []interface{}
 
@@ -89,6 +96,14 @@ type Settings struct {
 
 	savedStation core.Station
 	savedContest core.Contest
+}
+
+func (s *Settings) SetWriter(writer Writer) {
+	if writer == nil {
+		s.writer = new(nullWriter)
+		return
+	}
+	s.writer = writer
 }
 
 func (s *Settings) SetView(view View) {
@@ -191,13 +206,13 @@ func (s *Settings) Save() {
 		modified = true
 		s.emitStationChanged()
 		s.savedStation = s.station
-		// TODO write s.savedStation to store
+		s.writer.WriteStation(s.savedStation)
 	}
 	if s.ContestDirty() {
 		modified = true
 		s.emitContestChanged()
 		s.savedContest = s.contest
-		// TODO write s.savedContest to store
+		s.writer.WriteContest(s.savedContest)
 	}
 	if modified {
 		s.emitSettingsChanged()
@@ -337,6 +352,11 @@ func (s *Settings) EnterContestXchangeMultiPattern(value string) {
 func (s *Settings) EnterContestCountPerBand(value bool) {
 	s.contest.CountPerBand = value
 }
+
+type nullWriter struct{}
+
+func (w *nullWriter) WriteStation(core.Station) error { return nil }
+func (w *nullWriter) WriteContest(core.Contest) error { return nil }
 
 type nullView struct{}
 

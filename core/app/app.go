@@ -3,15 +3,15 @@ package app
 import (
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"text/template"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/cwclient"
-	"github.com/ftl/hamradio/locator"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callinfo"
+	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/adif"
@@ -82,19 +82,11 @@ type View interface {
 // Configuration provides read access to the configuration data.
 type Configuration interface {
 	Station() core.Station
-	Keyer() core.Keyer
 	Contest() core.Contest
+	Keyer() core.Keyer
 	Cabrillo() core.Cabrillo
 
-	MyCall() callsign.Callsign
-	MyLocator() locator.Locator
-
-	EnterTheirNumber() bool
-	EnterTheirXchange() bool
-	RequireTheirXchange() bool
 	CabrilloQSOTemplate() string
-	AllowMultiBand() bool
-	AllowMultiMode() bool
 
 	KeyerHost() string
 	KeyerPort() int
@@ -116,9 +108,6 @@ func (c *Controller) SetView(view View) {
 }
 
 func (c *Controller) Startup() {
-	var err error
-	filename := "current.log"
-
 	c.Settings = settings.New(
 		c.configuration.Station(),
 		c.configuration.Contest(),
@@ -207,13 +196,50 @@ func (c *Controller) Startup() {
 	c.Entry.StartAutoRefresh()
 	c.Rate.StartAutoRefresh()
 
-	store := store.NewFileStore(filename)
-	newLogbook, err := logbook.Load(c.clock, store)
+	err := c.openCurrentLog()
 	if err != nil {
-		log.Println(err)
+		c.Quit()
+	}
+}
+
+func (c *Controller) openCurrentLog() error {
+	filename := "current.log"
+	store := store.NewFileStore(filename)
+	if !store.Exists() {
+		err := store.Clear()
+		if err != nil {
+			log.Printf("Cannot create %s: %v", filepath.Base(filename), err)
+			return err
+		}
+		err = store.WriteStation(c.Settings.Station())
+		if err != nil {
+			log.Printf("Cannot write station settings to %s: %v", filepath.Base(filename), err)
+			return err
+		}
+		err = store.WriteContest(c.Settings.Contest())
+		if err != nil {
+			log.Printf("Cannot write contest settings to %s: %v", filepath.Base(filename), err)
+			return err
+		}
+	}
+
+	var newLogbook *logbook.Logbook
+	qsos, station, contest, err := store.ReadAll()
+	if err != nil {
+		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
 		newLogbook = logbook.New(c.clock)
+	} else {
+		c.Settings.SetWriter(store)
+		if station != nil {
+			c.Settings.SetStation(*station)
+		}
+		if contest != nil {
+			c.Settings.SetContest(*contest)
+		}
+		newLogbook = logbook.Load(c.clock, qsos)
 	}
 	c.changeLogbook(filename, store, newLogbook)
+	return nil
 }
 
 func (c *Controller) fillQSO(qso *core.QSO) {
@@ -253,12 +279,15 @@ func (c *Controller) About() {
 }
 
 func (c *Controller) OpenSettings() {
-	// cmd := exec.Command("xdg-open", cfg.AbsoluteFilename())
-	// err := cmd.Run()
-	// if err != nil {
-	// 	c.view.ShowErrorDialog("Cannot open the settings file: %v", err)
-	// }
 	c.Settings.Show()
+}
+
+func (c *Controller) OpenDefaultConfigurationFile() {
+	cmd := exec.Command("xdg-open", cfg.AbsoluteFilename())
+	err := cmd.Run()
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot open the settings file: %v", err)
+	}
 }
 
 func (c *Controller) Quit() {
@@ -281,8 +310,11 @@ func (c *Controller) New() {
 		return
 	}
 
+	c.Settings.SetWriter(store)
 	c.changeLogbook(filename, store, logbook.New(c.clock))
 	c.Refresh()
+
+	c.OpenSettings()
 }
 
 func (c *Controller) Open() {
@@ -296,12 +328,20 @@ func (c *Controller) Open() {
 	}
 
 	store := store.NewFileStore(filename)
-	log, err := logbook.Load(c.clock, store)
+	qsos, station, contest, err := store.ReadAll()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open %s: %v", filepath.Base(filename), err)
 		return
 	}
 
+	c.Settings.SetWriter(store)
+	if station != nil {
+		c.Settings.SetStation(*station)
+	}
+	if contest != nil {
+		c.Settings.SetContest(*contest)
+	}
+	log := logbook.Load(c.clock, qsos)
 	c.changeLogbook(filename, store, log)
 	c.Refresh()
 }
@@ -322,6 +362,16 @@ func (c *Controller) SaveAs() {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
 		return
 	}
+	err = store.WriteStation(c.Settings.Station())
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		return
+	}
+	err = store.WriteContest(c.Settings.Contest())
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		return
+	}
 	err = c.Logbook.WriteAll(store)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
@@ -330,6 +380,7 @@ func (c *Controller) SaveAs() {
 
 	c.filename = filename
 	c.store = store
+	c.Settings.SetWriter(store)
 	c.Logbook.SetWriter(store)
 
 	c.view.ShowFilename(c.filename)

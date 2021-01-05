@@ -21,13 +21,11 @@ func TestNew(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	reader := new(mocked.Reader)
-	reader.On("ReadAllQSOs").Return([]core.QSO{
+	qsos := []core.QSO{
 		{MyNumber: 123},
-	}, nil)
+	}
 
-	logbook, err := Load(clock.New(), reader)
-	require.NoError(t, err)
+	logbook := Load(clock.New(), qsos)
 
 	assert.Equal(t, core.QSONumber(124), logbook.NextNumber())
 }

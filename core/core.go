@@ -176,6 +176,8 @@ type Contest struct {
 	Multis              Multis
 	XchangeMultiPattern string
 	CountPerBand        bool
+
+	CabrilloQSOTemplate string
 }
 
 type Multis struct {
@@ -188,11 +190,6 @@ type Keyer struct {
 	SPMacros  []string
 	RunMacros []string
 	WPM       int
-}
-
-type Cabrillo struct {
-	Headers     []string
-	QSOTemplate string
 }
 
 type Score struct {

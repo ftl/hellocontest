@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
@@ -74,6 +75,7 @@ type View interface {
 	SetContestXchangeMultiPattern(string)
 	SetContestXchangeMultiPatternResult(string)
 	SetContestCountPerBand(bool)
+	SetContestCabrilloQSOTemplate(string)
 }
 
 func New(defaultsOpener DefaultsOpener, xchangeRegexpMatcher XchangeRegexpMatcher, station core.Station, contest core.Contest) *Settings {
@@ -209,6 +211,7 @@ func (s *Settings) showSettings() {
 	s.view.SetContestMultis(s.contest.Multis.DXCC, s.contest.Multis.WPX, s.contest.Multis.Xchange)
 	s.view.SetContestXchangeMultiPattern(s.contest.XchangeMultiPattern)
 	s.view.SetContestCountPerBand(s.contest.CountPerBand)
+	s.view.SetContestCabrilloQSOTemplate(s.contest.CabrilloQSOTemplate)
 	s.updateXchangeMultiPatternResult()
 }
 
@@ -408,6 +411,16 @@ func (s *Settings) EnterContestCountPerBand(value bool) {
 	s.contest.CountPerBand = value
 }
 
+func (s *Settings) EnterContestCabrilloQSOTemplate(value string) {
+	_, err := template.New("").Parse(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	s.view.HideMessage()
+	s.contest.CabrilloQSOTemplate = value
+}
+
 type nullWriter struct{}
 
 func (w *nullWriter) WriteStation(core.Station) error { return nil }
@@ -436,3 +449,4 @@ func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool)   {}
 func (v *nullView) SetContestXchangeMultiPattern(string)       {}
 func (v *nullView) SetContestXchangeMultiPatternResult(string) {}
 func (v *nullView) SetContestCountPerBand(bool)                {}
+func (v *nullView) SetContestCabrilloQSOTemplate(string)       {}

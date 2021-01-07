@@ -84,9 +84,7 @@ type Configuration interface {
 	Station() core.Station
 	Contest() core.Contest
 	Keyer() core.Keyer
-	Cabrillo() core.Cabrillo
 
-	CabrilloQSOTemplate() string
 	KeyerHost() string
 	KeyerPort() int
 	HamlibAddress() string
@@ -430,7 +428,7 @@ func (c *Controller) ExportCabrillo() {
 		return
 	}
 
-	template, err := template.New("").Parse(c.configuration.CabrilloQSOTemplate())
+	template, err := template.New("").Parse(c.Settings.Contest().CabrilloQSOTemplate)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot parse the QSO template: %v", err)
 		return

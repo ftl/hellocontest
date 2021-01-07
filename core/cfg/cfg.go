@@ -38,6 +38,7 @@ var Default = Data{
 		},
 		XchangeMultiPattern: "\\d+",
 		CountPerBand:        true,
+		CabrilloQsoTemplate: "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}",
 	},
 	Keyer: pb.Keyer{
 		Wpm: 25,
@@ -54,10 +55,9 @@ var Default = Data{
 			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
 		},
 	},
-	CabrilloQSOTemplate: "{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}",
-	HamlibAddress:       "localhost:4532",
-	KeyerHost:           "localhost",
-	KeyerPort:           6789,
+	HamlibAddress: "localhost:4532",
+	KeyerHost:     "localhost",
+	KeyerPort:     6789,
 }
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadJSON()).
@@ -94,13 +94,12 @@ func AbsoluteFilename() string {
 }
 
 type Data struct {
-	Station             pb.Station
-	Contest             pb.Contest
-	Keyer               pb.Keyer
-	CabrilloQSOTemplate string `json:"cabrillo_qso"`
-	KeyerHost           string `json:"keyer_host"`
-	KeyerPort           int    `json:"keyer_port"`
-	HamlibAddress       string `json:"hamlib_address"`
+	Station       pb.Station
+	Contest       pb.Contest
+	Keyer         pb.Keyer
+	KeyerHost     string `json:"keyer_host"`
+	KeyerPort     int    `json:"keyer_port"`
+	HamlibAddress string `json:"hamlib_address"`
 }
 
 type LoadedConfiguration struct {
@@ -124,16 +123,6 @@ func (c *LoadedConfiguration) Keyer() core.Keyer {
 func (c *LoadedConfiguration) Contest() core.Contest {
 	result, _ := pb.ToContest(c.data.Contest)
 	return result
-}
-
-func (c *LoadedConfiguration) Cabrillo() core.Cabrillo {
-	return core.Cabrillo{
-		QSOTemplate: c.CabrilloQSOTemplate(),
-	}
-}
-
-func (c *LoadedConfiguration) CabrilloQSOTemplate() string {
-	return c.data.CabrilloQSOTemplate
 }
 
 func (c *LoadedConfiguration) KeyerHost() string {

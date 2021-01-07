@@ -51,6 +51,7 @@ message Contest {
     Multis multis = 12;
     string xchange_multi_pattern = 13;
     bool count_per_band = 14;
+    string cabrillo_qso_template = 15;
 }
 
 message Multis {

@@ -29,6 +29,7 @@ type SettingsController interface {
 	EnterContestXchangeMultiPattern(string)
 	EnterContestTestXchangeValue(string)
 	EnterContestCountPerBand(bool)
+	EnterContestCabrilloQSOTemplate(string)
 }
 
 type fieldID string
@@ -54,6 +55,7 @@ const (
 	contestXchangeMultiPattern     fieldID = "contestXchangeMultiPattern"
 	contestTestXchangeMultiPattern fieldID = "contestTestXchangeMultiPattern"
 	contestCountPerBand            fieldID = "contestCountPerBand"
+	contestCabrilloQSOTemplate     fieldID = "contestCabrilloQSOTemplate"
 )
 
 type settingsView struct {
@@ -105,6 +107,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, contestXchangeMultiPattern)
 	result.addEntry(builder, contestTestXchangeMultiPattern)
 	result.addCheckButton(builder, contestCountPerBand)
+	result.addEntry(builder, contestCabrilloQSOTemplate)
 
 	result.parent.Connect("destroy", result.onDestroy)
 
@@ -196,6 +199,8 @@ func (v *settingsView) onFieldChanged(w interface{}) bool {
 		v.controller.EnterContestTestXchangeValue(value.(string))
 	case contestCountPerBand:
 		v.controller.EnterContestCountPerBand(value.(bool))
+	case contestCabrilloQSOTemplate:
+		v.controller.EnterContestCabrilloQSOTemplate(value.(string))
 	default:
 		log.Printf("enter unknown field %s: %v", field, value)
 	}
@@ -325,4 +330,8 @@ func (v *settingsView) SetContestXchangeMultiPatternResult(value string) {
 
 func (v *settingsView) SetContestCountPerBand(value bool) {
 	v.setCheckButtonField(contestCountPerBand, value)
+}
+
+func (v *settingsView) SetContestCabrilloQSOTemplate(value string) {
+	v.setEntryField(contestCabrilloQSOTemplate, value)
 }

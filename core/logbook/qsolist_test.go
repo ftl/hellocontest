@@ -451,13 +451,9 @@ func (c *testSettings) Station() core.Station {
 	return core.Station{}
 }
 
-func (c *testSettings) Keyer() core.Keyer { return core.Keyer{} }
-
 func (c *testSettings) Contest() core.Contest {
 	return core.Contest{
 		AllowMultiBand: c.allowMultiBand,
 		AllowMultiMode: c.allowMultiMode,
 	}
 }
-
-func (c *testSettings) Cabrillo() core.Cabrillo { return core.Cabrillo{} }

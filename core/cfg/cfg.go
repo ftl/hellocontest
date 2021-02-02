@@ -55,6 +55,7 @@ var Default = Data{
 			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
 		},
 	},
+	TCIAddress:    "localhost:40001",
 	HamlibAddress: "localhost:4532",
 	KeyerHost:     "localhost",
 	KeyerPort:     6789,
@@ -100,6 +101,7 @@ type Data struct {
 	KeyerHost     string `json:"keyer_host"`
 	KeyerPort     int    `json:"keyer_port"`
 	HamlibAddress string `json:"hamlib_address"`
+	TCIAddress    string `json:"tci_address"`
 }
 
 type LoadedConfiguration struct {
@@ -135,4 +137,8 @@ func (c *LoadedConfiguration) KeyerPort() int {
 
 func (c *LoadedConfiguration) HamlibAddress() string {
 	return c.data.HamlibAddress
+}
+
+func (c *LoadedConfiguration) TCIAddress() string {
+	return c.data.TCIAddress
 }

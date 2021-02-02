@@ -324,6 +324,7 @@ type Service int
 
 const (
 	NoService Service = iota
+	TCIService
 	HamlibService
 	CWDaemonService
 	DXCCService

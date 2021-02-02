@@ -60,6 +60,9 @@ func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode cor
 	}
 	result.setWorkmode(workmode)
 	result.SetKeyer(keyer)
+	if result.client == nil {
+		result.client = new(nullClient)
+	}
 	return result
 }
 
@@ -335,3 +338,11 @@ func noValues() core.KeyerValues {
 type nullWriter struct{}
 
 func (w *nullWriter) WriteKeyer(core.Keyer) error { return nil }
+
+type nullClient struct{}
+
+func (*nullClient) Connect() error    { return nil }
+func (*nullClient) IsConnected() bool { return true }
+func (*nullClient) Speed(int)         {}
+func (*nullClient) Send(text string)  {}
+func (*nullClient) Abort()            {}

@@ -126,6 +126,10 @@ func (c *Client) connect(whenClosed func()) error {
 	return nil
 }
 
+func (c *Client) Disconnect() {
+	c.conn.Close()
+}
+
 func (c *Client) Active() bool {
 	return c.connected
 }

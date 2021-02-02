@@ -4,9 +4,9 @@ A simple HF contest log for Linux, written in Go using [gotk3](https://github.co
 * Calculate points, multis, and score per band and overall. The calculation rules can be changed in the configuration file.
 * Export the logbook in the [Cabrillo](https://wwrof.org/cabrillo/) or [ADIF](http://adif.org) format.
 * Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases.
-* Use the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
+* Use the [TCI protocol](https://github.com/maksimus1210/TCI) or the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
 * Define different macros for running and search&pounce working mode.
-* Connect to your transceiver through [hamlib](https://github.com/Hamlib/Hamlib) to keep the band and mode information in sync.
+* Connect to your transceiver through the [TCI protocol](https://github.com/maksimus1210/TCI) or the [Hamlib network protocol](https://github.com/Hamlib/Hamlib) to keep the band and mode information in sync.
 
 I use this little project mainly as training ground to learn how to develop a desktop application in Go and to improve my Go-Fu.
 
@@ -39,10 +39,7 @@ The UI is defined using a Glade file. This file is integrated into the executabl
 go generate ./ui/glade
 ```
 
-This wil generate the related Go-code into the package `ui/glade`.
-
-## Disclaimer
-I develop this software for myself and just for fun in my free time. If you find it useful, I'm happy to hear about that. If you have trouble using it, you have all the source code to fix the problem yourself (although pull requests are welcome). 
+This will generate the related Go-code into the package `ui/glade`.
 
 ## License
 This software is published under the [MIT License](https://www.tldrlegal.com/l/mit).

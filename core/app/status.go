@@ -4,15 +4,17 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func newServiceStatus() *ServiceStatus {
+func newServiceStatus(asyncRunner core.AsyncRunner) *ServiceStatus {
 	return &ServiceStatus{
-		status: make(map[core.Service]bool),
+		asyncRunner: asyncRunner,
+		status:      make(map[core.Service]bool),
 	}
 }
 
 type ServiceStatus struct {
-	status    map[core.Service]bool
-	listeners []interface{}
+	asyncRunner core.AsyncRunner
+	status      map[core.Service]bool
+	listeners   []interface{}
 }
 
 func (s *ServiceStatus) Notify(listener interface{}) {
@@ -28,7 +30,9 @@ func (s *ServiceStatus) StatusChanged(service core.Service, available bool) {
 	s.status[service] = available
 	for _, listener := range s.listeners {
 		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
-			serviceStatusListener.StatusChanged(service, available)
+			s.asyncRunner(func() {
+				serviceStatusListener.StatusChanged(service, available)
+			})
 		}
 	}
 }

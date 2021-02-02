@@ -1675,24 +1675,13 @@
             <property name="margin_bottom">5</property>
             <property name="column_spacing">15</property>
             <child>
-              <object class="GtkLabel" id="hamlibStatusLabel">
+              <object class="GtkLabel" id="scpStatusLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Hamlib</property>
+                <property name="label" translatable="yes">SCP</property>
               </object>
               <packing>
-                <property name="left_attach">0</property>
-                <property name="top_attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="cwStatusLabel">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">CW</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
+                <property name="left_attach">4</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
@@ -1703,18 +1692,40 @@
                 <property name="label" translatable="yes">DXCC</property>
               </object>
               <packing>
+                <property name="left_attach">3</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="cwStatusLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">CW</property>
+              </object>
+              <packing>
                 <property name="left_attach">2</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="scpStatusLabel">
+              <object class="GtkLabel" id="hamlibStatusLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">SCP</property>
+                <property name="label" translatable="yes">Hamlib</property>
               </object>
               <packing>
-                <property name="left_attach">3</property>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="tciStatusLabel">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">TCI</property>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
                 <property name="top_attach">0</property>
               </packing>
             </child>

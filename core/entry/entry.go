@@ -178,6 +178,9 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 }
 
 func (c *Controller) SetVFO(vfo VFO) {
+	if vfo == nil {
+		c.vfo = new(nullVFO)
+	}
 	c.vfo = vfo
 }
 

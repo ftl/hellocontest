@@ -25,6 +25,7 @@ import (
 	"github.com/ftl/hellocontest/core/scp"
 	"github.com/ftl/hellocontest/core/settings"
 	"github.com/ftl/hellocontest/core/store"
+	"github.com/ftl/hellocontest/core/tci"
 	"github.com/ftl/hellocontest/core/workmode"
 )
 
@@ -50,6 +51,7 @@ type Controller struct {
 	quitter       Quitter
 	asyncRunner   core.AsyncRunner
 	store         *store.FileStore
+	tciClient     *tci.Client
 	cwclient      *cwclient.Client
 	hamlibClient  *hamlib.Client
 	dxccFinder    *dxcc.Finder
@@ -88,6 +90,7 @@ type Configuration interface {
 	KeyerHost() string
 	KeyerPort() int
 	HamlibAddress() string
+	TCIAddress() string
 }
 
 // Quitter allows to quit the application. This interface is used to call the actual application framework to quit.
@@ -108,17 +111,10 @@ func (c *Controller) Startup() {
 		c.configuration.Contest(),
 	)
 
-	c.ServiceStatus = newServiceStatus()
+	c.ServiceStatus = newServiceStatus(c.asyncRunner)
 
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
-
-	hamlibAddress := c.configuration.HamlibAddress()
-	c.hamlibClient = hamlib.New(hamlibAddress)
-	c.hamlibClient.Notify(c.ServiceStatus)
-	if hamlibAddress != "" {
-		c.hamlibClient.KeepOpen()
-	}
 
 	c.QSOList = logbook.NewQSOList(c.Settings)
 	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
@@ -130,13 +126,36 @@ func (c *Controller) Startup() {
 	)
 	c.QSOList.Notify(c.Entry)
 
-	c.Entry.SetVFO(c.hamlibClient)
-	c.hamlibClient.SetVFOController(c.Entry)
+	tciAddress := c.configuration.TCIAddress()
+	hamlibAddress := c.configuration.HamlibAddress()
+	var keyerCWClient keyer.CWClient
+	if tciAddress != "" {
+		tciClient, err := tci.NewClient(tciAddress)
+		if err != nil {
+			log.Printf("cannot open TCI connection: %v", err)
+		} else {
+			c.tciClient = tciClient
+			c.tciClient.Notify(c.ServiceStatus)
+			c.Entry.SetVFO(c.tciClient)
+			c.tciClient.SetVFOController(c.Entry)
+			keyerCWClient = c.tciClient
+		}
+	} else if hamlibAddress != "" {
+		c.hamlibClient = hamlib.New(hamlibAddress)
+		c.hamlibClient.Notify(c.ServiceStatus)
+		c.hamlibClient.KeepOpen()
+		c.Entry.SetVFO(c.hamlibClient)
+		c.hamlibClient.SetVFOController(c.Entry)
+	}
+
+	if keyerCWClient == nil {
+		c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
+		keyerCWClient = c.cwclient
+	}
 
 	c.Workmode = workmode.NewController()
 
-	c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
-	c.Keyer = keyer.New(c.Settings, c.cwclient, c.configuration.Keyer(), c.Workmode.Workmode())
+	c.Keyer = keyer.New(c.Settings, keyerCWClient, c.configuration.Keyer(), c.Workmode.Workmode())
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Workmode.Notify(c.Keyer)
@@ -178,13 +197,11 @@ func (c *Controller) Startup() {
 				c.Score.ContestChanged(c.Settings.Contest())
 			}
 			c.Refresh()
-			c.ServiceStatus.StatusChanged(core.DXCCService, true)
 		})
+		c.ServiceStatus.StatusChanged(core.DXCCService, true)
 	})
 	c.scpFinder.WhenAvailable(func() {
-		c.asyncRunner(func() {
-			c.ServiceStatus.StatusChanged(core.SCPService, true)
-		})
+		c.ServiceStatus.StatusChanged(core.SCPService, true)
 	})
 
 	c.Entry.StartAutoRefresh()
@@ -269,12 +286,25 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 		c.OnLogbookChanged()
 	}
 
-	c.hamlibClient.Refresh()
+	if c.tciClient != nil {
+		c.tciClient.Refresh()
+	}
+	if c.hamlibClient != nil {
+		c.hamlibClient.Refresh()
+	}
 	c.Entry.Clear()
 }
 
 func (c *Controller) Shutdown() {
-	c.cwclient.Disconnect()
+	if c.tciClient != nil {
+		c.tciClient.Disconnect()
+	}
+	if c.hamlibClient != nil {
+		c.hamlibClient.Disconnect()
+	}
+	if c.cwclient != nil {
+		c.cwclient.Disconnect()
+	}
 }
 
 func (c *Controller) About() {

@@ -10,6 +10,7 @@ import (
 )
 
 type statusView struct {
+	tciLabel    *gtk.Label
 	hamlibLabel *gtk.Label
 	cwLabel     *gtk.Label
 	dxccLabel   *gtk.Label
@@ -24,11 +25,13 @@ const (
 func setupStatusView(builder *gtk.Builder) *statusView {
 	result := new(statusView)
 
+	result.tciLabel = getUI(builder, "tciStatusLabel").(*gtk.Label)
 	result.hamlibLabel = getUI(builder, "hamlibStatusLabel").(*gtk.Label)
 	result.cwLabel = getUI(builder, "cwStatusLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "dxccStatusLabel").(*gtk.Label)
 	result.scpLabel = getUI(builder, "scpStatusLabel").(*gtk.Label)
 
+	setStyledText(result.tciLabel, unavailableStyle, "TCI")
 	setStyledText(result.hamlibLabel, unavailableStyle, "Hamlib")
 	setStyledText(result.cwLabel, unavailableStyle, "CW")
 	setStyledText(result.dxccLabel, unavailableStyle, "DXCC")
@@ -56,6 +59,8 @@ func (v *statusView) StatusChanged(service core.Service, available bool) {
 
 func (v *statusView) serviceLabel(service core.Service) (*gtk.Label, string) {
 	switch service {
+	case core.TCIService:
+		return v.tciLabel, "TCI"
 	case core.HamlibService:
 		return v.hamlibLabel, "Hamlib"
 	case core.CWDaemonService:

@@ -33,13 +33,7 @@ go generate ./core/pb
 This will generate the Go code to access the binary data in the logbook files into the `core/pb` package.
 
 ### Glade
-The UI is defined using a Glade file. This file is integrated into the executable by the tool [go-bindata](https://github.com/kevinburke/go-bindata). To integrate a new version of the glade file into the executable, run
-
-```
-go generate ./ui/glade
-```
-
-This will generate the related Go-code into the package `ui/glade`.
+The UI is defined using a Glade file. This file is automatically integrated into the executable by the Go compiler, using Go's `embed` package (new in 1.16).
 
 ## License
 This software is published under the [MIT License](https://www.tldrlegal.com/l/mit).

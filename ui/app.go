@@ -129,8 +129,7 @@ func setupBuilder() *gtk.Builder {
 		log.Fatal("Cannot create builder: ", err)
 	}
 
-	// builder.AddFromFile("ui/glade/contest.glade")
-	builder.AddFromString(glade.MustAssetString("contest.glade"))
+	builder.AddFromString(glade.Assets)
 
 	return builder
 }

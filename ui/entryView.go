@@ -207,7 +207,9 @@ func (v *entryView) setTextWithoutChangeEvent(f func(string), value string) {
 }
 
 func (v *entryView) SetUTC(text string) {
-	v.utc.SetText(text)
+	runAsync(func() {
+		v.utc.SetText(text)
+	})
 }
 
 func (v *entryView) SetMyCall(text string) {
@@ -215,7 +217,9 @@ func (v *entryView) SetMyCall(text string) {
 }
 
 func (v *entryView) SetFrequency(frequency core.Frequency) {
-	v.frequency.SetText(fmt.Sprintf("%7.2f kHz", frequency/1000.0))
+	runAsync(func() {
+		v.frequency.SetText(fmt.Sprintf("%7.2f kHz", frequency/1000.0))
+	})
 }
 
 func (v *entryView) SetCallsign(text string) {
@@ -235,11 +239,15 @@ func (v *entryView) SetTheirXchange(text string) {
 }
 
 func (v *entryView) SetBand(text string) {
-	v.setTextWithoutChangeEvent(func(s string) { v.band.SetActiveID(s) }, text)
+	runAsync(func() {
+		v.setTextWithoutChangeEvent(func(s string) { v.band.SetActiveID(s) }, text)
+	})
 }
 
 func (v *entryView) SetMode(text string) {
-	v.setTextWithoutChangeEvent(func(s string) { v.mode.SetActiveID(s) }, text)
+	runAsync(func() {
+		v.setTextWithoutChangeEvent(func(s string) { v.mode.SetActiveID(s) }, text)
+	})
 }
 
 func (v *entryView) SetMyReport(text string) {

@@ -117,6 +117,10 @@ func (a *application) shutdown() {
 }
 
 func (a *application) runAsync(f func()) {
+	runAsync(f)
+}
+
+func runAsync(f func()) {
 	glib.IdleAdd(func() bool {
 		f()
 		return false

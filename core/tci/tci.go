@@ -36,7 +36,7 @@ func NewClient(address string) (*Client, error) {
 	result.trx = &trxListener{
 		client: result,
 	}
-	result.client = client.KeepOpen(host, retryInterval)
+	result.client = client.KeepOpen(host, retryInterval, false)
 	result.client.Notify(result.trx)
 
 	return result, nil
@@ -94,28 +94,28 @@ func (c *Client) Active() bool {
 
 func (c *Client) Speed(wpm int) {
 	err := c.client.SetCWMacrosSpeed(wpm)
-	if err != nil && err != client.ErrReadTimeout {
+	if err != nil {
 		log.Printf("cannot set CW speed: %v", err)
 	}
 }
 
 func (c *Client) Send(text string) {
 	err := c.client.SendCWMacro(c.trx.trx, text)
-	if err != nil && err != client.ErrReadTimeout {
+	if err != nil {
 		log.Printf("cannot send CW: %v", err)
 	}
 }
 
 func (c *Client) Abort() {
 	err := c.client.StopCW()
-	if err != nil && err != client.ErrReadTimeout {
+	if err != nil {
 		log.Printf("cannot abort CW: %v", err)
 	}
 }
 
 func (c *Client) SetFrequency(frequency core.Frequency) {
 	err := c.client.SetVFOFrequency(c.trx.trx, client.VFOA, int(frequency))
-	if err != nil && err != client.ErrReadTimeout {
+	if err != nil {
 		log.Printf("cannot set VFO frequency: %v", err)
 	}
 }
@@ -124,14 +124,14 @@ func (c *Client) SetBand(band core.Band) {
 	bandplanBand := c.bandplan[toBandplanBandName(band)]
 	frequency := findModePortionCenter(int(bandplanBand.Center()), toBandplanMode(c.trx.mode))
 	err := c.client.SetVFOFrequency(c.trx.trx, client.VFOA, frequency)
-	if err != nil && err != client.ErrReadTimeout {
+	if err != nil {
 		log.Printf("cannot switch to band %s: %v", band, err)
 	}
 }
 
 func (c *Client) SetMode(mode core.Mode) {
 	err := c.client.SetMode(c.trx.trx, toClientMode(mode))
-	if err != nil && err != client.ErrReadTimeout {
+	if err != nil {
 		log.Printf("cannot set mode: %v", err)
 	}
 }

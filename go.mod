@@ -1,6 +1,6 @@
 module github.com/ftl/hellocontest
 
-go 1.16
+go 1.17
 
 // replace github.com/ftl/gmtry => ../gmtry
 
@@ -10,12 +10,21 @@ go 1.16
 
 require (
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
-	github.com/ftl/hamradio v0.0.0-20201102205700-7193f38ca7ac
-	github.com/ftl/rigproxy v0.0.0-20200812132905-1b8d78e5c89e
-	github.com/ftl/tci v0.0.0-20210202200542-96c6741d91c2
-	github.com/golang/protobuf v1.4.2
-	github.com/gotk3/gotk3 v0.0.0-20210311170413-be85685ca6db
+	github.com/ftl/hamradio v0.0.0-20210620180211-c5cf51256994
+	github.com/ftl/rigproxy v0.0.0-20211222110853-35af91f708ae
+	github.com/ftl/tci v0.2.1
+	github.com/golang/protobuf v1.5.2
+	github.com/gotk3/gotk3 v0.6.1
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
-	google.golang.org/protobuf v1.23.0
+	google.golang.org/protobuf v1.27.1
+)
+
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/stretchr/objx v0.3.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

@@ -38,12 +38,12 @@ func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 		return
 	}
 
-	// see https://developer.gnome.org/pango/stable/pango-Markup.html for reference
+	// see https://docs.gtk.org/Pango/pango_markup.html for reference
 	attributes := make([]string, 0)
 	if duplicate {
 		attributes = append(attributes, "background='red' foreground='white'")
 	} else if worked {
-		attributes = append(attributes, "foreground='cyan'")
+		attributes = append(attributes, "foreground='orange'")
 	}
 	attributeString := strings.Join(attributes, " ")
 
@@ -108,25 +108,45 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 
 	var text string
 	for _, callsign := range callsigns {
-		// see https://developer.gnome.org/pango/stable/pango-Markup.html for reference
-		attributes := make([]string, 0)
+		// see https://docs.gtk.org/Pango/pango_markup.html for reference
+		attributes := make([]string, 0, 3)
 		switch {
 		case callsign.Duplicate:
 			attributes = append(attributes, "foreground='red'")
 		case callsign.Worked:
-			attributes = append(attributes, "foreground='cyan'")
+			attributes = append(attributes, "foreground='orange'")
 		case (callsign.Points == 0) && (callsign.Multis == 0):
 			attributes = append(attributes, "foreground='silver'")
 		}
 		if callsign.ExactMatch {
 			attributes = append(attributes, "font-weight='heavy' font-size='large'")
 		}
+		attributes = append(attributes, "background='white'")
 		attributeString := strings.Join(attributes, " ")
 
-		renderedCallsign := fmt.Sprintf("<span %s>%s</span>", attributeString, callsign.Callsign)
+		var renderedCallsign string
+		for _, part := range callsign.Match {
+			var partAttributeString string
+			var partString string
+			switch part.OP {
+			case core.Matching:
+				partAttributeString = ""
+				partString = part.S
+			case core.Insert:
+				partAttributeString = "underline='single'"
+				partString = part.S
+			case core.Delete:
+				partAttributeString = ""
+				partString = "|"
+			case core.Substitute:
+				partAttributeString = "underline='double'"
+				partString = part.S
+			}
+			renderedCallsign += fmt.Sprintf("<span %s>%s</span>", strings.Join([]string{attributeString, partAttributeString}, " "), partString)
+		}
 
 		if text != "" {
-			text += ", "
+			text += "   "
 		}
 		text += renderedCallsign
 	}

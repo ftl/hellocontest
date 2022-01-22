@@ -44,7 +44,8 @@ type DXCCFinder interface {
 
 // CallsignFinder returns a list of matching callsigns for the given partial string.
 type CallsignFinder interface {
-	Find(string) ([]string, error)
+	FindStrings(string) ([]string, error)
+	FindAnnotated(string) ([]core.AnnotatedMatch, error)
 }
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
@@ -128,7 +129,7 @@ func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode,
 
 func (c *Callinfo) showSupercheck(s string) {
 	normalizedInput := strings.TrimSpace(strings.ToUpper(s))
-	matches, err := c.callsigns.Find(s)
+	matches, err := c.callsigns.FindAnnotated(s)
 	if err != nil {
 		log.Printf("Callsign search for failed for %s: %v", s, err)
 		return
@@ -136,20 +137,22 @@ func (c *Callinfo) showSupercheck(s string) {
 
 	annotatedMatches := make([]core.AnnotatedCallsign, len(matches))
 	for i, match := range matches {
-		cs, err := callsign.Parse(match)
+		matchString := match.String()
+		cs, err := callsign.Parse(matchString)
 		if err != nil {
-			log.Printf("Supercheck match %s is not a valid callsign: %v", match, err)
+			log.Printf("Supercheck match %s is not a valid callsign: %v", matchString, err)
 			continue
 		}
-		entity, entityFound := c.entities.Find(match)
+		entity, entityFound := c.entities.Find(matchString)
 		var points, multis int
 		if entityFound {
 			points, multis = c.valuer.Value(cs, entity, c.lastBand, c.lastMode, "") // TODO predict exchange
 		}
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(cs, c.lastBand, c.lastMode)
-		exactMatch := (match == normalizedInput)
+		exactMatch := (matchString == normalizedInput)
 		annotatedMatches[i] = core.AnnotatedCallsign{
 			Callsign:   cs,
+			Match:      match,
 			Duplicate:  duplicate,
 			Worked:     len(qsos) > 0,
 			ExactMatch: exactMatch,

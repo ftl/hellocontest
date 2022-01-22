@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/ftl/hamradio/scp"
+	"github.com/ftl/hellocontest/core"
 )
 
 func New() *Finder {
@@ -41,11 +42,44 @@ func (f *Finder) WhenAvailable(callback func()) {
 	}()
 }
 
-func (f *Finder) Find(s string) ([]string, error) {
+func (f *Finder) FindStrings(s string) ([]string, error) {
 	if f.database == nil {
-		return []string{}, nil
+		return nil, nil
 	}
-	return f.database.Find(s)
+	return f.database.FindStrings(s)
+}
+
+func (f *Finder) FindAnnotated(s string) ([]core.AnnotatedMatch, error) {
+	if f.database == nil {
+		return nil, nil
+	}
+
+	annotatedMatches, err := f.database.FindAnnotated(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return annotateMatches(annotatedMatches), nil
+}
+
+func annotateMatches(annotatedMatches []scp.AnnotatedMatch) []core.AnnotatedMatch {
+	result := make([]core.AnnotatedMatch, len(annotatedMatches))
+
+	for i, annotatedMatch := range annotatedMatches {
+		result[i] = annotateMatch(annotatedMatch)
+	}
+
+	return result
+}
+
+func annotateMatch(annotatedMatch scp.AnnotatedMatch) core.AnnotatedMatch {
+	result := make(core.AnnotatedMatch, len(annotatedMatch))
+
+	for i, part := range annotatedMatch {
+		result[i] = core.MatchAnnotation{OP: core.MatchingOperation(part.OP), S: part.S}
+	}
+
+	return result
 }
 
 func setupDatabase() *scp.Database {

@@ -141,11 +141,38 @@ type KeyerValues struct {
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
 type AnnotatedCallsign struct {
 	Callsign   callsign.Callsign
+	Match      AnnotatedMatch
 	Duplicate  bool
 	Worked     bool
 	ExactMatch bool
 	Points     int
 	Multis     int
+}
+
+type MatchingOperation int
+
+const (
+	Matching MatchingOperation = iota
+	Insert
+	Delete
+	Substitute
+)
+
+type MatchAnnotation struct {
+	OP MatchingOperation
+	S  string
+}
+
+type AnnotatedMatch []MatchAnnotation
+
+func (m AnnotatedMatch) String() string {
+	var result string
+	for _, match := range m {
+		if match.OP != Delete {
+			result += match.S
+		}
+	}
+	return result
 }
 
 type Settings interface {

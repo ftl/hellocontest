@@ -577,3 +577,11 @@ func (c *Controller) SwitchToSPWorkmode() {
 func (c *Controller) SwitchToRunWorkmode() {
 	c.Workmode.SetWorkmode(core.Run)
 }
+
+func (c *Controller) Stop() {
+	c.Keyer.Stop()
+}
+
+func (c *Controller) DoubleStop() {
+	c.Entry.Clear()
+}

@@ -984,7 +984,6 @@
                         <property name="tooltip-text" translatable="yes">Clear the entry fields</property>
                         <property name="label" translatable="yes">_Clear Entry Fields</property>
                         <property name="use-underline">True</property>
-                        <accelerator key="c" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                     <child>
@@ -1622,7 +1621,6 @@
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="tooltip-text" translatable="yes">Stop the CW transmission (ESC)</property>
-                <accelerator key="Escape" signal="clicked"/>
               </object>
               <packing>
                 <property name="left-attach">0</property>

@@ -76,6 +76,7 @@ func (a *application) activate() {
 	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
 
 	a.mainWindow.SetMainMenuController(a.controller)
+	a.mainWindow.SetStopKeyController(a.controller)
 	a.mainWindow.SetLogbookController(a.controller.QSOList)
 	a.mainWindow.SetEntryController(a.controller.Entry)
 	a.mainWindow.SetWorkmodeController(a.controller.Workmode)

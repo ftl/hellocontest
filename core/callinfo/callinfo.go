@@ -65,7 +65,7 @@ type View interface {
 
 	SetCallsign(callsign string, worked, duplicate bool)
 	SetDXCC(string, string, int, int, bool)
-	SetValue(points, multis int)
+	SetValue(points, multis int, xchange string)
 	SetSupercheck(callsigns []core.AnnotatedCallsign)
 }
 
@@ -98,6 +98,9 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 		var qsos []core.QSO
 		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
 		worked = len(qsos) > 0
+		if xchange == "" {
+			xchange = c.predictXchange(call, qsos)
+		}
 	}
 	c.view.SetCallsign(call, worked, duplicate)
 	c.showDXCCAndValue(call, band, mode, xchange)
@@ -107,13 +110,13 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode, xchange string) {
 	if c.entities == nil {
 		c.view.SetDXCC("", "", 0, 0, false)
-		c.view.SetValue(0, 0)
+		c.view.SetValue(0, 0, "")
 		return
 	}
 	entity, found := c.entities.Find(call)
 	if !found {
 		c.view.SetDXCC("", "", 0, 0, false)
-		c.view.SetValue(0, 0)
+		c.view.SetValue(0, 0, "")
 		return
 	}
 	parsedCall, err := callsign.Parse(call)
@@ -124,7 +127,7 @@ func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode,
 	dxccName := fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
 	points, multis := c.valuer.Value(parsedCall, entity, band, mode, xchange)
-	c.view.SetValue(points, multis)
+	c.view.SetValue(points, multis, xchange)
 }
 
 func (c *Callinfo) showSupercheck(s string) {
@@ -143,25 +146,48 @@ func (c *Callinfo) showSupercheck(s string) {
 			log.Printf("Supercheck match %s is not a valid callsign: %v", matchString, err)
 			continue
 		}
+		exactMatch := (matchString == normalizedInput)
+
+		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(cs, c.lastBand, c.lastMode)
+		predictedXchange := c.predictXchange(matchString, qsos)
+
 		entity, entityFound := c.entities.Find(matchString)
+
 		var points, multis int
 		if entityFound {
-			points, multis = c.valuer.Value(cs, entity, c.lastBand, c.lastMode, "") // TODO predict exchange
+			points, multis = c.valuer.Value(cs, entity, c.lastBand, c.lastMode, predictedXchange)
 		}
-		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(cs, c.lastBand, c.lastMode)
-		exactMatch := (matchString == normalizedInput)
+
 		annotatedMatches[i] = core.AnnotatedCallsign{
-			Callsign:   cs,
-			Match:      match,
-			Duplicate:  duplicate,
-			Worked:     len(qsos) > 0,
-			ExactMatch: exactMatch,
-			Points:     points,
-			Multis:     multis,
+			Callsign:         cs,
+			Match:            match,
+			Duplicate:        duplicate,
+			Worked:           len(qsos) > 0,
+			ExactMatch:       exactMatch,
+			Points:           points,
+			Multis:           multis,
+			PredictedXchange: predictedXchange,
 		}
 	}
 
 	c.view.SetSupercheck(annotatedMatches)
+}
+
+func (c *Callinfo) predictXchange(call string, qsos []core.QSO) string {
+	if len(qsos) == 0 {
+		return ""
+	}
+
+	var lastXchange string
+	for _, qso := range qsos {
+		if lastXchange == "" {
+			lastXchange = qso.TheirXchange
+		} else if lastXchange != qso.TheirXchange {
+			return ""
+		}
+	}
+
+	return lastXchange
 }
 
 type nullView struct{}
@@ -170,5 +196,5 @@ func (v *nullView) Show()                                               {}
 func (v *nullView) Hide()                                               {}
 func (v *nullView) SetCallsign(callsign string, worked, duplicate bool) {}
 func (v *nullView) SetDXCC(string, string, int, int, bool)              {}
-func (v *nullView) SetValue(points, multis int)                         {}
+func (v *nullView) SetValue(int, int, string)                           {}
 func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)    {}

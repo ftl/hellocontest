@@ -11,6 +11,7 @@ import (
 
 type callinfoView struct {
 	callsignLabel   *gtk.Label
+	xchangeLabel    *gtk.Label
 	dxccLabel       *gtk.Label
 	valueLabel      *gtk.Label
 	supercheckLabel *gtk.Label
@@ -20,6 +21,7 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result := new(callinfoView)
 
 	result.callsignLabel = getUI(builder, "callsignLabel").(*gtk.Label)
+	result.xchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "dxccLabel").(*gtk.Label)
 	result.valueLabel = getUI(builder, "valueLabel").(*gtk.Label)
 	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
@@ -39,7 +41,7 @@ func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 	}
 
 	// see https://docs.gtk.org/Pango/pango_markup.html for reference
-	attributes := make([]string, 0)
+	attributes := make([]string, 0, 1)
 	if duplicate {
 		attributes = append(attributes, "background='red' foreground='white'")
 	} else if worked {
@@ -75,11 +77,12 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 	v.dxccLabel.SetMarkup(text)
 }
 
-func (v *callinfoView) SetValue(points, multis int) {
+func (v *callinfoView) SetValue(points, multis int, xchange string) {
 	if v == nil {
 		return
 	}
 
+	// see https://docs.gtk.org/Pango/pango_markup.html for reference
 	var pointsMarkup string
 	switch {
 	case points < 1:
@@ -90,15 +93,30 @@ func (v *callinfoView) SetValue(points, multis int) {
 
 	var multisMarkup string
 	switch {
-	case points < 1:
+	case multis < 1:
 		multisMarkup = "foreground='silver'"
 	case multis > 1:
 		multisMarkup = "font-weight='heavy'"
 	}
 
-	text := fmt.Sprintf("<span %s>%d points</span> / <span %s>%d multis</span>", pointsMarkup, points, multisMarkup, multis)
+	var xchangeMarkup string
+	switch {
+	case multis < 1:
+		xchangeMarkup = "foreground='silver'"
+	case multis > 1:
+		xchangeMarkup = "font-weight='heavy'"
+	}
 
-	v.valueLabel.SetMarkup(text)
+	valueText := fmt.Sprintf("<span %s>%d points</span> / <span %s>%d multis</span>", pointsMarkup, points, multisMarkup, multis)
+	v.valueLabel.SetMarkup(valueText)
+
+	if xchange == "" {
+		xchange = "-"
+	} else {
+		xchange = strings.ToUpper(strings.TrimSpace(xchange))
+	}
+	xchangeText := fmt.Sprintf("<span %s>%s</span>", xchangeMarkup, xchange)
+	v.xchangeLabel.SetMarkup(xchangeText)
 }
 
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {

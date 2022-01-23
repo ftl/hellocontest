@@ -140,13 +140,14 @@ type KeyerValues struct {
 
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
 type AnnotatedCallsign struct {
-	Callsign   callsign.Callsign
-	Match      AnnotatedMatch
-	Duplicate  bool
-	Worked     bool
-	ExactMatch bool
-	Points     int
-	Multis     int
+	Callsign         callsign.Callsign
+	Match            AnnotatedMatch
+	Duplicate        bool
+	Worked           bool
+	ExactMatch       bool
+	Points           int
+	Multis           int
+	PredictedXchange string
 }
 
 type MatchingOperation int

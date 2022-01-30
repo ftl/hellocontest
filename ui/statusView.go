@@ -10,11 +10,12 @@ import (
 )
 
 type statusView struct {
-	tciLabel    *gtk.Label
-	hamlibLabel *gtk.Label
-	cwLabel     *gtk.Label
-	dxccLabel   *gtk.Label
-	scpLabel    *gtk.Label
+	tciLabel         *gtk.Label
+	hamlibLabel      *gtk.Label
+	cwLabel          *gtk.Label
+	dxccLabel        *gtk.Label
+	scpLabel         *gtk.Label
+	callHistoryLabel *gtk.Label
 }
 
 const (
@@ -30,12 +31,14 @@ func setupStatusView(builder *gtk.Builder) *statusView {
 	result.cwLabel = getUI(builder, "cwStatusLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "dxccStatusLabel").(*gtk.Label)
 	result.scpLabel = getUI(builder, "scpStatusLabel").(*gtk.Label)
+	result.callHistoryLabel = getUI(builder, "callHistoryStatusLabel").(*gtk.Label)
 
 	setStyledText(result.tciLabel, unavailableStyle, "TCI")
 	setStyledText(result.hamlibLabel, unavailableStyle, "Hamlib")
 	setStyledText(result.cwLabel, unavailableStyle, "CW")
 	setStyledText(result.dxccLabel, unavailableStyle, "DXCC")
 	setStyledText(result.scpLabel, unavailableStyle, "SCP")
+	setStyledText(result.callHistoryLabel, unavailableStyle, "CH")
 
 	return result
 }
@@ -69,6 +72,8 @@ func (v *statusView) serviceLabel(service core.Service) (*gtk.Label, string) {
 		return v.dxccLabel, "DXCC"
 	case core.SCPService:
 		return v.scpLabel, "SCP"
+	case core.CallHistoryService:
+		return v.callHistoryLabel, "CH"
 	default:
 		return nil, ""
 	}

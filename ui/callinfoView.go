@@ -149,16 +149,16 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 			switch part.OP {
 			case core.Matching:
 				partAttributeString = ""
-				partString = part.S
+				partString = part.Value
 			case core.Insert:
 				partAttributeString = "underline='single'"
-				partString = part.S
+				partString = part.Value
 			case core.Delete:
 				partAttributeString = ""
 				partString = "|"
 			case core.Substitute:
 				partAttributeString = "underline='double'"
-				partString = part.S
+				partString = part.Value
 			}
 			renderedCallsign += fmt.Sprintf("<span %s>%s</span>", strings.Join([]string{attributeString, partAttributeString}, " "), partString)
 		}

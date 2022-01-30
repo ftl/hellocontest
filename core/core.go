@@ -160,8 +160,8 @@ const (
 )
 
 type MatchAnnotation struct {
-	OP MatchingOperation
-	S  string
+	OP    MatchingOperation
+	Value string
 }
 
 type AnnotatedMatch []MatchAnnotation
@@ -170,10 +170,14 @@ func (m AnnotatedMatch) String() string {
 	var result string
 	for _, match := range m {
 		if match.OP != Delete {
-			result += match.S
+			result += match.Value
 		}
 	}
 	return result
+}
+
+type CallHistoryEntry struct {
+	Callsign callsign.Callsign
 }
 
 type Settings interface {
@@ -206,6 +210,9 @@ type Contest struct {
 	CountPerBand        bool
 
 	CabrilloQSOTemplate string
+
+	CallHistoryFilename string
+	CallHistoryField    string
 }
 
 type Multis struct {
@@ -357,6 +364,7 @@ const (
 	CWDaemonService
 	DXCCService
 	SCPService
+	CallHistoryService
 )
 
 type ServiceStatusListener interface {

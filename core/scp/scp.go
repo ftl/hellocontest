@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/ftl/hamradio/scp"
+
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -14,6 +15,9 @@ func New() *Finder {
 
 	go func() {
 		result.database = setupDatabase()
+		if result.database == nil {
+			return
+		}
 		log.Print("Supercheck database available")
 		close(result.available)
 	}()
@@ -43,14 +47,14 @@ func (f *Finder) WhenAvailable(callback func()) {
 }
 
 func (f *Finder) FindStrings(s string) ([]string, error) {
-	if f.database == nil {
+	if !f.Available() {
 		return nil, nil
 	}
 	return f.database.FindStrings(s)
 }
 
 func (f *Finder) FindAnnotated(s string) ([]core.AnnotatedMatch, error) {
-	if f.database == nil {
+	if !f.Available() {
 		return nil, nil
 	}
 
@@ -76,7 +80,7 @@ func annotateMatch(annotatedMatch scp.AnnotatedMatch) core.AnnotatedMatch {
 	result := make(core.AnnotatedMatch, len(annotatedMatch))
 
 	for i, part := range annotatedMatch {
-		result[i] = core.MatchAnnotation{OP: core.MatchingOperation(part.OP), S: part.S}
+		result[i] = core.MatchAnnotation{OP: core.MatchingOperation(part.OP), Value: part.Value}
 	}
 
 	return result

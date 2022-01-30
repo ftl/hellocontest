@@ -111,6 +111,8 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	contest.XchangeMultiPattern = pbContest.XchangeMultiPattern
 	contest.CountPerBand = pbContest.CountPerBand
 	contest.CabrilloQSOTemplate = pbContest.CabrilloQsoTemplate
+	contest.CallHistoryFilename = pbContest.CallHistoryFilename
+	contest.CallHistoryField = pbContest.CallHistoryField
 	return contest, nil
 }
 
@@ -135,6 +137,8 @@ func ContestToPB(contest core.Contest) Contest {
 		XchangeMultiPattern: contest.XchangeMultiPattern,
 		CountPerBand:        contest.CountPerBand,
 		CabrilloQsoTemplate: contest.CabrilloQSOTemplate,
+		CallHistoryFilename: contest.CallHistoryFilename,
+		CallHistoryField:    contest.CallHistoryField,
 	}
 }
 

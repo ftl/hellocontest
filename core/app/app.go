@@ -10,6 +10,7 @@ import (
 	"github.com/ftl/hamradio/cwclient"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/callhistory"
 	"github.com/ftl/hellocontest/core/callinfo"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/dxcc"
@@ -45,17 +46,18 @@ type Controller struct {
 
 	filename string
 
-	version       string
-	clock         core.Clock
-	configuration Configuration
-	quitter       Quitter
-	asyncRunner   core.AsyncRunner
-	store         *store.FileStore
-	tciClient     *tci.Client
-	cwclient      *cwclient.Client
-	hamlibClient  *hamlib.Client
-	dxccFinder    *dxcc.Finder
-	scpFinder     *scp.Finder
+	version           string
+	clock             core.Clock
+	configuration     Configuration
+	quitter           Quitter
+	asyncRunner       core.AsyncRunner
+	store             *store.FileStore
+	tciClient         *tci.Client
+	cwclient          *cwclient.Client
+	hamlibClient      *hamlib.Client
+	dxccFinder        *dxcc.Finder
+	scpFinder         *scp.Finder
+	callHistoryFinder *callhistory.Finder
 
 	Logbook       *logbook.Logbook
 	QSOList       *logbook.QSOList
@@ -115,6 +117,7 @@ func (c *Controller) Startup() {
 
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
+	c.callHistoryFinder = callhistory.New(c.Settings, c.ServiceStatus.StatusChanged)
 
 	c.QSOList = logbook.NewQSOList(c.Settings)
 	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
@@ -178,6 +181,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Keyer)
 	c.Settings.Notify(c.QSOList)
 	c.Settings.Notify(c.Score)
+	c.Settings.Notify(c.callHistoryFinder)
 	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
 		if !c.dxccFinder.Available() {
 			return

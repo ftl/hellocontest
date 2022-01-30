@@ -1697,7 +1697,7 @@
           </packing>
         </child>
         <child>
-          <!-- n-columns=5 n-rows=3 -->
+          <!-- n-columns=6 n-rows=1 -->
           <object class="GtkGrid" id="statusGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1762,34 +1762,15 @@
               </packing>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+              <object class="GtkLabel" id="callHistoryStatusLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">CH</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">0</property>
+              </packing>
             </child>
           </object>
           <packing>

@@ -1,6 +1,7 @@
 package callhistory
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -63,33 +64,90 @@ func (f *Finder) SettingsChanged(settings core.Settings) {
 	}
 }
 
-func (f *Finder) FindEntry(s string) (core.CallHistoryEntry, bool) {
+func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 	if !f.Available() {
-		return core.CallHistoryEntry{}, false
+		return core.AnnotatedCallsign{}, false
 	}
 	searchCallsign, err := callsign.Parse(s)
 	if err != nil {
 		log.Print(err)
-		return core.CallHistoryEntry{}, false
+		return core.AnnotatedCallsign{}, false
 	}
 	searchString := searchCallsign.String()
 
-	entries, err := f.database.FindEntries(searchString)
+	entries, err := f.database.Find(searchString)
 	if err != nil {
 		log.Print(err)
-		return core.CallHistoryEntry{}, false
+		return core.AnnotatedCallsign{}, false
 	}
 
 	for _, entry := range entries {
 		if entry.Key() == searchString {
-			return core.CallHistoryEntry{
-				Callsign:         searchCallsign,
-				PredictedXchange: entry.Get(scp.FieldName(f.field)),
-			}, true
+			result, err := toAnnotatedCallsign(entry)
+			if err != nil {
+				log.Print(err)
+				return core.AnnotatedCallsign{}, false
+			}
+			result.PredictedXchange = entry.Get(scp.FieldName(f.field))
+			return result, true
 		}
 	}
 
-	return core.CallHistoryEntry{}, false
+	return core.AnnotatedCallsign{}, false
+}
+
+func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
+	if !f.Available() {
+		return nil, fmt.Errorf("the call history is currently not available")
+	}
+
+	matches, err := f.database.Find(s)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]core.AnnotatedCallsign, 0, len(matches))
+	for _, match := range matches {
+		annotatedCallsign, err := toAnnotatedCallsign(match)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		annotatedCallsign.PredictedXchange = match.Get(scp.FieldName(f.field))
+		result = append(result, annotatedCallsign)
+	}
+
+	return result, nil
+}
+
+func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
+	cs, err := callsign.Parse(match.Key())
+	if err != nil {
+		return core.AnnotatedCallsign{}, nil
+	}
+	return core.AnnotatedCallsign{
+		Callsign:   cs,
+		Assembly:   toMatchingAssembly(match),
+		Comparable: match,
+		Compare: func(a interface{}, b interface{}) bool {
+			aMatch, aOk := a.(scp.Match)
+			bMatch, bOk := b.(scp.Match)
+			if !aOk || !bOk {
+				return false
+			}
+			return aMatch.LessThan(bMatch)
+		},
+	}, nil
+}
+
+func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
+	result := make(core.MatchingAssembly, len(match.Assembly))
+
+	for i, part := range match.Assembly {
+		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
+	}
+
+	return result
 }
 
 func loadCallHistory(filename string) *scp.Database {

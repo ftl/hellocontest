@@ -135,15 +135,17 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 			attributes = append(attributes, "foreground='orange'")
 		case (callsign.Points == 0) && (callsign.Multis == 0):
 			attributes = append(attributes, "foreground='silver'")
+		case callsign.Multis > 0:
+			attributes = append(attributes, "font-weight='heavy'")
 		}
 		if callsign.ExactMatch {
-			attributes = append(attributes, "font-weight='heavy' font-size='large'")
+			attributes = append(attributes, "font-size='large'")
 		}
 		attributes = append(attributes, "background='white'")
 		attributeString := strings.Join(attributes, " ")
 
 		var renderedCallsign string
-		for _, part := range callsign.Match {
+		for _, part := range callsign.Assembly {
 			var partAttributeString string
 			var partString string
 			switch part.OP {

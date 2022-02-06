@@ -3,6 +3,7 @@ package scp
 import (
 	"log"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
@@ -53,34 +54,59 @@ func (f *Finder) FindStrings(s string) ([]string, error) {
 	return f.database.FindStrings(s)
 }
 
-func (f *Finder) FindAnnotated(s string) ([]core.AnnotatedMatch, error) {
+func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 	if !f.Available() {
 		return nil, nil
 	}
 
-	annotatedMatches, err := f.database.FindAnnotated(s)
+	matches, err := f.database.Find(s)
 	if err != nil {
 		return nil, err
 	}
 
-	return annotateMatches(annotatedMatches), nil
+	return toAnnotatedCallsigns(matches), nil
 }
 
-func annotateMatches(annotatedMatches []scp.AnnotatedMatch) []core.AnnotatedMatch {
-	result := make([]core.AnnotatedMatch, len(annotatedMatches))
+func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
+	result := make([]core.AnnotatedCallsign, 0, len(matches))
 
-	for i, annotatedMatch := range annotatedMatches {
-		result[i] = annotateMatch(annotatedMatch)
+	for _, match := range matches {
+		annotatedCallsign, err := toAnnotatedCallsign(match)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		result = append(result, annotatedCallsign)
 	}
 
 	return result
 }
 
-func annotateMatch(annotatedMatch scp.AnnotatedMatch) core.AnnotatedMatch {
-	result := make(core.AnnotatedMatch, len(annotatedMatch))
+func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
+	cs, err := callsign.Parse(match.Key())
+	if err != nil {
+		return core.AnnotatedCallsign{}, nil
+	}
+	return core.AnnotatedCallsign{
+		Callsign:   cs,
+		Assembly:   toMatchingAssembly(match),
+		Comparable: match,
+		Compare: func(a interface{}, b interface{}) bool {
+			aMatch, aOk := a.(scp.Match)
+			bMatch, bOk := b.(scp.Match)
+			if !aOk || !bOk {
+				return false
+			}
+			return aMatch.LessThan(bMatch)
+		},
+	}, nil
+}
 
-	for i, part := range annotatedMatch {
-		result[i] = core.MatchAnnotation{OP: core.MatchingOperation(part.OP), Value: part.Value}
+func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
+	result := make(core.MatchingAssembly, len(match.Assembly))
+
+	for i, part := range match.Assembly {
+		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
 	}
 
 	return result

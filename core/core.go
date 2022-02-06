@@ -141,13 +141,31 @@ type KeyerValues struct {
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
 type AnnotatedCallsign struct {
 	Callsign         callsign.Callsign
-	Match            AnnotatedMatch
+	Assembly         MatchingAssembly
 	Duplicate        bool
 	Worked           bool
 	ExactMatch       bool
 	Points           int
 	Multis           int
 	PredictedXchange string
+
+	Comparable interface{}
+	Compare    func(interface{}, interface{}) bool
+}
+
+func (c AnnotatedCallsign) LessThan(o AnnotatedCallsign) bool {
+	if c.ExactMatch && !o.ExactMatch {
+		return true
+	}
+
+	if c.Compare == nil {
+		return false
+	}
+	if c.Comparable == nil || o.Comparable == nil {
+		return false
+	}
+
+	return c.Compare(c.Comparable, o.Comparable)
 }
 
 type MatchingOperation int
@@ -159,14 +177,14 @@ const (
 	Substitute
 )
 
-type MatchAnnotation struct {
+type MatchingPart struct {
 	OP    MatchingOperation
 	Value string
 }
 
-type AnnotatedMatch []MatchAnnotation
+type MatchingAssembly []MatchingPart
 
-func (m AnnotatedMatch) String() string {
+func (m MatchingAssembly) String() string {
 	var result string
 	for _, match := range m {
 		if match.OP != Delete {
@@ -174,11 +192,6 @@ func (m AnnotatedMatch) String() string {
 		}
 	}
 	return result
-}
-
-type CallHistoryEntry struct {
-	Callsign         callsign.Callsign
-	PredictedXchange string
 }
 
 type Settings interface {

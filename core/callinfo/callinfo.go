@@ -3,6 +3,7 @@ package callinfo
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/ftl/hamradio/callsign"
@@ -47,12 +48,13 @@ type DXCCFinder interface {
 // CallsignFinder returns a list of matching callsigns for the given partial string.
 type CallsignFinder interface {
 	FindStrings(string) ([]string, error)
-	FindAnnotated(string) ([]core.AnnotatedMatch, error)
+	Find(string) ([]core.AnnotatedCallsign, error)
 }
 
 // CallHistoryFinder returns additional information for a given callsign if a call history file is used.
 type CallHistoryFinder interface {
-	FindEntry(string) (core.CallHistoryEntry, bool)
+	FindEntry(string) (core.AnnotatedCallsign, bool)
+	Find(string) ([]core.AnnotatedCallsign, error)
 }
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
@@ -106,7 +108,12 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
 		worked = len(qsos) > 0
 		if xchange == "" {
-			xchange = c.predictXchange(call, qsos, true)
+			entry, found := c.callHistory.FindEntry(call)
+			var historicXchange string
+			if found {
+				historicXchange = entry.PredictedXchange
+			}
+			xchange = c.predictXchange(call, qsos, historicXchange)
 		}
 	}
 	c.view.SetCallsign(call, worked, duplicate)
@@ -139,58 +146,76 @@ func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode,
 
 func (c *Callinfo) showSupercheck(s string) {
 	normalizedInput := strings.TrimSpace(strings.ToUpper(s))
-	matches, err := c.callsigns.FindAnnotated(s)
+	scpMatches, err := c.callsigns.Find(s)
 	if err != nil {
 		log.Printf("Callsign search for failed for %s: %v", s, err)
 		return
 	}
+	historicMatches, err := c.callHistory.Find(s)
 
-	annotatedMatches := make([]core.AnnotatedCallsign, len(matches))
-	for i, match := range matches {
-		matchString := match.String()
-		cs, err := callsign.Parse(matchString)
-		if err != nil {
-			log.Printf("Supercheck match %s is not a valid callsign: %v", matchString, err)
-			continue
+	annotatedCallsigns := make(map[callsign.Callsign]core.AnnotatedCallsign, len(scpMatches)+len(historicMatches))
+	for _, match := range scpMatches {
+		annotatedCallsigns[match.Callsign] = match
+	}
+	for _, match := range historicMatches {
+		var annotatedCallsign core.AnnotatedCallsign
+		storedCallsign, found := annotatedCallsigns[match.Callsign]
+		if found {
+			annotatedCallsign = storedCallsign
+		} else {
+			annotatedCallsign = match
 		}
+		annotatedCallsign.PredictedXchange = match.PredictedXchange
+		annotatedCallsigns[annotatedCallsign.Callsign] = annotatedCallsign
+	}
+
+	result := make([]core.AnnotatedCallsign, 0, len(annotatedCallsigns))
+	for _, annotatedCallsign := range annotatedCallsigns {
+		matchString := annotatedCallsign.Callsign.String()
 		exactMatch := (matchString == normalizedInput)
 
-		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(cs, c.lastBand, c.lastMode)
-		predictedXchange := c.predictXchange(matchString, qsos, false)
+		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
+		predictedXchange := c.predictXchange(matchString, qsos, annotatedCallsign.PredictedXchange)
 
 		entity, entityFound := c.entities.Find(matchString)
 
 		var points, multis int
 		if entityFound {
-			points, multis = c.valuer.Value(cs, entity, c.lastBand, c.lastMode, predictedXchange)
+			points, multis = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, predictedXchange)
 		}
 
-		annotatedMatches[i] = core.AnnotatedCallsign{
-			Callsign:         cs,
-			Match:            match,
-			Duplicate:        duplicate,
-			Worked:           len(qsos) > 0,
-			ExactMatch:       exactMatch,
-			Points:           points,
-			Multis:           multis,
-			PredictedXchange: predictedXchange,
-		}
+		annotatedCallsign.Duplicate = duplicate
+		annotatedCallsign.Worked = len(qsos) > 0
+		annotatedCallsign.ExactMatch = exactMatch
+		annotatedCallsign.Points = points
+		annotatedCallsign.Multis = multis
+		annotatedCallsign.PredictedXchange = predictedXchange
+
+		result = append(result, annotatedCallsign)
 	}
 
-	c.view.SetSupercheck(annotatedMatches)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].LessThan(result[j])
+	})
+
+	c.view.SetSupercheck(result)
 }
 
-func (c *Callinfo) predictXchange(call string, qsos []core.QSO, exactMatch bool) string {
-	log.Printf("predicting Xchange for %s", call)
-	result := ""
-
-	// TODO do not use the callHistory here, merge the callHistory result with the SCP result and provide the CallHistoryEntry here
-	if exactMatch {
-		entry, found := c.callHistory.FindEntry(call)
-		if found {
-			result = entry.PredictedXchange
-		}
+func (c *Callinfo) toAnnotatedCallsign(match core.MatchingAssembly) (core.AnnotatedCallsign, error) {
+	matchString := match.String()
+	cs, err := callsign.Parse(matchString)
+	if err != nil {
+		return core.AnnotatedCallsign{}, fmt.Errorf("Supercheck match %s is not a valid callsign: %v", matchString, err)
 	}
+
+	return core.AnnotatedCallsign{
+		Callsign: cs,
+		Assembly: match,
+	}, nil
+}
+
+func (c *Callinfo) predictXchange(call string, qsos []core.QSO, historicXchange string) string {
+	result := historicXchange
 
 	if len(qsos) == 0 {
 		return result

@@ -30,7 +30,6 @@ func New(settings core.Settings, callback AvailabilityCallback) *Finder {
 
 type Finder struct {
 	database *scp.Database
-	// available chan struct{}
 	callback AvailabilityCallback
 
 	filename string
@@ -41,21 +40,15 @@ type AvailabilityCallback func(service core.Service, available bool)
 
 func (f *Finder) Available() bool {
 	return f.database != nil
-	// select {
-	// case <-f.available:
-	// 	return true
-	// default:
-	// 	return false
-	// }
 }
 
-func (f *Finder) SettingsChanged(settings core.Settings) {
-	if settings.Contest().CallHistoryFilename == f.filename {
+func (f *Finder) ContestChanged(contest core.Contest) {
+	if contest.CallHistoryFilename == f.filename {
 		return
 	}
 
-	f.filename = settings.Contest().CallHistoryFilename
-	f.field = settings.Contest().CallHistoryField
+	f.filename = contest.CallHistoryFilename
+	f.field = contest.CallHistoryField
 
 	f.database = loadCallHistory(f.filename)
 	f.callback(core.CallHistoryService, f.Available())

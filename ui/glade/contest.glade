@@ -256,7 +256,7 @@
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=21 -->
+          <!-- n-columns=2 n-rows=23 -->
           <object class="GtkGrid" id="stationGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -795,6 +795,32 @@
               </packing>
             </child>
             <child>
+              <object class="GtkEntry" id="contestCabrilloQSOTemplateEntry">
+                <property name="name">contestCabrilloQSOTemplate</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="tooltip-text" translatable="yes">The template for a QSO line in the Cabrillo export for this contest</property>
+                <property name="hexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">22</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin-start">10</property>
+                <property name="label" translatable="yes">Call History File</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">20</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -805,20 +831,45 @@
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">20</property>
+                <property name="top-attach">22</property>
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="contestCabrilloQSOTemplateEntry">
-                <property name="name">contestCabrilloQSOTemplate</property>
+              <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">The template for a QSO line in the Cabrillo export for this contest</property>
-                <property name="hexpand">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin-start">10</property>
+                <property name="label" translatable="yes">Call History Field</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">21</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkFileChooserButton" id="contestCallHistoryFileChooser">
+                <property name="name">contestCallHistoryFile</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="preview-widget-active">False</property>
+                <property name="use-preview-label">False</property>
+                <property name="title" translatable="yes">Call History File</property>
               </object>
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">20</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="contestCallHistoryFieldEntry">
+                <property name="name">contestCallHistoryField</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">21</property>
               </packing>
             </child>
             <child>

@@ -75,6 +75,8 @@ type View interface {
 	SetContestXchangeMultiPattern(string)
 	SetContestXchangeMultiPatternResult(string)
 	SetContestCountPerBand(bool)
+	SetContestCallHistoryFile(string)
+	SetContestCallHistoryField(string)
 	SetContestCabrilloQSOTemplate(string)
 }
 
@@ -211,6 +213,8 @@ func (s *Settings) showSettings() {
 	s.view.SetContestMultis(s.contest.Multis.DXCC, s.contest.Multis.WPX, s.contest.Multis.Xchange)
 	s.view.SetContestXchangeMultiPattern(s.contest.XchangeMultiPattern)
 	s.view.SetContestCountPerBand(s.contest.CountPerBand)
+	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
+	s.view.SetContestCallHistoryField(s.contest.CallHistoryField)
 	s.view.SetContestCabrilloQSOTemplate(s.contest.CabrilloQSOTemplate)
 	s.updateXchangeMultiPatternResult()
 }
@@ -411,6 +415,14 @@ func (s *Settings) EnterContestCountPerBand(value bool) {
 	s.contest.CountPerBand = value
 }
 
+func (s *Settings) EnterContestCallHistoryFile(value string) {
+	s.contest.CallHistoryFilename = value
+}
+
+func (s *Settings) EnterContestCallHistoryField(value string) {
+	s.contest.CallHistoryField = value
+}
+
 func (s *Settings) EnterContestCabrilloQSOTemplate(value string) {
 	_, err := template.New("").Parse(value)
 	if err != nil {
@@ -449,4 +461,6 @@ func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool)   {}
 func (v *nullView) SetContestXchangeMultiPattern(string)       {}
 func (v *nullView) SetContestXchangeMultiPatternResult(string) {}
 func (v *nullView) SetContestCountPerBand(bool)                {}
+func (v *nullView) SetContestCallHistoryFile(string)           {}
+func (v *nullView) SetContestCallHistoryField(string)          {}
 func (v *nullView) SetContestCabrilloQSOTemplate(string)       {}

@@ -29,6 +29,8 @@ type SettingsController interface {
 	EnterContestXchangeMultiPattern(string)
 	EnterContestTestXchangeValue(string)
 	EnterContestCountPerBand(bool)
+	EnterContestCallHistoryFile(string)
+	EnterContestCallHistoryField(string)
 	EnterContestCabrilloQSOTemplate(string)
 }
 
@@ -55,6 +57,8 @@ const (
 	contestXchangeMultiPattern     fieldID = "contestXchangeMultiPattern"
 	contestTestXchangeMultiPattern fieldID = "contestTestXchangeMultiPattern"
 	contestCountPerBand            fieldID = "contestCountPerBand"
+	contestCallHistoryFile         fieldID = "contestCallHistoryFile"
+	contestCallHistoryField        fieldID = "contestCallHistoryField"
 	contestCabrilloQSOTemplate     fieldID = "contestCabrilloQSOTemplate"
 )
 
@@ -107,6 +111,8 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, contestXchangeMultiPattern)
 	result.addEntry(builder, contestTestXchangeMultiPattern)
 	result.addCheckButton(builder, contestCountPerBand)
+	result.addFileChooser(builder, contestCallHistoryFile)
+	result.addEntry(builder, contestCallHistoryField)
 	result.addEntry(builder, contestCabrilloQSOTemplate)
 
 	result.parent.Connect("destroy", result.onDestroy)
@@ -144,6 +150,15 @@ func (v *settingsView) addCheckButton(builder *gtk.Builder, id fieldID) {
 	widget.Connect("toggled", v.onFieldChanged)
 }
 
+func (v *settingsView) addFileChooser(builder *gtk.Builder, id fieldID) {
+	button := getUI(builder, string(id)+"Chooser").(*gtk.FileChooserButton)
+	field, _ := button.GetName()
+	v.fields[fieldID(field)] = button
+
+	widget := &button.Widget
+	widget.Connect("file-set", v.onFieldChanged)
+}
+
 func (v *settingsView) onFieldChanged(w interface{}) bool {
 	if v.ignoreChangedEvent {
 		return false
@@ -158,6 +173,9 @@ func (v *settingsView) onFieldChanged(w interface{}) bool {
 	case *gtk.CheckButton:
 		field, _ = widget.GetName()
 		value = widget.GetActive()
+	case *gtk.FileChooserButton:
+		field, _ = widget.GetName()
+		value = widget.GetFilename()
 	default:
 		return false
 	}
@@ -199,6 +217,10 @@ func (v *settingsView) onFieldChanged(w interface{}) bool {
 		v.controller.EnterContestTestXchangeValue(value.(string))
 	case contestCountPerBand:
 		v.controller.EnterContestCountPerBand(value.(bool))
+	case contestCallHistoryFile:
+		v.controller.EnterContestCallHistoryFile(value.(string))
+	case contestCallHistoryField:
+		v.controller.EnterContestCallHistoryField(value.(string))
 	case contestCabrilloQSOTemplate:
 		v.controller.EnterContestCabrilloQSOTemplate(value.(string))
 	default:
@@ -240,6 +262,12 @@ func (v *settingsView) setEntryField(field fieldID, value string) {
 func (v *settingsView) setCheckButtonField(field fieldID, value bool) {
 	v.doIgnoreChanges(func() {
 		v.fields[field].(*gtk.CheckButton).SetActive(value)
+	})
+}
+
+func (v *settingsView) setFileChooserField(field fieldID, value string) {
+	v.doIgnoreChanges(func() {
+		v.fields[field].(*gtk.FileChooserButton).SetFilename(value)
 	})
 }
 
@@ -330,6 +358,14 @@ func (v *settingsView) SetContestXchangeMultiPatternResult(value string) {
 
 func (v *settingsView) SetContestCountPerBand(value bool) {
 	v.setCheckButtonField(contestCountPerBand, value)
+}
+
+func (v *settingsView) SetContestCallHistoryFile(value string) {
+	v.setFileChooserField(contestCallHistoryFile, value)
+}
+
+func (v *settingsView) SetContestCallHistoryField(value string) {
+	v.setEntryField(contestCallHistoryField, value)
 }
 
 func (v *settingsView) SetContestCabrilloQSOTemplate(value string) {

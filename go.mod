@@ -10,7 +10,7 @@ go 1.17
 
 require (
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
-	github.com/ftl/hamradio v0.1.1
+	github.com/ftl/hamradio v0.2.0
 	github.com/ftl/rigproxy v0.0.0-20211222110853-35af91f708ae
 	github.com/ftl/tci v0.2.1
 	github.com/golang/protobuf v1.5.2

@@ -41,8 +41,8 @@ github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMo
 github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04 h1:S7z3LXqDYk4avXKj+B2orGWquOo/A+1ZJbcUPx0duLo=
 github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04/go.mod h1:AQpbHYBSPV1Bc1nqG8vv8BK3qxXMZIn32OQBi/4A7Sc=
 github.com/ftl/hamradio v0.0.0-20200721200456-334cc249f095/go.mod h1:Gyec2UUjJF0AG3bIoMnsEF/aP8FExb1BgqyY7IohODs=
-github.com/ftl/hamradio v0.1.1 h1:OjHo4O2l+eAtlIv+P6whv4DYLqc2j6IA8YRBmGvvmPU=
-github.com/ftl/hamradio v0.1.1/go.mod h1:XCjKGzHpfb4RfSTwGpgGqq6D1moKcNtzq9Gm0dB4xgc=
+github.com/ftl/hamradio v0.2.0 h1:Sog/geGkesBE+K2d+zJqtngQXoI1yNeEpKQrLWF5S4o=
+github.com/ftl/hamradio v0.2.0/go.mod h1:FOZkf8liaM/H8F8Vyp36EN9iVzikKpaOJ5AqrW77cEo=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 h1:ORI3EUKpLTsfA372C6xpuZFDXw+ckmCzLaCcJvakG24=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9/go.mod h1:4sZLCxjgn++exy5u0muVzlvnahfanPuiHLQo0GJQnPA=
 github.com/ftl/rigproxy v0.0.0-20211222110853-35af91f708ae h1:k5/03Sjk2deDasxkQQMOv7HTY50JLu1rYv+dLdiH01w=
@@ -116,6 +116,7 @@ github.com/hashicorp/mdns v1.0.0/go.mod h1:tL+uN++7HEJ6SQLQ2/p+z2pH24WQKWjBPkE0m
 github.com/hashicorp/memberlist v0.1.3/go.mod h1:ajVTdAv/9Im8oMAAj5G31PhhMCZJV2pPBoIllUwCN7I=
 github.com/hashicorp/serf v0.8.2/go.mod h1:6hOLApaqBFA1NXqRQAsxw9QxuDEvNxSQRwA/JwenrHc=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
+github.com/jessevdk/go-flags v1.5.0/go.mod h1:Fw0T6WPc1dYxT4mKEZRfG5kJhaTDP9pj1c2EWnYs/m4=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
 github.com/json-iterator/go v1.1.6/go.mod h1:+SdeFBvtyEkXs7REEP0seUULqWtbJapLOCVDaaPEHmU=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
@@ -262,6 +263,7 @@ golang.org/x/sys v0.0.0-20190502145724-3ef323f4f1fd/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20190507160741-ecd444e8653b/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190606165138-5da285871e9c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=

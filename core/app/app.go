@@ -174,7 +174,7 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
 
-	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.QSOList, c.Score)
+	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.QSOList, c.Score)
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.Settings.Notify(c.Entry)

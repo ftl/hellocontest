@@ -177,7 +177,8 @@ func (m AnnotatedMatch) String() string {
 }
 
 type CallHistoryEntry struct {
-	Callsign callsign.Callsign
+	Callsign         callsign.Callsign
+	PredictedXchange string
 }
 
 type Settings interface {

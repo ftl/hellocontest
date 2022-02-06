@@ -83,8 +83,8 @@ func (f *Finder) FindEntry(s string) (core.CallHistoryEntry, bool) {
 	for _, entry := range entries {
 		if entry.Key() == searchString {
 			return core.CallHistoryEntry{
-				Callsign: searchCallsign,
-				// TODO include the fields or at least the f.CallHistoryField
+				Callsign:         searchCallsign,
+				PredictedXchange: entry.Get(scp.FieldName(f.field)),
 			}, true
 		}
 	}

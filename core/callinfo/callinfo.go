@@ -11,11 +11,12 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(entities DXCCFinder, callsigns CallsignFinder, dupeChecker DupeChecker, valuer Valuer) *Callinfo {
+func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer) *Callinfo {
 	result := &Callinfo{
 		view:        new(nullView),
 		entities:    entities,
 		callsigns:   callsigns,
+		callHistory: callHistory,
 		dupeChecker: dupeChecker,
 		valuer:      valuer,
 	}
@@ -28,6 +29,7 @@ type Callinfo struct {
 
 	entities    DXCCFinder
 	callsigns   CallsignFinder
+	callHistory CallHistoryFinder
 	dupeChecker DupeChecker
 	valuer      Valuer
 
@@ -46,6 +48,11 @@ type DXCCFinder interface {
 type CallsignFinder interface {
 	FindStrings(string) ([]string, error)
 	FindAnnotated(string) ([]core.AnnotatedMatch, error)
+}
+
+// CallHistoryFinder returns additional information for a given callsign if a call history file is used.
+type CallHistoryFinder interface {
+	FindEntry(string) (core.CallHistoryEntry, bool)
 }
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
@@ -99,7 +106,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
 		worked = len(qsos) > 0
 		if xchange == "" {
-			xchange = c.predictXchange(call, qsos)
+			xchange = c.predictXchange(call, qsos, true)
 		}
 	}
 	c.view.SetCallsign(call, worked, duplicate)
@@ -149,7 +156,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		exactMatch := (matchString == normalizedInput)
 
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(cs, c.lastBand, c.lastMode)
-		predictedXchange := c.predictXchange(matchString, qsos)
+		predictedXchange := c.predictXchange(matchString, qsos, false)
 
 		entity, entityFound := c.entities.Find(matchString)
 
@@ -173,9 +180,20 @@ func (c *Callinfo) showSupercheck(s string) {
 	c.view.SetSupercheck(annotatedMatches)
 }
 
-func (c *Callinfo) predictXchange(call string, qsos []core.QSO) string {
+func (c *Callinfo) predictXchange(call string, qsos []core.QSO, exactMatch bool) string {
+	log.Printf("predicting Xchange for %s", call)
+	result := ""
+
+	// TODO do not use the callHistory here, merge the callHistory result with the SCP result and provide the CallHistoryEntry here
+	if exactMatch {
+		entry, found := c.callHistory.FindEntry(call)
+		if found {
+			result = entry.PredictedXchange
+		}
+	}
+
 	if len(qsos) == 0 {
-		return ""
+		return result
 	}
 
 	var lastXchange string
@@ -187,7 +205,10 @@ func (c *Callinfo) predictXchange(call string, qsos []core.QSO) string {
 		}
 	}
 
-	return lastXchange
+	if lastXchange != "" {
+		return lastXchange
+	}
+	return result
 }
 
 type nullView struct{}

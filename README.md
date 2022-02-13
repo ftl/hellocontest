@@ -1,9 +1,10 @@
 # Hello Contest
 A simple HF contest log for Linux, written in Go using [gotk3](https://github.com/gotk3) for the UI. As I'm using this only for CW contests on HF, the program might not be very useful for other modes or higher frequencies. Anyway, here are some highlights:
 
-* Calculate points, multis, and score per band and overall. The calculation rules can be changed in the configuration file.
-* Export the logbook in the [Cabrillo](https://wwrof.org/cabrillo/) or [ADIF](http://adif.org) format.
-* Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases.
+* Calculate points, multis, and score per band and overall. The calculation rules can be changed in the settings dialog (File > Settings, Ctrl+.).
+* Export the logbook as [Cabrillo](https://wwrof.org/cabrillo/), [ADIF](http://adif.org), CSV, or call history.
+* Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases, or a call history file.
+* Use a call history file from a former contest to predict the exchange for the currently entered callsign.
 * Use the [TCI protocol](https://github.com/maksimus1210/TCI) or the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
 * Define different macros for running and search&pounce working mode.
 * Connect to your transceiver through the [TCI protocol](https://github.com/maksimus1210/TCI) or the [Hamlib network protocol](https://github.com/Hamlib/Hamlib) to keep the band and mode information in sync.

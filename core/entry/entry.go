@@ -74,6 +74,7 @@ type Keyer interface {
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
 	ShowInfo(call string, band core.Band, mode core.Mode, xchange string)
+	PredictedXchange() string
 }
 
 // VFO functionality used for QSO entry.
@@ -123,6 +124,7 @@ type Controller struct {
 
 	input              input
 	activeField        core.EntryField
+	errorField         core.EntryField
 	selectedFrequency  core.Frequency
 	selectedBand       core.Band
 	selectedMode       core.Mode
@@ -222,6 +224,9 @@ func (c *Controller) leaveCallsignField() {
 		fmt.Println(err)
 		return
 	}
+	if c.enableTheirXchange && c.input.theirXchange == "" {
+		c.setTheirXchangePrediction(c.callinfo.PredictedXchange())
+	}
 
 	_, found := c.isDuplicate(callsign)
 	if !found {
@@ -279,6 +284,11 @@ func (c *Controller) showInput() {
 	c.view.SetMyXchange(c.input.myXchange)
 	c.view.SetBand(c.input.band)
 	c.view.SetMode(c.input.mode)
+}
+
+func (c *Controller) setTheirXchangePrediction(predictedXchange string) {
+	c.input.theirXchange = predictedXchange
+	c.view.SetTheirXchange(c.input.theirXchange)
 }
 
 func (c *Controller) selectQSO(qso core.QSO) {
@@ -418,13 +428,15 @@ func (c *Controller) enterCallsign(s string) {
 		return
 	}
 
-	c.view.ShowMessage(fmt.Sprintf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()))
+	c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()), core.CallsignField)
 }
 
 func (c *Controller) enterTheirXchange(s string) {
-	if c.callinfo != nil {
-		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirXchange)
+	if c.callinfo == nil {
+		return
 	}
+	c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirXchange)
+	c.clearErrorOnField(core.TheirXchangeField)
 }
 
 func (c *Controller) QSOSelected(qso core.QSO) {
@@ -466,13 +478,13 @@ func (c *Controller) Log() {
 
 	qso.Band, err = parse.Band(c.input.band)
 	if err != nil {
-		c.view.ShowMessage(err)
+		c.showErrorOnField(err, core.BandField)
 		return
 	}
 
 	qso.Mode, err = parse.Mode(c.input.mode)
 	if err != nil {
-		c.view.ShowMessage(err)
+		c.showErrorOnField(err, core.ModeField)
 		return
 	}
 
@@ -500,6 +512,12 @@ func (c *Controller) Log() {
 	if c.enableTheirXchange {
 		qso.TheirXchange = c.input.theirXchange
 		if qso.TheirXchange == "" && c.requireTheirXchange {
+			predictedXchange := c.callinfo.PredictedXchange()
+			if predictedXchange != "" {
+				c.setTheirXchangePrediction(predictedXchange)
+				c.showErrorOnField(fmt.Errorf("check their exhange"), core.TheirXchangeField)
+				return
+			}
 			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
 			return
 		}
@@ -534,8 +552,16 @@ func parseKilohertz(s string) (core.Frequency, bool) {
 
 func (c *Controller) showErrorOnField(err error, field core.EntryField) {
 	c.activeField = field
+	c.errorField = field
 	c.view.SetActiveField(c.activeField)
 	c.view.ShowMessage(err)
+}
+
+func (c *Controller) clearErrorOnField(field core.EntryField) {
+	if c.errorField != field {
+		return
+	}
+	c.view.ClearMessage()
 }
 
 func (c *Controller) Clear() {
@@ -657,3 +683,4 @@ func (n *nullLogbook) Log(core.QSO)               {}
 type nullCallinfo struct{}
 
 func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, string) {}
+func (n *nullCallinfo) PredictedXchange() string                      { return "" }

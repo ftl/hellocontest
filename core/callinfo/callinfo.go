@@ -34,10 +34,11 @@ type Callinfo struct {
 	dupeChecker DupeChecker
 	valuer      Valuer
 
-	lastCallsign string
-	lastBand     core.Band
-	lastMode     core.Mode
-	lastXchange  string
+	lastCallsign     string
+	lastBand         core.Band
+	lastMode         core.Mode
+	lastXchange      string
+	predictedXchange string
 }
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -95,6 +96,10 @@ func (c *Callinfo) Hide() {
 	c.view.Hide()
 }
 
+func (c *Callinfo) PredictedXchange() string {
+	return c.predictedXchange
+}
+
 func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange string) {
 	c.lastCallsign = call
 	c.lastBand = band
@@ -116,6 +121,8 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 			xchange = c.predictXchange(call, qsos, historicXchange)
 		}
 	}
+	c.predictedXchange = xchange
+
 	c.view.SetCallsign(call, worked, duplicate)
 	c.showDXCCAndValue(call, band, mode, xchange)
 	c.showSupercheck(call)

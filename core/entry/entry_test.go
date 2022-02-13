@@ -127,6 +127,7 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 	view.On("SetDuplicateMarker", false).Once()
 	view.On("ClearMessage").Once()
 	view.On("SetActiveField", core.TheirReportField).Once()
+	view.On("SetTheirXchange", mock.Anything).Once()
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -157,7 +158,9 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	view.Activate()
 	view.On("SetDuplicateMarker", true).Once()
 	view.On("ShowMessage", mock.Anything).Once()
+	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetActiveField", core.TheirReportField).Once()
+	view.On("SetTheirXchange", mock.Anything).Once()
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -394,6 +397,7 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 
 	qsoList.On("FindDuplicateQSOs", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
 	view.On("ShowMessage", mock.Anything).Once()
+	view.On("SetActiveField", mock.Anything).Once()
 	controller.Enter("DL1AB")
 	view.AssertExpectations(t)
 

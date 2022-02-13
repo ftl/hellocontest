@@ -2,8 +2,11 @@ package callhistory
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
@@ -156,4 +159,31 @@ func loadCallHistory(filename string) *scp.Database {
 		return nil
 	}
 	return result
+}
+
+func Export(w io.Writer, qsos ...core.QSO) error {
+	callsignToXchange := make(map[string]string)
+	for _, qso := range qsos {
+		if qso.TheirXchange == "" {
+			continue
+		}
+		callsignToXchange[qso.Callsign.String()] = strings.ToUpper(qso.TheirXchange)
+	}
+	entries := make([]string, 0, len(callsignToXchange))
+	for callsign, xchange := range callsignToXchange {
+		entries = append(entries, fmt.Sprintf("%s,%s", callsign, xchange))
+	}
+	sort.Strings(entries)
+
+	_, err := fmt.Fprintln(w, "!!Order!!,Call,Exch1\n# Call history created with Hello Contest\n# Enter some additional information here")
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		_, err = fmt.Fprintln(w, entry)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

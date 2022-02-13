@@ -537,6 +537,29 @@ func (c *Controller) ExportCSV() {
 	}
 }
 
+func (c *Controller) ExportCallhistory() {
+	filename, ok, err := c.view.SelectSaveFile("Export Call History File", "*.txt")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+	}
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
+	}
+	defer file.Close()
+
+	err = callhistory.Export(file, c.QSOList.All()...)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot export call history to %s: %v", filename, err)
+		return
+	}
+	c.openTextFile(filename)
+}
+
 func (c *Controller) ShowCallinfo() {
 	c.Callinfo.Show()
 	c.view.BringToFront()

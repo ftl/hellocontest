@@ -985,6 +985,14 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuFileExportCallhistory">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Export Call _History...</property>
+                        <property name="use-underline">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkSeparatorMenuItem" id="separatorFile2">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>

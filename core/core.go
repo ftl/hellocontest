@@ -175,6 +175,7 @@ const (
 	Insert
 	Delete
 	Substitute
+	FalseFriend
 )
 
 type MatchingPart struct {

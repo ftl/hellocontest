@@ -136,7 +136,9 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 		case (callsign.Points == 0) && (callsign.Multis == 0):
 			attributes = append(attributes, "foreground='silver'")
 		case callsign.Multis > 0:
-			attributes = append(attributes, "font-weight='heavy'")
+			attributes = append(attributes, "foreground='black'", "font-weight='heavy'")
+		default:
+			attributes = append(attributes, "foreground='black'")
 		}
 		if callsign.ExactMatch {
 			attributes = append(attributes, "font-size='large'")
@@ -159,6 +161,9 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 				partAttributeString = ""
 				partString = "|"
 			case core.Substitute:
+				partAttributeString = "underline='double'"
+				partString = part.Value
+			case core.FalseFriend:
 				partAttributeString = "underline='double'"
 				partString = part.Value
 			}

@@ -6,9 +6,39 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/ftl/cabrillo"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
+
+func ExportExperimental(w io.Writer, _ *template.Template, settings core.Settings, claimedScore int, qsos ...core.QSO) error {
+	export := cabrillo.NewLog()
+	export.Callsign = settings.Station().Callsign
+	export.CreatedBy = "Hello Contest"
+	export.Contest = cabrillo.ContestIdentifier(settings.Contest().Name)
+	export.Operators = []callsign.Callsign{settings.Station().Operator}
+	export.GridLocator = settings.Station().Locator
+	export.ClaimedScore = claimedScore
+
+	qsoData := make([]cabrillo.QSO, 0, len(qsos))
+	ignoredQSOs := make([]cabrillo.QSO, 0, len(qsos))
+	for _, qso := range qsos {
+		exportedQSO := toQSO(qso, settings.Station().Callsign)
+		if qso.Duplicate {
+			ignoredQSOs = append(ignoredQSOs, exportedQSO)
+		} else {
+			qsoData = append(qsoData, exportedQSO)
+		}
+	}
+	export.QSOData = qsoData
+	export.IgnoredQSOs = ignoredQSOs
+
+	return cabrillo.WriteWithTags(w, export, false, false, cabrillo.CreatedByTag, cabrillo.ContestTag,
+		cabrillo.CallsignTag, cabrillo.OperatorsTag, cabrillo.GridLocatorTag, cabrillo.ClaimedScoreTag,
+		cabrillo.Tag("SPECIFIC"), cabrillo.CategoryAssistedTag, cabrillo.CategoryBandTag, cabrillo.CategoryModeTag,
+		cabrillo.CategoryOperatorTag, cabrillo.CategoryPowerTag, cabrillo.ClubTag, cabrillo.NameTag,
+		cabrillo.EmailTag)
+}
 
 // Export writes the given QSOs to the given writer in the Cabrillo format.
 // The header is very limited and needs to be completed manually after the log was written.
@@ -71,13 +101,13 @@ var qrg = map[core.Band]string{
 	core.Band10m:  "28000",
 }
 
-var mode = map[core.Mode]string{
+var mode = map[core.Mode]cabrillo.QSOMode{
 	core.NoMode:      "",
-	core.ModeCW:      "CW",
-	core.ModeSSB:     "PH",
-	core.ModeFM:      "FM",
-	core.ModeRTTY:    "RY",
-	core.ModeDigital: "DG",
+	core.ModeCW:      cabrillo.QSOModeCW,
+	core.ModeSSB:     cabrillo.QSOModePhone,
+	core.ModeFM:      cabrillo.QSOModeFM,
+	core.ModeRTTY:    cabrillo.QSOModeRTTY,
+	core.ModeDigital: cabrillo.QSOModeDigi,
 }
 
 func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso core.QSO) error {
@@ -89,7 +119,7 @@ func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso c
 	}
 	fillins := map[string]string{
 		"QRG":          frequency,
-		"Mode":         mode[qso.Mode],
+		"Mode":         string(mode[qso.Mode]),
 		"Date":         qso.Time.In(time.UTC).Format("2006-01-02"),
 		"Time":         qso.Time.In(time.UTC).Format("1504"),
 		"MyCall":       mycall.String(),
@@ -112,4 +142,28 @@ func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso c
 	}
 	_, err = fmt.Fprintln(w)
 	return err
+}
+
+func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
+	var frequency string
+	if qso.Frequency == 0 {
+		frequency = qrg[qso.Band]
+	} else {
+		frequency = fmt.Sprintf("%5.0f", qso.Frequency/1000.0)
+	}
+
+	return cabrillo.QSO{
+		Frequency: cabrillo.QSOFrequency(frequency),
+		Mode:      mode[qso.Mode],
+		Timestamp: qso.Time,
+		Sent: cabrillo.QSOInfo{
+			Call:     mycall,
+			Exchange: []string{}, // TODO pick the correct fields, depending on the contest
+		},
+		Received: cabrillo.QSOInfo{
+			Call:     qso.Callsign,
+			Exchange: []string{}, // TODO pick the correct fields, depending on the contest
+		},
+		Transmitter: 0,
+	}
 }

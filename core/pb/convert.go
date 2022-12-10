@@ -1,9 +1,11 @@
 package pb
 
 import (
+	"bytes"
 	"log"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 
@@ -113,6 +115,18 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	contest.CabrilloQSOTemplate = pbContest.CabrilloQsoTemplate
 	contest.CallHistoryFilename = pbContest.CallHistoryFilename
 	contest.CallHistoryField = pbContest.CallHistoryField
+
+	if pbContest.DefinitionYaml == "" {
+		return contest, nil
+	}
+
+	buffer := bytes.NewBufferString(pbContest.DefinitionYaml)
+	definition, err := conval.LoadDefinitionYAML(buffer)
+	if err != nil {
+		return core.Contest{}, err
+	}
+	contest.Definition = definition
+
 	return contest, nil
 }
 

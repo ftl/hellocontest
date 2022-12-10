@@ -54,6 +54,7 @@ message Contest {
     string cabrillo_qso_template = 15;
     string call_history_filename = 16;
     string call_history_field = 17;
+    string definition_yaml = 18;
 }
 
 message Multis {

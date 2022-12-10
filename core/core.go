@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hamradio/locator"
@@ -208,6 +209,7 @@ type Station struct {
 
 type Contest struct {
 	Name                string
+	Definition          *conval.Definition
 	EnterTheirNumber    bool
 	EnterTheirXchange   bool
 	RequireTheirXchange bool

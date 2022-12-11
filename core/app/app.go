@@ -108,6 +108,7 @@ func (c *Controller) SetView(view View) {
 func (c *Controller) Startup() {
 	c.Settings = settings.New(
 		c.OpenDefaultConfigurationFile,
+		c.openWithExternalApplication,
 		score.MatchXchange,
 		c.configuration.Station(),
 		c.configuration.Contest(),
@@ -320,14 +321,14 @@ func (c *Controller) OpenSettings() {
 }
 
 func (c *Controller) OpenDefaultConfigurationFile() {
-	c.openTextFile(cfg.AbsoluteFilename())
+	c.openWithExternalApplication(cfg.AbsoluteFilename())
 }
 
-func (c *Controller) openTextFile(filename string) {
+func (c *Controller) openWithExternalApplication(filename string) {
 	cmd := exec.Command("xdg-open", filename)
 	err := cmd.Run()
 	if err != nil {
-		c.view.ShowErrorDialog("Cannot open the settings file: %v", err)
+		c.view.ShowErrorDialog("Cannot open the file %s with its external application: %v", filename, err)
 	}
 }
 
@@ -485,7 +486,7 @@ func (c *Controller) ExportCabrillo() {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
 	}
-	c.openTextFile(filename)
+	c.openWithExternalApplication(filename)
 }
 
 func (c *Controller) ExportADIF() {
@@ -557,7 +558,7 @@ func (c *Controller) ExportCallhistory() {
 		c.view.ShowErrorDialog("Cannot export call history to %s: %v", filename, err)
 		return
 	}
-	c.openTextFile(filename)
+	c.openWithExternalApplication(filename)
 }
 
 func (c *Controller) ShowCallinfo() {

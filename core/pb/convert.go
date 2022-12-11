@@ -131,7 +131,19 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 }
 
 func ContestToPB(contest core.Contest) Contest {
+	definitionYaml := ""
+	if contest.Definition != nil {
+		buffer := bytes.NewBuffer([]byte{})
+		err := conval.SaveDefinitionYAML(buffer, contest.Definition, false)
+		if err != nil {
+			log.Printf("Cannot store the contest definition: %v", err)
+		} else {
+			definitionYaml = buffer.String()
+		}
+	}
+
 	return Contest{
+		DefinitionYaml:          definitionYaml,
 		Name:                    contest.Name,
 		EnterTheirNumber:        contest.EnterTheirNumber,
 		EnterTheirXchange:       contest.EnterTheirXchange,

@@ -14,6 +14,9 @@ type SettingsController interface {
 	EnterStationCallsign(string)
 	EnterStationOperator(string)
 	EnterStationLocator(string)
+	SelectContestIdentifier(string)
+	OpenContestRulesPage()
+	OpenContestUploadPage()
 	EnterContestName(string)
 	EnterContestEnterTheirNumber(bool)
 	EnterContestEnterTheirXchange(bool)
@@ -40,6 +43,7 @@ const (
 	stationCallsign                fieldID = "stationCallsign"
 	stationOperator                fieldID = "stationOperator"
 	stationLocator                 fieldID = "stationLocator"
+	contestIdentifier              fieldID = "contestIdentifier"
 	contestName                    fieldID = "contestName"
 	contestEnterTheirNumber        fieldID = "contestEnterTheirNumber"
 	contestEnterTheirXchange       fieldID = "contestEnterTheirXchange"
@@ -68,12 +72,14 @@ type settingsView struct {
 
 	ignoreChangedEvent bool
 
-	message           *gtk.Label
-	openDefaults      *gtk.Button
-	reset             *gtk.Button
-	close             *gtk.Button
-	xchangeMultiValue *gtk.Label
-	fields            map[fieldID]interface{}
+	message               *gtk.Label
+	openContestRulesPage  *gtk.Button
+	openContestUploadPage *gtk.Button
+	openDefaults          *gtk.Button
+	reset                 *gtk.Button
+	close                 *gtk.Button
+	xchangeMultiValue     *gtk.Label
+	fields                map[fieldID]interface{}
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -84,6 +90,10 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 
 	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
 	result.xchangeMultiValue = getUI(builder, "xchangeMultiValueLabel").(*gtk.Label)
+	result.openContestRulesPage = getUI(builder, "openContestRulesPageButton").(*gtk.Button)
+	result.openContestRulesPage.Connect("clicked", result.onOpenContestRulesPagePressed)
+	result.openContestUploadPage = getUI(builder, "openContestUploadPageButton").(*gtk.Button)
+	result.openContestUploadPage.Connect("clicked", result.onOpenContestUploadPagePressed)
 	result.openDefaults = getUI(builder, "openDefaultsButton").(*gtk.Button)
 	result.openDefaults.Connect("clicked", result.onOpenDefaultsPressed)
 	result.reset = getUI(builder, "resetButton").(*gtk.Button)
@@ -94,6 +104,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, stationCallsign)
 	result.addEntry(builder, stationOperator)
 	result.addEntry(builder, stationLocator)
+	result.addCombo(builder, contestIdentifier)
 	result.addEntry(builder, contestName)
 	result.addCheckButton(builder, contestEnterTheirNumber)
 	result.addCheckButton(builder, contestEnterTheirXchange)
@@ -141,6 +152,15 @@ func (v *settingsView) addEntry(builder *gtk.Builder, id fieldID) {
 	widget.Connect("changed", v.onFieldChanged)
 }
 
+func (v *settingsView) addCombo(builder *gtk.Builder, id fieldID) {
+	entry := getUI(builder, string(id)+"Combo").(*gtk.ComboBoxText)
+	field, _ := entry.GetName()
+	v.fields[fieldID(field)] = entry
+
+	widget := &entry.Widget
+	widget.Connect("changed", v.onFieldChanged)
+}
+
 func (v *settingsView) addCheckButton(builder *gtk.Builder, id fieldID) {
 	button := getUI(builder, string(id)+"Button").(*gtk.CheckButton)
 	field, _ := button.GetName()
@@ -170,6 +190,9 @@ func (v *settingsView) onFieldChanged(w interface{}) bool {
 	case *gtk.Entry:
 		field, _ = widget.GetName()
 		value, _ = widget.GetText()
+	case *gtk.ComboBoxText:
+		field, _ = widget.GetName()
+		value = widget.GetActiveID()
 	case *gtk.CheckButton:
 		field, _ = widget.GetName()
 		value = widget.GetActive()
@@ -187,6 +210,8 @@ func (v *settingsView) onFieldChanged(w interface{}) bool {
 		v.controller.EnterStationOperator(value.(string))
 	case stationLocator:
 		v.controller.EnterStationLocator(value.(string))
+	case contestIdentifier:
+		v.controller.SelectContestIdentifier(value.(string))
 	case contestName:
 		v.controller.EnterContestName(value.(string))
 	case contestEnterTheirNumber:
@@ -237,6 +262,14 @@ func (v *settingsView) multis() (dxcc, wpx, xchange bool) {
 	return
 }
 
+func (v *settingsView) onOpenContestRulesPagePressed(_ *gtk.Button) {
+	v.controller.OpenContestRulesPage()
+}
+
+func (v *settingsView) onOpenContestUploadPagePressed(_ *gtk.Button) {
+	v.controller.OpenContestUploadPage()
+}
+
 func (v *settingsView) onOpenDefaultsPressed(_ *gtk.Button) {
 	v.controller.OpenDefaults()
 }
@@ -256,6 +289,12 @@ func (v *settingsView) onDestroy() {
 func (v *settingsView) setEntryField(field fieldID, value string) {
 	v.doIgnoreChanges(func() {
 		v.fields[field].(*gtk.Entry).SetText(value)
+	})
+}
+
+func (v *settingsView) selectComboField(field fieldID, value string) {
+	v.doIgnoreChanges(func() {
+		v.fields[field].(*gtk.ComboBoxText).SetActiveID(value)
 	})
 }
 
@@ -293,6 +332,33 @@ func (v *settingsView) SetStationOperator(value string) {
 
 func (v *settingsView) SetStationLocator(value string) {
 	v.setEntryField(stationLocator, value)
+}
+
+func (v *settingsView) SetContestIdentifiers(ids []string, texts []string) {
+	if len(ids) != len(texts) {
+		panic("contest identifiers and names are not in sync")
+	}
+
+	v.doIgnoreChanges(func() {
+		combo := v.fields[contestIdentifier].(*gtk.ComboBoxText)
+		combo.RemoveAll()
+		for i, value := range ids {
+			combo.Append(value, texts[i])
+		}
+		combo.SetActive(0)
+	})
+}
+
+func (v *settingsView) SetContestPagesAvailable(rulesPageAvailable bool, uploadPageAvailable bool) {
+	if v == nil || v.openContestRulesPage == nil || v.openContestUploadPage == nil {
+		return
+	}
+	v.openContestRulesPage.SetSensitive(rulesPageAvailable)
+	v.openContestUploadPage.SetSensitive(uploadPageAvailable)
+}
+
+func (v *settingsView) SelectContestIdentifier(value string) {
+	v.selectComboField(contestIdentifier, value)
 }
 
 func (v *settingsView) SetContestName(value string) {

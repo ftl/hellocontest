@@ -2,11 +2,13 @@ package settings
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 
@@ -50,6 +52,8 @@ type Writer interface {
 
 type DefaultsOpener func()
 
+type BrowserOpener func(string)
+
 type XchangeRegexpMatcher func(*regexp.Regexp, string) (string, bool)
 
 type View interface {
@@ -60,6 +64,9 @@ type View interface {
 	SetStationCallsign(string)
 	SetStationOperator(string)
 	SetStationLocator(string)
+	SetContestIdentifiers(ids []string, texts []string)
+	SetContestPagesAvailable(bool, bool)
+	SelectContestIdentifier(string)
 	SetContestName(string)
 	SetContestEnterTheirNumber(bool)
 	SetContestEnterTheirXchange(bool)
@@ -80,10 +87,11 @@ type View interface {
 	SetContestCabrilloQSOTemplate(string)
 }
 
-func New(defaultsOpener DefaultsOpener, xchangeRegexpMatcher XchangeRegexpMatcher, station core.Station, contest core.Contest) *Settings {
+func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, xchangeRegexpMatcher XchangeRegexpMatcher, station core.Station, contest core.Contest) *Settings {
 	return &Settings{
 		writer:               new(nullWriter),
 		defaultsOpener:       defaultsOpener,
+		browserOpener:        browserOpener,
 		xchangeRegexpMatcher: xchangeRegexpMatcher,
 		station:              station,
 		contest:              contest,
@@ -98,6 +106,7 @@ type Settings struct {
 	writer                Writer
 	view                  View
 	defaultsOpener        DefaultsOpener
+	browserOpener         BrowserOpener
 	xchangeRegexpMatcher  XchangeRegexpMatcher
 	xchangeMultiTestValue string
 
@@ -198,7 +207,32 @@ func (s *Settings) showSettings() {
 	s.view.SetStationOperator(s.station.Operator.String())
 	s.view.SetStationLocator(s.station.Locator.String())
 
-	// contest
+	// contest definition
+	definitionNames, err := conval.IncludedDefinitionNames()
+	if err != nil {
+		log.Printf("Cannot get the included contest definitions: %v", err)
+	} else {
+		ids := make([]string, 1, len(definitionNames)+1)
+		ids[0] = ""
+		ids = append(ids, definitionNames...)
+		texts := make([]string, len(ids))
+		for i, id := range ids {
+			definition, err := conval.IncludedDefinition(id)
+			if err != nil {
+				continue
+			}
+			ids[i] = strings.ToUpper(id)
+			texts[i] = fmt.Sprintf("%s - %s", strings.ToUpper(id), definition.Name)
+		}
+		s.view.SetContestIdentifiers(ids, texts)
+	}
+	if s.contest.Definition != nil {
+		s.view.SelectContestIdentifier(strings.ToUpper(string(s.contest.Definition.Identifier)))
+	} else {
+		s.view.SelectContestIdentifier("")
+	}
+
+	// contest (old - will be removed)
 	s.view.SetContestName(s.contest.Name)
 	s.view.SetContestEnterTheirNumber(s.contest.EnterTheirNumber)
 	s.view.SetContestEnterTheirXchange(s.contest.EnterTheirXchange)
@@ -217,6 +251,7 @@ func (s *Settings) showSettings() {
 	s.view.SetContestCallHistoryField(s.contest.CallHistoryField)
 	s.view.SetContestCabrilloQSOTemplate(s.contest.CabrilloQSOTemplate)
 	s.updateXchangeMultiPatternResult()
+	s.updateContestPages()
 }
 
 func (s *Settings) Save() {
@@ -290,6 +325,54 @@ func (s *Settings) EnterStationLocator(value string) {
 	}
 	s.view.HideMessage()
 	s.station.Locator = loc
+}
+
+func (s *Settings) SelectContestIdentifier(value string) {
+	var definition *conval.Definition
+	var err error
+
+	if value == "" {
+		definition = nil
+	} else {
+		definition, err = conval.IncludedDefinition(value)
+		if err != nil {
+			log.Printf("Cannot find the selected contest definition %s: %v", value, err)
+			definition = nil
+		}
+	}
+
+	s.contest.Definition = definition
+	s.updateContestPages()
+}
+
+func (s *Settings) updateContestPages() {
+	if s.contest.Definition == nil {
+		s.view.SetContestPagesAvailable(false, false)
+	} else {
+		s.view.SetContestPagesAvailable(s.contest.Definition.OfficialRules != "", s.contest.Definition.UploadURL != "")
+	}
+}
+
+func (s *Settings) OpenContestRulesPage() {
+	if s.contest.Definition == nil {
+		return
+	}
+	url := s.contest.Definition.OfficialRules
+	if url == "" {
+		return
+	}
+	s.browserOpener(url)
+}
+
+func (s *Settings) OpenContestUploadPage() {
+	if s.contest.Definition == nil {
+		return
+	}
+	url := s.contest.Definition.UploadURL
+	if url == "" {
+		return
+	}
+	s.browserOpener(url)
 }
 
 func (s *Settings) EnterContestName(value string) {
@@ -440,27 +523,30 @@ func (w *nullWriter) WriteContest(core.Contest) error { return nil }
 
 type nullView struct{}
 
-func (v *nullView) Show()                                      {}
-func (v *nullView) ShowMessage(string)                         {}
-func (v *nullView) HideMessage()                               {}
-func (v *nullView) SetStationCallsign(string)                  {}
-func (v *nullView) SetStationOperator(string)                  {}
-func (v *nullView) SetStationLocator(string)                   {}
-func (v *nullView) SetContestName(string)                      {}
-func (v *nullView) SetContestEnterTheirNumber(bool)            {}
-func (v *nullView) SetContestEnterTheirXchange(bool)           {}
-func (v *nullView) SetContestRequireTheirXchange(bool)         {}
-func (v *nullView) SetContestAllowMultiBand(bool)              {}
-func (v *nullView) SetContestAllowMultiMode(bool)              {}
-func (v *nullView) SetContestSameCountryPoints(string)         {}
-func (v *nullView) SetContestSameContinentPoints(string)       {}
-func (v *nullView) SetContestSpecificCountryPoints(string)     {}
-func (v *nullView) SetContestSpecificCountryPrefixes(string)   {}
-func (v *nullView) SetContestOtherPoints(string)               {}
-func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool)   {}
-func (v *nullView) SetContestXchangeMultiPattern(string)       {}
-func (v *nullView) SetContestXchangeMultiPatternResult(string) {}
-func (v *nullView) SetContestCountPerBand(bool)                {}
-func (v *nullView) SetContestCallHistoryFile(string)           {}
-func (v *nullView) SetContestCallHistoryField(string)          {}
-func (v *nullView) SetContestCabrilloQSOTemplate(string)       {}
+func (v *nullView) Show()                                              {}
+func (v *nullView) ShowMessage(string)                                 {}
+func (v *nullView) HideMessage()                                       {}
+func (v *nullView) SetStationCallsign(string)                          {}
+func (v *nullView) SetStationOperator(string)                          {}
+func (v *nullView) SetStationLocator(string)                           {}
+func (v *nullView) SetContestIdentifiers(ids []string, texts []string) {}
+func (v *nullView) SetContestPagesAvailable(bool, bool)                {}
+func (v *nullView) SelectContestIdentifier(string)                     {}
+func (v *nullView) SetContestName(string)                              {}
+func (v *nullView) SetContestEnterTheirNumber(bool)                    {}
+func (v *nullView) SetContestEnterTheirXchange(bool)                   {}
+func (v *nullView) SetContestRequireTheirXchange(bool)                 {}
+func (v *nullView) SetContestAllowMultiBand(bool)                      {}
+func (v *nullView) SetContestAllowMultiMode(bool)                      {}
+func (v *nullView) SetContestSameCountryPoints(string)                 {}
+func (v *nullView) SetContestSameContinentPoints(string)               {}
+func (v *nullView) SetContestSpecificCountryPoints(string)             {}
+func (v *nullView) SetContestSpecificCountryPrefixes(string)           {}
+func (v *nullView) SetContestOtherPoints(string)                       {}
+func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool)           {}
+func (v *nullView) SetContestXchangeMultiPattern(string)               {}
+func (v *nullView) SetContestXchangeMultiPatternResult(string)         {}
+func (v *nullView) SetContestCountPerBand(bool)                        {}
+func (v *nullView) SetContestCallHistoryFile(string)                   {}
+func (v *nullView) SetContestCallHistoryField(string)                  {}
+func (v *nullView) SetContestCabrilloQSOTemplate(string)               {}

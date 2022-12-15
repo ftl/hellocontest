@@ -295,7 +295,7 @@ func (v *entryView) fieldToWidget(field core.EntryField) *gtk.Widget {
 	case core.OtherField:
 		return &v.callsign.Widget
 	default:
-		log.Fatalf("Unknown entry field %d", field)
+		log.Fatalf("Unknown entry field %s", field)
 	}
 	panic("this is never reached")
 }

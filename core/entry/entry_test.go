@@ -1,6 +1,7 @@
 package entry
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -106,13 +107,15 @@ func TestEntryController_GotoNextField(t *testing.T) {
 	view.On("EnableExchangeFields", mock.Anything, mock.Anything).Times(len(testCases))
 	view.On("SetActiveField", mock.Anything).Times(len(testCases))
 	for _, tc := range testCases {
-		config.enterTheirNumber = tc.enterTheirNumber
-		config.enterTheirXchange = tc.enterTheirXchange
-		controller.ContestChanged(config.Contest())
-		controller.SetActiveField(tc.active)
-		actual := controller.GotoNextField()
-		assert.Equal(t, tc.next, actual)
-		assert.Equal(t, tc.next, controller.activeField)
+		t.Run(fmt.Sprintf("%s -> %s", tc.active, tc.next), func(t *testing.T) {
+			config.enterTheirNumber = tc.enterTheirNumber
+			config.enterTheirXchange = tc.enterTheirXchange
+			controller.ContestChanged(config.Contest())
+			controller.SetActiveField(tc.active)
+			actual := controller.GotoNextField()
+			assert.Equal(t, tc.next, actual)
+			assert.Equal(t, tc.next, controller.activeField)
+		})
 	}
 
 	view.AssertExpectations(t)

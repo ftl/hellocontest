@@ -3,6 +3,8 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ftl/conval"
@@ -115,21 +117,58 @@ const (
 )
 
 // EntryField represents an entry field in the visual part.
-type EntryField int
+type EntryField string
 
 // The entry fields.
 const (
-	CallsignField EntryField = iota
-	TheirReportField
-	TheirNumberField
-	TheirXchangeField
-	MyReportField
-	MyNumberField
-	MyXchangeField
-	BandField
-	ModeField
-	OtherField
+	CallsignField     EntryField = "callsign"
+	TheirReportField  EntryField = "theirReport"
+	TheirNumberField  EntryField = "theirNumber"
+	TheirXchangeField EntryField = "theirXchange"
+	MyReportField     EntryField = "myReport"
+	MyNumberField     EntryField = "myNumber"
+	MyXchangeField    EntryField = "myXchange"
+	BandField         EntryField = "band"
+	ModeField         EntryField = "mode"
+	OtherField        EntryField = "other"
+
+	myExchangePrefix    string = "myExchange_"
+	theirExchangePrefix string = "theirExchange_"
 )
+
+func (f EntryField) IsMyExchange() bool {
+	return strings.HasPrefix(string(f), myExchangePrefix)
+}
+
+func (f EntryField) IsTheirExchange() bool {
+	return strings.HasPrefix(string(f), theirExchangePrefix)
+}
+
+func (f EntryField) ExchangeIndex() int {
+	s := string(f)
+	var a string
+	switch {
+	case strings.HasPrefix(s, myExchangePrefix):
+		a = s[len(myExchangePrefix):]
+	case strings.HasPrefix(s, theirExchangePrefix):
+		a = s[len(theirExchangePrefix):]
+	default:
+		return -1
+	}
+	result, err := strconv.Atoi(a)
+	if err != nil {
+		return -1
+	}
+	return result
+}
+
+func MyExchangeField(i int) EntryField {
+	return EntryField(fmt.Sprintf("%s%d", myExchangePrefix, i))
+}
+
+func TheirExchangeField(i int) EntryField {
+	return EntryField(fmt.Sprintf("%s%d", theirExchangePrefix, i))
+}
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.
 type KeyerValues struct {

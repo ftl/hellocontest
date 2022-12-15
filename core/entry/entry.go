@@ -213,7 +213,13 @@ func (c *Controller) GotoNextField() core.EntryField {
 		transitions[core.TheirReportField] = core.CallsignField
 		transitions[core.TheirNumberField] = core.CallsignField
 	}
-	c.activeField = transitions[c.activeField]
+
+	nextField := transitions[c.activeField]
+	if nextField == "" {
+		nextField = core.CallsignField
+	}
+
+	c.activeField = nextField
 	c.view.SetActiveField(c.activeField)
 	return c.activeField
 }

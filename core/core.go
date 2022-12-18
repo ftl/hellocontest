@@ -170,6 +170,14 @@ func TheirExchangeField(i int) EntryField {
 	return EntryField(fmt.Sprintf("%s%d", theirExchangePrefix, i))
 }
 
+type ExchangeField struct {
+	Field    EntryField
+	Short    string
+	Name     string
+	Hint     string
+	ReadOnly bool
+}
+
 // KeyerValues contains the values that can be used as variables in the keyer templates.
 type KeyerValues struct {
 	TheirCall string

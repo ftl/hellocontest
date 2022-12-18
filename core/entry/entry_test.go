@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -82,6 +83,66 @@ func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
 	assert.Equal(t, core.ModeRTTY, controller.selectedMode)
 }
 
+func TestEntryController_UpdateExchangeFields(t *testing.T) {
+	tt := []struct {
+		desc                string
+		value               *conval.Definition
+		expectedMyFields    []core.ExchangeField
+		expectedTheirFields []core.ExchangeField
+	}{
+		{
+			desc:                "no definition",
+			value:               nil,
+			expectedMyFields:    []core.ExchangeField(nil),
+			expectedTheirFields: []core.ExchangeField(nil),
+		},
+		{
+			desc: "rst and member number",
+			value: fieldDefinition(
+				conval.ExchangeField{conval.TheirRSTProperty},
+				conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty},
+			),
+			expectedMyFields: []core.ExchangeField{
+				{Field: "myExchange_1", Short: "rst"},
+				{Field: "myExchange_2", Short: "member_number/nm"},
+			},
+			expectedTheirFields: []core.ExchangeField{
+				{Field: "theirExchange_1", Short: "rst"},
+				{Field: "theirExchange_2", Short: "member_number/nm"},
+			},
+		},
+		{
+			// TODO: check with configuration for serial number in my exchange
+			//       field should be read-only, short should only contain "serial"
+			desc: "rst and dok or serial number",
+			value: fieldDefinition(
+				conval.ExchangeField{conval.TheirRSTProperty},
+				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty},
+			),
+			expectedMyFields: []core.ExchangeField{
+				{Field: "myExchange_1", Short: "rst"},
+				{Field: "myExchange_2", Short: "serial/nm/wag_dok"},
+			},
+			expectedTheirFields: []core.ExchangeField{
+				{Field: "theirExchange_1", Short: "rst"},
+				{Field: "theirExchange_2", Short: "serial/nm/wag_dok"},
+			},
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			_, _, _, view, controller, _ := setupEntryTest()
+			view.Activate()
+			view.On("SetMyExchangeFields", tc.expectedMyFields).Once()
+			view.On("SetTheirExchangeFields", tc.expectedTheirFields).Once()
+
+			controller.updateExchangeFields(tc.value)
+
+			view.AssertExpectations(t)
+		})
+	}
+}
+
 func TestEntryController_GotoNextField(t *testing.T) {
 	_, _, _, view, controller, config := setupEntryTest()
 
@@ -106,6 +167,8 @@ func TestEntryController_GotoNextField(t *testing.T) {
 	view.On("Callsign").Return("").Maybe()
 	view.On("EnableExchangeFields", mock.Anything, mock.Anything).Times(len(testCases))
 	view.On("SetActiveField", mock.Anything).Times(len(testCases))
+	view.On("SetMyExchangeFields", mock.Anything).Times(len(testCases))
+	view.On("SetTheirExchangeFields", mock.Anything).Times(len(testCases))
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("%s -> %s", tc.active, tc.next), func(t *testing.T) {
 			config.enterTheirNumber = tc.enterTheirNumber
@@ -624,3 +687,13 @@ func (s *testSettings) Contest() core.Contest {
 }
 
 func testIgnoreAsync(f func()) {}
+
+func fieldDefinition(fields ...conval.ExchangeField) *conval.Definition {
+	return &conval.Definition{
+		Exchange: []conval.ExchangeDefinition{
+			{
+				Fields: fields,
+			},
+		},
+	}
+}

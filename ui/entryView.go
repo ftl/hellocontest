@@ -238,6 +238,10 @@ func (v *entryView) SetTheirXchange(text string) {
 	v.setTextWithoutChangeEvent(v.theirXchange.SetText, text)
 }
 
+func (v *entryView) SetTheirExchange(index int, text string) {
+	// TODO set their exchange field with the given index
+}
+
 func (v *entryView) SetBand(text string) {
 	runAsync(func() {
 		v.setTextWithoutChangeEvent(func(s string) { v.band.SetActiveID(s) }, text)
@@ -260,6 +264,18 @@ func (v *entryView) SetMyNumber(text string) {
 
 func (v *entryView) SetMyXchange(text string) {
 	v.setTextWithoutChangeEvent(v.myXchange.SetText, text)
+}
+
+func (v *entryView) SetMyExchange(index int, text string) {
+	// TODO set my exchange field with the given index
+}
+
+func (v *entryView) SetMyExchangeFields(fields ...core.ExchangeField) {
+	// TODO render the exchange fields
+}
+
+func (v *entryView) SetTheirExchangeFields(fields ...core.ExchangeField) {
+	// TODO render the exchange fields
 }
 
 func (v *entryView) EnableExchangeFields(theirNumber, theirXchange bool) {

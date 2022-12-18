@@ -235,6 +235,13 @@ func (m *EntryView) SetTheirXchange(xchange string) {
 	m.Called(xchange)
 }
 
+func (m *EntryView) SetTheirExchange(index int, value string) {
+	if !m.active {
+		return
+	}
+	m.Called(index, value)
+}
+
 func (m *EntryView) SetBand(text string) {
 	if !m.active {
 		return
@@ -268,6 +275,27 @@ func (m *EntryView) SetMyXchange(xchange string) {
 		return
 	}
 	m.Called(xchange)
+}
+
+func (m *EntryView) SetMyExchange(index int, value string) {
+	if !m.active {
+		return
+	}
+	m.Called(index, value)
+}
+
+func (m *EntryView) SetMyExchangeFields(fields ...core.ExchangeField) {
+	if !m.active {
+		return
+	}
+	m.Called(fields)
+}
+
+func (m *EntryView) SetTheirExchangeFields(fields ...core.ExchangeField) {
+	if !m.active {
+		return
+	}
+	m.Called(fields)
 }
 
 func (m *EntryView) EnableExchangeFields(theirNumber, theirXchange bool) {

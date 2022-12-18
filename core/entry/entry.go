@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -22,12 +24,16 @@ type View interface {
 	SetTheirReport(string)
 	SetTheirNumber(string)
 	SetTheirXchange(string)
+	SetTheirExchange(int, string)
 	SetBand(text string)
 	SetMode(text string)
 	SetMyReport(string)
 	SetMyNumber(string)
 	SetMyXchange(string)
+	SetMyExchange(int, string)
 
+	SetMyExchangeFields(...core.ExchangeField)
+	SetTheirExchangeFields(...core.ExchangeField)
 	EnableExchangeFields(bool, bool)
 	SetActiveField(core.EntryField)
 	SetDuplicateMarker(bool)
@@ -648,28 +654,64 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.enableTheirXchange = contest.EnterTheirXchange
 	c.requireTheirXchange = contest.RequireTheirXchange
 	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
+
+	c.updateExchangeFields(contest.Definition)
+}
+
+func (c *Controller) updateExchangeFields(definition *conval.Definition) {
+	if definition == nil {
+		c.view.SetMyExchangeFields()
+		c.view.SetTheirExchangeFields()
+		return
+	}
+
+	fieldDefinitions := definition.ExchangeFields()
+
+	myExchangeFields := definitionsToExchangeFields(fieldDefinitions, core.MyExchangeField)
+	// TODO set the read-only flag if it is the serial number and my exchange is the serial number
+	c.view.SetMyExchangeFields(myExchangeFields...)
+
+	theirExchangeFields := definitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
+	c.view.SetTheirExchangeFields(theirExchangeFields...)
+}
+
+func definitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchangeEntryField func(int) core.EntryField) []core.ExchangeField {
+	result := make([]core.ExchangeField, 0, len(fieldDefinitions))
+	for i, fieldDefinition := range fieldDefinitions {
+		short := strings.Join(fieldDefinition.Strings(), "/")
+		field := core.ExchangeField{
+			Field: exchangeEntryField(i + 1),
+			Short: short,
+		}
+		result = append(result, field)
+	}
+	return result
 }
 
 type nullView struct{}
 
-func (n *nullView) SetUTC(string)                   {}
-func (n *nullView) SetMyCall(string)                {}
-func (n *nullView) SetFrequency(core.Frequency)     {}
-func (n *nullView) SetCallsign(string)              {}
-func (n *nullView) SetTheirReport(string)           {}
-func (n *nullView) SetTheirNumber(string)           {}
-func (n *nullView) SetTheirXchange(string)          {}
-func (n *nullView) SetBand(text string)             {}
-func (n *nullView) SetMode(text string)             {}
-func (n *nullView) SetMyReport(string)              {}
-func (n *nullView) SetMyNumber(string)              {}
-func (n *nullView) SetMyXchange(string)             {}
-func (n *nullView) EnableExchangeFields(bool, bool) {}
-func (n *nullView) SetActiveField(core.EntryField)  {}
-func (n *nullView) SetDuplicateMarker(bool)         {}
-func (n *nullView) SetEditingMarker(bool)           {}
-func (n *nullView) ShowMessage(...interface{})      {}
-func (n *nullView) ClearMessage()                   {}
+func (n *nullView) SetUTC(string)                                {}
+func (n *nullView) SetMyCall(string)                             {}
+func (n *nullView) SetFrequency(core.Frequency)                  {}
+func (n *nullView) SetCallsign(string)                           {}
+func (n *nullView) SetTheirReport(string)                        {}
+func (n *nullView) SetTheirNumber(string)                        {}
+func (n *nullView) SetTheirXchange(string)                       {}
+func (n *nullView) SetTheirExchange(int, string)                 {}
+func (n *nullView) SetBand(text string)                          {}
+func (n *nullView) SetMode(text string)                          {}
+func (n *nullView) SetMyReport(string)                           {}
+func (n *nullView) SetMyNumber(string)                           {}
+func (n *nullView) SetMyXchange(string)                          {}
+func (n *nullView) SetMyExchange(int, string)                    {}
+func (n *nullView) SetMyExchangeFields(...core.ExchangeField)    {}
+func (n *nullView) SetTheirExchangeFields(...core.ExchangeField) {}
+func (n *nullView) EnableExchangeFields(bool, bool)              {}
+func (n *nullView) SetActiveField(core.EntryField)               {}
+func (n *nullView) SetDuplicateMarker(bool)                      {}
+func (n *nullView) SetEditingMarker(bool)                        {}
+func (n *nullView) ShowMessage(...interface{})                   {}
+func (n *nullView) ClearMessage()                                {}
 
 type nullVFO struct{}
 

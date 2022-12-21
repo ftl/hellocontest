@@ -1294,7 +1294,7 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=7 n-rows=4 -->
+          <!-- n-columns=7 n-rows=6 -->
           <object class="GtkGrid" id="entryGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1314,7 +1314,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -1328,7 +1328,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -1345,7 +1345,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">2</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -1360,7 +1360,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">3</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -1368,13 +1368,12 @@ THE SOFTWARE.
                 <property name="name">myReportEntry</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">My Report (Ctrl-r)</property>
+                <property name="tooltip-text" translatable="yes">My Report</property>
                 <property name="max-length">3</property>
                 <property name="width-chars">3</property>
                 <property name="max-width-chars">3</property>
                 <property name="placeholder-text" translatable="yes">RST</property>
                 <property name="input-purpose">digits</property>
-                <accelerator key="r" signal="grab-focus" modifiers="GDK_MOD1_MASK"/>
               </object>
               <packing>
                 <property name="left-attach">2</property>
@@ -1420,7 +1419,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
+                <property name="top-attach">5</property>
                 <property name="width">7</property>
               </packing>
             </child>
@@ -1478,7 +1477,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">4</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -1504,7 +1503,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">5</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -1549,6 +1548,64 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
+              <!-- n-columns=0 n-rows=1 -->
+              <object class="GtkGrid" id="myExchangesGrid">
+                <property name="name">myExchangesGrid</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">2</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <!-- n-columns=0 n-rows=1 -->
+              <object class="GtkGrid" id="theirExchangesGrid">
+                <property name="name">theirExchangesGrid</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">4</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
               <placeholder/>
             </child>
             <child>
@@ -1571,7 +1628,7 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=3 n-rows=3 -->
+          <!-- n-columns=3 n-rows=1 -->
           <object class="GtkGrid" id="workmodeGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1620,24 +1677,6 @@ THE SOFTWARE.
                 <property name="left-attach">2</property>
                 <property name="top-attach">0</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>

@@ -284,14 +284,14 @@ func (m *EntryView) SetMyExchange(index int, value string) {
 	m.Called(index, value)
 }
 
-func (m *EntryView) SetMyExchangeFields(fields ...core.ExchangeField) {
+func (m *EntryView) SetMyExchangeFields(fields []core.ExchangeField) {
 	if !m.active {
 		return
 	}
 	m.Called(fields)
 }
 
-func (m *EntryView) SetTheirExchangeFields(fields ...core.ExchangeField) {
+func (m *EntryView) SetTheirExchangeFields(fields []core.ExchangeField) {
 	if !m.active {
 		return
 	}

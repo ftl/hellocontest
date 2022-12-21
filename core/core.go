@@ -144,6 +144,10 @@ func (f EntryField) IsTheirExchange() bool {
 	return strings.HasPrefix(string(f), theirExchangePrefix)
 }
 
+func IsExchangeField(name string) bool {
+	return strings.HasPrefix(name, myExchangePrefix) || strings.HasPrefix(name, theirExchangePrefix)
+}
+
 func (f EntryField) ExchangeIndex() int {
 	s := string(f)
 	var a string
@@ -160,6 +164,27 @@ func (f EntryField) ExchangeIndex() int {
 		return -1
 	}
 	return result
+}
+
+func (f EntryField) NextExchangeField() EntryField {
+	s := string(f)
+	var a string
+	var prefix string
+	switch {
+	case strings.HasPrefix(s, myExchangePrefix):
+		prefix = myExchangePrefix
+		a = s[len(myExchangePrefix):]
+	case strings.HasPrefix(s, theirExchangePrefix):
+		prefix = theirExchangePrefix
+		a = s[len(theirExchangePrefix):]
+	default:
+		return ""
+	}
+	i, err := strconv.Atoi(a)
+	if err != nil {
+		return ""
+	}
+	return EntryField(prefix + strconv.Itoa(i+1))
 }
 
 func MyExchangeField(i int) EntryField {

@@ -93,8 +93,8 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 		{
 			desc:                "no definition",
 			value:               nil,
-			expectedMyFields:    []core.ExchangeField(nil),
-			expectedTheirFields: []core.ExchangeField(nil),
+			expectedMyFields:    nil,
+			expectedTheirFields: nil,
 		},
 		{
 			desc: "rst and member number",
@@ -144,7 +144,7 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 }
 
 func TestEntryController_GotoNextField(t *testing.T) {
-	_, _, _, view, controller, config := setupEntryTest()
+	_, _, _, view, controller, config := setupEntryTestWithExchangeFields(3)
 
 	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")
 
@@ -162,6 +162,12 @@ func TestEntryController_GotoNextField(t *testing.T) {
 		{true, true, core.MyReportField, core.CallsignField},
 		{true, true, core.MyNumberField, core.CallsignField},
 		{true, true, core.OtherField, core.CallsignField},
+		{true, true, core.MyExchangeField(1), core.CallsignField},
+		{true, true, core.MyExchangeField(2), core.CallsignField},
+		{true, true, core.MyExchangeField(3), core.CallsignField},
+		{true, true, core.TheirExchangeField(1), core.TheirExchangeField(2)},
+		{true, true, core.TheirExchangeField(2), core.TheirExchangeField(3)},
+		{true, true, core.TheirExchangeField(3), core.CallsignField},
 	}
 	view.Activate()
 	view.On("Callsign").Return("").Maybe()
@@ -623,6 +629,20 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	return clock, log, qsoList, view, controller, settings
 }
 
+func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
+	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
+	clock := clock.Static(now)
+	log := new(mocked.Log)
+	qsoList := new(mocked.QSOList)
+	view := new(mocked.EntryView)
+	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true, exchangeFieldCount: exchangeFieldCount}
+	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
+	controller.SetLogbook(log)
+	controller.SetView(view)
+
+	return clock, log, qsoList, view, controller, settings
+}
+
 func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
@@ -670,6 +690,7 @@ type testSettings struct {
 	enterTheirNumber    bool
 	enterTheirXchange   bool
 	requireTheirXchange bool
+	exchangeFieldCount  int
 }
 
 func (s *testSettings) Station() core.Station {
@@ -679,10 +700,15 @@ func (s *testSettings) Station() core.Station {
 }
 
 func (s *testSettings) Contest() core.Contest {
+	exchangeFields := make([]conval.ExchangeField, s.exchangeFieldCount)
+	for i := range exchangeFields {
+		exchangeFields[i] = conval.ExchangeField{conval.AlphanumProperty}
+	}
 	return core.Contest{
 		EnterTheirNumber:    s.enterTheirNumber,
 		EnterTheirXchange:   s.enterTheirXchange,
 		RequireTheirXchange: s.requireTheirXchange,
+		Definition:          fieldDefinition(exchangeFields...),
 	}
 }
 

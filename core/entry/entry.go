@@ -32,8 +32,8 @@ type View interface {
 	SetMyXchange(string)
 	SetMyExchange(int, string)
 
-	SetMyExchangeFields(...core.ExchangeField)
-	SetTheirExchangeFields(...core.ExchangeField)
+	SetMyExchangeFields([]core.ExchangeField)
+	SetTheirExchangeFields([]core.ExchangeField)
 	EnableExchangeFields(bool, bool)
 	SetActiveField(core.EntryField)
 	SetDuplicateMarker(bool)
@@ -128,6 +128,9 @@ type Controller struct {
 	enableTheirXchange  bool
 	requireTheirXchange bool
 
+	myExchangeFields    []core.ExchangeField
+	theirExchangeFields []core.ExchangeField
+
 	input              input
 	activeField        core.EntryField
 	errorField         core.EntryField
@@ -218,6 +221,17 @@ func (c *Controller) GotoNextField() core.EntryField {
 	} else if !c.enableTheirNumber && !c.enableTheirXchange {
 		transitions[core.TheirReportField] = core.CallsignField
 		transitions[core.TheirNumberField] = core.CallsignField
+	}
+
+	for _, field := range c.myExchangeFields {
+		transitions[field.Field] = core.CallsignField
+	}
+	for i, field := range c.theirExchangeFields {
+		if i == len(c.theirExchangeFields)-1 {
+			transitions[field.Field] = core.CallsignField
+		} else {
+			transitions[field.Field] = field.Field.NextExchangeField()
+		}
 	}
 
 	nextField := transitions[c.activeField]
@@ -660,19 +674,21 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 
 func (c *Controller) updateExchangeFields(definition *conval.Definition) {
 	if definition == nil {
-		c.view.SetMyExchangeFields()
-		c.view.SetTheirExchangeFields()
+		c.myExchangeFields = nil
+		c.theirExchangeFields = nil
+		c.view.SetMyExchangeFields(nil)
+		c.view.SetTheirExchangeFields(nil)
 		return
 	}
 
 	fieldDefinitions := definition.ExchangeFields()
 
-	myExchangeFields := definitionsToExchangeFields(fieldDefinitions, core.MyExchangeField)
+	c.myExchangeFields = definitionsToExchangeFields(fieldDefinitions, core.MyExchangeField)
 	// TODO set the read-only flag if it is the serial number and my exchange is the serial number
-	c.view.SetMyExchangeFields(myExchangeFields...)
+	c.view.SetMyExchangeFields(c.myExchangeFields)
 
-	theirExchangeFields := definitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
-	c.view.SetTheirExchangeFields(theirExchangeFields...)
+	c.theirExchangeFields = definitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
+	c.view.SetTheirExchangeFields(c.theirExchangeFields)
 }
 
 func definitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchangeEntryField func(int) core.EntryField) []core.ExchangeField {
@@ -690,28 +706,28 @@ func definitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchan
 
 type nullView struct{}
 
-func (n *nullView) SetUTC(string)                                {}
-func (n *nullView) SetMyCall(string)                             {}
-func (n *nullView) SetFrequency(core.Frequency)                  {}
-func (n *nullView) SetCallsign(string)                           {}
-func (n *nullView) SetTheirReport(string)                        {}
-func (n *nullView) SetTheirNumber(string)                        {}
-func (n *nullView) SetTheirXchange(string)                       {}
-func (n *nullView) SetTheirExchange(int, string)                 {}
-func (n *nullView) SetBand(text string)                          {}
-func (n *nullView) SetMode(text string)                          {}
-func (n *nullView) SetMyReport(string)                           {}
-func (n *nullView) SetMyNumber(string)                           {}
-func (n *nullView) SetMyXchange(string)                          {}
-func (n *nullView) SetMyExchange(int, string)                    {}
-func (n *nullView) SetMyExchangeFields(...core.ExchangeField)    {}
-func (n *nullView) SetTheirExchangeFields(...core.ExchangeField) {}
-func (n *nullView) EnableExchangeFields(bool, bool)              {}
-func (n *nullView) SetActiveField(core.EntryField)               {}
-func (n *nullView) SetDuplicateMarker(bool)                      {}
-func (n *nullView) SetEditingMarker(bool)                        {}
-func (n *nullView) ShowMessage(...interface{})                   {}
-func (n *nullView) ClearMessage()                                {}
+func (n *nullView) SetUTC(string)                               {}
+func (n *nullView) SetMyCall(string)                            {}
+func (n *nullView) SetFrequency(core.Frequency)                 {}
+func (n *nullView) SetCallsign(string)                          {}
+func (n *nullView) SetTheirReport(string)                       {}
+func (n *nullView) SetTheirNumber(string)                       {}
+func (n *nullView) SetTheirXchange(string)                      {}
+func (n *nullView) SetTheirExchange(int, string)                {}
+func (n *nullView) SetBand(text string)                         {}
+func (n *nullView) SetMode(text string)                         {}
+func (n *nullView) SetMyReport(string)                          {}
+func (n *nullView) SetMyNumber(string)                          {}
+func (n *nullView) SetMyXchange(string)                         {}
+func (n *nullView) SetMyExchange(int, string)                   {}
+func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
+func (n *nullView) SetTheirExchangeFields([]core.ExchangeField) {}
+func (n *nullView) EnableExchangeFields(bool, bool)             {}
+func (n *nullView) SetActiveField(core.EntryField)              {}
+func (n *nullView) SetDuplicateMarker(bool)                     {}
+func (n *nullView) SetEditingMarker(bool)                       {}
+func (n *nullView) ShowMessage(...interface{})                  {}
+func (n *nullView) ClearMessage()                               {}
 
 type nullVFO struct{}
 

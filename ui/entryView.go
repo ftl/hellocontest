@@ -29,22 +29,26 @@ type entryView struct {
 	style       *style
 	ignoreInput bool
 
-	entryRoot    *gtk.Grid
-	utc          *gtk.Label
-	myCall       *gtk.Label
-	frequency    *gtk.Label
-	callsign     *gtk.Entry
-	theirReport  *gtk.Entry
-	theirNumber  *gtk.Entry
-	theirXchange *gtk.Entry
-	band         *gtk.ComboBoxText
-	mode         *gtk.ComboBoxText
-	myReport     *gtk.Entry
-	myNumber     *gtk.Entry
-	myXchange    *gtk.Entry
-	logButton    *gtk.Button
-	clearButton  *gtk.Button
-	messageLabel *gtk.Label
+	entryRoot            *gtk.Grid
+	utc                  *gtk.Label
+	myCall               *gtk.Label
+	frequency            *gtk.Label
+	callsign             *gtk.Entry
+	theirReport          *gtk.Entry
+	theirNumber          *gtk.Entry
+	theirXchange         *gtk.Entry
+	theirExchangesParent *gtk.Grid
+	theirExchanges       []*gtk.Entry
+	band                 *gtk.ComboBoxText
+	mode                 *gtk.ComboBoxText
+	myReport             *gtk.Entry
+	myNumber             *gtk.Entry
+	myXchange            *gtk.Entry
+	myExchangesParent    *gtk.Grid
+	myExchanges          []*gtk.Entry
+	logButton            *gtk.Button
+	clearButton          *gtk.Button
+	messageLabel         *gtk.Label
 }
 
 func setupEntryView(builder *gtk.Builder) *entryView {
@@ -58,11 +62,13 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
 	result.theirNumber = getUI(builder, "theirNumberEntry").(*gtk.Entry)
 	result.theirXchange = getUI(builder, "theirXchangeEntry").(*gtk.Entry)
+	result.theirExchangesParent = getUI(builder, "theirExchangesGrid").(*gtk.Grid)
 	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
 	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
 	result.myReport = getUI(builder, "myReportEntry").(*gtk.Entry)
 	result.myNumber = getUI(builder, "myNumberEntry").(*gtk.Entry)
 	result.myXchange = getUI(builder, "myXchangeEntry").(*gtk.Entry)
+	result.myExchangesParent = getUI(builder, "myExchangesGrid").(*gtk.Grid)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.clearButton = getUI(builder, "clearButton").(*gtk.Button)
 	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
@@ -239,7 +245,11 @@ func (v *entryView) SetTheirXchange(text string) {
 }
 
 func (v *entryView) SetTheirExchange(index int, text string) {
-	// TODO set their exchange field with the given index
+	i := index - 1
+	if i < 0 || i >= len(v.theirExchanges) {
+		return
+	}
+	v.setTextWithoutChangeEvent(v.theirExchanges[i].SetText, text)
 }
 
 func (v *entryView) SetBand(text string) {
@@ -267,15 +277,46 @@ func (v *entryView) SetMyXchange(text string) {
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {
-	// TODO set my exchange field with the given index
+	i := index - 1
+	if i < 0 || i >= len(v.myExchanges) {
+		return
+	}
+	v.setTextWithoutChangeEvent(v.myExchanges[i].SetText, text)
 }
 
-func (v *entryView) SetMyExchangeFields(fields ...core.ExchangeField) {
-	// TODO render the exchange fields
+func (v *entryView) SetMyExchangeFields(fields []core.ExchangeField) {
+	v.setExchangeFields(fields, v.myExchangesParent, &v.myExchanges)
 }
 
-func (v *entryView) SetTheirExchangeFields(fields ...core.ExchangeField) {
-	// TODO render the exchange fields
+func (v *entryView) SetTheirExchangeFields(fields []core.ExchangeField) {
+	v.setExchangeFields(fields, v.theirExchangesParent, &v.theirExchanges)
+}
+
+func (v *entryView) setExchangeFields(fields []core.ExchangeField, parent *gtk.Grid, entries *[]*gtk.Entry) {
+	for _, entry := range *entries {
+		entry.Destroy()
+		parent.RemoveColumn(0)
+	}
+
+	*entries = make([]*gtk.Entry, len(fields))
+	for i, field := range fields {
+		entry, err := gtk.EntryNew()
+		if err != nil {
+			log.Printf("cannot create entry for %s: %v", field.Field, err)
+			break
+		}
+		entry.SetName(string(field.Field))
+		entry.SetPlaceholderText(field.Short)
+		entry.SetTooltipText(field.Short) // TODO use field.Hint
+		entry.SetHExpand(true)
+		entry.SetHAlign(gtk.ALIGN_FILL)
+		entry.SetWidthChars(4)
+
+		(*entries)[i] = entry
+		parent.Add(entry)
+		v.addEntryEventHandlers(&entry.Widget)
+	}
+	parent.ShowAll()
 }
 
 func (v *entryView) EnableExchangeFields(theirNumber, theirXchange bool) {
@@ -310,6 +351,14 @@ func (v *entryView) fieldToWidget(field core.EntryField) *gtk.Widget {
 		return &v.mode.Widget
 	case core.OtherField:
 		return &v.callsign.Widget
+	}
+	switch {
+	case field.IsMyExchange():
+		i := field.ExchangeIndex() - 1
+		return &v.myExchanges[i].Widget
+	case field.IsTheirExchange():
+		i := field.ExchangeIndex() - 1
+		return &v.theirExchanges[i].Widget
 	default:
 		log.Fatalf("Unknown entry field %s", field)
 	}
@@ -338,6 +387,9 @@ func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {
 	case "modeCombo":
 		return core.ModeField
 	default:
+		if core.IsExchangeField(name) {
+			return core.EntryField(name)
+		}
 		return core.OtherField
 	}
 }

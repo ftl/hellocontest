@@ -281,11 +281,11 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=25 -->
+          <!-- n-columns=2 n-rows=26 -->
           <object class="GtkGrid" id="stationGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="row-spacing">2</property>
+            <property name="row-spacing">3</property>
             <property name="column-spacing">5</property>
             <child>
               <object class="GtkLabel">
@@ -413,7 +413,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -427,7 +427,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -443,7 +443,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">8</property>
+                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>
@@ -459,7 +459,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">9</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
             <child>
@@ -475,7 +475,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">11</property>
               </packing>
             </child>
             <child>
@@ -491,7 +491,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">12</property>
               </packing>
             </child>
             <child>
@@ -507,7 +507,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">12</property>
+                <property name="top-attach">13</property>
               </packing>
             </child>
             <child>
@@ -521,7 +521,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">13</property>
+                <property name="top-attach">14</property>
               </packing>
             </child>
             <child>
@@ -535,7 +535,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">14</property>
+                <property name="top-attach">15</property>
               </packing>
             </child>
             <child>
@@ -549,7 +549,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">15</property>
+                <property name="top-attach">16</property>
               </packing>
             </child>
             <child>
@@ -563,7 +563,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">16</property>
+                <property name="top-attach">17</property>
               </packing>
             </child>
             <child>
@@ -577,7 +577,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">17</property>
+                <property name="top-attach">18</property>
               </packing>
             </child>
             <child>
@@ -592,7 +592,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">18</property>
+                <property name="top-attach">19</property>
               </packing>
             </child>
             <child>
@@ -605,7 +605,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">13</property>
+                <property name="top-attach">14</property>
               </packing>
             </child>
             <child>
@@ -618,7 +618,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">14</property>
+                <property name="top-attach">15</property>
               </packing>
             </child>
             <child>
@@ -631,7 +631,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">15</property>
+                <property name="top-attach">16</property>
               </packing>
             </child>
             <child>
@@ -645,7 +645,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">16</property>
+                <property name="top-attach">17</property>
               </packing>
             </child>
             <child>
@@ -658,7 +658,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">17</property>
+                <property name="top-attach">18</property>
               </packing>
             </child>
             <child>
@@ -720,7 +720,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">18</property>
+                <property name="top-attach">19</property>
               </packing>
             </child>
             <child>
@@ -736,7 +736,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">19</property>
+                <property name="top-attach">20</property>
               </packing>
             </child>
             <child>
@@ -749,7 +749,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">20</property>
+                <property name="top-attach">21</property>
               </packing>
             </child>
             <child>
@@ -763,7 +763,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">20</property>
+                <property name="top-attach">21</property>
               </packing>
             </child>
             <child>
@@ -777,7 +777,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">21</property>
+                <property name="top-attach">22</property>
               </packing>
             </child>
             <child>
@@ -816,7 +816,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">21</property>
+                <property name="top-attach">22</property>
               </packing>
             </child>
             <child>
@@ -829,7 +829,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">24</property>
+                <property name="top-attach">25</property>
               </packing>
             </child>
             <child>
@@ -842,7 +842,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">22</property>
+                <property name="top-attach">23</property>
               </packing>
             </child>
             <child>
@@ -856,7 +856,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">24</property>
+                <property name="top-attach">25</property>
               </packing>
             </child>
             <child>
@@ -869,7 +869,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">23</property>
+                <property name="top-attach">24</property>
               </packing>
             </child>
             <child>
@@ -883,7 +883,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">22</property>
+                <property name="top-attach">23</property>
               </packing>
             </child>
             <child>
@@ -894,7 +894,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">23</property>
+                <property name="top-attach">24</property>
               </packing>
             </child>
             <child>
@@ -927,6 +927,7 @@ THE SOFTWARE.
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
                 <child>
                   <object class="GtkButton" id="openContestRulesPageButton">
                     <property name="label" translatable="yes">Open Rules</property>
@@ -957,6 +958,46 @@ THE SOFTWARE.
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">start</property>
+                <property name="margin-left">10</property>
+                <property name="margin-start">10</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">My Exchange</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <!-- n-columns=3 n-rows=1 -->
+              <object class="GtkGrid" id="contestExchangeFieldsGrid">
+                <property name="name">contestExchangeFields</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">7</property>
               </packing>
             </child>
             <child>
@@ -1548,12 +1589,18 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <!-- n-columns=0 n-rows=1 -->
+              <!-- n-columns=3 n-rows=1 -->
               <object class="GtkGrid" id="myExchangesGrid">
                 <property name="name">myExchangesGrid</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
                 <child>
                   <placeholder/>
                 </child>
@@ -1565,12 +1612,18 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <!-- n-columns=0 n-rows=1 -->
+              <!-- n-columns=3 n-rows=1 -->
               <object class="GtkGrid" id="theirExchangesGrid">
                 <property name="name">theirExchangesGrid</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
                 <child>
                   <placeholder/>
                 </child>

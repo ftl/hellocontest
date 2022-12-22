@@ -103,12 +103,12 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 				conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty},
 			),
 			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst"},
-				{Field: "myExchange_2", Short: "member_number/nm"},
+				{Field: "myExchange_1", Short: "rst", PropertyCount: 1},
+				{Field: "myExchange_2", Short: "member_number/nm", PropertyCount: 2},
 			},
 			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst"},
-				{Field: "theirExchange_2", Short: "member_number/nm"},
+				{Field: "theirExchange_1", Short: "rst", PropertyCount: 1},
+				{Field: "theirExchange_2", Short: "member_number/nm", PropertyCount: 2},
 			},
 		},
 		{
@@ -120,12 +120,12 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty},
 			),
 			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst"},
-				{Field: "myExchange_2", Short: "serial/nm/wag_dok"},
+				{Field: "myExchange_1", Short: "rst", PropertyCount: 1},
+				{Field: "myExchange_2", Short: "serial/nm/wag_dok", PropertyCount: 3, CanContainSerial: true},
 			},
 			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst"},
-				{Field: "theirExchange_2", Short: "serial/nm/wag_dok"},
+				{Field: "theirExchange_1", Short: "rst", PropertyCount: 1},
+				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", PropertyCount: 3, CanContainSerial: true},
 			},
 		},
 	}

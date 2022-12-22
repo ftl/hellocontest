@@ -60,6 +60,7 @@ type View interface {
 	Show()
 	ShowMessage(string)
 	HideMessage()
+	Ready() bool
 
 	SetStationCallsign(string)
 	SetStationOperator(string)
@@ -67,6 +68,10 @@ type View interface {
 	SetContestIdentifiers(ids []string, texts []string)
 	SetContestPagesAvailable(bool, bool)
 	SelectContestIdentifier(string)
+	SetContestExchangeFields([]core.ExchangeField)
+	SetContestExchangeValue(index int, value string)
+	SetContestGenerateSerialExchange(active bool, sensitive bool)
+
 	SetContestName(string)
 	SetContestEnterTheirNumber(bool)
 	SetContestEnterTheirXchange(bool)
@@ -90,6 +95,7 @@ type View interface {
 func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, xchangeRegexpMatcher XchangeRegexpMatcher, station core.Station, contest core.Contest) *Settings {
 	return &Settings{
 		writer:               new(nullWriter),
+		view:                 new(nullView),
 		defaultsOpener:       defaultsOpener,
 		browserOpener:        browserOpener,
 		xchangeRegexpMatcher: xchangeRegexpMatcher,
@@ -103,12 +109,13 @@ func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, xchangeRege
 }
 
 type Settings struct {
-	writer                Writer
-	view                  View
-	defaultsOpener        DefaultsOpener
-	browserOpener         BrowserOpener
-	xchangeRegexpMatcher  XchangeRegexpMatcher
-	xchangeMultiTestValue string
+	writer                   Writer
+	view                     View
+	defaultsOpener           DefaultsOpener
+	browserOpener            BrowserOpener
+	xchangeRegexpMatcher     XchangeRegexpMatcher
+	xchangeMultiTestValue    string
+	serialExchangeFieldIndex int
 
 	listeners []interface{}
 
@@ -202,6 +209,10 @@ func (s *Settings) Show() {
 }
 
 func (s *Settings) showSettings() {
+	if !s.view.Ready() {
+		return
+	}
+
 	// station
 	s.view.SetStationCallsign(s.station.Callsign.String())
 	s.view.SetStationOperator(s.station.Operator.String())
@@ -231,6 +242,8 @@ func (s *Settings) showSettings() {
 	} else {
 		s.view.SelectContestIdentifier("")
 	}
+	s.updateContestPages()
+	s.updateExchangeFields()
 
 	// contest (old - will be removed)
 	s.view.SetContestName(s.contest.Name)
@@ -251,7 +264,6 @@ func (s *Settings) showSettings() {
 	s.view.SetContestCallHistoryField(s.contest.CallHistoryField)
 	s.view.SetContestCabrilloQSOTemplate(s.contest.CabrilloQSOTemplate)
 	s.updateXchangeMultiPatternResult()
-	s.updateContestPages()
 }
 
 func (s *Settings) Save() {
@@ -343,6 +355,7 @@ func (s *Settings) SelectContestIdentifier(value string) {
 
 	s.contest.Definition = definition
 	s.updateContestPages()
+	s.updateExchangeFields()
 }
 
 func (s *Settings) updateContestPages() {
@@ -351,6 +364,42 @@ func (s *Settings) updateContestPages() {
 	} else {
 		s.view.SetContestPagesAvailable(s.contest.Definition.OfficialRules != "", s.contest.Definition.UploadURL != "")
 	}
+}
+
+func (s *Settings) updateExchangeFields() {
+	var exchangeFields []core.ExchangeField
+	if s.contest.Definition == nil {
+		exchangeFields = nil
+	} else {
+		exchangeFields = core.DefinitionsToExchangeFields(s.contest.Definition.ExchangeFields(), core.MyExchangeField)
+	}
+	s.view.SetContestExchangeFields(exchangeFields)
+
+	currentLen := len(s.contest.ExchangeValues)
+	newLen := len(exchangeFields)
+	if currentLen < newLen {
+		s.contest.ExchangeValues = append(s.contest.ExchangeValues, make([]string, newLen-currentLen)...)
+	} else if currentLen > newLen {
+		s.contest.ExchangeValues = s.contest.ExchangeValues[:newLen]
+	}
+
+	exclusiveSerialField := false
+	s.serialExchangeFieldIndex = -1
+	for i, value := range s.contest.ExchangeValues {
+		field := exchangeFields[i]
+		if field.CanContainSerial {
+			s.serialExchangeFieldIndex = i
+		}
+		if field.CanContainSerial && field.PropertyCount == 1 {
+			s.contest.ExchangeValues[i] = ""
+			value = ""
+			s.contest.GenerateSerialExchange = true
+			exclusiveSerialField = true
+		}
+		s.view.SetContestExchangeValue(i+1, value)
+	}
+
+	s.view.SetContestGenerateSerialExchange(s.contest.GenerateSerialExchange, !exclusiveSerialField)
 }
 
 func (s *Settings) OpenContestRulesPage() {
@@ -373,6 +422,29 @@ func (s *Settings) OpenContestUploadPage() {
 		return
 	}
 	s.browserOpener(url)
+}
+
+func (s *Settings) EnterContestExchangeValue(field core.EntryField, value string) {
+	i := field.ExchangeIndex() - 1
+	if i < 0 {
+		log.Printf("%s is not an exchange field!", field)
+		return
+	}
+	if i >= len(s.contest.ExchangeValues) {
+		log.Printf("%s is outside the exchange field array (%d)", field, len(s.contest.ExchangeValues))
+		return
+	}
+
+	log.Printf("Exchange field %s = %s", field, value)
+	s.contest.ExchangeValues[i] = value
+}
+
+func (s *Settings) EnterContestGenerateSerialExchange(value bool) {
+	log.Printf("Generate serial exchange: %t", value)
+	s.contest.GenerateSerialExchange = value
+	if s.serialExchangeFieldIndex >= 0 {
+		s.view.SetContestExchangeValue(s.serialExchangeFieldIndex+1, "")
+	}
 }
 
 func (s *Settings) EnterContestName(value string) {
@@ -526,12 +598,16 @@ type nullView struct{}
 func (v *nullView) Show()                                              {}
 func (v *nullView) ShowMessage(string)                                 {}
 func (v *nullView) HideMessage()                                       {}
+func (v *nullView) Ready() bool                                        { return false }
 func (v *nullView) SetStationCallsign(string)                          {}
 func (v *nullView) SetStationOperator(string)                          {}
 func (v *nullView) SetStationLocator(string)                           {}
 func (v *nullView) SetContestIdentifiers(ids []string, texts []string) {}
 func (v *nullView) SetContestPagesAvailable(bool, bool)                {}
 func (v *nullView) SelectContestIdentifier(string)                     {}
+func (v *nullView) SetContestExchangeFields([]core.ExchangeField)      {}
+func (v *nullView) SetContestExchangeValue(index int, value string)    {}
+func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
 func (v *nullView) SetContestName(string)                              {}
 func (v *nullView) SetContestEnterTheirNumber(bool)                    {}
 func (v *nullView) SetContestEnterTheirXchange(bool)                   {}

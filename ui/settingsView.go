@@ -4,6 +4,8 @@ import (
 	"log"
 
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 type SettingsController interface {
@@ -17,6 +19,9 @@ type SettingsController interface {
 	SelectContestIdentifier(string)
 	OpenContestRulesPage()
 	OpenContestUploadPage()
+	EnterContestExchangeValue(core.EntryField, string)
+	EnterContestGenerateSerialExchange(bool)
+
 	EnterContestName(string)
 	EnterContestEnterTheirNumber(bool)
 	EnterContestEnterTheirXchange(bool)
@@ -72,14 +77,18 @@ type settingsView struct {
 
 	ignoreChangedEvent bool
 
-	message               *gtk.Label
-	openContestRulesPage  *gtk.Button
-	openContestUploadPage *gtk.Button
-	openDefaults          *gtk.Button
-	reset                 *gtk.Button
-	close                 *gtk.Button
-	xchangeMultiValue     *gtk.Label
-	fields                map[fieldID]interface{}
+	message                      *gtk.Label
+	openContestRulesPage         *gtk.Button
+	openContestUploadPage        *gtk.Button
+	openDefaults                 *gtk.Button
+	reset                        *gtk.Button
+	close                        *gtk.Button
+	xchangeMultiValue            *gtk.Label
+	fields                       map[fieldID]interface{}
+	exchangeFieldsParent         *gtk.Grid
+	exchangeFieldCount           int
+	generateSerialExchangeButton *gtk.CheckButton
+	serialExchangeEntry          *gtk.Entry
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -94,6 +103,8 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.openContestRulesPage.Connect("clicked", result.onOpenContestRulesPagePressed)
 	result.openContestUploadPage = getUI(builder, "openContestUploadPageButton").(*gtk.Button)
 	result.openContestUploadPage.Connect("clicked", result.onOpenContestUploadPagePressed)
+	result.exchangeFieldsParent = getUI(builder, "contestExchangeFieldsGrid").(*gtk.Grid)
+
 	result.openDefaults = getUI(builder, "openDefaultsButton").(*gtk.Button)
 	result.openDefaults.Connect("clicked", result.onOpenDefaultsPressed)
 	result.reset = getUI(builder, "resetButton").(*gtk.Button)
@@ -143,6 +154,10 @@ func (v *settingsView) HideMessage() {
 	v.message.Hide()
 }
 
+func (v *settingsView) Ready() bool {
+	return v != nil
+}
+
 func (v *settingsView) addEntry(builder *gtk.Builder, id fieldID) {
 	entry := getUI(builder, string(id)+"Entry").(*gtk.Entry)
 	field, _ := entry.GetName()
@@ -179,7 +194,7 @@ func (v *settingsView) addFileChooser(builder *gtk.Builder, id fieldID) {
 	widget.Connect("file-set", v.onFieldChanged)
 }
 
-func (v *settingsView) onFieldChanged(w interface{}) bool {
+func (v *settingsView) onFieldChanged(w any) bool {
 	if v.ignoreChangedEvent {
 		return false
 	}
@@ -350,15 +365,115 @@ func (v *settingsView) SetContestIdentifiers(ids []string, texts []string) {
 }
 
 func (v *settingsView) SetContestPagesAvailable(rulesPageAvailable bool, uploadPageAvailable bool) {
-	if v == nil || v.openContestRulesPage == nil || v.openContestUploadPage == nil {
-		return
-	}
 	v.openContestRulesPage.SetSensitive(rulesPageAvailable)
 	v.openContestUploadPage.SetSensitive(uploadPageAvailable)
 }
 
 func (v *settingsView) SelectContestIdentifier(value string) {
 	v.selectComboField(contestIdentifier, value)
+}
+
+func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
+	for i := 0; i < v.exchangeFieldCount; i++ {
+		label, _ := v.exchangeFieldsParent.GetChildAt(0, 0)
+		if label != nil {
+			label.ToWidget().Destroy()
+		}
+		entry, _ := v.exchangeFieldsParent.GetChildAt(1, 0)
+		if entry != nil {
+			entry.ToWidget().Destroy()
+		}
+		v.exchangeFieldsParent.RemoveRow(0)
+	}
+	if v.generateSerialExchangeButton != nil {
+		v.generateSerialExchangeButton.Destroy()
+		v.generateSerialExchangeButton = nil
+		v.serialExchangeEntry = nil
+	}
+
+	for i, field := range fields {
+		v.exchangeFieldsParent.InsertRow(i)
+		label, _ := gtk.LabelNew(field.Short)
+		label.SetHAlign(gtk.ALIGN_START)
+		label.SetHExpand(false)
+		v.exchangeFieldsParent.Attach(label, 0, i, 1, 1)
+
+		entry, _ := gtk.EntryNew()
+		entry.SetName(string(field.Field))
+		entry.SetWidthChars(4)
+		entry.SetTooltipText(field.Short) // TODO use field.Hint
+		entry.SetHAlign(gtk.ALIGN_FILL)
+		entry.SetHExpand(false)
+		entry.Connect("changed", v.onExchangeFieldChanged)
+		v.exchangeFieldsParent.Attach(entry, 1, i, 1, 1)
+
+		if !field.CanContainSerial || v.generateSerialExchangeButton != nil {
+			continue
+		}
+
+		serialCheckButton, _ := gtk.CheckButtonNew()
+		serialCheckButton.SetLabel("Gen. Serial Number")
+		serialCheckButton.SetTooltipText("Check this if you want to automatically generate a serial number as your exchange for this field.")
+		serialCheckButton.SetHAlign(gtk.ALIGN_START)
+		serialCheckButton.SetHExpand(true)
+		serialCheckButton.Connect("toggled", v.onGenerateSerialExchangeChanged)
+		v.exchangeFieldsParent.Attach(serialCheckButton, 2, i, 1, 1)
+		v.generateSerialExchangeButton = serialCheckButton
+		v.serialExchangeEntry = entry
+	}
+	v.exchangeFieldsParent.ShowAll()
+	v.exchangeFieldCount = len(fields)
+}
+
+func (v *settingsView) onExchangeFieldChanged(entry *gtk.Entry) bool {
+	if v.ignoreChangedEvent {
+		return false
+	}
+
+	name, _ := entry.GetName()
+	entryField := core.EntryField(name)
+
+	value, _ := entry.GetText()
+
+	v.controller.EnterContestExchangeValue(entryField, value)
+
+	return false
+}
+
+func (v *settingsView) onGenerateSerialExchangeChanged(checkButton *gtk.CheckButton) bool {
+	if v.ignoreChangedEvent {
+		return false
+	}
+
+	value := checkButton.GetActive()
+	v.serialExchangeEntry.SetSensitive(!value)
+	v.controller.EnterContestGenerateSerialExchange(value)
+
+	return false
+}
+
+func (v *settingsView) SetContestExchangeValue(index int, value string) {
+	child, _ := v.exchangeFieldsParent.GetChildAt(1, index-1)
+	entry, ok := child.(*gtk.Entry)
+	if !ok {
+		return
+	}
+
+	v.doIgnoreChanges(func() {
+		entry.SetText(value)
+	})
+}
+
+func (v *settingsView) SetContestGenerateSerialExchange(active bool, sensitive bool) {
+	if v.generateSerialExchangeButton == nil {
+		return
+	}
+
+	v.doIgnoreChanges(func() {
+		v.generateSerialExchangeButton.SetActive(active)
+		v.generateSerialExchangeButton.SetSensitive(sensitive)
+		v.serialExchangeEntry.SetSensitive(!active)
+	})
 }
 
 func (v *settingsView) SetContestName(value string) {
@@ -416,9 +531,6 @@ func (v *settingsView) SetContestXchangeMultiPattern(value string) {
 }
 
 func (v *settingsView) SetContestXchangeMultiPatternResult(value string) {
-	if v == nil {
-		return
-	}
 	v.xchangeMultiValue.SetText(value)
 }
 

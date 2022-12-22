@@ -196,11 +196,33 @@ func TheirExchangeField(i int) EntryField {
 }
 
 type ExchangeField struct {
-	Field    EntryField
+	Field            EntryField
+	CanContainSerial bool
+	PropertyCount    int
+
 	Short    string
 	Name     string
 	Hint     string
 	ReadOnly bool
+}
+
+func DefinitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchangeEntryField func(int) EntryField) []ExchangeField {
+	result := make([]ExchangeField, 0, len(fieldDefinitions))
+	for i, fieldDefinition := range fieldDefinitions {
+		short := strings.Join(fieldDefinition.Strings(), "/")
+		field := ExchangeField{
+			Field:         exchangeEntryField(i + 1),
+			PropertyCount: len(fieldDefinition),
+			Short:         short,
+		}
+		for _, property := range fieldDefinition {
+			if property == conval.SerialNumberProperty {
+				field.CanContainSerial = true
+			}
+		}
+		result = append(result, field)
+	}
+	return result
 }
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.
@@ -280,8 +302,11 @@ type Station struct {
 }
 
 type Contest struct {
+	Definition             *conval.Definition
+	ExchangeValues         []string
+	GenerateSerialExchange bool
+
 	Name                string
-	Definition          *conval.Definition
 	EnterTheirNumber    bool
 	EnterTheirXchange   bool
 	RequireTheirXchange bool

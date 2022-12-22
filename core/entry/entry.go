@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -683,25 +682,12 @@ func (c *Controller) updateExchangeFields(definition *conval.Definition) {
 
 	fieldDefinitions := definition.ExchangeFields()
 
-	c.myExchangeFields = definitionsToExchangeFields(fieldDefinitions, core.MyExchangeField)
+	c.myExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.MyExchangeField)
 	// TODO set the read-only flag if it is the serial number and my exchange is the serial number
 	c.view.SetMyExchangeFields(c.myExchangeFields)
 
-	c.theirExchangeFields = definitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
+	c.theirExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
 	c.view.SetTheirExchangeFields(c.theirExchangeFields)
-}
-
-func definitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchangeEntryField func(int) core.EntryField) []core.ExchangeField {
-	result := make([]core.ExchangeField, 0, len(fieldDefinitions))
-	for i, fieldDefinition := range fieldDefinitions {
-		short := strings.Join(fieldDefinition.Strings(), "/")
-		field := core.ExchangeField{
-			Field: exchangeEntryField(i + 1),
-			Short: short,
-		}
-		result = append(result, field)
-	}
-	return result
 }
 
 type nullView struct{}

@@ -94,6 +94,8 @@ func StationToPB(station core.Station) Station {
 
 func ToContest(pbContest Contest) (core.Contest, error) {
 	var contest core.Contest
+
+	// old contest settings - will be removed
 	contest.Name = pbContest.Name
 	contest.EnterTheirNumber = pbContest.EnterTheirNumber
 	contest.EnterTheirXchange = pbContest.EnterTheirXchange
@@ -115,6 +117,10 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	contest.CabrilloQSOTemplate = pbContest.CabrilloQsoTemplate
 	contest.CallHistoryFilename = pbContest.CallHistoryFilename
 	contest.CallHistoryField = pbContest.CallHistoryField
+
+	// new contest settings
+	contest.ExchangeValues = pbContest.ExchangeValues
+	contest.GenerateSerialExchange = pbContest.GenerateSerialExchange
 
 	if pbContest.DefinitionYaml == "" {
 		return contest, nil
@@ -143,7 +149,10 @@ func ContestToPB(contest core.Contest) Contest {
 	}
 
 	return Contest{
-		DefinitionYaml:          definitionYaml,
+		DefinitionYaml:         definitionYaml,
+		ExchangeValues:         contest.ExchangeValues,
+		GenerateSerialExchange: contest.GenerateSerialExchange,
+
 		Name:                    contest.Name,
 		EnterTheirNumber:        contest.EnterTheirNumber,
 		EnterTheirXchange:       contest.EnterTheirXchange,

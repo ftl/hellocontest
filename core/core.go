@@ -15,25 +15,27 @@ import (
 
 // QSO contains the details about one radio contact.
 type QSO struct {
-	Callsign     callsign.Callsign
-	Time         time.Time
-	Frequency    Frequency
-	Band         Band
-	Mode         Mode
-	MyReport     RST
-	MyNumber     QSONumber
-	MyXchange    string
-	TheirReport  RST
-	TheirNumber  QSONumber
-	TheirXchange string
-	LogTimestamp time.Time
-	DXCC         dxcc.Prefix
-	Points       int
-	Duplicate    bool
+	Callsign      callsign.Callsign
+	Time          time.Time
+	Frequency     Frequency
+	Band          Band
+	Mode          Mode
+	MyReport      RST
+	MyNumber      QSONumber
+	MyXchange     string
+	MyExchange    []string
+	TheirReport   RST
+	TheirNumber   QSONumber
+	TheirXchange  string
+	TheirExchange []string
+	LogTimestamp  time.Time
+	DXCC          dxcc.Prefix
+	Points        int
+	Duplicate     bool
 }
 
 func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%2d|%t", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), qso.TheirReport, qso.TheirNumber.String(), qso.Points, qso.Duplicate)
+	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%s|%s|%2d|%t", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), strings.Join(qso.MyExchange, " "), qso.TheirReport, qso.TheirNumber.String(), strings.Join(qso.TheirExchange, " "), qso.Points, qso.Duplicate)
 }
 
 // Frequency in Hz.
@@ -227,10 +229,11 @@ func DefinitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchan
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.
 type KeyerValues struct {
-	TheirCall string
-	MyNumber  QSONumber
-	MyReport  RST
-	MyXchange string
+	TheirCall  string
+	MyNumber   QSONumber
+	MyReport   RST
+	MyXchange  string
+	MyExchange string
 }
 
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.

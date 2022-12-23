@@ -228,11 +228,12 @@ func (k *Keyer) GetText(index int) (string, error) {
 func (k *Keyer) fillins() map[string]string {
 	values := k.values()
 	return map[string]string{
-		"MyCall":    k.stationCallsign.String(),
-		"MyReport":  softcut(values.MyReport.String()),
-		"MyNumber":  softcut(values.MyNumber.String()),
-		"MyXchange": values.MyXchange,
-		"TheirCall": values.TheirCall,
+		"MyCall":     k.stationCallsign.String(),
+		"MyReport":   softcut(values.MyReport.String()),
+		"MyNumber":   softcut(values.MyNumber.String()),
+		"MyXchange":  values.MyXchange,
+		"MyExchange": values.MyExchange,
+		"TheirCall":  values.TheirCall,
 	}
 }
 
@@ -243,6 +244,7 @@ func (k *Keyer) Send(index int) {
 		return
 	}
 	k.send(message)
+	log.Printf("Sending %s", message)
 }
 
 func (k *Keyer) SendQuestion(q string) {

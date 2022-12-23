@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -111,7 +112,7 @@ func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, as
 	}
 	result.refreshTicker = ticker.New(result.refreshUTC)
 	if contest.Definition != nil {
-		result.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange)
+		result.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange, contest.ExchangeValues)
 	}
 	return result
 }
@@ -139,6 +140,8 @@ type Controller struct {
 	myNumberExchangeField    core.ExchangeField
 	theirReportExchangeField core.ExchangeField
 	theirNumberExchangeField core.ExchangeField
+	generateSerialExchange   bool
+	defaultExchangeValues    []string
 
 	input              input
 	activeField        core.EntryField
@@ -297,12 +300,13 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.input.theirReport = qso.TheirReport.String()
 	c.input.theirNumber = qso.TheirNumber.String()
 	c.input.theirXchange = qso.TheirXchange
+	c.input.theirExchange = ensureLen(qso.TheirExchange, len(c.theirExchangeFields))
 	c.input.myReport = qso.MyReport.String()
 	c.input.myNumber = qso.MyNumber.String()
 	c.input.myXchange = qso.MyXchange
+	c.input.myExchange = ensureLen(qso.MyExchange, len(c.myExchangeFields))
 	c.input.band = qso.Band.String()
 	c.input.mode = qso.Mode.String()
-	// TODO: set the exchange fields
 
 	c.selectedFrequency = qso.Frequency
 	c.selectedBand = qso.Band
@@ -311,17 +315,32 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.showInput()
 }
 
+func ensureLen(a []string, l int) []string {
+	if len(a) < l {
+		return append(a, make([]string, l-len(a))...)
+	}
+	if len(a) > l {
+		return a[:l]
+	}
+	return a
+}
+
 func (c *Controller) showInput() {
 	c.view.SetCallsign(c.input.callsign)
 	c.view.SetTheirReport(c.input.theirReport)
 	c.view.SetTheirNumber(c.input.theirNumber)
 	c.view.SetTheirXchange(c.input.theirXchange)
+	for i, value := range c.input.theirExchange {
+		c.view.SetTheirExchange(i+1, value)
+	}
 	c.view.SetMyReport(c.input.myReport)
 	c.view.SetMyNumber(c.input.myNumber)
 	c.view.SetMyXchange(c.input.myXchange)
+	for i, value := range c.input.myExchange {
+		c.view.SetMyExchange(i+1, value)
+	}
 	c.view.SetBand(c.input.band)
 	c.view.SetMode(c.input.mode)
-	// TODO: show the exchange fields
 }
 
 func (c *Controller) setTheirXchangePrediction(predictedXchange string) {
@@ -374,7 +393,14 @@ func (c *Controller) Enter(text string) {
 		c.modeSelected(text)
 	}
 
-	// TODO: enter into new exchange fields
+	i := c.activeField.ExchangeIndex() - 1
+	switch {
+	case c.activeField.IsMyExchange():
+		c.input.myExchange[i] = text
+	case c.activeField.IsTheirExchange():
+		c.input.theirExchange[i] = text
+		// TODO: c.enterTheirXchange -> update callinfo
+	}
 }
 
 func (c *Controller) frequencySelected(frequency core.Frequency) {
@@ -418,15 +444,6 @@ func (c *Controller) modeSelected(s string) {
 		log.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
 		c.vfo.SetMode(mode)
-
-		if c.selectedMode == core.ModeSSB {
-			c.input.theirReport = "59"
-			c.input.myReport = "59"
-		} else {
-			c.input.myReport = "599"
-			c.input.theirReport = "599"
-		}
-
 		c.enterCallsign(c.input.callsign)
 	}
 }
@@ -502,8 +519,6 @@ func (c *Controller) Log() {
 		return
 	}
 
-	// TODO: handle content of the new exchange fields
-
 	var err error
 	qso := core.QSO{}
 	if c.editing {
@@ -532,12 +547,30 @@ func (c *Controller) Log() {
 		return
 	}
 
+	// handle their exchange
+	for i, field := range c.theirExchangeFields {
+		value := c.input.theirExchange[i]
+		qso.TheirExchange[i] = value
+		// TODO parse the value using the conval validators and show an error on the field
+
+		switch field.Field {
+		case c.theirReportExchangeField.Field:
+			// TODO parse the report and put it into qso.TheirReport
+		case c.theirNumberExchangeField.Field:
+			// TODO parse the number and put it into qso.TheirNumber
+		default:
+			// TODO check the predicted value
+		}
+	}
+
+	// TODO: remove this
 	qso.TheirReport, err = parse.RST(c.input.theirReport)
 	if err != nil {
 		c.showErrorOnField(err, core.TheirReportField)
 		return
 	}
 
+	// TODO: remove this
 	if c.enableTheirNumber {
 		value := c.input.theirNumber
 		if value == "" {
@@ -553,6 +586,7 @@ func (c *Controller) Log() {
 		qso.TheirNumber = core.QSONumber(theirNumber)
 	}
 
+	// TODO: remove this
 	if c.enableTheirXchange {
 		qso.TheirXchange = c.input.theirXchange
 		if qso.TheirXchange == "" && c.requireTheirXchange {
@@ -567,12 +601,30 @@ func (c *Controller) Log() {
 		}
 	}
 
+	// handle my exchange
+	for i, field := range c.myExchangeFields {
+		value := c.input.myExchange[i]
+		qso.MyExchange[i] = value
+		// TODO parse the value using the conval validators and show an error on the field
+
+		switch field.Field {
+		case c.myReportExchangeField.Field:
+			// TODO parse the report and put it into qso.MyReport
+		case c.myNumberExchangeField.Field:
+			// TODO parse the number and put it into qso.MyNumber
+		default:
+			// TODO check the predicted value
+		}
+	}
+
+	// TODO: remove this
 	qso.MyReport, err = parse.RST(c.input.myReport)
 	if err != nil {
 		c.showErrorOnField(err, core.MyReportField)
 		return
 	}
 
+	// TODO: remove this
 	myNumber, err := strconv.Atoi(c.input.myNumber)
 	if err != nil {
 		c.showErrorOnField(err, core.MyNumberField)
@@ -580,6 +632,7 @@ func (c *Controller) Log() {
 	}
 	qso.MyNumber = core.QSONumber(myNumber)
 
+	// TODO: remove this
 	qso.MyXchange = c.input.myXchange
 
 	c.logbook.Log(qso)
@@ -615,22 +668,32 @@ func (c *Controller) Clear() {
 	nextNumber := c.logbook.NextNumber()
 	c.activeField = core.CallsignField
 	c.input.callsign = ""
-	if c.selectedMode == core.ModeSSB {
-		c.input.myReport = "59"
-		c.input.theirReport = "59"
-	} else {
-		c.input.myReport = "599"
-		c.input.theirReport = "599"
-	}
-	c.input.theirNumber = ""
-	c.input.theirXchange = ""
 	if c.selectedBand != core.NoBand {
 		c.input.band = c.selectedBand.String()
 	}
 	if c.selectedMode != core.NoMode {
 		c.input.mode = c.selectedMode.String()
 	}
-	c.input.myNumber = nextNumber.String()
+
+	c.input.myReport = ""
+	c.input.myNumber = ""
+	c.input.theirReport = ""
+	c.input.theirNumber = ""
+	for i := range c.input.theirExchange {
+		c.input.theirExchange[i] = ""
+	}
+	for i, value := range c.defaultExchangeValues {
+		c.input.myExchange[i] = value
+		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
+			c.input.myReport = value
+
+			c.input.theirExchange[i] = value
+			c.input.theirReport = value
+		}
+	}
+	c.setMyNumberInput(nextNumber.String())
+
+	log.Printf("current input: %#v\n\ndefault values: %#v", c.input, c.defaultExchangeValues)
 
 	c.showInput()
 	c.view.SetMyCall(c.stationCallsign)
@@ -643,6 +706,15 @@ func (c *Controller) Clear() {
 	if c.callinfo != nil {
 		c.callinfo.ShowInfo("", core.NoBand, core.NoMode, "")
 	}
+}
+
+func (c *Controller) setMyNumberInput(value string) {
+	c.input.myNumber = value
+	i := c.myNumberExchangeField.Field.ExchangeIndex() - 1
+	if i < 0 || !c.generateSerialExchange {
+		return
+	}
+	c.input.myExchange[i] = value
 }
 
 func (c *Controller) Activate() {
@@ -667,12 +739,22 @@ func (c *Controller) selectLastQSO() {
 func (c *Controller) CurrentValues() core.KeyerValues {
 	myNumber, _ := strconv.Atoi(c.input.myNumber)
 
+	myXchanges := make([]string, 0, len(c.input.myExchange))
+	for i, field := range c.myExchangeFields {
+		switch field.Field {
+		case c.myReportExchangeField.Field, c.myNumberExchangeField.Field:
+			continue
+		default:
+			myXchanges = append(myXchanges, c.input.myExchange[i])
+		}
+	}
+
 	values := core.KeyerValues{}
 	values.MyReport, _ = parse.RST(c.input.myReport)
 	values.MyNumber = core.QSONumber(myNumber)
-	values.MyXchange = c.input.myXchange
+	values.MyXchange = strings.Join(myXchanges, " ")
+	values.MyExchange = strings.Join(c.input.myExchange, " ")
 	values.TheirCall = c.input.callsign
-	// TODO: put in the values of the new exchange fields but also keep report and number as separate values if they are available
 
 	return values
 }
@@ -688,16 +770,20 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.requireTheirXchange = contest.RequireTheirXchange
 	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
 
-	c.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange)
+	c.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange, contest.ExchangeValues)
 }
 
-func (c *Controller) updateExchangeFields(definition *conval.Definition, generateSerialExchange bool) {
+func (c *Controller) updateExchangeFields(definition *conval.Definition, generateSerialExchange bool, defaultExchangeValues []string) {
 	c.myExchangeFields = nil
-	c.theirExchangeFields = nil
 	c.myReportExchangeField = core.ExchangeField{}
 	c.myNumberExchangeField = core.ExchangeField{}
+	c.input.myExchange = nil
+	c.theirExchangeFields = nil
 	c.theirReportExchangeField = core.ExchangeField{}
 	c.theirNumberExchangeField = core.ExchangeField{}
+	c.input.theirExchange = nil
+	c.generateSerialExchange = generateSerialExchange
+	c.defaultExchangeValues = defaultExchangeValues
 
 	if definition == nil {
 		c.updateViewExchangeFields()
@@ -721,6 +807,7 @@ func (c *Controller) updateExchangeFields(definition *conval.Definition, generat
 			c.myNumberExchangeField = field
 		}
 	}
+	c.input.myExchange = make([]string, len(c.myExchangeFields))
 
 	c.theirExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
 	for _, field := range c.myExchangeFields {
@@ -731,6 +818,7 @@ func (c *Controller) updateExchangeFields(definition *conval.Definition, generat
 			c.theirNumberExchangeField = field
 		}
 	}
+	c.input.theirExchange = make([]string, len(c.theirExchangeFields))
 
 	c.updateViewExchangeFields()
 }

@@ -104,7 +104,7 @@ func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, xchangeRege
 		defaultStation:       station,
 		defaultContest:       contest,
 		savedStation:         station,
-		savedContest:         contest,
+		savedContest:         deepCopyContest(contest),
 	}
 }
 
@@ -178,8 +178,15 @@ func (s *Settings) Contest() core.Contest {
 
 func (s *Settings) SetContest(contest core.Contest) {
 	s.contest = contest
-	s.savedContest = contest
+	s.savedContest = deepCopyContest(contest)
 	s.emitContestChanged()
+}
+
+func deepCopyContest(contest core.Contest) core.Contest {
+	result := contest
+	result.ExchangeValues = make([]string, len(contest.ExchangeValues))
+	copy(result.ExchangeValues, contest.ExchangeValues)
+	return result
 }
 
 func (s *Settings) ContestDirty() bool {
@@ -277,7 +284,7 @@ func (s *Settings) Save() {
 	if s.ContestDirty() {
 		modified = true
 		s.emitContestChanged()
-		s.savedContest = s.contest
+		s.savedContest = deepCopyContest(s.contest)
 		s.writer.WriteContest(s.savedContest)
 	}
 	if modified {
@@ -435,12 +442,10 @@ func (s *Settings) EnterContestExchangeValue(field core.EntryField, value string
 		return
 	}
 
-	log.Printf("Exchange field %s = %s", field, value)
 	s.contest.ExchangeValues[i] = value
 }
 
 func (s *Settings) EnterContestGenerateSerialExchange(value bool) {
-	log.Printf("Generate serial exchange: %t", value)
 	s.contest.GenerateSerialExchange = value
 	if s.serialExchangeFieldIndex >= 0 {
 		s.view.SetContestExchangeValue(s.serialExchangeFieldIndex+1, "")

@@ -151,7 +151,7 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 			view.On("SetMyExchangeFields", tc.expectedMyFields).Once()
 			view.On("SetTheirExchangeFields", tc.expectedTheirFields).Once()
 
-			controller.updateExchangeFields(tc.value, tc.generateSerialExchange)
+			controller.updateExchangeFields(tc.value, tc.generateSerialExchange, make([]string, len(tc.expectedMyFields)))
 
 			view.AssertExpectations(t)
 		})

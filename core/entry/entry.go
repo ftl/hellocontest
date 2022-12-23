@@ -42,15 +42,17 @@ type View interface {
 }
 
 type input struct {
-	callsign     string
-	theirReport  string
-	theirNumber  string
-	theirXchange string
-	myReport     string
-	myNumber     string
-	myXchange    string
-	band         string
-	mode         string
+	callsign      string
+	theirReport   string
+	theirNumber   string
+	theirXchange  string
+	theirExchange []string
+	myReport      string
+	myNumber      string
+	myXchange     string
+	myExchange    []string
+	band          string
+	mode          string
 }
 
 // Logbook functionality used for QSO entry.
@@ -58,7 +60,7 @@ type Logbook interface {
 	NextNumber() core.QSONumber
 	LastBand() core.Band
 	LastMode() core.Mode
-	LastXchange() string
+	LastXchange() string // TODO: use contest.ExchangeValues to initialize the exchange entry fields
 	Log(core.QSO)
 }
 
@@ -92,6 +94,7 @@ type VFO interface {
 
 // NewController returns a new entry controller.
 func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, asyncRunner core.AsyncRunner) *Controller {
+	contest := settings.Contest()
 	result := &Controller{
 		clock:       clock,
 		view:        new(nullView),
@@ -102,11 +105,14 @@ func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, as
 		qsoList:     qsoList,
 
 		stationCallsign:     settings.Station().Callsign.String(),
-		enableTheirNumber:   settings.Contest().EnterTheirNumber,
-		enableTheirXchange:  settings.Contest().EnterTheirXchange,
-		requireTheirXchange: settings.Contest().RequireTheirXchange,
+		enableTheirNumber:   contest.EnterTheirNumber,
+		enableTheirXchange:  contest.EnterTheirXchange,
+		requireTheirXchange: contest.RequireTheirXchange,
 	}
 	result.refreshTicker = ticker.New(result.refreshUTC)
+	if contest.Definition != nil {
+		result.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange)
+	}
 	return result
 }
 
@@ -127,8 +133,12 @@ type Controller struct {
 	enableTheirXchange  bool
 	requireTheirXchange bool
 
-	myExchangeFields    []core.ExchangeField
-	theirExchangeFields []core.ExchangeField
+	myExchangeFields         []core.ExchangeField
+	theirExchangeFields      []core.ExchangeField
+	myReportExchangeField    core.ExchangeField
+	myNumberExchangeField    core.ExchangeField
+	theirReportExchangeField core.ExchangeField
+	theirNumberExchangeField core.ExchangeField
 
 	input              input
 	activeField        core.EntryField
@@ -150,6 +160,7 @@ func (c *Controller) SetView(view View) {
 	c.Clear()
 	c.refreshUTC()
 	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
+	c.updateViewExchangeFields()
 }
 
 func (c *Controller) SetLogbook(logbook Logbook) {
@@ -250,7 +261,7 @@ func (c *Controller) leaveCallsignField() {
 		return
 	}
 	if c.enableTheirXchange && c.input.theirXchange == "" {
-		c.setTheirXchangePrediction(c.callinfo.PredictedXchange())
+		c.setTheirXchangePrediction(c.callinfo.PredictedXchange()) // TODO fill new exchange fields with predicted values
 	}
 
 	_, found := c.isDuplicate(callsign)
@@ -291,6 +302,7 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.input.myXchange = qso.MyXchange
 	c.input.band = qso.Band.String()
 	c.input.mode = qso.Mode.String()
+	// TODO: set the exchange fields
 
 	c.selectedFrequency = qso.Frequency
 	c.selectedBand = qso.Band
@@ -309,11 +321,13 @@ func (c *Controller) showInput() {
 	c.view.SetMyXchange(c.input.myXchange)
 	c.view.SetBand(c.input.band)
 	c.view.SetMode(c.input.mode)
+	// TODO: show the exchange fields
 }
 
 func (c *Controller) setTheirXchangePrediction(predictedXchange string) {
 	c.input.theirXchange = predictedXchange
 	c.view.SetTheirXchange(c.input.theirXchange)
+	// TODO: fill the new exchange fields
 }
 
 func (c *Controller) selectQSO(qso core.QSO) {
@@ -359,6 +373,8 @@ func (c *Controller) Enter(text string) {
 		c.input.mode = text
 		c.modeSelected(text)
 	}
+
+	// TODO: enter into new exchange fields
 }
 
 func (c *Controller) frequencySelected(frequency core.Frequency) {
@@ -462,6 +478,7 @@ func (c *Controller) enterTheirXchange(s string) {
 	}
 	c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirXchange)
 	c.clearErrorOnField(core.TheirXchangeField)
+	// TODO: also handle input in new exchange fields
 }
 
 func (c *Controller) QSOSelected(qso core.QSO) {
@@ -484,6 +501,8 @@ func (c *Controller) Log() {
 		c.frequencySelected(f)
 		return
 	}
+
+	// TODO: handle content of the new exchange fields
 
 	var err error
 	qso := core.QSO{}
@@ -653,6 +672,7 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 	values.MyNumber = core.QSONumber(myNumber)
 	values.MyXchange = c.input.myXchange
 	values.TheirCall = c.input.callsign
+	// TODO: put in the values of the new exchange fields but also keep report and number as separate values if they are available
 
 	return values
 }
@@ -668,25 +688,55 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.requireTheirXchange = contest.RequireTheirXchange
 	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
 
-	c.updateExchangeFields(contest.Definition)
+	c.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange)
 }
 
-func (c *Controller) updateExchangeFields(definition *conval.Definition) {
+func (c *Controller) updateExchangeFields(definition *conval.Definition, generateSerialExchange bool) {
+	c.myExchangeFields = nil
+	c.theirExchangeFields = nil
+	c.myReportExchangeField = core.ExchangeField{}
+	c.myNumberExchangeField = core.ExchangeField{}
+	c.theirReportExchangeField = core.ExchangeField{}
+	c.theirNumberExchangeField = core.ExchangeField{}
+
 	if definition == nil {
-		c.myExchangeFields = nil
-		c.theirExchangeFields = nil
-		c.view.SetMyExchangeFields(nil)
-		c.view.SetTheirExchangeFields(nil)
+		c.updateViewExchangeFields()
 		return
 	}
 
 	fieldDefinitions := definition.ExchangeFields()
 
 	c.myExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.MyExchangeField)
-	// TODO set the read-only flag if it is the serial number and my exchange is the serial number
-	c.view.SetMyExchangeFields(c.myExchangeFields)
+	for i, field := range c.myExchangeFields {
+		switch {
+		case field.Properties.Contains(conval.RSTProperty):
+			c.myReportExchangeField = field
+		case field.Properties.Contains(conval.SerialNumberProperty):
+			if generateSerialExchange {
+				field.ReadOnly = true
+				field.Short = "#"
+				field.Hint = "Serial Number"
+				c.myExchangeFields[i] = field
+			}
+			c.myNumberExchangeField = field
+		}
+	}
 
 	c.theirExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
+	for _, field := range c.myExchangeFields {
+		switch {
+		case field.Properties.Contains(conval.RSTProperty):
+			c.theirReportExchangeField = field
+		case field.Properties.Contains(conval.SerialNumberProperty):
+			c.theirNumberExchangeField = field
+		}
+	}
+
+	c.updateViewExchangeFields()
+}
+
+func (c *Controller) updateViewExchangeFields() {
+	c.view.SetMyExchangeFields(c.myExchangeFields)
 	c.view.SetTheirExchangeFields(c.theirExchangeFields)
 }
 

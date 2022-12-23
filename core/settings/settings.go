@@ -390,7 +390,7 @@ func (s *Settings) updateExchangeFields() {
 		if field.CanContainSerial {
 			s.serialExchangeFieldIndex = i
 		}
-		if field.CanContainSerial && field.PropertyCount == 1 {
+		if field.CanContainSerial && len(field.Properties) == 1 {
 			s.contest.ExchangeValues[i] = ""
 			value = ""
 			s.contest.GenerateSerialExchange = true

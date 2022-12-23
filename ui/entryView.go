@@ -311,6 +311,7 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, parent *gtk.G
 		entry.SetHExpand(true)
 		entry.SetHAlign(gtk.ALIGN_FILL)
 		entry.SetWidthChars(4)
+		entry.SetSensitive(!field.ReadOnly)
 
 		(*entries)[i] = entry
 		parent.Add(entry)

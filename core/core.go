@@ -198,7 +198,7 @@ func TheirExchangeField(i int) EntryField {
 type ExchangeField struct {
 	Field            EntryField
 	CanContainSerial bool
-	PropertyCount    int
+	Properties       conval.ExchangeField
 
 	Short    string
 	Name     string
@@ -211,9 +211,9 @@ func DefinitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchan
 	for i, fieldDefinition := range fieldDefinitions {
 		short := strings.Join(fieldDefinition.Strings(), "/")
 		field := ExchangeField{
-			Field:         exchangeEntryField(i + 1),
-			PropertyCount: len(fieldDefinition),
-			Short:         short,
+			Field:      exchangeEntryField(i + 1),
+			Properties: fieldDefinition,
+			Short:      short,
 		}
 		for _, property := range fieldDefinition {
 			if property == conval.SerialNumberProperty {

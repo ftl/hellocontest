@@ -67,10 +67,10 @@ func TestFileStore_V1QSORoundtrip(t *testing.T) {
 		Mode:          core.ModeCW,
 		MyReport:      "599",
 		MyNumber:      1,
-		MyExchange:    []string{"599", "1", "mx"},
+		MyExchange:    []string{"599", "001", "mx"},
 		TheirReport:   "579",
 		TheirNumber:   2,
-		TheirExchange: []string{"579", "2", "tx"},
+		TheirExchange: []string{"579", "002", "tx"},
 		LogTimestamp:  time.Unix(456, 0),
 	}
 	err = fs.WriteQSO(qso)

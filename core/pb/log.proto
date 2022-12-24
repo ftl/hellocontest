@@ -24,10 +24,12 @@ message QSO {
     string their_report = 7;
     int32 their_number = 8;
     int64 log_timestamp = 9;
-    string my_xchange = 10;
-    string their_xchange = 11;
+    string my_xchange = 10; // deprecated
+    string their_xchange = 11; // deprecated
     double frequency = 12;
     reserved 13;
+    repeated string my_exchange = 14;
+    repeated string their_exchange =15;
 }
 
 message Station {

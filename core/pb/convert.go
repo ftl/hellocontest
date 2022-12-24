@@ -36,12 +36,14 @@ func ToQSO(pbQSO QSO) (core.QSO, error) {
 	}
 	qso.MyNumber = core.QSONumber(pbQSO.MyNumber)
 	// qso.MyXchange = pbQSO.MyXchange
+	qso.MyExchange = pbQSO.MyExchange
 	qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
 	if err != nil {
 		return core.QSO{}, err
 	}
 	qso.TheirNumber = core.QSONumber(pbQSO.TheirNumber)
 	// qso.TheirXchange = pbQSO.TheirXchange
+	qso.TheirExchange = pbQSO.TheirExchange
 	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
 	return qso, nil
 }
@@ -56,10 +58,12 @@ func QSOToPB(qso core.QSO) QSO {
 		MyReport:  qso.MyReport.String(),
 		MyNumber:  int32(qso.MyNumber),
 		// MyXchange:    qso.MyXchange,
+		MyExchange:  qso.MyExchange,
 		TheirReport: qso.TheirReport.String(),
 		TheirNumber: int32(qso.TheirNumber),
 		// TheirXchange: qso.TheirXchange,
-		LogTimestamp: qso.LogTimestamp.Unix(),
+		TheirExchange: qso.TheirExchange,
+		LogTimestamp:  qso.LogTimestamp.Unix(),
 	}
 }
 

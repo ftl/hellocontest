@@ -22,11 +22,9 @@ type QSO struct {
 	Mode          Mode
 	MyReport      RST
 	MyNumber      QSONumber
-	MyXchange     string
 	MyExchange    []string
 	TheirReport   RST
 	TheirNumber   QSONumber
-	TheirXchange  string
 	TheirExchange []string
 	LogTimestamp  time.Time
 	DXCC          dxcc.Prefix
@@ -123,16 +121,10 @@ type EntryField string
 
 // The entry fields.
 const (
-	CallsignField     EntryField = "callsign"
-	TheirReportField  EntryField = "theirReport"
-	TheirNumberField  EntryField = "theirNumber"
-	TheirXchangeField EntryField = "theirXchange"
-	MyReportField     EntryField = "myReport"
-	MyNumberField     EntryField = "myNumber"
-	MyXchangeField    EntryField = "myXchange"
-	BandField         EntryField = "band"
-	ModeField         EntryField = "mode"
-	OtherField        EntryField = "other"
+	CallsignField EntryField = "callsign"
+	BandField     EntryField = "band"
+	ModeField     EntryField = "mode"
+	OtherField    EntryField = "other"
 
 	myExchangePrefix    string = "myExchange_"
 	theirExchangePrefix string = "theirExchange_"
@@ -189,12 +181,12 @@ func (f EntryField) NextExchangeField() EntryField {
 	return EntryField(prefix + strconv.Itoa(i+1))
 }
 
-func MyExchangeField(i int) EntryField {
-	return EntryField(fmt.Sprintf("%s%d", myExchangePrefix, i))
+func MyExchangeField(index int) EntryField {
+	return EntryField(fmt.Sprintf("%s%d", myExchangePrefix, index))
 }
 
-func TheirExchangeField(i int) EntryField {
-	return EntryField(fmt.Sprintf("%s%d", theirExchangePrefix, i))
+func TheirExchangeField(index int) EntryField {
+	return EntryField(fmt.Sprintf("%s%d", theirExchangePrefix, index))
 }
 
 type ExchangeField struct {

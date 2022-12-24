@@ -14,7 +14,7 @@ import (
 )
 
 func TestQsoLine(t *testing.T) {
-	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}} {{.TheirCall}} {{.TheirReport}} {{.TheirNumber}} {{.TheirXchange}}"))
+	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyExchange}} {{.TheirCall}} {{.TheirExchange}}"))
 	myCall, _ := callsign.Parse("AA1ZZZ")
 	theirCall, _ := callsign.Parse("S50A")
 	testCases := []struct {
@@ -25,32 +25,32 @@ func TestQsoLine(t *testing.T) {
 		{
 			desc: "40m CW",
 			qso: core.QSO{
-				Callsign:     theirCall,
-				Time:         time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
-				Band:         core.Band40m,
-				Mode:         core.ModeCW,
-				MyReport:     core.RST("599"),
-				MyNumber:     core.QSONumber(1),
-				MyXchange:    "ABC",
-				TheirReport:  core.RST("589"),
-				TheirNumber:  core.QSONumber(4),
-				TheirXchange: "DEF",
+				Callsign:      theirCall,
+				Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
+				Band:          core.Band40m,
+				Mode:          core.ModeCW,
+				MyReport:      core.RST("599"),
+				MyNumber:      core.QSONumber(1),
+				MyExchange:    []string{"599", "001", "ABC"},
+				TheirReport:   core.RST("589"),
+				TheirNumber:   core.QSONumber(4),
+				TheirExchange: []string{"589", "004", "DEF"},
 			},
 			expected: "QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 ABC S50A 589 004 DEF\n",
 		},
 		{
 			desc: "20m SSB",
 			qso: core.QSO{
-				Callsign:     theirCall,
-				Time:         time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
-				Band:         core.Band20m,
-				Mode:         core.ModeSSB,
-				MyReport:     core.RST("59"),
-				MyNumber:     core.QSONumber(1),
-				MyXchange:    "XXX",
-				TheirReport:  core.RST("58"),
-				TheirNumber:  core.QSONumber(4),
-				TheirXchange: "YYY",
+				Callsign:      theirCall,
+				Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
+				Band:          core.Band20m,
+				Mode:          core.ModeSSB,
+				MyReport:      core.RST("59"),
+				MyNumber:      core.QSONumber(1),
+				MyExchange:    []string{"59", "001", "XXX"},
+				TheirReport:   core.RST("58"),
+				TheirNumber:   core.QSONumber(4),
+				TheirExchange: []string{"58", "004", "YYY"},
 			},
 			expected: "QSO: 14000 PH 2009-05-30 0002 AA1ZZZ 59 001 XXX S50A 58 004 YYY\n",
 		},
@@ -67,7 +67,7 @@ func TestQsoLine(t *testing.T) {
 
 func TestExport(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte{})
-	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyReport}} {{.MyNumber}} {{.TheirCall}} {{.TheirReport}} {{.TheirXchange}}"))
+	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyExchange}} {{.TheirCall}} {{.TheirExchange}}"))
 	settings := &testSettings{
 		stationCallsign: "AA1ZZZ",
 		stationOperator: "AA2ZZZ",
@@ -75,16 +75,16 @@ func TestExport(t *testing.T) {
 	}
 	theirCall, _ := callsign.Parse("S50A")
 	qso := core.QSO{
-		Callsign:     theirCall,
-		Time:         time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
-		Band:         core.Band40m,
-		Mode:         core.ModeCW,
-		MyReport:     core.RST("599"),
-		MyNumber:     core.QSONumber(1),
-		MyXchange:    "ABC",
-		TheirReport:  core.RST("589"),
-		TheirNumber:  core.QSONumber(4),
-		TheirXchange: "DEF",
+		Callsign:      theirCall,
+		Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
+		Band:          core.Band40m,
+		Mode:          core.ModeCW,
+		MyReport:      core.RST("599"),
+		MyNumber:      core.QSONumber(1),
+		MyExchange:    []string{"599", "001", "ABC"},
+		TheirReport:   core.RST("589"),
+		TheirNumber:   core.QSONumber(4),
+		TheirExchange: []string{"589", "004", "DEF"},
 	}
 
 	expected := `START-OF-LOG: 3.0
@@ -103,7 +103,7 @@ CATEGORY-POWER: (HIGH|LOW|QRP)
 CLUB:
 NAME:
 EMAIL:
-QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 S50A 589 DEF
+QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 ABC S50A 589 004 DEF
 END-OF-LOG:
 `
 

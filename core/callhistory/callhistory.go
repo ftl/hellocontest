@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"sort"
-	"strings"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
@@ -163,12 +162,13 @@ func loadCallHistory(filename string) *scp.Database {
 
 func Export(w io.Writer, qsos ...core.QSO) error {
 	callsignToXchange := make(map[string]string)
-	for _, qso := range qsos {
-		if qso.TheirXchange == "" {
-			continue
-		}
-		callsignToXchange[qso.Callsign.String()] = strings.ToUpper(qso.TheirXchange)
-	}
+	// TODO use the new exchange fields
+	// for _, qso := range qsos {
+	// 	if qso.TheirXchange == "" {
+	// 		continue
+	// 	}
+	// 	callsignToXchange[qso.Callsign.String()] = strings.ToUpper(qso.TheirXchange)
+	// }
 	entries := make([]string, 0, len(callsignToXchange))
 	for callsign, xchange := range callsignToXchange {
 		entries = append(entries, fmt.Sprintf("%s,%s", callsign, xchange))

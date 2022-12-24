@@ -214,27 +214,6 @@ func (m *EntryView) SetCallsign(callsign string) {
 	m.Called(callsign)
 }
 
-func (m *EntryView) SetTheirReport(report string) {
-	if !m.active {
-		return
-	}
-	m.Called(report)
-}
-
-func (m *EntryView) SetTheirNumber(number string) {
-	if !m.active {
-		return
-	}
-	m.Called(number)
-}
-
-func (m *EntryView) SetTheirXchange(xchange string) {
-	if !m.active {
-		return
-	}
-	m.Called(xchange)
-}
-
 func (m *EntryView) SetTheirExchange(index int, value string) {
 	if !m.active {
 		return
@@ -256,27 +235,6 @@ func (m *EntryView) SetMode(text string) {
 	m.Called(text)
 }
 
-func (m *EntryView) SetMyReport(report string) {
-	if !m.active {
-		return
-	}
-	m.Called(report)
-}
-
-func (m *EntryView) SetMyNumber(number string) {
-	if !m.active {
-		return
-	}
-	m.Called(number)
-}
-
-func (m *EntryView) SetMyXchange(xchange string) {
-	if !m.active {
-		return
-	}
-	m.Called(xchange)
-}
-
 func (m *EntryView) SetMyExchange(index int, value string) {
 	if !m.active {
 		return
@@ -296,13 +254,6 @@ func (m *EntryView) SetTheirExchangeFields(fields []core.ExchangeField) {
 		return
 	}
 	m.Called(fields)
-}
-
-func (m *EntryView) EnableExchangeFields(theirNumber, theirXchange bool) {
-	if !m.active {
-		return
-	}
-	m.Called(theirNumber, theirXchange)
 }
 
 func (m *EntryView) SetActiveField(field core.EntryField) {

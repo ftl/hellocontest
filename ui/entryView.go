@@ -34,16 +34,10 @@ type entryView struct {
 	myCall               *gtk.Label
 	frequency            *gtk.Label
 	callsign             *gtk.Entry
-	theirReport          *gtk.Entry
-	theirNumber          *gtk.Entry
-	theirXchange         *gtk.Entry
 	theirExchangesParent *gtk.Grid
 	theirExchanges       []*gtk.Entry
 	band                 *gtk.ComboBoxText
 	mode                 *gtk.ComboBoxText
-	myReport             *gtk.Entry
-	myNumber             *gtk.Entry
-	myXchange            *gtk.Entry
 	myExchangesParent    *gtk.Grid
 	myExchanges          []*gtk.Entry
 	logButton            *gtk.Button
@@ -59,27 +53,15 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.myCall = getUI(builder, "myCallLabel").(*gtk.Label)
 	result.frequency = getUI(builder, "frequencyLabel").(*gtk.Label)
 	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
-	result.theirReport = getUI(builder, "theirReportEntry").(*gtk.Entry)
-	result.theirNumber = getUI(builder, "theirNumberEntry").(*gtk.Entry)
-	result.theirXchange = getUI(builder, "theirXchangeEntry").(*gtk.Entry)
 	result.theirExchangesParent = getUI(builder, "theirExchangesGrid").(*gtk.Grid)
 	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
 	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
-	result.myReport = getUI(builder, "myReportEntry").(*gtk.Entry)
-	result.myNumber = getUI(builder, "myNumberEntry").(*gtk.Entry)
-	result.myXchange = getUI(builder, "myXchangeEntry").(*gtk.Entry)
 	result.myExchangesParent = getUI(builder, "myExchangesGrid").(*gtk.Grid)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.clearButton = getUI(builder, "clearButton").(*gtk.Button)
 	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
 
 	result.addEntryEventHandlers(&result.callsign.Widget)
-	result.addEntryEventHandlers(&result.theirReport.Widget)
-	result.addEntryEventHandlers(&result.theirNumber.Widget)
-	result.addEntryEventHandlers(&result.theirXchange.Widget)
-	result.addEntryEventHandlers(&result.myReport.Widget)
-	result.addEntryEventHandlers(&result.myNumber.Widget)
-	result.addEntryEventHandlers(&result.myXchange.Widget)
 	result.addEntryEventHandlers(&result.band.Widget)
 	result.addEntryEventHandlers(&result.mode.Widget)
 
@@ -232,18 +214,6 @@ func (v *entryView) SetCallsign(text string) {
 	v.setTextWithoutChangeEvent(v.callsign.SetText, text)
 }
 
-func (v *entryView) SetTheirReport(text string) {
-	v.setTextWithoutChangeEvent(v.theirReport.SetText, text)
-}
-
-func (v *entryView) SetTheirNumber(text string) {
-	v.setTextWithoutChangeEvent(v.theirNumber.SetText, text)
-}
-
-func (v *entryView) SetTheirXchange(text string) {
-	v.setTextWithoutChangeEvent(v.theirXchange.SetText, text)
-}
-
 func (v *entryView) SetTheirExchange(index int, text string) {
 	i := index - 1
 	if i < 0 || i >= len(v.theirExchanges) {
@@ -262,18 +232,6 @@ func (v *entryView) SetMode(text string) {
 	runAsync(func() {
 		v.setTextWithoutChangeEvent(func(s string) { v.mode.SetActiveID(s) }, text)
 	})
-}
-
-func (v *entryView) SetMyReport(text string) {
-	v.setTextWithoutChangeEvent(v.myReport.SetText, text)
-}
-
-func (v *entryView) SetMyNumber(text string) {
-	v.setTextWithoutChangeEvent(v.myNumber.SetText, text)
-}
-
-func (v *entryView) SetMyXchange(text string) {
-	v.setTextWithoutChangeEvent(v.myXchange.SetText, text)
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {
@@ -320,11 +278,6 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, parent *gtk.G
 	parent.ShowAll()
 }
 
-func (v *entryView) EnableExchangeFields(theirNumber, theirXchange bool) {
-	v.theirNumber.SetSensitive(theirNumber)
-	v.theirXchange.SetSensitive(theirXchange)
-}
-
 func (v *entryView) SetActiveField(field core.EntryField) {
 	widget := v.fieldToWidget(field)
 	widget.GrabFocus()
@@ -334,18 +287,6 @@ func (v *entryView) fieldToWidget(field core.EntryField) *gtk.Widget {
 	switch field {
 	case core.CallsignField:
 		return &v.callsign.Widget
-	case core.TheirReportField:
-		return &v.theirReport.Widget
-	case core.TheirNumberField:
-		return &v.theirNumber.Widget
-	case core.TheirXchangeField:
-		return &v.theirXchange.Widget
-	case core.MyReportField:
-		return &v.myReport.Widget
-	case core.MyNumberField:
-		return &v.myNumber.Widget
-	case core.MyXchangeField:
-		return &v.myXchange.Widget
 	case core.BandField:
 		return &v.band.Widget
 	case core.ModeField:
@@ -371,18 +312,6 @@ func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {
 	switch name {
 	case "callsignEntry":
 		return core.CallsignField
-	case "theirReportEntry":
-		return core.TheirReportField
-	case "theirNumberEntry":
-		return core.TheirNumberField
-	case "theirXchangeEntry":
-		return core.TheirXchangeField
-	case "myReportEntry":
-		return core.MyReportField
-	case "myNumberEntry":
-		return core.MyNumberField
-	case "myXchangeEntry":
-		return core.MyXchangeField
 	case "bandCombo":
 		return core.BandField
 	case "modeCombo":

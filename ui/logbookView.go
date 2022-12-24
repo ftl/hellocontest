@@ -116,10 +116,10 @@ func (v *logbookView) QSOAdded(qso core.QSO) {
 			qso.Mode.String(),
 			qso.MyReport.String(),
 			qso.MyNumber.String(),
-			qso.MyXchange,
+			"", // qso.MyXchange, // TODO use the new exchange fields
 			qso.TheirReport.String(),
 			qso.TheirNumber.String(),
-			qso.TheirXchange,
+			"", // qso.TheirXchange, // TODO use the new exchange fields
 			pointsToString(qso.Points, qso.Duplicate),
 			boolToCheckmark(qso.Duplicate),
 		})
@@ -177,10 +177,10 @@ func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 			qso.Mode.String(),
 			qso.MyReport.String(),
 			qso.MyNumber.String(),
-			qso.MyXchange,
+			"", // qso.MyXchange, // TODO use the new exchange fields
 			qso.TheirReport.String(),
 			qso.TheirNumber.String(),
-			qso.TheirXchange,
+			"", // qso.TheirXchange, // TODO use the new exchange fields
 			pointsToString(qso.Points, qso.Duplicate),
 			boolToCheckmark(qso.Duplicate),
 		})

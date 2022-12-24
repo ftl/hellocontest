@@ -3,6 +3,7 @@ package adif
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/ftl/hellocontest/core"
@@ -58,7 +59,7 @@ func record(w io.Writer, qso core.QSO) error {
 		{"MODE", qso.Mode.String()},
 		{"RST_SENT", qso.MyReport.String()},
 		{"RST_RCVD", qso.TheirReport.String()},
-		{"COMMENT", fmt.Sprintf("%03d %s %03d %s", qso.MyNumber, qso.MyXchange, qso.TheirNumber, qso.TheirXchange)},
+		{"COMMENT", fmt.Sprintf("%s %s", strings.Join(qso.MyExchange, " "), strings.Join(qso.TheirExchange, " "))},
 	}
 	for _, field := range fields {
 		err := data(w, field.name, "", field.data)

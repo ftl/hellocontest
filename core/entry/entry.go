@@ -1,7 +1,6 @@
 package entry
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -21,20 +20,13 @@ type View interface {
 	SetMyCall(string)
 	SetFrequency(core.Frequency)
 	SetCallsign(string)
-	SetTheirReport(string)
-	SetTheirNumber(string)
-	SetTheirXchange(string)
-	SetTheirExchange(int, string)
 	SetBand(text string)
 	SetMode(text string)
-	SetMyReport(string)
-	SetMyNumber(string)
-	SetMyXchange(string)
 	SetMyExchange(int, string)
+	SetTheirExchange(int, string)
 
 	SetMyExchangeFields([]core.ExchangeField)
 	SetTheirExchangeFields([]core.ExchangeField)
-	EnableExchangeFields(bool, bool)
 	SetActiveField(core.EntryField)
 	SetDuplicateMarker(bool)
 	SetEditingMarker(bool)
@@ -46,11 +38,9 @@ type input struct {
 	callsign      string
 	theirReport   string
 	theirNumber   string
-	theirXchange  string
 	theirExchange []string
 	myReport      string
 	myNumber      string
-	myXchange     string
 	myExchange    []string
 	band          string
 	mode          string
@@ -161,7 +151,6 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 	c.Clear()
 	c.refreshUTC()
-	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
 	c.updateViewExchangeFields()
 }
 
@@ -213,27 +202,12 @@ func (c *Controller) GotoNextField() core.EntryField {
 	}
 
 	transitions := map[core.EntryField]core.EntryField{
-		core.CallsignField:     core.TheirReportField,
-		core.TheirXchangeField: core.CallsignField,
-		core.MyReportField:     core.CallsignField,
-		core.MyNumberField:     core.CallsignField,
-		core.BandField:         core.CallsignField,
-		core.ModeField:         core.CallsignField,
+		core.BandField: core.CallsignField,
+		core.ModeField: core.CallsignField,
 	}
-	if c.enableTheirNumber && c.enableTheirXchange {
-		transitions[core.TheirReportField] = core.TheirNumberField
-		transitions[core.TheirNumberField] = core.TheirXchangeField
-	} else if !c.enableTheirNumber && c.enableTheirXchange {
-		transitions[core.TheirReportField] = core.TheirXchangeField
-		transitions[core.TheirNumberField] = core.CallsignField
-	} else if c.enableTheirNumber && !c.enableTheirXchange {
-		transitions[core.TheirReportField] = core.TheirNumberField
-		transitions[core.TheirNumberField] = core.CallsignField
-	} else if !c.enableTheirNumber && !c.enableTheirXchange {
-		transitions[core.TheirReportField] = core.CallsignField
-		transitions[core.TheirNumberField] = core.CallsignField
+	if len(c.theirExchangeFields) > 0 {
+		transitions[core.CallsignField] = core.TheirExchangeField(1)
 	}
-
 	for _, field := range c.myExchangeFields {
 		transitions[field.Field] = core.CallsignField
 	}
@@ -261,9 +235,10 @@ func (c *Controller) leaveCallsignField() {
 		fmt.Println(err)
 		return
 	}
-	if c.enableTheirXchange && c.input.theirXchange == "" {
-		c.setTheirXchangePrediction(c.callinfo.PredictedXchange()) // TODO fill new exchange fields with predicted values
-	}
+	// TODO fill new exchange fields with predicted values
+	// if c.enableTheirXchange && c.input.theirXchange == "" {
+	// 	c.setTheirXchangePrediction(c.callinfo.PredictedXchange())
+	// }
 
 	_, found := c.isDuplicate(callsign)
 	if !found {
@@ -297,11 +272,9 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.input.callsign = qso.Callsign.String()
 	c.input.theirReport = qso.TheirReport.String()
 	c.input.theirNumber = qso.TheirNumber.String()
-	c.input.theirXchange = qso.TheirXchange
 	c.input.theirExchange = ensureLen(qso.TheirExchange, len(c.theirExchangeFields))
 	c.input.myReport = qso.MyReport.String()
 	c.input.myNumber = qso.MyNumber.String()
-	c.input.myXchange = qso.MyXchange
 	c.input.myExchange = ensureLen(qso.MyExchange, len(c.myExchangeFields))
 	c.input.band = qso.Band.String()
 	c.input.mode = qso.Mode.String()
@@ -325,15 +298,9 @@ func ensureLen(a []string, l int) []string {
 
 func (c *Controller) showInput() {
 	c.view.SetCallsign(c.input.callsign)
-	c.view.SetTheirReport(c.input.theirReport)
-	c.view.SetTheirNumber(c.input.theirNumber)
-	c.view.SetTheirXchange(c.input.theirXchange)
 	for i, value := range c.input.theirExchange {
 		c.view.SetTheirExchange(i+1, value)
 	}
-	c.view.SetMyReport(c.input.myReport)
-	c.view.SetMyNumber(c.input.myNumber)
-	c.view.SetMyXchange(c.input.myXchange)
 	for i, value := range c.input.myExchange {
 		c.view.SetMyExchange(i+1, value)
 	}
@@ -342,9 +309,9 @@ func (c *Controller) showInput() {
 }
 
 func (c *Controller) setTheirXchangePrediction(predictedXchange string) {
-	c.input.theirXchange = predictedXchange
-	c.view.SetTheirXchange(c.input.theirXchange)
 	// TODO: fill the new exchange fields
+	// c.input.theirXchange = predictedXchange
+	// c.view.SetTheirXchange(c.input.theirXchange)
 }
 
 func (c *Controller) selectQSO(qso core.QSO) {
@@ -370,19 +337,6 @@ func (c *Controller) Enter(text string) {
 	case core.CallsignField:
 		c.input.callsign = text
 		c.enterCallsign(text)
-	case core.TheirReportField:
-		c.input.theirReport = text
-	case core.TheirNumberField:
-		c.input.theirNumber = text
-	case core.TheirXchangeField:
-		c.input.theirXchange = text
-		c.enterTheirXchange(text)
-	case core.MyReportField:
-		c.input.myReport = text
-	case core.MyNumberField:
-		c.input.myNumber = text
-	case core.MyXchangeField:
-		c.input.myXchange = text
 	case core.BandField:
 		c.input.band = text
 		c.bandSelected(text)
@@ -460,8 +414,8 @@ func (c *Controller) SendQuestion() {
 		return
 	}
 
-	switch c.activeField {
-	case core.TheirReportField, core.TheirNumberField, core.TheirXchangeField:
+	switch {
+	case c.activeField.IsTheirExchange():
 		c.keyer.SendQuestion("nr")
 	default:
 		c.keyer.SendQuestion(c.input.callsign)
@@ -470,7 +424,7 @@ func (c *Controller) SendQuestion() {
 
 func (c *Controller) enterCallsign(s string) {
 	if c.callinfo != nil {
-		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirXchange)
+		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, "") // c.input.theirXchange) // TODO use new exchange fields
 	}
 
 	callsign, err := callsign.Parse(s)
@@ -488,12 +442,12 @@ func (c *Controller) enterCallsign(s string) {
 }
 
 func (c *Controller) enterTheirXchange(s string) {
+	// TODO: also handle input in new exchange fields
 	if c.callinfo == nil {
 		return
 	}
-	c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirXchange)
-	c.clearErrorOnField(core.TheirXchangeField)
-	// TODO: also handle input in new exchange fields
+	c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, "") // c.input.theirXchange) // TODO use new exchange fields
+	// c.clearErrorOnField(core.TheirXchangeField)
 }
 
 func (c *Controller) QSOSelected(qso core.QSO) {
@@ -508,7 +462,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.showQSO(qso)
 	c.view.SetActiveField(core.CallsignField)
 	c.view.SetEditingMarker(true)
-	c.callinfo.ShowInfo(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirXchange)
+	c.callinfo.ShowInfo(qso.Callsign.String(), qso.Band, qso.Mode, "") // qso.TheirXchange) // TODO use new exchange fields
 }
 
 func (c *Controller) Log() {
@@ -548,54 +502,43 @@ func (c *Controller) Log() {
 	// handle their exchange
 	for i, field := range c.theirExchangeFields {
 		value := c.input.theirExchange[i]
-		qso.TheirExchange[i] = value
+		if value == "" {
+			c.showErrorOnField(fmt.Errorf("%s is missing", field.Short), field.Field) // TODO use field.Name
+			return
+		}
 		// TODO parse the value using the conval validators and show an error on the field
+
+		qso.TheirExchange[i] = value
 
 		switch field.Field {
 		case c.theirReportExchangeField.Field:
-			// TODO parse the report and put it into qso.TheirReport
-		case c.theirNumberExchangeField.Field:
-			// TODO parse the number and put it into qso.TheirNumber
-		default:
-			// TODO check the predicted value
-		}
-	}
-
-	// TODO: remove this
-	qso.TheirReport, err = parse.RST(c.input.theirReport)
-	if err != nil {
-		c.showErrorOnField(err, core.TheirReportField)
-		return
-	}
-
-	// TODO: remove this
-	if c.enableTheirNumber {
-		value := c.input.theirNumber
-		if value == "" {
-			c.showErrorOnField(errors.New("their number is missing"), core.TheirNumberField)
-			return
-		}
-
-		theirNumber, err := strconv.Atoi(value)
-		if err != nil {
-			c.showErrorOnField(err, core.TheirNumberField)
-			return
-		}
-		qso.TheirNumber = core.QSONumber(theirNumber)
-	}
-
-	// TODO: remove this
-	if c.enableTheirXchange {
-		qso.TheirXchange = c.input.theirXchange
-		if qso.TheirXchange == "" && c.requireTheirXchange {
-			predictedXchange := c.callinfo.PredictedXchange()
-			if predictedXchange != "" {
-				c.setTheirXchangePrediction(predictedXchange)
-				c.showErrorOnField(fmt.Errorf("check their exhange"), core.TheirXchangeField)
+			qso.TheirReport, err = parse.RST(value)
+			if err != nil {
+				c.showErrorOnField(err, field.Field)
 				return
 			}
-			c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
-			return
+		case c.theirNumberExchangeField.Field:
+			theirNumber, err := strconv.Atoi(value)
+			if err == nil {
+				qso.TheirNumber = core.QSONumber(theirNumber)
+				break
+			}
+			if len(field.Properties) == 1 {
+				c.showErrorOnField(err, field.Field)
+			}
+		default:
+			// TODO check the predicted value
+			// qso.TheirXchange = c.input.theirXchange
+			// if qso.TheirXchange == "" && c.requireTheirXchange {
+			// 	predictedXchange := c.callinfo.PredictedXchange()
+			// 	if predictedXchange != "" {
+			// 		c.setTheirXchangePrediction(predictedXchange)
+			// 		c.showErrorOnField(fmt.Errorf("check their exhange"), core.TheirXchangeField)
+			// 		return
+			// 	}
+			// 	c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
+			// 	return
+			// }
 		}
 	}
 
@@ -607,31 +550,20 @@ func (c *Controller) Log() {
 
 		switch field.Field {
 		case c.myReportExchangeField.Field:
-			// TODO parse the report and put it into qso.MyReport
+			qso.MyReport, err = parse.RST(value)
+			if err != nil {
+				c.showErrorOnField(err, field.Field)
+				return
+			}
 		case c.myNumberExchangeField.Field:
-			// TODO parse the number and put it into qso.MyNumber
-		default:
-			// TODO check the predicted value
+			myNumber, err := strconv.Atoi(value)
+			if err != nil {
+				c.showErrorOnField(err, field.Field)
+				return
+			}
+			qso.MyNumber = core.QSONumber(myNumber)
 		}
 	}
-
-	// TODO: remove this
-	qso.MyReport, err = parse.RST(c.input.myReport)
-	if err != nil {
-		c.showErrorOnField(err, core.MyReportField)
-		return
-	}
-
-	// TODO: remove this
-	myNumber, err := strconv.Atoi(c.input.myNumber)
-	if err != nil {
-		c.showErrorOnField(err, core.MyNumberField)
-		return
-	}
-	qso.MyNumber = core.QSONumber(myNumber)
-
-	// TODO: remove this
-	qso.MyXchange = c.input.myXchange
 
 	c.logbook.Log(qso)
 	c.Clear()
@@ -690,8 +622,6 @@ func (c *Controller) Clear() {
 		}
 	}
 	c.setMyNumberInput(nextNumber.String())
-
-	log.Printf("current input: %#v\n\ndefault values: %#v", c.input, c.defaultExchangeValues)
 
 	c.showInput()
 	c.view.SetMyCall(c.stationCallsign)
@@ -766,7 +696,6 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.enableTheirNumber = contest.EnterTheirNumber
 	c.enableTheirXchange = contest.EnterTheirXchange
 	c.requireTheirXchange = contest.RequireTheirXchange
-	c.view.EnableExchangeFields(c.enableTheirNumber, c.enableTheirXchange)
 
 	c.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange, contest.ExchangeValues)
 }
@@ -832,19 +761,12 @@ func (n *nullView) SetUTC(string)                               {}
 func (n *nullView) SetMyCall(string)                            {}
 func (n *nullView) SetFrequency(core.Frequency)                 {}
 func (n *nullView) SetCallsign(string)                          {}
-func (n *nullView) SetTheirReport(string)                       {}
-func (n *nullView) SetTheirNumber(string)                       {}
-func (n *nullView) SetTheirXchange(string)                      {}
-func (n *nullView) SetTheirExchange(int, string)                {}
 func (n *nullView) SetBand(text string)                         {}
 func (n *nullView) SetMode(text string)                         {}
-func (n *nullView) SetMyReport(string)                          {}
-func (n *nullView) SetMyNumber(string)                          {}
-func (n *nullView) SetMyXchange(string)                         {}
 func (n *nullView) SetMyExchange(int, string)                   {}
+func (n *nullView) SetTheirExchange(int, string)                {}
 func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
 func (n *nullView) SetTheirExchangeFields([]core.ExchangeField) {}
-func (n *nullView) EnableExchangeFields(bool, bool)             {}
 func (n *nullView) SetActiveField(core.EntryField)              {}
 func (n *nullView) SetDuplicateMarker(bool)                     {}
 func (n *nullView) SetEditingMarker(bool)                       {}

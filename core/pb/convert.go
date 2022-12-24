@@ -35,30 +35,30 @@ func ToQSO(pbQSO QSO) (core.QSO, error) {
 		return core.QSO{}, err
 	}
 	qso.MyNumber = core.QSONumber(pbQSO.MyNumber)
-	qso.MyXchange = pbQSO.MyXchange
+	// qso.MyXchange = pbQSO.MyXchange
 	qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
 	if err != nil {
 		return core.QSO{}, err
 	}
 	qso.TheirNumber = core.QSONumber(pbQSO.TheirNumber)
-	qso.TheirXchange = pbQSO.TheirXchange
+	// qso.TheirXchange = pbQSO.TheirXchange
 	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
 	return qso, nil
 }
 
 func QSOToPB(qso core.QSO) QSO {
 	return QSO{
-		Callsign:     qso.Callsign.String(),
-		Timestamp:    qso.Time.Unix(),
-		Frequency:    float64(qso.Frequency),
-		Band:         qso.Band.String(),
-		Mode:         qso.Mode.String(),
-		MyReport:     qso.MyReport.String(),
-		MyNumber:     int32(qso.MyNumber),
-		MyXchange:    qso.MyXchange,
-		TheirReport:  qso.TheirReport.String(),
-		TheirNumber:  int32(qso.TheirNumber),
-		TheirXchange: qso.TheirXchange,
+		Callsign:  qso.Callsign.String(),
+		Timestamp: qso.Time.Unix(),
+		Frequency: float64(qso.Frequency),
+		Band:      qso.Band.String(),
+		Mode:      qso.Mode.String(),
+		MyReport:  qso.MyReport.String(),
+		MyNumber:  int32(qso.MyNumber),
+		// MyXchange:    qso.MyXchange,
+		TheirReport: qso.TheirReport.String(),
+		TheirNumber: int32(qso.TheirNumber),
+		// TheirXchange: qso.TheirXchange,
 		LogTimestamp: qso.LogTimestamp.Unix(),
 	}
 }

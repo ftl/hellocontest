@@ -193,9 +193,9 @@ func TestCalculateMultipliersForDistinctXchangeValues(t *testing.T) {
 		multis:              core.Multis{Xchange: true},
 		xchangeMultiPattern: `(\d+)|(\d*(?P<multi>[A-Za-z])[A-Za-z]*\d*)`,
 	}, &myTestEntity)
-	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band40m, TheirXchange: "B05", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirExchange: []string{"B36"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DF0ABC"), Band: core.Band40m, TheirExchange: []string{"B05"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("K0ABC"), Band: core.Band20m, TheirExchange: []string{"001"}, DXCC: dxcc.Prefix{Prefix: "K", PrimaryPrefix: "K", Continent: "NA", CQZone: 5, ITUZone: 8}})
 
 	assert.Equal(t, 1, counter.ScorePerBand[core.Band80m].Multis, "80m")
 	assert.Equal(t, 1, counter.ScorePerBand[core.Band40m].Multis, "40m")
@@ -209,14 +209,14 @@ func TestCalculateMutlipliersForWPXPrefixes(t *testing.T) {
 		stationCallsign: "DL1AAA",
 		multis:          core.Multis{WPX: true},
 	}, &myTestEntity)
-	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("PA/DL0ABC"), Band: core.Band40m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC/P"), Band: core.Band20m, TheirXchange: "B36", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("9A1A"), Band: core.Band20m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("LY1000A"), Band: core.Band15m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("N8BJQ/KH9"), Band: core.Band10m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("NG2M/KH9"), Band: core.Band10m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
-	counter.Add(core.QSO{Callsign: callsign.MustParse("N8BJQ/9"), Band: core.Band10m, TheirXchange: "001", DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC"), Band: core.Band80m, TheirExchange: []string{"B36"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("PA/DL0ABC"), Band: core.Band40m, TheirExchange: []string{"B36"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("DL0ABC/P"), Band: core.Band20m, TheirExchange: []string{"B36"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("9A1A"), Band: core.Band20m, TheirExchange: []string{"001"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("LY1000A"), Band: core.Band15m, TheirExchange: []string{"001"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("N8BJQ/KH9"), Band: core.Band10m, TheirExchange: []string{"001"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("NG2M/KH9"), Band: core.Band10m, TheirExchange: []string{"001"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
+	counter.Add(core.QSO{Callsign: callsign.MustParse("N8BJQ/9"), Band: core.Band10m, TheirExchange: []string{"001"}, DXCC: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}})
 
 	assert.Equal(t, 1, counter.ScorePerBand[core.Band80m].Multis, "80m")
 	assert.Equal(t, 1, counter.ScorePerBand[core.Band40m].Multis, "40m")

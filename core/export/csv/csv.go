@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -29,7 +30,7 @@ func Export(w io.Writer, mycall callsign.Callsign, qsos ...core.QSO) error {
 }
 
 var csvTemplate = template.Must(template.New("").Parse(
-	`{{.Band}};{{.Frequency}};{{.Mode}};{{.Date}};{{.Time}};{{.MyCall}};{{.MyReport}};{{.MyNumber}};"{{.MyXchange}}";{{.TheirCall}};{{.TheirReport}};{{.TheirNumber}};"{{.TheirXchange}}";"{{.TheirPrefix}}";"{{.TheirContinent}}";"{{.TheirITUZone}}";"{{.TheirCQZone}}";{{.Points}};"{{.Duplicate}}"`))
+	`{{.Band}};{{.Frequency}};{{.Mode}};{{.Date}};{{.Time}};{{.MyCall}};{{.MyReport}};{{.MyNumber}};"{{.MyExchange}}";{{.TheirCall}};{{.TheirReport}};{{.TheirNumber}};"{{.TheirExchange}}";"{{.TheirPrefix}}";"{{.TheirContinent}}";"{{.TheirITUZone}}";"{{.TheirCQZone}}";{{.Points}};"{{.Duplicate}}"`))
 
 func writeQSO(w io.Writer, mycall callsign.Callsign, qso core.QSO) error {
 	fillins := map[string]string{
@@ -41,11 +42,11 @@ func writeQSO(w io.Writer, mycall callsign.Callsign, qso core.QSO) error {
 		"MyCall":         mycall.String(),
 		"MyReport":       qso.MyReport.String(),
 		"MyNumber":       qso.MyNumber.String(),
-		"MyXchange":      qso.MyXchange,
+		"MyExchange":     strings.Join(qso.MyExchange, " "),
 		"TheirCall":      qso.Callsign.String(),
 		"TheirReport":    qso.TheirReport.String(),
 		"TheirNumber":    qso.TheirNumber.String(),
-		"TheirXchange":   qso.TheirXchange,
+		"TheirXchange":   strings.Join(qso.TheirExchange, " "),
 		"TheirPrefix":    qso.DXCC.PrimaryPrefix,
 		"TheirContinent": qso.DXCC.Continent,
 		"TheirITUZone":   fmt.Sprintf("%d", qso.DXCC.ITUZone),

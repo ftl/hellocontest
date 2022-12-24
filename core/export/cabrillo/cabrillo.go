@@ -3,6 +3,7 @@ package cabrillo
 import (
 	"fmt"
 	"io"
+	"strings"
 	"text/template"
 	"time"
 
@@ -118,18 +119,18 @@ func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso c
 		frequency = fmt.Sprintf("%5.0f", qso.Frequency/1000.0)
 	}
 	fillins := map[string]string{
-		"QRG":          frequency,
-		"Mode":         string(mode[qso.Mode]),
-		"Date":         qso.Time.In(time.UTC).Format("2006-01-02"),
-		"Time":         qso.Time.In(time.UTC).Format("1504"),
-		"MyCall":       mycall.String(),
-		"MyReport":     qso.MyReport.String(),
-		"MyNumber":     qso.MyNumber.String(),
-		"MyXchange":    qso.MyXchange,
-		"TheirCall":    qso.Callsign.String(),
-		"TheirReport":  qso.TheirReport.String(),
-		"TheirNumber":  qso.TheirNumber.String(),
-		"TheirXchange": qso.TheirXchange,
+		"QRG":           frequency,
+		"Mode":          string(mode[qso.Mode]),
+		"Date":          qso.Time.In(time.UTC).Format("2006-01-02"),
+		"Time":          qso.Time.In(time.UTC).Format("1504"),
+		"MyCall":        mycall.String(),
+		"MyReport":      qso.MyReport.String(),
+		"MyNumber":      qso.MyNumber.String(),
+		"MyExchange":    strings.Join(qso.MyExchange, " "),
+		"TheirCall":     qso.Callsign.String(),
+		"TheirReport":   qso.TheirReport.String(),
+		"TheirNumber":   qso.TheirNumber.String(),
+		"TheirExchange": strings.Join(qso.TheirExchange, " "),
 	}
 
 	_, err := fmt.Fprintf(w, "QSO: ")

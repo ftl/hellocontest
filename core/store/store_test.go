@@ -60,18 +60,18 @@ func TestFileStore_V1QSORoundtrip(t *testing.T) {
 	require.NoError(t, err)
 
 	qso := core.QSO{
-		Callsign:     callsign.MustParse("DL1ABC"),
-		Time:         time.Unix(123, 0),
-		Frequency:    3535000,
-		Band:         core.Band80m,
-		Mode:         core.ModeCW,
-		MyReport:     "599",
-		MyNumber:     1,
-		MyXchange:    "mx",
-		TheirReport:  "579",
-		TheirNumber:  2,
-		TheirXchange: "tx",
-		LogTimestamp: time.Unix(456, 0),
+		Callsign:      callsign.MustParse("DL1ABC"),
+		Time:          time.Unix(123, 0),
+		Frequency:     3535000,
+		Band:          core.Band80m,
+		Mode:          core.ModeCW,
+		MyReport:      "599",
+		MyNumber:      1,
+		MyExchange:    []string{"599", "1", "mx"},
+		TheirReport:   "579",
+		TheirNumber:   2,
+		TheirExchange: []string{"579", "2", "tx"},
+		LogTimestamp:  time.Unix(456, 0),
 	}
 	err = fs.WriteQSO(qso)
 	require.NoError(t, err)

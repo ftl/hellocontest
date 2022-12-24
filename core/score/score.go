@@ -1,6 +1,7 @@
 package score
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -178,14 +179,14 @@ func (c *Counter) Add(qso core.QSO) {
 	c.OverallScore.Add(qsoScore)
 	bandScore.Add(qsoScore)
 
-	overallMultiScore := c.overallMultis.Add(1, qso.Callsign, qso.DXCC, qso.TheirXchange)
+	overallMultiScore := c.overallMultis.Add(1, qso.Callsign, qso.DXCC, "") // qso.TheirXchange) // TODO use the new exchange fields
 	c.OverallScore.Add(overallMultiScore)
 	multisPerBand, ok := c.multisPerBand[qso.Band]
 	if !ok {
 		multisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
 		c.multisPerBand[qso.Band] = multisPerBand
 	}
-	bandMultiScore := multisPerBand.Add(1, qso.Callsign, qso.DXCC, qso.TheirXchange)
+	bandMultiScore := multisPerBand.Add(1, qso.Callsign, qso.DXCC, "") // qso.TheirXchange) // TODO use the new exchange fields
 	c.TotalScore.Add(bandMultiScore)
 	bandScore.Add(bandMultiScore)
 
@@ -194,7 +195,7 @@ func (c *Counter) Add(qso core.QSO) {
 }
 
 func (c *Counter) Update(oldQSO, newQSO core.QSO) {
-	if (oldQSO.DXCC == newQSO.DXCC) && (oldQSO.TheirXchange == newQSO.TheirXchange) && (oldQSO.Duplicate == newQSO.Duplicate) {
+	if (oldQSO.DXCC == newQSO.DXCC) && (fmt.Sprintf("%v", oldQSO.TheirExchange) == fmt.Sprintf("%v", newQSO.TheirExchange)) && (oldQSO.Duplicate == newQSO.Duplicate) {
 		return
 	}
 	totalScore := c.TotalScore
@@ -235,25 +236,25 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 	}
 
 	if !oldQSO.Duplicate {
-		oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.Callsign, oldQSO.DXCC, oldQSO.TheirXchange)
+		oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.Callsign, oldQSO.DXCC, "") // oldQSO.TheirXchange) // TODO use the new exchange fields
 		overallScore.Add(oldOverallMultiScore)
 		oldMultisPerBand, ok := c.multisPerBand[oldQSO.Band]
 		if ok {
-			oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.Callsign, oldQSO.DXCC, oldQSO.TheirXchange)
+			oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.Callsign, oldQSO.DXCC, "") // oldQSO.TheirXchange) // TODO use the new exhange fields
 			oldBandScore.Add(oldBandMultiScore)
 			totalScore.Add(oldBandMultiScore)
 		}
 	}
 
 	if !newQSO.Duplicate {
-		newOverallMultiScore := c.overallMultis.Add(1, newQSO.Callsign, newQSO.DXCC, newQSO.TheirXchange)
+		newOverallMultiScore := c.overallMultis.Add(1, newQSO.Callsign, newQSO.DXCC, "") // newQSO.TheirXchange) // TODO use the new exhange fields
 		overallScore.Add(newOverallMultiScore)
 		newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
 		if !ok {
 			newMultisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
 			c.multisPerBand[newQSO.Band] = newMultisPerBand
 		}
-		newBandMultiScore := newMultisPerBand.Add(1, newQSO.Callsign, newQSO.DXCC, newQSO.TheirXchange)
+		newBandMultiScore := newMultisPerBand.Add(1, newQSO.Callsign, newQSO.DXCC, "") // newQSO.TheirXchange) // TODO use the new exhange fields
 		newBandScore.Add(newBandMultiScore)
 		totalScore.Add(newBandMultiScore)
 	}

@@ -228,18 +228,19 @@ func (c *Callinfo) predictXchange(call string, qsos []core.QSO, historicXchange 
 		return result
 	}
 
-	var lastXchange string
-	for _, qso := range qsos {
-		if lastXchange == "" {
-			lastXchange = qso.TheirXchange
-		} else if lastXchange != qso.TheirXchange {
-			return ""
-		}
-	}
+	// TODO use the new exchange fields
+	// var lastXchange string
+	// for _, qso := range qsos {
+	// 	if lastXchange == "" {
+	// 		lastXchange = qso.TheirXchange
+	// 	} else if lastXchange != qso.TheirXchange {
+	// 		return ""
+	// 	}
+	// }
 
-	if lastXchange != "" {
-		return lastXchange
-	}
+	// if lastXchange != "" {
+	// 	return lastXchange
+	// }
 	return result
 }
 

@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"text/template"
 
 	"github.com/ftl/hamradio/cwclient"
 
@@ -463,12 +462,6 @@ func (c *Controller) ExportCabrillo() {
 		return
 	}
 
-	template, err := template.New("").Parse(c.Settings.Contest().CabrilloQSOTemplate)
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot parse the QSO template: %v", err)
-		return
-	}
-
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
@@ -478,7 +471,6 @@ func (c *Controller) ExportCabrillo() {
 
 	err = cabrillo.Export(
 		file,
-		template,
 		c.Settings,
 		c.Score.Result(),
 		c.QSOList.All()...)

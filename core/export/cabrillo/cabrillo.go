@@ -12,7 +12,9 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func ExportExperimental(w io.Writer, _ *template.Template, settings core.Settings, claimedScore int, qsos ...core.QSO) error {
+// Export writes the given QSOs to the given writer in the Cabrillo format.
+// The header is very limited and needs to be completed manually after the log was written.
+func Export(w io.Writer, settings core.Settings, claimedScore int, qsos ...core.QSO) error {
 	export := cabrillo.NewLog()
 	export.Callsign = settings.Station().Callsign
 	export.CreatedBy = "Hello Contest"
@@ -39,53 +41,6 @@ func ExportExperimental(w io.Writer, _ *template.Template, settings core.Setting
 		cabrillo.Tag("SPECIFIC"), cabrillo.CategoryAssistedTag, cabrillo.CategoryBandTag, cabrillo.CategoryModeTag,
 		cabrillo.CategoryOperatorTag, cabrillo.CategoryPowerTag, cabrillo.ClubTag, cabrillo.NameTag,
 		cabrillo.EmailTag)
-}
-
-// Export writes the given QSOs to the given writer in the Cabrillo format.
-// The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, t *template.Template, settings core.Settings, claimedScore int, qsos ...core.QSO) error {
-	stationCallsign := settings.Station().Callsign
-	head := []string{
-		"START-OF-LOG: 3.0",
-		"CREATED-BY: Hello Contest",
-		fmt.Sprintf("CONTEST: %s", settings.Contest().Name),
-		fmt.Sprintf("CALLSIGN: %s", settings.Station().Callsign),
-		fmt.Sprintf("OPERATORS: %s", settings.Station().Operator),
-		fmt.Sprintf("GRID-LOCATOR: %s", settings.Station().Locator),
-		fmt.Sprintf("CLAIMED-SCORE: %d", claimedScore),
-		"SPECIFIC:",
-		"CATEGORY-ASSISTED: (ASSISTED|NON-ASSISTED)",
-		"CATEGORY-BAND: ALL",
-		"CATEGORY-MODE: (CW|DIGI|FM|RTTY|SSB|MIXED)",
-		"CATEGORY-OPERATOR: (SINGLE-OP|MULTI-OP|CHECKLOG)",
-		"CATEGORY-POWER: (HIGH|LOW|QRP)",
-		"CLUB:",
-		"NAME:",
-		"EMAIL:",
-	}
-	tail := []string{
-		"END-OF-LOG:",
-	}
-
-	for _, line := range head {
-		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
-		}
-	}
-
-	for _, qso := range qsos {
-		if err := writeQSO(w, t, stationCallsign, qso); err != nil {
-			return err
-		}
-	}
-
-	for _, line := range tail {
-		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 var qrg = map[core.Band]string{
@@ -159,11 +114,11 @@ func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
 		Timestamp: qso.Time,
 		Sent: cabrillo.QSOInfo{
 			Call:     mycall,
-			Exchange: []string{}, // TODO pick the correct fields, depending on the contest
+			Exchange: qso.MyExchange,
 		},
 		Received: cabrillo.QSOInfo{
 			Call:     qso.Callsign,
-			Exchange: []string{}, // TODO pick the correct fields, depending on the contest
+			Exchange: qso.TheirExchange,
 		},
 		Transmitter: 0,
 	}

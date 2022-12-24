@@ -67,7 +67,6 @@ func TestQsoLine(t *testing.T) {
 
 func TestExport(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte{})
-	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyExchange}} {{.TheirCall}} {{.TheirExchange}}"))
 	settings := &testSettings{
 		stationCallsign: "AA1ZZZ",
 		stationOperator: "AA2ZZZ",
@@ -94,20 +93,20 @@ CALLSIGN: AA1ZZZ
 OPERATORS: AA2ZZZ
 GRID-LOCATOR: AA00aa
 CLAIMED-SCORE: 123
-SPECIFIC:
-CATEGORY-ASSISTED: (ASSISTED|NON-ASSISTED)
-CATEGORY-BAND: ALL
-CATEGORY-MODE: (CW|DIGI|FM|RTTY|SSB|MIXED)
-CATEGORY-OPERATOR: (SINGLE-OP|MULTI-OP|CHECKLOG)
-CATEGORY-POWER: (HIGH|LOW|QRP)
-CLUB:
-NAME:
-EMAIL:
+SPECIFIC: 
+CATEGORY-ASSISTED: 
+CATEGORY-BAND: 
+CATEGORY-MODE: 
+CATEGORY-OPERATOR: 
+CATEGORY-POWER: 
+CLUB: 
+NAME: 
+EMAIL: 
 QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 ABC S50A 589 004 DEF
-END-OF-LOG:
+END-OF-LOG: 
 `
 
-	Export(buffer, template, settings, 123, qso)
+	Export(buffer, settings, 123, qso)
 
 	assert.Equal(t, expected, buffer.String())
 }

@@ -272,8 +272,8 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		TheirReport:   core.RST("559"),
-		TheirNumber:   12,
-		TheirExchange: []string{"559", "012", "thx"},
+		TheirNumber:   2,
+		TheirExchange: []string{"559", "002", "thx"},
 		MyReport:      core.RST("579"),
 		MyNumber:      1,
 		MyExchange:    []string{"579", "001", "myx"},
@@ -301,7 +301,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	controller.GotoNextField()
 	controller.Enter("559")
 	controller.GotoNextField()
-	controller.Enter("012")
+	controller.Enter("2")
 	controller.GotoNextField()
 	controller.Enter("thx")
 

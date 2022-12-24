@@ -521,6 +521,7 @@ func (c *Controller) Log() {
 		case c.theirNumberExchangeField.Field:
 			theirNumber, err := strconv.Atoi(value)
 			if err == nil {
+				qso.TheirExchange[i] = fmt.Sprintf("%03d", theirNumber)
 				qso.TheirNumber = core.QSONumber(theirNumber)
 				break
 			}

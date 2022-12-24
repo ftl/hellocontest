@@ -500,6 +500,7 @@ func (c *Controller) Log() {
 	}
 
 	// handle their exchange
+	qso.TheirExchange = make([]string, len(c.theirExchangeFields))
 	for i, field := range c.theirExchangeFields {
 		value := c.input.theirExchange[i]
 		if value == "" {
@@ -525,6 +526,7 @@ func (c *Controller) Log() {
 			}
 			if len(field.Properties) == 1 {
 				c.showErrorOnField(err, field.Field)
+				return
 			}
 		default:
 			// TODO check the predicted value
@@ -543,6 +545,7 @@ func (c *Controller) Log() {
 	}
 
 	// handle my exchange
+	qso.MyExchange = make([]string, len(c.myExchangeFields))
 	for i, field := range c.myExchangeFields {
 		value := c.input.myExchange[i]
 		qso.MyExchange[i] = value
@@ -737,7 +740,7 @@ func (c *Controller) updateExchangeFields(definition *conval.Definition, generat
 	c.input.myExchange = make([]string, len(c.myExchangeFields))
 
 	c.theirExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
-	for _, field := range c.myExchangeFields {
+	for _, field := range c.theirExchangeFields {
 		switch {
 		case field.Properties.Contains(conval.RSTProperty):
 			c.theirReportExchangeField = field

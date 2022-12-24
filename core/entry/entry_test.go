@@ -16,7 +16,7 @@ import (
 )
 
 func TestEntryController_Clear(t *testing.T) {
-	_, log, qsoList, _, controller, _ := setupEntryTest()
+	_, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
 	log.On("NextNumber").Return(core.QSONumber(1)).Once()
 	qsoList.Activate()
@@ -24,34 +24,34 @@ func TestEntryController_Clear(t *testing.T) {
 
 	controller.Clear()
 
-	assert.Equal(t, controller.input.myReport, "599")
-	assert.Equal(t, controller.input.myNumber, "001")
-	assert.Equal(t, controller.input.myExchange, []string{"599", "001", ""})
-	assert.Equal(t, controller.input.callsign, "")
-	assert.Equal(t, controller.input.theirReport, "599")
-	assert.Equal(t, controller.input.theirNumber, "")
-	assert.Equal(t, controller.input.theirExchange, []string{"599", "", ""})
-	assert.Equal(t, controller.input.band, "160m")
-	assert.Equal(t, controller.input.mode, "CW")
+	assert.Equal(t, controller.input.myReport, "599", "my report")
+	assert.Equal(t, controller.input.myNumber, "001", "my number")
+	assert.Equal(t, controller.input.myExchange, []string{"599", "001", ""}, "my exchange")
+	assert.Equal(t, controller.input.callsign, "", "callsign")
+	assert.Equal(t, controller.input.theirReport, "599", "their report")
+	assert.Equal(t, controller.input.theirNumber, "", "their number")
+	assert.Equal(t, controller.input.theirExchange, []string{"599", "", ""}, "their exchange")
+	assert.Equal(t, controller.input.band, "160m", "band")
+	assert.Equal(t, controller.input.mode, "CW", "mode")
 }
 
 func TestEntryController_ClearView(t *testing.T) {
-	_, log, qsoList, view, controller, _ := setupEntryTest()
+	_, log, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
 
 	view.Activate()
-	view.On("SetMyReport", "599").Once()
-	view.On("SetMyNumber", "001").Once()
-	view.On("SetMyXchange", "").Once()
+	view.On("SetTheirExchange", 1, "599").Once()
+	view.On("SetTheirExchange", 2, "").Once()
+	view.On("SetTheirExchange", 3, "").Once()
+	view.On("SetMyExchange", 1, "599").Once()
+	view.On("SetMyExchange", 2, "001").Once()
+	view.On("SetMyExchange", 3, "").Once()
 	view.On("SetMyCall", "DL0ABC").Once()
 	view.On("SetFrequency", mock.Anything).Once()
 	view.On("SetCallsign", "").Once()
-	view.On("SetTheirReport", "599").Once()
-	view.On("SetTheirNumber", "").Once()
-	view.On("SetTheirXchange", "").Once()
 	view.On("SetBand", "160m").Once()
 	view.On("SetMode", "CW").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
@@ -164,28 +164,24 @@ func TestEntryController_GotoNextField(t *testing.T) {
 	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")
 
 	testCases := []struct {
-		enterTheirNumber, enterTheirXchange bool
-		active, next                        core.EntryField
+		active, next core.EntryField
 	}{
-		{true, true, core.CallsignField, core.TheirExchangeField(1)},
-		{true, true, core.OtherField, core.CallsignField},
-		{true, true, core.MyExchangeField(1), core.CallsignField},
-		{true, true, core.MyExchangeField(2), core.CallsignField},
-		{true, true, core.MyExchangeField(3), core.CallsignField},
-		{true, true, core.TheirExchangeField(1), core.TheirExchangeField(2)},
-		{true, true, core.TheirExchangeField(2), core.TheirExchangeField(3)},
-		{true, true, core.TheirExchangeField(3), core.CallsignField},
+		{core.CallsignField, core.TheirExchangeField(1)},
+		{core.OtherField, core.CallsignField},
+		{core.MyExchangeField(1), core.CallsignField},
+		{core.MyExchangeField(2), core.CallsignField},
+		{core.MyExchangeField(3), core.CallsignField},
+		{core.TheirExchangeField(1), core.TheirExchangeField(2)},
+		{core.TheirExchangeField(2), core.TheirExchangeField(3)},
+		{core.TheirExchangeField(3), core.CallsignField},
 	}
 	view.Activate()
 	view.On("Callsign").Return("").Maybe()
-	view.On("EnableExchangeFields", mock.Anything, mock.Anything).Times(len(testCases))
 	view.On("SetActiveField", mock.Anything).Times(len(testCases))
 	view.On("SetMyExchangeFields", mock.Anything).Times(len(testCases))
 	view.On("SetTheirExchangeFields", mock.Anything).Times(len(testCases))
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("%s -> %s", tc.active, tc.next), func(t *testing.T) {
-			config.enterTheirNumber = tc.enterTheirNumber
-			config.enterTheirXchange = tc.enterTheirXchange
 			controller.ContestChanged(config.Contest())
 			controller.SetActiveField(tc.active)
 			actual := controller.GotoNextField()
@@ -198,7 +194,7 @@ func TestEntryController_GotoNextField(t *testing.T) {
 }
 
 func TestEntryController_EnterNewCallsign(t *testing.T) {
-	_, _, qsoList, view, controller, _ := setupEntryTest()
+	_, _, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
 
@@ -206,7 +202,7 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 	view.On("SetDuplicateMarker", false).Once()
 	view.On("ClearMessage").Once()
 	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
-	view.On("SetTheirXchange", mock.Anything).Once()
+	// view.On("SetTheirExchange", mock.Anything, mock.Anything).Once() // TODO implement the prediction with the new exchange fields
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -218,17 +214,19 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 }
 
 func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
-	_, _, qsoList, view, controller, _ := setupEntryTest()
+	_, _, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
-		Callsign:    dl1abc,
-		Band:        core.Band20m,
-		Mode:        core.ModeSSB,
-		TheirReport: core.RST("599"),
-		TheirNumber: 12,
-		MyReport:    core.RST("559"),
-		MyNumber:    1,
+		Callsign:      dl1abc,
+		Band:          core.Band20m,
+		Mode:          core.ModeSSB,
+		TheirReport:   core.RST("599"),
+		TheirNumber:   12,
+		TheirExchange: []string{"599", "012", ""},
+		MyReport:      core.RST("559"),
+		MyNumber:      1,
+		MyExchange:    []string{"599", "001", ""},
 	}
 
 	qsoList.Activate()
@@ -239,7 +237,7 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	view.On("ShowMessage", mock.Anything).Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
-	view.On("SetTheirXchange", mock.Anything).Once()
+	// view.On("SetTheirExchange", mock.Anything, mock.Anything).Once() // TODO implement the prediction with the new exchange fields
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -265,7 +263,7 @@ func TestEntryController_EnterFrequency(t *testing.T) {
 }
 
 func TestEntryController_LogNewQSO(t *testing.T) {
-	clock, log, qsoList, _, controller, _ := setupEntryTest()
+	clock, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -275,10 +273,10 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 		Mode:          core.ModeCW,
 		TheirReport:   core.RST("559"),
 		TheirNumber:   12,
-		TheirExchange: []string{"599", "12", "thx"},
+		TheirExchange: []string{"559", "012", "thx"},
 		MyReport:      core.RST("579"),
 		MyNumber:      1,
-		MyExchange:    []string{"579", "1", "myx"},
+		MyExchange:    []string{"579", "001", "myx"},
 	}
 
 	log.Activate()
@@ -331,7 +329,7 @@ func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 }
 
 func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
-	_, log, _, view, controller, _ := setupEntryTest()
+	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
@@ -355,7 +353,7 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 }
 
 func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
-	_, log, _, view, controller, _ := setupEntryTest()
+	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
@@ -381,7 +379,7 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 }
 
 func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
-	_, log, _, view, controller := setupEntryWithOnlyNumberTest()
+	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
@@ -404,32 +402,8 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	assert.Equal(t, core.TheirExchangeField(2), controller.activeField)
 }
 
-func TestEntryController_LogWithoutMandatoryTheirXchange(t *testing.T) {
-	_, log, _, view, controller := setupEntryWithOnlyExchangeTest()
-
-	controller.SetActiveField(core.BandField)
-	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
-	controller.Enter("CW")
-	controller.GotoNextField()
-	controller.Enter("DL1ABC")
-	controller.GotoNextField()
-	controller.Enter("559")
-
-	log.Activate()
-	view.Activate()
-	view.On("SetActiveField", core.TheirExchangeField(3)).Once()
-	view.On("ShowMessage", mock.Anything).Once()
-
-	controller.Log()
-
-	view.AssertExpectations(t)
-	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirExchangeField(3), controller.activeField)
-}
-
 func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
-	_, log, _, view, controller, _ := setupEntryTest()
+	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	controller.SetActiveField(core.BandField)
 	controller.Enter("40m")
@@ -487,7 +461,7 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 }
 
 func TestEntryController_LogDuplicateQSO(t *testing.T) {
-	clock, log, qsoList, _, controller, _ := setupEntryTest()
+	clock, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -497,10 +471,10 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 		Mode:          core.ModeCW,
 		TheirReport:   core.RST("559"),
 		TheirNumber:   12,
-		TheirExchange: []string{"599", "12", "thx"},
+		TheirExchange: []string{"559", "012", "thx"},
 		MyReport:      core.RST("579"),
 		MyNumber:      1,
-		MyExchange:    []string{"579", "1", "myx"},
+		MyExchange:    []string{"579", "001", "myx"},
 	}
 	dupe := core.QSO{
 		Callsign:      dl1abc,
@@ -509,10 +483,10 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 		Mode:          core.ModeCW,
 		TheirReport:   core.RST("569"),
 		TheirNumber:   12,
-		TheirExchange: []string{"599", "12", "thx"},
+		TheirExchange: []string{"569", "012", "thx"},
 		MyReport:      core.RST("579"),
 		MyNumber:      2,
-		MyExchange:    []string{"579", "2", "myx"},
+		MyExchange:    []string{"579", "002", "myx"},
 	}
 
 	log.Activate()
@@ -549,7 +523,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 }
 
 func TestEntryController_SelectRowForEditing(t *testing.T) {
-	clock, _, _, view, controller, _ := setupEntryTest()
+	clock, _, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	view.Activate()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
@@ -560,21 +534,21 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 		Time:          clock.Now(),
 		TheirReport:   core.RST("559"),
 		TheirNumber:   12,
-		TheirExchange: []string{"559", "12", "A01"},
+		TheirExchange: []string{"559", "012", "A01"},
 		MyReport:      core.RST("579"),
 		MyNumber:      34,
-		MyExchange:    []string{"579", "34", "B36"},
+		MyExchange:    []string{"579", "034", "B36"},
 	}
 
 	view.On("SetBand", "80m").Once()
 	view.On("SetMode", "CW").Once()
 	view.On("SetCallsign", "DL1ABC").Once()
-	view.On("SetTheirReport", "559").Once()
-	view.On("SetTheirNumber", "012").Once()
-	view.On("SetTheirXchange", "A01").Once()
-	view.On("SetMyReport", "579").Once()
-	view.On("SetMyNumber", "034").Once()
-	view.On("SetMyXchange", "B36").Once()
+	view.On("SetTheirExchange", 1, "559").Once()
+	view.On("SetTheirExchange", 2, "012").Once()
+	view.On("SetTheirExchange", 3, "A01").Once()
+	view.On("SetMyExchange", 1, "579").Once()
+	view.On("SetMyExchange", 2, "034").Once()
+	view.On("SetMyExchange", 3, "B36").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetEditingMarker", true).Once()
 
@@ -586,7 +560,7 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 }
 
 func TestEntryController_EditQSO(t *testing.T) {
-	clock, log, _, _, controller, _ := setupEntryTest()
+	clock, log, _, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	dl2abc, _ := callsign.Parse("DL2ABC")
@@ -597,14 +571,14 @@ func TestEntryController_EditQSO(t *testing.T) {
 		Time:          clock.Now(),
 		TheirReport:   core.RST("559"),
 		TheirNumber:   12,
-		TheirExchange: []string{"559", "12", "A01"},
+		TheirExchange: []string{"559", "012", "A01"},
 		MyReport:      core.RST("579"),
 		MyNumber:      34,
-		MyExchange:    []string{"579", "34", "B36"},
+		MyExchange:    []string{"579", "034", "B36"},
 	}
 	changedQSO := qso
 	changedQSO.Callsign = dl2abc
-	changedQSO.TheirExchange = []string{"559", "12", "B02"}
+	changedQSO.TheirExchange = []string{"559", "012", "B02"}
 
 	controller.QSOSelected(qso)
 	controller.SetActiveField(core.CallsignField)
@@ -636,13 +610,33 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	return clock, log, qsoList, view, controller, settings
 }
 
+func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
+	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
+	clock := clock.Static(now)
+	log := new(mocked.Log)
+	qsoList := new(mocked.QSOList)
+	view := new(mocked.EntryView)
+	exchangeFields := []conval.ExchangeField{{conval.RSTProperty}, {conval.SerialNumberProperty}, {conval.GenericTextProperty}}
+	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true, exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
+	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
+	controller.SetLogbook(log)
+	controller.SetView(view)
+
+	return clock, log, qsoList, view, controller, settings
+}
+
 func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true, exchangeFieldCount: exchangeFieldCount}
+	exchangeFields := make([]conval.ExchangeField, exchangeFieldCount)
+	exchangeValues := make([]string, exchangeFieldCount)
+	for i := range exchangeFields {
+		exchangeFields[i] = conval.ExchangeField{conval.GenericTextProperty}
+	}
+	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true, exchangeFields: exchangeFields, exchangeValues: exchangeValues}
 	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
@@ -693,11 +687,13 @@ func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
 }
 
 type testSettings struct {
-	myCall              string
-	enterTheirNumber    bool
-	enterTheirXchange   bool
-	requireTheirXchange bool
-	exchangeFieldCount  int
+	myCall                 string
+	enterTheirNumber       bool
+	enterTheirXchange      bool
+	requireTheirXchange    bool
+	exchangeFields         []conval.ExchangeField
+	exchangeValues         []string
+	generateSerialExchange bool
 }
 
 func (s *testSettings) Station() core.Station {
@@ -707,15 +703,13 @@ func (s *testSettings) Station() core.Station {
 }
 
 func (s *testSettings) Contest() core.Contest {
-	exchangeFields := make([]conval.ExchangeField, s.exchangeFieldCount)
-	for i := range exchangeFields {
-		exchangeFields[i] = conval.ExchangeField{conval.GenericTextProperty}
-	}
 	return core.Contest{
-		EnterTheirNumber:    s.enterTheirNumber,
-		EnterTheirXchange:   s.enterTheirXchange,
-		RequireTheirXchange: s.requireTheirXchange,
-		Definition:          fieldDefinition(exchangeFields...),
+		EnterTheirNumber:       s.enterTheirNumber,
+		EnterTheirXchange:      s.enterTheirXchange,
+		RequireTheirXchange:    s.requireTheirXchange,
+		Definition:             fieldDefinition(s.exchangeFields...),
+		GenerateSerialExchange: s.generateSerialExchange,
+		ExchangeValues:         s.exchangeValues,
 	}
 }
 

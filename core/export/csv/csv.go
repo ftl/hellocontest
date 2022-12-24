@@ -1,11 +1,10 @@
 package csv
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
-	"text/template"
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
@@ -21,48 +20,40 @@ type DXCCFinder interface {
 // Export writes the given QSOs to the given writer in the CSV format.
 // The header is very limited and needs to be completed manually after the log was written.
 func Export(w io.Writer, mycall callsign.Callsign, qsos ...core.QSO) error {
+	csvWriter := csv.NewWriter(w)
 	for _, qso := range qsos {
-		if err := writeQSO(w, mycall, qso); err != nil {
+		if err := writeQSO(csvWriter, mycall, qso); err != nil {
 			return err
 		}
 	}
+	csvWriter.Flush()
 	return nil
 }
 
-var csvTemplate = template.Must(template.New("").Parse(
-	`{{.Band}};{{.Frequency}};{{.Mode}};{{.Date}};{{.Time}};{{.MyCall}};{{.MyReport}};{{.MyNumber}};"{{.MyExchange}}";{{.TheirCall}};{{.TheirReport}};{{.TheirNumber}};"{{.TheirExchange}}";"{{.TheirPrefix}}";"{{.TheirContinent}}";"{{.TheirITUZone}}";"{{.TheirCQZone}}";{{.Points}};"{{.Duplicate}}"`))
+func writeQSO(w *csv.Writer, mycall callsign.Callsign, qso core.QSO) error {
+	myCallIndex := 5
+	theirCallIndex := myCallIndex + 1 + len(qso.MyExchange)
+	dxccPrefixIndex := theirCallIndex + 1 + len(qso.TheirExchange)
+	values := make([]string, 13+len(qso.MyExchange)+len(qso.TheirExchange))
+	values[0] = qso.Band.String()
+	values[1] = fmt.Sprintf("%5.3f", float64(qso.Frequency/1000000.0))
+	values[2] = qso.Mode.String()
+	values[3] = qso.Time.In(time.UTC).Format("2006-01-02")
+	values[4] = qso.Time.In(time.UTC).Format("1504")
+	values[5] = mycall.String()
+	for i, value := range qso.MyExchange {
+		values[myCallIndex+1+i] = value
+	}
+	values[theirCallIndex] = qso.Callsign.String()
+	for i, value := range qso.TheirExchange {
+		values[theirCallIndex+1+i] = value
+	}
+	values[dxccPrefixIndex] = qso.DXCC.PrimaryPrefix
+	values[dxccPrefixIndex+1] = qso.DXCC.Continent
+	values[dxccPrefixIndex+2] = fmt.Sprintf("%d", qso.DXCC.ITUZone)
+	values[dxccPrefixIndex+3] = fmt.Sprintf("%d", qso.DXCC.CQZone)
+	values[dxccPrefixIndex+4] = strconv.Itoa(qso.Points)
+	values[dxccPrefixIndex+5] = ""
 
-func writeQSO(w io.Writer, mycall callsign.Callsign, qso core.QSO) error {
-	fillins := map[string]string{
-		"Band":           qso.Band.String(),
-		"Frequency":      fmt.Sprintf("%5.3f", float64(qso.Frequency/1000000.0)),
-		"Mode":           qso.Mode.String(),
-		"Date":           qso.Time.In(time.UTC).Format("2006-01-02"),
-		"Time":           qso.Time.In(time.UTC).Format("1504"),
-		"MyCall":         mycall.String(),
-		"MyReport":       qso.MyReport.String(),
-		"MyNumber":       qso.MyNumber.String(),
-		"MyExchange":     strings.Join(qso.MyExchange, " "),
-		"TheirCall":      qso.Callsign.String(),
-		"TheirReport":    qso.TheirReport.String(),
-		"TheirNumber":    qso.TheirNumber.String(),
-		"TheirXchange":   strings.Join(qso.TheirExchange, " "),
-		"TheirPrefix":    qso.DXCC.PrimaryPrefix,
-		"TheirContinent": qso.DXCC.Continent,
-		"TheirITUZone":   fmt.Sprintf("%d", qso.DXCC.ITUZone),
-		"TheirCQZone":    fmt.Sprintf("%d", qso.DXCC.CQZone),
-		"Points":         strconv.Itoa(qso.Points),
-		"Duplicate":      "",
-	}
-	if qso.Duplicate {
-		fillins["Duplicate"] = "X"
-		fillins["Points"] = "0"
-	}
-
-	err := csvTemplate.Execute(w, fillins)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintln(w)
-	return err
+	return w.Write(values)
 }

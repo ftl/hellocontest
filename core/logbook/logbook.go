@@ -101,8 +101,8 @@ func (l *Logbook) LastMode() core.Mode {
 	return l.lastQSO().Mode
 }
 
-func (l *Logbook) LastXchange() string {
-	return l.lastQSO().MyXchange
+func (l *Logbook) LastExchange() []string {
+	return l.lastQSO().MyExchange
 }
 
 func (l *Logbook) Log(qso core.QSO) {

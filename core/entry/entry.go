@@ -61,7 +61,6 @@ type Logbook interface {
 	NextNumber() core.QSONumber
 	LastBand() core.Band
 	LastMode() core.Mode
-	LastXchange() string // TODO: use contest.ExchangeValues to initialize the exchange entry fields
 	Log(core.QSO)
 }
 
@@ -188,7 +187,6 @@ func (c *Controller) SetLogbook(logbook Logbook) {
 			c.input.mode = c.selectedMode.String()
 		}
 	}
-	c.input.myXchange = c.logbook.LastXchange()
 
 	c.showInput()
 }
@@ -865,7 +863,7 @@ type nullLogbook struct{}
 func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
 func (n *nullLogbook) LastBand() core.Band        { return core.NoBand }
 func (n *nullLogbook) LastMode() core.Mode        { return core.NoMode }
-func (n *nullLogbook) LastXchange() string        { return "" }
+func (n *nullLogbook) LastExchange() []string     { return nil }
 func (n *nullLogbook) Log(core.QSO)               {}
 
 type nullCallinfo struct{}

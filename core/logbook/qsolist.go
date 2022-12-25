@@ -78,33 +78,58 @@ func (f RowSelectedListenerFunc) RowSelected(index int) {
 	f(index)
 }
 
+type ExchangeFieldsChangedListener interface {
+	ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField)
+}
+
+type ExchangeFieldsChangedListenerFunc func(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField)
+
+func (f ExchangeFieldsChangedListenerFunc) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+	f(myExchangeFields, theirExchangeFields)
+}
+
 type QSOList struct {
-	allowMultiBand bool
-	allowMultiMode bool
-	list           []core.QSO
-	dupes          dupeIndex
-	worked         dupeIndex
-	invalid        bool
+	myExchangeFields    []core.ExchangeField
+	theirExchangeFields []core.ExchangeField
+	allowMultiBand      bool
+	allowMultiMode      bool
+	list                []core.QSO
+	dupes               dupeIndex
+	worked              dupeIndex
+	invalid             bool
 
 	listeners []interface{}
 }
 
 func NewQSOList(settings core.Settings) *QSOList {
+	contest := settings.Contest()
 	return &QSOList{
-		allowMultiBand: settings.Contest().AllowMultiBand,
-		allowMultiMode: settings.Contest().AllowMultiMode,
-		list:           make([]core.QSO, 0),
-		dupes:          make(dupeIndex),
-		worked:         make(dupeIndex),
+		myExchangeFields:    contest.MyExchangeFields,
+		theirExchangeFields: contest.TheirExchangeFields,
+		allowMultiBand:      contest.AllowMultiBand,
+		allowMultiMode:      contest.AllowMultiMode,
+		list:                make([]core.QSO, 0),
+		dupes:               make(dupeIndex),
+		worked:              make(dupeIndex),
 	}
 }
 
+func (l *QSOList) GetExchangeFields() ([]core.ExchangeField, []core.ExchangeField) {
+	return l.myExchangeFields, l.theirExchangeFields
+}
+
 func (l *QSOList) ContestChanged(contest core.Contest) {
+	l.myExchangeFields = contest.MyExchangeFields
+	l.theirExchangeFields = contest.TheirExchangeFields
+	l.emitExchangeFieldsChanged(l.myExchangeFields, l.theirExchangeFields)
+
+	// TODO calculate allowMultiBand and allowMultiMode from contest.Definition
 	if l.allowMultiBand == contest.AllowMultiBand && l.allowMultiMode == contest.AllowMultiMode {
 		return
 	}
 	l.allowMultiBand = contest.AllowMultiBand
 	l.allowMultiMode = contest.AllowMultiMode
+
 	l.invalid = true
 }
 
@@ -445,6 +470,14 @@ func (l *QSOList) emitRowSelected(index int) {
 	for _, listener := range l.listeners {
 		if rowSelectedListener, ok := listener.(RowSelectedListener); ok {
 			rowSelectedListener.RowSelected(index)
+		}
+	}
+}
+
+func (l *QSOList) emitExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+	for _, listener := range l.listeners {
+		if exchangeFieldsChangedListener, ok := listener.(ExchangeFieldsChangedListener); ok {
+			exchangeFieldsChangedListener.ExchangeFieldsChanged(myExchangeFields, theirExchangeFields)
 		}
 	}
 }

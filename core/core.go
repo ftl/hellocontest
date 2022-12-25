@@ -301,6 +301,17 @@ type Contest struct {
 	ExchangeValues         []string
 	GenerateSerialExchange bool
 
+	MyExchangeFields         []ExchangeField
+	MyReportExchangeField    ExchangeField
+	MyNumberExchangeField    ExchangeField
+	TheirExchangeFields      []ExchangeField
+	TheirReportExchangeField ExchangeField
+	TheirNumberExchangeField ExchangeField
+
+	CallHistoryFilename string
+	CallHistoryField    string
+
+	// deprecated from here
 	Name                string
 	EnterTheirNumber    bool
 	EnterTheirXchange   bool
@@ -319,9 +330,47 @@ type Contest struct {
 	CountPerBand        bool
 
 	CabrilloQSOTemplate string
+}
 
-	CallHistoryFilename string
-	CallHistoryField    string
+func (c *Contest) UpdateExchangeFields() {
+	c.MyExchangeFields = nil
+	c.MyReportExchangeField = ExchangeField{}
+	c.MyNumberExchangeField = ExchangeField{}
+	c.TheirExchangeFields = nil
+	c.TheirReportExchangeField = ExchangeField{}
+	c.TheirNumberExchangeField = ExchangeField{}
+
+	if c.Definition == nil {
+		return
+	}
+
+	fieldDefinitions := c.Definition.ExchangeFields()
+
+	c.MyExchangeFields = DefinitionsToExchangeFields(fieldDefinitions, MyExchangeField)
+	for i, field := range c.MyExchangeFields {
+		switch {
+		case field.Properties.Contains(conval.RSTProperty):
+			c.MyReportExchangeField = field
+		case field.Properties.Contains(conval.SerialNumberProperty):
+			if c.GenerateSerialExchange {
+				field.ReadOnly = true
+				field.Short = "#"
+				field.Hint = "Serial Number"
+				c.MyExchangeFields[i] = field
+			}
+			c.MyNumberExchangeField = field
+		}
+	}
+
+	c.TheirExchangeFields = DefinitionsToExchangeFields(fieldDefinitions, TheirExchangeField)
+	for _, field := range c.TheirExchangeFields {
+		switch {
+		case field.Properties.Contains(conval.RSTProperty):
+			c.TheirReportExchangeField = field
+		case field.Properties.Contains(conval.SerialNumberProperty):
+			c.TheirNumberExchangeField = field
+		}
+	}
 }
 
 type Multis struct {

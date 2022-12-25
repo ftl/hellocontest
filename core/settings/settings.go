@@ -179,6 +179,7 @@ func (s *Settings) Contest() core.Contest {
 func (s *Settings) SetContest(contest core.Contest) {
 	s.contest = contest
 	s.savedContest = deepCopyContest(contest)
+	s.contest.UpdateExchangeFields()
 	s.emitContestChanged()
 }
 
@@ -283,6 +284,7 @@ func (s *Settings) Save() {
 	}
 	if s.ContestDirty() {
 		modified = true
+		s.contest.UpdateExchangeFields()
 		s.emitContestChanged()
 		s.savedContest = deepCopyContest(s.contest)
 		s.writer.WriteContest(s.savedContest)
@@ -294,7 +296,8 @@ func (s *Settings) Save() {
 
 func (s *Settings) Reset() {
 	s.station = s.defaultStation
-	s.contest = s.defaultContest
+	s.contest = deepCopyContest(s.defaultContest)
+	s.contest.UpdateExchangeFields()
 
 	s.showSettings()
 	s.emitStationChanged()

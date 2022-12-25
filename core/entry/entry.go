@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -84,7 +83,6 @@ type VFO interface {
 
 // NewController returns a new entry controller.
 func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, asyncRunner core.AsyncRunner) *Controller {
-	contest := settings.Contest()
 	result := &Controller{
 		clock:       clock,
 		view:        new(nullView),
@@ -94,15 +92,10 @@ func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, as
 		asyncRunner: asyncRunner,
 		qsoList:     qsoList,
 
-		stationCallsign:     settings.Station().Callsign.String(),
-		enableTheirNumber:   contest.EnterTheirNumber,
-		enableTheirXchange:  contest.EnterTheirXchange,
-		requireTheirXchange: contest.RequireTheirXchange,
+		stationCallsign: settings.Station().Callsign.String(),
 	}
 	result.refreshTicker = ticker.New(result.refreshUTC)
-	if contest.Definition != nil {
-		result.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange, contest.ExchangeValues)
-	}
+	result.updateExchangeFields(settings.Contest())
 	return result
 }
 
@@ -118,10 +111,7 @@ type Controller struct {
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
 
-	stationCallsign     string
-	enableTheirNumber   bool
-	enableTheirXchange  bool
-	requireTheirXchange bool
+	stationCallsign string
 
 	myExchangeFields         []core.ExchangeField
 	theirExchangeFields      []core.ExchangeField
@@ -546,6 +536,10 @@ func (c *Controller) Log() {
 	}
 
 	// handle my exchange
+	myNumber, err := strconv.Atoi(c.input.myNumber)
+	if err == nil {
+		qso.MyNumber = core.QSONumber(myNumber)
+	}
 	qso.MyExchange = make([]string, len(c.myExchangeFields))
 	for i, field := range c.myExchangeFields {
 		value := c.input.myExchange[i]
@@ -613,9 +607,8 @@ func (c *Controller) Clear() {
 	c.input.myNumber = ""
 	c.input.theirReport = ""
 	c.input.theirNumber = ""
-	for i := range c.input.theirExchange {
-		c.input.theirExchange[i] = ""
-	}
+	c.input.theirExchange = make([]string, len(c.theirExchangeFields))
+	c.input.myExchange = make([]string, len(c.myExchangeFields))
 	for i, value := range c.defaultExchangeValues {
 		c.input.myExchange[i] = value
 		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
@@ -697,59 +690,21 @@ func (c *Controller) StationChanged(station core.Station) {
 }
 
 func (c *Controller) ContestChanged(contest core.Contest) {
-	c.enableTheirNumber = contest.EnterTheirNumber
-	c.enableTheirXchange = contest.EnterTheirXchange
-	c.requireTheirXchange = contest.RequireTheirXchange
-
-	c.updateExchangeFields(contest.Definition, contest.GenerateSerialExchange, contest.ExchangeValues)
+	c.updateExchangeFields(contest)
 }
 
-func (c *Controller) updateExchangeFields(definition *conval.Definition, generateSerialExchange bool, defaultExchangeValues []string) {
-	c.myExchangeFields = nil
-	c.myReportExchangeField = core.ExchangeField{}
-	c.myNumberExchangeField = core.ExchangeField{}
-	c.input.myExchange = nil
-	c.theirExchangeFields = nil
-	c.theirReportExchangeField = core.ExchangeField{}
-	c.theirNumberExchangeField = core.ExchangeField{}
-	c.input.theirExchange = nil
-	c.generateSerialExchange = generateSerialExchange
-	c.defaultExchangeValues = defaultExchangeValues
+func (c *Controller) updateExchangeFields(contest core.Contest) {
+	c.myExchangeFields = contest.MyExchangeFields
+	c.myReportExchangeField = contest.MyReportExchangeField
+	c.myNumberExchangeField = contest.MyNumberExchangeField
+	c.theirExchangeFields = contest.TheirExchangeFields
+	c.theirReportExchangeField = contest.TheirReportExchangeField
+	c.theirNumberExchangeField = contest.TheirNumberExchangeField
+	c.generateSerialExchange = contest.GenerateSerialExchange
+	c.defaultExchangeValues = contest.ExchangeValues
 
-	if definition == nil {
-		c.updateViewExchangeFields()
-		return
-	}
-
-	fieldDefinitions := definition.ExchangeFields()
-
-	c.myExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.MyExchangeField)
-	for i, field := range c.myExchangeFields {
-		switch {
-		case field.Properties.Contains(conval.RSTProperty):
-			c.myReportExchangeField = field
-		case field.Properties.Contains(conval.SerialNumberProperty):
-			if generateSerialExchange {
-				field.ReadOnly = true
-				field.Short = "#"
-				field.Hint = "Serial Number"
-				c.myExchangeFields[i] = field
-			}
-			c.myNumberExchangeField = field
-		}
-	}
-	c.input.myExchange = make([]string, len(c.myExchangeFields))
-
-	c.theirExchangeFields = core.DefinitionsToExchangeFields(fieldDefinitions, core.TheirExchangeField)
-	for _, field := range c.theirExchangeFields {
-		switch {
-		case field.Properties.Contains(conval.RSTProperty):
-			c.theirReportExchangeField = field
-		case field.Properties.Contains(conval.SerialNumberProperty):
-			c.theirNumberExchangeField = field
-		}
-	}
-	c.input.theirExchange = make([]string, len(c.theirExchangeFields))
+	c.input.myExchange = make([]string, len(contest.MyExchangeFields))
+	c.input.theirExchange = make([]string, len(contest.TheirExchangeFields))
 
 	c.updateViewExchangeFields()
 }

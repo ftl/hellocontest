@@ -24,15 +24,15 @@ func TestEntryController_Clear(t *testing.T) {
 
 	controller.Clear()
 
-	assert.Equal(t, controller.input.myReport, "599", "my report")
-	assert.Equal(t, controller.input.myNumber, "001", "my number")
-	assert.Equal(t, controller.input.myExchange, []string{"599", "001", ""}, "my exchange")
-	assert.Equal(t, controller.input.callsign, "", "callsign")
-	assert.Equal(t, controller.input.theirReport, "599", "their report")
-	assert.Equal(t, controller.input.theirNumber, "", "their number")
-	assert.Equal(t, controller.input.theirExchange, []string{"599", "", ""}, "their exchange")
-	assert.Equal(t, controller.input.band, "160m", "band")
-	assert.Equal(t, controller.input.mode, "CW", "mode")
+	assert.Equal(t, "599", controller.input.myReport, "my report")
+	assert.Equal(t, "001", controller.input.myNumber, "my number")
+	assert.Equal(t, []string{"599", "001", ""}, controller.input.myExchange, "my exchange")
+	assert.Equal(t, "", controller.input.callsign, "callsign")
+	assert.Equal(t, "599", controller.input.theirReport, "their report")
+	assert.Equal(t, "", controller.input.theirNumber, "their number")
+	assert.Equal(t, []string{"599", "", ""}, controller.input.theirExchange, "their exchange")
+	assert.Equal(t, "160m", controller.input.band, "band")
+	assert.Equal(t, "CW", controller.input.mode, "mode")
 }
 
 func TestEntryController_ClearView(t *testing.T) {
@@ -147,11 +147,19 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			_, _, _, view, controller, _ := setupEntryTest()
+
+			contest := core.Contest{
+				Definition:             tc.value,
+				GenerateSerialExchange: tc.generateSerialExchange,
+				ExchangeValues:         make([]string, len(tc.expectedMyFields)),
+			}
+			contest.UpdateExchangeFields()
+
 			view.Activate()
 			view.On("SetMyExchangeFields", tc.expectedMyFields).Once()
 			view.On("SetTheirExchangeFields", tc.expectedTheirFields).Once()
 
-			controller.updateExchangeFields(tc.value, tc.generateSerialExchange, make([]string, len(tc.expectedMyFields)))
+			controller.updateExchangeFields(contest)
 
 			view.AssertExpectations(t)
 		})
@@ -644,34 +652,6 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	return clock, log, qsoList, view, controller, settings
 }
 
-func setupEntryWithOnlyNumberTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller) {
-	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
-	clock := clock.Static(now)
-	log := new(mocked.Log)
-	qsoList := new(mocked.QSOList)
-	view := new(mocked.EntryView)
-	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: false}
-	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
-	controller.SetLogbook(log)
-	controller.SetView(view)
-
-	return clock, log, qsoList, view, controller
-}
-
-func setupEntryWithOnlyExchangeTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller) {
-	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
-	clock := clock.Static(now)
-	log := new(mocked.Log)
-	qsoList := new(mocked.QSOList)
-	view := new(mocked.EntryView)
-	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: false, enterTheirXchange: true, requireTheirXchange: true}
-	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
-	controller.SetLogbook(log)
-	controller.SetView(view)
-
-	return clock, log, qsoList, view, controller
-}
-
 func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
 	assert.Equal(t, qso.Callsign.String(), controller.input.callsign, "callsign")
 	assert.Equal(t, qso.TheirReport.String(), controller.input.theirReport, "their report")
@@ -703,7 +683,7 @@ func (s *testSettings) Station() core.Station {
 }
 
 func (s *testSettings) Contest() core.Contest {
-	return core.Contest{
+	result := core.Contest{
 		EnterTheirNumber:       s.enterTheirNumber,
 		EnterTheirXchange:      s.enterTheirXchange,
 		RequireTheirXchange:    s.requireTheirXchange,
@@ -711,6 +691,8 @@ func (s *testSettings) Contest() core.Contest {
 		GenerateSerialExchange: s.generateSerialExchange,
 		ExchangeValues:         s.exchangeValues,
 	}
+	result.UpdateExchangeFields()
+	return result
 }
 
 func testIgnoreAsync(f func()) {}

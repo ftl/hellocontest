@@ -1,11 +1,8 @@
 package score
 
 import (
-	"fmt"
 	"log"
-	"regexp"
 	"strings"
-	"unicode"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -56,11 +53,7 @@ func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 		},
 		counter:        new(nullCounter),
 		view:           new(nullView),
-		entities:       entities,
 		prefixDatabase: prefixDatabase{entities},
-
-		specificCountryPrefixes: make(map[string]bool),
-		multisPerBand:           make(map[core.Band]*multis),
 	}
 
 	result.setStation(settings.Station())
@@ -74,7 +67,6 @@ type Counter struct {
 	core.Score
 	counter        convalCounter
 	view           View
-	entities       DXCCEntities
 	prefixDatabase prefixDatabase
 	invalid        bool
 
@@ -83,20 +75,7 @@ type Counter struct {
 	myExchangeFields    []conval.ExchangeField
 	theirExchangeFields []conval.ExchangeField
 
-	stationEntity           dxcc.Prefix
-	countPerBand            bool
-	sameCountryPoints       int
-	sameContinentPoints     int
-	specificCountryPoints   int
-	specificCountryPrefixes map[string]bool
-	otherPoints             int
-	multis                  core.Multis
-	xchangeMultiExpression  *regexp.Regexp
-
 	listeners []interface{}
-
-	multisPerBand map[core.Band]*multis
-	overallMultis *multis
 }
 
 func (c *Counter) Result() int {
@@ -113,31 +92,28 @@ func (c *Counter) SetView(view View) {
 }
 
 func (c *Counter) StationChanged(station core.Station) {
-	oldEntity := c.stationEntity
+	oldSetup := c.contestSetup
 	c.setStation(station)
-	c.invalid = (oldEntity != c.stationEntity)
+	c.invalid = (oldSetup.MyCountry != c.contestSetup.MyCountry)
 
 	c.resetCounter()
 }
 
 func (c *Counter) setStation(station core.Station) {
-	entity, found := c.entities.Find(station.Callsign.String())
+	c.prefixDatabase.Find(station.Callsign.String())
+	continent, country, found := c.prefixDatabase.Find(station.Callsign.String())
 	if !found {
 		log.Printf("No DXCC entity found for the station callsign %s", station.Callsign)
-		c.stationEntity = dxcc.Prefix{}
 		return
 	}
-	c.stationEntity = entity
-	log.Printf("Using %v as station entity", c.stationEntity)
 
-	// new stuff from here
-	continent, country := toConvalDXCCEntity(c.stationEntity)
 	c.contestSetup = conval.Setup{
 		MyCall:      station.Callsign,
 		MyContinent: continent,
 		MyCountry:   country,
 		GridLocator: station.Locator,
 	}
+	log.Printf("Using %+v as station setup", c.contestSetup)
 }
 
 func (c *Counter) ContestChanged(contest core.Contest) {
@@ -148,27 +124,6 @@ func (c *Counter) ContestChanged(contest core.Contest) {
 }
 
 func (c *Counter) setContest(contest core.Contest) {
-	c.sameCountryPoints = contest.SameCountryPoints
-	c.sameContinentPoints = contest.SameContinentPoints
-	c.specificCountryPoints = contest.SpecificCountryPoints
-	c.otherPoints = contest.OtherPoints
-	c.multis = contest.Multis
-	c.countPerBand = contest.CountPerBand
-
-	for _, prefix := range contest.SpecificCountryPrefixes {
-		c.specificCountryPrefixes[strings.ToUpper(prefix)] = true
-	}
-
-	exp, err := regexp.Compile(contest.XchangeMultiPattern)
-	if err != nil {
-		log.Printf("Invalid regular expression for Xchange Multis: %v", err)
-	} else {
-		c.xchangeMultiExpression = exp
-		log.Printf("Using pattern %q for Xchange Multis", c.xchangeMultiExpression)
-	}
-	c.overallMultis = newMultis(contest.Multis, c.xchangeMultiExpression)
-
-	// new stuff from here
 	c.contestDefinition = contest.Definition
 	c.myExchangeFields = toConvalExchangeFields(contest.MyExchangeFields)
 	c.theirExchangeFields = toConvalExchangeFields(contest.TheirExchangeFields)
@@ -184,7 +139,7 @@ func (c *Counter) resetCounter() {
 }
 
 func (c *Counter) Valid() bool {
-	return !c.invalid && (c.stationEntity.PrimaryPrefix != "") && (c.stationEntity.Continent != "")
+	return !c.invalid && (c.contestSetup.MyCountry != "") && (c.contestSetup.MyContinent != "")
 }
 
 func (c *Counter) Show() {
@@ -207,85 +162,25 @@ func (c *Counter) Clear() {
 
 	c.resetCounter()
 
-	c.invalid = c.stationEntity.Name == ""
+	c.invalid = (c.contestSetup.MyCountry == "")
 	c.emitScoreUpdated(c.Score)
 }
 
-func (c *Counter) Add(qso core.QSO) {
-	bandScore := c.ScorePerBand[qso.Band]
-
-	if qso.Duplicate {
-		bandScore.Duplicates++
-		c.ScorePerBand[qso.Band] = bandScore
-		return
+func (c *Counter) Add(qso core.QSO) core.QSOScore {
+	qsoScore := c.counter.Add(c.toConvalQSO(qso))
+	result := core.QSOScore{
+		Points:    qsoScore.Points,
+		Multis:    qsoScore.Multis,
+		Duplicate: qsoScore.Duplicate,
 	}
 
-	qsoScore := c.counter.Add(c.toConvalQSO(qso))
-	bandScore.Add(core.BandScore{
-		QSOs:   1,
-		Points: qsoScore.Points,
-		Multis: qsoScore.Multis,
-	})
+	bandScore := c.ScorePerBand[qso.Band]
+	bandScore.AddQSO(result)
 	c.ScorePerBand[qso.Band] = bandScore
 
 	c.emitScoreUpdated(c.Score)
-}
 
-func (c *Counter) Update(oldQSO, newQSO core.QSO) {
-	// TODO: implement new stuff from here - update not supported by conval, need to clear and replay all
-
-	if (oldQSO.DXCC == newQSO.DXCC) && (fmt.Sprintf("%v", oldQSO.TheirExchange) == fmt.Sprintf("%v", newQSO.TheirExchange)) && (oldQSO.Duplicate == newQSO.Duplicate) {
-		return
-	}
-	oldBandScore := c.ScorePerBand[oldQSO.Band]
-	var newBandScore *core.BandScore
-	if oldQSO.Band == newQSO.Band {
-		newBandScore = &oldBandScore
-	} else {
-		s := c.ScorePerBand[newQSO.Band]
-		newBandScore = &s
-	}
-
-	if oldQSO.Duplicate {
-		oldBandScore.Duplicates--
-	}
-
-	if newQSO.Duplicate {
-		newBandScore.Duplicates++
-	}
-
-	if !oldQSO.Duplicate {
-		oldQSOScore := c.qsoScore(-1, oldQSO.DXCC)
-		oldBandScore.Add(oldQSOScore)
-	}
-
-	if !newQSO.Duplicate {
-		newQSOScore := c.qsoScore(1, newQSO.DXCC)
-		newBandScore.Add(newQSOScore)
-	}
-
-	if !oldQSO.Duplicate {
-		oldMultisPerBand, ok := c.multisPerBand[oldQSO.Band]
-		if ok {
-			oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.Callsign, oldQSO.DXCC, "") // oldQSO.TheirXchange) // TODO use the new exhange fields
-			oldBandScore.Add(oldBandMultiScore)
-		}
-	}
-
-	if !newQSO.Duplicate {
-		newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
-		if !ok {
-			newMultisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
-			c.multisPerBand[newQSO.Band] = newMultisPerBand
-		}
-		newBandMultiScore := newMultisPerBand.Add(1, newQSO.Callsign, newQSO.DXCC, "") // newQSO.TheirXchange) // TODO use the new exhange fields
-		newBandScore.Add(newBandMultiScore)
-	}
-
-	c.ScorePerBand[oldQSO.Band] = oldBandScore
-	c.ScorePerBand[newQSO.Band] = *newBandScore
-
-	c.emitScoreUpdated(c.Score)
+	return result
 }
 
 func (c *Counter) emitScoreUpdated(score core.Score) {
@@ -295,30 +190,6 @@ func (c *Counter) emitScoreUpdated(score core.Score) {
 			scoreUpdatedListener.ScoreUpdated(score)
 		}
 	}
-}
-
-func (c *Counter) qsoScore(value int, entity dxcc.Prefix) core.BandScore {
-	var result core.BandScore
-	switch {
-	case c.isSpecificCountry(entity):
-		result.QSOs += value
-		result.Points += value * c.specificCountryPoints
-	case entity.PrimaryPrefix == c.stationEntity.PrimaryPrefix:
-		result.QSOs += value
-		result.Points += value * c.sameCountryPoints
-	case entity.Continent == c.stationEntity.Continent:
-		result.QSOs += value
-		result.Points += value * c.sameContinentPoints
-	default:
-		result.QSOs += value
-		result.Points += value * c.otherPoints
-	}
-
-	return result
-}
-
-func (c *Counter) isSpecificCountry(entity dxcc.Prefix) bool {
-	return c.specificCountryPrefixes[entity.PrimaryPrefix]
 }
 
 func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int) {
@@ -363,154 +234,6 @@ func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField 
 		result[i] = field.Properties
 	}
 	return result
-}
-
-func newMultis(countingMultis core.Multis, xchangeMultiExpression *regexp.Regexp) *multis {
-	return &multis{
-		CountingMultis:         countingMultis,
-		XchangeMultiExpression: xchangeMultiExpression,
-		CQZones:                make(map[dxcc.CQZone]int),
-		ITUZones:               make(map[dxcc.ITUZone]int),
-		DXCCEntities:           make(map[string]int),
-		WPXPrefixes:            make(map[string]int),
-		XchangeValues:          make(map[string]int),
-	}
-}
-
-type multis struct {
-	CountingMultis         core.Multis
-	XchangeMultiExpression *regexp.Regexp
-	CQZones                map[dxcc.CQZone]int
-	ITUZones               map[dxcc.ITUZone]int
-	DXCCEntities           map[string]int
-	WPXPrefixes            map[string]int
-	XchangeValues          map[string]int
-}
-
-func (m *multis) Value(callsign callsign.Callsign, entity dxcc.Prefix, xchange string) int {
-	var dxccEntitiesValue int
-	if m.DXCCEntities[entity.PrimaryPrefix] == 0 {
-		dxccEntitiesValue = 1
-	}
-	var wpxPrefixesValue int
-	wpxPrefix := WPXPrefix(callsign)
-	if (m.WPXPrefixes[wpxPrefix] == 0) && (wpxPrefix != "") {
-		wpxPrefixesValue = 1
-	}
-	var xchangeValue int
-	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
-	if xchangeMatch && m.XchangeValues[xchangeMulti] == 0 {
-		xchangeValue = 1
-	}
-
-	var result int
-	if m.CountingMultis.DXCC {
-		result += dxccEntitiesValue
-	}
-	if m.CountingMultis.WPX {
-		result += wpxPrefixesValue
-	}
-	if m.CountingMultis.Xchange {
-		result += xchangeValue
-	}
-	return result
-}
-
-func (m *multis) Add(value int, callsign callsign.Callsign, entity dxcc.Prefix, xchange string) core.BandScore {
-	var result core.BandScore
-
-	oldCQZoneCount := m.CQZones[entity.CQZone]
-	newCQZoneCount := oldCQZoneCount + value
-	m.CQZones[entity.CQZone] = newCQZoneCount
-	if oldCQZoneCount == 0 || newCQZoneCount == 0 {
-	}
-
-	oldITUZoneCount := m.ITUZones[entity.ITUZone]
-	newITUZoneCount := oldITUZoneCount + value
-	m.ITUZones[entity.ITUZone] = newITUZoneCount
-	if oldITUZoneCount == 0 || newITUZoneCount == 0 {
-	}
-
-	oldDXCCEntitiesCount := m.DXCCEntities[entity.PrimaryPrefix]
-	newDXCCEntitiesCount := oldDXCCEntitiesCount + value
-	m.DXCCEntities[entity.PrimaryPrefix] = newDXCCEntitiesCount
-	if oldDXCCEntitiesCount == 0 || newDXCCEntitiesCount == 0 {
-	}
-
-	wpxPrefix := WPXPrefix(callsign)
-	if wpxPrefix != "" {
-		oldWPXPrefixesCount := m.WPXPrefixes[wpxPrefix]
-		newWPXPrefixesCount := oldWPXPrefixesCount + value
-		m.WPXPrefixes[wpxPrefix] = newWPXPrefixesCount
-		if oldWPXPrefixesCount == 0 || newWPXPrefixesCount == 0 {
-		}
-	}
-
-	xchangeMulti, xchangeMatch := m.matchXchange(xchange)
-	if xchangeMatch {
-		oldXchangeValuesCount := m.XchangeValues[xchangeMulti]
-		newXchangeValuesCount := oldXchangeValuesCount + value
-		m.XchangeValues[xchangeMulti] = newXchangeValuesCount
-		if oldXchangeValuesCount == 0 || newXchangeValuesCount == 0 {
-		}
-	}
-
-	if m.CountingMultis.DXCC {
-	}
-	if m.CountingMultis.WPX {
-	}
-	if m.CountingMultis.Xchange {
-	}
-
-	return result
-}
-
-func (m *multis) matchXchange(xchange string) (string, bool) {
-	return MatchXchange(m.XchangeMultiExpression, xchange)
-}
-
-func MatchXchange(exp *regexp.Regexp, xchange string) (string, bool) {
-	xchange = strings.ToUpper(strings.TrimSpace(xchange))
-	if exp == nil {
-		return xchange, true
-	}
-
-	matches := exp.FindStringSubmatch(xchange)
-	if len(matches) == 0 {
-		return "", false
-	}
-
-	multiIndex := exp.SubexpIndex("multi")
-	var multi string
-	if multiIndex == -1 {
-		multi = matches[0]
-	} else {
-		multi = matches[multiIndex]
-	}
-	return multi, (multi != "")
-}
-
-var parseWPXPrefixExpression = regexp.MustCompile(`^[A-Z0-9]?[A-Z][0-9]*`)
-
-func WPXPrefix(callsign callsign.Callsign) string {
-	var p string
-	if p == "" && callsign.Prefix != "" {
-		p = parseWPXPrefixExpression.FindString(callsign.Prefix)
-	}
-	if p == "" && callsign.Suffix != "" {
-		p = parseWPXPrefixExpression.FindString(callsign.Suffix)
-	}
-	if p == "" {
-		p = parseWPXPrefixExpression.FindString(callsign.BaseCall)
-	}
-	if p == "" {
-		return ""
-	}
-	runes := []rune(p)
-	if !unicode.IsDigit(runes[len(runes)-1]) {
-		p += "0"
-	}
-	return p
 }
 
 type prefixDatabase struct {

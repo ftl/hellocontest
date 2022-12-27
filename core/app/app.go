@@ -108,7 +108,6 @@ func (c *Controller) Startup() {
 	c.Settings = settings.New(
 		c.OpenDefaultConfigurationFile,
 		c.openWithExternalApplication,
-		score.MatchXchange,
 		c.configuration.Station(),
 		c.configuration.Contest(),
 	)
@@ -119,8 +118,8 @@ func (c *Controller) Startup() {
 	c.scpFinder = scp.New()
 	c.callHistoryFinder = callhistory.New(c.Settings, c.ServiceStatus.StatusChanged)
 
-	c.QSOList = logbook.NewQSOList(c.Settings)
-	c.QSOList.Notify(logbook.QSOFillerFunc(c.fillQSO))
+	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
+	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
 	c.Entry = entry.NewController(
 		c.Settings,
 		c.clock,
@@ -164,15 +163,9 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Keyer)
 	c.Entry.SetKeyer(c.Keyer)
 
-	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
-	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Score.Clear))
-	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Score.Add))
-	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Score.Update(o, n) }))
-
 	c.Rate = rate.NewCounter(c.asyncRunner)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
-	c.QSOList.Notify(logbook.QSOUpdatedListenerFunc(func(_ int, o, n core.QSO) { c.Rate.Update(o, n) }))
 
 	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.QSOList, c.Score)
 	c.Entry.SetCallinfo(c.Callinfo)
@@ -264,13 +257,6 @@ func (c *Controller) openCurrentLog() error {
 	}
 	c.changeLogbook(filename, store, newLogbook)
 	return nil
-}
-
-func (c *Controller) fillQSO(qso *core.QSO) {
-	if entity, found := c.dxccFinder.Find(qso.Callsign.String()); found {
-		qso.DXCC = entity
-	}
-	qso.Points, qso.Multis = c.Score.Value(qso.Callsign, qso.DXCC, qso.Band, qso.Mode, qso.TheirExchange)
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {
@@ -570,7 +556,7 @@ func (c *Controller) ShowRate() {
 
 func (c *Controller) Refresh() {
 	c.QSOList.Clear()
-	c.Logbook.ReplayAll()
+	c.QSOList.Fill(c.Logbook.All())
 	c.Entry.Clear()
 }
 

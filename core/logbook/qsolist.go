@@ -18,16 +18,6 @@ func (f QSOsClearedListenerFunc) QSOsCleared() {
 	f()
 }
 
-type QSOFiller interface {
-	FillQSO(*core.QSO)
-}
-
-type QSOFillerFunc func(*core.QSO)
-
-func (f QSOFillerFunc) FillQSO(qso *core.QSO) {
-	f(qso)
-}
-
 type QSOAddedListener interface {
 	QSOAdded(core.QSO)
 }
@@ -36,26 +26,6 @@ type QSOAddedListenerFunc func(core.QSO)
 
 func (f QSOAddedListenerFunc) QSOAdded(qso core.QSO) {
 	f(qso)
-}
-
-type QSOInsertedListener interface {
-	QSOInserted(int, core.QSO)
-}
-
-type QSOInsertedListenerFunc func(int, core.QSO)
-
-func (f QSOInsertedListenerFunc) QSOInserted(index int, qso core.QSO) {
-	f(index, qso)
-}
-
-type QSOUpdatedListener interface {
-	QSOUpdated(int, core.QSO, core.QSO)
-}
-
-type QSOUpdatedListenerFunc func(int, core.QSO, core.QSO)
-
-func (f QSOUpdatedListenerFunc) QSOUpdated(index int, old, new core.QSO) {
-	f(index, old, new)
 }
 
 type QSOSelectedListener interface {
@@ -88,20 +58,27 @@ func (f ExchangeFieldsChangedListenerFunc) ExchangeFieldsChanged(myExchangeField
 	f(myExchangeFields, theirExchangeFields)
 }
 
+type QSOScorer interface {
+	Clear()
+	Add(qso core.QSO) core.QSOScore
+}
+
 type QSOList struct {
 	myExchangeFields    []core.ExchangeField
 	theirExchangeFields []core.ExchangeField
 	allowMultiBand      bool
 	allowMultiMode      bool
-	list                []core.QSO
-	dupes               dupeIndex
-	worked              dupeIndex
-	invalid             bool
+
+	list    []core.QSO
+	scorer  QSOScorer
+	dupes   dupeIndex
+	worked  dupeIndex
+	invalid bool
 
 	listeners []interface{}
 }
 
-func NewQSOList(settings core.Settings) *QSOList {
+func NewQSOList(settings core.Settings, scorer QSOScorer) *QSOList {
 	contest := settings.Contest()
 	return &QSOList{
 		myExchangeFields:    contest.MyExchangeFields,
@@ -109,6 +86,7 @@ func NewQSOList(settings core.Settings) *QSOList {
 		allowMultiBand:      contest.AllowMultiBand,
 		allowMultiMode:      contest.AllowMultiMode,
 		list:                make([]core.QSO, 0),
+		scorer:              scorer,
 		dupes:               make(dupeIndex),
 		worked:              make(dupeIndex),
 	}
@@ -123,10 +101,7 @@ func (l *QSOList) ContestChanged(contest core.Contest) {
 	l.theirExchangeFields = contest.TheirExchangeFields
 	l.emitExchangeFieldsChanged(l.myExchangeFields, l.theirExchangeFields)
 
-	// TODO calculate allowMultiBand and allowMultiMode from contest.Definition
-	if l.allowMultiBand == contest.AllowMultiBand && l.allowMultiMode == contest.AllowMultiMode {
-		return
-	}
+	// TODO remove allowMultiBand and allowMultiMode and use the scorer instead
 	l.allowMultiBand = contest.AllowMultiBand
 	l.allowMultiMode = contest.AllowMultiMode
 
@@ -142,25 +117,46 @@ func (l *QSOList) Clear() {
 	l.dupes = make(dupeIndex)
 	l.worked = make(dupeIndex)
 	l.invalid = false
+
 	l.emitQSOsCleared()
 }
 
+func (l *QSOList) Fill(qsos []core.QSO) {
+	l.scorer.Clear()
+	if len(l.list) > 0 {
+		l.Clear()
+	}
+
+	for _, qso := range qsos {
+		l.put(qso, true)
+	}
+
+	l.refreshScore()
+	for _, qso := range l.list {
+		l.emitQSOAdded(qso)
+	}
+}
+
 func (l *QSOList) Put(qso core.QSO) {
+	l.put(qso, false)
+}
+
+func (l *QSOList) put(qso core.QSO, silent bool) {
 	if len(l.list) == 0 {
-		l.append(qso)
+		l.append(qso, silent)
 		return
 	}
 	lastNumber := l.list[len(l.list)-1].MyNumber
 	if qso.MyNumber > lastNumber {
-		l.append(qso)
+		l.append(qso, silent)
 		return
 	}
 	index, found := l.findIndex(qso.MyNumber)
 	if !found {
-		l.insert(index, qso)
+		l.insert(index, qso, silent)
 		return
 	}
-	l.update(index, qso)
+	l.update(index, qso, silent)
 }
 
 func (l *QSOList) findIndex(number core.QSONumber) (int, bool) {
@@ -188,57 +184,70 @@ func findIndex(list []core.QSO, number core.QSONumber) (int, bool) {
 	return low, true
 }
 
-func (l *QSOList) append(qso core.QSO) {
+func (l *QSOList) append(qso core.QSO, silent bool) {
+	score := l.scorer.Add(qso)
+	qso.Points = score.Points
+	qso.Multis = score.Multis
+	qso.Duplicate = score.Duplicate
+
 	dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
 	l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
-	dupes := l.dupes.Get(qso.Callsign, dupeBand, dupeMode)
-	qso.Duplicate = len(dupes) > 1
-
 	l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
 
-	l.fillQSO(&qso)
 	l.list = append(l.list, qso)
+
+	if silent {
+		return
+	}
+
 	l.emitQSOAdded(qso)
 }
 
-func (l *QSOList) insert(index int, qso core.QSO) {
-	dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
-	l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
-	dupes := l.dupes.Get(qso.Callsign, dupeBand, dupeMode)
-
-	l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
-
-	l.fillQSO(&qso)
+func (l *QSOList) insert(index int, qso core.QSO, silent bool) {
 	l.list = append(l.list[:index+1], l.list[index:]...)
 	l.list[index] = qso
-	updates := l.updateDuplicateMarkers(dupes)
-	l.emitQSOInserted(index, qso)
-	for _, update := range updates {
-		l.emitQSOUpdated(update.index, update.old, update.new)
+
+	if silent {
+		return
+	}
+
+	l.refreshScore()
+	l.refreshAfterUpdate()
+}
+
+func (l *QSOList) update(index int, qso core.QSO, silent bool) {
+	l.list[index] = qso
+
+	if silent {
+		return
+	}
+
+	l.refreshScore()
+	l.refreshAfterUpdate()
+}
+
+func (l *QSOList) refreshScore() {
+	l.scorer.Clear()
+	l.dupes = make(dupeIndex)
+	l.worked = make(dupeIndex)
+	for i, qso := range l.list {
+		score := l.scorer.Add(qso)
+		qso.Points = score.Points
+		qso.Multis = score.Multis
+		qso.Duplicate = score.Duplicate
+
+		dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
+		l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
+		l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
+
+		l.list[i] = qso
 	}
 }
 
-func (l *QSOList) update(index int, qso core.QSO) {
-	old := l.list[index]
-	oldDupeBand, oldDupeMode := l.dupeBandAndMode(old.Band, old.Mode)
-	l.dupes.Remove(old.Callsign, oldDupeBand, oldDupeMode, old.MyNumber)
-	oldDupes := l.dupes.Get(old.Callsign, oldDupeBand, oldDupeMode)
-	updates := l.updateDuplicateMarkers(oldDupes)
-
-	dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
-	l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
-	dupes := l.dupes.Get(qso.Callsign, dupeBand, dupeMode)
-	qso.Duplicate = len(dupes) > 1
-
-	l.worked.Remove(old.Callsign, core.NoBand, core.NoMode, old.MyNumber)
-	l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
-
-	l.fillQSO(&qso)
-	l.list[index] = qso
-	updates = append(updates, l.updateDuplicateMarkers(dupes)...)
-	l.emitQSOUpdated(index, old, qso)
-	for _, update := range updates {
-		l.emitQSOUpdated(update.index, update.old, update.new)
+func (l *QSOList) refreshAfterUpdate() {
+	l.emitQSOsCleared()
+	for _, qso := range l.list {
+		l.emitQSOAdded(qso)
 	}
 }
 
@@ -365,6 +374,7 @@ func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 }
 
 func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	// TODO use the scorer to find duplicates - it knows the rules
 	band, mode = l.dupeBandAndMode(band, mode)
 	numbers := l.dupes.Get(callsign, band, mode)
 	return l.GetQSOs(numbers)
@@ -418,14 +428,6 @@ func (l *QSOList) Notify(listener interface{}) {
 	l.listeners = append(l.listeners, listener)
 }
 
-func (l *QSOList) fillQSO(qso *core.QSO) {
-	for _, listener := range l.listeners {
-		if qsoFiller, ok := listener.(QSOFiller); ok {
-			qsoFiller.FillQSO(qso)
-		}
-	}
-}
-
 func (l *QSOList) emitQSOsCleared() {
 	for _, listener := range l.listeners {
 		if qsosClearedListener, ok := listener.(QSOsClearedListener); ok {
@@ -438,22 +440,6 @@ func (l *QSOList) emitQSOAdded(qso core.QSO) {
 	for _, listener := range l.listeners {
 		if qsoAddedListener, ok := listener.(QSOAddedListener); ok {
 			qsoAddedListener.QSOAdded(qso)
-		}
-	}
-}
-
-func (l *QSOList) emitQSOInserted(index int, qso core.QSO) {
-	for _, listener := range l.listeners {
-		if qsoInsertedListener, ok := listener.(QSOInsertedListener); ok {
-			qsoInsertedListener.QSOInserted(index, qso)
-		}
-	}
-}
-
-func (l *QSOList) emitQSOUpdated(index int, old, new core.QSO) {
-	for _, listener := range l.listeners {
-		if qsoUpdatedListener, ok := listener.(QSOUpdatedListener); ok {
-			qsoUpdatedListener.QSOUpdated(index, old, new)
 		}
 	}
 }

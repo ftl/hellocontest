@@ -430,6 +430,15 @@ func (s *BandScore) Add(other BandScore) {
 	s.Multis += other.Multis
 }
 
+func (s *BandScore) AddQSO(qso QSOScore) {
+	s.QSOs += 1
+	if qso.Duplicate {
+		s.Duplicates += 1
+	}
+	s.Points += qso.Points
+	s.Multis += qso.Multis
+}
+
 func (s BandScore) PointsPerQSO() float64 {
 	if s.QSOs == 0 {
 		return 0
@@ -446,6 +455,12 @@ func (s BandScore) QSOsPerMulti() float64 {
 
 func (s BandScore) Result() int {
 	return s.Points * s.Multis
+}
+
+type QSOScore struct {
+	Points    int
+	Multis    int
+	Duplicate bool
 }
 
 // Hour is used as reference to calculate the number of QSOs per hour.

@@ -92,19 +92,18 @@ type View interface {
 	SetContestCabrilloQSOTemplate(string)
 }
 
-func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, xchangeRegexpMatcher XchangeRegexpMatcher, station core.Station, contest core.Contest) *Settings {
+func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, station core.Station, contest core.Contest) *Settings {
 	return &Settings{
-		writer:               new(nullWriter),
-		view:                 new(nullView),
-		defaultsOpener:       defaultsOpener,
-		browserOpener:        browserOpener,
-		xchangeRegexpMatcher: xchangeRegexpMatcher,
-		station:              station,
-		contest:              contest,
-		defaultStation:       station,
-		defaultContest:       contest,
-		savedStation:         station,
-		savedContest:         deepCopyContest(contest),
+		writer:         new(nullWriter),
+		view:           new(nullView),
+		defaultsOpener: defaultsOpener,
+		browserOpener:  browserOpener,
+		station:        station,
+		contest:        contest,
+		defaultStation: station,
+		defaultContest: contest,
+		savedStation:   station,
+		savedContest:   deepCopyContest(contest),
 	}
 }
 
@@ -113,7 +112,6 @@ type Settings struct {
 	view                     View
 	defaultsOpener           DefaultsOpener
 	browserOpener            BrowserOpener
-	xchangeRegexpMatcher     XchangeRegexpMatcher
 	xchangeMultiTestValue    string
 	serialExchangeFieldIndex int
 
@@ -554,24 +552,7 @@ func (s *Settings) EnterContestTestXchangeValue(value string) {
 }
 
 func (s *Settings) updateXchangeMultiPatternResult() {
-	var exp *regexp.Regexp
-	var err error
-	if s.contest.XchangeMultiPattern == "" {
-		exp = nil
-	} else {
-		exp, err = regexp.Compile(s.contest.XchangeMultiPattern)
-	}
-	if err != nil {
-		s.view.SetContestXchangeMultiPatternResult("(invalid)")
-		return
-	}
-
-	multi, matched := s.xchangeRegexpMatcher(exp, s.xchangeMultiTestValue)
-	if !matched {
-		s.view.SetContestXchangeMultiPatternResult("(no match)")
-		return
-	}
-	s.view.SetContestXchangeMultiPatternResult(multi)
+	// TODO remove
 }
 
 func (s *Settings) EnterContestCountPerBand(value bool) {

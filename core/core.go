@@ -231,14 +231,14 @@ type KeyerValues struct {
 
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
 type AnnotatedCallsign struct {
-	Callsign         callsign.Callsign
-	Assembly         MatchingAssembly
-	Duplicate        bool
-	Worked           bool
-	ExactMatch       bool
-	Points           int
-	Multis           int
-	PredictedXchange string
+	Callsign          callsign.Callsign
+	Assembly          MatchingAssembly
+	Duplicate         bool
+	Worked            bool
+	ExactMatch        bool
+	Points            int
+	Multis            int
+	PredictedExchange []string
 
 	Comparable interface{}
 	Compare    func(interface{}, interface{}) bool
@@ -309,8 +309,8 @@ type Contest struct {
 	TheirReportExchangeField ExchangeField
 	TheirNumberExchangeField ExchangeField
 
-	CallHistoryFilename string
-	CallHistoryField    string
+	CallHistoryFilename   string
+	CallHistoryFieldNames []string
 
 	// deprecated from here
 	Name                string

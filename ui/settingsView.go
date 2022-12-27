@@ -38,7 +38,7 @@ type SettingsController interface {
 	EnterContestTestXchangeValue(string)
 	EnterContestCountPerBand(bool)
 	EnterContestCallHistoryFile(string)
-	EnterContestCallHistoryField(string)
+	EnterContestCallHistoryFieldName(core.EntryField, string)
 	EnterContestCabrilloQSOTemplate(string)
 }
 
@@ -67,7 +67,6 @@ const (
 	contestTestXchangeMultiPattern fieldID = "contestTestXchangeMultiPattern"
 	contestCountPerBand            fieldID = "contestCountPerBand"
 	contestCallHistoryFile         fieldID = "contestCallHistoryFile"
-	contestCallHistoryField        fieldID = "contestCallHistoryField"
 	contestCabrilloQSOTemplate     fieldID = "contestCabrilloQSOTemplate"
 )
 
@@ -77,18 +76,21 @@ type settingsView struct {
 
 	ignoreChangedEvent bool
 
-	message                      *gtk.Label
-	openContestRulesPage         *gtk.Button
-	openContestUploadPage        *gtk.Button
-	openDefaults                 *gtk.Button
-	reset                        *gtk.Button
-	close                        *gtk.Button
-	xchangeMultiValue            *gtk.Label
+	message               *gtk.Label
+	openContestRulesPage  *gtk.Button
+	openContestUploadPage *gtk.Button
+	openDefaults          *gtk.Button
+	reset                 *gtk.Button
+	close                 *gtk.Button
+
+	xchangeMultiValue *gtk.Label
+
 	fields                       map[fieldID]interface{}
 	exchangeFieldsParent         *gtk.Grid
 	exchangeFieldCount           int
 	generateSerialExchangeButton *gtk.CheckButton
 	serialExchangeEntry          *gtk.Entry
+	callHistoryFieldNamesParent  *gtk.Grid
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -104,6 +106,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.openContestUploadPage = getUI(builder, "openContestUploadPageButton").(*gtk.Button)
 	result.openContestUploadPage.Connect("clicked", result.onOpenContestUploadPagePressed)
 	result.exchangeFieldsParent = getUI(builder, "contestExchangeFieldsGrid").(*gtk.Grid)
+	result.callHistoryFieldNamesParent = getUI(builder, "contestCallHistoryFieldNamesGrid").(*gtk.Grid)
 
 	result.openDefaults = getUI(builder, "openDefaultsButton").(*gtk.Button)
 	result.openDefaults.Connect("clicked", result.onOpenDefaultsPressed)
@@ -134,7 +137,6 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, contestTestXchangeMultiPattern)
 	result.addCheckButton(builder, contestCountPerBand)
 	result.addFileChooser(builder, contestCallHistoryFile)
-	result.addEntry(builder, contestCallHistoryField)
 	result.addEntry(builder, contestCabrilloQSOTemplate)
 
 	result.parent.Connect("destroy", result.onDestroy)
@@ -259,8 +261,6 @@ func (v *settingsView) onFieldChanged(w any) bool {
 		v.controller.EnterContestCountPerBand(value.(bool))
 	case contestCallHistoryFile:
 		v.controller.EnterContestCallHistoryFile(value.(string))
-	case contestCallHistoryField:
-		v.controller.EnterContestCallHistoryField(value.(string))
 	case contestCabrilloQSOTemplate:
 		v.controller.EnterContestCabrilloQSOTemplate(value.(string))
 	default:
@@ -384,6 +384,12 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 			entry.ToWidget().Destroy()
 		}
 		v.exchangeFieldsParent.RemoveRow(0)
+
+		fieldName, _ := v.callHistoryFieldNamesParent.GetChildAt(0, 0)
+		if fieldName != nil {
+			fieldName.ToWidget().Destroy()
+		}
+		v.callHistoryFieldNamesParent.RemoveColumn(0)
 	}
 	if v.generateSerialExchangeButton != nil {
 		v.generateSerialExchangeButton.Destroy()
@@ -407,6 +413,16 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		entry.Connect("changed", v.onExchangeFieldChanged)
 		v.exchangeFieldsParent.Attach(entry, 1, i, 1, 1)
 
+		v.callHistoryFieldNamesParent.InsertColumn(i)
+		fieldName, _ := gtk.EntryNew()
+		fieldName.SetName(string(field.Field))
+		fieldName.SetWidthChars(6)
+		fieldName.SetTooltipText(field.Short) // TODO use field.Hint
+		fieldName.SetHAlign(gtk.ALIGN_FILL)
+		fieldName.SetHExpand(true)
+		fieldName.Connect("changed", v.onCallHistoryFieldNameChanged)
+		v.callHistoryFieldNamesParent.Attach(fieldName, i, 0, 1, 1)
+
 		if !field.CanContainSerial || v.generateSerialExchangeButton != nil {
 			continue
 		}
@@ -421,7 +437,11 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		v.generateSerialExchangeButton = serialCheckButton
 		v.serialExchangeEntry = entry
 	}
+
+	// TODO generate the callHistoryFieldName entry fields
+
 	v.exchangeFieldsParent.ShowAll()
+	v.callHistoryFieldNamesParent.ShowAll()
 	v.exchangeFieldCount = len(fields)
 }
 
@@ -473,6 +493,33 @@ func (v *settingsView) SetContestGenerateSerialExchange(active bool, sensitive b
 		v.generateSerialExchangeButton.SetActive(active)
 		v.generateSerialExchangeButton.SetSensitive(sensitive)
 		v.serialExchangeEntry.SetSensitive(!active)
+	})
+}
+
+func (v *settingsView) onCallHistoryFieldNameChanged(entry *gtk.Entry) bool {
+	if v.ignoreChangedEvent {
+		return false
+	}
+
+	name, _ := entry.GetName()
+	entryField := core.EntryField(name)
+
+	value, _ := entry.GetText()
+
+	v.controller.EnterContestCallHistoryFieldName(entryField, value)
+
+	return false
+}
+
+func (v *settingsView) SetContestCallHistoryFieldName(i int, value string) {
+	child, _ := v.callHistoryFieldNamesParent.GetChildAt(i, 0)
+	entry, ok := child.(*gtk.Entry)
+	if !ok {
+		return
+	}
+
+	v.doIgnoreChanges(func() {
+		entry.SetText(value)
 	})
 }
 
@@ -540,10 +587,6 @@ func (v *settingsView) SetContestCountPerBand(value bool) {
 
 func (v *settingsView) SetContestCallHistoryFile(value string) {
 	v.setFileChooserField(contestCallHistoryFile, value)
-}
-
-func (v *settingsView) SetContestCallHistoryField(value string) {
-	v.setEntryField(contestCallHistoryField, value)
 }
 
 func (v *settingsView) SetContestCabrilloQSOTemplate(value string) {

@@ -865,7 +865,7 @@ THE SOFTWARE.
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="margin-start">10</property>
-                <property name="label" translatable="yes">Call History Field</property>
+                <property name="label" translatable="yes">Call History Fields</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
@@ -884,17 +884,6 @@ THE SOFTWARE.
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">23</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="contestCallHistoryFieldEntry">
-                <property name="name">contestCallHistoryField</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">24</property>
               </packing>
             </child>
             <child>
@@ -998,6 +987,28 @@ THE SOFTWARE.
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <!-- n-columns=3 n-rows=1 -->
+              <object class="GtkGrid" id="contestCallHistoryFieldNamesGrid">
+                <property name="name">contestCallHistoryFieldNames</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">24</property>
               </packing>
             </child>
             <child>
@@ -1493,12 +1504,18 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <!-- n-columns=0 n-rows=1 -->
+              <!-- n-columns=3 n-rows=1 -->
               <object class="GtkGrid" id="myExchangesGrid">
                 <property name="name">myExchangesGrid</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
                 <child>
                   <placeholder/>
                 </child>
@@ -1510,12 +1527,18 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <!-- n-columns=0 n-rows=1 -->
+              <!-- n-columns=3 n-rows=1 -->
               <object class="GtkGrid" id="theirExchangesGrid">
                 <property name="name">theirExchangesGrid</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
                 <child>
                   <placeholder/>
                 </child>

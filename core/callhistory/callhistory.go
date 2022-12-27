@@ -1,3 +1,5 @@
+// Package callhistory provides access to call history files. Those can be used to predict the exchange data.
+// For more information on the supported file format, see https://n1mmwp.hamdocs.com/setup/call-history/
 package callhistory
 
 import (
@@ -15,10 +17,9 @@ import (
 
 func New(settings core.Settings, callback AvailabilityCallback) *Finder {
 	result := &Finder{
-		// available: make(chan struct{}),
-		callback: callback,
-		filename: settings.Contest().CallHistoryFilename,
-		field:    settings.Contest().CallHistoryField,
+		callback:   callback,
+		filename:   settings.Contest().CallHistoryFilename,
+		fieldNames: settings.Contest().CallHistoryFieldNames,
 	}
 
 	result.database = loadCallHistory(result.filename)
@@ -34,8 +35,8 @@ type Finder struct {
 	database *scp.Database
 	callback AvailabilityCallback
 
-	filename string
-	field    string
+	filename   string
+	fieldNames []string
 }
 
 type AvailabilityCallback func(service core.Service, available bool)
@@ -50,7 +51,7 @@ func (f *Finder) ContestChanged(contest core.Contest) {
 	}
 
 	f.filename = contest.CallHistoryFilename
-	f.field = contest.CallHistoryField
+	f.fieldNames = contest.CallHistoryFieldNames
 
 	f.database = loadCallHistory(f.filename)
 	f.callback(core.CallHistoryService, f.Available())
@@ -83,7 +84,10 @@ func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 				log.Print(err)
 				return core.AnnotatedCallsign{}, false
 			}
-			result.PredictedXchange = entry.Get(scp.FieldName(f.field))
+			result.PredictedExchange = make([]string, len(f.fieldNames))
+			for i := range f.fieldNames {
+				result.PredictedExchange[i] = entry.Get(scp.FieldName(f.fieldNames[i]))
+			}
 			return result, true
 		}
 	}
@@ -108,7 +112,10 @@ func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 			log.Print(err)
 			continue
 		}
-		annotatedCallsign.PredictedXchange = match.Get(scp.FieldName(f.field))
+		annotatedCallsign.PredictedExchange = make([]string, len(f.fieldNames))
+		for i := range f.fieldNames {
+			annotatedCallsign.PredictedExchange[i] = match.Get(scp.FieldName(f.fieldNames[i]))
+		}
 		result = append(result, annotatedCallsign)
 	}
 

@@ -113,12 +113,13 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
 		worked = len(qsos) > 0
 		if xchange == "" {
-			entry, found := c.callHistory.FindEntry(call)
-			var historicXchange string
-			if found {
-				historicXchange = entry.PredictedXchange
-			}
-			xchange = c.predictXchange(call, qsos, historicXchange)
+			// TODO handle multiple predicted values
+			// entry, found := c.callHistory.FindEntry(call)
+			// var historicExchange []string
+			// if found {
+			// 	historicExchange = entry.PredictedXchange
+			// }
+			// xchange = c.predictXchange(call, qsos, historicExchange)
 		}
 	}
 	c.predictedXchange = xchange
@@ -172,7 +173,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		} else {
 			annotatedCallsign = match
 		}
-		annotatedCallsign.PredictedXchange = match.PredictedXchange
+		annotatedCallsign.PredictedExchange = match.PredictedExchange
 		annotatedCallsigns[annotatedCallsign.Callsign] = annotatedCallsign
 	}
 
@@ -182,7 +183,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		exactMatch := (matchString == normalizedInput)
 
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
-		predictedXchange := c.predictXchange(matchString, qsos, annotatedCallsign.PredictedXchange)
+		predictedExchange := c.predictXchange(matchString, qsos, annotatedCallsign.PredictedExchange)
 
 		entity, entityFound := c.entities.Find(matchString)
 
@@ -196,7 +197,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		annotatedCallsign.ExactMatch = exactMatch
 		annotatedCallsign.Points = points
 		annotatedCallsign.Multis = multis
-		annotatedCallsign.PredictedXchange = predictedXchange
+		annotatedCallsign.PredictedExchange = predictedExchange
 
 		result = append(result, annotatedCallsign)
 	}
@@ -221,8 +222,8 @@ func (c *Callinfo) toAnnotatedCallsign(match core.MatchingAssembly) (core.Annota
 	}, nil
 }
 
-func (c *Callinfo) predictXchange(call string, qsos []core.QSO, historicXchange string) string {
-	result := historicXchange
+func (c *Callinfo) predictXchange(call string, qsos []core.QSO, historicExchange []string) []string {
+	result := historicExchange
 
 	if len(qsos) == 0 {
 		return result

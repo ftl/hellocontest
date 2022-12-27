@@ -120,7 +120,7 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	contest.CountPerBand = pbContest.CountPerBand
 	contest.CabrilloQSOTemplate = pbContest.CabrilloQsoTemplate
 	contest.CallHistoryFilename = pbContest.CallHistoryFilename
-	contest.CallHistoryField = pbContest.CallHistoryField
+	contest.CallHistoryFieldNames = pbContest.CallHistoryFieldNames
 
 	// new contest settings
 	contest.ExchangeValues = pbContest.ExchangeValues
@@ -173,11 +173,11 @@ func ContestToPB(contest core.Contest) Contest {
 			Wpx:     contest.Multis.WPX,
 			Xchange: contest.Multis.Xchange,
 		},
-		XchangeMultiPattern: contest.XchangeMultiPattern,
-		CountPerBand:        contest.CountPerBand,
-		CabrilloQsoTemplate: contest.CabrilloQSOTemplate,
-		CallHistoryFilename: contest.CallHistoryFilename,
-		CallHistoryField:    contest.CallHistoryField,
+		XchangeMultiPattern:   contest.XchangeMultiPattern,
+		CountPerBand:          contest.CountPerBand,
+		CabrilloQsoTemplate:   contest.CabrilloQSOTemplate,
+		CallHistoryFilename:   contest.CallHistoryFilename,
+		CallHistoryFieldNames: contest.CallHistoryFieldNames,
 	}
 }
 

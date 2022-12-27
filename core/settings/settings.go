@@ -88,7 +88,7 @@ type View interface {
 	SetContestXchangeMultiPatternResult(string)
 	SetContestCountPerBand(bool)
 	SetContestCallHistoryFile(string)
-	SetContestCallHistoryField(string)
+	SetContestCallHistoryFieldName(i int, value string)
 	SetContestCabrilloQSOTemplate(string)
 }
 
@@ -183,8 +183,13 @@ func (s *Settings) SetContest(contest core.Contest) {
 
 func deepCopyContest(contest core.Contest) core.Contest {
 	result := contest
+
 	result.ExchangeValues = make([]string, len(contest.ExchangeValues))
 	copy(result.ExchangeValues, contest.ExchangeValues)
+
+	result.CallHistoryFieldNames = make([]string, len(contest.CallHistoryFieldNames))
+	copy(result.CallHistoryFieldNames, contest.CallHistoryFieldNames)
+
 	return result
 }
 
@@ -267,7 +272,6 @@ func (s *Settings) showSettings() {
 	s.view.SetContestXchangeMultiPattern(s.contest.XchangeMultiPattern)
 	s.view.SetContestCountPerBand(s.contest.CountPerBand)
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
-	s.view.SetContestCallHistoryField(s.contest.CallHistoryField)
 	s.view.SetContestCabrilloQSOTemplate(s.contest.CabrilloQSOTemplate)
 	s.updateXchangeMultiPatternResult()
 }
@@ -383,13 +387,9 @@ func (s *Settings) updateExchangeFields() {
 	}
 	s.view.SetContestExchangeFields(exchangeFields)
 
-	currentLen := len(s.contest.ExchangeValues)
 	newLen := len(exchangeFields)
-	if currentLen < newLen {
-		s.contest.ExchangeValues = append(s.contest.ExchangeValues, make([]string, newLen-currentLen)...)
-	} else if currentLen > newLen {
-		s.contest.ExchangeValues = s.contest.ExchangeValues[:newLen]
-	}
+	s.contest.ExchangeValues = ensureLen(s.contest.ExchangeValues, newLen)
+	s.contest.CallHistoryFieldNames = ensureLen(s.contest.CallHistoryFieldNames, newLen)
 
 	exclusiveSerialField := false
 	s.serialExchangeFieldIndex = -1
@@ -408,6 +408,20 @@ func (s *Settings) updateExchangeFields() {
 	}
 
 	s.view.SetContestGenerateSerialExchange(s.contest.GenerateSerialExchange, !exclusiveSerialField)
+
+	for i, value := range s.contest.CallHistoryFieldNames {
+		s.view.SetContestCallHistoryFieldName(i, value)
+	}
+}
+
+func ensureLen(a []string, l int) []string {
+	if len(a) < l {
+		return append(a, make([]string, l-len(a))...)
+	}
+	if len(a) > l {
+		return a[:l]
+	}
+	return a
 }
 
 func (s *Settings) OpenContestRulesPage() {
@@ -563,8 +577,14 @@ func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
 }
 
-func (s *Settings) EnterContestCallHistoryField(value string) {
-	s.contest.CallHistoryField = value
+func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value string) {
+	i := field.ExchangeIndex() - 1
+	if i < 0 || i >= len(s.contest.TheirExchangeFields) {
+		log.Printf("call history field name is out of range: %d", i)
+		return
+	}
+
+	s.contest.CallHistoryFieldNames[i] = value
 }
 
 func (s *Settings) EnterContestCabrilloQSOTemplate(value string) {
@@ -613,5 +633,5 @@ func (v *nullView) SetContestXchangeMultiPattern(string)               {}
 func (v *nullView) SetContestXchangeMultiPatternResult(string)         {}
 func (v *nullView) SetContestCountPerBand(bool)                        {}
 func (v *nullView) SetContestCallHistoryFile(string)                   {}
-func (v *nullView) SetContestCallHistoryField(string)                  {}
+func (v *nullView) SetContestCallHistoryFieldName(int, string)         {}
 func (v *nullView) SetContestCabrilloQSOTemplate(string)               {}

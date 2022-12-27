@@ -100,11 +100,7 @@ type Counter struct {
 }
 
 func (c *Counter) Result() int {
-	if c.countPerBand {
-		return c.TotalScore.Result()
-	} else {
-		return c.OverallScore.Result()
-	}
+	return c.Score.Result().Result()
 }
 
 func (c *Counter) SetView(view View) {
@@ -208,10 +204,7 @@ func (c *Counter) Clear() {
 	c.Score = core.Score{
 		ScorePerBand: make(map[core.Band]core.BandScore),
 	}
-	c.multisPerBand = make(map[core.Band]*multis)
-	c.overallMultis = newMultis(c.multis, c.xchangeMultiExpression)
 
-	// new stuff from here
 	c.resetCounter()
 
 	c.invalid = c.stationEntity.Name == ""
@@ -224,41 +217,26 @@ func (c *Counter) Add(qso core.QSO) {
 	if qso.Duplicate {
 		bandScore.Duplicates++
 		c.ScorePerBand[qso.Band] = bandScore
-		c.OverallScore.Duplicates++
-		c.TotalScore.Duplicates++
 		return
 	}
 
-	qsoScore := c.qsoScore(1, qso.DXCC)
-	c.TotalScore.Add(qsoScore)
-	c.OverallScore.Add(qsoScore)
-	bandScore.Add(qsoScore)
-
-	overallMultiScore := c.overallMultis.Add(1, qso.Callsign, qso.DXCC, "") // qso.TheirXchange) // TODO use the new exchange fields
-	c.OverallScore.Add(overallMultiScore)
-	multisPerBand, ok := c.multisPerBand[qso.Band]
-	if !ok {
-		multisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
-		c.multisPerBand[qso.Band] = multisPerBand
-	}
-	bandMultiScore := multisPerBand.Add(1, qso.Callsign, qso.DXCC, "") // qso.TheirXchange) // TODO use the new exchange fields
-	c.TotalScore.Add(bandMultiScore)
-	bandScore.Add(bandMultiScore)
-
+	qsoScore := c.counter.Add(c.toConvalQSO(qso))
+	bandScore.Add(core.BandScore{
+		QSOs:   1,
+		Points: qsoScore.Points,
+		Multis: qsoScore.Multis,
+	})
 	c.ScorePerBand[qso.Band] = bandScore
-
-	// new stuff from here
-	c.counter.Add(c.toConvalQSO(qso))
 
 	c.emitScoreUpdated(c.Score)
 }
 
 func (c *Counter) Update(oldQSO, newQSO core.QSO) {
+	// TODO: implement new stuff from here - update not supported by conval, need to clear and replay all
+
 	if (oldQSO.DXCC == newQSO.DXCC) && (fmt.Sprintf("%v", oldQSO.TheirExchange) == fmt.Sprintf("%v", newQSO.TheirExchange)) && (oldQSO.Duplicate == newQSO.Duplicate) {
 		return
 	}
-	totalScore := c.TotalScore
-	overallScore := c.OverallScore
 	oldBandScore := c.ScorePerBand[oldQSO.Band]
 	var newBandScore *core.BandScore
 	if oldQSO.Band == newQSO.Band {
@@ -270,44 +248,31 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 
 	if oldQSO.Duplicate {
 		oldBandScore.Duplicates--
-		overallScore.Duplicates--
-		totalScore.Duplicates--
 	}
 
 	if newQSO.Duplicate {
 		newBandScore.Duplicates++
-		overallScore.Duplicates++
-		totalScore.Duplicates++
 	}
 
 	if !oldQSO.Duplicate {
 		oldQSOScore := c.qsoScore(-1, oldQSO.DXCC)
-		totalScore.Add(oldQSOScore)
-		overallScore.Add(oldQSOScore)
 		oldBandScore.Add(oldQSOScore)
 	}
 
 	if !newQSO.Duplicate {
 		newQSOScore := c.qsoScore(1, newQSO.DXCC)
-		totalScore.Add(newQSOScore)
-		overallScore.Add(newQSOScore)
 		newBandScore.Add(newQSOScore)
 	}
 
 	if !oldQSO.Duplicate {
-		oldOverallMultiScore := c.overallMultis.Add(-1, oldQSO.Callsign, oldQSO.DXCC, "") // oldQSO.TheirXchange) // TODO use the new exchange fields
-		overallScore.Add(oldOverallMultiScore)
 		oldMultisPerBand, ok := c.multisPerBand[oldQSO.Band]
 		if ok {
 			oldBandMultiScore := oldMultisPerBand.Add(-1, oldQSO.Callsign, oldQSO.DXCC, "") // oldQSO.TheirXchange) // TODO use the new exhange fields
 			oldBandScore.Add(oldBandMultiScore)
-			totalScore.Add(oldBandMultiScore)
 		}
 	}
 
 	if !newQSO.Duplicate {
-		newOverallMultiScore := c.overallMultis.Add(1, newQSO.Callsign, newQSO.DXCC, "") // newQSO.TheirXchange) // TODO use the new exhange fields
-		overallScore.Add(newOverallMultiScore)
 		newMultisPerBand, ok := c.multisPerBand[newQSO.Band]
 		if !ok {
 			newMultisPerBand = newMultis(c.multis, c.xchangeMultiExpression)
@@ -315,15 +280,10 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 		}
 		newBandMultiScore := newMultisPerBand.Add(1, newQSO.Callsign, newQSO.DXCC, "") // newQSO.TheirXchange) // TODO use the new exhange fields
 		newBandScore.Add(newBandMultiScore)
-		totalScore.Add(newBandMultiScore)
 	}
 
-	c.TotalScore = totalScore
-	c.OverallScore = overallScore
 	c.ScorePerBand[oldQSO.Band] = oldBandScore
 	c.ScorePerBand[newQSO.Band] = *newBandScore
-
-	// TODO: implement new stuff from here - update not supported by conval, need to clear and replay all
 
 	c.emitScoreUpdated(c.Score)
 }
@@ -341,16 +301,16 @@ func (c *Counter) qsoScore(value int, entity dxcc.Prefix) core.BandScore {
 	var result core.BandScore
 	switch {
 	case c.isSpecificCountry(entity):
-		result.SpecificCountryQSOs += value
+		result.QSOs += value
 		result.Points += value * c.specificCountryPoints
 	case entity.PrimaryPrefix == c.stationEntity.PrimaryPrefix:
-		result.SameCountryQSOs += value
+		result.QSOs += value
 		result.Points += value * c.sameCountryPoints
 	case entity.Continent == c.stationEntity.Continent:
-		result.SameContinentQSOs += value
+		result.QSOs += value
 		result.Points += value * c.sameContinentPoints
 	default:
-		result.OtherQSOs += value
+		result.QSOs += value
 		result.Points += value * c.otherPoints
 	}
 
@@ -463,21 +423,18 @@ func (m *multis) Add(value int, callsign callsign.Callsign, entity dxcc.Prefix, 
 	newCQZoneCount := oldCQZoneCount + value
 	m.CQZones[entity.CQZone] = newCQZoneCount
 	if oldCQZoneCount == 0 || newCQZoneCount == 0 {
-		result.CQZones += value
 	}
 
 	oldITUZoneCount := m.ITUZones[entity.ITUZone]
 	newITUZoneCount := oldITUZoneCount + value
 	m.ITUZones[entity.ITUZone] = newITUZoneCount
 	if oldITUZoneCount == 0 || newITUZoneCount == 0 {
-		result.ITUZones += value
 	}
 
 	oldDXCCEntitiesCount := m.DXCCEntities[entity.PrimaryPrefix]
 	newDXCCEntitiesCount := oldDXCCEntitiesCount + value
 	m.DXCCEntities[entity.PrimaryPrefix] = newDXCCEntitiesCount
 	if oldDXCCEntitiesCount == 0 || newDXCCEntitiesCount == 0 {
-		result.DXCCEntities += value
 	}
 
 	wpxPrefix := WPXPrefix(callsign)
@@ -486,7 +443,6 @@ func (m *multis) Add(value int, callsign callsign.Callsign, entity dxcc.Prefix, 
 		newWPXPrefixesCount := oldWPXPrefixesCount + value
 		m.WPXPrefixes[wpxPrefix] = newWPXPrefixesCount
 		if oldWPXPrefixesCount == 0 || newWPXPrefixesCount == 0 {
-			result.WPXPrefixes += value
 		}
 	}
 
@@ -496,18 +452,14 @@ func (m *multis) Add(value int, callsign callsign.Callsign, entity dxcc.Prefix, 
 		newXchangeValuesCount := oldXchangeValuesCount + value
 		m.XchangeValues[xchangeMulti] = newXchangeValuesCount
 		if oldXchangeValuesCount == 0 || newXchangeValuesCount == 0 {
-			result.XchangeValues += value
 		}
 	}
 
 	if m.CountingMultis.DXCC {
-		result.Multis += result.DXCCEntities
 	}
 	if m.CountingMultis.WPX {
-		result.Multis += result.WPXPrefixes
 	}
 	if m.CountingMultis.Xchange {
-		result.Multis += result.XchangeValues
 	}
 
 	return result

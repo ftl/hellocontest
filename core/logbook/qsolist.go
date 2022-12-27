@@ -3,6 +3,7 @@ package logbook
 import (
 	"log"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -66,8 +67,7 @@ type QSOScorer interface {
 type QSOList struct {
 	myExchangeFields    []core.ExchangeField
 	theirExchangeFields []core.ExchangeField
-	allowMultiBand      bool
-	allowMultiMode      bool
+	bandRule            conval.BandRule
 
 	list    []core.QSO
 	scorer  QSOScorer
@@ -83,8 +83,6 @@ func NewQSOList(settings core.Settings, scorer QSOScorer) *QSOList {
 	return &QSOList{
 		myExchangeFields:    contest.MyExchangeFields,
 		theirExchangeFields: contest.TheirExchangeFields,
-		allowMultiBand:      contest.AllowMultiBand,
-		allowMultiMode:      contest.AllowMultiMode,
 		list:                make([]core.QSO, 0),
 		scorer:              scorer,
 		dupes:               make(dupeIndex),
@@ -101,9 +99,9 @@ func (l *QSOList) ContestChanged(contest core.Contest) {
 	l.theirExchangeFields = contest.TheirExchangeFields
 	l.emitExchangeFieldsChanged(l.myExchangeFields, l.theirExchangeFields)
 
-	// TODO remove allowMultiBand and allowMultiMode and use the scorer instead
-	l.allowMultiBand = contest.AllowMultiBand
-	l.allowMultiMode = contest.AllowMultiMode
+	if contest.Definition != nil {
+		l.bandRule = contest.Definition.Scoring.QSOBandRule
+	}
 
 	l.invalid = true
 }
@@ -252,71 +250,16 @@ func (l *QSOList) refreshAfterUpdate() {
 }
 
 func (l *QSOList) dupeBandAndMode(band core.Band, mode core.Mode) (core.Band, core.Mode) {
-	if !l.allowMultiBand {
-		band = core.NoBand
+	switch l.bandRule {
+	case conval.Once:
+		return core.NoBand, core.NoMode
+	case conval.OncePerBand:
+		return band, core.NoMode
+	case conval.OncePerBandAndMode:
+		return band, mode
+	default:
+		return core.NoBand, core.NoMode
 	}
-	if !l.allowMultiMode {
-		mode = core.NoMode
-	}
-	return band, mode
-}
-
-type qsoUpdate struct {
-	index    int
-	old, new core.QSO
-}
-
-func (l *QSOList) updateDuplicateMarkers(numbers []core.QSONumber) []qsoUpdate {
-	result := make([]qsoUpdate, 0, len(numbers))
-	if len(numbers) == 0 {
-		return result
-	}
-
-	first := numbers[0]
-	firstIndex := 0
-	for i, n := range numbers {
-		if n < first {
-			first = n
-			firstIndex = i
-		}
-	}
-	numbers[len(numbers)-1], numbers[firstIndex] = numbers[firstIndex], numbers[len(numbers)-1]
-	numbers = numbers[:len(numbers)-1]
-
-	index, found := l.findIndex(first)
-	if found {
-		qso := l.list[index]
-		if qso.Duplicate {
-			update := qsoUpdate{index: index, old: qso}
-
-			qso.Duplicate = false
-			l.list[index] = qso
-
-			update.new = qso
-			result = append(result, update)
-		}
-	} else {
-		log.Printf("UpdateDuplicateMarkers: cannot find index for FIRST QSO %d", first)
-	}
-
-	for _, n := range numbers {
-		index, found := l.findIndex(n)
-		if found {
-			qso := l.list[index]
-			if !qso.Duplicate {
-				update := qsoUpdate{index: index, old: qso}
-
-				qso.Duplicate = true
-				l.list[index] = qso
-
-				update.new = qso
-				result = append(result, update)
-			}
-		} else {
-			log.Printf("UpdateDuplicateMarkers: cannot find index for QSO %d", n)
-		}
-	}
-	return result
 }
 
 func (l *QSOList) All() []core.QSO {
@@ -374,7 +317,6 @@ func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 }
 
 func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
-	// TODO use the scorer to find duplicates - it knows the rules
 	band, mode = l.dupeBandAndMode(band, mode)
 	numbers := l.dupes.Get(callsign, band, mode)
 	return l.GetQSOs(numbers)
@@ -411,11 +353,15 @@ func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mod
 
 	duplicate := false
 	for _, qso := range qsos {
-		switch {
-		case qso.Band == band:
-			duplicate = qso.Mode == mode || !l.allowMultiMode
-		case qso.Mode == mode:
-			duplicate = qso.Band == band || !l.allowMultiBand
+		switch l.bandRule {
+		case conval.Once:
+			duplicate = true
+		case conval.OncePerBand:
+			duplicate = (qso.Band == band)
+		case conval.OncePerBandAndMode:
+			duplicate = (qso.Band == band) || (qso.Mode == mode)
+		default:
+			duplicate = false
 		}
 		if duplicate {
 			break

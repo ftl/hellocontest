@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
@@ -185,6 +186,7 @@ func TestFindWorkedQSOs(t *testing.T) {
 	dl1abc := callsign.MustParse("DL1ABC")
 	dl2abc := callsign.MustParse("DL2ABC")
 	list := NewQSOList(new(testSettings), new(testScorer))
+	list.bandRule = conval.Once
 	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 1})
 	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 3})
 	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 2})

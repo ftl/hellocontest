@@ -373,7 +373,7 @@ func (c *Controller) bandSelected(s string) {
 }
 
 func (c *Controller) SetBand(band core.Band) {
-	if c.selectedBand == band {
+	if band == core.NoBand || band == c.selectedBand {
 		return
 	}
 	c.selectedBand = band
@@ -391,7 +391,7 @@ func (c *Controller) modeSelected(s string) {
 }
 
 func (c *Controller) SetMode(mode core.Mode) {
-	if c.selectedMode == mode {
+	if mode == core.NoMode || mode == c.selectedMode {
 		return
 	}
 	c.selectedMode = mode

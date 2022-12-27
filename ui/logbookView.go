@@ -166,7 +166,8 @@ func (v *logbookView) fillQSOToRow(row *gtk.TreeIter, qso core.QSO) error {
 			v.columnCallsign,
 			v.columnBand,
 			v.columnMode,
-			v.columnPoints - 2,
+			v.columnPoints,
+			v.columnMultis,
 			v.columnDuplicate,
 		},
 		[]interface{}{
@@ -175,6 +176,7 @@ func (v *logbookView) fillQSOToRow(row *gtk.TreeIter, qso core.QSO) error {
 			qso.Band.String(),
 			qso.Mode.String(),
 			pointsToString(qso.Points, qso.Duplicate),
+			pointsToString(qso.Multis, qso.Duplicate),
 			boolToCheckmark(qso.Duplicate),
 		})
 	if err != nil {

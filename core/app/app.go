@@ -193,12 +193,12 @@ func (c *Controller) Startup() {
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {
-			if !c.QSOList.Valid() {
-				c.QSOList.ContestChanged(c.Settings.Contest())
-			}
 			if !c.Score.Valid() {
 				c.Score.StationChanged(c.Settings.Station())
 				c.Score.ContestChanged(c.Settings.Contest())
+			}
+			if !c.QSOList.Valid() {
+				c.QSOList.ContestChanged(c.Settings.Contest())
 			}
 			c.Refresh()
 		})
@@ -270,7 +270,7 @@ func (c *Controller) fillQSO(qso *core.QSO) {
 	if entity, found := c.dxccFinder.Find(qso.Callsign.String()); found {
 		qso.DXCC = entity
 	}
-	qso.Points, _ = c.Score.Value(qso.Callsign, qso.DXCC, qso.Band, qso.Mode, "") // qso.TheirXchange) // TODO use the new exchange fields
+	qso.Points, qso.Multis = c.Score.Value(qso.Callsign, qso.DXCC, qso.Band, qso.Mode, qso.TheirExchange)
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {

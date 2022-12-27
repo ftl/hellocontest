@@ -65,7 +65,7 @@ type DupeChecker interface {
 
 // Valuer provides the points and multis of a QSO based on the given information.
 type Valuer interface {
-	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, xchange string) (points, multis int)
+	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int)
 }
 
 // View defines the visual part of the call information window.
@@ -147,7 +147,7 @@ func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode,
 
 	dxccName := fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
-	points, multis := c.valuer.Value(parsedCall, entity, band, mode, xchange)
+	points, multis := c.valuer.Value(parsedCall, entity, band, mode, []string{}) // xchange) TODO predict the exchange
 	c.view.SetValue(points, multis, xchange)
 }
 
@@ -188,7 +188,7 @@ func (c *Callinfo) showSupercheck(s string) {
 
 		var points, multis int
 		if entityFound {
-			points, multis = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, predictedXchange)
+			points, multis = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, []string{}) // TODO predictedXchange) TODO predict the exchange
 		}
 
 		annotatedCallsign.Duplicate = duplicate

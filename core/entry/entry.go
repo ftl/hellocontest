@@ -513,9 +513,7 @@ func (c *Controller) Log() {
 			if err == nil {
 				qso.TheirExchange[i] = fmt.Sprintf("%03d", theirNumber)
 				qso.TheirNumber = core.QSONumber(theirNumber)
-				break
-			}
-			if len(field.Properties) == 1 {
+			} else if len(field.Properties) == 1 {
 				c.showErrorOnField(err, field.Field)
 				return
 			}
@@ -555,11 +553,13 @@ func (c *Controller) Log() {
 			}
 		case c.myNumberExchangeField.Field:
 			myNumber, err := strconv.Atoi(value)
-			if err != nil {
+			if err == nil {
+				qso.MyExchange[i] = fmt.Sprintf("%03d", myNumber)
+				qso.MyNumber = core.QSONumber(myNumber)
+			} else if len(field.Properties) == 1 {
 				c.showErrorOnField(err, field.Field)
 				return
 			}
-			qso.MyNumber = core.QSONumber(myNumber)
 		}
 	}
 

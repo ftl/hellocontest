@@ -120,15 +120,13 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
 		worked = len(qsos) > 0
 
-		if !worked {
-			entry, found := c.callHistory.FindEntry(call)
-			var historicExchange []string
-			if found {
-				historicExchange = entry.PredictedExchange
-			}
-
-			exchange = c.predictExchange(call, qsos, historicExchange)
+		entry, found := c.callHistory.FindEntry(call)
+		var historicExchange []string
+		if found {
+			historicExchange = entry.PredictedExchange
 		}
+
+		exchange = c.predictExchange(call, qsos, historicExchange)
 	}
 	c.predictedExchange = exchange
 

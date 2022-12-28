@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
@@ -167,22 +168,38 @@ func loadCallHistory(filename string) *scp.Database {
 	return result
 }
 
-func Export(w io.Writer, qsos ...core.QSO) error {
-	callsignToXchange := make(map[string]string)
-	// TODO use the new exchange fields
-	// for _, qso := range qsos {
-	// 	if qso.TheirXchange == "" {
-	// 		continue
-	// 	}
-	// 	callsignToXchange[qso.Callsign.String()] = strings.ToUpper(qso.TheirXchange)
-	// }
-	entries := make([]string, 0, len(callsignToXchange))
-	for callsign, xchange := range callsignToXchange {
-		entries = append(entries, fmt.Sprintf("%s,%s", callsign, xchange))
+func Export(w io.Writer, fieldNames []string, qsos ...core.QSO) error {
+	usedFieldNames := make([]string, 0, len(fieldNames))
+	for _, fieldName := range fieldNames {
+		if fieldName != "" {
+			usedFieldNames = append(usedFieldNames, fieldName)
+		}
+	}
+	if len(usedFieldNames) == 0 {
+		return fmt.Errorf("no field names configured for this contest")
+	}
+
+	callsignToExchange := make(map[string][]string)
+	for _, qso := range qsos {
+		callsignToExchange[qso.Callsign.String()] = qso.TheirExchange
+	}
+
+	entries := make([]string, 0, len(callsignToExchange))
+	for callsign, exchange := range callsignToExchange {
+		usedValues := make([]string, 0, len(fieldNames))
+		for i, fieldName := range fieldNames {
+			if fieldName == "" {
+				continue
+			}
+			usedValues = append(usedValues, exchange[i])
+		}
+
+		entry := fmt.Sprintf("%s,%s", callsign, strings.Join(usedValues, ","))
+		entries = append(entries, entry)
 	}
 	sort.Strings(entries)
 
-	_, err := fmt.Fprintln(w, "!!Order!!,Call,Exch1\n# Call history created with Hello Contest\n# Enter some additional information here")
+	_, err := fmt.Fprintf(w, "!!Order!!,Call,%s\n# Call history created with Hello Contest\n# Enter some additional information here\n", strings.Join(usedFieldNames, ","))
 	if err != nil {
 		return err
 	}

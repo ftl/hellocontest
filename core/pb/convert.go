@@ -30,19 +30,21 @@ func ToQSO(pbQSO QSO) (core.QSO, error) {
 	if err != nil {
 		return core.QSO{}, err
 	}
-	qso.MyReport, err = parse.RST(pbQSO.MyReport)
-	if err != nil {
-		return core.QSO{}, err
+	if pbQSO.MyReport != "" {
+		qso.MyReport, err = parse.RST(pbQSO.MyReport)
+		if err != nil {
+			qso.MyReport = ""
+		}
 	}
 	qso.MyNumber = core.QSONumber(pbQSO.MyNumber)
-	// qso.MyXchange = pbQSO.MyXchange
 	qso.MyExchange = pbQSO.MyExchange
-	qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
-	if err != nil {
-		return core.QSO{}, err
+	if pbQSO.TheirReport != "" {
+		qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
+		if err != nil {
+			return core.QSO{}, err
+		}
 	}
 	qso.TheirNumber = core.QSONumber(pbQSO.TheirNumber)
-	// qso.TheirXchange = pbQSO.TheirXchange
 	qso.TheirExchange = pbQSO.TheirExchange
 	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
 	return qso, nil
@@ -50,18 +52,16 @@ func ToQSO(pbQSO QSO) (core.QSO, error) {
 
 func QSOToPB(qso core.QSO) QSO {
 	return QSO{
-		Callsign:  qso.Callsign.String(),
-		Timestamp: qso.Time.Unix(),
-		Frequency: float64(qso.Frequency),
-		Band:      qso.Band.String(),
-		Mode:      qso.Mode.String(),
-		MyReport:  qso.MyReport.String(),
-		MyNumber:  int32(qso.MyNumber),
-		// MyXchange:    qso.MyXchange,
-		MyExchange:  qso.MyExchange,
-		TheirReport: qso.TheirReport.String(),
-		TheirNumber: int32(qso.TheirNumber),
-		// TheirXchange: qso.TheirXchange,
+		Callsign:      qso.Callsign.String(),
+		Timestamp:     qso.Time.Unix(),
+		Frequency:     float64(qso.Frequency),
+		Band:          qso.Band.String(),
+		Mode:          qso.Mode.String(),
+		MyReport:      qso.MyReport.String(),
+		MyNumber:      int32(qso.MyNumber),
+		MyExchange:    qso.MyExchange,
+		TheirReport:   qso.TheirReport.String(),
+		TheirNumber:   int32(qso.TheirNumber),
 		TheirExchange: qso.TheirExchange,
 		LogTimestamp:  qso.LogTimestamp.Unix(),
 	}

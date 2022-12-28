@@ -579,7 +579,7 @@ func (s *Settings) EnterContestCallHistoryFile(value string) {
 
 func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value string) {
 	i := field.ExchangeIndex() - 1
-	if i < 0 || i >= len(s.contest.TheirExchangeFields) {
+	if i < 0 || i >= len(s.contest.CallHistoryFieldNames) {
 		log.Printf("call history field name is out of range: %d", i)
 		return
 	}

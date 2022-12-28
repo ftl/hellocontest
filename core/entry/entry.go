@@ -317,12 +317,6 @@ func (c *Controller) setTheirExchangePrediction(i int, value string) {
 	c.view.SetTheirExchange(i+1, value)
 }
 
-func (c *Controller) selectQSO(qso core.QSO) {
-	c.ignoreQSOSelection = true
-	c.qsoList.SelectQSO(qso)
-	c.ignoreQSOSelection = false
-}
-
 func (c *Controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 	qsos := c.qsoList.FindDuplicateQSOs(callsign, c.selectedBand, c.selectedMode)
 	if len(qsos) == 0 {
@@ -724,6 +718,7 @@ func (c *Controller) updateViewExchangeFields() {
 }
 
 func (c *Controller) FilterExchange(values []string) []string {
+	result := make([]string, len(values))
 	for i := range values {
 		if i >= len(c.theirExchangeFields) {
 			break
@@ -731,16 +726,15 @@ func (c *Controller) FilterExchange(values []string) []string {
 		field := c.theirExchangeFields[i]
 		switch field.Field {
 		case c.theirReportExchangeField.Field:
-			log.Printf("filtering report field %d: %s", i, values[i])
-			values[i] = ""
+			continue
 		case c.theirNumberExchangeField.Field:
 			if len(field.Properties) == 1 {
-				log.Printf("filtering number field %d: %s", i, values[i])
-				values[i] = ""
+				continue
 			}
 		}
+		result[i] = values[i]
 	}
-	return values
+	return result
 }
 
 type nullView struct{}

@@ -531,7 +531,7 @@ func (c *Controller) ExportCallhistory() {
 	}
 	defer file.Close()
 
-	err = callhistory.Export(file, c.QSOList.All()...)
+	err = callhistory.Export(file, c.Settings.Contest().CallHistoryFieldNames, c.QSOList.All()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export call history to %s: %v", filename, err)
 		return

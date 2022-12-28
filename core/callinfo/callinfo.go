@@ -12,14 +12,15 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer) *Callinfo {
+func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter) *Callinfo {
 	result := &Callinfo{
-		view:        new(nullView),
-		entities:    entities,
-		callsigns:   callsigns,
-		callHistory: callHistory,
-		dupeChecker: dupeChecker,
-		valuer:      valuer,
+		view:           new(nullView),
+		entities:       entities,
+		callsigns:      callsigns,
+		callHistory:    callHistory,
+		dupeChecker:    dupeChecker,
+		valuer:         valuer,
+		exchangeFilter: exchangeFilter,
 	}
 
 	return result
@@ -28,17 +29,18 @@ func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryF
 type Callinfo struct {
 	view View
 
-	entities    DXCCFinder
-	callsigns   CallsignFinder
-	callHistory CallHistoryFinder
-	dupeChecker DupeChecker
-	valuer      Valuer
+	entities       DXCCFinder
+	callsigns      CallsignFinder
+	callHistory    CallHistoryFinder
+	dupeChecker    DupeChecker
+	valuer         Valuer
+	exchangeFilter ExchangeFilter
 
-	lastCallsign     string
-	lastBand         core.Band
-	lastMode         core.Mode
-	lastXchange      string
-	predictedXchange string
+	lastCallsign      string
+	lastBand          core.Band
+	lastMode          core.Mode
+	lastExchange      []string
+	predictedExchange []string
 }
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -68,6 +70,11 @@ type Valuer interface {
 	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int)
 }
 
+// ExchangeFilter clears the exchange values that cannot be predicted (RST, serial).
+type ExchangeFilter interface {
+	FilterExchange([]string) []string
+}
+
 // View defines the visual part of the call information window.
 type View interface {
 	Show()
@@ -89,22 +96,22 @@ func (c *Callinfo) SetView(view View) {
 
 func (c *Callinfo) Show() {
 	c.view.Show()
-	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastXchange)
+	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastExchange)
 }
 
 func (c *Callinfo) Hide() {
 	c.view.Hide()
 }
 
-func (c *Callinfo) PredictedXchange() string {
-	return c.predictedXchange
+func (c *Callinfo) PredictedExchange() []string {
+	return c.predictedExchange
 }
 
-func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange string) {
+func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchange []string) {
 	c.lastCallsign = call
 	c.lastBand = band
 	c.lastMode = mode
-	c.lastXchange = xchange
+	c.lastExchange = exchange
 	worked := false
 	duplicate := false
 	cs, err := callsign.Parse(call)
@@ -112,24 +119,25 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, xchange
 		var qsos []core.QSO
 		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
 		worked = len(qsos) > 0
-		if xchange == "" {
-			// TODO handle multiple predicted values
-			// entry, found := c.callHistory.FindEntry(call)
-			// var historicExchange []string
-			// if found {
-			// 	historicExchange = entry.PredictedXchange
-			// }
-			// xchange = c.predictXchange(call, qsos, historicExchange)
+
+		if !worked {
+			entry, found := c.callHistory.FindEntry(call)
+			var historicExchange []string
+			if found {
+				historicExchange = entry.PredictedExchange
+			}
+
+			exchange = c.predictExchange(call, qsos, historicExchange)
 		}
 	}
-	c.predictedXchange = xchange
+	c.predictedExchange = exchange
 
 	c.view.SetCallsign(call, worked, duplicate)
-	c.showDXCCAndValue(call, band, mode, xchange)
+	c.showDXCCAndValue(call, band, mode, exchange)
 	c.showSupercheck(call)
 }
 
-func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode, xchange string) {
+func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode, exchange []string) {
 	if c.entities == nil {
 		c.view.SetDXCC("", "", 0, 0, false)
 		c.view.SetValue(0, 0, "")
@@ -148,8 +156,12 @@ func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode,
 
 	dxccName := fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
-	points, multis := c.valuer.Value(parsedCall, entity, band, mode, []string{}) // xchange) TODO predict the exchange
-	c.view.SetValue(points, multis, xchange)
+	points, multis := c.valuer.Value(parsedCall, entity, band, mode, exchange)
+
+	exchange = c.exchangeFilter.FilterExchange(exchange)
+	exchangeText := strings.Join(exchange, " ")
+
+	c.view.SetValue(points, multis, exchangeText)
 }
 
 func (c *Callinfo) showSupercheck(s string) {
@@ -159,7 +171,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		log.Printf("Callsign search for failed for %s: %v", s, err)
 		return
 	}
-	historicMatches, err := c.callHistory.Find(s)
+	historicMatches, _ := c.callHistory.Find(s)
 
 	annotatedCallsigns := make(map[callsign.Callsign]core.AnnotatedCallsign, len(scpMatches)+len(historicMatches))
 	for _, match := range scpMatches {
@@ -183,13 +195,13 @@ func (c *Callinfo) showSupercheck(s string) {
 		exactMatch := (matchString == normalizedInput)
 
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
-		predictedExchange := c.predictXchange(matchString, qsos, annotatedCallsign.PredictedExchange)
+		predictedExchange := c.predictExchange(matchString, qsos, annotatedCallsign.PredictedExchange)
 
 		entity, entityFound := c.entities.Find(matchString)
 
 		var points, multis int
 		if entityFound {
-			points, multis = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, []string{}) // TODO predictedXchange) TODO predict the exchange
+			points, multis = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, predictedExchange)
 		}
 
 		annotatedCallsign.Duplicate = duplicate
@@ -209,39 +221,26 @@ func (c *Callinfo) showSupercheck(s string) {
 	c.view.SetSupercheck(result)
 }
 
-func (c *Callinfo) toAnnotatedCallsign(match core.MatchingAssembly) (core.AnnotatedCallsign, error) {
-	matchString := match.String()
-	cs, err := callsign.Parse(matchString)
-	if err != nil {
-		return core.AnnotatedCallsign{}, fmt.Errorf("Supercheck match %s is not a valid callsign: %v", matchString, err)
-	}
-
-	return core.AnnotatedCallsign{
-		Callsign: cs,
-		Assembly: match,
-	}, nil
-}
-
-func (c *Callinfo) predictXchange(call string, qsos []core.QSO, historicExchange []string) []string {
-	result := historicExchange
-
+func (c *Callinfo) predictExchange(call string, qsos []core.QSO, historicExchange []string) []string {
 	if len(qsos) == 0 {
-		return result
+		return historicExchange
 	}
 
-	// TODO use the new exchange fields
-	// var lastXchange string
-	// for _, qso := range qsos {
-	// 	if lastXchange == "" {
-	// 		lastXchange = qso.TheirXchange
-	// 	} else if lastXchange != qso.TheirXchange {
-	// 		return ""
-	// 	}
-	// }
+	result := make([]string, len(historicExchange))
+	for i := range result {
+		for _, qso := range qsos {
+			if result[i] == "" {
+				result[i] = qso.TheirExchange[i]
+			} else if result[i] != qso.TheirExchange[i] {
+				result[i] = ""
+				break
+			}
+		}
+		if result[i] == "" {
+			result[i] = historicExchange[i]
+		}
+	}
 
-	// if lastXchange != "" {
-	// 	return lastXchange
-	// }
 	return result
 }
 

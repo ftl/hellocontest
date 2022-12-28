@@ -69,8 +69,8 @@ type Keyer interface {
 
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
-	ShowInfo(call string, band core.Band, mode core.Mode, xchange string)
-	PredictedXchange() string
+	ShowInfo(call string, band core.Band, mode core.Mode, exchange []string)
+	PredictedExchange() []string
 }
 
 // VFO functionality used for QSO entry.
@@ -225,10 +225,21 @@ func (c *Controller) leaveCallsignField() {
 		fmt.Println(err)
 		return
 	}
-	// TODO fill new exchange fields with predicted values
-	// if c.enableTheirXchange && c.input.theirXchange == "" {
-	// 	c.setTheirXchangePrediction(c.callinfo.PredictedXchange())
-	// }
+
+	predictedExchange := c.callinfo.PredictedExchange()
+	for i, field := range c.theirExchangeFields {
+		switch field.Field {
+		case c.theirReportExchangeField.Field:
+			continue
+		case c.theirNumberExchangeField.Field:
+			if len(c.theirNumberExchangeField.Properties) == 1 {
+				continue
+			}
+		}
+		if c.input.theirExchange[i] == "" && predictedExchange[i] != "" {
+			c.setTheirExchangePrediction(i, predictedExchange[i])
+		}
+	}
 
 	_, found := c.isDuplicate(callsign)
 	if !found {
@@ -298,10 +309,12 @@ func (c *Controller) showInput() {
 	c.view.SetMode(c.input.mode)
 }
 
-func (c *Controller) setTheirXchangePrediction(predictedXchange string) {
-	// TODO: fill the new exchange fields
-	// c.input.theirXchange = predictedXchange
-	// c.view.SetTheirXchange(c.input.theirXchange)
+func (c *Controller) setTheirExchangePrediction(i int, value string) {
+	if value == "" {
+		return
+	}
+	c.input.theirExchange[i] = value
+	c.view.SetTheirExchange(i+1, value)
 }
 
 func (c *Controller) selectQSO(qso core.QSO) {
@@ -341,7 +354,7 @@ func (c *Controller) Enter(text string) {
 		c.input.myExchange[i] = text
 	case c.activeField.IsTheirExchange():
 		c.input.theirExchange[i] = text
-		// TODO: c.enterTheirXchange -> update callinfo
+		c.enterTheirExchange(c.activeField)
 	}
 }
 
@@ -414,7 +427,7 @@ func (c *Controller) SendQuestion() {
 
 func (c *Controller) enterCallsign(s string) {
 	if c.callinfo != nil {
-		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, "") // c.input.theirXchange) // TODO use new exchange fields
+		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
 	}
 
 	callsign, err := callsign.Parse(s)
@@ -431,13 +444,12 @@ func (c *Controller) enterCallsign(s string) {
 	c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()), core.CallsignField)
 }
 
-func (c *Controller) enterTheirXchange(s string) {
-	// TODO: also handle input in new exchange fields
+func (c *Controller) enterTheirExchange(field core.EntryField) {
 	if c.callinfo == nil {
 		return
 	}
-	c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, "") // c.input.theirXchange) // TODO use new exchange fields
-	// c.clearErrorOnField(core.TheirXchangeField)
+	c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
+	c.clearErrorOnField(field)
 }
 
 func (c *Controller) QSOSelected(qso core.QSO) {
@@ -452,7 +464,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.showQSO(qso)
 	c.view.SetActiveField(core.CallsignField)
 	c.view.SetEditingMarker(true)
-	c.callinfo.ShowInfo(qso.Callsign.String(), qso.Band, qso.Mode, "") // qso.TheirXchange) // TODO use new exchange fields
+	c.callinfo.ShowInfo(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
 }
 
 func (c *Controller) Log() {
@@ -491,12 +503,15 @@ func (c *Controller) Log() {
 
 	// handle their exchange
 	qso.TheirExchange = make([]string, len(c.theirExchangeFields))
+	predictedExchange := c.callinfo.PredictedExchange()
+
 	for i, field := range c.theirExchangeFields {
 		value := c.input.theirExchange[i]
 		if value == "" {
 			c.showErrorOnField(fmt.Errorf("%s is missing", field.Short), field.Field) // TODO use field.Name
 			return
 		}
+
 		// TODO parse the value using the conval validators and show an error on the field
 
 		qso.TheirExchange[i] = value
@@ -518,18 +533,11 @@ func (c *Controller) Log() {
 				return
 			}
 		default:
-			// TODO check the predicted value
-			// qso.TheirXchange = c.input.theirXchange
-			// if qso.TheirXchange == "" && c.requireTheirXchange {
-			// 	predictedXchange := c.callinfo.PredictedXchange()
-			// 	if predictedXchange != "" {
-			// 		c.setTheirXchangePrediction(predictedXchange)
-			// 		c.showErrorOnField(fmt.Errorf("check their exhange"), core.TheirXchangeField)
-			// 		return
-			// 	}
-			// 	c.showErrorOnField(errors.New("their exchange is missing"), core.TheirXchangeField)
-			// 	return
-			// }
+			if qso.TheirExchange[i] == "" && predictedExchange[i] != "" {
+				c.setTheirExchangePrediction(i, predictedExchange[i])
+				c.showErrorOnField(fmt.Errorf("check their exchange"), field.Field)
+				return
+			}
 		}
 	}
 
@@ -542,6 +550,7 @@ func (c *Controller) Log() {
 	for i, field := range c.myExchangeFields {
 		value := c.input.myExchange[i]
 		qso.MyExchange[i] = value
+
 		// TODO parse the value using the conval validators and show an error on the field
 
 		switch field.Field {
@@ -629,7 +638,7 @@ func (c *Controller) Clear() {
 	c.view.ClearMessage()
 	c.selectLastQSO()
 	if c.callinfo != nil {
-		c.callinfo.ShowInfo("", core.NoBand, core.NoMode, "")
+		c.callinfo.ShowInfo("", core.NoBand, core.NoMode, []string{})
 	}
 }
 
@@ -714,6 +723,26 @@ func (c *Controller) updateViewExchangeFields() {
 	c.view.SetTheirExchangeFields(c.theirExchangeFields)
 }
 
+func (c *Controller) FilterExchange(values []string) []string {
+	for i := range values {
+		if i >= len(c.theirExchangeFields) {
+			break
+		}
+		field := c.theirExchangeFields[i]
+		switch field.Field {
+		case c.theirReportExchangeField.Field:
+			log.Printf("filtering report field %d: %s", i, values[i])
+			values[i] = ""
+		case c.theirNumberExchangeField.Field:
+			if len(field.Properties) == 1 {
+				log.Printf("filtering number field %d: %s", i, values[i])
+				values[i] = ""
+			}
+		}
+	}
+	return values
+}
+
 type nullView struct{}
 
 func (n *nullView) SetUTC(string)                               {}
@@ -749,5 +778,5 @@ func (n *nullLogbook) Log(core.QSO)               {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, string) {}
-func (n *nullCallinfo) PredictedXchange() string                      { return "" }
+func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, []string) {}
+func (n *nullCallinfo) PredictedExchange() []string                     { return []string{} }

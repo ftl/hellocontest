@@ -299,6 +299,7 @@ type Station struct {
 
 type Contest struct {
 	Definition             *conval.Definition
+	Name                   string
 	ExchangeValues         []string
 	GenerateSerialExchange bool
 
@@ -311,26 +312,6 @@ type Contest struct {
 
 	CallHistoryFilename   string
 	CallHistoryFieldNames []string
-
-	// deprecated from here
-	Name                string
-	EnterTheirNumber    bool
-	EnterTheirXchange   bool
-	RequireTheirXchange bool
-	AllowMultiBand      bool
-	AllowMultiMode      bool
-
-	SameCountryPoints       int
-	SameContinentPoints     int
-	SpecificCountryPoints   int
-	SpecificCountryPrefixes []string
-	OtherPoints             int
-
-	Multis              Multis
-	XchangeMultiPattern string
-	CountPerBand        bool
-
-	CabrilloQSOTemplate string
 }
 
 func (c *Contest) UpdateExchangeFields() {

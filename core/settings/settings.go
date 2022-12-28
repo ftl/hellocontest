@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -65,31 +63,18 @@ type View interface {
 	SetStationCallsign(string)
 	SetStationOperator(string)
 	SetStationLocator(string)
+
 	SetContestIdentifiers(ids []string, texts []string)
 	SetContestPagesAvailable(bool, bool)
 	SelectContestIdentifier(string)
+
 	SetContestExchangeFields([]core.ExchangeField)
 	SetContestExchangeValue(index int, value string)
 	SetContestGenerateSerialExchange(active bool, sensitive bool)
 
 	SetContestName(string)
-	SetContestEnterTheirNumber(bool)
-	SetContestEnterTheirXchange(bool)
-	SetContestRequireTheirXchange(bool)
-	SetContestAllowMultiBand(bool)
-	SetContestAllowMultiMode(bool)
-	SetContestSameCountryPoints(string)
-	SetContestSameContinentPoints(string)
-	SetContestSpecificCountryPoints(string)
-	SetContestSpecificCountryPrefixes(string)
-	SetContestOtherPoints(string)
-	SetContestMultis(dxcc, wpx, xchange bool)
-	SetContestXchangeMultiPattern(string)
-	SetContestXchangeMultiPatternResult(string)
-	SetContestCountPerBand(bool)
 	SetContestCallHistoryFile(string)
 	SetContestCallHistoryFieldName(i int, value string)
-	SetContestCabrilloQSOTemplate(string)
 }
 
 func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, station core.Station, contest core.Contest) *Settings {
@@ -112,7 +97,6 @@ type Settings struct {
 	view                     View
 	defaultsOpener           DefaultsOpener
 	browserOpener            BrowserOpener
-	xchangeMultiTestValue    string
 	serialExchangeFieldIndex int
 
 	listeners []interface{}
@@ -256,24 +240,8 @@ func (s *Settings) showSettings() {
 	s.updateContestPages()
 	s.updateExchangeFields()
 
-	// contest (old - will be removed)
 	s.view.SetContestName(s.contest.Name)
-	s.view.SetContestEnterTheirNumber(s.contest.EnterTheirNumber)
-	s.view.SetContestEnterTheirXchange(s.contest.EnterTheirXchange)
-	s.view.SetContestRequireTheirXchange(s.contest.RequireTheirXchange)
-	s.view.SetContestAllowMultiBand(s.contest.AllowMultiBand)
-	s.view.SetContestAllowMultiMode(s.contest.AllowMultiMode)
-	s.view.SetContestSameCountryPoints(strconv.Itoa(s.contest.SameCountryPoints))
-	s.view.SetContestSameContinentPoints(strconv.Itoa(s.contest.SameContinentPoints))
-	s.view.SetContestSpecificCountryPoints(strconv.Itoa(s.contest.SpecificCountryPoints))
-	s.view.SetContestSpecificCountryPrefixes(strings.Join(s.contest.SpecificCountryPrefixes, ","))
-	s.view.SetContestOtherPoints(strconv.Itoa(s.contest.OtherPoints))
-	s.view.SetContestMultis(s.contest.Multis.DXCC, s.contest.Multis.WPX, s.contest.Multis.Xchange)
-	s.view.SetContestXchangeMultiPattern(s.contest.XchangeMultiPattern)
-	s.view.SetContestCountPerBand(s.contest.CountPerBand)
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
-	s.view.SetContestCabrilloQSOTemplate(s.contest.CabrilloQSOTemplate)
-	s.updateXchangeMultiPatternResult()
 }
 
 func (s *Settings) Save() {
@@ -471,108 +439,6 @@ func (s *Settings) EnterContestName(value string) {
 	s.contest.Name = value
 }
 
-func (s *Settings) EnterContestEnterTheirNumber(value bool) {
-	s.contest.EnterTheirNumber = value
-}
-
-func (s *Settings) EnterContestEnterTheirXchange(value bool) {
-	s.contest.EnterTheirXchange = value
-}
-
-func (s *Settings) EnterContestRequireTheirXchange(value bool) {
-	s.contest.RequireTheirXchange = value
-}
-
-func (s *Settings) EnterContestAllowMultiBand(value bool) {
-	s.contest.AllowMultiBand = value
-}
-
-func (s *Settings) EnterContestAllowMultiMode(value bool) {
-	s.contest.AllowMultiMode = value
-}
-
-func (s *Settings) EnterContestSameCountryPoints(value string) {
-	points, err := strconv.Atoi(value)
-	if err != nil {
-		s.view.ShowMessage(fmt.Sprintf("%v", err))
-		return
-	}
-	s.view.HideMessage()
-	s.contest.SameCountryPoints = points
-}
-
-func (s *Settings) EnterContestSameContinentPoints(value string) {
-	points, err := strconv.Atoi(value)
-	if err != nil {
-		s.view.ShowMessage(fmt.Sprintf("%v", err))
-		return
-	}
-	s.view.HideMessage()
-	s.contest.SameContinentPoints = points
-}
-
-func (s *Settings) EnterContestSpecificCountryPoints(value string) {
-	points, err := strconv.Atoi(value)
-	if err != nil {
-		s.view.ShowMessage(fmt.Sprintf("%v", err))
-		return
-	}
-	s.view.HideMessage()
-	s.contest.SpecificCountryPoints = points
-}
-
-func (s *Settings) EnterContestSpecificCountryPrefixes(value string) {
-	rawPrefixes := strings.Split(value, ",")
-	prefixes := make([]string, 0, len(rawPrefixes))
-	for _, rawPrefix := range rawPrefixes {
-		prefix := strings.TrimSpace(strings.ToUpper(rawPrefix))
-		if prefix != "" {
-			prefixes = append(prefixes, prefix)
-		}
-	}
-	s.contest.SpecificCountryPrefixes = prefixes
-}
-
-func (s *Settings) EnterContestOtherPoints(value string) {
-	points, err := strconv.Atoi(value)
-	if err != nil {
-		s.view.ShowMessage(fmt.Sprintf("%v", err))
-		return
-	}
-	s.view.HideMessage()
-	s.contest.OtherPoints = points
-}
-
-func (s *Settings) EnterContestMultis(dxcc, wpx, xchange bool) {
-	s.contest.Multis.DXCC = dxcc
-	s.contest.Multis.WPX = wpx
-	s.contest.Multis.Xchange = xchange
-}
-
-func (s *Settings) EnterContestXchangeMultiPattern(value string) {
-	_, err := regexp.Compile(value)
-	if err != nil {
-		s.view.ShowMessage(fmt.Sprintf("%v", err))
-		return
-	}
-	s.view.HideMessage()
-	s.contest.XchangeMultiPattern = value
-	s.updateXchangeMultiPatternResult()
-}
-
-func (s *Settings) EnterContestTestXchangeValue(value string) {
-	s.xchangeMultiTestValue = value
-	s.updateXchangeMultiPatternResult()
-}
-
-func (s *Settings) updateXchangeMultiPatternResult() {
-	// TODO remove
-}
-
-func (s *Settings) EnterContestCountPerBand(value bool) {
-	s.contest.CountPerBand = value
-}
-
 func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
 }
@@ -585,16 +451,6 @@ func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value
 	}
 
 	s.contest.CallHistoryFieldNames[i] = value
-}
-
-func (s *Settings) EnterContestCabrilloQSOTemplate(value string) {
-	_, err := template.New("").Parse(value)
-	if err != nil {
-		s.view.ShowMessage(fmt.Sprintf("%v", err))
-		return
-	}
-	s.view.HideMessage()
-	s.contest.CabrilloQSOTemplate = value
 }
 
 type nullWriter struct{}

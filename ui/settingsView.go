@@ -16,58 +16,28 @@ type SettingsController interface {
 	EnterStationCallsign(string)
 	EnterStationOperator(string)
 	EnterStationLocator(string)
+
 	SelectContestIdentifier(string)
 	OpenContestRulesPage()
 	OpenContestUploadPage()
+
 	EnterContestExchangeValue(core.EntryField, string)
 	EnterContestGenerateSerialExchange(bool)
 
 	EnterContestName(string)
-	EnterContestEnterTheirNumber(bool)
-	EnterContestEnterTheirXchange(bool)
-	EnterContestRequireTheirXchange(bool)
-	EnterContestAllowMultiBand(bool)
-	EnterContestAllowMultiMode(bool)
-	EnterContestSameCountryPoints(string)
-	EnterContestSameContinentPoints(string)
-	EnterContestSpecificCountryPoints(string)
-	EnterContestSpecificCountryPrefixes(string)
-	EnterContestOtherPoints(string)
-	EnterContestMultis(dxcc, wpx, xchange bool)
-	EnterContestXchangeMultiPattern(string)
-	EnterContestTestXchangeValue(string)
-	EnterContestCountPerBand(bool)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
-	EnterContestCabrilloQSOTemplate(string)
 }
 
 type fieldID string
 
 const (
-	stationCallsign                fieldID = "stationCallsign"
-	stationOperator                fieldID = "stationOperator"
-	stationLocator                 fieldID = "stationLocator"
-	contestIdentifier              fieldID = "contestIdentifier"
-	contestName                    fieldID = "contestName"
-	contestEnterTheirNumber        fieldID = "contestEnterTheirNumber"
-	contestEnterTheirXchange       fieldID = "contestEnterTheirXchange"
-	contestRequireTheirXchange     fieldID = "contestRequireTheirXchange"
-	contestAllowMultiBand          fieldID = "contestAllowMultiBand"
-	contestAllowMultiMode          fieldID = "contestAllowMultiMode"
-	contestSameCountryPoints       fieldID = "contestSameCountryPoints"
-	contestSameContinentPoints     fieldID = "contestSameContinentPoints"
-	contestSpecificCountryPoints   fieldID = "contestSpecificCountryPoints"
-	contestSpecificCountryPrefixes fieldID = "contestSpecificCountryPrefixes"
-	contestOtherPoints             fieldID = "contestOtherPoints"
-	contestMultiDXCC               fieldID = "contestMultiDXCC"
-	contestMultiWPX                fieldID = "contestMultiWPX"
-	contestMultiXchange            fieldID = "contestMultiXchange"
-	contestXchangeMultiPattern     fieldID = "contestXchangeMultiPattern"
-	contestTestXchangeMultiPattern fieldID = "contestTestXchangeMultiPattern"
-	contestCountPerBand            fieldID = "contestCountPerBand"
-	contestCallHistoryFile         fieldID = "contestCallHistoryFile"
-	contestCabrilloQSOTemplate     fieldID = "contestCabrilloQSOTemplate"
+	stationCallsign        fieldID = "stationCallsign"
+	stationOperator        fieldID = "stationOperator"
+	stationLocator         fieldID = "stationLocator"
+	contestIdentifier      fieldID = "contestIdentifier"
+	contestName            fieldID = "contestName"
+	contestCallHistoryFile fieldID = "contestCallHistoryFile"
 )
 
 type settingsView struct {
@@ -83,9 +53,8 @@ type settingsView struct {
 	reset                 *gtk.Button
 	close                 *gtk.Button
 
-	xchangeMultiValue *gtk.Label
+	fields map[fieldID]interface{}
 
-	fields                       map[fieldID]interface{}
 	exchangeFieldsParent         *gtk.Grid
 	exchangeFieldCount           int
 	generateSerialExchangeButton *gtk.CheckButton
@@ -100,7 +69,6 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.fields = make(map[fieldID]interface{})
 
 	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
-	result.xchangeMultiValue = getUI(builder, "xchangeMultiValueLabel").(*gtk.Label)
 	result.openContestRulesPage = getUI(builder, "openContestRulesPageButton").(*gtk.Button)
 	result.openContestRulesPage.Connect("clicked", result.onOpenContestRulesPagePressed)
 	result.openContestUploadPage = getUI(builder, "openContestUploadPageButton").(*gtk.Button)
@@ -120,24 +88,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, stationLocator)
 	result.addCombo(builder, contestIdentifier)
 	result.addEntry(builder, contestName)
-	result.addCheckButton(builder, contestEnterTheirNumber)
-	result.addCheckButton(builder, contestEnterTheirXchange)
-	result.addCheckButton(builder, contestRequireTheirXchange)
-	result.addCheckButton(builder, contestAllowMultiBand)
-	result.addCheckButton(builder, contestAllowMultiMode)
-	result.addEntry(builder, contestSameCountryPoints)
-	result.addEntry(builder, contestSameContinentPoints)
-	result.addEntry(builder, contestSpecificCountryPoints)
-	result.addEntry(builder, contestSpecificCountryPrefixes)
-	result.addEntry(builder, contestOtherPoints)
-	result.addCheckButton(builder, contestMultiDXCC)
-	result.addCheckButton(builder, contestMultiWPX)
-	result.addCheckButton(builder, contestMultiXchange)
-	result.addEntry(builder, contestXchangeMultiPattern)
-	result.addEntry(builder, contestTestXchangeMultiPattern)
-	result.addCheckButton(builder, contestCountPerBand)
 	result.addFileChooser(builder, contestCallHistoryFile)
-	result.addEntry(builder, contestCabrilloQSOTemplate)
 
 	result.parent.Connect("destroy", result.onDestroy)
 
@@ -231,50 +182,13 @@ func (v *settingsView) onFieldChanged(w any) bool {
 		v.controller.SelectContestIdentifier(value.(string))
 	case contestName:
 		v.controller.EnterContestName(value.(string))
-	case contestEnterTheirNumber:
-		v.controller.EnterContestEnterTheirNumber(value.(bool))
-	case contestEnterTheirXchange:
-		v.controller.EnterContestEnterTheirXchange(value.(bool))
-	case contestRequireTheirXchange:
-		v.controller.EnterContestRequireTheirXchange(value.(bool))
-	case contestAllowMultiBand:
-		v.controller.EnterContestAllowMultiBand(value.(bool))
-	case contestAllowMultiMode:
-		v.controller.EnterContestAllowMultiMode(value.(bool))
-	case contestSameCountryPoints:
-		v.controller.EnterContestSameCountryPoints(value.(string))
-	case contestSameContinentPoints:
-		v.controller.EnterContestSameContinentPoints(value.(string))
-	case contestSpecificCountryPoints:
-		v.controller.EnterContestSpecificCountryPoints(value.(string))
-	case contestSpecificCountryPrefixes:
-		v.controller.EnterContestSpecificCountryPrefixes(value.(string))
-	case contestOtherPoints:
-		v.controller.EnterContestOtherPoints(value.(string))
-	case contestMultiDXCC, contestMultiWPX, contestMultiXchange:
-		v.controller.EnterContestMultis(v.multis())
-	case contestXchangeMultiPattern:
-		v.controller.EnterContestXchangeMultiPattern(value.(string))
-	case contestTestXchangeMultiPattern:
-		v.controller.EnterContestTestXchangeValue(value.(string))
-	case contestCountPerBand:
-		v.controller.EnterContestCountPerBand(value.(bool))
 	case contestCallHistoryFile:
 		v.controller.EnterContestCallHistoryFile(value.(string))
-	case contestCabrilloQSOTemplate:
-		v.controller.EnterContestCabrilloQSOTemplate(value.(string))
 	default:
 		log.Printf("enter unknown field %s: %v", field, value)
 	}
 
 	return false
-}
-
-func (v *settingsView) multis() (dxcc, wpx, xchange bool) {
-	dxcc = v.fields[contestMultiDXCC].(*gtk.CheckButton).GetActive()
-	wpx = v.fields[contestMultiWPX].(*gtk.CheckButton).GetActive()
-	xchange = v.fields[contestMultiXchange].(*gtk.CheckButton).GetActive()
-	return
 }
 
 func (v *settingsView) onOpenContestRulesPagePressed(_ *gtk.Button) {
@@ -525,68 +439,6 @@ func (v *settingsView) SetContestName(value string) {
 	v.setEntryField(contestName, value)
 }
 
-func (v *settingsView) SetContestEnterTheirNumber(value bool) {
-	v.setCheckButtonField(contestEnterTheirNumber, value)
-}
-
-func (v *settingsView) SetContestEnterTheirXchange(value bool) {
-	v.setCheckButtonField(contestEnterTheirXchange, value)
-}
-
-func (v *settingsView) SetContestRequireTheirXchange(value bool) {
-	v.setCheckButtonField(contestRequireTheirXchange, value)
-}
-
-func (v *settingsView) SetContestAllowMultiBand(value bool) {
-	v.setCheckButtonField(contestAllowMultiBand, value)
-}
-
-func (v *settingsView) SetContestAllowMultiMode(value bool) {
-	v.setCheckButtonField(contestAllowMultiMode, value)
-}
-
-func (v *settingsView) SetContestSameCountryPoints(value string) {
-	v.setEntryField(contestSameCountryPoints, value)
-}
-
-func (v *settingsView) SetContestSameContinentPoints(value string) {
-	v.setEntryField(contestSameContinentPoints, value)
-}
-
-func (v *settingsView) SetContestSpecificCountryPoints(value string) {
-	v.setEntryField(contestSpecificCountryPoints, value)
-}
-
-func (v *settingsView) SetContestSpecificCountryPrefixes(value string) {
-	v.setEntryField(contestSpecificCountryPrefixes, value)
-}
-
-func (v *settingsView) SetContestOtherPoints(value string) {
-	v.setEntryField(contestOtherPoints, value)
-}
-
-func (v *settingsView) SetContestMultis(dxcc, wpx, xchange bool) {
-	v.setCheckButtonField(contestMultiDXCC, dxcc)
-	v.setCheckButtonField(contestMultiWPX, wpx)
-	v.setCheckButtonField(contestMultiXchange, xchange)
-}
-
-func (v *settingsView) SetContestXchangeMultiPattern(value string) {
-	v.setEntryField(contestXchangeMultiPattern, value)
-}
-
-func (v *settingsView) SetContestXchangeMultiPatternResult(value string) {
-	v.xchangeMultiValue.SetText(value)
-}
-
-func (v *settingsView) SetContestCountPerBand(value bool) {
-	v.setCheckButtonField(contestCountPerBand, value)
-}
-
 func (v *settingsView) SetContestCallHistoryFile(value string) {
 	v.setFileChooserField(contestCallHistoryFile, value)
-}
-
-func (v *settingsView) SetContestCabrilloQSOTemplate(value string) {
-	v.setEntryField(contestCabrilloQSOTemplate, value)
 }

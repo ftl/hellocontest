@@ -99,30 +99,10 @@ func StationToPB(station core.Station) Station {
 func ToContest(pbContest Contest) (core.Contest, error) {
 	var contest core.Contest
 
-	// old contest settings - will be removed
 	contest.Name = pbContest.Name
-	contest.EnterTheirNumber = pbContest.EnterTheirNumber
-	contest.EnterTheirXchange = pbContest.EnterTheirXchange
-	contest.RequireTheirXchange = pbContest.RequireTheirXchange
-	contest.AllowMultiBand = pbContest.AllowMultiBand
-	contest.AllowMultiMode = pbContest.AllowMultiMode
-	contest.SameCountryPoints = int(pbContest.SameCountryPoints)
-	contest.SameContinentPoints = int(pbContest.SameContinentPoints)
-	contest.SpecificCountryPoints = int(pbContest.SpecificCountryPoints)
-	contest.SpecificCountryPrefixes = pbContest.SpecificCountryPrefixes
-	contest.OtherPoints = int(pbContest.OtherPoints)
-	contest.Multis = core.Multis{
-		DXCC:    pbContest.Multis.Dxcc,
-		WPX:     pbContest.Multis.Wpx,
-		Xchange: pbContest.Multis.Xchange,
-	}
-	contest.XchangeMultiPattern = pbContest.XchangeMultiPattern
-	contest.CountPerBand = pbContest.CountPerBand
-	contest.CabrilloQSOTemplate = pbContest.CabrilloQsoTemplate
 	contest.CallHistoryFilename = pbContest.CallHistoryFilename
 	contest.CallHistoryFieldNames = pbContest.CallHistoryFieldNames
 
-	// new contest settings
 	contest.ExchangeValues = pbContest.ExchangeValues
 	contest.GenerateSerialExchange = pbContest.GenerateSerialExchange
 
@@ -157,25 +137,7 @@ func ContestToPB(contest core.Contest) Contest {
 		ExchangeValues:         contest.ExchangeValues,
 		GenerateSerialExchange: contest.GenerateSerialExchange,
 
-		Name:                    contest.Name,
-		EnterTheirNumber:        contest.EnterTheirNumber,
-		EnterTheirXchange:       contest.EnterTheirXchange,
-		RequireTheirXchange:     contest.RequireTheirXchange,
-		AllowMultiBand:          contest.AllowMultiBand,
-		AllowMultiMode:          contest.AllowMultiMode,
-		SameCountryPoints:       int32(contest.SameCountryPoints),
-		SameContinentPoints:     int32(contest.SameContinentPoints),
-		SpecificCountryPoints:   int32(contest.SpecificCountryPoints),
-		SpecificCountryPrefixes: contest.SpecificCountryPrefixes,
-		OtherPoints:             int32(contest.OtherPoints),
-		Multis: &Multis{
-			Dxcc:    contest.Multis.DXCC,
-			Wpx:     contest.Multis.WPX,
-			Xchange: contest.Multis.Xchange,
-		},
-		XchangeMultiPattern:   contest.XchangeMultiPattern,
-		CountPerBand:          contest.CountPerBand,
-		CabrilloQsoTemplate:   contest.CabrilloQSOTemplate,
+		Name:                  contest.Name,
 		CallHistoryFilename:   contest.CallHistoryFilename,
 		CallHistoryFieldNames: contest.CallHistoryFieldNames,
 	}

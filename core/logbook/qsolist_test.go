@@ -352,20 +352,14 @@ func toQSO(number int) core.QSO {
 	return core.QSO{Callsign: callsign.MustParse(fmt.Sprintf("DL%dNN", number)), MyNumber: core.QSONumber(number)}
 }
 
-type testSettings struct {
-	allowMultiBand bool
-	allowMultiMode bool
-}
+type testSettings struct{}
 
 func (c *testSettings) Station() core.Station {
 	return core.Station{}
 }
 
 func (c *testSettings) Contest() core.Contest {
-	return core.Contest{
-		AllowMultiBand: c.allowMultiBand,
-		AllowMultiMode: c.allowMultiMode,
-	}
+	return core.Contest{}
 }
 
 type testScorer struct {

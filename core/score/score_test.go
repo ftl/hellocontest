@@ -64,15 +64,7 @@ func TestAdd(t *testing.T) {
 }
 
 type testSettings struct {
-	stationCallsign         string
-	countPerBand            bool
-	sameCountryPoints       int
-	sameContinentPoints     int
-	otherPoints             int
-	specificCountryPoints   int
-	specificCountryPrefixes []string
-	multis                  core.Multis
-	xchangeMultiPattern     string
+	stationCallsign string
 }
 
 func (s *testSettings) Station() core.Station {
@@ -82,16 +74,7 @@ func (s *testSettings) Station() core.Station {
 }
 
 func (s *testSettings) Contest() core.Contest {
-	return core.Contest{
-		SameCountryPoints:       s.sameCountryPoints,
-		SameContinentPoints:     s.sameContinentPoints,
-		SpecificCountryPoints:   s.specificCountryPoints,
-		SpecificCountryPrefixes: s.specificCountryPrefixes,
-		OtherPoints:             s.otherPoints,
-		Multis:                  s.multis,
-		XchangeMultiPattern:     s.xchangeMultiPattern,
-		CountPerBand:            s.countPerBand,
-	}
+	return core.Contest{}
 }
 
 type testEntities struct {

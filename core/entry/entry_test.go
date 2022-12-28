@@ -609,7 +609,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
-	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true}
+	settings := &testSettings{myCall: "DL0ABC"}
 	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
@@ -625,7 +625,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
 	exchangeFields := []conval.ExchangeField{{conval.RSTProperty}, {conval.SerialNumberProperty}, {conval.GenericTextProperty}}
-	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true, exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
+	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
 	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
@@ -645,7 +645,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	for i := range exchangeFields {
 		exchangeFields[i] = conval.ExchangeField{conval.GenericTextProperty}
 	}
-	settings := &testSettings{myCall: "DL0ABC", enterTheirNumber: true, enterTheirXchange: true, exchangeFields: exchangeFields, exchangeValues: exchangeValues}
+	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: exchangeValues}
 	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
@@ -670,9 +670,6 @@ func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
 
 type testSettings struct {
 	myCall                 string
-	enterTheirNumber       bool
-	enterTheirXchange      bool
-	requireTheirXchange    bool
 	exchangeFields         []conval.ExchangeField
 	exchangeValues         []string
 	generateSerialExchange bool
@@ -686,9 +683,6 @@ func (s *testSettings) Station() core.Station {
 
 func (s *testSettings) Contest() core.Contest {
 	result := core.Contest{
-		EnterTheirNumber:       s.enterTheirNumber,
-		EnterTheirXchange:      s.enterTheirXchange,
-		RequireTheirXchange:    s.requireTheirXchange,
 		Definition:             fieldDefinition(s.exchangeFields...),
 		GenerateSerialExchange: s.generateSerialExchange,
 		ExchangeValues:         s.exchangeValues,

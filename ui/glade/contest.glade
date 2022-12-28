@@ -35,6 +35,7 @@ THE SOFTWARE.
       <object class="GtkGrid">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
+        <property name="row-spacing">2</property>
         <child>
           <object class="GtkLabel" id="callsignLabel">
             <property name="visible">True</property>
@@ -43,6 +44,7 @@ THE SOFTWARE.
             <property name="margin-start">2</property>
             <property name="margin-end">2</property>
             <property name="hexpand">True</property>
+            <property name="label" translatable="yes">DL1ABC</property>
             <property name="wrap">True</property>
             <attributes>
               <attribute name="scale" value="4"/>
@@ -61,30 +63,13 @@ THE SOFTWARE.
             <property name="margin-start">2</property>
             <property name="margin-end">2</property>
             <property name="hexpand">True</property>
+            <property name="label" translatable="yes">Fed. Rep. of Germany (DL), EU, ITU 28, CQ 14</property>
             <property name="use-markup">True</property>
             <property name="wrap">True</property>
           </object>
           <packing>
             <property name="left-attach">0</property>
             <property name="top-attach">1</property>
-            <property name="width">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="valueLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="margin-start">2</property>
-            <property name="margin-end">2</property>
-            <property name="hexpand">True</property>
-            <property name="use-markup">True</property>
-            <property name="wrap">True</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">2</property>
-            <property name="width">2</property>
           </packing>
         </child>
         <child>
@@ -127,6 +112,9 @@ THE SOFTWARE.
           <object class="GtkLabel" id="xchangeLabel">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
+            <property name="halign">end</property>
+            <property name="hexpand">True</property>
+            <property name="label" translatable="yes">1234</property>
             <property name="justify">right</property>
             <attributes>
               <attribute name="scale" value="4"/>
@@ -135,6 +123,37 @@ THE SOFTWARE.
           <packing>
             <property name="left-attach">1</property>
             <property name="top-attach">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="valueLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="halign">end</property>
+            <property name="margin-start">2</property>
+            <property name="margin-end">2</property>
+            <property name="hexpand">True</property>
+            <property name="label" translatable="yes">1 Points / 0 Multis</property>
+            <property name="use-markup">True</property>
+            <property name="wrap">True</property>
+          </object>
+          <packing>
+            <property name="left-attach">1</property>
+            <property name="top-attach">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="userInfoLabel">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="halign">start</property>
+            <property name="hexpand">True</property>
+            <property name="label" translatable="yes">Hans, Salzgitter</property>
+          </object>
+          <packing>
+            <property name="left-attach">0</property>
+            <property name="top-attach">2</property>
+            <property name="width">2</property>
           </packing>
         </child>
       </object>

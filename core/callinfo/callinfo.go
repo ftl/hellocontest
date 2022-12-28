@@ -83,6 +83,7 @@ type View interface {
 	SetCallsign(callsign string, worked, duplicate bool)
 	SetDXCC(string, string, int, int, bool)
 	SetValue(points, multis int, xchange string)
+	SetUserInfo(string)
 	SetSupercheck(callsigns []core.AnnotatedCallsign)
 }
 
@@ -114,6 +115,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	c.lastExchange = exchange
 	worked := false
 	duplicate := false
+	userInfo := ""
 	cs, err := callsign.Parse(call)
 	if err == nil {
 		var qsos []core.QSO
@@ -124,6 +126,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 		var historicExchange []string
 		if found {
 			historicExchange = entry.PredictedExchange
+			userInfo = joinAvailableValues(entry.Name, entry.UserText)
 		}
 
 		exchange = c.predictExchange(call, qsos, historicExchange)
@@ -131,8 +134,19 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	c.predictedExchange = exchange
 
 	c.view.SetCallsign(call, worked, duplicate)
+	c.view.SetUserInfo(userInfo)
 	c.showDXCCAndValue(call, band, mode, exchange)
 	c.showSupercheck(call)
+}
+
+func joinAvailableValues(values ...string) string {
+	availableValues := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != "" {
+			availableValues = append(availableValues, value)
+		}
+	}
+	return strings.Join(availableValues, ", ")
 }
 
 func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode, exchange []string) {
@@ -249,4 +263,5 @@ func (v *nullView) Hide()                                               {}
 func (v *nullView) SetCallsign(callsign string, worked, duplicate bool) {}
 func (v *nullView) SetDXCC(string, string, int, int, bool)              {}
 func (v *nullView) SetValue(int, int, string)                           {}
+func (v *nullView) SetUserInfo(string)                                  {}
 func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)    {}

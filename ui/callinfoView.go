@@ -14,6 +14,7 @@ type callinfoView struct {
 	xchangeLabel    *gtk.Label
 	dxccLabel       *gtk.Label
 	valueLabel      *gtk.Label
+	userInfoLabel   *gtk.Label
 	supercheckLabel *gtk.Label
 }
 
@@ -24,6 +25,7 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result.xchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "dxccLabel").(*gtk.Label)
 	result.valueLabel = getUI(builder, "valueLabel").(*gtk.Label)
+	result.userInfoLabel = getUI(builder, "userInfoLabel").(*gtk.Label)
 	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
 
 	return result
@@ -117,6 +119,13 @@ func (v *callinfoView) SetValue(points, multis int, xchange string) {
 	}
 	xchangeText := fmt.Sprintf("<span %s>%s</span>", xchangeMarkup, xchange)
 	v.xchangeLabel.SetMarkup(xchangeText)
+}
+
+func (v *callinfoView) SetUserInfo(value string) {
+	if v == nil {
+		return
+	}
+	v.userInfoLabel.SetText(value)
 }
 
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {

@@ -239,6 +239,8 @@ type AnnotatedCallsign struct {
 	Points            int
 	Multis            int
 	PredictedExchange []string
+	Name              string
+	UserText          string
 
 	Comparable interface{}
 	Compare    func(interface{}, interface{}) bool

@@ -140,6 +140,8 @@ func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
 			}
 			return aMatch.LessThan(bMatch)
 		},
+		Name:     match.Get(scp.FieldUserName),
+		UserText: match.Get(scp.FieldUserText),
 	}, nil
 }
 

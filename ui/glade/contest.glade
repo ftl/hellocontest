@@ -455,38 +455,11 @@ THE SOFTWARE.
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="margin-start">10</property>
-                <property name="label" translatable="yes">Call History File</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">9</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="margin-start">10</property>
                 <property name="label" translatable="yes">Call History Fields</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">10</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkFileChooserButton" id="contestCallHistoryFileChooser">
-                <property name="name">contestCallHistoryFile</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="preview-widget-active">False</property>
-                <property name="use-preview-label">False</property>
-                <property name="title" translatable="yes">Call History File</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>
@@ -612,6 +585,58 @@ THE SOFTWARE.
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin-start">10</property>
+                <property name="label" translatable="yes">Call History File</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <!-- n-columns=2 n-rows=1 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <object class="GtkFileChooserButton" id="contestCallHistoryFileChooser">
+                    <property name="name">contestCallHistoryFile</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="preview-widget-active">False</property>
+                    <property name="use-preview-label">False</property>
+                    <property name="title" translatable="yes">Call History File</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="contestCallHistoryClearButton">
+                    <property name="label" translatable="yes">Clear</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>

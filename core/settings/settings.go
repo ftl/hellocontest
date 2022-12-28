@@ -414,6 +414,16 @@ func (s *Settings) OpenContestUploadPage() {
 	s.browserOpener(url)
 }
 
+func (s *Settings) ClearCallHistory() {
+	s.contest.CallHistoryFilename = ""
+	s.contest.CallHistoryFieldNames = make([]string, len(s.contest.TheirExchangeFields))
+
+	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
+	for i := range s.contest.CallHistoryFieldNames {
+		s.view.SetContestCallHistoryFieldName(i, s.contest.CallHistoryFieldNames[i])
+	}
+}
+
 func (s *Settings) EnterContestExchangeValue(field core.EntryField, value string) {
 	i := field.ExchangeIndex() - 1
 	if i < 0 {

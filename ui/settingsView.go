@@ -20,6 +20,7 @@ type SettingsController interface {
 	SelectContestIdentifier(string)
 	OpenContestRulesPage()
 	OpenContestUploadPage()
+	ClearCallHistory()
 
 	EnterContestExchangeValue(core.EntryField, string)
 	EnterContestGenerateSerialExchange(bool)
@@ -55,11 +56,12 @@ type settingsView struct {
 
 	fields map[fieldID]interface{}
 
-	exchangeFieldsParent         *gtk.Grid
-	exchangeFieldCount           int
-	generateSerialExchangeButton *gtk.CheckButton
-	serialExchangeEntry          *gtk.Entry
-	callHistoryFieldNamesParent  *gtk.Grid
+	exchangeFieldsParent           *gtk.Grid
+	exchangeFieldCount             int
+	generateSerialExchangeButton   *gtk.CheckButton
+	serialExchangeEntry            *gtk.Entry
+	callHistoryFieldNamesParent    *gtk.Grid
+	clearCallHistorySettingsButton *gtk.Button
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -75,6 +77,8 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.openContestUploadPage.Connect("clicked", result.onOpenContestUploadPagePressed)
 	result.exchangeFieldsParent = getUI(builder, "contestExchangeFieldsGrid").(*gtk.Grid)
 	result.callHistoryFieldNamesParent = getUI(builder, "contestCallHistoryFieldNamesGrid").(*gtk.Grid)
+	result.clearCallHistorySettingsButton = getUI(builder, "contestCallHistoryClearButton").(*gtk.Button)
+	result.clearCallHistorySettingsButton.Connect("clicked", result.onClearCallHistoryPressed)
 
 	result.openDefaults = getUI(builder, "openDefaultsButton").(*gtk.Button)
 	result.openDefaults.Connect("clicked", result.onOpenDefaultsPressed)
@@ -127,15 +131,6 @@ func (v *settingsView) addCombo(builder *gtk.Builder, id fieldID) {
 
 	widget := &entry.Widget
 	widget.Connect("changed", v.onFieldChanged)
-}
-
-func (v *settingsView) addCheckButton(builder *gtk.Builder, id fieldID) {
-	button := getUI(builder, string(id)+"Button").(*gtk.CheckButton)
-	field, _ := button.GetName()
-	v.fields[fieldID(field)] = button
-
-	widget := &button.Widget
-	widget.Connect("toggled", v.onFieldChanged)
 }
 
 func (v *settingsView) addFileChooser(builder *gtk.Builder, id fieldID) {
@@ -199,6 +194,10 @@ func (v *settingsView) onOpenContestUploadPagePressed(_ *gtk.Button) {
 	v.controller.OpenContestUploadPage()
 }
 
+func (v *settingsView) onClearCallHistoryPressed(_ *gtk.Button) {
+	v.controller.ClearCallHistory()
+}
+
 func (v *settingsView) onOpenDefaultsPressed(_ *gtk.Button) {
 	v.controller.OpenDefaults()
 }
@@ -224,12 +223,6 @@ func (v *settingsView) setEntryField(field fieldID, value string) {
 func (v *settingsView) selectComboField(field fieldID, value string) {
 	v.doIgnoreChanges(func() {
 		v.fields[field].(*gtk.ComboBoxText).SetActiveID(value)
-	})
-}
-
-func (v *settingsView) setCheckButtonField(field fieldID, value bool) {
-	v.doIgnoreChanges(func() {
-		v.fields[field].(*gtk.CheckButton).SetActive(value)
 	})
 }
 

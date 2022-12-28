@@ -438,8 +438,6 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		v.serialExchangeEntry = entry
 	}
 
-	// TODO generate the callHistoryFieldName entry fields
-
 	v.exchangeFieldsParent.ShowAll()
 	v.callHistoryFieldNamesParent.ShowAll()
 	v.exchangeFieldCount = len(fields)

@@ -227,17 +227,19 @@ func (c *Controller) leaveCallsignField() {
 	}
 
 	predictedExchange := c.callinfo.PredictedExchange()
-	for i, field := range c.theirExchangeFields {
-		switch field.Field {
-		case c.theirReportExchangeField.Field:
-			continue
-		case c.theirNumberExchangeField.Field:
-			if len(c.theirNumberExchangeField.Properties) == 1 {
+	if len(c.input.theirExchange) == len(predictedExchange) {
+		for i, field := range c.theirExchangeFields {
+			switch field.Field {
+			case c.theirReportExchangeField.Field:
 				continue
+			case c.theirNumberExchangeField.Field:
+				if len(c.theirNumberExchangeField.Properties) == 1 {
+					continue
+				}
 			}
-		}
-		if c.input.theirExchange[i] == "" && predictedExchange[i] != "" {
-			c.setTheirExchangePrediction(i, predictedExchange[i])
+			if c.input.theirExchange[i] == "" && predictedExchange[i] != "" {
+				c.setTheirExchangePrediction(i, predictedExchange[i])
+			}
 		}
 	}
 

@@ -210,7 +210,6 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 	view.On("SetDuplicateMarker", false).Once()
 	view.On("ClearMessage").Once()
 	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
-	// view.On("SetTheirExchange", mock.Anything, mock.Anything).Once() // TODO implement the prediction with the new exchange fields
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -614,6 +613,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
+	controller.updateExchangeFields(settings.Contest())
 
 	return clock, log, qsoList, view, controller, settings
 }
@@ -629,6 +629,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
+	controller.updateExchangeFields(settings.Contest())
 
 	return clock, log, qsoList, view, controller, settings
 }
@@ -648,6 +649,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	controller := NewController(settings, clock, qsoList, testIgnoreAsync)
 	controller.SetLogbook(log)
 	controller.SetView(view)
+	controller.updateExchangeFields(settings.Contest())
 
 	return clock, log, qsoList, view, controller, settings
 }

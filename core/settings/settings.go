@@ -5,6 +5,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -336,6 +337,12 @@ func (s *Settings) SelectContestIdentifier(value string) {
 	s.contest.Definition = definition
 	s.updateContestPages()
 	s.updateExchangeFields()
+
+	if definition != nil {
+		year := time.Now().Format("2006")
+		s.contest.Name = fmt.Sprintf("%s %s", definition.Identifier, year)
+		s.view.SetContestName(s.contest.Name)
+	}
 }
 
 func (s *Settings) updateContestPages() {
@@ -348,10 +355,13 @@ func (s *Settings) updateContestPages() {
 
 func (s *Settings) updateExchangeFields() {
 	var exchangeFields []core.ExchangeField
+	var contestModes []conval.Mode
 	if s.contest.Definition == nil {
 		exchangeFields = nil
+		contestModes = nil
 	} else {
 		exchangeFields = core.DefinitionsToExchangeFields(s.contest.Definition.ExchangeFields(), core.MyExchangeField)
+		contestModes = s.contest.Definition.Modes
 	}
 	s.view.SetContestExchangeFields(exchangeFields)
 
@@ -372,6 +382,15 @@ func (s *Settings) updateExchangeFields() {
 			s.contest.GenerateSerialExchange = true
 			exclusiveSerialField = true
 		}
+		if field.Properties.Contains(conval.RSTProperty) && len(field.Properties) == 1 && len(contestModes) == 1 {
+			switch contestModes[0] {
+			case conval.ModeCW, conval.ModeRTTY, conval.ModeDigital:
+				value = "599"
+			case conval.ModeSSB, conval.ModeFM:
+				value = "59"
+			}
+		}
+		s.contest.ExchangeValues[i] = value
 		s.view.SetContestExchangeValue(i+1, value)
 	}
 

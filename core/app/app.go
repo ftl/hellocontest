@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/ftl/hamradio/cwclient"
 
@@ -77,7 +78,7 @@ type View interface {
 	BringToFront()
 	ShowFilename(string)
 	SelectOpenFile(string, ...string) (string, bool, error)
-	SelectSaveFile(string, ...string) (string, bool, error)
+	SelectSaveFile(string, string, ...string) (string, bool, error)
 	ShowInfoDialog(string, ...interface{})
 	ShowErrorDialog(string, ...interface{})
 }
@@ -321,8 +322,17 @@ func (c *Controller) Quit() {
 	c.quitter.Quit()
 }
 
+func (c *Controller) proposeFilename() string {
+	result := strings.Join([]string{c.Settings.Contest().Name, c.Settings.Station().Callsign.BaseCall}, " ")
+	result = strings.TrimSpace(result)
+	result = strings.ToUpper(result)
+	result = strings.ReplaceAll(result, " ", "_")
+	return result
+}
+
 func (c *Controller) New() {
-	filename, ok, err := c.view.SelectSaveFile("New Logfile", "*.log")
+	proposedName := c.proposeFilename() + ".log"
+	filename, ok, err := c.view.SelectSaveFile("New Logfile", proposedName, "*.log")
 	if !ok {
 		return
 	}
@@ -394,7 +404,8 @@ func (c *Controller) Open() {
 }
 
 func (c *Controller) SaveAs() {
-	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", "*.log")
+	proposedName := c.proposeFilename() + ".log"
+	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", proposedName, "*.log")
 	if !ok {
 		return
 	}
@@ -439,7 +450,8 @@ func (c *Controller) SaveAs() {
 }
 
 func (c *Controller) ExportCabrillo() {
-	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", "*.cabrillo")
+	proposedName := c.proposeFilename() + ".cabrillo"
+	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", proposedName, "*.cabrillo")
 	if !ok {
 		return
 	}
@@ -468,7 +480,8 @@ func (c *Controller) ExportCabrillo() {
 }
 
 func (c *Controller) ExportADIF() {
-	filename, ok, err := c.view.SelectSaveFile("Export ADIF File", "*.adif")
+	proposedName := c.proposeFilename() + ".adif"
+	filename, ok, err := c.view.SelectSaveFile("Export ADIF File", proposedName, "*.adif")
 	if !ok {
 		return
 	}
@@ -491,7 +504,8 @@ func (c *Controller) ExportADIF() {
 }
 
 func (c *Controller) ExportCSV() {
-	filename, ok, err := c.view.SelectSaveFile("Export CSV File", "*.csv")
+	proposedName := c.proposeFilename() + ".csv"
+	filename, ok, err := c.view.SelectSaveFile("Export CSV File", proposedName, "*.csv")
 	if !ok {
 		return
 	}
@@ -517,7 +531,8 @@ func (c *Controller) ExportCSV() {
 }
 
 func (c *Controller) ExportCallhistory() {
-	filename, ok, err := c.view.SelectSaveFile("Export Call History File", "*.txt")
+	proposedName := c.proposeFilename() + ".txt"
+	filename, ok, err := c.view.SelectSaveFile("Export Call History File", proposedName, "*.txt")
 	if !ok {
 		return
 	}

@@ -86,7 +86,7 @@ func (w *mainWindow) SelectOpenFile(title string, patterns ...string) (string, b
 	return dlg.GetFilename(), true, nil
 }
 
-func (w *mainWindow) SelectSaveFile(title string, patterns ...string) (string, bool, error) {
+func (w *mainWindow) SelectSaveFile(title string, filename string, patterns ...string) (string, bool, error) {
 	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_SAVE, "Save", gtk.RESPONSE_ACCEPT)
 	if err != nil {
 		return "", false, errors.Wrap(err, "cannot create a file selection dialog to save a file")
@@ -94,6 +94,7 @@ func (w *mainWindow) SelectSaveFile(title string, patterns ...string) (string, b
 	defer dlg.Destroy()
 
 	dlg.SetDoOverwriteConfirmation(true)
+	dlg.SetCurrentName(filename)
 
 	if len(patterns) > 0 {
 		filter, err := gtk.FileFilterNew()

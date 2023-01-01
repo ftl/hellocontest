@@ -435,7 +435,7 @@ func (s *Settings) OpenContestUploadPage() {
 
 func (s *Settings) ClearCallHistory() {
 	s.contest.CallHistoryFilename = ""
-	s.contest.CallHistoryFieldNames = make([]string, len(s.contest.TheirExchangeFields))
+	s.contest.CallHistoryFieldNames = make([]string, len(s.contest.ExchangeValues))
 
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
 	for i := range s.contest.CallHistoryFieldNames {

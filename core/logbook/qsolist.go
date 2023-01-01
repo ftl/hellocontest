@@ -299,6 +299,15 @@ func (l *QSOList) SelectLastQSO() {
 	l.emitRowSelected(index)
 }
 
+func (l *QSOList) LastBandAndMode() (core.Band, core.Mode) {
+	if len(l.list) == 0 {
+		return core.NoBand, core.NoMode
+	}
+	index := len(l.list) - 1
+	qso := l.list[index]
+	return qso.Band, qso.Mode
+}
+
 func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	result := make([]core.QSO, 0)
 	for _, qso := range l.list {

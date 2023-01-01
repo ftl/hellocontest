@@ -130,6 +130,14 @@ func (m *QSOList) SelectLastQSO() {
 	m.Called()
 }
 
+func (m *QSOList) LastBandAndMode() (core.Band, core.Mode) {
+	if !m.active {
+		return core.NoBand, core.NoMode
+	}
+	args := m.Called()
+	return args.Get(0).(core.Band), args.Get(1).(core.Mode)
+}
+
 type AppView struct {
 	mock.Mock
 }

@@ -53,6 +53,7 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.On("SetFrequency", mock.Anything).Once()
 	view.On("SetCallsign", "").Once()
 	view.On("SetBand", "160m").Once()
+	view.On("SetFrequency", mock.Anything).Once()
 	view.On("SetMode", "CW").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
@@ -291,6 +292,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	log.On("Log", qso).Once()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
+	qsoList.On("LastBandAndMode").Return(core.NoBand, core.NoMode)
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()
@@ -501,6 +503,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	log.On("Log", dupe).Once()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
+	qsoList.On("LastBandAndMode").Return(core.NoBand, core.NoMode)
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()
@@ -548,6 +551,7 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 	}
 
 	view.On("SetBand", "80m").Once()
+	view.On("SetFrequency", mock.Anything).Once()
 	view.On("SetMode", "CW").Once()
 	view.On("SetCallsign", "DL1ABC").Once()
 	view.On("SetTheirExchange", 1, "559").Once()

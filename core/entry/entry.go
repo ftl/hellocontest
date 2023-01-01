@@ -59,6 +59,7 @@ type QSOList interface {
 	FindDuplicateQSOs(callsign.Callsign, core.Band, core.Mode) []core.QSO
 	SelectQSO(core.QSO)
 	SelectLastQSO()
+	LastBandAndMode() (core.Band, core.Mode)
 }
 
 // Keyer functionality used for QSO entry.
@@ -76,6 +77,7 @@ type Callinfo interface {
 // VFO functionality used for QSO entry.
 type VFO interface {
 	Active() bool
+	Refresh()
 	SetFrequency(core.Frequency)
 	SetBand(core.Band)
 	SetMode(core.Mode)
@@ -146,26 +148,29 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) SetLogbook(logbook Logbook) {
 	c.logbook = logbook
-	if c.selectedBand == core.NoBand || !c.vfo.Active() {
-		lastBand := c.logbook.LastBand()
-		if lastBand != core.NoBand {
-			c.selectedBand = lastBand
-			c.input.band = lastBand.String()
-		} else {
-			c.selectedBand = core.Band160m
-			c.input.band = c.selectedBand.String()
-		}
+
+	if c.vfo.Active() {
+		c.vfo.Refresh()
 	}
-	if c.selectedMode == core.NoMode || !c.vfo.Active() {
-		lastMode := c.logbook.LastMode()
-		if lastMode != core.NoMode {
-			c.selectedMode = lastMode
-			c.input.mode = lastMode.String()
-		} else {
-			c.selectedMode = core.ModeCW
-			c.input.mode = c.selectedMode.String()
-		}
+
+	lastBand, lastMode := c.qsoList.LastBandAndMode()
+	if c.selectedBand == core.NoBand {
+		c.selectedBand = lastBand
+		c.selectedFrequency = 0
 	}
+	if c.selectedMode == core.NoMode {
+		c.selectedMode = lastMode
+	}
+
+	if c.selectedBand == core.NoBand {
+		c.selectedBand = core.Band160m
+	}
+	if c.selectedMode == core.NoMode {
+		c.selectedMode = core.ModeCW
+	}
+
+	c.input.band = c.selectedBand.String()
+	c.input.mode = c.selectedMode.String()
 
 	c.showInput()
 }
@@ -307,6 +312,7 @@ func (c *Controller) showInput() {
 	for i, value := range c.input.myExchange {
 		c.view.SetMyExchange(i+1, value)
 	}
+	c.view.SetFrequency(c.selectedFrequency)
 	c.view.SetBand(c.input.band)
 	c.view.SetMode(c.input.mode)
 }
@@ -365,6 +371,9 @@ func (c *Controller) frequencySelected(frequency core.Frequency) {
 }
 
 func (c *Controller) SetFrequency(frequency core.Frequency) {
+	if c.editing {
+		return
+	}
 	if c.selectedFrequency == frequency {
 		return
 	}
@@ -382,6 +391,9 @@ func (c *Controller) bandSelected(s string) {
 }
 
 func (c *Controller) SetBand(band core.Band) {
+	if c.editing {
+		return
+	}
 	if band == core.NoBand || band == c.selectedBand {
 		return
 	}
@@ -400,6 +412,9 @@ func (c *Controller) modeSelected(s string) {
 }
 
 func (c *Controller) SetMode(mode core.Mode) {
+	if c.editing {
+		return
+	}
 	if mode == core.NoMode || mode == c.selectedMode {
 		return
 	}
@@ -569,6 +584,11 @@ func (c *Controller) Log() {
 	}
 
 	c.logbook.Log(qso)
+
+	if !c.vfo.Active() {
+		c.selectedBand, c.selectedMode = c.qsoList.LastBandAndMode()
+	}
+
 	c.Clear()
 }
 
@@ -597,6 +617,10 @@ func (c *Controller) clearErrorOnField(field core.EntryField) {
 func (c *Controller) Clear() {
 	c.editing = false
 	c.editQSO = core.QSO{}
+
+	if c.vfo.Active() {
+		c.vfo.Refresh()
+	}
 
 	nextNumber := c.logbook.NextNumber()
 	c.activeField = core.CallsignField
@@ -760,6 +784,7 @@ func (n *nullView) ClearMessage()                               {}
 type nullVFO struct{}
 
 func (n *nullVFO) Active() bool                { return false }
+func (n *nullVFO) Refresh()                    {}
 func (n *nullVFO) SetFrequency(core.Frequency) {}
 func (n *nullVFO) SetBand(core.Band)           {}
 func (n *nullVFO) SetMode(core.Mode)           {}

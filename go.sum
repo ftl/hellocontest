@@ -3,8 +3,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/ftl/cabrillo v0.2.1 h1:sfwqzb1eMHnXK/4lji7BeCaMNvnYodWltCMh0zYAndU=
 github.com/ftl/cabrillo v0.2.1/go.mod h1:m1lKXKHBvK8PYJvTcOwSUYi3RnU6uMcI0y/acy3/Cd0=
-github.com/ftl/conval v0.3.1 h1:qYFq4UobjIks3g4CW02RqQHUAyaY9udXLZIetdTFgZo=
-github.com/ftl/conval v0.3.1/go.mod h1:ml732k4/3sqNusjDojY8awagfGndq7qA7jYIMcL+gvk=
+github.com/ftl/conval v0.3.2 h1:R/OPyKvGWCd4J5jYIzNPTQQqEive925jtdcxC8HlPM8=
+github.com/ftl/conval v0.3.2/go.mod h1:ml732k4/3sqNusjDojY8awagfGndq7qA7jYIMcL+gvk=
 github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04 h1:S7z3LXqDYk4avXKj+B2orGWquOo/A+1ZJbcUPx0duLo=
 github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04/go.mod h1:AQpbHYBSPV1Bc1nqG8vv8BK3qxXMZIn32OQBi/4A7Sc=
 github.com/ftl/hamradio v0.2.6 h1:AEgTLhoqYCZDg7pCZMeRFZYJPSoXTp4TEK65lBEcP2o=

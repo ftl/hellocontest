@@ -417,9 +417,10 @@ func (s *BandScore) AddQSO(qso QSOScore) {
 	s.QSOs += 1
 	if qso.Duplicate {
 		s.Duplicates += 1
+	} else {
+		s.Points += qso.Points
+		s.Multis += qso.Multis
 	}
-	s.Points += qso.Points
-	s.Multis += qso.Multis
 }
 
 func (s BandScore) PointsPerQSO() float64 {

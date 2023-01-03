@@ -26,13 +26,13 @@ var Default = Data{
 		Wpm: 25,
 		SpMacros: []string{
 			"{{.MyCall}}",
-			"rr {{.MyExchange}}",
+			"rr {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
 			"tu gl",
 			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
 		},
 		RunMacros: []string{
 			"cq {{.MyCall}} test",
-			"{{.TheirCall}} {{.MyExchange}}",
+			"{{.TheirCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
 			"tu {{.MyCall}} test",
 			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
 		},

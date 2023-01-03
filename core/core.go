@@ -226,11 +226,12 @@ func DefinitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchan
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.
 type KeyerValues struct {
-	TheirCall  string
-	MyNumber   QSONumber
-	MyReport   RST
-	MyXchange  string
-	MyExchange string
+	TheirCall   string
+	MyNumber    QSONumber
+	MyReport    RST
+	MyXchange   string
+	MyExchange  string
+	MyExchanges []string
 }
 
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.

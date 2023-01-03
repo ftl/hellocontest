@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -227,7 +228,7 @@ func (k *Keyer) GetText(index int) (string, error) {
 
 func (k *Keyer) fillins() map[string]string {
 	values := k.values()
-	return map[string]string{
+	result := map[string]string{
 		"MyCall":     k.stationCallsign.String(),
 		"MyReport":   softcut(values.MyReport.String()),
 		"MyNumber":   softcut(values.MyNumber.String()),
@@ -235,6 +236,16 @@ func (k *Keyer) fillins() map[string]string {
 		"MyExchange": values.MyExchange,
 		"TheirCall":  values.TheirCall,
 	}
+	for i, exchange := range values.MyExchanges {
+		key := fmt.Sprintf("MyExchange%d", i+1)
+		result[key] = exchange
+		_, err := strconv.Atoi(exchange)
+		if err == nil {
+			intKey := key + "Number"
+			result[intKey] = softcut(exchange)
+		}
+	}
+	return result
 }
 
 func (k *Keyer) Send(index int) {

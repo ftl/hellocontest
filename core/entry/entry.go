@@ -709,6 +709,7 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 	values.MyNumber = core.QSONumber(myNumber)
 	values.MyXchange = strings.Join(myXchanges, " ")
 	values.MyExchange = strings.Join(c.input.myExchange, " ")
+	values.MyExchanges = c.input.myExchange
 	values.TheirCall = c.input.callsign
 
 	return values

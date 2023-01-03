@@ -518,7 +518,7 @@ func (c *Controller) Log() {
 
 	for i, field := range c.theirExchangeFields {
 		value := c.input.theirExchange[i]
-		if value == "" {
+		if value == "" && !field.EmptyAllowed {
 			c.showErrorOnField(fmt.Errorf("%s is missing", field.Short), field.Field) // TODO use field.Name
 			return
 		}
@@ -544,7 +544,8 @@ func (c *Controller) Log() {
 				return
 			}
 		default:
-			if qso.TheirExchange[i] == "" && predictedExchange[i] != "" {
+			log.Printf("their exchange: %d predicted exchange: %d", len(qso.TheirExchange), len(predictedExchange))
+			if qso.TheirExchange[i] == "" && len(predictedExchange) == len(qso.TheirExchange) && predictedExchange[i] != "" {
 				c.setTheirExchangePrediction(i, predictedExchange[i])
 				c.showErrorOnField(fmt.Errorf("check their exchange"), field.Field)
 				return

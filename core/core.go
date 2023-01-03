@@ -193,6 +193,7 @@ func TheirExchangeField(index int) EntryField {
 type ExchangeField struct {
 	Field            EntryField
 	CanContainSerial bool
+	EmptyAllowed     bool
 	Properties       conval.ExchangeField
 
 	Short    string
@@ -213,6 +214,9 @@ func DefinitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchan
 		for _, property := range fieldDefinition {
 			if property == conval.SerialNumberProperty {
 				field.CanContainSerial = true
+			}
+			if property == conval.EmptyProperty {
+				field.EmptyAllowed = true
 			}
 		}
 		result = append(result, field)

@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 
@@ -36,11 +38,12 @@ type Callinfo struct {
 	valuer         Valuer
 	exchangeFilter ExchangeFilter
 
-	lastCallsign      string
-	lastBand          core.Band
-	lastMode          core.Mode
-	lastExchange      []string
-	predictedExchange []string
+	lastCallsign        string
+	lastBand            core.Band
+	lastMode            core.Mode
+	lastExchange        []string
+	predictedExchange   []string
+	theirExchangeFields []core.ExchangeField
 }
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -104,6 +107,15 @@ func (c *Callinfo) Hide() {
 	c.view.Hide()
 }
 
+func (c *Callinfo) ContestChanged(contest core.Contest) {
+	if contest.Definition == nil {
+		log.Printf("there is no contest definition!")
+		return
+	}
+	c.theirExchangeFields = contest.TheirExchangeFields
+	log.Printf("the contest changed: %+v", c.theirExchangeFields)
+}
+
 func (c *Callinfo) PredictedExchange() []string {
 	return c.predictedExchange
 }
@@ -129,9 +141,10 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 			userInfo = joinAvailableValues(entry.Name, entry.UserText)
 		}
 
-		exchange = c.predictExchange(call, qsos, historicExchange)
+		exchange = c.predictExchange(call, qsos, exchange, historicExchange)
 	}
 	c.predictedExchange = exchange
+	log.Printf("last exchange: %+v", c.lastExchange)
 
 	c.view.SetCallsign(call, worked, duplicate)
 	c.view.SetUserInfo(userInfo)
@@ -207,7 +220,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		exactMatch := (matchString == normalizedInput)
 
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
-		predictedExchange := c.predictExchange(matchString, qsos, annotatedCallsign.PredictedExchange)
+		predictedExchange := c.predictExchange(matchString, qsos, nil, annotatedCallsign.PredictedExchange)
 
 		entity, entityFound := c.entities.Find(matchString)
 
@@ -233,13 +246,35 @@ func (c *Callinfo) showSupercheck(s string) {
 	c.view.SetSupercheck(result)
 }
 
-func (c *Callinfo) predictExchange(call string, qsos []core.QSO, historicExchange []string) []string {
-	if len(qsos) == 0 {
-		return historicExchange
+func (c *Callinfo) predictExchange(call string, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {
+	result := make([]string, len(c.theirExchangeFields))
+	copy(result, currentExchange)
+
+	if c.entities != nil {
+		if entity, ok := c.entities.Find(call); ok {
+			for i, field := range c.theirExchangeFields {
+				if result[i] != "" {
+					continue
+				}
+				if len(field.Properties) != 1 {
+					continue
+				}
+				switch {
+				case field.Properties[0] == conval.CQZoneProperty:
+					result[i] = strconv.Itoa(int(entity.CQZone))
+				case field.Properties[0] == conval.ITUZoneProperty:
+					result[i] = strconv.Itoa(int(entity.ITUZone))
+				case field.Properties[0] == conval.DXCCEntityProperty, field.Properties[0] == conval.DXCCPrefixProperty:
+					result[i] = entity.PrimaryPrefix
+				}
+			}
+		}
 	}
 
-	result := make([]string, len(historicExchange))
 	for i := range result {
+		if result[i] != "" {
+			continue
+		}
 		for _, qso := range qsos {
 			if result[i] == "" {
 				result[i] = qso.TheirExchange[i]
@@ -248,7 +283,7 @@ func (c *Callinfo) predictExchange(call string, qsos []core.QSO, historicExchang
 				break
 			}
 		}
-		if result[i] == "" {
+		if i < len(historicExchange) && historicExchange[i] != "" {
 			result[i] = historicExchange[i]
 		}
 	}

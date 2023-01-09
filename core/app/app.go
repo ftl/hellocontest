@@ -175,6 +175,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Keyer)
 	c.Settings.Notify(c.QSOList)
 	c.Settings.Notify(c.Score)
+	c.Settings.Notify(c.Callinfo)
 	c.Settings.Notify(c.callHistoryFinder)
 	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
 		if !c.dxccFinder.Available() {

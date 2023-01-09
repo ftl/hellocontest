@@ -96,25 +96,72 @@ func (c *Counter) Refresh() {
 		now := time.Now()
 		lastHour := now.Add(-1 * time.Hour)
 		last5Min := now.Add(-5 * time.Minute)
+		const fillRatio = 0.6
 
 		c.lastHourQSOs.RemoveBefore(lastHour)
-		c.LastHourRate = core.QSOsPerHour(c.lastHourQSOs.Length())
-		c.Last5MinRate = core.QSOsPerHour(c.lastHourQSOs.LengthAfter(last5Min) * 12)
 
+		var lastHourStart time.Time
+		var lastHourEnd time.Time
+		lastHourCount := 0
 		c.LastHourPoints = 0
-		c.Last5MinPoints = 0
 		c.LastHourMultis = 0
+
+		var last5MinStart time.Time
+		var last5MinEnd time.Time
+		last5MinCount := 0
+		c.Last5MinPoints = 0
 		c.Last5MinMultis = 0
 		c.lastHourQSOs.ForEach(func(e *qsoListEntry) {
+			if e.QSO.Duplicate {
+				return
+			}
+			if lastHourEnd.IsZero() {
+				lastHourEnd = e.QSO.Time
+			}
+			lastHourStart = e.QSO.Time
+			lastHourCount++
 			c.LastHourPoints += e.QSO.Points
 			c.LastHourMultis += e.QSO.Multis
 			if e.QSO.Time.After(last5Min) {
+				if last5MinEnd.IsZero() {
+					last5MinEnd = e.QSO.Time
+				}
+				last5MinStart = e.QSO.Time
+				last5MinCount++
 				c.Last5MinPoints += e.QSO.Points
 				c.Last5MinMultis += e.QSO.Multis
 			}
 		})
-		c.Last5MinPoints *= 12
-		c.Last5MinMultis *= 12
+		if lastHourStart.IsZero() {
+			c.LastHourRate = 0
+			c.LastHourPoints = 0
+			c.LastHourMultis = 0
+		} else {
+			var duration time.Duration
+			if lastHourEnd.Sub(lastHourStart).Seconds() < (fillRatio * time.Hour.Seconds()) {
+				duration = 1 * time.Hour
+			} else {
+				duration = now.Sub(lastHourStart)
+			}
+			c.LastHourRate = core.QSOsPerHour((float64(lastHourCount) / duration.Seconds()) * time.Hour.Seconds())
+			c.LastHourPoints = int((float64(c.LastHourPoints) / duration.Seconds()) * time.Hour.Seconds())
+			c.LastHourMultis = int((float64(c.LastHourMultis) / duration.Seconds()) * time.Hour.Seconds())
+		}
+		if last5MinStart.IsZero() {
+			c.Last5MinRate = 0
+			c.Last5MinPoints = 0
+			c.Last5MinMultis = 0
+		} else {
+			var duration time.Duration
+			if last5MinEnd.Sub(last5MinStart).Seconds() < (fillRatio * 5 * time.Minute.Seconds()) {
+				duration = 5 * time.Minute
+			} else {
+				duration = now.Sub(last5MinStart)
+			}
+			c.Last5MinRate = core.QSOsPerHour((float64(last5MinCount) / duration.Seconds()) * time.Hour.Seconds())
+			c.Last5MinPoints = int((float64(c.Last5MinPoints) / duration.Seconds()) * time.Hour.Seconds())
+			c.Last5MinMultis = int((float64(c.Last5MinMultis) / duration.Seconds()) * time.Hour.Seconds())
+		}
 
 		if c.lastQSOTime.IsZero() {
 			c.SinceLastQSO = 0

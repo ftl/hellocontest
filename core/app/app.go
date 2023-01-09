@@ -347,6 +347,9 @@ func (c *Controller) New() {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
 		return
 	}
+
+	c.Settings.Reset()
+
 	err = store.WriteStation(c.Settings.Station())
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)

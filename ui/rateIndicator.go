@@ -42,15 +42,11 @@ type rateIndicator struct {
 }
 
 func newRateIndicator() *rateIndicator {
-	// TODO add parameters
-	qTarget := 48.0
-	pTarget := 60.0
-	mTarget := 24.0
 	return &rateIndicator{
-		qAxis:         newRateAxis(qTarget, "Q/h", 0, rateStyle.axisMargin),
-		pAxis:         newRateAxis(pTarget, "P/h", 120, rateStyle.axisMargin),
-		mAxis:         newRateAxis(mTarget, "M/h", 240, rateStyle.axisMargin),
-		timeIndicator: newTimeIndicator(qTarget, rateStyle.timeIndicatorWidth),
+		qAxis:         newRateAxis("Q/h", 0, rateStyle.axisMargin),
+		pAxis:         newRateAxis("P/h", 120, rateStyle.axisMargin),
+		mAxis:         newRateAxis("M/h", 240, rateStyle.axisMargin),
+		timeIndicator: newTimeIndicator(rateStyle.timeIndicatorWidth),
 	}
 }
 
@@ -59,6 +55,13 @@ func (ind *rateIndicator) SetRate(rate core.QSORate) {
 	ind.pAxis.SetValues(float64(rate.Last5MinPoints), float64(rate.LastHourPoints))
 	ind.mAxis.SetValues(float64(rate.Last5MinMultis), float64(rate.LastHourMultis))
 	ind.timeIndicator.SetCurrentTime(rate.SinceLastQSO, rate.SinceLastQSOFormatted())
+}
+
+func (ind *rateIndicator) SetGoals(qsos int, points int, multis int) {
+	ind.qAxis.SetGoal(float64(qsos))
+	ind.pAxis.SetGoal(float64(points))
+	ind.mAxis.SetGoal(float64(multis))
+	ind.timeIndicator.SetGoal(float64(qsos))
 }
 
 func (ind *rateIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
@@ -72,16 +75,16 @@ func (ind *rateIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	ind.fillBackground(cr)
 
 	cr.SetSourceRGBA(0.8, 0.8, 0.8, 0.4)
-	cr.MoveTo(ind.qAxis.targetPoint.x, ind.qAxis.targetPoint.y)
-	cr.LineTo(ind.pAxis.targetPoint.x, ind.pAxis.targetPoint.y)
-	cr.LineTo(ind.mAxis.targetPoint.x, ind.mAxis.targetPoint.y)
+	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
+	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
+	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)
 	cr.ClosePath()
 	cr.Fill()
 
 	cr.SetSourceRGBA(0.8, 0.8, 0.8, 0.8)
-	cr.MoveTo(ind.qAxis.targetPoint.x, ind.qAxis.targetPoint.y)
-	cr.LineTo(ind.pAxis.targetPoint.x, ind.pAxis.targetPoint.y)
-	cr.LineTo(ind.mAxis.targetPoint.x, ind.mAxis.targetPoint.y)
+	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
+	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
+	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)
 	cr.ClosePath()
 	cr.Stroke()
 
@@ -117,7 +120,7 @@ func (ind *rateIndicator) fillBackground(cr *cairo.Context) {
 type rateAxis struct {
 	value1      float64
 	value2      float64
-	targetValue float64
+	goalValue   float64
 	maxValue    float64
 	achievement float64
 	unit        string
@@ -129,17 +132,20 @@ type rateAxis struct {
 	axisLine    rect
 	value1Point point
 	value2Point point
-	targetPoint point
+	goalPoint   point
 }
 
-func newRateAxis(target float64, unit string, angle float64, margin float64) *rateAxis {
-	return &rateAxis{
-		targetValue: target,
-		maxValue:    1.5 * target,
-		unit:        unit,
-		angle:       degreesToRadians(angle) + angleRotation,
-		margin:      margin,
+func newRateAxis(unit string, angle float64, margin float64) *rateAxis {
+	result := &rateAxis{
+		goalValue: 0,
+		maxValue:  0,
+		unit:      unit,
+		angle:     degreesToRadians(angle) + angleRotation,
+		margin:    margin,
 	}
+	result.updateMaxValue()
+	result.updateAchievement()
+	return result
 }
 
 func (a *rateAxis) SetValues(value1, value2 float64) {
@@ -149,20 +155,21 @@ func (a *rateAxis) SetValues(value1, value2 float64) {
 }
 
 func (a *rateAxis) updateAchievement() {
-	if a.targetValue == 0 {
-		a.achievement = 0
+	if a.goalValue == 0 {
+		a.achievement = 1
 	} else {
-		a.achievement = a.value1 / a.targetValue
+		a.achievement = a.value1 / a.goalValue
 	}
 }
 
-func (a *rateAxis) SetTarget(target float64) {
-	a.targetValue = target
+func (a *rateAxis) SetGoal(goal float64) {
+	a.goalValue = goal
+	a.updateMaxValue()
 	a.updateAchievement()
 }
 
-func (a *rateAxis) SetMax(max float64) {
-	a.maxValue = max
+func (a *rateAxis) updateMaxValue() {
+	a.maxValue = 1.5 * a.goalValue
 }
 
 func (a *rateAxis) LabelText() string {
@@ -185,27 +192,31 @@ func (a *rateAxis) PrepareGeometry(da *gtk.DrawingArea, cr *cairo.Context) {
 		right:  end.x,
 	}
 
-	a.value1Point = polar{
-		radius:  math.Min((a.value1/a.maxValue)*axisLength, axisLength),
-		radians: a.angle,
-	}.toPoint().translate(center.x, center.y)
+	if a.goalValue == 0 {
 
-	a.value2Point = polar{
-		radius:  math.Min((a.value2/a.maxValue)*axisLength, axisLength),
-		radians: a.angle,
-	}.toPoint().translate(center.x, center.y)
+	} else {
+		a.value1Point = polar{
+			radius:  math.Min((a.value1/a.maxValue)*axisLength, axisLength),
+			radians: a.angle,
+		}.toPoint().translate(center.x, center.y)
 
-	a.targetPoint = polar{
-		radius:  math.Min((a.targetValue/a.maxValue)*axisLength, axisLength),
-		radians: a.angle,
-	}.toPoint().translate(center.x, center.y)
+		a.value2Point = polar{
+			radius:  math.Min((a.value2/a.maxValue)*axisLength, axisLength),
+			radians: a.angle,
+		}.toPoint().translate(center.x, center.y)
+
+		a.goalPoint = polar{
+			radius:  math.Min((a.goalValue/a.maxValue)*axisLength, axisLength),
+			radians: a.angle,
+		}.toPoint().translate(center.x, center.y)
+	}
 
 	cr.SetFontSize(rateStyle.fontSize)
 	labelExtents := cr.TextExtents(a.LabelText())
 	switch {
 	case end.y < center.y:
-		a.labelRect.top = a.targetPoint.y - labelExtents.Height/2.0
-		a.labelRect.left = a.targetPoint.x + 10.0
+		a.labelRect.top = (center.y - labelExtents.Height) / 2.0
+		a.labelRect.left = a.goalPoint.x + 10.0
 	case end.x < center.x:
 		a.labelRect.top = center.y - labelExtents.Height/2.0
 		a.labelRect.left = center.x - axisLength
@@ -243,36 +254,36 @@ func (a *rateAxis) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 }
 
 type timeIndicator struct {
-	targetValue float64
+	goalValue   float64
 	currentTime time.Duration
 
 	lineWidth float64
 
-	targetSeconds float64
-	achievement   float64
-	labelText     string
+	goalSeconds float64
+	achievement float64
+	labelText   string
 }
 
-func newTimeIndicator(target float64, lineWidth float64) *timeIndicator {
+func newTimeIndicator(lineWidth float64) *timeIndicator {
 	result := &timeIndicator{
-		targetValue: target,
-		lineWidth:   lineWidth,
+		goalValue: 0,
+		lineWidth: lineWidth,
 	}
-	result.updateTargetTime()
+	result.updateGoalTime()
 	result.updateAchievement()
 	return result
 }
 
-func (ind *timeIndicator) SetTarget(target float64) {
-	ind.targetValue = target
-	ind.updateTargetTime()
+func (ind *timeIndicator) SetGoal(goal float64) {
+	ind.goalValue = goal
+	ind.updateGoalTime()
 }
 
-func (ind *timeIndicator) updateTargetTime() {
-	if ind.targetValue == 0 {
-		ind.targetSeconds = 0
+func (ind *timeIndicator) updateGoalTime() {
+	if ind.goalValue == 0 {
+		ind.goalSeconds = 0
 	} else {
-		ind.targetSeconds = time.Hour.Seconds() / ind.targetValue
+		ind.goalSeconds = time.Hour.Seconds() / ind.goalValue
 	}
 }
 
@@ -283,10 +294,10 @@ func (ind *timeIndicator) SetCurrentTime(currentTime time.Duration, currentText 
 }
 
 func (ind *timeIndicator) updateAchievement() {
-	if ind.targetValue == 0 {
-		ind.achievement = 0
+	if ind.goalSeconds == 0 {
+		ind.achievement = 1
 	} else {
-		ind.achievement = 1 - math.Min(1, ind.currentTime.Seconds()/ind.targetSeconds)
+		ind.achievement = 1 - math.Min(1, ind.currentTime.Seconds()/ind.goalSeconds)
 	}
 }
 

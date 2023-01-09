@@ -40,20 +40,20 @@ message Station {
 
 message Contest {
     string name = 1;
-    bool enter_their_number = 2;
-    bool enter_their_xchange = 3;
-    bool require_their_xchange = 4;
-    bool allow_multi_band = 5;
-    bool allow_multi_mode = 6;
-    int32 same_country_points = 7;
-    int32 same_continent_points = 8;
-    int32 specific_country_points = 9;
-    repeated string specific_country_prefixes = 10;
-    int32 other_points = 11;
-    Multis multis = 12;
-    string xchange_multi_pattern = 13;
-    bool count_per_band = 14;
-    string cabrillo_qso_template = 15;
+    bool enter_their_number = 2; // deprecated
+    bool enter_their_xchange = 3; // deprecated
+    bool require_their_xchange = 4; // deprecated
+    bool allow_multi_band = 5; // deprecated
+    bool allow_multi_mode = 6; // deprecated
+    int32 same_country_points = 7; // deprecated
+    int32 same_continent_points = 8; // deprecated
+    int32 specific_country_points = 9; // deprecated
+    repeated string specific_country_prefixes = 10; // deprecated
+    int32 other_points = 11; // deprecated
+    Multis multis = 12; // deprecated
+    string xchange_multi_pattern = 13; // deprecated
+    bool count_per_band = 14; // deprecated
+    string cabrillo_qso_template = 15; // deprecated
     string call_history_filename = 16;
     reserved 17;
 
@@ -61,6 +61,9 @@ message Contest {
     repeated string exchange_values = 19;
     bool generate_serial_exchange = 20;
     repeated string call_history_field_names = 21;
+    int32 qsosGoal = 22;
+    int32 pointsGoal = 23;
+    int32 multisGoal = 24;
 }
 
 message Multis {

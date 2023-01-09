@@ -28,6 +28,9 @@ type SettingsController interface {
 	EnterContestName(string)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
+	EnterQSOsGoal(string)
+	EnterPointsGoal(string)
+	EnterMultisGoal(string)
 }
 
 type fieldID string
@@ -39,6 +42,9 @@ const (
 	contestIdentifier      fieldID = "contestIdentifier"
 	contestName            fieldID = "contestName"
 	contestCallHistoryFile fieldID = "contestCallHistoryFile"
+	qsosGoal               fieldID = "qsosGoal"
+	pointsGoal             fieldID = "pointsGoal"
+	multisGoal             fieldID = "multisGoal"
 )
 
 type settingsView struct {
@@ -93,6 +99,9 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addCombo(builder, contestIdentifier)
 	result.addEntry(builder, contestName)
 	result.addFileChooser(builder, contestCallHistoryFile)
+	result.addEntry(builder, qsosGoal)
+	result.addEntry(builder, pointsGoal)
+	result.addEntry(builder, multisGoal)
 
 	result.parent.Connect("destroy", result.onDestroy)
 
@@ -179,6 +188,12 @@ func (v *settingsView) onFieldChanged(w any) bool {
 		v.controller.EnterContestName(value.(string))
 	case contestCallHistoryFile:
 		v.controller.EnterContestCallHistoryFile(value.(string))
+	case qsosGoal:
+		v.controller.EnterQSOsGoal(value.(string))
+	case pointsGoal:
+		v.controller.EnterPointsGoal(value.(string))
+	case multisGoal:
+		v.controller.EnterMultisGoal(value.(string))
 	default:
 		log.Printf("enter unknown field %s: %v", field, value)
 	}
@@ -434,4 +449,16 @@ func (v *settingsView) SetContestName(value string) {
 
 func (v *settingsView) SetContestCallHistoryFile(value string) {
 	v.setFileChooserField(contestCallHistoryFile, value)
+}
+
+func (v *settingsView) SetQSOsGoal(value string) {
+	v.setEntryField(qsosGoal, value)
+}
+
+func (v *settingsView) SetPointsGoal(value string) {
+	v.setEntryField(pointsGoal, value)
+}
+
+func (v *settingsView) SetMultisGoal(value string) {
+	v.setEntryField(multisGoal, value)
 }

@@ -12,21 +12,25 @@ type rateView struct {
 	indicator *rateIndicator
 }
 
-func setupRateView(builder *gtk.Builder) *rateView {
-	result := new(rateView)
-	result.indicatorArea = getUI(builder, "rateIndicatorArea").(*gtk.DrawingArea)
-	result.indicator = newRateIndicator()
+func newRateView() *rateView {
+	return &rateView{
+		indicator: newRateIndicator(),
+	}
+}
 
-	result.indicatorArea.Connect("draw", result.indicator.Draw)
+func (v *rateView) setup(builder *gtk.Builder) {
+	v.indicatorArea = getUI(builder, "rateIndicatorArea").(*gtk.DrawingArea)
 
-	return result
+	v.indicatorArea.Connect("draw", v.indicator.Draw)
 }
 
 func (v *rateView) ShowRate(rate core.QSORate) {
-	if v == nil {
-		return
-	}
-
 	v.indicator.SetRate(rate)
-	v.indicatorArea.QueueDraw()
+	if v.indicatorArea != nil {
+		v.indicatorArea.QueueDraw()
+	}
+}
+
+func (v *rateView) SetGoals(qsos int, points int, multis int) {
+	v.indicator.SetGoals(qsos, points, multis)
 }

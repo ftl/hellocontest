@@ -41,6 +41,10 @@ type Counter struct {
 
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
+
+	qsosGoal   int
+	pointsGoal int
+	multisGoal int
 }
 
 var zeroTime time.Time
@@ -50,6 +54,7 @@ type View interface {
 	Hide()
 
 	ShowRate(rate core.QSORate)
+	SetGoals(qsos int, points int, multis int)
 }
 
 func (c *Counter) StartAutoRefresh() {
@@ -62,6 +67,7 @@ func (c *Counter) SetView(view View) {
 		return
 	}
 	c.view = view
+	c.view.SetGoals(c.qsosGoal, c.pointsGoal, c.multisGoal)
 	c.view.ShowRate(c.QSORate)
 }
 
@@ -72,6 +78,13 @@ func (c *Counter) Show() {
 
 func (c *Counter) Hide() {
 	c.view.Hide()
+}
+
+func (c *Counter) ContestChanged(contest core.Contest) {
+	c.qsosGoal = contest.QSOsGoal
+	c.pointsGoal = contest.PointsGoal
+	c.multisGoal = contest.MultisGoal
+	c.view.SetGoals(contest.QSOsGoal, contest.PointsGoal, contest.MultisGoal)
 }
 
 func (c *Counter) Notify(listener interface{}) {
@@ -361,6 +374,7 @@ func (e qsoListEntry) String() string {
 
 type nullView struct{}
 
-func (v *nullView) Show()                      {}
-func (v *nullView) Hide()                      {}
-func (v *nullView) ShowRate(rate core.QSORate) {}
+func (v *nullView) Show()                                     {}
+func (v *nullView) Hide()                                     {}
+func (v *nullView) ShowRate(rate core.QSORate)                {}
+func (v *nullView) SetGoals(qsos int, points int, multis int) {}

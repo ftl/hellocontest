@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,6 +77,10 @@ type View interface {
 	SetContestName(string)
 	SetContestCallHistoryFile(string)
 	SetContestCallHistoryFieldName(i int, value string)
+
+	SetQSOsGoal(string)
+	SetPointsGoal(string)
+	SetMultisGoal(string)
 }
 
 func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, station core.Station, contest core.Contest) *Settings {
@@ -243,6 +248,9 @@ func (s *Settings) showSettings() {
 
 	s.view.SetContestName(s.contest.Name)
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
+	s.view.SetQSOsGoal(strconv.Itoa(s.contest.QSOsGoal))
+	s.view.SetPointsGoal(strconv.Itoa(s.contest.PointsGoal))
+	s.view.SetMultisGoal(strconv.Itoa(s.contest.MultisGoal))
 }
 
 func (s *Settings) Save() {
@@ -446,14 +454,14 @@ func (s *Settings) ClearCallHistory() {
 func (s *Settings) EnterContestExchangeValue(field core.EntryField, value string) {
 	i := field.ExchangeIndex() - 1
 	if i < 0 {
-		log.Printf("%s is not an exchange field!", field)
+		s.view.ShowMessage(fmt.Sprintf("%s is not an exchange field!", field))
 		return
 	}
 	if i >= len(s.contest.ExchangeValues) {
-		log.Printf("%s is outside the exchange field array (%d)", field, len(s.contest.ExchangeValues))
+		s.view.ShowMessage(fmt.Sprintf("%s is outside the exchange field array (%d)", field, len(s.contest.ExchangeValues)))
 		return
 	}
-
+	s.view.HideMessage()
 	s.contest.ExchangeValues[i] = value
 }
 
@@ -482,6 +490,48 @@ func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value
 	s.contest.CallHistoryFieldNames[i] = value
 }
 
+func (s *Settings) EnterQSOsGoal(value string) {
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	if intValue < 0 {
+		intValue = 0
+	}
+
+	s.view.HideMessage()
+	s.contest.QSOsGoal = intValue
+}
+
+func (s *Settings) EnterPointsGoal(value string) {
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	if intValue < 0 {
+		intValue = 0
+	}
+
+	s.view.HideMessage()
+	s.contest.PointsGoal = intValue
+}
+
+func (s *Settings) EnterMultisGoal(value string) {
+	intValue, err := strconv.Atoi(value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%v", err))
+		return
+	}
+	if intValue < 0 {
+		intValue = 0
+	}
+
+	s.view.HideMessage()
+	s.contest.MultisGoal = intValue
+}
+
 type nullWriter struct{}
 
 func (w *nullWriter) WriteStation(core.Station) error { return nil }
@@ -503,20 +553,8 @@ func (v *nullView) SetContestExchangeFields([]core.ExchangeField)      {}
 func (v *nullView) SetContestExchangeValue(index int, value string)    {}
 func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
 func (v *nullView) SetContestName(string)                              {}
-func (v *nullView) SetContestEnterTheirNumber(bool)                    {}
-func (v *nullView) SetContestEnterTheirXchange(bool)                   {}
-func (v *nullView) SetContestRequireTheirXchange(bool)                 {}
-func (v *nullView) SetContestAllowMultiBand(bool)                      {}
-func (v *nullView) SetContestAllowMultiMode(bool)                      {}
-func (v *nullView) SetContestSameCountryPoints(string)                 {}
-func (v *nullView) SetContestSameContinentPoints(string)               {}
-func (v *nullView) SetContestSpecificCountryPoints(string)             {}
-func (v *nullView) SetContestSpecificCountryPrefixes(string)           {}
-func (v *nullView) SetContestOtherPoints(string)                       {}
-func (v *nullView) SetContestMultis(dxcc, wpx, xchange bool)           {}
-func (v *nullView) SetContestXchangeMultiPattern(string)               {}
-func (v *nullView) SetContestXchangeMultiPatternResult(string)         {}
-func (v *nullView) SetContestCountPerBand(bool)                        {}
 func (v *nullView) SetContestCallHistoryFile(string)                   {}
 func (v *nullView) SetContestCallHistoryFieldName(int, string)         {}
-func (v *nullView) SetContestCabrilloQSOTemplate(string)               {}
+func (v *nullView) SetQSOsGoal(string)                                 {}
+func (v *nullView) SetPointsGoal(string)                               {}
+func (v *nullView) SetMultisGoal(string)                               {}

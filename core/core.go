@@ -319,6 +319,10 @@ type Contest struct {
 
 	CallHistoryFilename   string
 	CallHistoryFieldNames []string
+
+	QSOsGoal   int
+	PointsGoal int
+	MultisGoal int
 }
 
 func (c *Contest) UpdateExchangeFields() {

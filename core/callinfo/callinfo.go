@@ -113,7 +113,6 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 		return
 	}
 	c.theirExchangeFields = contest.TheirExchangeFields
-	log.Printf("the contest changed: %+v", c.theirExchangeFields)
 }
 
 func (c *Callinfo) PredictedExchange() []string {

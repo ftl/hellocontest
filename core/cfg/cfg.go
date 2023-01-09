@@ -20,7 +20,10 @@ var Default = Data{
 		Locator:  "AA00zz",
 	},
 	Contest: pb.Contest{
-		Name: "Default",
+		Name:       "Default",
+		QsosGoal:   48,
+		PointsGoal: 60,
+		MultisGoal: 12,
 	},
 	Keyer: pb.Keyer{
 		Wpm: 25,

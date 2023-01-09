@@ -17,6 +17,7 @@ type rateWindow struct {
 func setupRateWindow(geometry *gmtry.Geometry) *rateWindow {
 	result := &rateWindow{
 		geometry: geometry,
+		rateView: newRateView(),
 	}
 
 	return result
@@ -38,7 +39,7 @@ func (w *rateWindow) Show() {
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("QSO Rate")
 		w.window.Connect("destroy", w.onDestroy)
-		w.rateView = setupRateView(builder)
+		w.rateView.setup(builder)
 		connectToGeometry(w.geometry, RateWindowID, w.window)
 	}
 	w.window.ShowAll()

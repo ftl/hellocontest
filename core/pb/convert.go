@@ -105,6 +105,9 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 
 	contest.ExchangeValues = pbContest.ExchangeValues
 	contest.GenerateSerialExchange = pbContest.GenerateSerialExchange
+	contest.QSOsGoal = int(pbContest.QsosGoal)
+	contest.PointsGoal = int(pbContest.PointsGoal)
+	contest.MultisGoal = int(pbContest.MultisGoal)
 
 	if pbContest.DefinitionYaml == "" {
 		return contest, nil
@@ -140,6 +143,9 @@ func ContestToPB(contest core.Contest) Contest {
 		Name:                  contest.Name,
 		CallHistoryFilename:   contest.CallHistoryFilename,
 		CallHistoryFieldNames: contest.CallHistoryFieldNames,
+		QsosGoal:              int32(contest.QSOsGoal),
+		PointsGoal:            int32(contest.PointsGoal),
+		MultisGoal:            int32(contest.MultisGoal),
 	}
 }
 

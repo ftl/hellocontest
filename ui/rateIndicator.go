@@ -14,6 +14,10 @@ var rateColors = colorMap{
 	{1, 0, 0}, {1, 0.6, 0.2}, {0, 0.8, 0},
 }
 
+var timeColors = colorMap{
+	{1, 0, 0}, {1, 0.6, 0.2}, {0, 0.8, 0}, {0, 0.8, 0}, {0, 0.8, 0}, {0, 0.8, 0},
+}
+
 const angleRotation = (3.0 / 2.0) * math.Pi
 
 var rateStyle = struct {
@@ -297,7 +301,7 @@ func (ind *timeIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	radius := (math.Min(float64(da.GetAllocatedWidth()), float64(da.GetAllocatedHeight())) / 2) - (ind.lineWidth / 2)
 	angle := (1 - ind.achievement) * 2 * math.Pi
 
-	cr.SetSourceRGB(rateColors.toRGB(ind.achievement))
+	cr.SetSourceRGB(timeColors.toRGB(ind.achievement))
 	cr.SetLineWidth(ind.lineWidth)
 	cr.Arc(center.x, center.y, radius, angleRotation, angle+angleRotation)
 	cr.Stroke()

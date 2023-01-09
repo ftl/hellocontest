@@ -84,15 +84,38 @@ func (c *Counter) Clear() {
 
 	c.LastHourRate = 0
 	c.Last5MinRate = 0
+	c.LastHourPoints = 0
+	c.Last5MinPoints = 0
+	c.LastHourMultis = 0
+	c.Last5MinMultis = 0
 	c.QSOsPerHours = make(core.QSOsPerHours)
 }
 
 func (c *Counter) Refresh() {
 	c.asyncRunner(func() {
 		now := time.Now()
-		c.lastHourQSOs.RemoveBefore(now.Add(-1 * time.Hour))
+		lastHour := now.Add(-1 * time.Hour)
+		last5Min := now.Add(-5 * time.Minute)
+
+		c.lastHourQSOs.RemoveBefore(lastHour)
 		c.LastHourRate = core.QSOsPerHour(c.lastHourQSOs.Length())
-		c.Last5MinRate = core.QSOsPerHour(c.lastHourQSOs.LengthAfter(now.Add(-5*time.Minute)) * 12)
+		c.Last5MinRate = core.QSOsPerHour(c.lastHourQSOs.LengthAfter(last5Min) * 12)
+
+		c.LastHourPoints = 0
+		c.Last5MinPoints = 0
+		c.LastHourMultis = 0
+		c.Last5MinMultis = 0
+		c.lastHourQSOs.ForEach(func(e *qsoListEntry) {
+			c.LastHourPoints += e.QSO.Points
+			c.LastHourMultis += e.QSO.Multis
+			if e.QSO.Time.After(last5Min) {
+				c.Last5MinPoints += e.QSO.Points
+				c.Last5MinMultis += e.QSO.Multis
+			}
+		})
+		c.Last5MinPoints *= 12
+		c.Last5MinMultis *= 12
+
 		if c.lastQSOTime.IsZero() {
 			c.SinceLastQSO = 0
 		} else {
@@ -260,6 +283,23 @@ func (f *qsoList) LengthAfter(t time.Time) int {
 		return false
 	})
 	return length
+}
+
+func (f *qsoList) ForEach(fun func(e *qsoListEntry)) {
+	f.backward(func(e *qsoListEntry) bool {
+		fun(e)
+		return true
+	})
+}
+
+func (f *qsoList) ForEachAfter(fun func(e *qsoListEntry), t time.Time) {
+	f.backward(func(e *qsoListEntry) bool {
+		if e.QSO.Time.After(t) {
+			fun(e)
+			return true
+		}
+		return false
+	})
 }
 
 type qsoListEntry struct {

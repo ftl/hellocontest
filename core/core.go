@@ -481,6 +481,11 @@ type QSORate struct {
 	Last5MinRate QSOsPerHour
 	QSOsPerHours QSOsPerHours
 	SinceLastQSO time.Duration
+
+	LastHourPoints int
+	Last5MinPoints int
+	LastHourMultis int
+	Last5MinMultis int
 }
 
 func (r QSORate) SinceLastQSOFormatted() string {

@@ -1,21 +1,23 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
 )
 
 type rateView struct {
-	tableLabel *gtk.Label
+	indicatorArea *gtk.DrawingArea
+
+	indicator *rateIndicator
 }
 
 func setupRateView(builder *gtk.Builder) *rateView {
 	result := new(rateView)
+	result.indicatorArea = getUI(builder, "rateIndicatorArea").(*gtk.DrawingArea)
+	result.indicator = newRateIndicator()
 
-	result.tableLabel = getUI(builder, "rateTableLabel").(*gtk.Label)
+	result.indicatorArea.Connect("draw", result.indicator.Draw)
 
 	return result
 }
@@ -25,11 +27,6 @@ func (v *rateView) ShowRate(rate core.QSORate) {
 		return
 	}
 
-	text := `<span allow_breaks='true' font_family='monospace'>last 60min: %3d Q/h
-last  5min: %3d Q/h
-last QSO: %9s
-</span>`
-
-	renderedRate := fmt.Sprintf(text, rate.LastHourRate, rate.Last5MinRate, rate.SinceLastQSOFormatted())
-	v.tableLabel.SetMarkup(renderedRate)
+	v.indicator.SetRate(rate)
+	v.indicatorArea.QueueDraw()
 }

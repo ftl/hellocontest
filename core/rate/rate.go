@@ -25,6 +25,9 @@ func NewCounter(asyncRunner core.AsyncRunner) *Counter {
 		},
 		view:        new(nullView),
 		asyncRunner: asyncRunner,
+		isRunning: func() bool {
+			return true
+		},
 	}
 	result.refreshTicker = ticker.New(result.Refresh)
 	return result
@@ -42,6 +45,7 @@ type Counter struct {
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
 
+	isRunning  func() bool
 	qsosGoal   int
 	pointsGoal int
 	multisGoal int
@@ -84,6 +88,7 @@ func (c *Counter) ContestChanged(contest core.Contest) {
 	c.qsosGoal = contest.QSOsGoal
 	c.pointsGoal = contest.PointsGoal
 	c.multisGoal = contest.MultisGoal
+	c.isRunning = contest.Running
 	c.view.SetGoals(contest.QSOsGoal, contest.PointsGoal, contest.MultisGoal)
 }
 
@@ -176,7 +181,7 @@ func (c *Counter) Refresh() {
 			c.Last5MinMultis = int((float64(c.Last5MinMultis) / duration.Seconds()) * time.Hour.Seconds())
 		}
 
-		if c.lastQSOTime.IsZero() {
+		if !c.isRunning() || c.lastQSOTime.IsZero() {
 			c.SinceLastQSO = 0
 		} else {
 			c.SinceLastQSO = now.Sub(c.lastQSOTime)

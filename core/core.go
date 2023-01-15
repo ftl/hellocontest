@@ -309,6 +309,7 @@ type Contest struct {
 	Name                   string
 	ExchangeValues         []string
 	GenerateSerialExchange bool
+	StartTime              time.Time
 
 	MyExchangeFields         []ExchangeField
 	MyReportExchangeField    ExchangeField
@@ -324,6 +325,38 @@ type Contest struct {
 	QSOsGoal   int
 	PointsGoal int
 	MultisGoal int
+}
+
+func (c *Contest) Started() bool {
+	if c.StartTime.IsZero() {
+		return true
+	}
+	if c.Definition == nil {
+		return true
+	}
+	if c.Definition.Duration == 0 {
+		return true
+	}
+
+	return time.Now().After(c.StartTime)
+}
+
+func (c *Contest) Finished() bool {
+	if c.StartTime.IsZero() {
+		return false
+	}
+	if c.Definition == nil {
+		return false
+	}
+	if c.Definition.Duration == 0 {
+		return false
+	}
+
+	return time.Now().After(c.StartTime.Add(c.Definition.Duration))
+}
+
+func (c *Contest) Running() bool {
+	return c.Started() && !c.Finished()
 }
 
 func (c *Contest) UpdateExchangeFields() {

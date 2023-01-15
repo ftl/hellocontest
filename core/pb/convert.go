@@ -8,6 +8,7 @@ import (
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
@@ -100,6 +101,7 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	var contest core.Contest
 
 	contest.Name = pbContest.Name
+	contest.StartTime = pbContest.StartTime.AsTime()
 	contest.OperationModeSprint = pbContest.SprintOperation
 	contest.CallHistoryFilename = pbContest.CallHistoryFilename
 	contest.CallHistoryFieldNames = pbContest.CallHistoryFieldNames
@@ -142,6 +144,7 @@ func ContestToPB(contest core.Contest) Contest {
 		GenerateSerialExchange: contest.GenerateSerialExchange,
 
 		Name:                  contest.Name,
+		StartTime:             timestamppb.New(contest.StartTime),
 		SprintOperation:       contest.OperationModeSprint,
 		CallHistoryFilename:   contest.CallHistoryFilename,
 		CallHistoryFieldNames: contest.CallHistoryFieldNames,

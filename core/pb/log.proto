@@ -1,6 +1,8 @@
 syntax = "proto3";
 package pb;
 
+import "google/protobuf/timestamp.proto";
+
 message FileInfo {
     int32 format_version = 1;
 }
@@ -61,10 +63,11 @@ message Contest {
     repeated string exchange_values = 19;
     bool generate_serial_exchange = 20;
     repeated string call_history_field_names = 21;
-    int32 qsosGoal = 22;
-    int32 pointsGoal = 23;
-    int32 multisGoal = 24;
-    bool sprintOperation = 25;
+    int32 qsos_goal = 22;
+    int32 points_goal = 23;
+    int32 multis_goal = 24;
+    bool sprint_operation = 25;
+    google.protobuf.Timestamp start_time = 26;
 }
 
 message Multis {

@@ -26,6 +26,7 @@ type SettingsController interface {
 	EnterContestGenerateSerialExchange(bool)
 
 	EnterContestName(string)
+	EnterContestStartTime(string)
 	SetOperationModeSprint(bool)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
@@ -42,6 +43,7 @@ const (
 	stationLocator         fieldID = "stationLocator"
 	contestIdentifier      fieldID = "contestIdentifier"
 	contestName            fieldID = "contestName"
+	contestStartTime       fieldID = "contestStartTime"
 	operationModeSprint    fieldID = "operationModeSprint"
 	contestCallHistoryFile fieldID = "contestCallHistoryFile"
 	qsosGoal               fieldID = "qsosGoal"
@@ -100,6 +102,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, stationLocator)
 	result.addCombo(builder, contestIdentifier)
 	result.addEntry(builder, contestName)
+	result.addEntry(builder, contestStartTime)
 	result.addCheckButton(builder, operationModeSprint)
 	result.addFileChooser(builder, contestCallHistoryFile)
 	result.addEntry(builder, qsosGoal)
@@ -198,8 +201,9 @@ func (v *settingsView) onFieldChanged(w any) bool {
 		v.controller.SelectContestIdentifier(value.(string))
 	case contestName:
 		v.controller.EnterContestName(value.(string))
+	case contestStartTime:
+		v.controller.EnterContestStartTime(value.(string))
 	case operationModeSprint:
-		log.Printf("sprint mode toggled: %t", value)
 		v.controller.SetOperationModeSprint(value.(bool))
 	case contestCallHistoryFile:
 		v.controller.EnterContestCallHistoryFile(value.(string))
@@ -466,6 +470,10 @@ func (v *settingsView) SetContestCallHistoryFieldName(i int, value string) {
 
 func (v *settingsView) SetContestName(value string) {
 	v.setEntryField(contestName, value)
+}
+
+func (v *settingsView) SetContestStartTime(value string) {
+	v.setEntryField(contestStartTime, value)
 }
 
 func (v *settingsView) SetOperationModeSprint(value bool) {

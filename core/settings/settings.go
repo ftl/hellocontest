@@ -15,6 +15,8 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+const contestStartTimeFormat = "02-01-2006 15:04"
+
 type StationListener interface {
 	StationChanged(core.Station)
 }
@@ -75,6 +77,7 @@ type View interface {
 	SetContestGenerateSerialExchange(active bool, sensitive bool)
 
 	SetContestName(string)
+	SetContestStartTime(string)
 	SetOperationModeSprint(bool)
 	SetContestCallHistoryFile(string)
 	SetContestCallHistoryFieldName(i int, value string)
@@ -248,11 +251,19 @@ func (s *Settings) showSettings() {
 	s.updateExchangeFields()
 
 	s.view.SetContestName(s.contest.Name)
+	s.view.SetContestStartTime(s.formattedContestStartTime())
 	s.view.SetOperationModeSprint(s.contest.OperationModeSprint)
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
 	s.view.SetQSOsGoal(strconv.Itoa(s.contest.QSOsGoal))
 	s.view.SetPointsGoal(strconv.Itoa(s.contest.PointsGoal))
 	s.view.SetMultisGoal(strconv.Itoa(s.contest.MultisGoal))
+}
+
+func (s *Settings) formattedContestStartTime() string {
+	if s.contest.StartTime.IsZero() {
+		return ""
+	}
+	return s.contest.StartTime.Format(contestStartTimeFormat)
 }
 
 func (s *Settings) Save() {
@@ -278,7 +289,10 @@ func (s *Settings) Save() {
 func (s *Settings) Reset() {
 	s.station = s.defaultStation
 	s.contest = deepCopyContest(s.defaultContest)
+	s.contest.StartTime = time.Time{}
 	s.contest.UpdateExchangeFields()
+
+	log.Printf("GOALS: q %d p %d m %d", s.contest.QSOsGoal, s.contest.PointsGoal, s.contest.MultisGoal)
 
 	s.showSettings()
 	s.emitStationChanged()
@@ -478,6 +492,22 @@ func (s *Settings) EnterContestName(value string) {
 	s.contest.Name = value
 }
 
+func (s *Settings) EnterContestStartTime(value string) {
+	if value == "" {
+		s.contest.StartTime = time.Time{}
+		return
+	}
+
+	startTime, err := time.Parse(contestStartTimeFormat, value)
+	if err != nil {
+		s.view.ShowMessage(fmt.Sprintf("%s is not a valid start time, use the format dd-mm-yyyy hh:mm.", value))
+		return
+	}
+	s.view.HideMessage()
+
+	s.contest.StartTime = startTime
+}
+
 func (s *Settings) SetOperationModeSprint(value bool) {
 	s.contest.OperationModeSprint = value
 }
@@ -559,6 +589,7 @@ func (v *nullView) SetContestExchangeFields([]core.ExchangeField)      {}
 func (v *nullView) SetContestExchangeValue(index int, value string)    {}
 func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
 func (v *nullView) SetContestName(string)                              {}
+func (v *nullView) SetContestStartTime(string)                         {}
 func (v *nullView) SetOperationModeSprint(bool)                        {}
 func (v *nullView) SetContestCallHistoryFile(string)                   {}
 func (v *nullView) SetContestCallHistoryFieldName(int, string)         {}

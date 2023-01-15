@@ -317,6 +317,7 @@ type Contest struct {
 	TheirReportExchangeField ExchangeField
 	TheirNumberExchangeField ExchangeField
 
+	OperationModeSprint   bool
 	CallHistoryFilename   string
 	CallHistoryFieldNames []string
 

@@ -100,6 +100,7 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	var contest core.Contest
 
 	contest.Name = pbContest.Name
+	contest.OperationModeSprint = pbContest.SprintOperation
 	contest.CallHistoryFilename = pbContest.CallHistoryFilename
 	contest.CallHistoryFieldNames = pbContest.CallHistoryFieldNames
 
@@ -141,6 +142,7 @@ func ContestToPB(contest core.Contest) Contest {
 		GenerateSerialExchange: contest.GenerateSerialExchange,
 
 		Name:                  contest.Name,
+		SprintOperation:       contest.OperationModeSprint,
 		CallHistoryFilename:   contest.CallHistoryFilename,
 		CallHistoryFieldNames: contest.CallHistoryFieldNames,
 		QsosGoal:              int32(contest.QSOsGoal),

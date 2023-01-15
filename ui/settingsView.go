@@ -26,6 +26,7 @@ type SettingsController interface {
 	EnterContestGenerateSerialExchange(bool)
 
 	EnterContestName(string)
+	SetOperationModeSprint(bool)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
 	EnterQSOsGoal(string)
@@ -41,6 +42,7 @@ const (
 	stationLocator         fieldID = "stationLocator"
 	contestIdentifier      fieldID = "contestIdentifier"
 	contestName            fieldID = "contestName"
+	operationModeSprint    fieldID = "operationModeSprint"
 	contestCallHistoryFile fieldID = "contestCallHistoryFile"
 	qsosGoal               fieldID = "qsosGoal"
 	pointsGoal             fieldID = "pointsGoal"
@@ -98,6 +100,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, stationLocator)
 	result.addCombo(builder, contestIdentifier)
 	result.addEntry(builder, contestName)
+	result.addCheckButton(builder, operationModeSprint)
 	result.addFileChooser(builder, contestCallHistoryFile)
 	result.addEntry(builder, qsosGoal)
 	result.addEntry(builder, pointsGoal)
@@ -131,6 +134,15 @@ func (v *settingsView) addEntry(builder *gtk.Builder, id fieldID) {
 
 	widget := &entry.Widget
 	widget.Connect("changed", v.onFieldChanged)
+}
+
+func (v *settingsView) addCheckButton(builder *gtk.Builder, id fieldID) {
+	button := getUI(builder, string(id)+"Button").(*gtk.CheckButton)
+	field, _ := button.GetName()
+	v.fields[fieldID(field)] = button
+
+	widget := &button.Widget
+	widget.Connect("toggled", v.onFieldChanged)
 }
 
 func (v *settingsView) addCombo(builder *gtk.Builder, id fieldID) {
@@ -186,6 +198,9 @@ func (v *settingsView) onFieldChanged(w any) bool {
 		v.controller.SelectContestIdentifier(value.(string))
 	case contestName:
 		v.controller.EnterContestName(value.(string))
+	case operationModeSprint:
+		log.Printf("sprint mode toggled: %t", value)
+		v.controller.SetOperationModeSprint(value.(bool))
 	case contestCallHistoryFile:
 		v.controller.EnterContestCallHistoryFile(value.(string))
 	case qsosGoal:
@@ -232,6 +247,12 @@ func (v *settingsView) onDestroy() {
 func (v *settingsView) setEntryField(field fieldID, value string) {
 	v.doIgnoreChanges(func() {
 		v.fields[field].(*gtk.Entry).SetText(value)
+	})
+}
+
+func (v *settingsView) setCheckboxField(field fieldID, value bool) {
+	v.doIgnoreChanges(func() {
+		v.fields[field].(*gtk.CheckButton).SetActive(value)
 	})
 }
 
@@ -445,6 +466,10 @@ func (v *settingsView) SetContestCallHistoryFieldName(i int, value string) {
 
 func (v *settingsView) SetContestName(value string) {
 	v.setEntryField(contestName, value)
+}
+
+func (v *settingsView) SetOperationModeSprint(value bool) {
+	v.setCheckboxField(operationModeSprint, value)
 }
 
 func (v *settingsView) SetContestCallHistoryFile(value string) {

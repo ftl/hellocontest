@@ -18,6 +18,7 @@ type workmodeView struct {
 
 	searchPounceModeButton *gtk.RadioButton
 	runModeButton          *gtk.RadioButton
+	operationModeLabel     *gtk.Label
 }
 
 func setupWorkmodeView(builder *gtk.Builder) *workmodeView {
@@ -25,6 +26,7 @@ func setupWorkmodeView(builder *gtk.Builder) *workmodeView {
 
 	result.searchPounceModeButton = getUI(builder, "searchPounceModeButton").(*gtk.RadioButton)
 	result.runModeButton = getUI(builder, "runModeButton").(*gtk.RadioButton)
+	result.operationModeLabel = getUI(builder, "operationModeLabel").(*gtk.Label)
 
 	result.searchPounceModeButton.Connect("toggled", result.onSearchPounceModeButtonToggled)
 	result.runModeButton.Connect("toggled", result.onRunModeButtonToggled)
@@ -66,4 +68,8 @@ func (v *workmodeView) SetWorkmode(workmode core.Workmode) {
 		log.Printf("UI: set %s active", name)
 		activeButton.SetActive(true)
 	}
+}
+
+func (v *workmodeView) SetOperationModeHint(hint string) {
+	v.operationModeLabel.SetText(hint)
 }

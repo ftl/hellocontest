@@ -172,6 +172,7 @@ func (c *Controller) Startup() {
 	c.Entry.SetCallinfo(c.Callinfo)
 
 	c.Settings.Notify(c.Entry)
+	c.Settings.Notify(c.Workmode)
 	c.Settings.Notify(c.Keyer)
 	c.Settings.Notify(c.QSOList)
 	c.Settings.Notify(c.Score)
@@ -270,6 +271,7 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 	c.Logbook = logbook
 	c.Logbook.SetWriter(c.store)
 	c.Logbook.OnRowAdded(c.QSOList.Put)
+	c.Logbook.OnRowAdded(c.Workmode.RowAdded)
 	c.Entry.SetLogbook(c.Logbook)
 
 	if c.view != nil {

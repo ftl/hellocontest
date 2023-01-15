@@ -1,6 +1,10 @@
 package workmode
 
-import "github.com/ftl/hellocontest/core"
+import (
+	"math"
+
+	"github.com/ftl/hellocontest/core"
+)
 
 func NewController() *Controller {
 	return &Controller{
@@ -12,12 +16,16 @@ type Controller struct {
 	view      View
 	listeners []interface{}
 
-	workmode core.Workmode
+	workmode            core.Workmode
+	operationModeSprint bool
+
+	lastQSONumber int
 }
 
 // View represents the visual part of the workmode handling.
 type View interface {
 	SetWorkmode(core.Workmode)
+	SetOperationModeHint(hint string)
 }
 
 type WorkmodeChangedListener interface {
@@ -33,6 +41,46 @@ func (f WorkmodeChangedListenerFunc) WorkmodeChanged(workmode core.Workmode) {
 func (c *Controller) SetView(view View) {
 	c.view = view
 	c.view.SetWorkmode(c.workmode)
+	c.view.SetOperationModeHint(c.operationModeHint())
+}
+
+func (c *Controller) ContestChanged(contest core.Contest) {
+	c.operationModeSprint = contest.OperationModeSprint
+
+	if c.view != nil {
+		c.view.SetOperationModeHint(c.operationModeHint())
+	}
+}
+
+func (c *Controller) operationModeHint() string {
+	switch {
+	case c.operationModeSprint:
+		return "Sprint"
+	default:
+		return ""
+	}
+}
+
+func (c *Controller) RowAdded(qso core.QSO) {
+	isNew := qso.MyNumber > core.QSONumber(c.lastQSONumber)
+	c.lastQSONumber = int(math.Max(float64(c.lastQSONumber), float64(qso.MyNumber)))
+
+	if !c.operationModeSprint || !isNew {
+		return
+	}
+
+	c.SetWorkmode(c.nextWorkmode())
+}
+
+func (c *Controller) nextWorkmode() core.Workmode {
+	switch c.workmode {
+	case core.SearchPounce:
+		return core.Run
+	case core.Run:
+		return core.SearchPounce
+	default:
+		return core.SearchPounce
+	}
 }
 
 func (c *Controller) Workmode() core.Workmode {

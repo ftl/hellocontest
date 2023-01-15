@@ -294,7 +294,7 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=12 -->
+          <!-- n-columns=2 n-rows=13 -->
           <object class="GtkGrid" id="stationGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -426,7 +426,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">8</property>
+                <property name="top-attach">7</property>
               </packing>
             </child>
             <child>
@@ -440,7 +440,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">8</property>
+                <property name="top-attach">7</property>
               </packing>
             </child>
             <child>
@@ -453,7 +453,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">11</property>
               </packing>
             </child>
             <child>
@@ -534,7 +534,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -556,7 +556,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -578,7 +578,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">11</property>
               </packing>
             </child>
             <child>
@@ -591,7 +591,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">9</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
             <child>
@@ -630,7 +630,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">9</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
             <child>
@@ -686,7 +686,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">12</property>
               </packing>
             </child>
             <child>
@@ -700,7 +700,46 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin-start">10</property>
+                <property name="label" translatable="yes">Operation Mode</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <!-- n-columns=1 n-rows=1 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkCheckButton" id="operationModeSprintButton">
+                    <property name="label" translatable="yes">Sprint</property>
+                    <property name="name">operationModeSprint</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="draw-indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>
@@ -1246,7 +1285,7 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=3 n-rows=1 -->
+          <!-- n-columns=4 n-rows=1 -->
           <object class="GtkGrid" id="workmodeGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1293,6 +1332,19 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="operationModeLabel">
+                <property name="name">operationMode</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">end</property>
+                <property name="hexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
                 <property name="top-attach">0</property>
               </packing>
             </child>

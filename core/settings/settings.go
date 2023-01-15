@@ -75,6 +75,7 @@ type View interface {
 	SetContestGenerateSerialExchange(active bool, sensitive bool)
 
 	SetContestName(string)
+	SetOperationModeSprint(bool)
 	SetContestCallHistoryFile(string)
 	SetContestCallHistoryFieldName(i int, value string)
 
@@ -247,6 +248,7 @@ func (s *Settings) showSettings() {
 	s.updateExchangeFields()
 
 	s.view.SetContestName(s.contest.Name)
+	s.view.SetOperationModeSprint(s.contest.OperationModeSprint)
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
 	s.view.SetQSOsGoal(strconv.Itoa(s.contest.QSOsGoal))
 	s.view.SetPointsGoal(strconv.Itoa(s.contest.PointsGoal))
@@ -476,6 +478,10 @@ func (s *Settings) EnterContestName(value string) {
 	s.contest.Name = value
 }
 
+func (s *Settings) SetOperationModeSprint(value bool) {
+	s.contest.OperationModeSprint = value
+}
+
 func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
 }
@@ -553,6 +559,7 @@ func (v *nullView) SetContestExchangeFields([]core.ExchangeField)      {}
 func (v *nullView) SetContestExchangeValue(index int, value string)    {}
 func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
 func (v *nullView) SetContestName(string)                              {}
+func (v *nullView) SetOperationModeSprint(bool)                        {}
 func (v *nullView) SetContestCallHistoryFile(string)                   {}
 func (v *nullView) SetContestCallHistoryFieldName(int, string)         {}
 func (v *nullView) SetQSOsGoal(string)                                 {}

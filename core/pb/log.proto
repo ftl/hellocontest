@@ -64,6 +64,7 @@ message Contest {
     int32 qsosGoal = 22;
     int32 pointsGoal = 23;
     int32 multisGoal = 24;
+    bool sprintOperation = 25;
 }
 
 message Multis {

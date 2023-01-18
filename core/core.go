@@ -412,6 +412,14 @@ type Keyer struct {
 	WPM       int
 }
 
+type KeyerType string
+
+const (
+	KeyerTypeCWDaemon KeyerType = "cwdaemon"
+	KeyerTypeHamlib   KeyerType = "hamlib"
+	KeyerTypeTCI      KeyerType = "tci"
+)
+
 type Score struct {
 	ScorePerBand map[Band]BandScore
 }

@@ -130,14 +130,16 @@ func (c *Client) Disconnect() {
 	c.conn.Close()
 }
 
+func (c *Client) IsConnected() bool {
+	return c.connected
+}
+
 func (c *Client) Active() bool {
 	return c.connected
 }
 
-func (c *Client) withRequestTimeout() context.Context {
-	ctx, cancel := context.WithTimeout(context.Background(), c.requestTimeout)
-	defer cancel()
-	return ctx
+func (c *Client) withRequestTimeout() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), c.requestTimeout)
 }
 
 func (c *Client) setIncomingFrequency(frequency client.Frequency) {
@@ -174,7 +176,9 @@ func (c *Client) SetFrequency(f core.Frequency) {
 		return
 	}
 	c.outgoing.frequency = f
-	c.conn.SetFrequency(c.withRequestTimeout(), client.Frequency(f))
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+	c.conn.SetFrequency(ctx, client.Frequency(f))
 
 	log.Printf("outgoing frequency: %s", f)
 }
@@ -194,7 +198,9 @@ func (c *Client) SetBand(band core.Band) {
 	if c.conn == nil || c.conn.Closed() {
 		return
 	}
-	c.conn.SwitchToBand(c.withRequestTimeout(), outgoingBand)
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+	c.conn.SwitchToBand(ctx, outgoingBand)
 
 	log.Printf("outgoing band: %v", band)
 }
@@ -209,7 +215,9 @@ func (c *Client) SetMode(mode core.Mode) {
 	if c.conn == nil || c.conn.Closed() {
 		return
 	}
-	c.conn.SetModeAndPassband(c.withRequestTimeout(), outgoingMode, 0)
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+	c.conn.SetModeAndPassband(ctx, outgoingMode, 0)
 
 	log.Printf("outgoing mode: %v", mode)
 }
@@ -226,6 +234,42 @@ func (c *Client) Refresh() {
 	if c.incoming.mode != core.NoMode {
 		log.Printf("Refreshing VFO mode")
 		c.controller.SetMode(c.incoming.mode)
+	}
+}
+
+func (c *Client) Speed(speed int) {
+	if c.conn == nil || c.conn.Closed() {
+		return
+	}
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+	err := c.conn.SetMorseSpeed(ctx, speed)
+	if err != nil {
+		log.Printf("setting the morse speed failed: %v", err)
+	}
+}
+
+func (c *Client) Send(text string) {
+	if c.conn == nil || c.conn.Closed() {
+		return
+	}
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+	err := c.conn.SendMorse(ctx, text)
+	if err != nil {
+		log.Printf("sending the morse code failed: %v", err)
+	}
+}
+
+func (c *Client) Abort() {
+	if c.conn == nil || c.conn.Closed() {
+		return
+	}
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+	err := c.conn.StopMorse(ctx)
+	if err != nil {
+		log.Printf("stopping the morse code transmission failed: %v", err)
 	}
 }
 

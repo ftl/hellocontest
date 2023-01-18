@@ -3,6 +3,7 @@ package cfg
 import (
 	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/ftl/hamradio/cfg"
 	"github.com/pkg/errors"
@@ -42,6 +43,7 @@ var Default = Data{
 	},
 	TCIAddress:    "localhost:40001",
 	HamlibAddress: "localhost:4532",
+	KeyerType:     "tci",
 	KeyerHost:     "localhost",
 	KeyerPort:     6789,
 }
@@ -61,6 +63,7 @@ func Load() (*LoadedConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
+	data.KeyerType = core.KeyerType(strings.ToLower(strings.TrimSpace(string(data.KeyerType))))
 	return &LoadedConfiguration{
 		data: data,
 	}, nil
@@ -83,10 +86,11 @@ type Data struct {
 	Station       pb.Station
 	Contest       pb.Contest
 	Keyer         pb.Keyer
-	KeyerHost     string `json:"keyer_host"`
-	KeyerPort     int    `json:"keyer_port"`
-	HamlibAddress string `json:"hamlib_address"`
-	TCIAddress    string `json:"tci_address"`
+	KeyerType     core.KeyerType `json:"keyer_type"`
+	KeyerHost     string         `json:"keyer_host"`
+	KeyerPort     int            `json:"keyer_port"`
+	HamlibAddress string         `json:"hamlib_address"`
+	TCIAddress    string         `json:"tci_address"`
 }
 
 type LoadedConfiguration struct {
@@ -110,6 +114,10 @@ func (c *LoadedConfiguration) Keyer() core.Keyer {
 func (c *LoadedConfiguration) Contest() core.Contest {
 	result, _ := pb.ToContest(c.data.Contest)
 	return result
+}
+
+func (c *LoadedConfiguration) KeyerType() core.KeyerType {
+	return c.data.KeyerType
 }
 
 func (c *LoadedConfiguration) KeyerHost() string {

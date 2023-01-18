@@ -10,6 +10,8 @@ go 1.19
 
 // replace github.com/ftl/hamradio => ../hamradio
 
+// replace github.com/ftl/rigproxy => ../rigproxy
+
 // replace github.com/gotk3/gotk3 => ../gotk3
 
 require (
@@ -17,7 +19,7 @@ require (
 	github.com/ftl/conval v0.3.2
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
 	github.com/ftl/hamradio v0.2.6
-	github.com/ftl/rigproxy v0.1.0
+	github.com/ftl/rigproxy v0.2.0
 	github.com/ftl/tci v0.3.0
 	github.com/golang/protobuf v1.5.2
 	github.com/gotk3/gotk3 v0.6.1

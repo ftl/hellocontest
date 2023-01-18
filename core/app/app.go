@@ -89,6 +89,7 @@ type Configuration interface {
 	Contest() core.Contest
 	Keyer() core.Keyer
 
+	KeyerType() core.KeyerType
 	KeyerHost() string
 	KeyerPort() int
 	HamlibAddress() string
@@ -149,11 +150,16 @@ func (c *Controller) Startup() {
 		c.hamlibClient.KeepOpen()
 		c.Entry.SetVFO(c.hamlibClient)
 		c.hamlibClient.SetVFOController(c.Entry)
+		if c.configuration.KeyerType() == core.KeyerTypeHamlib {
+			keyerCWClient = c.hamlibClient
+			log.Println("using the hamlib client for CW")
+		}
 	}
 
-	if keyerCWClient == nil {
+	if keyerCWClient == nil || c.configuration.KeyerType() == core.KeyerTypeCWDaemon {
 		c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
 		keyerCWClient = c.cwclient
+		log.Println("using the CWDaemon for CW")
 	}
 
 	c.Workmode = workmode.NewController()

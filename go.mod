@@ -16,7 +16,7 @@ go 1.19
 
 require (
 	github.com/ftl/cabrillo v0.2.1
-	github.com/ftl/conval v0.3.2
+	github.com/ftl/conval v0.3.3
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
 	github.com/ftl/hamradio v0.2.6
 	github.com/ftl/rigproxy v0.2.0

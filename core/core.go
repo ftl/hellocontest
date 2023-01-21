@@ -422,6 +422,14 @@ const (
 
 type Score struct {
 	ScorePerBand map[Band]BandScore
+	GraphPerBand map[Band]BandGraph
+}
+
+func NewScore() Score {
+	return Score{
+		ScorePerBand: make(map[Band]BandScore),
+		GraphPerBand: make(map[Band]BandGraph),
+	}
 }
 
 func (s Score) String() string {
@@ -444,6 +452,87 @@ func (s Score) Result() BandScore {
 		result.Add(score)
 	}
 	return result
+}
+
+type BandGraph struct {
+	Band       Band
+	DataPoints []BandScore
+
+	startTime  time.Time
+	binSeconds float64
+}
+
+func NewBandGraph(band Band, startTime time.Time, duration time.Duration) BandGraph {
+	var binCount int
+	if startTime.IsZero() || duration == 0 {
+		binCount = 1
+	} else {
+		binCount = 60
+	}
+	return BandGraph{
+		Band:       band,
+		DataPoints: make([]BandScore, int(binCount)),
+
+		binSeconds: duration.Seconds() / float64(binCount),
+		startTime:  startTime,
+	}
+}
+
+func (g BandGraph) String() string {
+	points := make([]string, len(g.DataPoints))
+	multis := make([]string, len(g.DataPoints))
+	for i, value := range g.DataPoints {
+		points[i] = fmt.Sprintf("%3d", value.Points)
+		multis[i] = fmt.Sprintf("%3d", value.Multis)
+	}
+	return fmt.Sprintf("P: %s\nM: %s\n", strings.Join(points, " | "), strings.Join(multis, " | "))
+}
+
+func (g *BandGraph) Add(timestamp time.Time, score QSOScore) {
+	bindex := g.Bindex(timestamp)
+	if bindex == -1 {
+		return
+	}
+
+	bandScore := g.DataPoints[bindex]
+	bandScore.AddQSO(score)
+	g.DataPoints[bindex] = bandScore
+}
+
+func (g *BandGraph) Bindex(timestamp time.Time) int {
+	if g.startTime.IsZero() {
+		return 0
+	}
+	if timestamp.IsZero() {
+		return -1
+	}
+	if timestamp.Before(g.startTime) {
+		return -1
+	}
+
+	binCount := len(g.DataPoints)
+	if binCount == 1 {
+		return 0
+	}
+	if g.binSeconds == 0 {
+		return -1
+	}
+
+	seconds := timestamp.Sub(g.startTime).Seconds()
+
+	result := int(seconds / g.binSeconds)
+	if result > binCount-1 {
+		return -1
+	}
+
+	return result
+}
+
+func (g BandGraph) ScaleHourlyGoalToBin(goal int) float64 {
+	if g.binSeconds == 0 {
+		return float64(goal)
+	}
+	return (g.binSeconds / 3600.0) * float64(goal)
 }
 
 type BandScore struct {

@@ -14,8 +14,8 @@ type RateUpdatedListener interface {
 
 type RateUpdatedListenerFunc func(core.QSORate)
 
-func (f RateUpdatedListenerFunc) RateUpdated(Score core.QSORate) {
-	f(Score)
+func (f RateUpdatedListenerFunc) RateUpdated(rate core.QSORate) {
+	f(rate)
 }
 
 func NewCounter(asyncRunner core.AsyncRunner) *Counter {

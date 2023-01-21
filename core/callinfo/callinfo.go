@@ -143,7 +143,6 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 		exchange = c.predictExchange(call, qsos, exchange, historicExchange)
 	}
 	c.predictedExchange = exchange
-	log.Printf("last exchange: %+v", c.lastExchange)
 
 	c.view.SetCallsign(call, worked, duplicate)
 	c.view.SetUserInfo(userInfo)
@@ -275,6 +274,10 @@ func (c *Callinfo) predictExchange(call string, qsos []core.QSO, currentExchange
 			continue
 		}
 		for _, qso := range qsos {
+			if i >= len(qso.TheirExchange) {
+				break
+			}
+
 			if result[i] == "" {
 				result[i] = qso.TheirExchange[i]
 			} else if result[i] != qso.TheirExchange[i] {

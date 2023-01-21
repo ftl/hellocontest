@@ -1,7 +1,9 @@
 package core
 
 import (
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,4 +37,31 @@ func TestEntryField_NextExchangeField(t *testing.T) {
 	assert.Equal(t, TheirExchangeField(3), theirExchange.NextExchangeField())
 
 	assert.Equal(t, EntryField(""), CallsignField.NextExchangeField())
+}
+
+func TestBandGraph_Bindex(t *testing.T) {
+	tt := []struct {
+		duration time.Duration
+		value    time.Duration
+		expected int
+	}{
+		{0, 1 * time.Second, 0},
+		{2 * time.Hour, -1 * time.Second, -1},
+		{2 * time.Hour, 0, 0},
+		{2 * time.Hour, 1 * time.Second, 0},
+		{2 * time.Hour, 1*time.Hour - 1*time.Second, 23},
+		{2 * time.Hour, 1 * time.Hour, 24},
+		{2 * time.Hour, 1*time.Hour + 1*time.Second, 24},
+		{2 * time.Hour, 2*time.Hour - 1*time.Second, 47},
+		{2 * time.Hour, 2 * time.Hour, -1},
+		{2 * time.Hour, 2*time.Hour + 1*time.Second, -1},
+	}
+	startTime := time.Now()
+	for i, tc := range tt {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			graph := NewBandGraph(NoBand, startTime, tc.duration)
+			actual := graph.Bindex(startTime.Add(tc.value))
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
 }

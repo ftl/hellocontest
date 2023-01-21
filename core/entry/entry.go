@@ -544,7 +544,6 @@ func (c *Controller) Log() {
 				return
 			}
 		default:
-			log.Printf("their exchange: %d predicted exchange: %d", len(qso.TheirExchange), len(predictedExchange))
 			if qso.TheirExchange[i] == "" && len(predictedExchange) == len(qso.TheirExchange) && predictedExchange[i] != "" {
 				c.setTheirExchangePrediction(i, predictedExchange[i])
 				c.showErrorOnField(fmt.Errorf("check their exchange"), field.Field)

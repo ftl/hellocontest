@@ -3,6 +3,7 @@ package score
 import (
 	"log"
 	"strings"
+	"time"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -26,6 +27,7 @@ type View interface {
 	Hide()
 
 	ShowScore(score core.Score)
+	SetGoals(points int, multis int)
 }
 
 // DXCCEntities returns a list of matching DXCC entities for the given string and indicates if there was a match at all.
@@ -46,11 +48,28 @@ var toConvalMode = map[core.Mode]conval.Mode{
 	core.ModeDigital: conval.ModeDigital,
 }
 
+type Counter struct {
+	core.Score
+	counter        convalCounter
+	view           View
+	prefixDatabase prefixDatabase
+	invalid        bool
+
+	contestSetup      conval.Setup
+	contestDefinition *conval.Definition
+	contestStartTime  time.Time
+	contestPointsGoal int
+	contestMultisGoal int
+
+	myExchangeFields    []conval.ExchangeField
+	theirExchangeFields []conval.ExchangeField
+
+	listeners []interface{}
+}
+
 func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 	result := &Counter{
-		Score: core.Score{
-			ScorePerBand: make(map[core.Band]core.BandScore),
-		},
+		Score:          core.NewScore(),
 		counter:        new(nullCounter),
 		view:           new(nullView),
 		prefixDatabase: prefixDatabase{entities},
@@ -61,21 +80,6 @@ func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 	result.resetCounter()
 
 	return result
-}
-
-type Counter struct {
-	core.Score
-	counter        convalCounter
-	view           View
-	prefixDatabase prefixDatabase
-	invalid        bool
-
-	contestSetup        conval.Setup
-	contestDefinition   *conval.Definition
-	myExchangeFields    []conval.ExchangeField
-	theirExchangeFields []conval.ExchangeField
-
-	listeners []interface{}
 }
 
 func (c *Counter) Result() int {
@@ -89,6 +93,7 @@ func (c *Counter) SetView(view View) {
 	}
 	c.view = view
 	c.view.ShowScore(c.Score)
+	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 }
 
 func (c *Counter) StationChanged(station core.Station) {
@@ -118,6 +123,7 @@ func (c *Counter) setStation(station core.Station) {
 
 func (c *Counter) ContestChanged(contest core.Contest) {
 	c.setContest(contest)
+	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.invalid = true
 
 	c.resetCounter()
@@ -125,6 +131,9 @@ func (c *Counter) ContestChanged(contest core.Contest) {
 
 func (c *Counter) setContest(contest core.Contest) {
 	c.contestDefinition = contest.Definition
+	c.contestStartTime = contest.StartTime
+	c.contestPointsGoal = contest.PointsGoal
+	c.contestMultisGoal = contest.MultisGoal
 	c.myExchangeFields = toConvalExchangeFields(contest.MyExchangeFields)
 	c.theirExchangeFields = toConvalExchangeFields(contest.TheirExchangeFields)
 }
@@ -156,9 +165,7 @@ func (c *Counter) Notify(listener interface{}) {
 }
 
 func (c *Counter) Clear() {
-	c.Score = core.Score{
-		ScorePerBand: make(map[core.Band]core.BandScore),
-	}
+	c.Score = core.NewScore()
 
 	c.resetCounter()
 
@@ -177,6 +184,22 @@ func (c *Counter) Add(qso core.QSO) core.QSOScore {
 	bandScore := c.ScorePerBand[qso.Band]
 	bandScore.AddQSO(result)
 	c.ScorePerBand[qso.Band] = bandScore
+
+	if c.contestDefinition != nil {
+		graph, ok := c.GraphPerBand[qso.Band]
+		if !ok {
+			graph = core.NewBandGraph(qso.Band, c.contestStartTime, c.contestDefinition.Duration)
+		}
+		graph.Add(qso.Time, result)
+		c.GraphPerBand[graph.Band] = graph
+
+		sumGraph, ok := c.GraphPerBand[core.NoBand]
+		if !ok {
+			sumGraph = core.NewBandGraph(core.NoBand, c.contestStartTime, c.contestDefinition.Duration)
+		}
+		sumGraph.Add(qso.Time, result)
+		c.GraphPerBand[core.NoBand] = sumGraph
+	}
 
 	c.emitScoreUpdated(c.Score)
 
@@ -261,6 +284,7 @@ func (c *nullCounter) Probe(conval.QSO) conval.QSOScore { return conval.QSOScore
 
 type nullView struct{}
 
-func (v *nullView) Show()                      {}
-func (v *nullView) Hide()                      {}
-func (v *nullView) ShowScore(score core.Score) {}
+func (v *nullView) Show()                {}
+func (v *nullView) Hide()                {}
+func (v *nullView) ShowScore(core.Score) {}
+func (v *nullView) SetGoals(int, int)    {}

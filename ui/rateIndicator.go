@@ -21,17 +21,27 @@ var timeColors = colorMap{
 const angleRotation = (3.0 / 2.0) * math.Pi
 
 var rateStyle = struct {
+	backgroundColor    color
 	fontColor          color
 	fontSize           float64
 	axisColor          color
 	axisMargin         float64
+	lowZoneColor       color
+	areaAlpha          float64
+	borderAlpha        float64
 	timeIndicatorWidth float64
+	timeFrameColor     color
 }{
+	backgroundColor:    color{1, 1, 1},
 	fontColor:          color{0.4, 0.4, 0.4},
 	fontSize:           15,
 	axisColor:          color{0.4, 0.4, 0.4},
 	axisMargin:         15,
+	lowZoneColor:       color{0.8, 0.8, 0.8},
+	areaAlpha:          0.8,
+	borderAlpha:        0.4,
 	timeIndicatorWidth: 10,
+	timeFrameColor:     color{1, 0.8, 0},
 }
 
 type rateIndicator struct {
@@ -74,14 +84,14 @@ func (ind *rateIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	ind.fillBackground(cr)
 
-	cr.SetSourceRGBA(0.8, 0.8, 0.8, 0.4)
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.toRGBA(rateStyle.areaAlpha))
 	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
 	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
 	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(0.8, 0.8, 0.8, 0.8)
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.toRGBA(rateStyle.borderAlpha))
 	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
 	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
 	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)
@@ -89,14 +99,14 @@ func (ind *rateIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Stroke()
 
 	overallAchievment := (ind.qAxis.achievement + ind.pAxis.achievement + ind.mAxis.achievement) / 3
-	cr.SetSourceRGBA(rateColors.toRGBA(overallAchievment, 0.4))
+	cr.SetSourceRGBA(rateColors.toRGBA(overallAchievment, rateStyle.areaAlpha))
 	cr.MoveTo(ind.qAxis.value1Point.x, ind.qAxis.value1Point.y)
 	cr.LineTo(ind.pAxis.value1Point.x, ind.pAxis.value1Point.y)
 	cr.LineTo(ind.mAxis.value1Point.x, ind.mAxis.value1Point.y)
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(rateColors.toRGBA(overallAchievment, 0.8))
+	cr.SetSourceRGBA(rateColors.toRGBA(overallAchievment, rateStyle.borderAlpha))
 	cr.MoveTo(ind.qAxis.value1Point.x, ind.qAxis.value1Point.y)
 	cr.LineTo(ind.pAxis.value1Point.x, ind.pAxis.value1Point.y)
 	cr.LineTo(ind.mAxis.value1Point.x, ind.mAxis.value1Point.y)
@@ -113,7 +123,7 @@ func (ind *rateIndicator) fillBackground(cr *cairo.Context) {
 	cr.Save()
 	defer cr.Restore()
 
-	cr.SetSourceRGB(1, 1, 1)
+	cr.SetSourceRGB(rateStyle.backgroundColor.toRGB())
 	cr.Paint()
 }
 
@@ -193,7 +203,9 @@ func (a *rateAxis) PrepareGeometry(da *gtk.DrawingArea, cr *cairo.Context) {
 	}
 
 	if a.goalValue == 0 {
-
+		a.value1Point = center
+		a.value2Point = center
+		a.goalPoint = center
 	} else {
 		a.value1Point = polar{
 			radius:  math.Min((a.value1/a.maxValue)*axisLength, axisLength),

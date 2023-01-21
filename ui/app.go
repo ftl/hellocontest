@@ -92,6 +92,7 @@ func (a *application) activate() {
 	a.controller.Callinfo.SetView(a.callinfoWindow)
 	a.controller.Score.SetView(a.scoreWindow)
 	a.controller.Rate.SetView(a.rateWindow)
+	a.controller.Rate.Notify(a.scoreWindow)
 	a.controller.Settings.SetView(a.settingsDialog)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)

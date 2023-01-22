@@ -368,7 +368,7 @@ func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mod
 		case conval.OncePerBand:
 			duplicate = (qso.Band == band)
 		case conval.OncePerBandAndMode:
-			duplicate = (qso.Band == band) || (qso.Mode == mode)
+			duplicate = (qso.Band == band) && (qso.Mode == mode)
 		default:
 			duplicate = false
 		}

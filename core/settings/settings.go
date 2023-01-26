@@ -11,6 +11,7 @@ import (
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
+	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -81,6 +82,7 @@ type View interface {
 	SetOperationModeSprint(bool)
 	SetContestCallHistoryFile(string)
 	SetContestCallHistoryFieldName(i int, value string)
+	SetContestAvailableCallHistoryFieldNames([]string)
 
 	SetQSOsGoal(string)
 	SetPointsGoal(string)
@@ -242,11 +244,19 @@ func (s *Settings) showSettings() {
 		}
 		s.view.SetContestIdentifiers(ids, texts)
 	}
+
+	callHistoryFieldNames := make([]string, 0, len(scp.DefaultFieldSet))
+	for _, fieldName := range scp.DefaultFieldSet {
+		callHistoryFieldNames = append(callHistoryFieldNames, string(fieldName))
+	}
+	s.view.SetContestAvailableCallHistoryFieldNames(callHistoryFieldNames)
+
 	if s.contest.Definition != nil {
 		s.view.SelectContestIdentifier(strings.ToUpper(string(s.contest.Definition.Identifier)))
 	} else {
 		s.view.SelectContestIdentifier("")
 	}
+
 	s.updateContestPages()
 	s.updateExchangeFields()
 
@@ -593,6 +603,7 @@ func (v *nullView) SetContestStartTime(string)                         {}
 func (v *nullView) SetOperationModeSprint(bool)                        {}
 func (v *nullView) SetContestCallHistoryFile(string)                   {}
 func (v *nullView) SetContestCallHistoryFieldName(int, string)         {}
+func (v *nullView) SetContestAvailableCallHistoryFieldNames([]string)  {}
 func (v *nullView) SetQSOsGoal(string)                                 {}
 func (v *nullView) SetPointsGoal(string)                               {}
 func (v *nullView) SetMultisGoal(string)                               {}

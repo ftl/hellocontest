@@ -72,6 +72,7 @@ type settingsView struct {
 	serialExchangeEntry            *gtk.Entry
 	callHistoryFieldNamesParent    *gtk.Grid
 	clearCallHistorySettingsButton *gtk.Button
+	availableCallHistoryFieldNames []string
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -361,9 +362,12 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		v.exchangeFieldsParent.Attach(entry, 1, i, 1, 1)
 
 		v.callHistoryFieldNamesParent.InsertColumn(i)
-		fieldName, _ := gtk.EntryNew()
+		fieldName, _ := gtk.ComboBoxTextNew()
 		fieldName.SetName(string(field.Field))
-		fieldName.SetWidthChars(6)
+		fieldName.Append("", "")
+		for _, t := range v.availableCallHistoryFieldNames {
+			fieldName.Append(t, t)
+		}
 		fieldName.SetTooltipText(field.Short) // TODO use field.Hint
 		fieldName.SetHAlign(gtk.ALIGN_FILL)
 		fieldName.SetHExpand(true)
@@ -441,7 +445,7 @@ func (v *settingsView) SetContestGenerateSerialExchange(active bool, sensitive b
 	})
 }
 
-func (v *settingsView) onCallHistoryFieldNameChanged(entry *gtk.Entry) bool {
+func (v *settingsView) onCallHistoryFieldNameChanged(entry *gtk.ComboBoxText) bool {
 	if v.ignoreChangedEvent {
 		return false
 	}
@@ -449,7 +453,7 @@ func (v *settingsView) onCallHistoryFieldNameChanged(entry *gtk.Entry) bool {
 	name, _ := entry.GetName()
 	entryField := core.EntryField(name)
 
-	value, _ := entry.GetText()
+	value := entry.GetActiveText()
 
 	v.controller.EnterContestCallHistoryFieldName(entryField, value)
 
@@ -458,14 +462,18 @@ func (v *settingsView) onCallHistoryFieldNameChanged(entry *gtk.Entry) bool {
 
 func (v *settingsView) SetContestCallHistoryFieldName(i int, value string) {
 	child, _ := v.callHistoryFieldNamesParent.GetChildAt(i, 0)
-	entry, ok := child.(*gtk.Entry)
+	entry, ok := child.(*gtk.ComboBoxText)
 	if !ok {
 		return
 	}
 
 	v.doIgnoreChanges(func() {
-		entry.SetText(value)
+		entry.SetActiveID(value)
 	})
+}
+
+func (v *settingsView) SetContestAvailableCallHistoryFieldNames(fieldNames []string) {
+	v.availableCallHistoryFieldNames = fieldNames
 }
 
 func (v *settingsView) SetContestName(value string) {

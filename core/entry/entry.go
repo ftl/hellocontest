@@ -50,6 +50,7 @@ type Logbook interface {
 	NextNumber() core.QSONumber
 	LastBand() core.Band
 	LastMode() core.Mode
+	LastExchange() []string
 	Log(core.QSO)
 }
 
@@ -638,7 +639,12 @@ func (c *Controller) Clear() {
 	c.input.theirNumber = ""
 	c.input.theirExchange = make([]string, len(c.theirExchangeFields))
 	c.input.myExchange = make([]string, len(c.myExchangeFields))
+	lastExchange := c.logbook.LastExchange()
 	for i, value := range c.defaultExchangeValues {
+		if value == "" && i < len(lastExchange) {
+			value = lastExchange[i]
+		}
+
 		c.input.myExchange[i] = value
 		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
 			c.input.myReport = value

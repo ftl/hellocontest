@@ -295,7 +295,9 @@ THE SOFTWARE.
             <property name="can-focus">False</property>
             <property name="halign">start</property>
             <property name="hexpand">False</property>
+            <property name="vexpand">True</property>
             <property name="use-markup">True</property>
+            <property name="wrap">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -644,11 +646,12 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <!-- n-columns=3 n-rows=1 -->
+              <!-- n-columns=6 n-rows=1 -->
               <object class="GtkGrid" id="contestCallHistoryFieldNamesGrid1">
                 <property name="name">contestCallHistoryFieldNames</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
                 <property name="row-spacing">2</property>
                 <property name="column-spacing">5</property>
                 <child>
@@ -657,6 +660,8 @@ THE SOFTWARE.
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">The goal for QSOs per hour</property>
+                    <property name="hexpand">True</property>
+                    <property name="width-chars">3</property>
                     <property name="placeholder-text" translatable="yes">QSOs/h</property>
                     <property name="input-purpose">digits</property>
                   </object>
@@ -666,13 +671,42 @@ THE SOFTWARE.
                   </packing>
                 </child>
                 <child>
+                  <object class="GtkEntry" id="multisGoalEntry">
+                    <property name="name">multisGoal</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">The goal for multis per hour</property>
+                    <property name="hexpand">True</property>
+                    <property name="width-chars">3</property>
+                    <property name="placeholder-text" translatable="yes">Multis/h</property>
+                    <property name="input-purpose">digits</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">4</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkEntry" id="pointsGoalEntry">
                     <property name="name">pointsGoal</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="tooltip-text" translatable="yes">The goal for points per hour</property>
+                    <property name="hexpand">True</property>
+                    <property name="width-chars">3</property>
                     <property name="placeholder-text" translatable="yes">Points/h</property>
                     <property name="input-purpose">digits</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">QSOs/h</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
@@ -680,16 +714,24 @@ THE SOFTWARE.
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkEntry" id="multisGoalEntry">
-                    <property name="name">multisGoal</property>
+                  <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="tooltip-text" translatable="yes">The goal for multis per hour</property>
-                    <property name="placeholder-text" translatable="yes">Multis/h</property>
-                    <property name="input-purpose">digits</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Points/h</property>
                   </object>
                   <packing>
-                    <property name="left-attach">2</property>
+                    <property name="left-attach">3</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Multis/h</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">5</property>
                     <property name="top-attach">0</property>
                   </packing>
                 </child>
@@ -769,12 +811,52 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="contestStartTimeEntry">
-                <property name="name">contestStartTime</property>
+              <!-- n-columns=3 n-rows=1 -->
+              <object class="GtkGrid">
                 <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="tooltip-text" translatable="yes">The start time of the contest in UTC. Use the following format: dd-mm-yyyy hh:mm</property>
-                <property name="placeholder-text" translatable="yes">01-01-2022 09:00</property>
+                <property name="can-focus">False</property>
+                <child>
+                  <object class="GtkEntry" id="contestStartTimeEntry">
+                    <property name="name">contestStartTime</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="tooltip-text" translatable="yes">The start time of the contest in UTC. Use the following format: dd-mm-yyyy hh:mm</property>
+                    <property name="hexpand">True</property>
+                    <property name="placeholder-text" translatable="yes">01-01-2022 09:00</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="contestStartTimeTodayButton">
+                    <property name="label" translatable="yes">Today</property>
+                    <property name="name">contestStartTimeTodayButton</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Click to set the current date at 0:00Z as start time of this contest</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="contestStartTimeNowButton">
+                    <property name="label" translatable="yes">Now</property>
+                    <property name="name">contestStartTimeNowButton</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Click to set the current hour as start time for this contest</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
               </object>
               <packing>
                 <property name="left-attach">1</property>

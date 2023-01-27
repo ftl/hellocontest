@@ -538,6 +538,19 @@ func (s *Settings) EnterContestStartTime(value string) {
 	s.contest.StartTime = startTime
 }
 
+func (s *Settings) SetContestStartTimeToday() {
+	year, month, day := time.Now().Date()
+	s.contest.StartTime = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+	s.view.HideMessage()
+	s.view.SetContestStartTime(s.formattedContestStartTime())
+}
+
+func (s *Settings) SetContestStartTimeNow() {
+	s.contest.StartTime = time.Now().UTC().Truncate(time.Hour)
+	s.view.HideMessage()
+	s.view.SetContestStartTime(s.formattedContestStartTime())
+}
+
 func (s *Settings) SetOperationModeSprint(value bool) {
 	s.contest.OperationModeSprint = value
 }

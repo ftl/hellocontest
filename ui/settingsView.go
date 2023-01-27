@@ -27,6 +27,8 @@ type SettingsController interface {
 
 	EnterContestName(string)
 	EnterContestStartTime(string)
+	SetContestStartTimeToday()
+	SetContestStartTimeNow()
 	SetOperationModeSprint(bool)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
@@ -70,6 +72,8 @@ type settingsView struct {
 	exchangeFieldCount             int
 	generateSerialExchangeButton   *gtk.CheckButton
 	serialExchangeEntry            *gtk.Entry
+	contestStartTimeTodayButton    *gtk.Button
+	contestStartTimeNowButton      *gtk.Button
 	callHistoryFieldNamesParent    *gtk.Grid
 	clearCallHistorySettingsButton *gtk.Button
 	availableCallHistoryFieldNames []string
@@ -87,6 +91,10 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.openContestUploadPage = getUI(builder, "openContestUploadPageButton").(*gtk.Button)
 	result.openContestUploadPage.Connect("clicked", result.onOpenContestUploadPagePressed)
 	result.exchangeFieldsParent = getUI(builder, "contestExchangeFieldsGrid").(*gtk.Grid)
+	result.contestStartTimeTodayButton = getUI(builder, "contestStartTimeTodayButton").(*gtk.Button)
+	result.contestStartTimeTodayButton.Connect("clicked", result.onContestStartTimeTodayPressed)
+	result.contestStartTimeNowButton = getUI(builder, "contestStartTimeNowButton").(*gtk.Button)
+	result.contestStartTimeNowButton.Connect("clicked", result.onContestStartTimeNowPressed)
 	result.callHistoryFieldNamesParent = getUI(builder, "contestCallHistoryFieldNamesGrid").(*gtk.Grid)
 	result.clearCallHistorySettingsButton = getUI(builder, "contestCallHistoryClearButton").(*gtk.Button)
 	result.clearCallHistorySettingsButton.Connect("clicked", result.onClearCallHistoryPressed)
@@ -227,6 +235,14 @@ func (v *settingsView) onOpenContestRulesPagePressed(_ *gtk.Button) {
 
 func (v *settingsView) onOpenContestUploadPagePressed(_ *gtk.Button) {
 	v.controller.OpenContestUploadPage()
+}
+
+func (v *settingsView) onContestStartTimeTodayPressed(_ *gtk.Button) {
+	v.controller.SetContestStartTimeToday()
+}
+
+func (v *settingsView) onContestStartTimeNowPressed(_ *gtk.Button) {
+	v.controller.SetContestStartTimeNow()
 }
 
 func (v *settingsView) onClearCallHistoryPressed(_ *gtk.Button) {

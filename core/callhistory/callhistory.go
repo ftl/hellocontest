@@ -16,6 +16,11 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+const (
+	NameField  = "Name"
+	Exch1Field = "Exch1"
+)
+
 func New(settings core.Settings, callback AvailabilityCallback) *Finder {
 	result := &Finder{
 		callback:   callback,

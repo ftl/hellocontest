@@ -14,6 +14,7 @@ import (
 	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/callhistory"
 )
 
 const contestStartTimeFormat = "02-01-2006 15:04"
@@ -90,7 +91,7 @@ type View interface {
 }
 
 func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, station core.Station, contest core.Contest) *Settings {
-	return &Settings{
+	result := &Settings{
 		writer:         new(nullWriter),
 		view:           new(nullView),
 		defaultsOpener: defaultsOpener,
@@ -102,14 +103,22 @@ func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, station cor
 		savedStation:   station,
 		savedContest:   deepCopyContest(contest),
 	}
+
+	result.availableCallHistoryFieldNames = make([]string, 0, len(scp.DefaultFieldSet))
+	for _, fieldName := range scp.DefaultFieldSet {
+		result.availableCallHistoryFieldNames = append(result.availableCallHistoryFieldNames, string(fieldName))
+	}
+
+	return result
 }
 
 type Settings struct {
-	writer                   Writer
-	view                     View
-	defaultsOpener           DefaultsOpener
-	browserOpener            BrowserOpener
-	serialExchangeFieldIndex int
+	writer                         Writer
+	view                           View
+	defaultsOpener                 DefaultsOpener
+	browserOpener                  BrowserOpener
+	serialExchangeFieldIndex       int
+	availableCallHistoryFieldNames []string
 
 	listeners []interface{}
 
@@ -244,12 +253,6 @@ func (s *Settings) showSettings() {
 		}
 		s.view.SetContestIdentifiers(ids, texts)
 	}
-
-	callHistoryFieldNames := make([]string, 0, len(scp.DefaultFieldSet))
-	for _, fieldName := range scp.DefaultFieldSet {
-		callHistoryFieldNames = append(callHistoryFieldNames, string(fieldName))
-	}
-	s.view.SetContestAvailableCallHistoryFieldNames(callHistoryFieldNames)
 
 	if s.contest.Definition != nil {
 		s.view.SelectContestIdentifier(strings.ToUpper(string(s.contest.Definition.Identifier)))
@@ -388,6 +391,8 @@ func (s *Settings) updateContestPages() {
 }
 
 func (s *Settings) updateExchangeFields() {
+	s.view.SetContestAvailableCallHistoryFieldNames(s.availableCallHistoryFieldNames)
+
 	var exchangeFields []core.ExchangeField
 	var contestModes []conval.Mode
 	if s.contest.Definition == nil {
@@ -431,7 +436,22 @@ func (s *Settings) updateExchangeFields() {
 	s.view.SetContestGenerateSerialExchange(s.contest.GenerateSerialExchange, !exclusiveSerialField)
 
 	for i, value := range s.contest.CallHistoryFieldNames {
-		s.view.SetContestCallHistoryFieldName(i, value)
+		if value != "" {
+			s.view.SetContestCallHistoryFieldName(i, value)
+			continue
+		}
+
+		field := exchangeFields[i]
+		var fieldName string
+		switch {
+		case field.Properties.Contains(conval.RSTProperty) || field.Properties.Contains(conval.SerialNumberProperty):
+			fieldName = ""
+		case len(field.Properties) == 1 && field.Properties.Contains(conval.NameProperty):
+			fieldName = callhistory.NameField
+		default:
+			fieldName = callhistory.Exch1Field
+		}
+		s.view.SetContestCallHistoryFieldName(i, fieldName)
 	}
 }
 

@@ -85,14 +85,18 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		endX := float64(i+1) * binWidth
 		value := float64(g.graph.DataPoints[i].Points)
 		y := zeroY - math.Min(value*valueScaling, maxHeight)
-		switch i {
-		case 0:
+		lineAdded := false
+		if i == 0 {
 			cr.LineTo(startX, y)
 			cr.LineTo(centerX, y)
-		case valueCount - 1:
+			lineAdded = true
+		}
+		if i == valueCount-1 {
 			cr.LineTo(endX, y)
 			cr.LineTo(endX, zeroY)
-		default:
+			lineAdded = true
+		}
+		if !lineAdded {
 			cr.CurveTo(startX, lastY, startX, y, centerX, y)
 		}
 		lastY = y
@@ -106,14 +110,18 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		endX := float64(i) * binWidth
 		value := float64(g.graph.DataPoints[i].Multis)
 		y := zeroY + math.Min(value*valueScaling, maxHeight)
-		switch i {
-		case valueCount - 1:
+		lineAdded := false
+		if i == valueCount-1 {
 			cr.LineTo(startX, y)
 			cr.LineTo(centerX, y)
-		case 0:
+			lineAdded = true
+		}
+		if i == 0 {
 			cr.LineTo(endX, y)
 			cr.LineTo(endX, zeroY)
-		default:
+			lineAdded = true
+		}
+		if !lineAdded {
 			cr.CurveTo(startX, lastY, startX, y, centerX, y)
 		}
 		lastY = y
@@ -137,7 +145,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.ClosePath()
 	cr.Stroke()
 
-	if g.timeFrameIndex >= 0 {
+	if g.timeFrameIndex >= 0 && valueCount > 1 {
 		startX := float64(g.timeFrameIndex) * binWidth
 		endX := float64(g.timeFrameIndex+1) * binWidth
 		cr.SetSourceRGB(rateStyle.timeFrameColor.toRGB()) // TODO calculate the achievment of the current time frame and use the corresponding color

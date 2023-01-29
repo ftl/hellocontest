@@ -425,6 +425,12 @@ const (
 	KeyerTypeTCI      KeyerType = "tci"
 )
 
+type KeyerPreset struct {
+	Name      string   `json:"name"`
+	SPMacros  []string `json:"sp_macros"`
+	RunMacros []string `json:"run_macros"`
+}
+
 type Score struct {
 	ScorePerBand map[Band]BandScore
 	GraphPerBand map[Band]BandGraph

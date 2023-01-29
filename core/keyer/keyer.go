@@ -18,6 +18,8 @@ type View interface {
 	ShowMessage(...interface{})
 	SetPattern(int, string)
 	SetSpeed(int)
+	SetPresetNames([]string)
+	SetPreset(string)
 }
 
 // CWClient defines the interface used by the Keyer to output the CW.
@@ -47,7 +49,7 @@ type Writer interface {
 }
 
 // New returns a new Keyer that has no patterns or templates defined yet.
-func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode core.Workmode) *Keyer {
+func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode core.Workmode, presets []core.KeyerPreset) *Keyer {
 	result := &Keyer{
 		writer:          new(nullWriter),
 		stationCallsign: settings.Station().Callsign,
@@ -56,23 +58,36 @@ func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode cor
 		spTemplates:     make(map[int]*template.Template),
 		runPatterns:     make(map[int]string),
 		runTemplates:    make(map[int]*template.Template),
+		presets:         presets,
 		client:          client,
 		values:          noValues,
 	}
 	result.setWorkmode(workmode)
 	result.SetKeyer(keyer)
+	result.presetNames = presetNames(presets)
 	if result.client == nil {
 		result.client = new(nullClient)
 	}
 	return result
 }
 
+func presetNames(presets []core.KeyerPreset) []string {
+	result := make([]string, len(presets))
+	for i, preset := range presets {
+		result[i] = preset.Name
+	}
+	return result
+}
+
 type Keyer struct {
-	writer     Writer
-	view       View
-	client     CWClient
-	values     KeyerValueProvider
-	savedKeyer core.Keyer
+	writer         Writer
+	view           View
+	client         CWClient
+	presets        []core.KeyerPreset
+	presetNames    []string
+	values         KeyerValueProvider
+	savedKeyer     core.Keyer
+	selectedPreset *core.KeyerPreset
 
 	listeners []interface{}
 
@@ -88,6 +103,7 @@ type Keyer struct {
 }
 
 func (k *Keyer) setWorkmode(workmode core.Workmode) {
+	k.workmode = workmode
 	switch workmode {
 	case core.SearchPounce:
 		k.patterns = &k.spPatterns
@@ -126,6 +142,7 @@ func (k *Keyer) SetKeyer(keyer core.Keyer) {
 func (k *Keyer) SetView(view View) {
 	k.view = view
 	k.showPatterns()
+	k.view.SetPresetNames(k.presetNames)
 	k.view.SetSpeed(k.wpm)
 }
 
@@ -189,6 +206,31 @@ func (k *Keyer) getKeyerSettings() (core.Keyer, bool) {
 	return keyer, modified
 }
 
+func (k *Keyer) SelectPreset(name string) {
+	k.selectedPreset = nil
+	for _, preset := range k.presets {
+		if preset.Name == name {
+			k.selectedPreset = &preset
+			break
+		}
+	}
+	if k.selectedPreset == nil {
+		k.view.SetPreset("")
+		return
+	}
+	preset := *k.selectedPreset
+	k.view.SetPreset(preset.Name)
+
+	keyer := core.Keyer{
+		WPM:       k.savedKeyer.WPM,
+		SPMacros:  make([]string, len(preset.SPMacros)),
+		RunMacros: make([]string, len(preset.RunMacros)),
+	}
+	copy(keyer.SPMacros, preset.SPMacros)
+	copy(keyer.RunMacros, preset.RunMacros)
+	k.SetKeyer(keyer)
+}
+
 func (k *Keyer) EnterSpeed(speed int) {
 	k.wpm = speed
 	if !k.client.IsConnected() {
@@ -206,6 +248,23 @@ func (k *Keyer) EnterPattern(index int, pattern string) {
 		k.view.ShowMessage(err)
 	} else {
 		k.view.ShowMessage()
+	}
+
+	if k.selectedPreset == nil {
+		return
+	}
+
+	presetPattern := ""
+	switch k.workmode {
+	case core.SearchPounce:
+		presetPattern = k.selectedPreset.SPMacros[index]
+	case core.Run:
+		presetPattern = k.selectedPreset.RunMacros[index]
+	}
+
+	if presetPattern != pattern {
+		k.selectedPreset = nil
+		k.view.SetPreset("")
 	}
 }
 

@@ -88,7 +88,7 @@ type Configuration interface {
 	Station() core.Station
 	Contest() core.Contest
 	Keyer() core.Keyer
-
+	KeyerPresets() []core.KeyerPreset
 	KeyerType() core.KeyerType
 	KeyerHost() string
 	KeyerPort() int
@@ -164,7 +164,7 @@ func (c *Controller) Startup() {
 
 	c.Workmode = workmode.NewController()
 
-	c.Keyer = keyer.New(c.Settings, keyerCWClient, c.configuration.Keyer(), c.Workmode.Workmode())
+	c.Keyer = keyer.New(c.Settings, keyerCWClient, c.configuration.Keyer(), c.Workmode.Workmode(), c.configuration.KeyerPresets())
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Workmode.Notify(c.Keyer)

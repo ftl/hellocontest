@@ -29,11 +29,12 @@ func TestSend(t *testing.T) {
 	view.On("ShowMessage", mock.Anything)
 	view.On("SetSpeed", mock.Anything)
 	view.On("SetPattern", mock.Anything, mock.Anything)
+	view.On("SetPresetNames", mock.Anything)
 	cwClient := new(mocked.CWClient)
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
 	cwClient.On("IsConnected").Return(true)
 
-	keyer := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce)
+	keyer := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
 	keyer.SetView(view)
 	keyer.SetValues(values)
 	keyer.EnterPattern(0, "{{.MyCall}} {{.TheirCall}} {{.MyNumber}} {{.MyReport}} {{.MyXchange}}")

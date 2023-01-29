@@ -364,6 +364,14 @@ func (m *KeyerView) SetSpeed(speed int) {
 	m.Called(speed)
 }
 
+func (m *KeyerView) SetPresetNames(names []string) {
+	m.Called(names)
+}
+
+func (m *KeyerView) SetPreset(name string) {
+	m.Called(name)
+}
+
 type DXCCFinder struct {
 	mock.Mock
 }

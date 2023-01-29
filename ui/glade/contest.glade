@@ -1433,6 +1433,8 @@ THE SOFTWARE.
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
               </object>
@@ -1447,6 +1449,8 @@ THE SOFTWARE.
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">False</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
                 <property name="active">True</property>
                 <property name="draw-indicator">True</property>
                 <property name="group">searchPounceModeButton</property>
@@ -1477,7 +1481,7 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=5 n-rows=5 -->
+          <!-- n-columns=5 n-rows=6 -->
           <object class="GtkGrid" id="keyerGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1499,7 +1503,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
+                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -1513,7 +1517,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
@@ -1527,7 +1531,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">3</property>
               </packing>
             </child>
             <child>
@@ -1541,23 +1545,11 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
               <object class="GtkEntry" id="f1Entry">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-                <property name="width">4</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="f2Entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="hexpand">True</property>
@@ -1569,7 +1561,7 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="f3Entry">
+              <object class="GtkEntry" id="f2Entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="hexpand">True</property>
@@ -1581,7 +1573,7 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="f4Entry">
+              <object class="GtkEntry" id="f3Entry">
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="hexpand">True</property>
@@ -1589,6 +1581,18 @@ THE SOFTWARE.
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">3</property>
+                <property name="width">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="f4Entry">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">4</property>
                 <property name="width">4</property>
               </packing>
             </child>
@@ -1603,7 +1607,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
@@ -1616,7 +1620,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">4</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
@@ -1630,7 +1634,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">2</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
@@ -1650,7 +1654,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">3</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">5</property>
               </packing>
             </child>
             <child>
@@ -1665,14 +1669,39 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">4</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="keyerPresetLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="label" translatable="yes">Preset:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="keyerPresetComboBoxText">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+                <property name="width">4</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -1755,7 +1784,7 @@ THE SOFTWARE.
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
       </object>

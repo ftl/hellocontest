@@ -15,15 +15,19 @@ type KeyerController interface {
 	EnterPattern(int, string)
 	EnterSpeed(int)
 	Save()
+	SelectPreset(string)
 }
 
 type keyerView struct {
 	controller KeyerController
 
-	buttons    []*gtk.Button
-	entries    []*gtk.Entry
-	stopButton *gtk.Button
-	speedEntry *gtk.SpinButton
+	buttons     []*gtk.Button
+	entries     []*gtk.Entry
+	stopButton  *gtk.Button
+	speedEntry  *gtk.SpinButton
+	presetCombo *gtk.ComboBoxText
+
+	ignoreChangedEvent bool
 }
 
 func setupKeyerView(builder *gtk.Builder) *keyerView {
@@ -46,7 +50,22 @@ func setupKeyerView(builder *gtk.Builder) *keyerView {
 	result.speedEntry.Connect("value-changed", result.onSpeedChanged)
 	result.speedEntry.Connect("focus_out_event", result.onEntryFocusOut)
 
+	result.presetCombo = getUI(builder, "keyerPresetComboBoxText").(*gtk.ComboBoxText)
+	result.presetCombo.Connect("changed", result.onPresetChanged)
+
 	return result
+}
+
+func (v *keyerView) doIgnoreChanges(f func()) {
+	if v == nil {
+		return
+	}
+
+	v.ignoreChangedEvent = true
+	defer func() {
+		v.ignoreChangedEvent = false
+	}()
+	f()
 }
 
 func (v *keyerView) onEntryFocusOut(widget interface{}, _ *gdk.Event) bool {
@@ -67,6 +86,9 @@ func (k *keyerView) onButton(index int) func(button *gtk.Button) bool {
 
 func (k *keyerView) onEntryChanged(index int) func(entry *gtk.Entry) bool {
 	return func(entry *gtk.Entry) bool {
+		if k.ignoreChangedEvent {
+			return false
+		}
 		if k.controller == nil {
 			log.Println("onEntryChanged: no keyer controller")
 			return false
@@ -91,12 +113,28 @@ func (k *keyerView) onStop(button *gtk.Button) bool {
 }
 
 func (k *keyerView) onSpeedChanged(button *gtk.SpinButton) bool {
+	if k.ignoreChangedEvent {
+		return false
+	}
 	if k.controller == nil {
 		log.Println("onSpeedChanged: no keyer controller")
 		return false
 	}
 
 	k.controller.EnterSpeed(int(button.GetValue()))
+	return true
+}
+
+func (k *keyerView) onPresetChanged(combo *gtk.ComboBoxText) bool {
+	if k.ignoreChangedEvent {
+		return false
+	}
+	if k.controller == nil {
+		log.Println("onPresetChanged: no keyer controller")
+		return false
+	}
+
+	k.controller.SelectPreset(combo.GetActiveText())
 	return true
 }
 
@@ -119,4 +157,20 @@ func (k *keyerView) Speed() int {
 
 func (k *keyerView) SetSpeed(speed int) {
 	k.speedEntry.SetValue(float64(speed))
+}
+
+func (k *keyerView) SetPresetNames(names []string) {
+	k.doIgnoreChanges(func() {
+		k.presetCombo.RemoveAll()
+		k.presetCombo.Append("", "")
+		for _, name := range names {
+			k.presetCombo.Append(name, name)
+		}
+	})
+}
+
+func (k *keyerView) SetPreset(name string) {
+	k.doIgnoreChanges(func() {
+		k.presetCombo.SetActiveID(name)
+	})
 }

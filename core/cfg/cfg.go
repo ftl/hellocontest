@@ -41,11 +41,28 @@ var Default = Data{
 			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
 		},
 	},
-	TCIAddress:    "localhost:40001",
-	HamlibAddress: "localhost:4532",
+	KeyerPresets: []core.KeyerPreset{
+		{
+			Name: "Default",
+			SPMacros: []string{
+				"{{.MyCall}}",
+				"rr {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
+				"tu gl",
+				"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+			},
+			RunMacros: []string{
+				"cq {{.MyCall}} test",
+				"{{.TheirCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
+				"tu {{.MyCall}} test",
+				"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+			},
+		},
+	},
 	KeyerType:     "tci",
 	KeyerHost:     "localhost",
 	KeyerPort:     6789,
+	HamlibAddress: "localhost:4532",
+	TCIAddress:    "localhost:40001",
 }
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadJSON()).
@@ -86,11 +103,12 @@ type Data struct {
 	Station       pb.Station
 	Contest       pb.Contest
 	Keyer         pb.Keyer
-	KeyerType     core.KeyerType `json:"keyer_type"`
-	KeyerHost     string         `json:"keyer_host"`
-	KeyerPort     int            `json:"keyer_port"`
-	HamlibAddress string         `json:"hamlib_address"`
-	TCIAddress    string         `json:"tci_address"`
+	KeyerPresets  []core.KeyerPreset `json:"keyer_presets"`
+	KeyerType     core.KeyerType     `json:"keyer_type"`
+	KeyerHost     string             `json:"keyer_host"`
+	KeyerPort     int                `json:"keyer_port"`
+	HamlibAddress string             `json:"hamlib_address"`
+	TCIAddress    string             `json:"tci_address"`
 }
 
 type LoadedConfiguration struct {
@@ -106,14 +124,18 @@ func (c *LoadedConfiguration) Station() core.Station {
 	return result
 }
 
+func (c *LoadedConfiguration) Contest() core.Contest {
+	result, _ := pb.ToContest(c.data.Contest)
+	return result
+}
+
 func (c *LoadedConfiguration) Keyer() core.Keyer {
 	result, _ := pb.ToKeyer(c.data.Keyer)
 	return result
 }
 
-func (c *LoadedConfiguration) Contest() core.Contest {
-	result, _ := pb.ToContest(c.data.Contest)
-	return result
+func (c *LoadedConfiguration) KeyerPresets() []core.KeyerPreset {
+	return c.data.KeyerPresets
 }
 
 func (c *LoadedConfiguration) KeyerType() core.KeyerType {

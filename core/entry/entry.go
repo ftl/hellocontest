@@ -123,6 +123,7 @@ type Controller struct {
 	theirReportExchangeField core.ExchangeField
 	theirNumberExchangeField core.ExchangeField
 	generateSerialExchange   bool
+	generateReport           bool
 	defaultExchangeValues    []string
 
 	input              input
@@ -407,8 +408,39 @@ func (c *Controller) modeSelected(s string) {
 	if mode, err := parse.Mode(s); err == nil {
 		log.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
+
 		c.vfo.SetMode(mode)
+		if c.generateReport {
+			c.generateReportForMode(mode)
+		}
 		c.enterCallsign(c.input.callsign)
+	}
+}
+
+func (c *Controller) generateReportForMode(mode core.Mode) {
+	generatedReport := defaultReportForMode(c.selectedMode)
+	myIndex := c.myReportExchangeField.Field.ExchangeIndex()
+	if myIndex > 0 {
+		c.input.myReport = generatedReport
+		c.input.myExchange[myIndex-1] = generatedReport
+		c.view.SetMyExchange(myIndex, c.input.myReport)
+	}
+	theirIndex := c.theirReportExchangeField.Field.ExchangeIndex()
+	if theirIndex > 0 {
+		c.input.theirReport = generatedReport
+		c.input.theirExchange[theirIndex-1] = generatedReport
+		c.view.SetTheirExchange(theirIndex, c.input.myReport)
+	}
+}
+
+func defaultReportForMode(mode core.Mode) string {
+	switch mode {
+	case core.ModeCW, core.ModeDigital, core.ModeRTTY:
+		return "599"
+	case core.ModeSSB, core.ModeFM:
+		return "59"
+	default:
+		return ""
 	}
 }
 
@@ -629,8 +661,10 @@ func (c *Controller) Clear() {
 	if c.selectedBand != core.NoBand {
 		c.input.band = c.selectedBand.String()
 	}
+	generatedReport := ""
 	if c.selectedMode != core.NoMode {
 		c.input.mode = c.selectedMode.String()
+		generatedReport = defaultReportForMode(c.selectedMode)
 	}
 
 	c.input.myReport = ""
@@ -647,7 +681,11 @@ func (c *Controller) Clear() {
 
 		c.input.myExchange[i] = value
 		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
+			if c.generateReport {
+				value = generatedReport
+			}
 			c.input.myReport = value
+			c.input.myExchange[i] = value
 
 			c.input.theirExchange[i] = value
 			c.input.theirReport = value
@@ -737,6 +775,7 @@ func (c *Controller) updateExchangeFields(contest core.Contest) {
 	c.theirReportExchangeField = contest.TheirReportExchangeField
 	c.theirNumberExchangeField = contest.TheirNumberExchangeField
 	c.generateSerialExchange = contest.GenerateSerialExchange
+	c.generateReport = contest.GenerateReport
 	c.defaultExchangeValues = contest.ExchangeValues
 
 	c.input.myExchange = make([]string, len(contest.MyExchangeFields))

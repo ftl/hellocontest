@@ -193,6 +193,7 @@ func TheirExchangeField(index int) EntryField {
 type ExchangeField struct {
 	Field            EntryField
 	CanContainSerial bool
+	CanContainReport bool
 	EmptyAllowed     bool
 	Properties       conval.ExchangeField
 
@@ -214,6 +215,9 @@ func DefinitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchan
 		for _, property := range fieldDefinition {
 			if property == conval.SerialNumberProperty {
 				field.CanContainSerial = true
+			}
+			if property == conval.RSTProperty {
+				field.CanContainReport = true
 			}
 			if property == conval.EmptyProperty {
 				field.EmptyAllowed = true
@@ -309,6 +313,7 @@ type Contest struct {
 	Name                   string
 	ExchangeValues         []string
 	GenerateSerialExchange bool
+	GenerateReport         bool
 	StartTime              time.Time
 
 	MyExchangeFields         []ExchangeField

@@ -77,6 +77,7 @@ type View interface {
 	SetContestExchangeFields([]core.ExchangeField)
 	SetContestExchangeValue(index int, value string)
 	SetContestGenerateSerialExchange(active bool, sensitive bool)
+	SetContestGenerateReport(active bool, sensitive bool)
 
 	SetContestName(string)
 	SetContestStartTime(string)
@@ -117,6 +118,7 @@ type Settings struct {
 	view                           View
 	defaultsOpener                 DefaultsOpener
 	browserOpener                  BrowserOpener
+	reportFieldIndex               int
 	serialExchangeFieldIndex       int
 	availableCallHistoryFieldNames []string
 
@@ -394,13 +396,10 @@ func (s *Settings) updateExchangeFields() {
 	s.view.SetContestAvailableCallHistoryFieldNames(s.availableCallHistoryFieldNames)
 
 	var exchangeFields []core.ExchangeField
-	var contestModes []conval.Mode
 	if s.contest.Definition == nil {
 		exchangeFields = nil
-		contestModes = nil
 	} else {
 		exchangeFields = core.DefinitionsToExchangeFields(s.contest.Definition.ExchangeFields(), core.MyExchangeField)
-		contestModes = s.contest.Definition.Modes
 	}
 	s.view.SetContestExchangeFields(exchangeFields)
 
@@ -410,30 +409,32 @@ func (s *Settings) updateExchangeFields() {
 
 	exclusiveSerialField := false
 	s.serialExchangeFieldIndex = -1
+	s.reportFieldIndex = -1
 	for i, value := range s.contest.ExchangeValues {
 		field := exchangeFields[i]
 		if field.CanContainSerial {
 			s.serialExchangeFieldIndex = i
 		}
-		if field.CanContainSerial && len(field.Properties) == 1 {
-			s.contest.ExchangeValues[i] = ""
+		if field.CanContainReport {
+			s.reportFieldIndex = i
+		}
+		if len(field.Properties) == 1 && field.CanContainSerial {
 			value = ""
+			s.contest.ExchangeValues[i] = value
 			s.contest.GenerateSerialExchange = true
 			exclusiveSerialField = true
 		}
-		if field.Properties.Contains(conval.RSTProperty) && len(field.Properties) == 1 && len(contestModes) == 1 {
-			switch contestModes[0] {
-			case conval.ModeCW, conval.ModeRTTY, conval.ModeDigital:
-				value = "599"
-			case conval.ModeSSB, conval.ModeFM:
-				value = "59"
-			}
+		if len(field.Properties) == 1 && field.CanContainReport {
+			value = ""
+			s.contest.ExchangeValues[i] = value
+			s.contest.GenerateReport = true
 		}
 		s.contest.ExchangeValues[i] = value
 		s.view.SetContestExchangeValue(i+1, value)
 	}
 
 	s.view.SetContestGenerateSerialExchange(s.contest.GenerateSerialExchange, !exclusiveSerialField)
+	s.view.SetContestGenerateReport(s.contest.GenerateReport, true)
 
 	for i, value := range s.contest.CallHistoryFieldNames {
 		if value != "" {
@@ -515,6 +516,33 @@ func (s *Settings) EnterContestGenerateSerialExchange(value bool) {
 	s.contest.GenerateSerialExchange = value
 	if s.serialExchangeFieldIndex >= 0 {
 		s.view.SetContestExchangeValue(s.serialExchangeFieldIndex+1, "")
+	}
+}
+
+func (s *Settings) EnterContestGenerateReport(value bool) {
+	s.contest.GenerateReport = value
+	if s.reportFieldIndex < 0 {
+		return
+	}
+
+	report := ""
+	if !value && s.contest.Definition != nil {
+		contestModes := s.contest.Definition.Modes
+		if len(contestModes) == 1 {
+			report = defaultReportForMode(contestModes[0])
+		}
+	}
+	s.view.SetContestExchangeValue(s.reportFieldIndex+1, report)
+}
+
+func defaultReportForMode(mode conval.Mode) string {
+	switch mode {
+	case conval.ModeCW, conval.ModeRTTY, conval.ModeDigital:
+		return "599"
+	case conval.ModeSSB, conval.ModeFM:
+		return "59"
+	default:
+		return ""
 	}
 }
 
@@ -631,6 +659,7 @@ func (v *nullView) SelectContestIdentifier(string)                     {}
 func (v *nullView) SetContestExchangeFields([]core.ExchangeField)      {}
 func (v *nullView) SetContestExchangeValue(index int, value string)    {}
 func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
+func (v *nullView) SetContestGenerateReport(bool, bool)                {}
 func (v *nullView) SetContestName(string)                              {}
 func (v *nullView) SetContestStartTime(string)                         {}
 func (v *nullView) SetOperationModeSprint(bool)                        {}

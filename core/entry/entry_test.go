@@ -19,6 +19,7 @@ func TestEntryController_Clear(t *testing.T) {
 	_, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
 	log.On("NextNumber").Return(core.QSONumber(1)).Once()
+	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
 
@@ -39,6 +40,7 @@ func TestEntryController_ClearView(t *testing.T) {
 	_, log, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
+	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
 
@@ -69,6 +71,7 @@ func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
 	_, log, qsoList, _, controller, _ := setupEntryTest()
 	log.Activate()
 	log.On("NextNumber").Once().Return(core.QSONumber(1))
+	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
 
@@ -105,11 +108,11 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 				conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty},
 			),
 			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}},
+				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
 				{Field: "myExchange_2", Short: "member_number/nm", Properties: conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty}},
 			},
 			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}},
+				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
 				{Field: "theirExchange_2", Short: "member_number/nm", Properties: conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty}},
 			},
 		},
@@ -120,11 +123,11 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty},
 			),
 			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}},
+				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
 				{Field: "myExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true},
 			},
 			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}},
+				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
 				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true},
 			},
 		},
@@ -136,11 +139,11 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 			),
 			generateSerialExchange: true,
 			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}},
+				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
 				{Field: "myExchange_2", Short: "#", Hint: "Serial Number", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true, ReadOnly: true},
 			},
 			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}},
+				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
 				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true},
 			},
 		},
@@ -289,6 +292,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 
 	log.Activate()
 	log.On("NextNumber").Return(core.QSONumber(1))
+	log.On("LastExchange").Return([]string{"599", "001", ""})
 	log.On("Log", qso).Once()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
@@ -500,6 +504,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 
 	log.Activate()
 	log.On("NextNumber").Return(core.QSONumber(2))
+	log.On("LastExchange").Return([]string{"599", "001", ""})
 	log.On("Log", dupe).Once()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
@@ -599,6 +604,7 @@ func TestEntryController_EditQSO(t *testing.T) {
 
 	log.Activate()
 	log.On("Log", changedQSO).Once()
+	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	log.On("NextNumber").Return(core.QSONumber(35))
 	controller.Log()
 

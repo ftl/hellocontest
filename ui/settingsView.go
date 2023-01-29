@@ -24,6 +24,7 @@ type SettingsController interface {
 
 	EnterContestExchangeValue(core.EntryField, string)
 	EnterContestGenerateSerialExchange(bool)
+	EnterContestGenerateReport(bool)
 
 	EnterContestName(string)
 	EnterContestStartTime(string)
@@ -71,7 +72,9 @@ type settingsView struct {
 	exchangeFieldsParent           *gtk.Grid
 	exchangeFieldCount             int
 	generateSerialExchangeButton   *gtk.CheckButton
+	generateReportButton           *gtk.CheckButton
 	serialExchangeEntry            *gtk.Entry
+	reportEntry                    *gtk.Entry
 	contestStartTimeTodayButton    *gtk.Button
 	contestStartTimeNowButton      *gtk.Button
 	callHistoryFieldNamesParent    *gtk.Grid
@@ -360,6 +363,11 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		v.generateSerialExchangeButton = nil
 		v.serialExchangeEntry = nil
 	}
+	if v.generateReportButton != nil {
+		v.generateReportButton.Destroy()
+		v.generateReportButton = nil
+		v.reportEntry = nil
+	}
 
 	for i, field := range fields {
 		v.exchangeFieldsParent.InsertRow(i)
@@ -390,19 +398,29 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		fieldName.Connect("changed", v.onCallHistoryFieldNameChanged)
 		v.callHistoryFieldNamesParent.Attach(fieldName, i, 0, 1, 1)
 
-		if !field.CanContainSerial || v.generateSerialExchangeButton != nil {
-			continue
+		if field.CanContainSerial && v.generateSerialExchangeButton == nil {
+			serialCheckButton, _ := gtk.CheckButtonNew()
+			serialCheckButton.SetLabel("Gen. Serial Number")
+			serialCheckButton.SetTooltipText("Check this if you want to automatically generate a serial number as your exchange for this field.")
+			serialCheckButton.SetHAlign(gtk.ALIGN_START)
+			serialCheckButton.SetHExpand(true)
+			serialCheckButton.Connect("toggled", v.onGenerateSerialExchangeChanged)
+			v.exchangeFieldsParent.Attach(serialCheckButton, 2, i, 1, 1)
+			v.generateSerialExchangeButton = serialCheckButton
+			v.serialExchangeEntry = entry
 		}
 
-		serialCheckButton, _ := gtk.CheckButtonNew()
-		serialCheckButton.SetLabel("Gen. Serial Number")
-		serialCheckButton.SetTooltipText("Check this if you want to automatically generate a serial number as your exchange for this field.")
-		serialCheckButton.SetHAlign(gtk.ALIGN_START)
-		serialCheckButton.SetHExpand(true)
-		serialCheckButton.Connect("toggled", v.onGenerateSerialExchangeChanged)
-		v.exchangeFieldsParent.Attach(serialCheckButton, 2, i, 1, 1)
-		v.generateSerialExchangeButton = serialCheckButton
-		v.serialExchangeEntry = entry
+		if field.CanContainReport && v.generateReportButton == nil {
+			reportCheckButton, _ := gtk.CheckButtonNew()
+			reportCheckButton.SetLabel("Gen. Report")
+			reportCheckButton.SetTooltipText("Check this if you want to automatically generate a report based on the currently selected mode.")
+			reportCheckButton.SetHAlign(gtk.ALIGN_START)
+			reportCheckButton.SetHExpand(true)
+			reportCheckButton.Connect("toggled", v.onGenerateReportChanged)
+			v.exchangeFieldsParent.Attach(reportCheckButton, 2, i, 1, 1)
+			v.generateReportButton = reportCheckButton
+			v.reportEntry = entry
+		}
 	}
 
 	v.exchangeFieldsParent.ShowAll()
@@ -437,6 +455,18 @@ func (v *settingsView) onGenerateSerialExchangeChanged(checkButton *gtk.CheckBut
 	return false
 }
 
+func (v *settingsView) onGenerateReportChanged(checkButton *gtk.CheckButton) bool {
+	if v.ignoreChangedEvent {
+		return false
+	}
+
+	value := checkButton.GetActive()
+	v.reportEntry.SetSensitive(!value)
+	v.controller.EnterContestGenerateReport(value)
+
+	return false
+}
+
 func (v *settingsView) SetContestExchangeValue(index int, value string) {
 	child, _ := v.exchangeFieldsParent.GetChildAt(1, index-1)
 	entry, ok := child.(*gtk.Entry)
@@ -458,6 +488,18 @@ func (v *settingsView) SetContestGenerateSerialExchange(active bool, sensitive b
 		v.generateSerialExchangeButton.SetActive(active)
 		v.generateSerialExchangeButton.SetSensitive(sensitive)
 		v.serialExchangeEntry.SetSensitive(!active)
+	})
+}
+
+func (v *settingsView) SetContestGenerateReport(active bool, sensitive bool) {
+	if v.generateReportButton == nil {
+		return
+	}
+
+	v.doIgnoreChanges(func() {
+		v.generateReportButton.SetActive(active)
+		v.generateReportButton.SetSensitive(sensitive)
+		v.reportEntry.SetSensitive(!active)
 	})
 }
 

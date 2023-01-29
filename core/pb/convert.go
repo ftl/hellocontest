@@ -108,6 +108,7 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 
 	contest.ExchangeValues = pbContest.ExchangeValues
 	contest.GenerateSerialExchange = pbContest.GenerateSerialExchange
+	contest.GenerateReport = pbContest.GenerateReport
 	contest.QSOsGoal = int(pbContest.QsosGoal)
 	contest.PointsGoal = int(pbContest.PointsGoal)
 	contest.MultisGoal = int(pbContest.MultisGoal)
@@ -142,6 +143,7 @@ func ContestToPB(contest core.Contest) Contest {
 		DefinitionYaml:         definitionYaml,
 		ExchangeValues:         contest.ExchangeValues,
 		GenerateSerialExchange: contest.GenerateSerialExchange,
+		GenerateReport:         contest.GenerateReport,
 
 		Name:                  contest.Name,
 		StartTime:             timestamppb.New(contest.StartTime),

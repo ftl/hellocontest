@@ -452,6 +452,7 @@ func (s *Settings) updateExchangeFields() {
 		default:
 			fieldName = callhistory.Exch1Field
 		}
+		s.contest.CallHistoryFieldNames[i] = fieldName
 		s.view.SetContestCallHistoryFieldName(i, fieldName)
 	}
 }

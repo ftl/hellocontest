@@ -31,6 +31,8 @@ var rateStyle = struct {
 	borderAlpha        float64
 	timeIndicatorWidth float64
 	timeFrameColor     color
+	timeFrameAlpha     float64
+	scoreGraphColor    color
 }{
 	backgroundColor:    color{1, 1, 1},
 	fontColor:          color{0.4, 0.4, 0.4},
@@ -38,10 +40,12 @@ var rateStyle = struct {
 	axisColor:          color{0.4, 0.4, 0.4},
 	axisMargin:         15,
 	lowZoneColor:       color{0.8, 0.8, 0.8},
-	areaAlpha:          0.8,
-	borderAlpha:        0.4,
+	areaAlpha:          0.4,
+	borderAlpha:        0.8,
 	timeIndicatorWidth: 10,
-	timeFrameColor:     color{1, 0.8, 0},
+	timeFrameColor:     color{1, 0.73, 0.2},
+	timeFrameAlpha:     1,
+	scoreGraphColor:    color{0.2, 0.47, 1},
 }
 
 type rateIndicator struct {

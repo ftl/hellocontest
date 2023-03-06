@@ -248,7 +248,7 @@ func (c *Counter) toConvalQSO(qso core.QSO) conval.QSO {
 }
 
 func (c *Counter) toQSOExchange(fields []conval.ExchangeField, values []string) conval.QSOExchange {
-	return conval.ParseExchange(fields, values, c.prefixDatabase)
+	return conval.ParseExchange(fields, values, c.prefixDatabase, c.contestDefinition)
 }
 
 func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField {

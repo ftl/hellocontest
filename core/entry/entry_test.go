@@ -88,6 +88,8 @@ func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
 }
 
 func TestEntryController_UpdateExchangeFields(t *testing.T) {
+	const wagDOKProperty = conval.Property("wag_dok")
+
 	tt := []struct {
 		desc                   string
 		value                  *conval.Definition
@@ -120,31 +122,31 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 			desc: "rst and dok or serial number",
 			value: fieldDefinition(
 				conval.ExchangeField{conval.RSTProperty},
-				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty},
+				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty},
 			),
 			expectedMyFields: []core.ExchangeField{
 				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "myExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true},
+				{Field: "myExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true},
 			},
 			expectedTheirFields: []core.ExchangeField{
 				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true},
+				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true},
 			},
 		},
 		{
 			desc: "rst and serial number",
 			value: fieldDefinition(
 				conval.ExchangeField{conval.RSTProperty},
-				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty},
+				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty},
 			),
 			generateSerialExchange: true,
 			expectedMyFields: []core.ExchangeField{
 				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "myExchange_2", Short: "#", Hint: "Serial Number", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true, ReadOnly: true},
+				{Field: "myExchange_2", Short: "#", Hint: "Serial Number", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true, ReadOnly: true},
 			},
 			expectedTheirFields: []core.ExchangeField{
 				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, conval.WAGDOKProperty}, CanContainSerial: true},
+				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true},
 			},
 		},
 	}

@@ -3,6 +3,7 @@ package callinfo
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -212,10 +213,15 @@ func (c *Callinfo) showSupercheck(s string) {
 		annotatedCallsigns[annotatedCallsign.Callsign] = annotatedCallsign
 	}
 
+	filter := placeholderToFilter(normalizedInput)
+
 	result := make([]core.AnnotatedCallsign, 0, len(annotatedCallsigns))
 	for _, annotatedCallsign := range annotatedCallsigns {
 		matchString := annotatedCallsign.Callsign.String()
 		exactMatch := (matchString == normalizedInput)
+		if filter != nil && !filter.MatchString(matchString) {
+			continue
+		}
 
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
 		predictedExchange := c.predictExchange(matchString, qsos, nil, annotatedCallsign.PredictedExchange)
@@ -242,6 +248,20 @@ func (c *Callinfo) showSupercheck(s string) {
 	})
 
 	c.view.SetSupercheck(result)
+}
+
+const FilterPlaceholder = "."
+
+func placeholderToFilter(s string) *regexp.Regexp {
+	if !strings.Contains(s, FilterPlaceholder) {
+		return nil
+	}
+
+	parts := strings.Split(s, FilterPlaceholder)
+	for i := range parts {
+		parts[i] = regexp.QuoteMeta(parts[i])
+	}
+	return regexp.MustCompile(strings.Join(parts, "."))
 }
 
 func (c *Callinfo) predictExchange(call string, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {

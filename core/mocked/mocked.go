@@ -271,6 +271,13 @@ func (m *EntryView) SetActiveField(field core.EntryField) {
 	m.Called(field)
 }
 
+func (m *EntryView) SelectText(field core.EntryField, s string) {
+	if !m.active {
+		return
+	}
+	m.Called(field, s)
+}
+
 func (m *EntryView) SetDuplicateMarker(active bool) {
 	if !m.active {
 		return

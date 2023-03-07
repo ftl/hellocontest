@@ -73,7 +73,7 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 		text += fmt.Sprintf(", CQ %d", cq)
 	}
 	if name != "" && !arrlCompliant {
-		text += fmt.Sprintf(", <span foreground='red' font-weight='heavy'>not ARRL compliant</span>")
+		text += ", <span foreground='red' font-weight='heavy'>not ARRL compliant</span>"
 	}
 
 	v.dxccLabel.SetMarkup(text)

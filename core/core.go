@@ -238,6 +238,9 @@ type KeyerValues struct {
 	MyExchanges []string
 }
 
+// FilterPlaceholder can be used as placeholder for a missed character in the callsign.
+const FilterPlaceholder = "."
+
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
 type AnnotatedCallsign struct {
 	Callsign          callsign.Callsign

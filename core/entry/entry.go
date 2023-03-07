@@ -27,6 +27,7 @@ type View interface {
 	SetMyExchangeFields([]core.ExchangeField)
 	SetTheirExchangeFields([]core.ExchangeField)
 	SetActiveField(core.EntryField)
+	SelectText(core.EntryField, string)
 	SetDuplicateMarker(bool)
 	SetEditingMarker(bool)
 	ShowMessage(...interface{})
@@ -224,6 +225,12 @@ func (c *Controller) GotoNextField() core.EntryField {
 	c.activeField = nextField
 	c.view.SetActiveField(c.activeField)
 	return c.activeField
+}
+
+func (c *Controller) GotoNextPlaceholder() {
+	c.activeField = core.CallsignField
+	c.view.SetActiveField(c.activeField)
+	c.view.SelectText(c.activeField, core.FilterPlaceholder)
 }
 
 func (c *Controller) leaveCallsignField() {
@@ -822,6 +829,7 @@ func (n *nullView) SetTheirExchange(int, string)                {}
 func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
 func (n *nullView) SetTheirExchangeFields([]core.ExchangeField) {}
 func (n *nullView) SetActiveField(core.EntryField)              {}
+func (n *nullView) SelectText(core.EntryField, string)          {}
 func (n *nullView) SetDuplicateMarker(bool)                     {}
 func (n *nullView) SetEditingMarker(bool)                       {}
 func (n *nullView) ShowMessage(...interface{})                  {}

@@ -250,14 +250,12 @@ func (c *Callinfo) showSupercheck(s string) {
 	c.view.SetSupercheck(result)
 }
 
-const FilterPlaceholder = "."
-
 func placeholderToFilter(s string) *regexp.Regexp {
-	if !strings.Contains(s, FilterPlaceholder) {
+	if !strings.Contains(s, core.FilterPlaceholder) {
 		return nil
 	}
 
-	parts := strings.Split(s, FilterPlaceholder)
+	parts := strings.Split(s, core.FilterPlaceholder)
 	for i := range parts {
 		parts[i] = regexp.QuoteMeta(parts[i])
 	}

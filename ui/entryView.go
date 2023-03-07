@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -13,6 +14,7 @@ import (
 // EntryController controls the entry of QSO data.
 type EntryController interface {
 	GotoNextField() core.EntryField
+	GotoNextPlaceholder()
 	SetActiveField(core.EntryField)
 
 	Enter(string)
@@ -114,12 +116,17 @@ func (v *entryView) addEntryEventHandlers(w *gtk.Widget) {
 
 func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 	keyEvent := gdk.EventKeyNewFromEvent(event)
+	ctrl := keyEvent.State()&gdk.CONTROL_MASK != 0
 	switch keyEvent.KeyVal() {
 	case gdk.KEY_Tab:
 		v.controller.GotoNextField()
 		return true
 	case gdk.KEY_space:
-		v.controller.GotoNextField()
+		if ctrl {
+			v.controller.GotoNextPlaceholder()
+		} else {
+			v.controller.GotoNextField()
+		}
 		return true
 	case gdk.KEY_Return:
 		v.controller.Log()
@@ -283,6 +290,22 @@ func (v *entryView) SetActiveField(field core.EntryField) {
 	widget.GrabFocus()
 }
 
+func (v *entryView) SelectText(field core.EntryField, s string) {
+	entry := v.fieldToEntry(field)
+	if entry == nil {
+		return
+	}
+	text, err := entry.GetText()
+	if err != nil {
+		return
+	}
+	index := strings.Index(strings.ToUpper(text), strings.ToUpper(s))
+	if index == -1 {
+		return
+	}
+	entry.SelectRegion(index, index+len(s))
+}
+
 func (v *entryView) fieldToWidget(field core.EntryField) *gtk.Widget {
 	switch field {
 	case core.CallsignField:
@@ -305,6 +328,24 @@ func (v *entryView) fieldToWidget(field core.EntryField) *gtk.Widget {
 		log.Fatalf("Unknown entry field %s", field)
 	}
 	panic("this is never reached")
+}
+
+func (v *entryView) fieldToEntry(field core.EntryField) *gtk.Entry {
+	switch field {
+	case core.CallsignField:
+		return v.callsign
+	case core.OtherField:
+		return v.callsign
+	}
+	switch {
+	case field.IsMyExchange():
+		i := field.ExchangeIndex() - 1
+		return v.myExchanges[i]
+	case field.IsTheirExchange():
+		i := field.ExchangeIndex() - 1
+		return v.theirExchanges[i]
+	}
+	return nil
 }
 
 func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {

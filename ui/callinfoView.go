@@ -149,8 +149,12 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 		default:
 			attributes = append(attributes, "foreground='black'")
 		}
-		if callsign.ExactMatch {
-			attributes = append(attributes, "font-size='large'")
+		hasPredictedExchange := strings.Join(callsign.PredictedExchange, "") != ""
+		if callsign.ExactMatch || hasPredictedExchange {
+			attributes = append(attributes, "font-size='x-large'")
+		}
+		if hasPredictedExchange {
+			attributes = append(attributes, "font-style='italic'")
 		}
 		attributes = append(attributes, "background='white'")
 		attributeString := strings.Join(attributes, " ")

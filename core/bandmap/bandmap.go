@@ -72,8 +72,8 @@ type Spot struct {
 }
 
 const (
-	SpotFrequencyDeltaThreshold     float64 = 125  // spots within this range to the current entry frequency will be added to the spot
-	SpotFrequencyProximityThreshold float64 = 1000 // frequencies within this range to the current entry frequency will be recognized as "in proximity"
+	SpotFrequencyDeltaThreshold     float64 = 125  // spots within this distance to an entry's frequency will be added to the entry
+	SpotFrequencyProximityThreshold float64 = 1000 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
 )
 
 type Entry struct {

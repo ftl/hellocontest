@@ -9,40 +9,75 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+const (
+	// DefaultUpdatePeriod: the bandmap is updated with this period
+	DefaultUpdatePeriod time.Duration = 10 * time.Second
+	// DefaultMaximumAge of entries in the bandmap
+	// entries that were not seen within this period are removed from the bandmap
+	DefaultMaximumAge time.Duration = 10 * time.Minute
+)
+
 type View interface {
 	Show(frame BandmapFrame)
 }
 
 type BandmapFrame struct {
-	LowerBound core.Frequency
-	UpperBound core.Frequency
-	VFO        core.Frequency
-	Entries    []Entry
+	VFO     core.Frequency
+	Entries []Entry
 }
 
 type Bandmap struct {
 	view View
+
+	updatePeriod time.Duration
+	maximumAge   time.Duration
+
+	spots  chan Spot
+	do     chan bandmapCommand
+	closed chan struct{}
 }
 
-func NewBandmap() *Bandmap {
-	result := &Bandmap{}
+type bandmapCommand func()
 
-	// TODO: start some kind of periodic update
+func NewDefaultBandmap() *Bandmap {
+	return NewBandmap(DefaultUpdatePeriod, DefaultMaximumAge)
+}
+
+func NewBandmap(updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
+	result := &Bandmap{
+		updatePeriod: updatePeriod,
+		maximumAge:   maximumAge,
+
+		spots:  make(chan Spot),
+		do:     make(chan bandmapCommand),
+		closed: make(chan struct{}),
+	}
+
+	go result.run()
 
 	return result
 }
 
-func (m *Bandmap) SetView(v View) {
-	m.view = v
-	m.update()
+func (m *Bandmap) run() {
+	updateTicker := time.NewTicker(m.updatePeriod)
+	for {
+		select {
+		case <-m.closed:
+			return
+		case spot := <-m.spots:
+			_ = spot
+			// TODO: put the spot into the bandmap
+			m.update()
+		case command := <-m.do:
+			command()
+		case <-updateTicker.C:
+			m.update()
+		}
+	}
 }
 
-func (m *Bandmap) Add(spot Spot) {
-
-}
-
-func (m *Bandmap) Clear() {
-
+func (m *Bandmap) clear() {
+	// TODO: clear the bandmap
 }
 
 func (m *Bandmap) update() {
@@ -54,9 +89,32 @@ func (m *Bandmap) update() {
 	}
 }
 
+func (m *Bandmap) Close() {
+	select {
+	case <-m.closed:
+		return
+	default:
+		close(m.closed)
+	}
+}
+
+func (m *Bandmap) SetView(v View) {
+	m.view = v
+	m.do <- m.update
+}
+
+func (m *Bandmap) Clear() {
+	m.do <- m.clear
+}
+
+func (m *Bandmap) Add(spot Spot) {
+	m.spots <- spot
+}
+
 type SpotSource string
 
 const (
+	WorkedSpot  SpotSource = "worked"
 	ManualSpot  SpotSource = "manual"
 	SkimmerSpot SpotSource = "skimmer"
 	ClusterSpot SpotSource = "cluster"
@@ -72,8 +130,12 @@ type Spot struct {
 }
 
 const (
-	SpotFrequencyDeltaThreshold     float64 = 125  // spots within this distance to an entry's frequency will be added to the entry
-	SpotFrequencyProximityThreshold float64 = 1000 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
+	// spots within this distance to an entry's frequency will be added to the entry
+	spotFrequencyDeltaThreshold float64 = 25
+	// frequencies within this distance to an entry's frequency will be recognized as "in proximity"
+	spotFrequencyProximityThreshold float64 = 500
+	// the frequency of an entry is aligend to this is grid of accuracy
+	spotFrequencyStep float64 = 10
 )
 
 type Entry struct {
@@ -94,7 +156,7 @@ func (e *Entry) Add(spot Spot) bool {
 	}
 
 	frequencyDelta := math.Abs(float64(e.Frequency - spot.Frequency))
-	if frequencyDelta > SpotFrequencyDeltaThreshold {
+	if frequencyDelta > spotFrequencyDeltaThreshold {
 		return false
 	}
 
@@ -128,11 +190,11 @@ func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
 // 0.0 = not in proximity, 1.0 = exactly on frequency
 func (e *Entry) ProximityFactor(f core.Frequency) float64 {
 	frequencyDelta := math.Abs(float64(e.Frequency - f))
-	if frequencyDelta > SpotFrequencyProximityThreshold {
+	if frequencyDelta > spotFrequencyProximityThreshold {
 		return 0.0
 	}
 
-	return 1.0 - (frequencyDelta / SpotFrequencyProximityThreshold)
+	return 1.0 - (frequencyDelta / spotFrequencyProximityThreshold)
 }
 
 func (e *Entry) update() {
@@ -157,24 +219,34 @@ func (e *Entry) updateFrequency() {
 	for _, s := range e.spots {
 		sum += s.Frequency
 	}
-	e.Frequency = core.Frequency(math.RoundToEven(float64(sum)/float64(len(e.spots)*10))) * 10.0
+	downscaledMean := float64(sum) / (float64(len(e.spots)) * spotFrequencyStep)
+	roundedMean := math.RoundToEven(downscaledMean)
+	e.Frequency = core.Frequency(roundedMean * spotFrequencyStep)
 }
 
-type SpotList struct {
+type Entries struct {
 }
 
-func NewSpotList() *SpotList {
-	return &SpotList{}
+func NewEntries() *Entries {
+	return &Entries{}
 }
 
-func (l *SpotList) Add(spot Spot) {
-
-}
-
-func (l *SpotList) Update() {
+func (l *Entries) Add(spot Spot) {
 
 }
 
-func (l *SpotList) AllByFrequency() []Entry {
+func (l *Entries) Update() {
+
+}
+
+func (l *Entries) AllByFrequency() []Entry {
+	return nil
+}
+
+func (l *Entries) AllByProximity() []Entry {
+	return nil
+}
+
+func (l *Entries) AllByValue() []Entry {
 	return nil
 }

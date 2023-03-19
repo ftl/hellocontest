@@ -28,25 +28,25 @@ func TestEntry_Add_OnlySameCallAndSimilarFrequency(t *testing.T) {
 		{
 			desc:      "same call, lower similar frequency",
 			call:      "dl1abc",
-			frequency: frequency - core.Frequency(SpotFrequencyDeltaThreshold) + 1,
+			frequency: frequency - core.Frequency(spotFrequencyDeltaThreshold) + 1,
 			valid:     true,
 		},
 		{
 			desc:      "same call, higher similar frequency",
 			call:      "dl1abc",
-			frequency: frequency + core.Frequency(SpotFrequencyDeltaThreshold) - 1,
+			frequency: frequency + core.Frequency(spotFrequencyDeltaThreshold) - 1,
 			valid:     true,
 		},
 		{
 			desc:      "same call, frequency to low",
 			call:      "dl1abc",
-			frequency: frequency - core.Frequency(SpotFrequencyDeltaThreshold) - 1,
+			frequency: frequency - core.Frequency(spotFrequencyDeltaThreshold) - 1,
 			valid:     false,
 		},
 		{
 			desc:      "same call, frequency to high",
 			call:      "dl1abc",
-			frequency: frequency + core.Frequency(SpotFrequencyDeltaThreshold) + 1,
+			frequency: frequency + core.Frequency(spotFrequencyDeltaThreshold) + 1,
 			valid:     false,
 		},
 		{
@@ -97,7 +97,10 @@ func TestEntry_Add_MaintainsFrequency(t *testing.T) {
 	entry.Add(Spot{Call: call, Frequency: frequency + 18})
 	assert.Equal(t, frequency+10, entry.Frequency)
 
-	entry.Add(Spot{Call: call, Frequency: frequency - 17})
+	entry.Add(Spot{Call: call, Frequency: frequency - 13})
+	assert.Equal(t, frequency, entry.Frequency)
+
+	entry.Add(Spot{Call: call, Frequency: frequency - 24})
 	assert.Equal(t, frequency, entry.Frequency)
 
 	entry.Add(Spot{Call: call, Frequency: frequency - 24})
@@ -147,22 +150,22 @@ func TestEntry_ProximityFactor(t *testing.T) {
 		},
 		{
 			desc:      "lower frequency in proximity",
-			frequency: frequency - core.Frequency(SpotFrequencyProximityThreshold/2),
+			frequency: frequency - core.Frequency(spotFrequencyProximityThreshold/2),
 			expected:  0.5,
 		},
 		{
 			desc:      "higher frequency in proximity",
-			frequency: frequency + core.Frequency(SpotFrequencyProximityThreshold/2),
+			frequency: frequency + core.Frequency(spotFrequencyProximityThreshold/2),
 			expected:  0.5,
 		},
 		{
 			desc:      "frequency to low",
-			frequency: frequency - core.Frequency(SpotFrequencyProximityThreshold) - 1,
+			frequency: frequency - core.Frequency(spotFrequencyProximityThreshold) - 1,
 			expected:  0.0,
 		},
 		{
 			desc:      "frequency to high",
-			frequency: frequency + core.Frequency(SpotFrequencyProximityThreshold) + 1,
+			frequency: frequency + core.Frequency(spotFrequencyProximityThreshold) + 1,
 			expected:  0.0,
 		},
 	}

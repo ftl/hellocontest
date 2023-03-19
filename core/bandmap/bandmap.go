@@ -57,7 +57,10 @@ func (m *Bandmap) update() {
 type SpotSource string
 
 const (
-	ManualSpot SpotSource = "manual"
+	ManualSpot  SpotSource = "manual"
+	SkimmerSpot SpotSource = "skimmer"
+	ClusterSpot SpotSource = "cluster"
+	RBNSpot     SpotSource = "rbn"
 )
 
 type Spot struct {

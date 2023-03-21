@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
+	"golang.org/x/exp/slices"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -146,6 +147,16 @@ type Entry struct {
 	spots []Spot
 }
 
+func NewEntry(spot Spot) Entry {
+	return Entry{
+		Call:      spot.Call,
+		Frequency: spot.Frequency,
+		LastHeard: spot.Time,
+
+		spots: []Spot{spot},
+	}
+}
+
 func (e *Entry) Len() int {
 	return len(e.spots)
 }
@@ -222,36 +233,55 @@ func (e *Entry) updateFrequency() {
 }
 
 type Entries struct {
-	entries []Entry
+	entries []*Entry
 }
 
 func NewEntries() *Entries {
 	return &Entries{
-		entries: make([]Entry, 0, 100),
+		entries: make([]*Entry, 0, 100),
 	}
 }
 
-func (l *Entries) Add(spot Spot) {
-
+func (l *Entries) Len() int {
+	return len(l.entries)
 }
 
-func (l *Entries) CleanOut(maximumAge time.Duration) {
-	deadline := time.Now().Add(-maximumAge)
-	l.entries = filterSlice(l.entries, func(e Entry) bool {
+func (l *Entries) Add(spot Spot) {
+	for _, e := range l.entries {
+		if e.Add(spot) {
+			return
+		}
+	}
+	newEntry := NewEntry(spot)
+	l.entries = append(l.entries, &newEntry)
+}
+
+func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
+	deadline := now.Add(-maximumAge)
+	l.entries = filterSlice(l.entries, func(e *Entry) bool {
 		return e.RemoveSpotsBefore(deadline)
 	})
 }
 
+func (l *Entries) sorted(less func(Entry, Entry) bool) []Entry {
+	result := make([]Entry, len(l.entries))
+	for i, e := range l.entries {
+		result[i] = *e
+	}
+	slices.SortStableFunc(result, less)
+	return result
+}
+
 func (l *Entries) AllByFrequency() []Entry {
-	return nil
+	return l.sorted(func(a, b Entry) bool {
+		return a.Frequency < b.Frequency
+	})
 }
 
-func (l *Entries) AllByProximity() []Entry {
-	return nil
-}
-
-func (l *Entries) AllByValue() []Entry {
-	return nil
+func (l *Entries) AllByProximity(f core.Frequency) []Entry {
+	return l.sorted(func(a, b Entry) bool {
+		return a.ProximityFactor(f) < b.ProximityFactor(f)
+	})
 }
 
 func filterSlice[E any](slice []E, filter func(E) bool) []E {

@@ -183,6 +183,44 @@ func TestEntry_ProximityFactor(t *testing.T) {
 	}
 }
 
+func TestEntries_AddNewEntry(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries()
+	assert.Equal(t, 0, entries.Len())
+
+	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now})
+
+	assert.Equal(t, 1, entries.Len())
+
+	newEntry := entries.entries[0]
+	assert.Equal(t, "DL1ABC", newEntry.Call.String())
+	assert.Equal(t, core.Frequency(3760000), newEntry.Frequency)
+	assert.Equal(t, now, newEntry.LastHeard)
+	assert.Equal(t, 1, newEntry.Len())
+}
+
+func TestEntries_CleanOutOldEntries(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries()
+
+	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
+	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)})
+	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)})
+	entries.Add(Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-10 * time.Hour)})
+
+	assert.Equal(t, 2, entries.Len())
+	assert.Equal(t, "DL1ABC", entries.entries[0].Call.String())
+	assert.Equal(t, 3, entries.entries[0].Len())
+	assert.Equal(t, now.Add(-10*time.Minute), entries.entries[0].LastHeard)
+
+	entries.CleanOut(30*time.Minute, now)
+
+	assert.Equal(t, 1, entries.Len())
+	assert.Equal(t, "DL1ABC", entries.entries[0].Call.String())
+	assert.Equal(t, 2, entries.entries[0].Len())
+	assert.Equal(t, now.Add(-10*time.Minute), entries.entries[0].LastHeard)
+}
+
 func TestFilterSlice(t *testing.T) {
 	input := []int{1, 10, 5, 2, 9, 7, 6, 3, 4}
 

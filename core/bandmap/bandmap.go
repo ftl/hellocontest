@@ -150,13 +150,17 @@ func (e *Entry) Len() int {
 	return len(e.spots)
 }
 
-func (e *Entry) Add(spot Spot) bool {
+func (e *Entry) Matches(spot Spot) bool {
 	if spot.Call != e.Call {
 		return false
 	}
 
 	frequencyDelta := math.Abs(float64(e.Frequency - spot.Frequency))
-	if frequencyDelta > spotFrequencyDeltaThreshold {
+	return frequencyDelta <= spotFrequencyDeltaThreshold
+}
+
+func (e *Entry) Add(spot Spot) bool {
+	if !e.Matches(spot) {
 		return false
 	}
 
@@ -170,16 +174,9 @@ func (e *Entry) Add(spot Spot) bool {
 }
 
 func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
-	k := 0
-	for i, s := range e.spots {
-		if !s.Time.Before(timestamp) {
-			if i != k {
-				e.spots[k] = s
-			}
-			k++
-		}
-	}
-	e.spots = e.spots[:k]
+	e.spots = filterSlice(e.spots, func(s Spot) bool {
+		return !s.Time.Before(timestamp)
+	})
 
 	e.update()
 
@@ -225,18 +222,24 @@ func (e *Entry) updateFrequency() {
 }
 
 type Entries struct {
+	entries []Entry
 }
 
 func NewEntries() *Entries {
-	return &Entries{}
+	return &Entries{
+		entries: make([]Entry, 0, 100),
+	}
 }
 
 func (l *Entries) Add(spot Spot) {
 
 }
 
-func (l *Entries) Update() {
-
+func (l *Entries) CleanOut(maximumAge time.Duration) {
+	deadline := time.Now().Add(-maximumAge)
+	l.entries = filterSlice(l.entries, func(e Entry) bool {
+		return e.RemoveSpotsBefore(deadline)
+	})
 }
 
 func (l *Entries) AllByFrequency() []Entry {
@@ -249,4 +252,17 @@ func (l *Entries) AllByProximity() []Entry {
 
 func (l *Entries) AllByValue() []Entry {
 	return nil
+}
+
+func filterSlice[E any](slice []E, filter func(E) bool) []E {
+	k := 0
+	for i, e := range slice {
+		if filter(e) {
+			if i != k {
+				slice[k] = e
+			}
+			k++
+		}
+	}
+	return slice[:k]
 }

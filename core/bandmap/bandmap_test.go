@@ -182,3 +182,13 @@ func TestEntry_ProximityFactor(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterSlice(t *testing.T) {
+	input := []int{1, 10, 5, 2, 9, 7, 6, 3, 4}
+
+	output := filterSlice(input, func(i int) bool {
+		return i < 6
+	})
+
+	assert.Equal(t, []int{1, 5, 2, 3, 4}, output)
+}

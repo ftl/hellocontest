@@ -246,6 +246,10 @@ type EntryAddedListener interface {
 	EntryAdded(Entry)
 }
 
+type EntryUpdatedListener interface {
+	EntryUpdated(Entry)
+}
+
 type EntryRemovedListener interface {
 	EntryRemoved(Entry)
 }
@@ -274,6 +278,14 @@ func (l *Entries) emitEntryAdded(e Entry) {
 	}
 }
 
+func (l *Entries) emitEntryUpdated(e Entry) {
+	for _, listener := range l.listeners {
+		if entryUpdatedListener, ok := listener.(EntryUpdatedListener); ok {
+			entryUpdatedListener.EntryUpdated(e)
+		}
+	}
+}
+
 func (l *Entries) emitEntryRemoved(e Entry) {
 	for _, listener := range l.listeners {
 		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
@@ -289,7 +301,7 @@ func (l *Entries) Len() int {
 func (l *Entries) Add(spot Spot) {
 	for _, e := range l.entries {
 		if e.Add(spot) {
-			l.emitEntryAdded(*e)
+			l.emitEntryUpdated(*e)
 			return
 		}
 	}

@@ -249,6 +249,9 @@ func TestEntries_Notify(t *testing.T) {
 	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
 	assert.Equal(t, "DL1ABC", listener.added[0].Call.String())
 
+	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)})
+	assert.Equal(t, "DL1ABC", listener.updated[0].Call.String())
+
 	entries.CleanOut(30*time.Minute, now)
 	assert.Equal(t, "DL1ABC", listener.removed[0].Call.String())
 }
@@ -265,11 +268,16 @@ func TestFilterSlice(t *testing.T) {
 
 type testEntryListener struct {
 	added   []Entry
+	updated []Entry
 	removed []Entry
 }
 
 func (t *testEntryListener) EntryAdded(e Entry) {
 	t.added = append(t.added, e)
+}
+
+func (t *testEntryListener) EntryUpdated(e Entry) {
+	t.updated = append(t.updated, e)
 }
 
 func (t *testEntryListener) EntryRemoved(e Entry) {

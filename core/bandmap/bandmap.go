@@ -30,6 +30,8 @@ type BandmapFrame struct {
 type Bandmap struct {
 	view View
 
+	entries *Entries
+
 	updatePeriod time.Duration
 	maximumAge   time.Duration
 
@@ -46,6 +48,8 @@ func NewDefaultBandmap() *Bandmap {
 
 func NewBandmap(updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
+		entries: NewEntries(),
+
 		updatePeriod: updatePeriod,
 		maximumAge:   maximumAge,
 
@@ -66,8 +70,7 @@ func (m *Bandmap) run() {
 		case <-m.closed:
 			return
 		case spot := <-m.spots:
-			_ = spot
-			// TODO: put the spot into the bandmap
+			m.entries.Add(spot)
 			m.update()
 		case command := <-m.do:
 			command()
@@ -75,10 +78,6 @@ func (m *Bandmap) run() {
 			m.update()
 		}
 	}
-}
-
-func (m *Bandmap) clear() {
-	// TODO: clear the bandmap
 }
 
 func (m *Bandmap) update() {
@@ -104,8 +103,16 @@ func (m *Bandmap) SetView(v View) {
 	m.do <- m.update
 }
 
+func (m *Bandmap) Notify(listener any) {
+	m.do <- func() {
+		m.entries.Notify(listener)
+	}
+}
+
 func (m *Bandmap) Clear() {
-	m.do <- m.clear
+	m.do <- func() {
+		m.entries.Clear()
+	}
 }
 
 func (m *Bandmap) Add(spot Spot) {
@@ -261,9 +268,9 @@ type Entries struct {
 }
 
 func NewEntries() *Entries {
-	return &Entries{
-		entries: make([]*Entry, 0, 100),
-	}
+	result := new(Entries)
+	result.Clear()
+	return result
 }
 
 func (l *Entries) Notify(listener any) {
@@ -292,6 +299,10 @@ func (l *Entries) emitEntryRemoved(e Entry) {
 			entryRemovedListener.EntryRemoved(e)
 		}
 	}
+}
+
+func (l *Entries) Clear() {
+	l.entries = make([]*Entry, 0, 100)
 }
 
 func (l *Entries) Len() int {

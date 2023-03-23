@@ -4,7 +4,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"golang.org/x/exp/slices"
 
 	"github.com/ftl/hellocontest/core"
@@ -28,32 +27,34 @@ type BandmapFrame struct {
 }
 
 type Bandmap struct {
-	view View
-
 	entries *Entries
+	clock   core.Clock
+
+	view View
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
 
-	spots  chan Spot
+	spots  chan core.Spot
 	do     chan bandmapCommand
 	closed chan struct{}
 }
 
 type bandmapCommand func()
 
-func NewDefaultBandmap() *Bandmap {
-	return NewBandmap(DefaultUpdatePeriod, DefaultMaximumAge)
+func NewDefaultBandmap(clock core.Clock) *Bandmap {
+	return NewBandmap(clock, DefaultUpdatePeriod, DefaultMaximumAge)
 }
 
-func NewBandmap(updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
+func NewBandmap(clock core.Clock, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
 		entries: NewEntries(),
+		clock:   clock,
 
 		updatePeriod: updatePeriod,
 		maximumAge:   maximumAge,
 
-		spots:  make(chan Spot),
+		spots:  make(chan core.Spot),
 		do:     make(chan bandmapCommand),
 		closed: make(chan struct{}),
 	}
@@ -81,6 +82,8 @@ func (m *Bandmap) run() {
 }
 
 func (m *Bandmap) update() {
+	m.entries.CleanOut(m.maximumAge, m.clock.Now())
+
 	// TODO: calculate the current frame
 	frame := BandmapFrame{}
 
@@ -115,26 +118,8 @@ func (m *Bandmap) Clear() {
 	}
 }
 
-func (m *Bandmap) Add(spot Spot) {
+func (m *Bandmap) Add(spot core.Spot) {
 	m.spots <- spot
-}
-
-type SpotSource int
-
-const (
-	ManualSpot SpotSource = iota
-	SkimmerSpot
-	RBNSpot
-	ClusterSpot
-	maxSpotSource
-)
-
-type Spot struct {
-	Call      callsign.Callsign
-	Frequency core.Frequency
-	Mode      core.Mode
-	Time      time.Time
-	Source    SpotSource
 }
 
 const (
@@ -147,22 +132,21 @@ const (
 )
 
 type Entry struct {
-	Call      callsign.Callsign
-	Frequency core.Frequency
-	LastHeard time.Time
-	Source    SpotSource
+	core.BandmapEntry
 
-	spots []Spot
+	spots []core.Spot
 }
 
-func NewEntry(spot Spot) Entry {
+func NewEntry(spot core.Spot) Entry {
 	return Entry{
-		Call:      spot.Call,
-		Frequency: spot.Frequency,
-		LastHeard: spot.Time,
-		Source:    spot.Source,
+		BandmapEntry: core.BandmapEntry{
+			Call:      spot.Call,
+			Frequency: spot.Frequency,
+			LastHeard: spot.Time,
+			Source:    spot.Source,
+		},
 
-		spots: []Spot{spot},
+		spots: []core.Spot{spot},
 	}
 }
 
@@ -170,7 +154,7 @@ func (e *Entry) Len() int {
 	return len(e.spots)
 }
 
-func (e *Entry) Matches(spot Spot) bool {
+func (e *Entry) Matches(spot core.Spot) bool {
 	if spot.Call != e.Call {
 		return false
 	}
@@ -179,7 +163,7 @@ func (e *Entry) Matches(spot Spot) bool {
 	return frequencyDelta <= spotFrequencyDeltaThreshold
 }
 
-func (e *Entry) Add(spot Spot) bool {
+func (e *Entry) Add(spot core.Spot) bool {
 	if !e.Matches(spot) {
 		return false
 	}
@@ -197,7 +181,7 @@ func (e *Entry) Add(spot Spot) bool {
 }
 
 func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
-	e.spots = filterSlice(e.spots, func(s Spot) bool {
+	e.spots = filterSlice(e.spots, func(s core.Spot) bool {
 		return !s.Time.Before(timestamp)
 	})
 
@@ -221,7 +205,7 @@ func (e *Entry) update() {
 	e.updateFrequency()
 
 	lastHeard := time.Time{}
-	source := maxSpotSource
+	source := core.MaxSpotSource
 	for _, s := range e.spots {
 		if lastHeard.Before(s.Time) {
 			lastHeard = s.Time
@@ -309,7 +293,7 @@ func (l *Entries) Len() int {
 	return len(l.entries)
 }
 
-func (l *Entries) Add(spot Spot) {
+func (l *Entries) Add(spot core.Spot) {
 	for _, e := range l.entries {
 		if e.Add(spot) {
 			l.emitEntryUpdated(*e)

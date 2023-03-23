@@ -59,11 +59,13 @@ func TestEntry_Add_OnlySameCallAndSimilarFrequency(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			entry := Entry{
-				Call:      callsign.MustParse("dl1abc"),
-				Frequency: frequency,
+				BandmapEntry: core.BandmapEntry{
+					Call:      callsign.MustParse("dl1abc"),
+					Frequency: frequency,
+				},
 			}
 
-			added := entry.Add(Spot{Call: callsign.MustParse(tc.call), Frequency: tc.frequency})
+			added := entry.Add(core.Spot{Call: callsign.MustParse(tc.call), Frequency: tc.frequency})
 			assert.Equal(t, tc.valid, added)
 		})
 	}
@@ -73,82 +75,82 @@ func TestEntry_Add_MaintainsLastHeard(t *testing.T) {
 	call := callsign.MustParse("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
-	entry := Entry{Call: call, Frequency: frequency}
+	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency}}
 
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-1 * time.Hour)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Time: now.Add(-1 * time.Hour)})
 	assert.Equal(t, now.Add(-1*time.Hour), entry.LastHeard)
 
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-30 * time.Minute)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Time: now.Add(-30 * time.Minute)})
 	assert.Equal(t, now.Add(-30*time.Minute), entry.LastHeard)
 
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-10 * time.Minute)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Time: now.Add(-10 * time.Minute)})
 	assert.Equal(t, now.Add(-10*time.Minute), entry.LastHeard)
 
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-40 * time.Minute)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Time: now.Add(-40 * time.Minute)})
 	assert.Equal(t, now.Add(-10*time.Minute), entry.LastHeard)
 }
 
 func TestEntry_Add_MaintainsFrequency(t *testing.T) {
 	call := callsign.MustParse("dl1abc")
 	frequency := core.Frequency(7035000)
-	entry := Entry{Call: call, Frequency: frequency}
-	entry.Add(Spot{Call: call, Frequency: frequency})
+	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency}}
+	entry.Add(core.Spot{Call: call, Frequency: frequency})
 
-	entry.Add(Spot{Call: call, Frequency: frequency + 18})
+	entry.Add(core.Spot{Call: call, Frequency: frequency + 18})
 	assert.Equal(t, frequency+10, entry.Frequency)
 
-	entry.Add(Spot{Call: call, Frequency: frequency - 13})
+	entry.Add(core.Spot{Call: call, Frequency: frequency - 13})
 	assert.Equal(t, frequency, entry.Frequency)
 
-	entry.Add(Spot{Call: call, Frequency: frequency - 24})
+	entry.Add(core.Spot{Call: call, Frequency: frequency - 24})
 	assert.Equal(t, frequency, entry.Frequency)
 
-	entry.Add(Spot{Call: call, Frequency: frequency - 24})
+	entry.Add(core.Spot{Call: call, Frequency: frequency - 24})
 	assert.Equal(t, frequency-10, entry.Frequency)
 }
 
-func TestEntry_Add_MaintainsHighestRangedSource(t *testing.T) {
+func TestEntry_Add_MaintainsHighestRankedSource(t *testing.T) {
 	call := callsign.MustParse("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
-	entry := Entry{Call: call, Frequency: frequency}
+	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency, Source: core.MaxSpotSource}}
 
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: SkimmerSpot, Time: now})
-	assert.Equal(t, SkimmerSpot, entry.Source)
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.SkimmerSpot, Time: now})
+	assert.Equal(t, core.SkimmerSpot, entry.Source)
 
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: RBNSpot, Time: now})
-	assert.Equal(t, SkimmerSpot, entry.Source)
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.RBNSpot, Time: now})
+	assert.Equal(t, core.SkimmerSpot, entry.Source)
 
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: ManualSpot, Time: now})
-	assert.Equal(t, ManualSpot, entry.Source)
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.ManualSpot, Time: now})
+	assert.Equal(t, core.ManualSpot, entry.Source)
 }
 
 func TestEntry_RemoveSpotsBefore(t *testing.T) {
 	call := callsign.MustParse("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
-	entry := Entry{Call: call, Frequency: frequency}
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: ManualSpot, Time: now.Add(-10 * time.Hour)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: SkimmerSpot, Time: now.Add(-5 * time.Hour)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: RBNSpot, Time: now.Add(-1 * time.Hour)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: ClusterSpot, Time: now.Add(-30 * time.Minute)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Source: ClusterSpot, Time: now.Add(-1 * time.Hour)})
+	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency}}
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.ManualSpot, Time: now.Add(-10 * time.Hour)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.SkimmerSpot, Time: now.Add(-5 * time.Hour)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.RBNSpot, Time: now.Add(-1 * time.Hour)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.ClusterSpot, Time: now.Add(-30 * time.Minute)})
+	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.ClusterSpot, Time: now.Add(-1 * time.Hour)})
 
 	valid := entry.RemoveSpotsBefore(now.Add(-10 * time.Hour))
 	require.True(t, valid)
 	assert.Equal(t, 5, entry.Len())
-	assert.Equal(t, ManualSpot, entry.Source, "manual")
+	assert.Equal(t, core.ManualSpot, entry.Source, "manual")
 
 	valid = entry.RemoveSpotsBefore(now.Add(-5 * time.Hour))
 	require.True(t, valid)
 	assert.Equal(t, 4, entry.Len())
-	assert.Equal(t, SkimmerSpot, entry.Source, "skimmer")
+	assert.Equal(t, core.SkimmerSpot, entry.Source, "skimmer")
 
 	valid = entry.RemoveSpotsBefore(now.Add(-40 * time.Minute))
 	require.True(t, valid)
 	assert.Equal(t, 1, entry.Len())
 	assert.Equal(t, now.Add(-30*time.Minute), entry.spots[0].Time)
-	assert.Equal(t, ClusterSpot, entry.Source, "cluster")
+	assert.Equal(t, core.ClusterSpot, entry.Source, "cluster")
 
 	valid = entry.RemoveSpotsBefore(now.Add(-10 * time.Minute))
 	require.False(t, valid)
@@ -191,8 +193,10 @@ func TestEntry_ProximityFactor(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			entry := Entry{
-				Call:      callsign.MustParse("dl1abc"),
-				Frequency: frequency,
+				BandmapEntry: core.BandmapEntry{
+					Call:      callsign.MustParse("dl1abc"),
+					Frequency: frequency,
+				},
 			}
 
 			actual := entry.ProximityFactor(tc.frequency)
@@ -207,7 +211,7 @@ func TestEntries_AddNewEntry(t *testing.T) {
 	entries := NewEntries()
 	assert.Equal(t, 0, entries.Len())
 
-	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now})
 
 	assert.Equal(t, 1, entries.Len())
 
@@ -222,10 +226,10 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 	now := time.Now()
 	entries := NewEntries()
 
-	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
-	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)})
-	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)})
-	entries.Add(Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-10 * time.Hour)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-10 * time.Hour)})
 
 	assert.Equal(t, 2, entries.Len())
 	assert.Equal(t, "DL1ABC", entries.entries[0].Call.String())
@@ -246,10 +250,10 @@ func TestEntries_Notify(t *testing.T) {
 	listener := new(testEntryListener)
 	entries.Notify(listener)
 
-	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
 	assert.Equal(t, "DL1ABC", listener.added[0].Call.String())
 
-	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)})
 	assert.Equal(t, "DL1ABC", listener.updated[0].Call.String())
 
 	entries.CleanOut(30*time.Minute, now)

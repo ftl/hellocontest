@@ -112,14 +112,14 @@ func (m *Bandmap) Add(spot Spot) {
 	m.spots <- spot
 }
 
-type SpotSource string
+type SpotSource int
 
 const (
-	WorkedSpot  SpotSource = "worked"
-	ManualSpot  SpotSource = "manual"
-	SkimmerSpot SpotSource = "skimmer"
-	ClusterSpot SpotSource = "cluster"
-	RBNSpot     SpotSource = "rbn"
+	ManualSpot SpotSource = iota
+	SkimmerSpot
+	RBNSpot
+	ClusterSpot
+	maxSpotSource
 )
 
 type Spot struct {
@@ -143,6 +143,7 @@ type Entry struct {
 	Call      callsign.Callsign
 	Frequency core.Frequency
 	LastHeard time.Time
+	Source    SpotSource
 
 	spots []Spot
 }
@@ -152,6 +153,7 @@ func NewEntry(spot Spot) Entry {
 		Call:      spot.Call,
 		Frequency: spot.Frequency,
 		LastHeard: spot.Time,
+		Source:    spot.Source,
 
 		spots: []Spot{spot},
 	}
@@ -179,6 +181,9 @@ func (e *Entry) Add(spot Spot) bool {
 	e.updateFrequency()
 	if e.LastHeard.Before(spot.Time) {
 		e.LastHeard = spot.Time
+	}
+	if e.Source > spot.Source {
+		e.Source = spot.Source
 	}
 
 	return true
@@ -209,12 +214,17 @@ func (e *Entry) update() {
 	e.updateFrequency()
 
 	lastHeard := time.Time{}
+	source := maxSpotSource
 	for _, s := range e.spots {
 		if lastHeard.Before(s.Time) {
 			lastHeard = s.Time
 		}
+		if source > s.Source {
+			source = s.Source
+		}
 	}
 	e.LastHeard = lastHeard
+	e.Source = source
 }
 
 func (e *Entry) updateFrequency() {

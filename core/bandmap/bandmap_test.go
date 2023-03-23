@@ -107,29 +107,48 @@ func TestEntry_Add_MaintainsFrequency(t *testing.T) {
 	assert.Equal(t, frequency-10, entry.Frequency)
 }
 
+func TestEntry_Add_MaintainsHighestRangedSource(t *testing.T) {
+	call := callsign.MustParse("dl1abc")
+	frequency := core.Frequency(7035000)
+	now := time.Now()
+	entry := Entry{Call: call, Frequency: frequency}
+
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: SkimmerSpot, Time: now})
+	assert.Equal(t, SkimmerSpot, entry.Source)
+
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: RBNSpot, Time: now})
+	assert.Equal(t, SkimmerSpot, entry.Source)
+
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: ManualSpot, Time: now})
+	assert.Equal(t, ManualSpot, entry.Source)
+}
+
 func TestEntry_RemoveSpotsBefore(t *testing.T) {
 	call := callsign.MustParse("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
 	entry := Entry{Call: call, Frequency: frequency}
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-10 * time.Hour)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-5 * time.Hour)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-1 * time.Hour)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-30 * time.Minute)})
-	entry.Add(Spot{Call: call, Frequency: frequency, Time: now.Add(-1 * time.Hour)})
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: ManualSpot, Time: now.Add(-10 * time.Hour)})
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: SkimmerSpot, Time: now.Add(-5 * time.Hour)})
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: RBNSpot, Time: now.Add(-1 * time.Hour)})
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: ClusterSpot, Time: now.Add(-30 * time.Minute)})
+	entry.Add(Spot{Call: call, Frequency: frequency, Source: ClusterSpot, Time: now.Add(-1 * time.Hour)})
 
 	valid := entry.RemoveSpotsBefore(now.Add(-10 * time.Hour))
 	require.True(t, valid)
 	assert.Equal(t, 5, entry.Len())
+	assert.Equal(t, ManualSpot, entry.Source, "manual")
 
 	valid = entry.RemoveSpotsBefore(now.Add(-5 * time.Hour))
 	require.True(t, valid)
 	assert.Equal(t, 4, entry.Len())
+	assert.Equal(t, SkimmerSpot, entry.Source, "skimmer")
 
 	valid = entry.RemoveSpotsBefore(now.Add(-40 * time.Minute))
 	require.True(t, valid)
 	assert.Equal(t, 1, entry.Len())
 	assert.Equal(t, now.Add(-30*time.Minute), entry.spots[0].Time)
+	assert.Equal(t, ClusterSpot, entry.Source, "cluster")
 
 	valid = entry.RemoveSpotsBefore(now.Add(-10 * time.Minute))
 	require.False(t, valid)

@@ -232,13 +232,43 @@ func (e *Entry) updateFrequency() {
 	e.Frequency = core.Frequency(roundedMean * spotFrequencyStep)
 }
 
+type EntryAddedListener interface {
+	EntryAdded(Entry)
+}
+
+type EntryRemovedListener interface {
+	EntryRemoved(Entry)
+}
+
 type Entries struct {
 	entries []*Entry
+
+	listeners []any
 }
 
 func NewEntries() *Entries {
 	return &Entries{
 		entries: make([]*Entry, 0, 100),
+	}
+}
+
+func (l *Entries) Notify(listener any) {
+	l.listeners = append(l.listeners, listener)
+}
+
+func (l *Entries) emitEntryAdded(e Entry) {
+	for _, listener := range l.listeners {
+		if entryAddedListener, ok := listener.(EntryAddedListener); ok {
+			entryAddedListener.EntryAdded(e)
+		}
+	}
+}
+
+func (l *Entries) emitEntryRemoved(e Entry) {
+	for _, listener := range l.listeners {
+		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
+			entryRemovedListener.EntryRemoved(e)
+		}
 	}
 }
 
@@ -249,17 +279,23 @@ func (l *Entries) Len() int {
 func (l *Entries) Add(spot Spot) {
 	for _, e := range l.entries {
 		if e.Add(spot) {
+			l.emitEntryAdded(*e)
 			return
 		}
 	}
 	newEntry := NewEntry(spot)
 	l.entries = append(l.entries, &newEntry)
+	l.emitEntryAdded(newEntry)
 }
 
 func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 	deadline := now.Add(-maximumAge)
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
-		return e.RemoveSpotsBefore(deadline)
+		matches := e.RemoveSpotsBefore(deadline)
+		if !matches {
+			l.emitEntryRemoved(*e)
+		}
+		return matches
 	})
 }
 

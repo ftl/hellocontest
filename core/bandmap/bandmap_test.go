@@ -221,6 +221,19 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 	assert.Equal(t, now.Add(-10*time.Minute), entries.entries[0].LastHeard)
 }
 
+func TestEntries_Notify(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries()
+	listener := new(testEntryListener)
+	entries.Notify(listener)
+
+	entries.Add(Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
+	assert.Equal(t, "DL1ABC", listener.added[0].Call.String())
+
+	entries.CleanOut(30*time.Minute, now)
+	assert.Equal(t, "DL1ABC", listener.removed[0].Call.String())
+}
+
 func TestFilterSlice(t *testing.T) {
 	input := []int{1, 10, 5, 2, 9, 7, 6, 3, 4}
 
@@ -229,4 +242,17 @@ func TestFilterSlice(t *testing.T) {
 	})
 
 	assert.Equal(t, []int{1, 5, 2, 3, 4}, output)
+}
+
+type testEntryListener struct {
+	added   []Entry
+	removed []Entry
+}
+
+func (t *testEntryListener) EntryAdded(e Entry) {
+	t.added = append(t.added, e)
+}
+
+func (t *testEntryListener) EntryRemoved(e Entry) {
+	t.removed = append(t.removed, e)
 }

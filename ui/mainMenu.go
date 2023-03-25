@@ -26,6 +26,7 @@ type MainMenuController interface {
 	LogQSO()
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
+	MarkInBandmap()
 }
 
 type mainMenu struct {
@@ -47,6 +48,8 @@ type mainMenu struct {
 	editLogQSO           *gtk.MenuItem
 	editSP               *gtk.RadioMenuItem
 	editRun              *gtk.RadioMenuItem
+
+	bandmapMark *gtk.MenuItem
 
 	windowCallinfo *gtk.MenuItem
 	windowScore    *gtk.MenuItem
@@ -72,6 +75,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.editLogQSO = getUI(builder, "menuEditLogQSO").(*gtk.MenuItem)
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
+	result.bandmapMark = getUI(builder, "menuBandmapMark").(*gtk.MenuItem)
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
@@ -92,6 +96,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.editLogQSO.Connect("activate", result.onLogQSO)
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
+	result.bandmapMark.Connect("activate", result.onMarkInBandmap)
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
 	result.windowScore.Connect("activate", result.onScore)
 	result.windowRate.Connect("activate", result.onRate)
@@ -185,6 +190,10 @@ func (m *mainMenu) onRun() {
 	if m.editRun.GetActive() {
 		m.controller.SwitchToRunWorkmode()
 	}
+}
+
+func (m *mainMenu) onMarkInBandmap() {
+	m.controller.MarkInBandmap()
 }
 
 func (m *mainMenu) onCallinfo() {

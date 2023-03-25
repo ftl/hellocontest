@@ -174,7 +174,7 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 				partAttributeString = ""
 				partString = "|"
 			case core.Substitute:
-				partAttributeString = "underline='double'"
+				partAttributeString = "underline='single'"
 				partString = part.Value
 			case core.FalseFriend:
 				partAttributeString = "underline='double'"

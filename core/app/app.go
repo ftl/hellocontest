@@ -10,6 +10,7 @@ import (
 	"github.com/ftl/hamradio/cwclient"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/bandmap"
 	"github.com/ftl/hellocontest/core/callhistory"
 	"github.com/ftl/hellocontest/core/callinfo"
 	"github.com/ftl/hellocontest/core/cfg"
@@ -69,6 +70,7 @@ type Controller struct {
 	Rate          *rate.Counter
 	ServiceStatus *ServiceStatus
 	Settings      *settings.Settings
+	Bandmap       *bandmap.Bandmap
 
 	OnLogbookChanged func()
 }
@@ -119,6 +121,7 @@ func (c *Controller) Startup() {
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
 	c.callHistoryFinder = callhistory.New(c.Settings, c.ServiceStatus.StatusChanged)
+	c.Bandmap = bandmap.NewBandmap(c.clock, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
@@ -126,6 +129,7 @@ func (c *Controller) Startup() {
 		c.Settings,
 		c.clock,
 		c.QSOList,
+		c.Bandmap,
 		c.asyncRunner,
 	)
 	c.QSOList.Notify(c.Entry)
@@ -141,6 +145,7 @@ func (c *Controller) Startup() {
 			c.tciClient = tciClient
 			c.tciClient.Notify(c.ServiceStatus)
 			c.Entry.SetVFO(c.tciClient)
+			c.Bandmap.Notify(c.tciClient)
 			c.tciClient.SetVFOController(c.Entry)
 			keyerCWClient = c.tciClient
 		}
@@ -610,6 +615,10 @@ func (c *Controller) SwitchToSPWorkmode() {
 
 func (c *Controller) SwitchToRunWorkmode() {
 	c.Workmode.SetWorkmode(core.Run)
+}
+
+func (c *Controller) MarkInBandmap() {
+	c.Entry.MarkInBandmap()
 }
 
 func (c *Controller) Stop() {

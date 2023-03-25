@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 
+<!-- Generated with glade 3.40.0 
 
 The MIT License (MIT)
 
@@ -47,7 +47,7 @@ THE SOFTWARE.
             <property name="label" translatable="yes">DL1ABC</property>
             <property name="wrap">True</property>
             <attributes>
-              <attribute name="scale" value="4"/>
+              <attribute name="scale" value="3"/>
             </attributes>
           </object>
           <packing>
@@ -117,7 +117,7 @@ THE SOFTWARE.
             <property name="label" translatable="yes">1234</property>
             <property name="justify">right</property>
             <attributes>
-              <attribute name="scale" value="4"/>
+              <attribute name="scale" value="3"/>
             </attributes>
           </object>
           <packing>
@@ -1074,6 +1074,29 @@ THE SOFTWARE.
                         <property name="draw-as-radio">True</property>
                         <property name="group">menuEditSP</property>
                         <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="menuBandmap">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Bandmap</property>
+                <property name="use-underline">True</property>
+                <child type="submenu">
+                  <object class="GtkMenu">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <child>
+                      <object class="GtkMenuItem" id="menuBandmapMark">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Mark in Bandmap</property>
+                        <property name="use-underline">True</property>
+                        <accelerator key="m" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
                   </object>

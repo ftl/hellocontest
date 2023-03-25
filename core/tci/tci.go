@@ -140,6 +140,32 @@ func (c *Client) Refresh() {
 	c.trx.Refresh()
 }
 
+var spotColors = map[core.SpotSource]client.ARGB{
+	core.ManualSpot:  client.NewARGB(255, 255, 255, 255),
+	core.SkimmerSpot: client.NewARGB(255, 255, 153, 255),
+	core.RBNSpot:     client.NewARGB(255, 255, 255, 153),
+	core.ClusterSpot: client.NewARGB(255, 153, 255, 255),
+}
+
+func (c *Client) EntryAdded(e core.BandmapEntry) {
+	err := c.client.AddSpot(e.Call.String(), toClientMode(e.Mode), int(e.Frequency), spotColors[e.Source], "hellocontest")
+	if err != nil {
+		log.Printf("cannot add spot: %v", err)
+	}
+}
+
+func (c *Client) EntryUpdated(e core.BandmapEntry) {
+	c.EntryRemoved(e)
+	c.EntryAdded(e)
+}
+
+func (c *Client) EntryRemoved(e core.BandmapEntry) {
+	err := c.client.DeleteSpot(e.Call.String())
+	if err != nil {
+		log.Printf("cannot delete spot: %v", err)
+	}
+}
+
 type trxListener struct {
 	client    *Client
 	trx       int

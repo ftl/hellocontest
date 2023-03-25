@@ -85,8 +85,12 @@ type VFO interface {
 	SetMode(core.Mode)
 }
 
+type Bandmap interface {
+	Add(core.Spot)
+}
+
 // NewController returns a new entry controller.
-func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, asyncRunner core.AsyncRunner) *Controller {
+func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, bandmap Bandmap, asyncRunner core.AsyncRunner) *Controller {
 	result := &Controller{
 		clock:       clock,
 		view:        new(nullView),
@@ -95,6 +99,7 @@ func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, as
 		vfo:         new(nullVFO),
 		asyncRunner: asyncRunner,
 		qsoList:     qsoList,
+		bandmap:     bandmap,
 
 		stationCallsign: settings.Station().Callsign.String(),
 	}
@@ -111,6 +116,7 @@ type Controller struct {
 	keyer    Keyer
 	callinfo Callinfo
 	vfo      VFO
+	bandmap  Bandmap
 
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
@@ -816,6 +822,21 @@ func (c *Controller) FilterExchange(values []string) []string {
 	return result
 }
 
+func (c *Controller) MarkInBandmap() {
+	call, err := callsign.Parse(c.input.callsign)
+	if err != nil {
+		log.Printf("Cannot mark invalid call: %v", err)
+		return
+	}
+	spot := core.Spot{
+		Call:      call,
+		Frequency: c.selectedFrequency,
+		Mode:      c.selectedMode,
+		Time:      c.clock.Now(),
+	}
+	c.bandmap.Add(spot)
+}
+
 type nullView struct{}
 
 func (n *nullView) SetUTC(string)                               {}
@@ -855,3 +876,7 @@ type nullCallinfo struct{}
 
 func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, []string) {}
 func (n *nullCallinfo) PredictedExchange() []string                     { return []string{} }
+
+type nullBandmap struct{}
+
+func (n *nullBandmap) Add(core.Spot) {}

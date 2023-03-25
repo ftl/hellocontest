@@ -1,6 +1,7 @@
 package bandmap
 
 import (
+	"log"
 	"math"
 	"time"
 
@@ -142,6 +143,7 @@ func NewEntry(spot core.Spot) Entry {
 		BandmapEntry: core.BandmapEntry{
 			Call:      spot.Call,
 			Frequency: spot.Frequency,
+			Mode:      spot.Mode,
 			LastHeard: spot.Time,
 			Source:    spot.Source,
 		},
@@ -156,6 +158,9 @@ func (e *Entry) Len() int {
 
 func (e *Entry) Matches(spot core.Spot) bool {
 	if spot.Call != e.Call {
+		return false
+	}
+	if spot.Mode != e.Mode {
 		return false
 	}
 
@@ -234,15 +239,15 @@ func (e *Entry) updateFrequency() {
 }
 
 type EntryAddedListener interface {
-	EntryAdded(Entry)
+	EntryAdded(core.BandmapEntry)
 }
 
 type EntryUpdatedListener interface {
-	EntryUpdated(Entry)
+	EntryUpdated(core.BandmapEntry)
 }
 
 type EntryRemovedListener interface {
-	EntryRemoved(Entry)
+	EntryRemoved(core.BandmapEntry)
 }
 
 type Entries struct {
@@ -264,7 +269,7 @@ func (l *Entries) Notify(listener any) {
 func (l *Entries) emitEntryAdded(e Entry) {
 	for _, listener := range l.listeners {
 		if entryAddedListener, ok := listener.(EntryAddedListener); ok {
-			entryAddedListener.EntryAdded(e)
+			entryAddedListener.EntryAdded(e.BandmapEntry)
 		}
 	}
 }
@@ -272,7 +277,7 @@ func (l *Entries) emitEntryAdded(e Entry) {
 func (l *Entries) emitEntryUpdated(e Entry) {
 	for _, listener := range l.listeners {
 		if entryUpdatedListener, ok := listener.(EntryUpdatedListener); ok {
-			entryUpdatedListener.EntryUpdated(e)
+			entryUpdatedListener.EntryUpdated(e.BandmapEntry)
 		}
 	}
 }
@@ -280,7 +285,7 @@ func (l *Entries) emitEntryUpdated(e Entry) {
 func (l *Entries) emitEntryRemoved(e Entry) {
 	for _, listener := range l.listeners {
 		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
-			entryRemovedListener.EntryRemoved(e)
+			entryRemovedListener.EntryRemoved(e.BandmapEntry)
 		}
 	}
 }
@@ -348,4 +353,18 @@ func filterSlice[E any](slice []E, filter func(E) bool) []E {
 		}
 	}
 	return slice[:k]
+}
+
+type Logger struct{}
+
+func (l *Logger) EntryAdded(e core.BandmapEntry) {
+	log.Printf("Bandmap entry added: %v", e)
+}
+
+func (l *Logger) EntryUpdated(e core.BandmapEntry) {
+	log.Printf("Bandmap entry updated: %v", e)
+}
+
+func (l *Logger) EntryRemoved(e core.BandmapEntry) {
+	log.Printf("Bandmap entry removed: %v", e)
 }

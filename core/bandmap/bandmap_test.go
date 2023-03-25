@@ -271,19 +271,19 @@ func TestFilterSlice(t *testing.T) {
 }
 
 type testEntryListener struct {
-	added   []Entry
-	updated []Entry
-	removed []Entry
+	added   []core.BandmapEntry
+	updated []core.BandmapEntry
+	removed []core.BandmapEntry
 }
 
-func (t *testEntryListener) EntryAdded(e Entry) {
+func (t *testEntryListener) EntryAdded(e core.BandmapEntry) {
 	t.added = append(t.added, e)
 }
 
-func (t *testEntryListener) EntryUpdated(e Entry) {
+func (t *testEntryListener) EntryUpdated(e core.BandmapEntry) {
 	t.updated = append(t.updated, e)
 }
 
-func (t *testEntryListener) EntryRemoved(e Entry) {
+func (t *testEntryListener) EntryRemoved(e core.BandmapEntry) {
 	t.removed = append(t.removed, e)
 }

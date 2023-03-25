@@ -14,8 +14,8 @@ github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 h1:ORI3EUKpLTsfA372C
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9/go.mod h1:4sZLCxjgn++exy5u0muVzlvnahfanPuiHLQo0GJQnPA=
 github.com/ftl/rigproxy v0.2.1 h1:NenPHHvWMi6EpZUYOINd8Gsvl+zoSQWc+q5Ha/yUsbE=
 github.com/ftl/rigproxy v0.2.1/go.mod h1:PrBUiqLwu/6zL44+uOz4lgmOfnis4FIvJDhxDNXoi60=
-github.com/ftl/tci v0.3.1 h1:Njtb38PzkVYbW9zlr4Babl6+frQBsCLWNEZDvxxUTzQ=
-github.com/ftl/tci v0.3.1/go.mod h1:3B8x8FI/kBbUwbWnz725tTiiiNfJpIL9cQ67TnjW3aU=
+github.com/ftl/tci v0.3.2 h1:1Qdgprldiv7/DQvuK96OHMVqb+SDunqbxTHDcWsE5Tk=
+github.com/ftl/tci v0.3.2/go.mod h1:3B8x8FI/kBbUwbWnz725tTiiiNfJpIL9cQ67TnjW3aU=
 github.com/golang/protobuf v1.4.0-rc.1/go.mod h1:ceaxUfeHdC40wWswd/P6IGgMaK3YpKi5j83Wpe3EHw8=
 github.com/golang/protobuf v1.4.0-rc.1.0.20200221234624-67d41d38c208/go.mod h1:xKAWHe0F5eneWXFV3EuXVDTCmh+JuBKY0li0aMyXATA=
 github.com/golang/protobuf v1.4.0-rc.2/go.mod h1:LlEzMj4AhA7rCAGe4KMBDvJI+AwstrUpVNzEA03Pprs=

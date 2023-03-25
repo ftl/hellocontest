@@ -673,6 +673,7 @@ type Spot struct {
 type BandmapEntry struct {
 	Call      callsign.Callsign
 	Frequency Frequency
+	Mode      Mode
 	LastHeard time.Time
 	Source    SpotSource
 }

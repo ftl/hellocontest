@@ -640,6 +640,18 @@ func (c *Controller) MarkInBandmap() {
 	c.Entry.MarkInBandmap()
 }
 
+func (c *Controller) GotoNearestSpot() {
+	c.Entry.GotoNearestSpot()
+}
+
+func (c *Controller) GotoNextSpotUp() {
+	c.Entry.GotoNextSpotUp()
+}
+
+func (c *Controller) GotoNextSpotDown() {
+	c.Entry.GotoNextSpotDown()
+}
+
 func (c *Controller) SendSpotsToTci() bool {
 	return c.session.SendSpotsToTci()
 }

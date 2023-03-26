@@ -27,6 +27,9 @@ type MainMenuController interface {
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
 	MarkInBandmap()
+	GotoNearestSpot()
+	GotoNextSpotUp()
+	GotoNextSpotDown()
 	SendSpotsToTci() bool
 	SetSendSpotsToTci(bool)
 }
@@ -51,8 +54,11 @@ type mainMenu struct {
 	editSP               *gtk.RadioMenuItem
 	editRun              *gtk.RadioMenuItem
 
-	bandmapMark           *gtk.MenuItem
-	bandmapSendSpotsToTci *gtk.CheckMenuItem
+	bandmapMark             *gtk.MenuItem
+	bandmapGotoNearestSpot  *gtk.MenuItem
+	bandmapGotoNextSpotUp   *gtk.MenuItem
+	bandmapGotoNextSpotDown *gtk.MenuItem
+	bandmapSendSpotsToTci   *gtk.CheckMenuItem
 
 	windowCallinfo *gtk.MenuItem
 	windowScore    *gtk.MenuItem
@@ -79,6 +85,9 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
 	result.bandmapMark = getUI(builder, "menuBandmapMark").(*gtk.MenuItem)
+	result.bandmapGotoNearestSpot = getUI(builder, "menuBandmapGotoNearestSpot").(*gtk.MenuItem)
+	result.bandmapGotoNextSpotUp = getUI(builder, "menuBandmapGotoNextSpotUp").(*gtk.MenuItem)
+	result.bandmapGotoNextSpotDown = getUI(builder, "menuBandmapGotoNextSpotDown").(*gtk.MenuItem)
 	result.bandmapSendSpotsToTci = getUI(builder, "menuBandmapSendSpotsToTci").(*gtk.CheckMenuItem)
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
@@ -101,6 +110,9 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
 	result.bandmapMark.Connect("activate", result.onMarkInBandmap)
+	result.bandmapGotoNearestSpot.Connect("activate", result.onGotoNearestSpot)
+	result.bandmapGotoNextSpotUp.Connect("activate", result.onGotoNextSpotUp)
+	result.bandmapGotoNextSpotDown.Connect("activate", result.onGotoNextSpotDown)
 	result.bandmapSendSpotsToTci.Connect("toggled", result.onSendSpotsToTci)
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
 	result.windowScore.Connect("activate", result.onScore)
@@ -200,6 +212,18 @@ func (m *mainMenu) onRun() {
 
 func (m *mainMenu) onMarkInBandmap() {
 	m.controller.MarkInBandmap()
+}
+
+func (m *mainMenu) onGotoNearestSpot() {
+	m.controller.GotoNearestSpot()
+}
+
+func (m *mainMenu) onGotoNextSpotUp() {
+	m.controller.GotoNextSpotUp()
+}
+
+func (m *mainMenu) onGotoNextSpotDown() {
+	m.controller.GotoNextSpotDown()
 }
 
 func (m *mainMenu) onSendSpotsToTci() {

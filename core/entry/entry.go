@@ -87,6 +87,8 @@ type VFO interface {
 
 type Bandmap interface {
 	Add(core.Spot)
+
+	AllByDistance(f core.Frequency) []core.BandmapEntry
 }
 
 // NewController returns a new entry controller.
@@ -849,6 +851,52 @@ func (c *Controller) MarkInBandmap() {
 	c.bandmap.Add(spot)
 }
 
+func (c *Controller) GotoNearestSpot() {
+	c.findAndSelectNextSpot(func(entry core.BandmapEntry) bool {
+		return entry.Frequency != c.selectedFrequency
+	})
+}
+
+func (c *Controller) GotoNextSpotUp() {
+	c.findAndSelectNextSpot(func(entry core.BandmapEntry) bool {
+		return entry.Frequency > c.selectedFrequency
+	})
+}
+
+func (c *Controller) GotoNextSpotDown() {
+	c.findAndSelectNextSpot(func(entry core.BandmapEntry) bool {
+		return entry.Frequency < c.selectedFrequency
+	})
+}
+
+func (c *Controller) findAndSelectNextSpot(f func(entry core.BandmapEntry) bool) {
+	entries := c.bandmap.AllByDistance(c.selectedFrequency)
+	for i := 0; i < len(entries); i++ {
+		entry := entries[i]
+		if entry.Source == core.WorkedSpot {
+			continue
+		}
+		if entry.Band != c.selectedBand {
+			continue
+		}
+		if !f(entry) {
+			continue
+		}
+
+		c.selectSpot(entry)
+		break
+	}
+}
+
+func (c *Controller) selectSpot(entry core.BandmapEntry) {
+	c.Clear()
+	c.frequencySelected(entry.Frequency)
+	c.activeField = core.CallsignField
+	c.Enter(entry.Call.String())
+	c.view.SetCallsign(c.input.callsign)
+	c.GotoNextField()
+}
+
 type nullView struct{}
 
 func (n *nullView) SetUTC(string)                               {}
@@ -891,4 +939,5 @@ func (n *nullCallinfo) PredictedExchange() []string                     { return
 
 type nullBandmap struct{}
 
-func (n *nullBandmap) Add(core.Spot) {}
+func (n *nullBandmap) Add(core.Spot)                                      {}
+func (n *nullBandmap) AllByDistance(f core.Frequency) []core.BandmapEntry { return nil }

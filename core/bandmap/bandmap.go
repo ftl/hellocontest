@@ -135,6 +135,22 @@ func (m *Bandmap) Add(spot core.Spot) {
 	m.spots <- spot
 }
 
+func (m *Bandmap) AllByProximity(f core.Frequency) []core.BandmapEntry {
+	result := make(chan []core.BandmapEntry)
+	m.do <- func() {
+		result <- toBandmapEntries(m.entries.AllByProximity(f))
+	}
+	return <-result
+}
+
+func (m *Bandmap) AllByDistance(f core.Frequency) []core.BandmapEntry {
+	result := make(chan []core.BandmapEntry)
+	m.do <- func() {
+		result <- toBandmapEntries(m.entries.AllByDistance(f))
+	}
+	return <-result
+}
+
 const (
 	// spots within this distance to an entry's frequency will be added to the entry
 	spotFrequencyDeltaThreshold float64 = 25
@@ -354,8 +370,24 @@ func (l *Entries) AllByFrequency() []Entry {
 
 func (l *Entries) AllByProximity(f core.Frequency) []Entry {
 	return l.sorted(func(a, b Entry) bool {
-		return a.ProximityFactor(f) < b.ProximityFactor(f)
+		return a.ProximityFactor(f) > b.ProximityFactor(f)
 	})
+}
+
+func (l *Entries) AllByDistance(f core.Frequency) []Entry {
+	return l.sorted(func(a, b Entry) bool {
+		deltaA := math.Abs(float64(a.Frequency - f))
+		deltaB := math.Abs(float64(b.Frequency - f))
+		return deltaA < deltaB
+	})
+}
+
+func toBandmapEntries(entries []Entry) []core.BandmapEntry {
+	result := make([]core.BandmapEntry, len(entries))
+	for i, entry := range entries {
+		result[i] = entry.BandmapEntry
+	}
+	return result
 }
 
 func filterSlice[E any](slice []E, filter func(E) bool) []E {

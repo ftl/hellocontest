@@ -635,6 +635,16 @@ func (c *Controller) Log() {
 		c.selectedBand, c.selectedMode = c.qsoList.LastBandAndMode()
 	}
 
+	spot := core.Spot{
+		Call:      qso.Callsign,
+		Frequency: qso.Frequency,
+		Band:      qso.Band,
+		Mode:      qso.Mode,
+		Time:      qso.Time,
+		Source:    core.WorkedSpot,
+	}
+	c.bandmap.Add(spot)
+
 	c.Clear()
 }
 
@@ -831,8 +841,10 @@ func (c *Controller) MarkInBandmap() {
 	spot := core.Spot{
 		Call:      call,
 		Frequency: c.selectedFrequency,
+		Band:      c.selectedBand,
 		Mode:      c.selectedMode,
 		Time:      c.clock.Now(),
+		Source:    core.ManualSpot,
 	}
 	c.bandmap.Add(spot)
 }

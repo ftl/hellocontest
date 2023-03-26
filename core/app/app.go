@@ -130,10 +130,10 @@ func (c *Controller) Startup() {
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
 	c.callHistoryFinder = callhistory.New(c.Settings, c.ServiceStatus.StatusChanged)
-	c.Bandmap = bandmap.NewBandmap(c.clock, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.QSOList, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
 	c.Entry = entry.NewController(
 		c.Settings,
 		c.clock,

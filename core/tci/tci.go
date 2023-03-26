@@ -143,6 +143,7 @@ func (c *Client) Refresh() {
 }
 
 var spotColors = map[core.SpotSource]client.ARGB{
+	core.WorkedSpot:  client.NewARGB(255, 128, 128, 128),
 	core.ManualSpot:  client.NewARGB(255, 255, 255, 255),
 	core.SkimmerSpot: client.NewARGB(255, 255, 153, 255),
 	core.RBNSpot:     client.NewARGB(255, 255, 255, 153),

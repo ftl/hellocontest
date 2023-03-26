@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/ftl/hamradio/callsign"
 	"golang.org/x/exp/slices"
 
 	"github.com/ftl/hellocontest/core"
@@ -22,6 +23,10 @@ type View interface {
 	Show(frame BandmapFrame)
 }
 
+type DupeChecker interface {
+	FindWorkedQSOs(callsign.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
+}
+
 type BandmapFrame struct {
 	VFO     core.Frequency
 	Entries []Entry
@@ -31,7 +36,8 @@ type Bandmap struct {
 	entries *Entries
 	clock   core.Clock
 
-	view View
+	dupeChecker DupeChecker
+	view        View
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
@@ -43,14 +49,16 @@ type Bandmap struct {
 
 type bandmapCommand func()
 
-func NewDefaultBandmap(clock core.Clock) *Bandmap {
-	return NewBandmap(clock, DefaultUpdatePeriod, DefaultMaximumAge)
+func NewDefaultBandmap(clock core.Clock, dupeChecker DupeChecker) *Bandmap {
+	return NewBandmap(clock, dupeChecker, DefaultUpdatePeriod, DefaultMaximumAge)
 }
 
-func NewBandmap(clock core.Clock, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
+func NewBandmap(clock core.Clock, dupeChecker DupeChecker, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
 		entries: NewEntries(),
 		clock:   clock,
+
+		dupeChecker: dupeChecker,
 
 		updatePeriod: updatePeriod,
 		maximumAge:   maximumAge,
@@ -120,6 +128,10 @@ func (m *Bandmap) Clear() {
 }
 
 func (m *Bandmap) Add(spot core.Spot) {
+	_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, spot.Mode)
+	if worked {
+		spot.Source = core.WorkedSpot
+	}
 	m.spots <- spot
 }
 
@@ -143,6 +155,7 @@ func NewEntry(spot core.Spot) Entry {
 		BandmapEntry: core.BandmapEntry{
 			Call:      spot.Call,
 			Frequency: spot.Frequency,
+			Band:      spot.Band,
 			Mode:      spot.Mode,
 			LastHeard: spot.Time,
 			Source:    spot.Source,
@@ -158,6 +171,9 @@ func (e *Entry) Len() int {
 
 func (e *Entry) Matches(spot core.Spot) bool {
 	if spot.Call != e.Call {
+		return false
+	}
+	if spot.Band != e.Band {
 		return false
 	}
 	if spot.Mode != e.Mode {

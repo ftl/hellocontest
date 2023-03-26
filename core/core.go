@@ -655,7 +655,8 @@ func (r QSORate) SinceLastQSOFormatted() string {
 type SpotSource int
 
 const (
-	ManualSpot SpotSource = iota
+	WorkedSpot SpotSource = iota
+	ManualSpot
 	SkimmerSpot
 	RBNSpot
 	ClusterSpot
@@ -665,6 +666,7 @@ const (
 type Spot struct {
 	Call      callsign.Callsign
 	Frequency Frequency
+	Band      Band
 	Mode      Mode
 	Time      time.Time
 	Source    SpotSource
@@ -673,6 +675,7 @@ type Spot struct {
 type BandmapEntry struct {
 	Call      callsign.Callsign
 	Frequency Frequency
+	Band      Band
 	Mode      Mode
 	LastHeard time.Time
 	Source    SpotSource

@@ -27,6 +27,8 @@ type MainMenuController interface {
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
 	MarkInBandmap()
+	SendSpotsToTci() bool
+	SetSendSpotsToTci(bool)
 }
 
 type mainMenu struct {
@@ -49,7 +51,8 @@ type mainMenu struct {
 	editSP               *gtk.RadioMenuItem
 	editRun              *gtk.RadioMenuItem
 
-	bandmapMark *gtk.MenuItem
+	bandmapMark           *gtk.MenuItem
+	bandmapSendSpotsToTci *gtk.CheckMenuItem
 
 	windowCallinfo *gtk.MenuItem
 	windowScore    *gtk.MenuItem
@@ -76,6 +79,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
 	result.bandmapMark = getUI(builder, "menuBandmapMark").(*gtk.MenuItem)
+	result.bandmapSendSpotsToTci = getUI(builder, "menuBandmapSendSpotsToTci").(*gtk.CheckMenuItem)
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
@@ -97,6 +101,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
 	result.bandmapMark.Connect("activate", result.onMarkInBandmap)
+	result.bandmapSendSpotsToTci.Connect("toggled", result.onSendSpotsToTci)
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
 	result.windowScore.Connect("activate", result.onScore)
 	result.windowRate.Connect("activate", result.onRate)
@@ -106,6 +111,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 }
 
 func (m *mainMenu) SetMainMenuController(controller MainMenuController) {
+	m.bandmapSendSpotsToTci.SetActive(controller.SendSpotsToTci())
 	m.controller = controller
 }
 
@@ -194,6 +200,13 @@ func (m *mainMenu) onRun() {
 
 func (m *mainMenu) onMarkInBandmap() {
 	m.controller.MarkInBandmap()
+}
+
+func (m *mainMenu) onSendSpotsToTci() {
+	if m.controller == nil {
+		return
+	}
+	m.controller.SetSendSpotsToTci(m.bandmapSendSpotsToTci.GetActive())
 }
 
 func (m *mainMenu) onCallinfo() {

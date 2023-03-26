@@ -47,6 +47,8 @@ type Client struct {
 	controller VFOController
 	bandplan   bandplan.Bandplan
 
+	sendSpots bool
+
 	trx       *trxListener
 	connected bool
 
@@ -147,7 +149,15 @@ var spotColors = map[core.SpotSource]client.ARGB{
 	core.ClusterSpot: client.NewARGB(255, 153, 255, 255),
 }
 
+func (c *Client) SetSendSpots(sendSpots bool) {
+	c.sendSpots = sendSpots
+}
+
 func (c *Client) EntryAdded(e core.BandmapEntry) {
+	if !c.sendSpots {
+		return
+	}
+
 	err := c.client.AddSpot(e.Call.String(), toClientMode(e.Mode), int(e.Frequency), spotColors[e.Source], "hellocontest")
 	if err != nil {
 		log.Printf("cannot add spot: %v", err)
@@ -160,6 +170,10 @@ func (c *Client) EntryUpdated(e core.BandmapEntry) {
 }
 
 func (c *Client) EntryRemoved(e core.BandmapEntry) {
+	if !c.sendSpots {
+		return
+	}
+
 	err := c.client.DeleteSpot(e.Call.String())
 	if err != nil {
 		log.Printf("cannot delete spot: %v", err)

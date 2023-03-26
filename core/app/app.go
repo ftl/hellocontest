@@ -155,6 +155,7 @@ func (c *Controller) Startup() {
 			c.tciClient.Notify(c.ServiceStatus)
 			c.Entry.SetVFO(c.tciClient)
 			c.Bandmap.Notify(c.tciClient)
+			c.tciClient.SetSendSpots(c.session.SendSpotsToTci())
 			c.tciClient.SetVFOController(c.Entry)
 			keyerCWClient = c.tciClient
 		}
@@ -637,6 +638,22 @@ func (c *Controller) SwitchToRunWorkmode() {
 
 func (c *Controller) MarkInBandmap() {
 	c.Entry.MarkInBandmap()
+}
+
+func (c *Controller) SendSpotsToTci() bool {
+	return c.session.SendSpotsToTci()
+}
+
+func (c *Controller) SetSendSpotsToTci(sendSpotsToTci bool) {
+	if c.tciClient == nil {
+		return
+	}
+	c.tciClient.SetSendSpots(sendSpotsToTci)
+
+	err := c.session.SetSendSpotsToTci(sendSpotsToTci)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (c *Controller) Stop() {

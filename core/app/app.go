@@ -25,6 +25,7 @@ import (
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
 	"github.com/ftl/hellocontest/core/scp"
+	"github.com/ftl/hellocontest/core/session"
 	"github.com/ftl/hellocontest/core/settings"
 	"github.com/ftl/hellocontest/core/store"
 	"github.com/ftl/hellocontest/core/tci"
@@ -49,6 +50,7 @@ type Controller struct {
 
 	version           string
 	clock             core.Clock
+	session           *session.Session
 	configuration     Configuration
 	quitter           Quitter
 	asyncRunner       core.AsyncRunner
@@ -109,6 +111,13 @@ func (c *Controller) SetView(view View) {
 }
 
 func (c *Controller) Startup() {
+	c.session = session.NewDefaultSession()
+	err := c.session.Restore()
+	if err != nil {
+		log.Printf("Cannot restore session: %v", err)
+		c.session = session.NewDefaultSession()
+	}
+
 	c.Settings = settings.New(
 		c.OpenDefaultConfigurationFile,
 		c.openWithExternalApplication,
@@ -219,14 +228,14 @@ func (c *Controller) Startup() {
 	c.Entry.StartAutoRefresh()
 	c.Rate.StartAutoRefresh()
 
-	err := c.openCurrentLog()
+	err = c.openCurrentLog()
 	if err != nil {
 		c.Quit()
 	}
 }
 
 func (c *Controller) openCurrentLog() error {
-	filename := "current.log"
+	filename := c.session.LastFilename()
 	store := store.NewFileStore(filename)
 	if !store.Exists() {
 		err := store.Clear()
@@ -299,6 +308,11 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 		c.hamlibClient.Refresh()
 	}
 	c.Entry.Clear()
+
+	err := c.session.SetLastFilename(c.filename)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (c *Controller) Shutdown() {
@@ -463,8 +477,12 @@ func (c *Controller) SaveAs() {
 	c.store = store
 	c.Settings.SetWriter(store)
 	c.Logbook.SetWriter(store)
-
 	c.view.ShowFilename(c.filename)
+
+	err = c.session.SetLastFilename(c.filename)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (c *Controller) ExportCabrillo() {

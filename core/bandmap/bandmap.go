@@ -242,7 +242,7 @@ func (e *Entry) update() {
 	e.updateFrequency()
 
 	lastHeard := time.Time{}
-	source := core.MaxSpotSource
+	source := core.MaxSpotType
 	for _, s := range e.spots {
 		if lastHeard.Before(s.Time) {
 			lastHeard = s.Time

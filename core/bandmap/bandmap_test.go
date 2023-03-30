@@ -113,7 +113,7 @@ func TestEntry_Add_MaintainsHighestRankedSource(t *testing.T) {
 	call := callsign.MustParse("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
-	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency, Source: core.MaxSpotSource}}
+	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency, Source: core.MaxSpotType}}
 
 	entry.Add(core.Spot{Call: call, Frequency: frequency, Source: core.SkimmerSpot, Time: now})
 	assert.Equal(t, core.SkimmerSpot, entry.Source)

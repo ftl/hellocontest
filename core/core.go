@@ -652,16 +652,24 @@ func (r QSORate) SinceLastQSOFormatted() string {
 	}
 }
 
-type SpotSource int
+type SpotType int
 
 const (
-	WorkedSpot SpotSource = iota
+	WorkedSpot SpotType = iota
 	ManualSpot
 	SkimmerSpot
 	RBNSpot
 	ClusterSpot
-	MaxSpotSource
+	MaxSpotType
 )
+
+type SpotSource struct {
+	Name        string   `json:"name"`
+	Type        SpotType `json:"type"`
+	HostAddress string   `json:"host_address"`
+	Username    string   `json:"username"`
+	Password    string   `json:"password,omitempty"`
+}
 
 type Spot struct {
 	Call      callsign.Callsign
@@ -669,7 +677,7 @@ type Spot struct {
 	Band      Band
 	Mode      Mode
 	Time      time.Time
-	Source    SpotSource
+	Source    SpotType
 }
 
 type BandmapEntry struct {
@@ -678,7 +686,7 @@ type BandmapEntry struct {
 	Band      Band
 	Mode      Mode
 	LastHeard time.Time
-	Source    SpotSource
+	Source    SpotType
 }
 
 type Service int

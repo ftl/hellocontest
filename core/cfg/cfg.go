@@ -63,6 +63,14 @@ var Default = Data{
 	KeyerPort:     6789,
 	HamlibAddress: "localhost:4532",
 	TCIAddress:    "localhost:40001",
+	SpotSources: []core.SpotSource{
+		{
+			Name:        "Skimmer",
+			HostAddress: "localhost:7373",
+			Type:        2,
+			Username:    "dl0abc",
+		},
+	},
 }
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadJSON()).
@@ -109,6 +117,7 @@ type Data struct {
 	KeyerPort     int                `json:"keyer_port"`
 	HamlibAddress string             `json:"hamlib_address"`
 	TCIAddress    string             `json:"tci_address"`
+	SpotSources   []core.SpotSource  `json:"spot_sources"`
 }
 
 type LoadedConfiguration struct {

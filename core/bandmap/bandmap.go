@@ -192,9 +192,6 @@ func (e *Entry) Matches(spot core.Spot) bool {
 	if spot.Band != e.Band {
 		return false
 	}
-	if spot.Mode != e.Mode {
-		return false
-	}
 
 	frequencyDelta := math.Abs(float64(e.Frequency - spot.Frequency))
 	return frequencyDelta <= spotFrequencyDeltaThreshold

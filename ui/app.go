@@ -76,6 +76,7 @@ func (a *application) activate() {
 	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
 
 	a.mainWindow.SetMainMenuController(a.controller)
+	a.mainWindow.SetSpotSourceMenuController(a.controller)
 	a.mainWindow.SetStopKeyController(a.controller)
 	a.mainWindow.SetLogbookController(a.controller.QSOList)
 	a.mainWindow.SetEntryController(a.controller.Entry)
@@ -94,6 +95,7 @@ func (a *application) activate() {
 	a.controller.Rate.SetView(a.rateWindow)
 	a.controller.Rate.Notify(a.scoreWindow)
 	a.controller.Settings.SetView(a.settingsDialog)
+	a.controller.Clusters.SetView(a.mainWindow)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)
 	err = a.windowGeometry.Restore()

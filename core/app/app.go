@@ -14,6 +14,7 @@ import (
 	"github.com/ftl/hellocontest/core/callhistory"
 	"github.com/ftl/hellocontest/core/callinfo"
 	"github.com/ftl/hellocontest/core/cfg"
+	"github.com/ftl/hellocontest/core/cluster"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/core/entry"
 	"github.com/ftl/hellocontest/core/export/adif"
@@ -73,6 +74,7 @@ type Controller struct {
 	ServiceStatus *ServiceStatus
 	Settings      *settings.Settings
 	Bandmap       *bandmap.Bandmap
+	Clusters      *cluster.Clusters
 
 	OnLogbookChanged func()
 }
@@ -98,6 +100,7 @@ type Configuration interface {
 	KeyerPort() int
 	HamlibAddress() string
 	TCIAddress() string
+	SpotSources() []core.SpotSource
 }
 
 // Quitter allows to quit the application. This interface is used to call the actual application framework to quit.
@@ -134,6 +137,7 @@ func (c *Controller) Startup() {
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
 	c.Bandmap = bandmap.NewBandmap(c.clock, c.QSOList, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
+	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap)
 	c.Entry = entry.NewController(
 		c.Settings,
 		c.clock,
@@ -666,6 +670,10 @@ func (c *Controller) SetSendSpotsToTci(sendSpotsToTci bool) {
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+func (c *Controller) SetSpotSourceEnabled(name string, enabled bool) {
+	c.Clusters.SetSpotSourceEnabled(name, enabled)
 }
 
 func (c *Controller) Stop() {

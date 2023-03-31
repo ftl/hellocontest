@@ -14,10 +14,13 @@ go 1.19
 
 // replace github.com/ftl/tci => ../tci
 
+// replace github.com/ftl/clusterix => ../clusterix
+
 // replace github.com/gotk3/gotk3 => ../gotk3
 
 require (
 	github.com/ftl/cabrillo v0.2.2
+	github.com/ftl/clusterix v0.1.0
 	github.com/ftl/conval v0.4.0
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
 	github.com/ftl/hamradio v0.2.7

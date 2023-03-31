@@ -13,6 +13,7 @@ type mainWindow struct {
 	window *gtk.ApplicationWindow
 
 	*mainMenu
+	*spotSourceMenu
 	*logbookView
 	*entryView
 	*workmodeView
@@ -29,6 +30,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.window.SetDefaultSize(569, 700)
 
 	result.mainMenu = setupMainMenu(builder)
+	result.spotSourceMenu = setupSpotSourceMenu(builder)
 	result.logbookView = setupLogbookView(builder)
 	result.entryView = setupEntryView(builder)
 	result.workmodeView = setupWorkmodeView(builder)

@@ -166,3 +166,7 @@ func (c *LoadedConfiguration) HamlibAddress() string {
 func (c *LoadedConfiguration) TCIAddress() string {
 	return c.data.TCIAddress
 }
+
+func (c *LoadedConfiguration) SpotSources() []core.SpotSource {
+	return c.data.SpotSources
+}

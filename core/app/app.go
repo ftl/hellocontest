@@ -145,6 +145,7 @@ func (c *Controller) Startup() {
 		c.Bandmap,
 		c.asyncRunner,
 	)
+	c.Entry.Notify(c.Bandmap)
 	c.QSOList.Notify(c.Entry)
 
 	tciAddress := c.configuration.TCIAddress()
@@ -182,6 +183,7 @@ func (c *Controller) Startup() {
 	}
 
 	c.Workmode = workmode.NewController()
+	c.Workmode.Notify(c.Entry)
 
 	c.Keyer = keyer.New(c.Settings, keyerCWClient, c.configuration.Keyer(), c.Workmode.Workmode(), c.configuration.KeyerPresets())
 	c.Keyer.SetValues(c.Entry.CurrentValues)

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"log"
+	"strings"
 
 	"github.com/ftl/clusterix"
 	"github.com/ftl/hamradio"
@@ -184,6 +185,7 @@ func (c *cluster) DX(msg clusterix.DXMessage) {
 		Call:      msg.Call,
 		Frequency: core.Frequency(msg.Frequency),
 		Band:      toCoreBand(c.parent.bandplan.ByFrequency(hamradio.Frequency(msg.Frequency)).Name),
+		Mode:      inferCoreMode(msg),
 		Time:      msg.Time,
 		Source:    c.source.Type,
 	}
@@ -195,4 +197,26 @@ func toCoreBand(bandName bandplan.BandName) core.Band {
 		return core.NoBand
 	}
 	return core.Band(bandName)
+}
+
+func inferCoreMode(msg clusterix.DXMessage) core.Mode {
+	text := strings.ToLower(strings.TrimSpace(msg.Text))
+	switch {
+	case strings.Contains(text, "cw"):
+		return core.ModeCW
+	case strings.Contains(text, "rtty"):
+		return core.ModeRTTY
+	case strings.Contains(text, "psk"):
+		return core.ModeDigital
+	case strings.Contains(text, "ft8"):
+		return core.ModeDigital
+	case strings.Contains(text, "ft4"):
+		return core.ModeDigital
+	case strings.Contains(text, "jt9"):
+		return core.ModeDigital
+	case strings.Contains(text, "jt65"):
+		return core.ModeDigital
+	default:
+		return core.NoMode
+	}
 }

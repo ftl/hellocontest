@@ -91,6 +91,10 @@ type Bandmap interface {
 	AllByDistance(f core.Frequency) []core.BandmapEntry
 }
 
+type ModeListener interface {
+	SetMode(core.Mode)
+}
+
 // NewController returns a new entry controller.
 func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, bandmap Bandmap, asyncRunner core.AsyncRunner) *Controller {
 	result := &Controller{
@@ -122,8 +126,10 @@ type Controller struct {
 
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
+	listeners     []any
 
 	stationCallsign string
+	workmode        core.Workmode
 
 	myExchangeFields         []core.ExchangeField
 	theirExchangeFields      []core.ExchangeField
@@ -144,6 +150,10 @@ type Controller struct {
 	editing            bool
 	editQSO            core.QSO
 	ignoreQSOSelection bool
+}
+
+func (c *Controller) Notify(listener any) {
+	c.listeners = append(c.listeners, listener)
 }
 
 func (c *Controller) SetView(view View) {
@@ -184,6 +194,7 @@ func (c *Controller) SetLogbook(logbook Logbook) {
 	c.input.mode = c.selectedMode.String()
 
 	c.showInput()
+	c.emitMode()
 }
 
 func (c *Controller) SetKeyer(keyer Keyer) {
@@ -309,6 +320,7 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.selectedMode = qso.Mode
 
 	c.showInput()
+	c.emitMode()
 }
 
 func ensureLen(a []string, l int) []string {
@@ -429,6 +441,16 @@ func (c *Controller) modeSelected(s string) {
 			c.generateReportForMode(mode)
 		}
 		c.enterCallsign(c.input.callsign)
+
+		c.emitMode()
+	}
+}
+
+func (c *Controller) emitMode() {
+	for _, listener := range c.listeners {
+		if modeListener, ok := listener.(ModeListener); ok {
+			modeListener.SetMode(c.selectedMode)
+		}
 	}
 }
 
@@ -469,6 +491,7 @@ func (c *Controller) SetMode(mode core.Mode) {
 	c.selectedMode = mode
 	c.input.mode = c.selectedMode.String()
 	c.view.SetMode(c.input.mode)
+	c.emitMode()
 }
 
 func (c *Controller) SendQuestion() {
@@ -633,20 +656,22 @@ func (c *Controller) Log() {
 
 	c.logbook.Log(qso)
 
+	if c.workmode == core.SearchPounce {
+		spot := core.Spot{
+			Call:      qso.Callsign,
+			Frequency: qso.Frequency,
+			Band:      qso.Band,
+			Mode:      qso.Mode,
+			Time:      qso.Time,
+			Source:    core.WorkedSpot,
+		}
+		c.bandmap.Add(spot)
+	}
+
 	if !c.vfo.Active() {
 		c.selectedBand, c.selectedMode = c.qsoList.LastBandAndMode()
+		c.emitMode()
 	}
-
-	spot := core.Spot{
-		Call:      qso.Callsign,
-		Frequency: qso.Frequency,
-		Band:      qso.Band,
-		Mode:      qso.Mode,
-		Time:      qso.Time,
-		Source:    core.WorkedSpot,
-	}
-	c.bandmap.Add(spot)
-
 	c.Clear()
 }
 
@@ -790,6 +815,11 @@ func (c *Controller) StationChanged(station core.Station) {
 
 func (c *Controller) ContestChanged(contest core.Contest) {
 	c.updateExchangeFields(contest)
+}
+
+func (c *Controller) WorkmodeChanged(workmode core.Workmode) {
+	log.Printf("ENTRY: workmode changed %d", workmode)
+	c.workmode = workmode
 }
 
 func (c *Controller) updateExchangeFields(contest core.Contest) {

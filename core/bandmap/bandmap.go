@@ -33,21 +33,20 @@ type BandmapFrame struct {
 }
 
 type Bandmap struct {
-	entries *Entries
-	clock   core.Clock
+	entries      *Entries
+	selectedMode core.Mode
 
-	dupeChecker DupeChecker
+	clock       core.Clock
 	view        View
+	dupeChecker DupeChecker
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
 
 	spots  chan core.Spot
-	do     chan bandmapCommand
+	do     chan func()
 	closed chan struct{}
 }
-
-type bandmapCommand func()
 
 func NewDefaultBandmap(clock core.Clock, dupeChecker DupeChecker) *Bandmap {
 	return NewBandmap(clock, dupeChecker, DefaultUpdatePeriod, DefaultMaximumAge)
@@ -64,7 +63,7 @@ func NewBandmap(clock core.Clock, dupeChecker DupeChecker, updatePeriod time.Dur
 		maximumAge:   maximumAge,
 
 		spots:  make(chan core.Spot),
-		do:     make(chan bandmapCommand),
+		do:     make(chan func()),
 		closed: make(chan struct{}),
 	}
 
@@ -115,6 +114,10 @@ func (m *Bandmap) SetView(v View) {
 	m.do <- m.update
 }
 
+func (m *Bandmap) SetMode(mode core.Mode) {
+	m.selectedMode = mode
+}
+
 func (m *Bandmap) Notify(listener any) {
 	m.do <- func() {
 		m.entries.Notify(listener)
@@ -128,7 +131,11 @@ func (m *Bandmap) Clear() {
 }
 
 func (m *Bandmap) Add(spot core.Spot) {
-	_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, spot.Mode)
+	mode := spot.Mode
+	if mode == core.NoMode {
+		mode = m.selectedMode
+	}
+	_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
 	if worked {
 		spot.Source = core.WorkedSpot
 	}
@@ -190,6 +197,9 @@ func (e *Entry) Matches(spot core.Spot) bool {
 		return false
 	}
 	if spot.Band != e.Band {
+		return false
+	}
+	if spot.Mode != core.NoMode && e.Mode != core.NoMode && spot.Mode != e.Mode {
 		return false
 	}
 

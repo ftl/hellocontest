@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/hamradio/cwclient"
 
 	"github.com/ftl/hellocontest/core"
@@ -49,16 +50,18 @@ type Controller struct {
 
 	filename string
 
-	version           string
-	clock             core.Clock
-	session           *session.Session
-	configuration     Configuration
-	quitter           Quitter
-	asyncRunner       core.AsyncRunner
-	store             *store.FileStore
-	tciClient         *tci.Client
-	cwclient          *cwclient.Client
-	hamlibClient      *hamlib.Client
+	version       string
+	clock         core.Clock
+	session       *session.Session
+	configuration Configuration
+	quitter       Quitter
+	asyncRunner   core.AsyncRunner
+	store         *store.FileStore
+	tciClient     *tci.Client
+	cwclient      *cwclient.Client
+	hamlibClient  *hamlib.Client
+
+	bandplan          bandplan.Bandplan
 	dxccFinder        *dxcc.Finder
 	scpFinder         *scp.Finder
 	callHistoryFinder *callhistory.Finder
@@ -130,6 +133,7 @@ func (c *Controller) Startup() {
 
 	c.ServiceStatus = newServiceStatus(c.asyncRunner)
 
+	c.bandplan = bandplan.IARURegion1 // TODO: make the bandplan configurable
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
 	c.callHistoryFinder = callhistory.New(c.Settings, c.ServiceStatus.StatusChanged)
@@ -137,7 +141,7 @@ func (c *Controller) Startup() {
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
 	c.Bandmap = bandmap.NewBandmap(c.clock, c.QSOList, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
-	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap)
+	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder)
 	c.Entry = entry.NewController(
 		c.Settings,
 		c.clock,
@@ -152,7 +156,7 @@ func (c *Controller) Startup() {
 	hamlibAddress := c.configuration.HamlibAddress()
 	var keyerCWClient keyer.CWClient
 	if tciAddress != "" {
-		tciClient, err := tci.NewClient(tciAddress)
+		tciClient, err := tci.NewClient(tciAddress, c.bandplan)
 		if err != nil {
 			log.Printf("cannot open TCI connection: %v", err)
 		} else {
@@ -165,7 +169,7 @@ func (c *Controller) Startup() {
 			keyerCWClient = c.tciClient
 		}
 	} else if hamlibAddress != "" {
-		c.hamlibClient = hamlib.New(hamlibAddress)
+		c.hamlibClient = hamlib.New(hamlibAddress, c.bandplan)
 		c.hamlibClient.Notify(c.ServiceStatus)
 		c.hamlibClient.KeepOpen()
 		c.Entry.SetVFO(c.hamlibClient)
@@ -205,6 +209,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Score)
 	c.Settings.Notify(c.Rate)
 	c.Settings.Notify(c.Callinfo)
+	c.Settings.Notify(c.Clusters)
 	c.Settings.Notify(c.callHistoryFinder)
 	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
 		if !c.dxccFinder.Available() {
@@ -223,6 +228,9 @@ func (c *Controller) Startup() {
 			}
 			if !c.QSOList.Valid() {
 				c.QSOList.ContestChanged(c.Settings.Contest())
+			}
+			if !c.Clusters.Valid() {
+				c.Clusters.StationChanged(c.Settings.Station())
 			}
 			c.Refresh()
 		})

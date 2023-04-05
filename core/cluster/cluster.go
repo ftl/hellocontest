@@ -7,15 +7,21 @@ import (
 	"github.com/ftl/clusterix"
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
+	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/network"
 )
 
-const traceClusterix = true
+const traceClusterix = false
 
 type Bandmap interface {
 	Add(core.Spot)
+}
+
+type DXCCFinder interface {
+	Find(string) (dxcc.Prefix, bool)
 }
 
 type View interface {
@@ -29,17 +35,23 @@ type Clusters struct {
 	clusters []*cluster
 	bandmap  Bandmap
 	bandplan bandplan.Bandplan
+	entities DXCCFinder
 
-	view View
-
+	view          View
 	ignoreUpdates bool
+
+	valid       bool
+	myCallsign  callsign.Callsign
+	myCountry   string
+	myContinent string
 }
 
-func NewClusters(sources []core.SpotSource, bandmap Bandmap) *Clusters {
+func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, entities DXCCFinder) *Clusters {
 	result := &Clusters{
 		clusters: make([]*cluster, 0, len(sources)),
 		bandmap:  bandmap,
-		bandplan: bandplan.IARURegion1,
+		bandplan: bandplan,
+		entities: entities,
 	}
 
 	for _, spotSource := range sources {
@@ -56,6 +68,24 @@ func (c *Clusters) cluster(name string) *cluster {
 		}
 	}
 	return nil
+}
+
+func (c *Clusters) Valid() bool {
+	return c.valid
+}
+
+func (c *Clusters) StationChanged(station core.Station) {
+	c.myCallsign = station.Callsign
+	entity, ok := c.entities.Find(c.myCallsign.String())
+	if !ok {
+		c.myCountry = ""
+		c.myContinent = ""
+		c.valid = false
+		return
+	}
+	c.myCountry = entity.PrimaryPrefix
+	c.myContinent = entity.Continent
+	c.valid = true
 }
 
 func (c *Clusters) SetView(view View) {
@@ -181,6 +211,10 @@ func (c *cluster) Connected(connected bool) {
 }
 
 func (c *cluster) DX(msg clusterix.DXMessage) {
+	if !c.isSpotterRelevant(msg.Spotter) {
+		return
+	}
+
 	spot := core.Spot{
 		Call:      msg.Call,
 		Frequency: core.Frequency(msg.Frequency),
@@ -190,6 +224,43 @@ func (c *cluster) DX(msg clusterix.DXMessage) {
 		Source:    c.source.Type,
 	}
 	c.bandmap.Add(spot)
+}
+
+func (c *cluster) isSpotterRelevant(spotter string) bool {
+	spotterCountry, spotterContinent, ok := c.findSpotterRegion(spotter)
+	if !ok {
+		return true // better safe than sorry, for now
+	}
+
+	switch c.source.Filter {
+	case core.AllSpots:
+		return true
+	case core.OwnContinentSpotsOnly:
+		return spotterContinent == c.parent.myContinent
+	case core.OwnCountrySpotsOnly:
+		return spotterCountry == c.parent.myCountry
+	default:
+		return false
+	}
+}
+
+func (c *cluster) findSpotterRegion(spotter string) (string, string, bool) {
+	dashIndex := strings.Index(spotter, "-")
+	var spotterCallString string
+	if dashIndex == -1 {
+		spotterCallString = spotter
+	} else {
+		spotterCallString = spotter[:dashIndex]
+	}
+	spotterCall, err := callsign.Parse(spotterCallString)
+	if err != nil {
+		return "", "", false
+	}
+	prefix, ok := c.parent.entities.Find(spotterCall.String())
+	if !ok {
+		return "", "", false
+	}
+	return prefix.PrimaryPrefix, prefix.Continent, true
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

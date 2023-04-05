@@ -663,12 +663,21 @@ const (
 	MaxSpotType
 )
 
+type SpotFilter string
+
+const (
+	AllSpots              SpotFilter = ""
+	OwnContinentSpotsOnly SpotFilter = "continent"
+	OwnCountrySpotsOnly   SpotFilter = "country"
+)
+
 type SpotSource struct {
-	Name        string   `json:"name"`
-	Type        SpotType `json:"type"`
-	HostAddress string   `json:"host_address"`
-	Username    string   `json:"username"`
-	Password    string   `json:"password,omitempty"`
+	Name        string     `json:"name"`
+	Type        SpotType   `json:"type"`
+	HostAddress string     `json:"host_address"`
+	Username    string     `json:"username"`
+	Password    string     `json:"password,omitempty"`
+	Filter      SpotFilter `json:"filter,omitempty"`
 }
 
 type Spot struct {

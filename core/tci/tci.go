@@ -21,7 +21,7 @@ type VFOController interface {
 	SetMode(core.Mode)
 }
 
-func NewClient(address string) (*Client, error) {
+func NewClient(address string, bandplan bandplan.Bandplan) (*Client, error) {
 	host, err := network.ParseTCPAddr(address)
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func NewClient(address string) (*Client, error) {
 
 	result := &Client{
 		controller: new(nullController),
-		bandplan:   bandplan.IARURegion1,
+		bandplan:   bandplan,
 	}
 	result.trx = &trxListener{
 		client: result,
@@ -122,7 +122,7 @@ func (c *Client) SetFrequency(frequency core.Frequency) {
 
 func (c *Client) SetBand(band core.Band) {
 	bandplanBand := c.bandplan[toBandplanBandName(band)]
-	frequency := findModePortionCenter(int(bandplanBand.Center()), toBandplanMode(c.trx.mode))
+	frequency := findModePortionCenter(c.bandplan, int(bandplanBand.Center()), toBandplanMode(c.trx.mode))
 	err := c.client.SetVFOFrequency(c.trx.trx, client.VFOA, frequency)
 	if err != nil {
 		log.Printf("cannot switch to band %s: %v", band, err)
@@ -292,9 +292,9 @@ func toBandplanMode(mode core.Mode) bandplan.Mode {
 	}
 }
 
-func findModePortionCenter(f int, mode bandplan.Mode) int {
+func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) int {
 	frequency := hamradio.Frequency(f)
-	band := bandplan.IARURegion1.ByFrequency(frequency)
+	band := bp.ByFrequency(frequency)
 	var modePortion bandplan.Portion
 	var currentPortion bandplan.Portion
 	for _, portion := range band.Portions {

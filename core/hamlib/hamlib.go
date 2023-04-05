@@ -11,7 +11,7 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(address string) *Client {
+func New(address string, bandplan bandplan.Bandplan) *Client {
 	return &Client{
 		address:         address,
 		pollingInterval: 500 * time.Millisecond,
@@ -19,7 +19,7 @@ func New(address string) *Client {
 		retryInterval:   5 * time.Second,
 		requestTimeout:  500 * time.Millisecond,
 		done:            make(chan struct{}),
-		bandplan:        bandplan.IARURegion1,
+		bandplan:        bandplan,
 		controller:      new(nullController),
 	}
 }

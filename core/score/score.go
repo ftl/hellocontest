@@ -105,7 +105,6 @@ func (c *Counter) StationChanged(station core.Station) {
 }
 
 func (c *Counter) setStation(station core.Station) {
-	c.prefixDatabase.Find(station.Callsign.String())
 	continent, country, found := c.prefixDatabase.Find(station.Callsign.String())
 	if !found {
 		log.Printf("No DXCC entity found for the station callsign %s", station.Callsign)

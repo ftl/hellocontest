@@ -105,7 +105,7 @@ func (c *Counter) StationChanged(station core.Station) {
 }
 
 func (c *Counter) setStation(station core.Station) {
-	continent, country, found := c.prefixDatabase.Find(station.Callsign.String())
+	continent, country, _, _, found := c.prefixDatabase.Find(station.Callsign.String())
 	if !found {
 		log.Printf("No DXCC entity found for the station callsign %s", station.Callsign)
 		return
@@ -143,7 +143,7 @@ func (c *Counter) resetCounter() {
 		return
 	}
 
-	c.counter = conval.NewCounter(*c.contestDefinition, c.contestSetup)
+	c.counter = conval.NewCounter(*c.contestDefinition, c.contestSetup, c.prefixDatabase)
 }
 
 func (c *Counter) Valid() bool {
@@ -215,7 +215,7 @@ func (c *Counter) emitScoreUpdated(score core.Score) {
 }
 
 func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int) {
-	continent, country := toConvalDXCCEntity(entity)
+	continent, country, _, _ := toConvalDXCCEntity(entity)
 	convalQSO := conval.QSO{
 		TheirCall:      callsign,
 		TheirContinent: continent,
@@ -238,7 +238,7 @@ func (c *Counter) toConvalQSO(qso core.QSO) conval.QSO {
 		MyExchange:    c.toQSOExchange(c.myExchangeFields, qso.MyExchange),
 		TheirExchange: c.toQSOExchange(c.theirExchangeFields, qso.TheirExchange),
 	}
-	continent, country, ok := c.prefixDatabase.Find(qso.Callsign.String())
+	continent, country, _, _, ok := c.prefixDatabase.Find(qso.Callsign.String())
 	if ok {
 		result.TheirContinent = continent
 		result.TheirCountry = country
@@ -262,18 +262,21 @@ type prefixDatabase struct {
 	prefixes DXCCEntities
 }
 
-func (d prefixDatabase) Find(s string) (conval.Continent, conval.DXCCEntity, bool) {
+func (d prefixDatabase) Find(s string) (conval.Continent, conval.DXCCEntity, conval.CQZone, conval.ITUZone, bool) {
 	entity, found := d.prefixes.Find(s)
 	if !found {
-		return "", "", false
+		return "", "", 0, 0, false
 	}
 
-	continent, country := toConvalDXCCEntity(entity)
-	return continent, country, true
+	continent, country, cqZone, ituZone := toConvalDXCCEntity(entity)
+	return continent, country, cqZone, ituZone, true
 }
 
-func toConvalDXCCEntity(entity dxcc.Prefix) (conval.Continent, conval.DXCCEntity) {
-	return conval.Continent(strings.ToLower(entity.Continent)), conval.DXCCEntity(strings.ToLower(entity.PrimaryPrefix))
+func toConvalDXCCEntity(entity dxcc.Prefix) (conval.Continent, conval.DXCCEntity, conval.CQZone, conval.ITUZone) {
+	return conval.Continent(strings.ToLower(entity.Continent)),
+		conval.DXCCEntity(strings.ToLower(entity.PrimaryPrefix)),
+		conval.CQZone(entity.CQZone),
+		conval.ITUZone(entity.ITUZone)
 }
 
 type nullCounter struct{}

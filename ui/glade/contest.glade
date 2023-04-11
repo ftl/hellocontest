@@ -27,6 +27,16 @@ THE SOFTWARE.
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <!-- interface-license-type mit -->
+  <object class="GtkWindow" id="bandmapWindow">
+    <property name="can-focus">False</property>
+    <property name="accept-focus">False</property>
+    <child>
+      <object class="GtkListBox" id="entryList">
+        <property name="visible">True</property>
+        <property name="can-focus">False</property>
+      </object>
+    </child>
+  </object>
   <object class="GtkWindow" id="callinfoWindow">
     <property name="can-focus">False</property>
     <property name="accept-focus">False</property>
@@ -1181,6 +1191,14 @@ THE SOFTWARE.
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="label" translatable="yes">QSO _Rate</property>
+                        <property name="use-underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuWindowBandmap">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">_Bandmap</property>
                         <property name="use-underline">True</property>
                       </object>
                     </child>

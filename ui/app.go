@@ -43,6 +43,7 @@ type application struct {
 	callinfoWindow *callinfoWindow
 	scoreWindow    *scoreWindow
 	rateWindow     *rateWindow
+	bandmapWindow  *bandmapWindow
 	settingsDialog *settingsDialog
 
 	controller *app.Controller
@@ -73,6 +74,7 @@ func (a *application) activate() {
 	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
 	a.scoreWindow = setupScoreWindow(a.windowGeometry)
 	a.rateWindow = setupRateWindow(a.windowGeometry)
+	a.bandmapWindow = setupBandmapWindow(a.windowGeometry)
 	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
 
 	a.mainWindow.SetMainMenuController(a.controller)
@@ -94,6 +96,7 @@ func (a *application) activate() {
 	a.controller.Score.SetView(a.scoreWindow)
 	a.controller.Rate.SetView(a.rateWindow)
 	a.controller.Rate.Notify(a.scoreWindow)
+	a.controller.Bandmap.SetView(a.bandmapWindow)
 	a.controller.Settings.SetView(a.settingsDialog)
 	a.controller.Clusters.SetView(a.mainWindow)
 
@@ -107,6 +110,7 @@ func (a *application) activate() {
 	a.callinfoWindow.RestoreVisibility()
 	a.scoreWindow.RestoreVisibility()
 	a.rateWindow.RestoreVisibility()
+	a.bandmapWindow.RestoreVisibility()
 
 	a.controller.Refresh()
 }

@@ -689,6 +689,11 @@ type Spot struct {
 	Source    SpotType
 }
 
+type BandmapFrame struct {
+	VFO     Frequency
+	Entries []BandmapEntry
+}
+
 type BandmapEntry struct {
 	Call      callsign.Callsign
 	Frequency Frequency

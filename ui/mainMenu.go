@@ -20,6 +20,7 @@ type MainMenuController interface {
 	ShowCallinfo()
 	ShowScore()
 	ShowRate()
+	ShowBandmap()
 	ClearEntryFields()
 	GotoEntryFields()
 	EditLastQSO()
@@ -63,6 +64,7 @@ type mainMenu struct {
 	windowCallinfo *gtk.MenuItem
 	windowScore    *gtk.MenuItem
 	windowRate     *gtk.MenuItem
+	windowBandmap  *gtk.MenuItem
 	helpAbout      *gtk.MenuItem
 }
 
@@ -92,6 +94,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
+	result.windowBandmap = getUI(builder, "menuWindowBandmap").(*gtk.MenuItem)
 	result.helpAbout = getUI(builder, "menuHelpAbout").(*gtk.MenuItem)
 
 	result.fileNew.Connect("activate", result.onNew)
@@ -117,6 +120,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.windowCallinfo.Connect("activate", result.onCallinfo)
 	result.windowScore.Connect("activate", result.onScore)
 	result.windowRate.Connect("activate", result.onRate)
+	result.windowBandmap.Connect("activate", result.onBandmap)
 	result.helpAbout.Connect("activate", result.onAbout)
 
 	return result
@@ -243,4 +247,8 @@ func (m *mainMenu) onScore() {
 
 func (m *mainMenu) onRate() {
 	m.controller.ShowRate()
+}
+
+func (m *mainMenu) onBandmap() {
+	m.controller.ShowBandmap()
 }

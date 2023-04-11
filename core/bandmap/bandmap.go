@@ -20,16 +20,14 @@ const (
 )
 
 type View interface {
-	Show(frame BandmapFrame)
+	Show()
+	Hide()
+
+	ShowFrame(frame core.BandmapFrame)
 }
 
 type DupeChecker interface {
 	FindWorkedQSOs(callsign.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
-}
-
-type BandmapFrame struct {
-	VFO     core.Frequency
-	Entries []Entry
 }
 
 type Bandmap struct {
@@ -93,10 +91,10 @@ func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now())
 
 	// TODO: calculate the current frame
-	frame := BandmapFrame{}
+	frame := core.BandmapFrame{}
 
 	if m.view != nil {
-		m.view.Show(frame)
+		m.view.ShowFrame(frame)
 	}
 }
 
@@ -112,6 +110,15 @@ func (m *Bandmap) Close() {
 func (m *Bandmap) SetView(v View) {
 	m.view = v
 	m.do <- m.update
+}
+
+func (m *Bandmap) Show() {
+	m.view.Show()
+	m.do <- m.update
+}
+
+func (m *Bandmap) Hide() {
+	m.view.Hide()
 }
 
 func (m *Bandmap) SetMode(mode core.Mode) {

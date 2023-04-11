@@ -620,6 +620,11 @@ func (c *Controller) ShowRate() {
 	c.view.BringToFront()
 }
 
+func (c *Controller) ShowBandmap() {
+	c.Bandmap.Show()
+	c.view.BringToFront()
+}
+
 func (c *Controller) Refresh() {
 	c.QSOList.Clear()
 	c.QSOList.Fill(c.Logbook.All())

@@ -8,10 +8,10 @@ import (
 const BandmapWindowID = "bandmap"
 
 type bandmapWindow struct {
+	*bandmapView
+
 	window   *gtk.Window
 	geometry *gmtry.Geometry
-
-	*bandmapView
 }
 
 func setupBandmapWindow(geometry *gmtry.Geometry) *bandmapWindow {

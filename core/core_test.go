@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,6 +62,53 @@ func TestBandGraph_Bindex(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			graph := NewBandGraph(NoBand, startTime, tc.duration)
 			actual := graph.Bindex(startTime.Add(tc.value))
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestBandmapEntry_ProximityFactor(t *testing.T) {
+	const frequency Frequency = 7035000
+	tt := []struct {
+		desc      string
+		frequency Frequency
+		expected  float64
+	}{
+		{
+			desc:      "same frequency",
+			frequency: frequency,
+			expected:  1.0,
+		},
+		{
+			desc:      "lower frequency in proximity",
+			frequency: frequency - Frequency(spotFrequencyProximityThreshold/2),
+			expected:  0.5,
+		},
+		{
+			desc:      "higher frequency in proximity",
+			frequency: frequency + Frequency(spotFrequencyProximityThreshold/2),
+			expected:  0.5,
+		},
+		{
+			desc:      "frequency to low",
+			frequency: frequency - Frequency(spotFrequencyProximityThreshold) - 1,
+			expected:  0.0,
+		},
+		{
+			desc:      "frequency to high",
+			frequency: frequency + Frequency(spotFrequencyProximityThreshold) + 1,
+			expected:  0.0,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			entry := BandmapEntry{
+				Call:      callsign.MustParse("dl1abc"),
+				Frequency: frequency,
+			}
+
+			actual := entry.ProximityFactor(tc.frequency)
+
 			assert.Equal(t, tc.expected, actual)
 		})
 	}

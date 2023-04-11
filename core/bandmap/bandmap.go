@@ -34,9 +34,10 @@ type Bandmap struct {
 	entries      *Entries
 	selectedMode core.Mode
 
-	clock       core.Clock
-	view        View
-	dupeChecker DupeChecker
+	clock            core.Clock
+	view             View
+	dupeChecker      DupeChecker
+	currentFrequency core.Frequency
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
@@ -53,8 +54,9 @@ func NewDefaultBandmap(clock core.Clock, dupeChecker DupeChecker) *Bandmap {
 func NewBandmap(clock core.Clock, dupeChecker DupeChecker, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
 		entries: NewEntries(),
-		clock:   clock,
 
+		clock:       clock,
+		view:        new(nullView),
 		dupeChecker: dupeChecker,
 
 		updatePeriod: updatePeriod,
@@ -90,12 +92,17 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now())
 
-	// TODO: calculate the current frame
-	frame := core.BandmapFrame{}
-
-	if m.view != nil {
-		m.view.ShowFrame(frame)
+	entries := m.entries.AllByFrequency()
+	frame := core.BandmapFrame{
+		VFO:     m.currentFrequency,
+		Entries: make([]core.BandmapEntry, len(entries)),
 	}
+
+	for i, e := range entries {
+		frame.Entries[i] = e.BandmapEntry
+	}
+
+	m.view.ShowFrame(frame)
 }
 
 func (m *Bandmap) Close() {
@@ -107,8 +114,13 @@ func (m *Bandmap) Close() {
 	}
 }
 
-func (m *Bandmap) SetView(v View) {
-	m.view = v
+func (m *Bandmap) SetView(view View) {
+	if view == nil {
+		m.view = new(nullView)
+		return
+	}
+
+	m.view = view
 	m.do <- m.update
 }
 
@@ -167,9 +179,7 @@ func (m *Bandmap) AllByDistance(f core.Frequency) []core.BandmapEntry {
 
 const (
 	// spots within this distance to an entry's frequency will be added to the entry
-	spotFrequencyDeltaThreshold float64 = 25
-	// frequencies within this distance to an entry's frequency will be recognized as "in proximity"
-	spotFrequencyProximityThreshold float64 = 500
+	spotFrequencyDeltaThreshold float64 = 500
 	// the frequency of an entry is aligend to this is grid of accuracy
 	spotFrequencyStep float64 = 10
 )
@@ -239,17 +249,6 @@ func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
 	e.update()
 
 	return len(e.spots) > 0
-}
-
-// ProximityFactor increases the closer the given frequency is to this entry's frequency.
-// 0.0 = not in proximity, 1.0 = exactly on frequency
-func (e *Entry) ProximityFactor(f core.Frequency) float64 {
-	frequencyDelta := math.Abs(float64(e.Frequency - f))
-	if frequencyDelta > spotFrequencyProximityThreshold {
-		return 0.0
-	}
-
-	return 1.0 - (frequencyDelta / spotFrequencyProximityThreshold)
 }
 
 func (e *Entry) update() {
@@ -430,3 +429,9 @@ func (l *Logger) EntryUpdated(e core.BandmapEntry) {
 func (l *Logger) EntryRemoved(e core.BandmapEntry) {
 	log.Printf("Bandmap entry removed: %v", e)
 }
+
+type nullView struct{}
+
+func (v *nullView) Show()                       {}
+func (v *nullView) Hide()                       {}
+func (v *nullView) ShowFrame(core.BandmapFrame) {}

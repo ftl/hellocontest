@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -694,6 +695,9 @@ type BandmapFrame struct {
 	Entries []BandmapEntry
 }
 
+// frequencies within this distance to an entry's frequency will be recognized as "in proximity"
+const spotFrequencyProximityThreshold float64 = 500
+
 type BandmapEntry struct {
 	Call      callsign.Callsign
 	Frequency Frequency
@@ -701,6 +705,17 @@ type BandmapEntry struct {
 	Mode      Mode
 	LastHeard time.Time
 	Source    SpotType
+}
+
+// ProximityFactor increases the closer the given frequency is to this entry's frequency.
+// 0.0 = not in proximity, 1.0 = exactly on frequency
+func (e BandmapEntry) ProximityFactor(f Frequency) float64 {
+	frequencyDelta := math.Abs(float64(e.Frequency - f))
+	if frequencyDelta > spotFrequencyProximityThreshold {
+		return 0.0
+	}
+
+	return 1.0 - (frequencyDelta / spotFrequencyProximityThreshold)
 }
 
 type Service int

@@ -157,55 +157,6 @@ func TestEntry_RemoveSpotsBefore(t *testing.T) {
 	assert.Equal(t, 0, entry.Len())
 }
 
-func TestEntry_ProximityFactor(t *testing.T) {
-	const frequency core.Frequency = 7035000
-	tt := []struct {
-		desc      string
-		frequency core.Frequency
-		expected  float64
-	}{
-		{
-			desc:      "same frequency",
-			frequency: frequency,
-			expected:  1.0,
-		},
-		{
-			desc:      "lower frequency in proximity",
-			frequency: frequency - core.Frequency(spotFrequencyProximityThreshold/2),
-			expected:  0.5,
-		},
-		{
-			desc:      "higher frequency in proximity",
-			frequency: frequency + core.Frequency(spotFrequencyProximityThreshold/2),
-			expected:  0.5,
-		},
-		{
-			desc:      "frequency to low",
-			frequency: frequency - core.Frequency(spotFrequencyProximityThreshold) - 1,
-			expected:  0.0,
-		},
-		{
-			desc:      "frequency to high",
-			frequency: frequency + core.Frequency(spotFrequencyProximityThreshold) + 1,
-			expected:  0.0,
-		},
-	}
-	for _, tc := range tt {
-		t.Run(tc.desc, func(t *testing.T) {
-			entry := Entry{
-				BandmapEntry: core.BandmapEntry{
-					Call:      callsign.MustParse("dl1abc"),
-					Frequency: frequency,
-				},
-			}
-
-			actual := entry.ProximityFactor(tc.frequency)
-
-			assert.Equal(t, tc.expected, actual)
-		})
-	}
-}
-
 func TestEntries_AddNewEntry(t *testing.T) {
 	now := time.Now()
 	entries := NewEntries()

@@ -699,6 +699,8 @@ type BandmapFrame struct {
 const spotFrequencyProximityThreshold float64 = 500
 
 type BandmapEntry struct {
+	Index     int
+	Label     string
 	Call      callsign.Callsign
 	Frequency Frequency
 	Band      Band
@@ -716,6 +718,26 @@ func (e BandmapEntry) ProximityFactor(f Frequency) float64 {
 	}
 
 	return 1.0 - (frequencyDelta / spotFrequencyProximityThreshold)
+}
+
+type BandmapOrder func(BandmapEntry, BandmapEntry) bool
+
+func Descending(o BandmapOrder) BandmapOrder {
+	return func(a, b BandmapEntry) bool {
+		return o(b, a)
+	}
+}
+
+func BandmapByFrequency(a, b BandmapEntry) bool {
+	return a.Frequency < b.Frequency
+}
+
+func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
+	return func(a, b BandmapEntry) bool {
+		deltaA := math.Abs(float64(a.Frequency - referenceFrequency))
+		deltaB := math.Abs(float64(b.Frequency - referenceFrequency))
+		return deltaA < deltaB
+	}
 }
 
 type Service int

@@ -170,7 +170,178 @@ func TestEntries_AddNewEntry(t *testing.T) {
 	assert.Equal(t, "DL1ABC", newEntry.Call.String())
 	assert.Equal(t, core.Frequency(3760000), newEntry.Frequency)
 	assert.Equal(t, now, newEntry.LastHeard)
+	assert.Equal(t, 0, newEntry.Index)
 	assert.Equal(t, 1, newEntry.Len())
+}
+
+func TestEntries_findIndexForInsert(t *testing.T) {
+	tt := []struct {
+		desc     string
+		fixture  []int
+		value    int
+		expected int
+	}{
+		{
+			desc:     "empty",
+			value:    1,
+			expected: 0,
+		},
+		{
+			desc:     "before first",
+			fixture:  []int{2, 3, 4},
+			value:    1,
+			expected: 0,
+		},
+		{
+			desc:     "at the first",
+			fixture:  []int{2, 3, 4},
+			value:    2,
+			expected: 0,
+		},
+		{
+			desc:     "after the first",
+			fixture:  []int{2, 4, 5},
+			value:    3,
+			expected: 1,
+		},
+		{
+			desc:     "at the center",
+			fixture:  []int{2, 3, 5, 6},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "at the existing center",
+			fixture:  []int{2, 3, 4, 5, 6},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "before the last",
+			fixture:  []int{2, 3, 5},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "at the last",
+			fixture:  []int{2, 3, 4},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "after last",
+			fixture:  []int{2, 3, 4},
+			value:    5,
+			expected: 3,
+		},
+	}
+	newEntry := func(value int) *Entry {
+		return &Entry{BandmapEntry: core.BandmapEntry{Frequency: core.Frequency(value)}}
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			entries := &Entries{
+				entries: make([]*Entry, 0, len(tc.fixture)+1),
+				order:   core.BandmapByFrequency,
+			}
+			for _, value := range tc.fixture {
+				entries.entries = append(entries.entries, newEntry(value))
+			}
+
+			actual := entries.findIndexForInsert(newEntry(tc.value))
+
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestEntries_insert(t *testing.T) {
+	tt := []struct {
+		desc     string
+		fixture  []int
+		value    int
+		expected int
+	}{
+		{
+			desc:     "empty",
+			value:    1,
+			expected: 0,
+		},
+		{
+			desc:     "before first",
+			fixture:  []int{2, 3, 4},
+			value:    1,
+			expected: 0,
+		},
+		{
+			desc:     "at the first",
+			fixture:  []int{2, 3, 4},
+			value:    2,
+			expected: 0,
+		},
+		{
+			desc:     "after the first",
+			fixture:  []int{2, 4, 5},
+			value:    3,
+			expected: 1,
+		},
+		{
+			desc:     "at the center",
+			fixture:  []int{2, 3, 5, 6},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "at the existing center",
+			fixture:  []int{2, 3, 4, 5, 6},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "before the last",
+			fixture:  []int{2, 3, 5},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "at the last",
+			fixture:  []int{2, 3, 4},
+			value:    4,
+			expected: 2,
+		},
+		{
+			desc:     "after last",
+			fixture:  []int{2, 3, 4},
+			value:    5,
+			expected: 3,
+		},
+	}
+	newEntry := func(value int) *Entry {
+		return &Entry{BandmapEntry: core.BandmapEntry{Frequency: core.Frequency(value)}}
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			entries := &Entries{
+				entries: make([]*Entry, 0, len(tc.fixture)+1),
+				order:   core.BandmapByFrequency,
+			}
+			for i, value := range tc.fixture {
+				entry := newEntry(value)
+				entry.Index = i
+				entries.entries = append(entries.entries, entry)
+			}
+
+			entry := newEntry(tc.value)
+			entry.Label = "inserted"
+			entries.insert(entry)
+
+			assert.Equal(t, "inserted", entries.entries[tc.expected].Label, "label")
+
+			for i, e := range entries.entries {
+				assert.Equal(t, i, e.Index, "index %d", i)
+			}
+		})
+	}
 }
 
 func TestEntries_CleanOutOldEntries(t *testing.T) {

@@ -88,7 +88,7 @@ type VFO interface {
 type Bandmap interface {
 	Add(core.Spot)
 
-	AllByDistance(f core.Frequency) []core.BandmapEntry
+	AllBy(core.BandmapOrder) []core.BandmapEntry
 }
 
 type ModeListener interface {
@@ -900,7 +900,7 @@ func (c *Controller) GotoNextSpotDown() {
 }
 
 func (c *Controller) findAndSelectNextSpot(f func(entry core.BandmapEntry) bool) {
-	entries := c.bandmap.AllByDistance(c.selectedFrequency)
+	entries := c.bandmap.AllBy(core.BandmapByDistance(c.selectedFrequency))
 	for i := 0; i < len(entries); i++ {
 		entry := entries[i]
 		if entry.Source == core.WorkedSpot {
@@ -969,5 +969,5 @@ func (n *nullCallinfo) PredictedExchange() []string                     { return
 
 type nullBandmap struct{}
 
-func (n *nullBandmap) Add(core.Spot)                                      {}
-func (n *nullBandmap) AllByDistance(f core.Frequency) []core.BandmapEntry { return nil }
+func (n *nullBandmap) Add(core.Spot)                               {}
+func (n *nullBandmap) AllBy(core.BandmapOrder) []core.BandmapEntry { return nil }

@@ -31,9 +31,22 @@ THE SOFTWARE.
     <property name="can-focus">False</property>
     <property name="accept-focus">False</property>
     <child>
-      <object class="GtkListBox" id="entryList">
+      <object class="GtkScrolledWindow" id="entryListContainer">
         <property name="visible">True</property>
-        <property name="can-focus">False</property>
+        <property name="can-focus">True</property>
+        <property name="shadow-type">in</property>
+        <child>
+          <object class="GtkViewport" id="entryListViewPort">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkListBox" id="entryList">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
   </object>

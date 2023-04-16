@@ -10,10 +10,14 @@ import (
 
 type bandmapView struct {
 	entryList *gtk.ListBox
+
+	initialFrameShown bool
 }
 
 func newBandmapView() *bandmapView {
-	return &bandmapView{}
+	return &bandmapView{
+		initialFrameShown: true,
+	}
 }
 
 func (v *bandmapView) setup(builder *gtk.Builder) {
@@ -26,13 +30,20 @@ func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
 	if v.entryList == nil {
 		return
 	}
+	// if v.initialFrameShown {
+	// 	return
+	// }
+	// v.initialFrameShown = true
 
 	runAsync(func() {
 		children := v.entryList.GetChildren()
-		log.Printf("old children count: %d", children.Length())
+		log.Printf("new frame: %d entries vs old children count: %d", len(frame.Entries), children.Length())
+		if true {
+			return
+		}
+
 		children.Foreach(func(child any) {
 			w := child.(gtk.IWidget)
-			v.entryList.Remove(w)
 			w.ToWidget().Destroy()
 
 		})
@@ -56,4 +67,38 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 		return nil
 	}
 	return result.ToWidget()
+}
+
+func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
+	runAsync(func() {
+		w := v.newListEntry(entry)
+		if w == nil {
+			return
+		}
+		log.Printf("New Entry @ %d: %s", entry.Index, entry.Call.String())
+		v.entryList.Insert(w, entry.Index)
+		v.entryList.ShowAll()
+	})
+}
+
+func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
+	runAsync(func() {
+		row := v.entryList.GetRowAtIndex(entry.Index)
+		if row == nil {
+			return
+		}
+		log.Printf("Updated Entry @ %d: %s", entry.Index, entry.Call.String())
+	})
+}
+
+func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
+	runAsync(func() {
+		row := v.entryList.GetRowAtIndex(entry.Index)
+		if row == nil {
+			return
+		}
+		row.ToWidget().Destroy()
+		v.entryList.ShowAll()
+		log.Printf("Removed Entry @ %d: %s", entry.Index, entry.Call.String())
+	})
 }

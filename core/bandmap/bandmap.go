@@ -92,16 +92,11 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now())
 
-	entries := m.entries.AllByFrequency()
+	entries := m.entries.All()
 	frame := core.BandmapFrame{
 		VFO:     m.currentFrequency,
-		Entries: make([]core.BandmapEntry, len(entries)),
+		Entries: entries,
 	}
-
-	for i, e := range entries {
-		frame.Entries[i] = e.BandmapEntry
-	}
-
 	m.view.ShowFrame(frame)
 }
 
@@ -121,6 +116,7 @@ func (m *Bandmap) SetView(view View) {
 	}
 
 	m.view = view
+	m.Notify(view)
 	m.do <- m.update
 }
 
@@ -161,18 +157,10 @@ func (m *Bandmap) Add(spot core.Spot) {
 	m.spots <- spot
 }
 
-func (m *Bandmap) AllByProximity(f core.Frequency) []core.BandmapEntry {
+func (m *Bandmap) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 	result := make(chan []core.BandmapEntry)
 	m.do <- func() {
-		result <- toBandmapEntries(m.entries.AllByProximity(f))
-	}
-	return <-result
-}
-
-func (m *Bandmap) AllByDistance(f core.Frequency) []core.BandmapEntry {
-	result := make(chan []core.BandmapEntry)
-	m.do <- func() {
-		result <- toBandmapEntries(m.entries.AllByDistance(f))
+		result <- m.entries.AllBy(order)
 	}
 	return <-result
 }
@@ -297,12 +285,15 @@ type EntryRemovedListener interface {
 
 type Entries struct {
 	entries []*Entry
+	order   core.BandmapOrder
 
 	listeners []any
 }
 
 func NewEntries() *Entries {
-	result := new(Entries)
+	result := &Entries{
+		order: core.BandmapByFrequency,
+	}
 	result.Clear()
 	return result
 }
@@ -351,55 +342,78 @@ func (l *Entries) Add(spot core.Spot) {
 		}
 	}
 	newEntry := NewEntry(spot)
-	l.entries = append(l.entries, &newEntry)
+	l.insert(&newEntry)
 	l.emitEntryAdded(newEntry)
+}
+
+func (l *Entries) insert(entry *Entry) {
+	index := l.findIndexForInsert(entry)
+	if index == len(l.entries) {
+		l.entries = append(l.entries, entry)
+		entry.Index = len(l.entries) - 1
+		return
+	}
+
+	l.entries = append(l.entries, nil)
+	copy(l.entries[index+1:], l.entries[index:])
+	l.entries[index] = entry
+	for i, e := range l.entries {
+		e.Index = i
+		l.entries[i] = e
+	}
+}
+
+func (l *Entries) findIndexForInsert(entry *Entry) int {
+	less := func(a, b *Entry) bool {
+		return l.order(a.BandmapEntry, b.BandmapEntry)
+	}
+	left := 0
+	right := len(l.entries) - 1
+	for left <= right {
+		pivot := (left + right) / 2
+		if less(l.entries[pivot], entry) {
+			left = pivot + 1
+		} else if less(entry, l.entries[pivot]) {
+			right = pivot - 1
+		} else {
+			return pivot
+		}
+	}
+	return left
 }
 
 func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 	deadline := now.Add(-maximumAge)
+	removedEntries := make([]Entry, 0, len(l.entries))
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
 		matches := e.RemoveSpotsBefore(deadline)
 		if !matches {
-			l.emitEntryRemoved(*e)
+			removedEntries = append(removedEntries, *e)
 		}
 		return matches
 	})
+	for i, e := range l.entries {
+		e.Index = i
+		l.entries[i] = e
+	}
+
+	for i, e := range removedEntries {
+		e.Index -= i
+		l.emitEntryRemoved(e)
+	}
 }
 
-func (l *Entries) sorted(less func(Entry, Entry) bool) []Entry {
-	result := make([]Entry, len(l.entries))
+func (l *Entries) All() []core.BandmapEntry {
+	result := make([]core.BandmapEntry, len(l.entries))
 	for i, e := range l.entries {
-		result[i] = *e
+		result[i] = e.BandmapEntry
 	}
-	slices.SortStableFunc(result, less)
 	return result
 }
 
-func (l *Entries) AllByFrequency() []Entry {
-	return l.sorted(func(a, b Entry) bool {
-		return a.Frequency < b.Frequency
-	})
-}
-
-func (l *Entries) AllByProximity(f core.Frequency) []Entry {
-	return l.sorted(func(a, b Entry) bool {
-		return a.ProximityFactor(f) > b.ProximityFactor(f)
-	})
-}
-
-func (l *Entries) AllByDistance(f core.Frequency) []Entry {
-	return l.sorted(func(a, b Entry) bool {
-		deltaA := math.Abs(float64(a.Frequency - f))
-		deltaB := math.Abs(float64(b.Frequency - f))
-		return deltaA < deltaB
-	})
-}
-
-func toBandmapEntries(entries []Entry) []core.BandmapEntry {
-	result := make([]core.BandmapEntry, len(entries))
-	for i, entry := range entries {
-		result[i] = entry.BandmapEntry
-	}
+func (l *Entries) AllBy(order core.BandmapOrder) []core.BandmapEntry {
+	result := l.All()
+	slices.SortStableFunc(result, order)
 	return result
 }
 

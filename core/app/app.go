@@ -154,6 +154,7 @@ func (c *Controller) Startup() {
 
 	tciAddress := c.configuration.TCIAddress()
 	hamlibAddress := c.configuration.HamlibAddress()
+	var vfo core.VFO
 	var keyerCWClient keyer.CWClient
 	if tciAddress != "" {
 		tciClient, err := tci.NewClient(tciAddress, c.bandplan)
@@ -162,22 +163,25 @@ func (c *Controller) Startup() {
 		} else {
 			c.tciClient = tciClient
 			c.tciClient.Notify(c.ServiceStatus)
-			c.Entry.SetVFO(c.tciClient)
-			c.Bandmap.Notify(c.tciClient)
 			c.tciClient.SetSendSpots(c.session.SendSpotsToTci())
-			c.tciClient.SetVFOController(c.Entry)
+			vfo = c.tciClient
 			keyerCWClient = c.tciClient
 		}
 	} else if hamlibAddress != "" {
 		c.hamlibClient = hamlib.New(hamlibAddress, c.bandplan)
 		c.hamlibClient.Notify(c.ServiceStatus)
 		c.hamlibClient.KeepOpen()
-		c.Entry.SetVFO(c.hamlibClient)
-		c.hamlibClient.SetVFOController(c.Entry)
+		vfo = c.hamlibClient
 		if c.configuration.KeyerType() == core.KeyerTypeHamlib {
 			keyerCWClient = c.hamlibClient
 			log.Println("using the hamlib client for CW")
 		}
+	}
+
+	if vfo != nil {
+		c.Entry.SetVFO(vfo)
+		c.Bandmap.Notify(vfo)
+		vfo.Notify(c.Bandmap)
 	}
 
 	if keyerCWClient == nil || c.configuration.KeyerType() == core.KeyerTypeCWDaemon {

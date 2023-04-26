@@ -20,7 +20,6 @@ func New(address string, bandplan bandplan.Bandplan) *Client {
 		requestTimeout:  500 * time.Millisecond,
 		done:            make(chan struct{}),
 		bandplan:        bandplan,
-		controller:      new(nullController),
 	}
 }
 
@@ -38,27 +37,16 @@ type Client struct {
 	closed          chan struct{}
 	done            chan struct{}
 
-	bandplan   bandplan.Bandplan
-	controller VFOController
+	bandplan bandplan.Bandplan
 
 	incoming vfoSettings
 	outgoing vfoSettings
-}
-
-type VFOController interface {
-	SetFrequency(core.Frequency)
-	SetBand(core.Band)
-	SetMode(core.Mode)
 }
 
 type vfoSettings struct {
 	frequency core.Frequency
 	band      core.Band
 	mode      core.Mode
-}
-
-func (c *Client) SetVFOController(controller VFOController) {
-	c.controller = controller
 }
 
 func (c *Client) KeepOpen() {
@@ -148,7 +136,7 @@ func (c *Client) setIncomingFrequency(frequency client.Frequency) {
 		return
 	}
 	c.incoming.frequency = incomingFrequency
-	c.controller.SetFrequency(c.incoming.frequency)
+	c.emitFrequencyChanged(c.incoming.frequency)
 	log.Printf("incoming frequency: %s", c.incoming.frequency)
 
 	band := c.bandplan.ByFrequency(frequency)
@@ -157,7 +145,7 @@ func (c *Client) setIncomingFrequency(frequency client.Frequency) {
 		return
 	}
 	c.incoming.band = incomingBand
-	c.controller.SetBand(c.incoming.band)
+	c.emitBandChanged(c.incoming.band)
 	log.Printf("incoming band: %v", c.incoming.band)
 }
 
@@ -167,7 +155,7 @@ func (c *Client) setIncomingModeAndPassband(mode client.Mode, _ client.Frequency
 		return
 	}
 	c.incoming.mode = incomingMode
-	c.controller.SetMode(c.incoming.mode)
+	c.emitModeChanged(c.incoming.mode)
 	log.Printf("incoming mode %v", incomingMode)
 }
 
@@ -225,15 +213,15 @@ func (c *Client) SetMode(mode core.Mode) {
 func (c *Client) Refresh() {
 	if c.incoming.frequency != 0 {
 		log.Printf("Refreshing VFO frequency")
-		c.controller.SetFrequency(c.incoming.frequency)
+		c.emitFrequencyChanged(c.incoming.frequency)
 	}
 	if c.incoming.band != core.NoBand {
 		log.Printf("Refreshing VFO band")
-		c.controller.SetBand(c.incoming.band)
+		c.emitBandChanged(c.incoming.band)
 	}
 	if c.incoming.mode != core.NoMode {
 		log.Printf("Refreshing VFO mode")
-		c.controller.SetMode(c.incoming.mode)
+		c.emitModeChanged(c.incoming.mode)
 	}
 }
 
@@ -285,6 +273,30 @@ func (c *Client) emitStatusChanged(available bool) {
 	}
 }
 
+func (c *Client) emitFrequencyChanged(f core.Frequency) {
+	for _, listener := range c.listeners {
+		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
+			frequencyListener.VFOFrequencyChanged(f)
+		}
+	}
+}
+
+func (c *Client) emitBandChanged(b core.Band) {
+	for _, listener := range c.listeners {
+		if bandListener, ok := listener.(core.VFOBandListener); ok {
+			bandListener.VFOBandChanged(b)
+		}
+	}
+}
+
+func (c *Client) emitModeChanged(m core.Mode) {
+	for _, listener := range c.listeners {
+		if modeListener, ok := listener.(core.VFOModeListener); ok {
+			modeListener.VFOModeChanged(m)
+		}
+	}
+}
+
 func toCoreBand(bandName bandplan.BandName) core.Band {
 	if bandName == bandplan.BandUnknown {
 		return core.NoBand
@@ -332,9 +344,3 @@ func toClientMode(mode core.Mode) client.Mode {
 		return client.ModeNone
 	}
 }
-
-type nullController struct{}
-
-func (c *nullController) SetFrequency(core.Frequency) {}
-func (c *nullController) SetBand(core.Band)           {}
-func (c *nullController) SetMode(core.Mode)           {}

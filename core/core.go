@@ -740,6 +740,27 @@ func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
 	}
 }
 
+type VFO interface {
+	Notify(any)
+	Active() bool
+	Refresh()
+	SetFrequency(Frequency)
+	SetBand(Band)
+	SetMode(Mode)
+}
+
+type VFOFrequencyListener interface {
+	VFOFrequencyChanged(Frequency)
+}
+
+type VFOBandListener interface {
+	VFOBandChanged(Band)
+}
+
+type VFOModeListener interface {
+	VFOModeChanged(Mode)
+}
+
 type Service int
 
 const (

@@ -15,12 +15,6 @@ import (
 
 const retryInterval = 10 * time.Second
 
-type VFOController interface {
-	SetFrequency(core.Frequency)
-	SetBand(core.Band)
-	SetMode(core.Mode)
-}
-
 func NewClient(address string, bandplan bandplan.Bandplan) (*Client, error) {
 	host, err := network.ParseTCPAddr(address)
 	if err != nil {
@@ -28,8 +22,7 @@ func NewClient(address string, bandplan bandplan.Bandplan) (*Client, error) {
 	}
 
 	result := &Client{
-		controller: new(nullController),
-		bandplan:   bandplan,
+		bandplan: bandplan,
 	}
 	result.trx = &trxListener{
 		client: result,
@@ -41,9 +34,8 @@ func NewClient(address string, bandplan bandplan.Bandplan) (*Client, error) {
 }
 
 type Client struct {
-	client     *client.Client
-	controller VFOController
-	bandplan   bandplan.Bandplan
+	client   *client.Client
+	bandplan bandplan.Bandplan
 
 	sendSpots bool
 
@@ -57,14 +49,7 @@ func (c *Client) Disconnect() {
 	c.client.Disconnect()
 }
 
-func (c *Client) SetVFOController(controller VFOController) {
-	if controller == nil {
-		c.controller = new(nullController)
-	}
-	c.controller = controller
-}
-
-func (c *Client) Notify(listener interface{}) {
+func (c *Client) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
@@ -73,6 +58,30 @@ func (c *Client) emitStatusChanged(available bool) {
 		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
 			serviceStatusListener.StatusChanged(core.TCIService, available)
 			serviceStatusListener.StatusChanged(core.CWDaemonService, available)
+		}
+	}
+}
+
+func (c *Client) emitFrequencyChanged(f core.Frequency) {
+	for _, listener := range c.listeners {
+		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
+			frequencyListener.VFOFrequencyChanged(f)
+		}
+	}
+}
+
+func (c *Client) emitBandChanged(b core.Band) {
+	for _, listener := range c.listeners {
+		if bandListener, ok := listener.(core.VFOBandListener); ok {
+			bandListener.VFOBandChanged(b)
+		}
+	}
+}
+
+func (c *Client) emitModeChanged(m core.Mode) {
+	for _, listener := range c.listeners {
+		if modeListener, ok := listener.(core.VFOModeListener); ok {
+			modeListener.VFOModeChanged(m)
 		}
 	}
 }
@@ -187,9 +196,9 @@ type trxListener struct {
 }
 
 func (l *trxListener) Refresh() {
-	l.client.controller.SetFrequency(l.frequency)
-	l.client.controller.SetBand(l.band)
-	l.client.controller.SetMode(l.mode)
+	l.client.emitFrequencyChanged(l.frequency)
+	l.client.emitBandChanged(l.band)
+	l.client.emitModeChanged(l.mode)
 }
 
 func (l *trxListener) Connected(connected bool) {
@@ -206,7 +215,7 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 		return
 	}
 	l.frequency = incomingFrequency
-	l.client.controller.SetFrequency(l.frequency)
+	l.client.emitFrequencyChanged(l.frequency)
 	log.Printf("incoming frequency: %s", l.frequency)
 
 	band := l.client.bandplan.ByFrequency(hamradio.Frequency(frequency))
@@ -215,7 +224,7 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 		return
 	}
 	l.band = incomingBand
-	l.client.controller.SetBand(l.band)
+	l.client.emitBandChanged(l.band)
 	log.Printf("incoming band: %v", l.band)
 
 }
@@ -229,7 +238,7 @@ func (l *trxListener) SetMode(trx int, mode client.Mode) {
 		return
 	}
 	l.mode = incomingMode
-	l.client.controller.SetMode(l.mode)
+	l.client.emitModeChanged(l.mode)
 	log.Printf("incoming mode %v", incomingMode)
 }
 
@@ -316,9 +325,3 @@ func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) int 
 	}
 	return int(band.Center())
 }
-
-type nullController struct{}
-
-func (*nullController) SetFrequency(core.Frequency) {}
-func (*nullController) SetBand(core.Band)           {}
-func (*nullController) SetMode(core.Mode)           {}

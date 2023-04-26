@@ -76,15 +76,6 @@ type Callinfo interface {
 	PredictedExchange() []string
 }
 
-// VFO functionality used for QSO entry.
-type VFO interface {
-	Active() bool
-	Refresh()
-	SetFrequency(core.Frequency)
-	SetBand(core.Band)
-	SetMode(core.Mode)
-}
-
 type Bandmap interface {
 	Add(core.Spot)
 
@@ -121,7 +112,7 @@ type Controller struct {
 	qsoList  QSOList
 	keyer    Keyer
 	callinfo Callinfo
-	vfo      VFO
+	vfo      core.VFO
 	bandmap  Bandmap
 
 	asyncRunner   core.AsyncRunner
@@ -205,11 +196,13 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 	c.callinfo = callinfo
 }
 
-func (c *Controller) SetVFO(vfo VFO) {
+func (c *Controller) SetVFO(vfo core.VFO) {
 	if vfo == nil {
 		c.vfo = new(nullVFO)
+	} else {
+		c.vfo = vfo
 	}
-	c.vfo = vfo
+	vfo.Notify(c)
 }
 
 func (c *Controller) GotoNextField() core.EntryField {
@@ -399,7 +392,7 @@ func (c *Controller) frequencySelected(frequency core.Frequency) {
 	c.view.SetFrequency(frequency)
 }
 
-func (c *Controller) SetFrequency(frequency core.Frequency) {
+func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
 	if c.editing {
 		return
 	}
@@ -419,7 +412,7 @@ func (c *Controller) bandSelected(s string) {
 	}
 }
 
-func (c *Controller) SetBand(band core.Band) {
+func (c *Controller) VFOBandChanged(band core.Band) {
 	if c.editing {
 		return
 	}
@@ -481,7 +474,7 @@ func defaultReportForMode(mode core.Mode) string {
 	}
 }
 
-func (c *Controller) SetMode(mode core.Mode) {
+func (c *Controller) VFOModeChanged(mode core.Mode) {
 	if c.editing {
 		return
 	}
@@ -948,6 +941,7 @@ func (n *nullView) ClearMessage()                               {}
 
 type nullVFO struct{}
 
+func (n *nullVFO) Notify(any)                  {}
 func (n *nullVFO) Active() bool                { return false }
 func (n *nullVFO) Refresh()                    {}
 func (n *nullVFO) SetFrequency(core.Frequency) {}

@@ -16,8 +16,7 @@ type scoreWindow struct {
 
 func setupScoreWindow(geometry *gmtry.Geometry) *scoreWindow {
 	result := &scoreWindow{
-		geometry:  geometry,
-		scoreView: newScoreView(),
+		geometry: geometry,
 	}
 
 	return result
@@ -39,7 +38,7 @@ func (w *scoreWindow) Show() {
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("Score")
 		w.window.Connect("destroy", w.onDestroy)
-		w.scoreView.setup(builder)
+		w.scoreView = setupNewScoreView(builder)
 		connectToGeometry(w.geometry, ScoreWindowID, w.window)
 	}
 	w.window.ShowAll()

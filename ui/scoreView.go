@@ -15,20 +15,26 @@ type scoreView struct {
 	graph *scoreGraph
 }
 
-func newScoreView() *scoreView {
-	return &scoreView{
+func setupNewScoreView(builder *gtk.Builder) *scoreView {
+	result := &scoreView{
 		graph: newScoreGraph(),
 	}
+
+	result.tableLabel = getUI(builder, "tableLabel").(*gtk.Label)
+	result.graphArea = getUI(builder, "scoreGraphArea").(*gtk.DrawingArea)
+
+	result.graphArea.Connect("draw", result.graph.Draw)
+
+	return result
 }
 
-func (v *scoreView) setup(builder *gtk.Builder) {
-	v.tableLabel = getUI(builder, "tableLabel").(*gtk.Label)
-	v.graphArea = getUI(builder, "scoreGraphArea").(*gtk.DrawingArea)
-
-	v.graphArea.Connect("draw", v.graph.Draw)
+func (v *scoreView) setup() {
 }
 
 func (v *scoreView) ShowScore(score core.Score) {
+	if v == nil {
+		return
+	}
 	v.graph.SetGraph(score.GraphPerBand[core.NoBand])
 
 	if v.tableLabel != nil {
@@ -42,10 +48,16 @@ func (v *scoreView) ShowScore(score core.Score) {
 }
 
 func (v *scoreView) SetGoals(points int, multis int) {
+	if v == nil {
+		return
+	}
 	v.graph.SetGoals(points, multis)
 }
 
 func (v *scoreView) RateUpdated(rate core.QSORate) {
+	if v == nil {
+		return
+	}
 	v.graph.UpdateTimeFrame()
 
 	if v.graphArea != nil {

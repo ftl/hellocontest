@@ -14,20 +14,20 @@ type bandmapView struct {
 	initialFrameShown bool
 }
 
-func newBandmapView() *bandmapView {
-	return &bandmapView{
+func setupBandmapView(builder *gtk.Builder) *bandmapView {
+	result := &bandmapView{
 		initialFrameShown: true,
 	}
-}
 
-func (v *bandmapView) setup(builder *gtk.Builder) {
-	v.entryList = getUI(builder, "entryList").(*gtk.ListBox)
+	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
 
 	// TODO connect signals
+
+	return result
 }
 
 func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
-	if v.entryList == nil {
+	if v == nil {
 		return
 	}
 	// if v.initialFrameShown {
@@ -70,6 +70,9 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 }
 
 func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
+	if v == nil {
+		return
+	}
 	runAsync(func() {
 		w := v.newListEntry(entry)
 		if w == nil {
@@ -82,6 +85,9 @@ func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
 }
 
 func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
+	if v == nil {
+		return
+	}
 	runAsync(func() {
 		row := v.entryList.GetRowAtIndex(entry.Index)
 		if row == nil {
@@ -92,6 +98,9 @@ func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
 }
 
 func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
+	if v == nil {
+		return
+	}
 	runAsync(func() {
 		row := v.entryList.GetRowAtIndex(entry.Index)
 		if row == nil {

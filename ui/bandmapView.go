@@ -16,7 +16,7 @@ type bandmapView struct {
 
 func setupBandmapView(builder *gtk.Builder) *bandmapView {
 	result := &bandmapView{
-		initialFrameShown: true,
+		initialFrameShown: false,
 	}
 
 	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
@@ -30,17 +30,13 @@ func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
 	if v == nil {
 		return
 	}
-	// if v.initialFrameShown {
-	// 	return
-	// }
-	// v.initialFrameShown = true
+	if v.initialFrameShown {
+		return
+	}
+	v.initialFrameShown = true
 
 	runAsync(func() {
 		children := v.entryList.GetChildren()
-		log.Printf("new frame: %d entries vs old children count: %d", len(frame.Entries), children.Length())
-		if true {
-			return
-		}
 
 		children.Foreach(func(child any) {
 			w := child.(gtk.IWidget)

@@ -35,7 +35,7 @@ func (w *bandmapWindow) Show() {
 	if w.window == nil {
 		builder := setupBuilder()
 		w.window = getUI(builder, "bandmapWindow").(*gtk.Window)
-		w.window.SetDefaultSize(200, 900)
+		w.window.SetDefaultSize(400, 900)
 		w.window.SetTitle("Bandmap")
 		w.window.Connect("destroy", w.onDestroy)
 		w.bandmapView = setupBandmapView(builder)

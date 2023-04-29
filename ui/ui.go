@@ -19,7 +19,10 @@ func newStyle(definition string) *style {
 	if err != nil {
 		log.Fatalf("Cannot create CSS provider: %v", err)
 	}
-	provider.LoadFromData(definition)
+	err = provider.LoadFromData(definition)
+	if err != nil {
+		log.Fatalf("Cannot parse CSS style: %v", err)
+	}
 	return &style{provider: provider}
 }
 
@@ -50,7 +53,7 @@ func removeStyleClass(widget *gtk.Widget, class string) {
 		context.RemoveClass(class)
 	})
 	if err != nil {
-		log.Printf("Cannot add style class: %v", err)
+		log.Printf("Cannot remove style class: %v", err)
 	}
 }
 

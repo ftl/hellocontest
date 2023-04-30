@@ -11,7 +11,7 @@ import (
 
 type callinfoView struct {
 	callsignLabel   *gtk.Label
-	xchangeLabel    *gtk.Label
+	exchangeLabel   *gtk.Label
 	dxccLabel       *gtk.Label
 	valueLabel      *gtk.Label
 	userInfoLabel   *gtk.Label
@@ -22,7 +22,7 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result := new(callinfoView)
 
 	result.callsignLabel = getUI(builder, "callsignLabel").(*gtk.Label)
-	result.xchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
+	result.exchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "dxccLabel").(*gtk.Label)
 	result.valueLabel = getUI(builder, "valueLabel").(*gtk.Label)
 	result.userInfoLabel = getUI(builder, "userInfoLabel").(*gtk.Label)
@@ -79,7 +79,7 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 	v.dxccLabel.SetMarkup(text)
 }
 
-func (v *callinfoView) SetValue(points, multis int, xchange string) {
+func (v *callinfoView) SetValue(points, multis int) {
 	if v == nil {
 		return
 	}
@@ -101,24 +101,19 @@ func (v *callinfoView) SetValue(points, multis int, xchange string) {
 		multisMarkup = "font-weight='heavy'"
 	}
 
-	var xchangeMarkup string
-	switch {
-	case multis < 1:
-		xchangeMarkup = "foreground='silver'"
-	case multis > 1:
-		xchangeMarkup = "font-weight='heavy'"
-	}
-
 	valueText := fmt.Sprintf("<span %s>%d points</span> / <span %s>%d multis</span>", pointsMarkup, points, multisMarkup, multis)
 	v.valueLabel.SetMarkup(valueText)
+}
 
-	if xchange == "" {
-		xchange = "-"
+func (v *callinfoView) SetExchange(exchange string) {
+	var exchangeMarkup string
+	if exchange == "" {
+		exchange = "-"
 	} else {
-		xchange = strings.ToUpper(strings.TrimSpace(xchange))
+		exchange = strings.ToUpper(strings.TrimSpace(exchange))
 	}
-	xchangeText := fmt.Sprintf("<span %s>%s</span>", xchangeMarkup, xchange)
-	v.xchangeLabel.SetMarkup(xchangeText)
+	exchangeText := fmt.Sprintf("<span %s>%s</span>", exchangeMarkup, exchange)
+	v.exchangeLabel.SetMarkup(exchangeText)
 }
 
 func (v *callinfoView) SetUserInfo(value string) {

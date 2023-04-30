@@ -86,7 +86,8 @@ type View interface {
 
 	SetCallsign(callsign string, worked, duplicate bool)
 	SetDXCC(string, string, int, int, bool)
-	SetValue(points, multis int, xchange string)
+	SetValue(points, multis int)
+	SetExchange(exchange string)
 	SetUserInfo(string)
 	SetSupercheck(callsigns []core.AnnotatedCallsign)
 }
@@ -120,34 +121,58 @@ func (c *Callinfo) PredictedExchange() []string {
 	return c.predictedExchange
 }
 
+func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) core.Callinfo {
+	result := core.Callinfo{
+		Call: call,
+	}
+
+	entity, found := c.findDXCCEntity(call.String())
+	if found {
+		result.DXCCName = entity.Name
+		result.PrimaryPrefix = entity.PrimaryPrefix
+		result.Continent = entity.Continent
+		result.ITUZone = int(entity.ITUZone)
+		result.CQZone = int(entity.CQZone)
+	}
+
+	entry, found := c.callHistory.FindEntry(call.String())
+	var historicExchange []string
+	if found {
+		historicExchange = entry.PredictedExchange
+		result.UserText = joinAvailableValues(entry.Name, entry.UserText)
+	}
+
+	qsos, duplicate := c.dupeChecker.FindWorkedQSOs(call, band, mode)
+	result.Duplicate = duplicate
+	result.Worked = len(qsos) > 0
+	result.PredictedExchange = c.predictExchange(entity, qsos, exchange, historicExchange)
+	result.Points, result.Multis = c.valuer.Value(call, entity, band, mode, exchange)
+
+	return result
+}
+
 func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchange []string) {
 	c.lastCallsign = call
 	c.lastBand = band
 	c.lastMode = mode
 	c.lastExchange = exchange
-	worked := false
-	duplicate := false
-	userInfo := ""
-	cs, err := callsign.Parse(call)
+
+	entity, _ := c.findDXCCEntity(call)
+
+	var callinfo core.Callinfo
+	parsedCallsign, err := callsign.Parse(call)
 	if err == nil {
-		var qsos []core.QSO
-		qsos, duplicate = c.dupeChecker.FindWorkedQSOs(cs, band, mode)
-		worked = len(qsos) > 0
-
-		entry, found := c.callHistory.FindEntry(call)
-		var historicExchange []string
-		if found {
-			historicExchange = entry.PredictedExchange
-			userInfo = joinAvailableValues(entry.Name, entry.UserText)
-		}
-
-		exchange = c.predictExchange(call, qsos, exchange, historicExchange)
+		callinfo = c.GetInfo(parsedCallsign, band, mode, exchange)
+		c.predictedExchange = callinfo.PredictedExchange
+	} else {
+		c.predictedExchange = exchange
 	}
-	c.predictedExchange = exchange
 
-	c.view.SetCallsign(call, worked, duplicate)
-	c.view.SetUserInfo(userInfo)
-	c.showDXCCAndValue(call, band, mode, exchange)
+	c.showDXCCEntity(entity)
+	c.view.SetCallsign(call, callinfo.Worked, callinfo.Duplicate)
+	c.view.SetUserInfo(callinfo.UserText)
+	c.view.SetValue(callinfo.Points, callinfo.Multis)
+	c.showExchange(c.predictedExchange)
 	c.showSupercheck(call)
 }
 
@@ -161,31 +186,34 @@ func joinAvailableValues(values ...string) string {
 	return strings.Join(availableValues, ", ")
 }
 
-func (c *Callinfo) showDXCCAndValue(call string, band core.Band, mode core.Mode, exchange []string) {
-	if c.entities == nil {
-		c.view.SetDXCC("", "", 0, 0, false)
-		c.view.SetValue(0, 0, "")
-		return
-	}
-	entity, found := c.entities.Find(call)
+func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) (points, multis int) {
+	entity, found := c.findDXCCEntity(call.String())
 	if !found {
-		c.view.SetDXCC("", "", 0, 0, false)
-		c.view.SetValue(0, 0, "")
-		return
+		return 0, 0
 	}
-	parsedCall, err := callsign.Parse(call)
-	if err != nil {
-		parsedCall = callsign.Callsign{}
-	}
+	return c.valuer.Value(call, entity, band, mode, exchange)
+}
 
-	dxccName := fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
+func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {
+	if c.entities == nil {
+		return dxcc.Prefix{}, false
+	}
+	return c.entities.Find(call)
+}
+
+func (c *Callinfo) showDXCCEntity(entity dxcc.Prefix) {
+	var dxccName string
+	if entity.PrimaryPrefix != "" {
+		dxccName = fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
+	}
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
-	points, multis := c.valuer.Value(parsedCall, entity, band, mode, exchange)
+}
 
+func (c *Callinfo) showExchange(exchange []string) {
 	exchange = c.exchangeFilter.FilterExchange(exchange)
 	exchangeText := strings.Join(exchange, " ")
 
-	c.view.SetValue(points, multis, exchangeText)
+	c.view.SetExchange(exchangeText)
 }
 
 func (c *Callinfo) showSupercheck(s string) {
@@ -222,9 +250,10 @@ func (c *Callinfo) showSupercheck(s string) {
 		if filter != nil && !filter.MatchString(matchString) {
 			continue
 		}
+		entity, _ := c.findDXCCEntity(matchString)
 
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
-		predictedExchange := c.predictExchange(matchString, qsos, nil, annotatedCallsign.PredictedExchange)
+		predictedExchange := c.predictExchange(entity, qsos, nil, annotatedCallsign.PredictedExchange)
 
 		entity, entityFound := c.entities.Find(matchString)
 
@@ -262,27 +291,25 @@ func placeholderToFilter(s string) *regexp.Regexp {
 	return regexp.MustCompile(strings.Join(parts, "."))
 }
 
-func (c *Callinfo) predictExchange(call string, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {
+func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {
 	result := make([]string, len(c.theirExchangeFields))
 	copy(result, currentExchange)
 
-	if c.entities != nil {
-		if entity, ok := c.entities.Find(call); ok {
-			for i, field := range c.theirExchangeFields {
-				if result[i] != "" {
-					continue
-				}
-				if len(field.Properties) != 1 {
-					continue
-				}
-				switch {
-				case field.Properties[0] == conval.CQZoneProperty:
-					result[i] = strconv.Itoa(int(entity.CQZone))
-				case field.Properties[0] == conval.ITUZoneProperty:
-					result[i] = strconv.Itoa(int(entity.ITUZone))
-				case field.Properties[0] == conval.DXCCEntityProperty, field.Properties[0] == conval.DXCCPrefixProperty:
-					result[i] = entity.PrimaryPrefix
-				}
+	if entity.PrimaryPrefix != "" {
+		for i, field := range c.theirExchangeFields {
+			if result[i] != "" {
+				continue
+			}
+			if len(field.Properties) != 1 {
+				continue
+			}
+			switch {
+			case field.Properties[0] == conval.CQZoneProperty:
+				result[i] = strconv.Itoa(int(entity.CQZone))
+			case field.Properties[0] == conval.ITUZoneProperty:
+				result[i] = strconv.Itoa(int(entity.ITUZone))
+			case field.Properties[0] == conval.DXCCEntityProperty, field.Properties[0] == conval.DXCCPrefixProperty:
+				result[i] = entity.PrimaryPrefix
 			}
 		}
 	}
@@ -317,6 +344,7 @@ func (v *nullView) Show()                                               {}
 func (v *nullView) Hide()                                               {}
 func (v *nullView) SetCallsign(callsign string, worked, duplicate bool) {}
 func (v *nullView) SetDXCC(string, string, int, int, bool)              {}
-func (v *nullView) SetValue(int, int, string)                           {}
+func (v *nullView) SetValue(int, int)                                   {}
+func (v *nullView) SetExchange(string)                                  {}
 func (v *nullView) SetUserInfo(string)                                  {}
 func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)    {}

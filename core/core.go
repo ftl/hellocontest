@@ -707,6 +707,24 @@ type BandmapEntry struct {
 	Mode      Mode
 	LastHeard time.Time
 	Source    SpotType
+	Lifetime  float64
+}
+
+type Callinfo struct {
+	Call callsign.Callsign
+
+	DXCCName          string
+	PrimaryPrefix     string
+	Continent         string
+	ITUZone           int
+	CQZone            int
+	UserText          string
+	PredictedExchange []string
+
+	Worked    bool // already worked on another band/mode, but does not count as duplicate
+	Duplicate bool // counts as duplicate
+	Points    int
+	Multis    int
 }
 
 // ProximityFactor increases the closer the given frequency is to this entry's frequency.

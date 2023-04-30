@@ -708,6 +708,8 @@ type BandmapEntry struct {
 	LastHeard time.Time
 	Source    SpotType
 	Lifetime  float64
+
+	Info Callinfo
 }
 
 type Callinfo struct {
@@ -720,6 +722,7 @@ type Callinfo struct {
 	CQZone            int
 	UserText          string
 	PredictedExchange []string
+	ExchangeText      string
 
 	Worked    bool // already worked on another band/mode, but does not count as duplicate
 	Duplicate bool // counts as duplicate

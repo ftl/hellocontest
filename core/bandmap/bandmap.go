@@ -30,6 +30,11 @@ type DupeChecker interface {
 	FindWorkedQSOs(callsign.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
 }
 
+type Callinfo interface {
+	GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo
+	GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int)
+}
+
 type Bandmap struct {
 	entries      *Entries
 	selectedMode core.Mode
@@ -117,6 +122,11 @@ func (m *Bandmap) SetView(view View) {
 
 	m.view = view
 	m.Notify(view)
+	m.do <- m.update
+}
+
+func (m *Bandmap) SetCallinfo(callinfo Callinfo) {
+	m.entries.SetCallinfo(callinfo)
 	m.do <- m.update
 }
 
@@ -284,8 +294,9 @@ type EntryRemovedListener interface {
 }
 
 type Entries struct {
-	entries []*Entry
-	order   core.BandmapOrder
+	entries  []*Entry
+	order    core.BandmapOrder
+	callinfo Callinfo
 
 	listeners []any
 }
@@ -296,6 +307,15 @@ func NewEntries() *Entries {
 	}
 	result.Clear()
 	return result
+}
+
+func (l *Entries) SetCallinfo(callinfo Callinfo) {
+	if callinfo == nil {
+		l.callinfo = new(nullCallinfo)
+		return
+	}
+
+	l.callinfo = callinfo
 }
 
 func (l *Entries) Notify(listener any) {
@@ -342,6 +362,10 @@ func (l *Entries) Add(spot core.Spot) {
 		}
 	}
 	newEntry := NewEntry(spot)
+	if newEntry.Call.String() != "" {
+		newEntry.Info = l.callinfo.GetInfo(newEntry.Call, newEntry.Band, newEntry.Mode, []string{})
+		log.Printf("got callinfo for %s on band %s and mode %s : %+v", newEntry.Call, newEntry.Band, newEntry.Mode, newEntry.Info)
+	}
 	l.insert(&newEntry)
 	l.emitEntryAdded(newEntry)
 }
@@ -449,3 +473,12 @@ type nullView struct{}
 func (v *nullView) Show()                       {}
 func (v *nullView) Hide()                       {}
 func (v *nullView) ShowFrame(core.BandmapFrame) {}
+
+type nullCallinfo struct{}
+
+func (n *nullCallinfo) GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo {
+	return core.Callinfo{}
+}
+func (n *nullCallinfo) GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int) {
+	return 0, 0
+}

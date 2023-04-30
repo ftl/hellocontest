@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/ftl/hellocontest/core"
@@ -132,7 +133,10 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	addStyleClass(&call.Widget, "call")
 	layout.Attach(call, 1, 1, 1, 1)
 
-	geoInfoText := "DL, EU, ITU 28, CQ 14, 8°"
+	var geoInfoText string
+	if entry.Info.PrimaryPrefix != "" {
+		geoInfoText = fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCName, entry.Info.PrimaryPrefix, entry.Info.Continent, entry.Info.ITUZone, entry.Info.CQZone)
+	}
 	geoInfo, _ := gtk.LabelNew(geoInfoText)
 	geoInfo.SetHExpand(true)
 	geoInfo.SetHAlign(gtk.ALIGN_START)
@@ -140,8 +144,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	addStyleClass(&geoInfo.Widget, "geoInfo")
 	layout.Attach(geoInfo, 1, 2, 1, 1)
 
-	exchangePredictionText := "Hans DL"
-	exchangePrediction, _ := gtk.LabelNew(exchangePredictionText)
+	exchangePrediction, _ := gtk.LabelNew(entry.Info.ExchangeText)
 	exchangePrediction.SetHExpand(true)
 	exchangePrediction.SetHAlign(gtk.ALIGN_END)
 	exchangePrediction.SetVAlign(gtk.ALIGN_START)
@@ -149,7 +152,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	addStyleClass(&exchangePrediction.Widget, "exchangePrediction")
 	layout.Attach(exchangePrediction, 2, 1, 1, 1)
 
-	scoreText := "1 P, 0 M"
+	scoreText := fmt.Sprintf("%dP %dM", entry.Info.Points, entry.Info.Multis)
 	score, _ := gtk.LabelNew(scoreText)
 	score.SetHExpand(true)
 	score.SetHAlign(gtk.ALIGN_END)

@@ -146,6 +146,9 @@ func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mod
 	result.Duplicate = duplicate
 	result.Worked = len(qsos) > 0
 	result.PredictedExchange = c.predictExchange(entity, qsos, exchange, historicExchange)
+	filteredExchange := c.exchangeFilter.FilterExchange(result.PredictedExchange)
+	result.ExchangeText = strings.Join(filteredExchange, " ")
+
 	result.Points, result.Multis = c.valuer.Value(call, entity, band, mode, exchange)
 
 	return result
@@ -172,7 +175,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	c.view.SetCallsign(call, callinfo.Worked, callinfo.Duplicate)
 	c.view.SetUserInfo(callinfo.UserText)
 	c.view.SetValue(callinfo.Points, callinfo.Multis)
-	c.showExchange(c.predictedExchange)
+	c.view.SetExchange(callinfo.ExchangeText)
 	c.showSupercheck(call)
 }
 
@@ -207,13 +210,6 @@ func (c *Callinfo) showDXCCEntity(entity dxcc.Prefix) {
 		dxccName = fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
 	}
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
-}
-
-func (c *Callinfo) showExchange(exchange []string) {
-	exchange = c.exchangeFilter.FilterExchange(exchange)
-	exchangeText := strings.Join(exchange, " ")
-
-	c.view.SetExchange(exchangeText)
 }
 
 func (c *Callinfo) showSupercheck(s string) {

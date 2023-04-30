@@ -205,6 +205,7 @@ func (c *Controller) Startup() {
 
 	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.QSOList, c.Score, c.Entry)
 	c.Entry.SetCallinfo(c.Callinfo)
+	c.Bandmap.SetCallinfo(c.Callinfo)
 
 	c.Settings.Notify(c.Entry)
 	c.Settings.Notify(c.Workmode)

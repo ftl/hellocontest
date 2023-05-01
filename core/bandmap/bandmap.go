@@ -303,7 +303,8 @@ type Entries struct {
 
 func NewEntries() *Entries {
 	result := &Entries{
-		order: core.BandmapByFrequency,
+		order:    core.BandmapByFrequency,
+		callinfo: new(nullCallinfo),
 	}
 	result.Clear()
 	return result

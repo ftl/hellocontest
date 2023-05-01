@@ -351,7 +351,7 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)})
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)})
-	entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-10 * time.Hour)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535500, Time: now.Add(-10 * time.Hour)})
 
 	assert.Equal(t, 2, entries.Len())
 	assert.Equal(t, "DL1ABC", entries.entries[0].Call.String())

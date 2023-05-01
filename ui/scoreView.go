@@ -28,9 +28,6 @@ func setupNewScoreView(builder *gtk.Builder) *scoreView {
 	return result
 }
 
-func (v *scoreView) setup() {
-}
-
 func (v *scoreView) ShowScore(score core.Score) {
 	if v == nil {
 		return

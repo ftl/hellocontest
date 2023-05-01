@@ -440,6 +440,7 @@ func (c *Controller) modeSelected(s string) {
 }
 
 func (c *Controller) emitMode() {
+	// TODO remove this and just use the VFO
 	for _, listener := range c.listeners {
 		if modeListener, ok := listener.(ModeListener); ok {
 			modeListener.SetMode(c.selectedMode)

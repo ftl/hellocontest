@@ -336,7 +336,23 @@ type Contest struct {
 	MultisGoal int
 }
 
-func (c *Contest) Started() bool {
+func (c Contest) Bands() []Band {
+	if c.Definition == nil {
+		return nil
+	}
+	bands := c.Definition.Bands
+	if len(bands) == 1 && bands[0] == conval.BandAll {
+		bands = conval.AllHFBands
+	}
+
+	result := make([]Band, len(bands))
+	for i, band := range c.Definition.Bands {
+		result[i] = Band(band)
+	}
+	return result
+}
+
+func (c Contest) Started() bool {
 	if c.StartTime.IsZero() {
 		return true
 	}
@@ -350,7 +366,7 @@ func (c *Contest) Started() bool {
 	return time.Now().After(c.StartTime)
 }
 
-func (c *Contest) Finished() bool {
+func (c Contest) Finished() bool {
 	if c.StartTime.IsZero() {
 		return false
 	}
@@ -364,7 +380,7 @@ func (c *Contest) Finished() bool {
 	return time.Now().After(c.StartTime.Add(c.Definition.Duration))
 }
 
-func (c *Contest) Running() bool {
+func (c Contest) Running() bool {
 	return c.Started() && !c.Finished()
 }
 
@@ -691,15 +707,25 @@ type Spot struct {
 }
 
 type BandmapFrame struct {
-	VFO     Frequency
-	Entries []BandmapEntry
+	Frequency   Frequency
+	ActiveBand  Band
+	VisibleBand Band
+	Mode        Mode
+	Bands       []BandSummary
+	Entries     []BandmapEntry
 }
 
-// frequencies within this distance to an entry's frequency will be recognized as "in proximity"
-const spotFrequencyProximityThreshold float64 = 500
+type BandSummary struct {
+	Band    Band
+	Points  int
+	Multis  int
+	Active  bool
+	Visible bool
+}
 
 type BandmapEntry struct {
 	Index     int
+	Visible   bool
 	Label     string
 	Call      callsign.Callsign
 	Frequency Frequency
@@ -733,6 +759,9 @@ type Callinfo struct {
 // ProximityFactor increases the closer the given frequency is to this entry's frequency.
 // 0.0 = not in proximity, 1.0 = exactly on frequency
 func (e BandmapEntry) ProximityFactor(f Frequency) float64 {
+	// frequencies within this distance to an entry's frequency will be recognized as "in proximity"
+	const spotFrequencyProximityThreshold float64 = 500
+
 	frequencyDelta := math.Abs(float64(e.Frequency - f))
 	if frequencyDelta > spotFrequencyProximityThreshold {
 		return 0.0

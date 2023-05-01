@@ -140,7 +140,7 @@ func (c *Controller) Startup() {
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.QSOList, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder)
 	c.Entry = entry.NewController(
 		c.Settings,
@@ -164,6 +164,7 @@ func (c *Controller) Startup() {
 			c.tciClient = tciClient
 			c.tciClient.Notify(c.ServiceStatus)
 			c.tciClient.SetSendSpots(c.session.SendSpotsToTci())
+			c.Bandmap.Notify(c.tciClient)
 			vfo = c.tciClient
 			keyerCWClient = c.tciClient
 		}
@@ -180,7 +181,6 @@ func (c *Controller) Startup() {
 
 	if vfo != nil {
 		c.Entry.SetVFO(vfo)
-		c.Bandmap.Notify(vfo)
 		vfo.Notify(c.Bandmap)
 	}
 
@@ -215,6 +215,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Rate)
 	c.Settings.Notify(c.Callinfo)
 	c.Settings.Notify(c.Clusters)
+	c.Settings.Notify(c.Bandmap)
 	c.Settings.Notify(c.callHistoryFinder)
 	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
 		if !c.dxccFinder.Available() {

@@ -36,13 +36,17 @@ type Callinfo interface {
 }
 
 type Bandmap struct {
-	entries      *Entries
-	selectedMode core.Mode
+	entries *Entries
 
-	clock            core.Clock
-	view             View
-	dupeChecker      DupeChecker
-	currentFrequency core.Frequency
+	clock       core.Clock
+	view        View
+	dupeChecker DupeChecker
+
+	vfo             core.VFO
+	activeFrequency core.Frequency
+	activeBand      core.Band
+	visibleBand     core.Band
+	activeMode      core.Mode
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
@@ -52,11 +56,11 @@ type Bandmap struct {
 	closed chan struct{}
 }
 
-func NewDefaultBandmap(clock core.Clock, dupeChecker DupeChecker) *Bandmap {
-	return NewBandmap(clock, dupeChecker, DefaultUpdatePeriod, DefaultMaximumAge)
+func NewDefaultBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker) *Bandmap {
+	return NewBandmap(clock, settings, dupeChecker, DefaultUpdatePeriod, DefaultMaximumAge)
 }
 
-func NewBandmap(clock core.Clock, dupeChecker DupeChecker, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
+func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
 		entries: NewEntries(),
 
@@ -71,6 +75,7 @@ func NewBandmap(clock core.Clock, dupeChecker DupeChecker, updatePeriod time.Dur
 		do:     make(chan func()),
 		closed: make(chan struct{}),
 	}
+	result.entries.SetBands(settings.Contest().Bands())
 
 	go result.run()
 
@@ -97,10 +102,15 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now())
 
+	bands := m.entries.Bands()
 	entries := m.entries.All()
 	frame := core.BandmapFrame{
-		VFO:     m.currentFrequency,
-		Entries: entries,
+		Frequency:   m.activeFrequency,
+		ActiveBand:  m.activeBand,
+		VisibleBand: m.visibleBand,
+		Mode:        m.activeMode,
+		Bands:       bands,
+		Entries:     entries,
 	}
 	m.view.ShowFrame(frame)
 }
@@ -125,6 +135,15 @@ func (m *Bandmap) SetView(view View) {
 	m.do <- m.update
 }
 
+func (m *Bandmap) SetVFO(vfo core.VFO) {
+	if vfo == nil {
+		m.vfo = new(nullVFO)
+	} else {
+		m.vfo = vfo
+	}
+	vfo.Notify(m)
+}
+
 func (m *Bandmap) SetCallinfo(callinfo Callinfo) {
 	m.entries.SetCallinfo(callinfo)
 	m.do <- m.update
@@ -139,8 +158,45 @@ func (m *Bandmap) Hide() {
 	m.view.Hide()
 }
 
+func (m *Bandmap) ContestChanged(contest core.Contest) {
+	m.do <- func() {
+		m.entries.SetBands(contest.Bands())
+		m.update()
+	}
+}
+
+func (m *Bandmap) VFOFrequencyChanged(frequency core.Frequency) {
+	m.do <- func() {
+		m.activeFrequency = frequency
+	}
+}
+
+func (m *Bandmap) VFOBandChanged(band core.Band) {
+	log.Printf("vfo band changed: %s", band)
+	m.do <- func() {
+		m.activeBand = band
+	}
+}
+
+func (m *Bandmap) VFOModeChanged(mode core.Mode) {
+	log.Printf("vfo mode changed")
+	// m.selectedMode = mode
+}
+
 func (m *Bandmap) SetMode(mode core.Mode) {
-	m.selectedMode = mode
+	// TODO remove this and just use the VFO
+	log.Printf("entry mode changed")
+	m.do <- func() {
+		m.activeMode = mode
+	}
+}
+
+func (m *Bandmap) SetVisibleBand(band core.Band) {
+	log.Printf("visible band changed: %s", band)
+	m.do <- func() {
+		m.visibleBand = band
+		m.update()
+	}
 }
 
 func (m *Bandmap) Notify(listener any) {
@@ -158,7 +214,7 @@ func (m *Bandmap) Clear() {
 func (m *Bandmap) Add(spot core.Spot) {
 	mode := spot.Mode
 	if mode == core.NoMode {
-		mode = m.selectedMode
+		mode = m.activeMode
 	}
 	_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
 	if worked {
@@ -300,9 +356,11 @@ type EntryRemovedListener interface {
 }
 
 type Entries struct {
-	entries  []*Entry
-	order    core.BandmapOrder
-	callinfo Callinfo
+	entries   []*Entry
+	bands     []core.Band
+	summaries map[core.Band]core.BandSummary
+	order     core.BandmapOrder
+	callinfo  Callinfo
 
 	listeners []any
 }
@@ -314,6 +372,11 @@ func NewEntries() *Entries {
 	}
 	result.Clear()
 	return result
+}
+
+func (l *Entries) SetBands(bands []core.Band) {
+	l.bands = bands
+	l.summaries = make(map[core.Band]core.BandSummary, len(bands))
 }
 
 func (l *Entries) SetCallinfo(callinfo Callinfo) {
@@ -428,13 +491,39 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 		l.emitEntryRemoved(e)
 	}
 
+	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
 		e.Index = i
 		e.Info.Points, e.Info.Multis = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
 		e.updateLifetime(maximumAge, now)
 		l.entries[i] = e
 		l.emitEntryUpdated(*e)
+		l.addToSummary(e)
 	}
+}
+
+func (l *Entries) addToSummary(entry *Entry) {
+	summary, ok := l.summaries[entry.Band]
+	if !ok {
+		summary = core.BandSummary{Band: entry.Band}
+	}
+	summary.Points += entry.Info.Points
+	summary.Multis += entry.Info.Multis
+	l.summaries[entry.Band] = summary
+}
+
+func (l *Entries) Bands() []core.BandSummary {
+	result := make([]core.BandSummary, len(l.bands))
+	for i, band := range l.bands {
+		summary, ok := l.summaries[band]
+		if !ok {
+			summary = core.BandSummary{
+				Band: band,
+			}
+		}
+		result[i] = summary
+	}
+	return result
 }
 
 func (l *Entries) All() []core.BandmapEntry {
@@ -483,6 +572,15 @@ type nullView struct{}
 func (v *nullView) Show()                       {}
 func (v *nullView) Hide()                       {}
 func (v *nullView) ShowFrame(core.BandmapFrame) {}
+
+type nullVFO struct{}
+
+func (n *nullVFO) Notify(any)                  {}
+func (n *nullVFO) Active() bool                { return false }
+func (n *nullVFO) Refresh()                    {}
+func (n *nullVFO) SetFrequency(core.Frequency) {}
+func (n *nullVFO) SetBand(core.Band)           {}
+func (n *nullVFO) SetMode(core.Mode)           {}
 
 type nullCallinfo struct{}
 

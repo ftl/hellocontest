@@ -4,14 +4,26 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
 )
 
+var entrySourceStyles = map[core.SpotType]string{
+	core.WorkedSpot:  "workedSpot",
+	core.ManualSpot:  "manualSpot",
+	core.SkimmerSpot: "skimmerSpot",
+	core.RBNSpot:     "rbnSpot",
+	core.ClusterSpot: "clusterSpot",
+}
+
 type bandmapView struct {
+	bandGrid  *gtk.Grid
 	entryList *gtk.ListBox
 	style     *style
 
+	bands             []core.BandSummary
+	bandsID           string
 	currentFrame      core.BandmapFrame
 	initialFrameShown bool
 }
@@ -21,6 +33,7 @@ func setupBandmapView(builder *gtk.Builder) *bandmapView {
 		initialFrameShown: false,
 	}
 
+	result.bandGrid = getUI(builder, "bandGrid").(*gtk.Grid)
 	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
 
 	// TODO connect signals
@@ -63,40 +76,30 @@ func setupBandmapView(builder *gtk.Builder) *bandmapView {
 	.score{
 		font-size: x-large;
 	}
+
+	.band{
+		margin: 3px;
+		padding: 3px;
+	}
+	.bandActive{
+		border-top: 4px solid blue;
+	}
+	.bandVisible{
+		border: 2px solid black;
+	}
+	.bandLabel{
+		font-size: x-large;
+	}
+	.bandPoints{
+		font-size: medium;
+	}
+	.bandMultis{
+		font-size: medium;
+	}
 	`)
 	result.style.applyTo(&result.entryList.Widget)
 
 	return result
-}
-
-func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
-	if v == nil {
-		return
-	}
-	v.currentFrame = frame
-
-	if v.initialFrameShown {
-		return
-	}
-	v.initialFrameShown = true
-
-	runAsync(func() {
-		children := v.entryList.GetChildren()
-
-		children.Foreach(func(child any) {
-			w := child.(gtk.IWidget)
-			w.ToWidget().Destroy()
-
-		})
-
-		for _, entry := range frame.Entries {
-			w := v.newListEntry(entry)
-			if w != nil {
-				v.entryList.Add(w)
-			}
-		}
-		v.entryList.ShowAll()
-	})
 }
 
 func (v *bandmapView) getLifetime(index int) float64 {
@@ -106,12 +109,131 @@ func (v *bandmapView) getLifetime(index int) float64 {
 	return v.currentFrame.Entries[index].Lifetime
 }
 
-var sourceStyles = map[core.SpotType]string{
-	core.WorkedSpot:  "workedSpot",
-	core.ManualSpot:  "manualSpot",
-	core.SkimmerSpot: "skimmerSpot",
-	core.RBNSpot:     "rbnSpot",
-	core.ClusterSpot: "clusterSpot",
+func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
+	if v == nil {
+		return
+	}
+
+	runAsync(func() {
+		v.currentFrame = frame
+		v.setupBands(frame.Bands)
+		v.updateBands(frame.Bands)
+
+		if v.initialFrameShown {
+			return
+		}
+		v.initialFrameShown = true
+		v.showEntries(frame.Entries)
+	})
+}
+
+func (v *bandmapView) setupBands(bands []core.BandSummary) {
+	if v == nil {
+		return
+	}
+	bandsID := toBandsID(bands)
+	if bandsID == v.bandsID {
+		return
+	}
+	v.bands = bands
+	v.bandsID = bandsID
+
+	v.bandGrid.GetChildren().Foreach(func(c any) {
+		child, ok := c.(*gtk.Widget)
+		if ok {
+			child.Destroy()
+		}
+	})
+	v.bandGrid.RemoveRow(0)
+
+	for i, band := range bands {
+		label := v.newBand(band)
+		label.SetHAlign(gtk.ALIGN_FILL)
+		label.SetHExpand(true)
+		v.bandGrid.Attach(label, i, 0, 1, 1)
+	}
+
+	v.bandGrid.ShowAll()
+}
+
+func toBandsID(bands []core.BandSummary) string {
+	result := make([]byte, 0, len(bands)*4)
+	for _, band := range bands {
+		result = append(result, []byte(band.Band)...)
+	}
+	return string(result)
+}
+
+func (v *bandmapView) newBand(band core.BandSummary) *gtk.Widget {
+	root, _ := gtk.GridNew()
+	root.SetColumnSpacing(3)
+	v.style.applyTo(&root.Widget)
+	addStyleClass(&root.Widget, "band")
+
+	label, _ := gtk.LabelNew(string(band.Band))
+	label.SetHAlign(gtk.ALIGN_END)
+	label.SetVAlign(gtk.ALIGN_FILL)
+	label.SetHExpand(true)
+	v.style.applyTo(&label.Widget)
+	addStyleClass(&label.Widget, "bandLabel")
+	root.Attach(label, 0, 0, 1, 2)
+
+	points, _ := gtk.LabelNew("")
+	points.SetHAlign(gtk.ALIGN_START)
+	points.SetVAlign(gtk.ALIGN_FILL)
+	points.SetHExpand(true)
+	v.style.applyTo(&points.Widget)
+	addStyleClass(&points.Widget, "bandPoints")
+	root.Attach(points, 1, 0, 1, 1)
+
+	multis, _ := gtk.LabelNew("")
+	multis.SetHAlign(gtk.ALIGN_START)
+	multis.SetVAlign(gtk.ALIGN_FILL)
+	points.SetHExpand(true)
+	v.style.applyTo(&multis.Widget)
+	addStyleClass(&multis.Widget, "bandPoints")
+	root.Attach(multis, 1, 1, 1, 1)
+
+	v.updateBand(root, band)
+
+	return root.ToWidget()
+}
+
+func (v *bandmapView) updateBand(root *gtk.Grid, band core.BandSummary) {
+	child, _ := root.GetChildAt(1, 0)
+	points := child.(*gtk.Label)
+	points.SetText(fmt.Sprintf("%dP", band.Points))
+
+	child, _ = root.GetChildAt(1, 1)
+	multis := child.(*gtk.Label)
+	multis.SetText(fmt.Sprintf("%dM", band.Multis))
+}
+
+func (v *bandmapView) updateBands(bands []core.BandSummary) {
+	for i, band := range bands {
+		child, _ := v.bandGrid.GetChildAt(i, 0)
+		root, ok := child.(*gtk.Grid)
+		if ok {
+			v.updateBand(root, band)
+		}
+	}
+}
+
+func (v *bandmapView) showEntries(entries []core.BandmapEntry) {
+	children := v.entryList.GetChildren()
+	children.Foreach(func(child any) {
+		w := child.(gtk.IWidget)
+		w.ToWidget().Destroy()
+
+	})
+
+	for _, entry := range entries {
+		w := v.newListEntry(entry)
+		if w != nil {
+			v.entryList.Add(w)
+		}
+	}
+	v.entryList.ShowAll()
 }
 
 func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
@@ -122,7 +244,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	layout.SetHExpand(true)
 	v.style.applyTo(&layout.Widget)
 	addStyleClass(&layout.Widget, "row")
-	addStyleClass(&layout.Widget, sourceStyles[entry.Source])
+	addStyleClass(&layout.Widget, entrySourceStyles[entry.Source])
 	root.Add(layout)
 
 	proximityIndicator, _ := gtk.LabelNew("|")
@@ -176,9 +298,26 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	lifetimeIndicatorArea.Connect("draw", lifetimeIndicator.Draw)
 	layout.Attach(lifetimeIndicatorArea, 0, 4, 4, 1)
 
-	updateRow(root, entry)
+	updateListEntry(root, entry)
 
 	return root.ToWidget()
+}
+
+func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
+	child, _ := row.GetChild()
+	layout := child.(*gtk.Grid)
+
+	child, _ = layout.GetChildAt(1, 0)
+	frequency := child.(*gtk.Label)
+	frequency.SetText(entry.Frequency.String())
+
+	child, _ = layout.GetChildAt(2, 2)
+	score := child.(*gtk.Label)
+	score.SetText(fmt.Sprintf("%dP %dM", entry.Info.Points, entry.Info.Multis))
+
+	child, _ = layout.GetChildAt(0, 4)
+	lifetimeIndicatorArea := child.(*gtk.DrawingArea)
+	lifetimeIndicatorArea.QueueDraw()
 }
 
 func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
@@ -205,7 +344,7 @@ func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
 		if row == nil {
 			return
 		}
-		updateRow(row, entry)
+		updateListEntry(row, entry)
 		row.ShowAll()
 		log.Printf("Updated Entry @ %d: %s", entry.Index, entry.Call.String())
 	})
@@ -224,21 +363,4 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 		v.entryList.ShowAll()
 		log.Printf("Removed Entry @ %d: %s", entry.Index, entry.Call.String())
 	})
-}
-
-func updateRow(row *gtk.ListBoxRow, entry core.BandmapEntry) {
-	child, _ := row.GetChild()
-	layout := child.(*gtk.Grid)
-
-	child, _ = layout.GetChildAt(1, 0)
-	frequency := child.(*gtk.Label)
-	frequency.SetText(entry.Frequency.String())
-
-	child, _ = layout.GetChildAt(2, 2)
-	score := child.(*gtk.Label)
-	score.SetText(fmt.Sprintf("%dP %dM", entry.Info.Points, entry.Info.Multis))
-
-	child, _ = layout.GetChildAt(0, 4)
-	lifetimeIndicatorArea := child.(*gtk.DrawingArea)
-	lifetimeIndicatorArea.QueueDraw()
 }

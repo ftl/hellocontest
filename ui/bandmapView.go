@@ -51,7 +51,8 @@ func setupBandmapView(builder *gtk.Builder) *bandmapView {
 		font-size: small;
 	}
 	.call {
-		font-size: xx-large;
+		font-size: x-large;
+		font-weight: bold;
 	}
 	.geoInfo{
 		font-size: small;

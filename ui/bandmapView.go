@@ -127,7 +127,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	proximityIndicator, _ := gtk.LabelNew("|")
 	layout.Attach(proximityIndicator, 0, 0, 1, 4)
 
-	frequency, _ := gtk.LabelNew(entry.Frequency.String())
+	frequency, _ := gtk.LabelNew("")
 	frequency.SetHExpand(true)
 	frequency.SetHAlign(gtk.ALIGN_START)
 	v.style.applyTo(&frequency.Widget)
@@ -165,7 +165,6 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	v.style.applyTo(&score.Widget)
 	addStyleClass(&score.Widget, "score")
 	layout.Attach(score, 2, 2, 1, 2)
-	setScore(root, entry.Info.Points, entry.Info.Multis)
 
 	lifetimeIndicator := newLifetimeIndicator(root, v.getLifetime)
 	lifetimeIndicatorArea, _ := gtk.DrawingAreaNew()
@@ -175,6 +174,8 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	lifetimeIndicatorArea.SetSizeRequest(-1, 10)
 	lifetimeIndicatorArea.Connect("draw", lifetimeIndicator.Draw)
 	layout.Attach(lifetimeIndicatorArea, 0, 4, 4, 1)
+
+	updateRow(root, entry)
 
 	return root.ToWidget()
 }
@@ -203,8 +204,7 @@ func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
 		if row == nil {
 			return
 		}
-		setScore(row, entry.Info.Points, entry.Info.Multis)
-		setLifetime(row, entry.Lifetime)
+		updateRow(row, entry)
 		row.ShowAll()
 		log.Printf("Updated Entry @ %d: %s", entry.Index, entry.Call.String())
 	})
@@ -225,18 +225,17 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 	})
 }
 
-func setScore(row *gtk.ListBoxRow, points, multis int) {
+func updateRow(row *gtk.ListBoxRow, entry core.BandmapEntry) {
 	child, _ := row.GetChild()
 	layout := child.(*gtk.Grid)
+
+	child, _ = layout.GetChildAt(1, 0)
+	frequency := child.(*gtk.Label)
+	frequency.SetText(entry.Frequency.String())
 
 	child, _ = layout.GetChildAt(2, 2)
 	score := child.(*gtk.Label)
-	score.SetText(fmt.Sprintf("%dP %dM", points, multis))
-}
-
-func setLifetime(row *gtk.ListBoxRow, lifetime float64) {
-	child, _ := row.GetChild()
-	layout := child.(*gtk.Grid)
+	score.SetText(fmt.Sprintf("%dP %dM", entry.Info.Points, entry.Info.Multis))
 
 	child, _ = layout.GetChildAt(0, 4)
 	lifetimeIndicatorArea := child.(*gtk.DrawingArea)

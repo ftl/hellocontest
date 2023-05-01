@@ -53,14 +53,14 @@ func setupBandmapView(builder *gtk.Builder) *bandmapView {
 	.call {
 		font-size: xx-large;
 	}
-	.predictedExchange{
-		font-size: large;
-	}
 	.geoInfo{
 		font-size: small;
 	}
+	.predictedExchange{
+		font-size: x-large;
+	}
 	.score{
-		font-size: small;
+		font-size: x-large;
 	}
 	`)
 	result.style.applyTo(&result.entryList.Widget)
@@ -91,11 +91,9 @@ func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
 		for _, entry := range frame.Entries {
 			w := v.newListEntry(entry)
 			if w != nil {
-				log.Printf("Entry: %s", entry.Call.String())
 				v.entryList.Add(w)
 			}
 		}
-		log.Printf("new children count: %d", v.entryList.GetChildren().Length())
 		v.entryList.ShowAll()
 	})
 }
@@ -127,7 +125,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	root.Add(layout)
 
 	proximityIndicator, _ := gtk.LabelNew("|")
-	layout.Attach(proximityIndicator, 0, 0, 1, 3)
+	layout.Attach(proximityIndicator, 0, 0, 1, 4)
 
 	frequency, _ := gtk.LabelNew(entry.Frequency.String())
 	frequency.SetHExpand(true)
@@ -141,7 +139,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	call.SetHAlign(gtk.ALIGN_START)
 	v.style.applyTo(&call.Widget)
 	addStyleClass(&call.Widget, "call")
-	layout.Attach(call, 1, 1, 1, 1)
+	layout.Attach(call, 1, 1, 1, 2)
 
 	var geoInfoText string
 	if entry.Info.PrimaryPrefix != "" {
@@ -152,33 +150,31 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	geoInfo.SetHAlign(gtk.ALIGN_START)
 	v.style.applyTo(&geoInfo.Widget)
 	addStyleClass(&geoInfo.Widget, "geoInfo")
-	layout.Attach(geoInfo, 1, 2, 1, 1)
+	layout.Attach(geoInfo, 1, 3, 1, 1)
 
 	predictedExchange, _ := gtk.LabelNew(entry.Info.ExchangeText)
 	predictedExchange.SetHExpand(true)
 	predictedExchange.SetHAlign(gtk.ALIGN_END)
-	predictedExchange.SetVAlign(gtk.ALIGN_START)
 	v.style.applyTo(&predictedExchange.Widget)
 	addStyleClass(&predictedExchange.Widget, "predictedExchange")
-	layout.Attach(predictedExchange, 2, 1, 1, 1)
+	layout.Attach(predictedExchange, 2, 0, 1, 2)
 
 	score, _ := gtk.LabelNew("")
 	score.SetHExpand(true)
 	score.SetHAlign(gtk.ALIGN_END)
 	v.style.applyTo(&score.Widget)
 	addStyleClass(&score.Widget, "score")
-	layout.Attach(score, 2, 2, 1, 1)
+	layout.Attach(score, 2, 2, 1, 2)
 	setScore(root, entry.Info.Points, entry.Info.Multis)
 
 	lifetimeIndicator := newLifetimeIndicator(root, v.getLifetime)
-
 	lifetimeIndicatorArea, _ := gtk.DrawingAreaNew()
 	lifetimeIndicatorArea.SetHExpand(true)
 	lifetimeIndicatorArea.SetHAlign(gtk.ALIGN_FILL)
 	lifetimeIndicatorArea.SetVAlign(gtk.ALIGN_FILL)
 	lifetimeIndicatorArea.SetSizeRequest(-1, 10)
 	lifetimeIndicatorArea.Connect("draw", lifetimeIndicator.Draw)
-	layout.Attach(lifetimeIndicatorArea, 0, 3, 4, 1)
+	layout.Attach(lifetimeIndicatorArea, 0, 4, 4, 1)
 
 	return root.ToWidget()
 }
@@ -242,7 +238,7 @@ func setLifetime(row *gtk.ListBoxRow, lifetime float64) {
 	child, _ := row.GetChild()
 	layout := child.(*gtk.Grid)
 
-	child, _ = layout.GetChildAt(0, 3)
-	lifetimeIndicator, _ := child.(*gtk.DrawingArea)
-	lifetimeIndicator.QueueDraw()
+	child, _ = layout.GetChildAt(0, 4)
+	lifetimeIndicatorArea := child.(*gtk.DrawingArea)
+	lifetimeIndicatorArea.QueueDraw()
 }

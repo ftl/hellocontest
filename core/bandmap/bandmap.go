@@ -281,6 +281,12 @@ func (e *Entry) updateFrequency() {
 	e.Frequency = core.Frequency(roundedMean * spotFrequencyStep)
 }
 
+func (e *Entry) updateLifetime(maximumAge time.Duration, now time.Time) {
+	age := now.UTC().UnixMilli() - e.LastHeard.UTC().UnixMilli()
+	e.Lifetime = 1 - (float64(age) / float64(maximumAge.Milliseconds()))
+	e.Lifetime = math.Max(0, math.Min(1, e.Lifetime))
+}
+
 type EntryAddedListener interface {
 	EntryAdded(core.BandmapEntry)
 }
@@ -417,14 +423,17 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 		}
 		return matches
 	})
-	for i, e := range l.entries {
-		e.Index = i
-		l.entries[i] = e
-	}
-
 	for i, e := range removedEntries {
 		e.Index -= i
 		l.emitEntryRemoved(e)
+	}
+
+	for i, e := range l.entries {
+		e.Index = i
+		e.Info.Points, e.Info.Multis = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
+		e.updateLifetime(maximumAge, now)
+		l.entries[i] = e
+		l.emitEntryUpdated(*e)
 	}
 }
 

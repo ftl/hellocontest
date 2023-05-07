@@ -102,7 +102,7 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now())
 
-	bands := m.entries.Bands()
+	bands := m.entries.Bands(m.activeBand, m.visibleBand)
 	entries := m.entries.All()
 	frame := core.BandmapFrame{
 		Frequency:   m.activeFrequency,
@@ -197,6 +197,25 @@ func (m *Bandmap) SetVisibleBand(band core.Band) {
 		m.visibleBand = band
 		m.update()
 	}
+}
+
+func (m *Bandmap) SetActiveBand(band core.Band) {
+	log.Printf("active band changed: %s", band)
+	// TODO: forward this call to the VFO and rely on the band changed event from the VFO to update the interal representation of the active band
+	// m.do <- func() {
+	// 	m.activeBand = band
+	// 	m.update()
+	// }
+}
+
+func (m *Bandmap) EntryVisible(index int) bool {
+	result := make(chan bool)
+	m.do <- func() {
+		m.entries.DoOnEntry(index, func(entry core.BandmapEntry) {
+			result <- (entry.Band == m.visibleBand)
+		})
+	}
+	return <-result
 }
 
 func (m *Bandmap) Notify(listener any) {
@@ -512,7 +531,11 @@ func (l *Entries) addToSummary(entry *Entry) {
 	l.summaries[entry.Band] = summary
 }
 
-func (l *Entries) Bands() []core.BandSummary {
+func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
+	maxPointsIndex := 0
+	maxPoints := 0
+	maxMultisIndex := 0
+	maxMultis := 0
 	result := make([]core.BandSummary, len(l.bands))
 	for i, band := range l.bands {
 		summary, ok := l.summaries[band]
@@ -522,8 +545,36 @@ func (l *Entries) Bands() []core.BandSummary {
 			}
 		}
 		result[i] = summary
+		result[i].Active = (summary.Band == active)
+		result[i].Visible = (summary.Band == visible)
+		if summary.Points > maxPoints {
+			maxPoints = summary.Points
+			maxPointsIndex = i
+		}
+		if summary.Multis > maxMultis {
+			maxMultis = summary.Multis
+			maxMultisIndex = i
+		}
 	}
+
+	if maxPointsIndex < len(result) {
+		result[maxPointsIndex].MaxPoints = true
+	}
+	if maxMultisIndex < len(result) {
+		result[maxMultisIndex].MaxMultis = true
+	}
+
 	return result
+}
+
+func (l *Entries) DoOnEntry(index int, f func(core.BandmapEntry)) {
+	if index < 0 || index >= len(l.entries) {
+		f(core.BandmapEntry{})
+		return
+	}
+
+	entry := l.entries[index]
+	f(entry.BandmapEntry)
 }
 
 func (l *Entries) All() []core.BandmapEntry {

@@ -12,11 +12,14 @@ type bandmapWindow struct {
 
 	window   *gtk.Window
 	geometry *gmtry.Geometry
+
+	controller BandmapController
 }
 
-func setupBandmapWindow(geometry *gmtry.Geometry) *bandmapWindow {
+func setupBandmapWindow(geometry *gmtry.Geometry, controller BandmapController) *bandmapWindow {
 	result := &bandmapWindow{
-		geometry: geometry,
+		geometry:   geometry,
+		controller: controller,
 	}
 
 	return result
@@ -38,7 +41,7 @@ func (w *bandmapWindow) Show() {
 		w.window.SetDefaultSize(400, 900)
 		w.window.SetTitle("Bandmap")
 		w.window.Connect("destroy", w.onDestroy)
-		w.bandmapView = setupBandmapView(builder)
+		w.bandmapView = setupBandmapView(builder, w.controller)
 		connectToGeometry(w.geometry, BandmapWindowID, w.window)
 	}
 	w.window.ShowAll()

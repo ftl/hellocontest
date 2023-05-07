@@ -17,7 +17,16 @@ var entrySourceStyles = map[core.SpotType]string{
 	core.ClusterSpot: "clusterSpot",
 }
 
+type BandmapController interface {
+	SetVisibleBand(core.Band)
+	SetActiveBand(core.Band)
+
+	EntryVisible(int) bool
+}
+
 type bandmapView struct {
+	controller BandmapController
+
 	bandGrid  *gtk.Grid
 	entryList *gtk.ListBox
 	style     *style
@@ -28,15 +37,15 @@ type bandmapView struct {
 	initialFrameShown bool
 }
 
-func setupBandmapView(builder *gtk.Builder) *bandmapView {
+func setupBandmapView(builder *gtk.Builder, controller BandmapController) *bandmapView {
 	result := &bandmapView{
+		controller:        controller,
 		initialFrameShown: false,
 	}
 
 	result.bandGrid = getUI(builder, "bandGrid").(*gtk.Grid)
 	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
-
-	// TODO connect signals
+	result.entryList.SetFilterFunc(result.filterRow)
 
 	result.style = newStyle(`
 	.row{
@@ -85,7 +94,14 @@ func setupBandmapView(builder *gtk.Builder) *bandmapView {
 		border-top: 4px solid blue;
 	}
 	.bandVisible{
-		border: 2px solid black;
+		border-bottom: 4px solid black;
+	}
+	.maxValue{
+		background-color: red;
+		color: white;
+		border: 1px solid red;
+		border-radius: 3px;
+		font-weight: bold;
 	}
 	.bandLabel{
 		font-size: x-large;
@@ -109,6 +125,10 @@ func (v *bandmapView) getLifetime(index int) float64 {
 	return v.currentFrame.Entries[index].Lifetime
 }
 
+func (v *bandmapView) filterRow(row *gtk.ListBoxRow) bool {
+	return v.controller.EntryVisible(row.GetIndex())
+}
+
 func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
 	if v == nil {
 		return
@@ -118,6 +138,7 @@ func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
 		v.currentFrame = frame
 		v.setupBands(frame.Bands)
 		v.updateBands(frame.Bands)
+		v.entryList.SetFilterFunc(v.filterRow)
 
 		if v.initialFrameShown {
 			return
@@ -165,10 +186,18 @@ func toBandsID(bands []core.BandSummary) string {
 }
 
 func (v *bandmapView) newBand(band core.BandSummary) *gtk.Widget {
-	root, _ := gtk.GridNew()
-	root.SetColumnSpacing(3)
-	v.style.applyTo(&root.Widget)
-	addStyleClass(&root.Widget, "band")
+	button, _ := gtk.ButtonNew()
+	button.SetName("band")
+	button.SetHAlign(gtk.ALIGN_END)
+	button.SetVAlign(gtk.ALIGN_FILL)
+	button.SetHExpand(true)
+	v.style.applyTo(&button.Widget)
+	addStyleClass(&button.Widget, "band")
+	button.Connect("clicked", v.selectVisibleBand(band.Band))
+
+	grid, _ := gtk.GridNew()
+	grid.SetColumnSpacing(3)
+	button.Add(grid)
 
 	label, _ := gtk.LabelNew(string(band.Band))
 	label.SetHAlign(gtk.ALIGN_END)
@@ -176,45 +205,69 @@ func (v *bandmapView) newBand(band core.BandSummary) *gtk.Widget {
 	label.SetHExpand(true)
 	v.style.applyTo(&label.Widget)
 	addStyleClass(&label.Widget, "bandLabel")
-	root.Attach(label, 0, 0, 1, 2)
+	grid.Attach(label, 0, 0, 1, 2)
 
 	points, _ := gtk.LabelNew("")
-	points.SetHAlign(gtk.ALIGN_START)
+	points.SetHAlign(gtk.ALIGN_FILL)
 	points.SetVAlign(gtk.ALIGN_FILL)
 	points.SetHExpand(true)
 	v.style.applyTo(&points.Widget)
 	addStyleClass(&points.Widget, "bandPoints")
-	root.Attach(points, 1, 0, 1, 1)
+	grid.Attach(points, 1, 0, 1, 1)
 
 	multis, _ := gtk.LabelNew("")
-	multis.SetHAlign(gtk.ALIGN_START)
+	multis.SetHAlign(gtk.ALIGN_FILL)
 	multis.SetVAlign(gtk.ALIGN_FILL)
 	points.SetHExpand(true)
 	v.style.applyTo(&multis.Widget)
 	addStyleClass(&multis.Widget, "bandPoints")
-	root.Attach(multis, 1, 1, 1, 1)
+	grid.Attach(multis, 1, 1, 1, 1)
 
-	v.updateBand(root, band)
+	v.updateBand(button, band)
 
-	return root.ToWidget()
+	return button.ToWidget()
 }
 
-func (v *bandmapView) updateBand(root *gtk.Grid, band core.BandSummary) {
-	child, _ := root.GetChildAt(1, 0)
+func (v *bandmapView) updateBand(button *gtk.Button, band core.BandSummary) {
+	child, _ := button.GetChild()
+	grid := child.(*gtk.Grid)
+
+	child, _ = grid.GetChildAt(1, 0)
 	points := child.(*gtk.Label)
 	points.SetText(fmt.Sprintf("%dP", band.Points))
 
-	child, _ = root.GetChildAt(1, 1)
+	child, _ = grid.GetChildAt(1, 1)
 	multis := child.(*gtk.Label)
 	multis.SetText(fmt.Sprintf("%dM", band.Multis))
+
+	if band.MaxPoints {
+		addStyleClass(&points.Widget, "maxValue")
+	} else {
+		removeStyleClass(&points.Widget, "maxValue")
+	}
+	if band.MaxMultis {
+		addStyleClass(&multis.Widget, "maxValue")
+	} else {
+		removeStyleClass(&multis.Widget, "maxValue")
+	}
+	if band.Active {
+		addStyleClass(&button.Widget, "bandActive")
+	} else {
+		removeStyleClass(&button.Widget, "bandActive")
+	}
+	if band.Visible {
+		addStyleClass(&button.Widget, "bandVisible")
+	} else {
+		removeStyleClass(&button.Widget, "bandVisible")
+	}
 }
 
 func (v *bandmapView) updateBands(bands []core.BandSummary) {
 	for i, band := range bands {
 		child, _ := v.bandGrid.GetChildAt(i, 0)
-		root, ok := child.(*gtk.Grid)
+		button, ok := child.(*gtk.Button)
 		if ok {
-			v.updateBand(root, band)
+			v.updateBand(button, band)
 		}
 	}
 }
@@ -363,4 +416,11 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 		v.entryList.ShowAll()
 		log.Printf("Removed Entry @ %d: %s", entry.Index, entry.Call.String())
 	})
+}
+
+func (v *bandmapView) selectVisibleBand(band core.Band) func(*gtk.Button) {
+	return func(button *gtk.Button) {
+		log.Printf("select %s as visible band: %v", band, button)
+		v.controller.SetVisibleBand(band)
+	}
 }

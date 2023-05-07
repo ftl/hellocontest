@@ -716,16 +716,18 @@ type BandmapFrame struct {
 }
 
 type BandSummary struct {
-	Band    Band
-	Points  int
-	Multis  int
-	Active  bool
-	Visible bool
+	Band   Band
+	Points int
+	Multis int
+
+	MaxPoints bool
+	MaxMultis bool
+	Active    bool
+	Visible   bool
 }
 
 type BandmapEntry struct {
 	Index     int
-	Visible   bool
 	Label     string
 	Call      callsign.Callsign
 	Frequency Frequency

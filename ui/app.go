@@ -74,7 +74,7 @@ func (a *application) activate() {
 	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
 	a.scoreWindow = setupScoreWindow(a.windowGeometry)
 	a.rateWindow = setupRateWindow(a.windowGeometry)
-	a.bandmapWindow = setupBandmapWindow(a.windowGeometry)
+	a.bandmapWindow = setupBandmapWindow(a.windowGeometry, a.controller.Bandmap)
 	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
 
 	a.mainWindow.SetMainMenuController(a.controller)

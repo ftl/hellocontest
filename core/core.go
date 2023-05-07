@@ -756,12 +756,12 @@ type Callinfo struct {
 	Multis    int
 }
 
+// frequencies within this distance to an entry's frequency will be recognized as "in proximity"
+const spotFrequencyProximityThreshold float64 = 500
+
 // ProximityFactor increases the closer the given frequency is to this entry's frequency.
 // 0.0 = not in proximity, 1.0 = exactly on frequency
 func (e BandmapEntry) ProximityFactor(f Frequency) float64 {
-	// frequencies within this distance to an entry's frequency will be recognized as "in proximity"
-	const spotFrequencyProximityThreshold float64 = 500
-
 	frequencyDelta := math.Abs(float64(e.Frequency - f))
 	if frequencyDelta > spotFrequencyProximityThreshold {
 		return 0.0

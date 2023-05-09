@@ -794,7 +794,6 @@ func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
 
 type VFO interface {
 	Notify(any)
-	Active() bool
 	Refresh()
 	SetFrequency(Frequency)
 	SetBand(Band)

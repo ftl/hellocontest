@@ -174,20 +174,19 @@ func (m *Bandmap) VFOFrequencyChanged(frequency core.Frequency) {
 func (m *Bandmap) VFOBandChanged(band core.Band) {
 	log.Printf("vfo band changed: %s", band)
 	m.do <- func() {
+		if m.activeBand == m.visibleBand {
+			m.visibleBand = band
+		}
 		m.activeBand = band
+		m.update()
 	}
 }
 
 func (m *Bandmap) VFOModeChanged(mode core.Mode) {
 	log.Printf("vfo mode changed")
-	// m.selectedMode = mode
-}
-
-func (m *Bandmap) SetMode(mode core.Mode) {
-	// TODO remove this and just use the VFO
-	log.Printf("entry mode changed")
 	m.do <- func() {
 		m.activeMode = mode
+		m.update()
 	}
 }
 
@@ -201,11 +200,7 @@ func (m *Bandmap) SetVisibleBand(band core.Band) {
 
 func (m *Bandmap) SetActiveBand(band core.Band) {
 	log.Printf("active band changed: %s", band)
-	// TODO: forward this call to the VFO and rely on the band changed event from the VFO to update the interal representation of the active band
-	// m.do <- func() {
-	// 	m.activeBand = band
-	// 	m.update()
-	// }
+	m.vfo.SetBand(band)
 }
 
 func (m *Bandmap) EntryVisible(index int) bool {

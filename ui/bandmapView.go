@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
@@ -193,7 +194,7 @@ func (v *bandmapView) newBand(band core.BandSummary) *gtk.Widget {
 	button.SetHExpand(true)
 	v.style.applyTo(&button.Widget)
 	addStyleClass(&button.Widget, "band")
-	button.Connect("clicked", v.selectVisibleBand(band.Band))
+	button.Connect("button-press-event", v.selectBand(band.Band))
 
 	grid, _ := gtk.GridNew()
 	grid.SetColumnSpacing(3)
@@ -418,9 +419,16 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 	})
 }
 
-func (v *bandmapView) selectVisibleBand(band core.Band) func(*gtk.Button) {
-	return func(button *gtk.Button) {
-		log.Printf("select %s as visible band: %v", band, button)
-		v.controller.SetVisibleBand(band)
+func (v *bandmapView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
+	return func(button *gtk.Button, event *gdk.Event) {
+		buttonEvent := gdk.EventButtonNewFromEvent(event)
+		switch buttonEvent.Type() {
+		case gdk.EVENT_BUTTON_PRESS:
+			log.Printf("select %s as visible band: %v", band, button)
+			v.controller.SetVisibleBand(band)
+		case gdk.EVENT_DOUBLE_BUTTON_PRESS:
+			log.Printf("select %s as active band: %v", band, button)
+			v.controller.SetActiveBand(band)
+		}
 	}
 }

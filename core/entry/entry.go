@@ -82,10 +82,6 @@ type Bandmap interface {
 	AllBy(core.BandmapOrder) []core.BandmapEntry
 }
 
-type ModeListener interface {
-	SetMode(core.Mode)
-}
-
 // NewController returns a new entry controller.
 func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, bandmap Bandmap, asyncRunner core.AsyncRunner) *Controller {
 	result := &Controller{
@@ -161,9 +157,7 @@ func (c *Controller) SetView(view View) {
 func (c *Controller) SetLogbook(logbook Logbook) {
 	c.logbook = logbook
 
-	if c.vfo.Active() {
-		c.vfo.Refresh()
-	}
+	c.vfo.Refresh()
 
 	lastBand, lastMode := c.qsoList.LastBandAndMode()
 	if c.selectedBand == core.NoBand {
@@ -185,7 +179,6 @@ func (c *Controller) SetLogbook(logbook Logbook) {
 	c.input.mode = c.selectedMode.String()
 
 	c.showInput()
-	c.emitMode()
 }
 
 func (c *Controller) SetKeyer(keyer Keyer) {
@@ -313,7 +306,6 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.selectedMode = qso.Mode
 
 	c.showInput()
-	c.emitMode()
 }
 
 func ensureLen(a []string, l int) []string {
@@ -393,6 +385,7 @@ func (c *Controller) frequencySelected(frequency core.Frequency) {
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
+	log.Printf("entry VFOFrequencyChanged %f (editing %t) (selected %f)", frequency, c.editing, c.selectedFrequency)
 	if c.editing {
 		return
 	}
@@ -413,6 +406,7 @@ func (c *Controller) bandSelected(s string) {
 }
 
 func (c *Controller) VFOBandChanged(band core.Band) {
+	log.Printf("entry VFOBandChanged %s (editing %t) (selected %s)", band, c.editing, c.selectedBand)
 	if c.editing {
 		return
 	}
@@ -434,17 +428,6 @@ func (c *Controller) modeSelected(s string) {
 			c.generateReportForMode(mode)
 		}
 		c.enterCallsign(c.input.callsign)
-
-		c.emitMode()
-	}
-}
-
-func (c *Controller) emitMode() {
-	// TODO remove this and just use the VFO
-	for _, listener := range c.listeners {
-		if modeListener, ok := listener.(ModeListener); ok {
-			modeListener.SetMode(c.selectedMode)
-		}
 	}
 }
 
@@ -476,6 +459,7 @@ func defaultReportForMode(mode core.Mode) string {
 }
 
 func (c *Controller) VFOModeChanged(mode core.Mode) {
+	log.Printf("entry VFOModeChanged %s (editing %t) (selected %s)", mode, c.editing, c.selectedMode)
 	if c.editing {
 		return
 	}
@@ -485,7 +469,6 @@ func (c *Controller) VFOModeChanged(mode core.Mode) {
 	c.selectedMode = mode
 	c.input.mode = c.selectedMode.String()
 	c.view.SetMode(c.input.mode)
-	c.emitMode()
 }
 
 func (c *Controller) SendQuestion() {
@@ -662,10 +645,6 @@ func (c *Controller) Log() {
 		c.bandmap.Add(spot)
 	}
 
-	if !c.vfo.Active() {
-		c.selectedBand, c.selectedMode = c.qsoList.LastBandAndMode()
-		c.emitMode()
-	}
 	c.Clear()
 }
 
@@ -695,9 +674,7 @@ func (c *Controller) Clear() {
 	c.editing = false
 	c.editQSO = core.QSO{}
 
-	if c.vfo.Active() {
-		c.vfo.Refresh()
-	}
+	c.vfo.Refresh()
 
 	nextNumber := c.logbook.NextNumber()
 	c.activeField = core.CallsignField

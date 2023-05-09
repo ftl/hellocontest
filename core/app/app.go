@@ -31,6 +31,7 @@ import (
 	"github.com/ftl/hellocontest/core/settings"
 	"github.com/ftl/hellocontest/core/store"
 	"github.com/ftl/hellocontest/core/tci"
+	"github.com/ftl/hellocontest/core/vfo"
 	"github.com/ftl/hellocontest/core/workmode"
 )
 
@@ -152,10 +153,15 @@ func (c *Controller) Startup() {
 	c.Entry.Notify(c.Bandmap)
 	c.QSOList.Notify(c.Entry)
 
+	vfo := vfo.NewVFO("VFO 1", c.bandplan)
+	vfo.Notify(c.Entry)
+	c.Entry.SetVFO(vfo)
+	vfo.Notify(c.Bandmap)
+	c.Bandmap.SetVFO(vfo)
+
+	var keyerCWClient keyer.CWClient
 	tciAddress := c.configuration.TCIAddress()
 	hamlibAddress := c.configuration.HamlibAddress()
-	var vfo core.VFO
-	var keyerCWClient keyer.CWClient
 	if tciAddress != "" {
 		tciClient, err := tci.NewClient(tciAddress, c.bandplan)
 		if err != nil {
@@ -165,23 +171,19 @@ func (c *Controller) Startup() {
 			c.tciClient.Notify(c.ServiceStatus)
 			c.tciClient.SetSendSpots(c.session.SendSpotsToTci())
 			c.Bandmap.Notify(c.tciClient)
-			vfo = c.tciClient
+			vfo.SetClient(c.tciClient)
 			keyerCWClient = c.tciClient
+			log.Println("using the TCI client for CW")
 		}
 	} else if hamlibAddress != "" {
 		c.hamlibClient = hamlib.New(hamlibAddress, c.bandplan)
 		c.hamlibClient.Notify(c.ServiceStatus)
 		c.hamlibClient.KeepOpen()
-		vfo = c.hamlibClient
+		vfo.SetClient(c.hamlibClient)
 		if c.configuration.KeyerType() == core.KeyerTypeHamlib {
 			keyerCWClient = c.hamlibClient
 			log.Println("using the hamlib client for CW")
 		}
-	}
-
-	if vfo != nil {
-		c.Entry.SetVFO(vfo)
-		vfo.Notify(c.Bandmap)
 	}
 
 	if keyerCWClient == nil || c.configuration.KeyerType() == core.KeyerTypeCWDaemon {

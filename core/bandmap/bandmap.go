@@ -62,8 +62,6 @@ func NewDefaultBandmap(clock core.Clock, settings core.Settings, dupeChecker Dup
 
 func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
-		entries: NewEntries(),
-
 		clock:       clock,
 		view:        new(nullView),
 		dupeChecker: dupeChecker,
@@ -75,6 +73,7 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 		do:     make(chan func()),
 		closed: make(chan struct{}),
 	}
+	result.entries = NewEntries(result.countEntryValue)
 	result.entries.SetBands(settings.Contest().Bands())
 
 	go result.run()
@@ -203,10 +202,18 @@ func (m *Bandmap) EntryVisible(index int) bool {
 	result := make(chan bool)
 	m.do <- func() {
 		m.entries.DoOnEntry(index, func(entry core.BandmapEntry) {
-			result <- (entry.Band == m.visibleBand)
+			result <- m.entryVisible(entry)
 		})
 	}
 	return <-result
+}
+
+func (m *Bandmap) entryVisible(entry core.BandmapEntry) bool {
+	return (entry.Band == m.visibleBand) && (entry.Mode == m.activeMode)
+}
+
+func (m *Bandmap) countEntryValue(entry core.BandmapEntry) bool {
+	return (entry.Mode == m.activeMode)
 }
 
 func (m *Bandmap) Notify(listener any) {
@@ -366,19 +373,21 @@ type EntryRemovedListener interface {
 }
 
 type Entries struct {
-	entries   []*Entry
-	bands     []core.Band
-	summaries map[core.Band]core.BandSummary
-	order     core.BandmapOrder
-	callinfo  Callinfo
+	entries         []*Entry
+	bands           []core.Band
+	summaries       map[core.Band]core.BandSummary
+	order           core.BandmapOrder
+	callinfo        Callinfo
+	countEntryValue func(core.BandmapEntry) bool
 
 	listeners []any
 }
 
-func NewEntries() *Entries {
+func NewEntries(entryVisible func(core.BandmapEntry) bool) *Entries {
 	result := &Entries{
-		order:    core.BandmapByFrequency,
-		callinfo: new(nullCallinfo),
+		order:           core.BandmapByFrequency,
+		callinfo:        new(nullCallinfo),
+		countEntryValue: entryVisible,
 	}
 	result.Clear()
 	return result
@@ -508,7 +517,9 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 		e.updateLifetime(maximumAge, now)
 		l.entries[i] = e
 		l.emitEntryUpdated(*e)
-		l.addToSummary(e)
+		if l.countEntryValue(e.BandmapEntry) {
+			l.addToSummary(e)
+		}
 	}
 }
 

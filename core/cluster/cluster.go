@@ -55,7 +55,7 @@ func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.B
 	}
 
 	for _, spotSource := range sources {
-		result.clusters = append(result.clusters, newCluster(result, spotSource, bandmap))
+		result.clusters = append(result.clusters, newCluster(result, spotSource, bandmap, bandplan))
 	}
 
 	return result
@@ -153,18 +153,20 @@ func (c *Clusters) clusterConnected(name string, connected bool) {
 }
 
 type cluster struct {
-	parent  *Clusters
-	source  core.SpotSource
-	bandmap Bandmap
+	parent   *Clusters
+	source   core.SpotSource
+	bandmap  Bandmap
+	bandplan bandplan.Bandplan
 
 	client *clusterix.Client
 }
 
-func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap) *cluster {
+func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan) *cluster {
 	return &cluster{
-		parent:  parent,
-		source:  source,
-		bandmap: bandmap,
+		parent:   parent,
+		source:   source,
+		bandmap:  bandmap,
+		bandplan: bandplan,
 	}
 }
 
@@ -219,7 +221,7 @@ func (c *cluster) DX(msg clusterix.DXMessage) {
 		Call:      msg.Call,
 		Frequency: core.Frequency(msg.Frequency),
 		Band:      toCoreBand(c.parent.bandplan.ByFrequency(hamradio.Frequency(msg.Frequency)).Name),
-		Mode:      inferCoreMode(msg),
+		Mode:      c.inferCoreMode(msg),
 		Time:      msg.Time,
 		Source:    c.source.Type,
 	}
@@ -263,14 +265,7 @@ func (c *cluster) findSpotterRegion(spotter string) (string, string, bool) {
 	return prefix.PrimaryPrefix, prefix.Continent, true
 }
 
-func toCoreBand(bandName bandplan.BandName) core.Band {
-	if bandName == bandplan.BandUnknown {
-		return core.NoBand
-	}
-	return core.Band(bandName)
-}
-
-func inferCoreMode(msg clusterix.DXMessage) core.Mode {
+func (c *cluster) inferCoreMode(msg clusterix.DXMessage) core.Mode {
 	text := strings.ToLower(strings.TrimSpace(msg.Text))
 	switch {
 	case strings.Contains(text, "cw"):
@@ -288,6 +283,28 @@ func inferCoreMode(msg clusterix.DXMessage) core.Mode {
 	case strings.Contains(text, "jt65"):
 		return core.ModeDigital
 	default:
+		return c.modeFromFrequency(core.Frequency(msg.Frequency))
+	}
+}
+
+func (c *cluster) modeFromFrequency(f core.Frequency) core.Mode {
+	frequency := hamradio.Frequency(f)
+	band := c.bandplan.ByFrequency(frequency)
+	if band.Name == bandplan.BandUnknown {
 		return core.NoMode
 	}
+
+	for _, portion := range band.Portions {
+		if portion.Contains(frequency) {
+			return core.Mode(portion.Mode)
+		}
+	}
+	return core.NoMode
+}
+
+func toCoreBand(bandName bandplan.BandName) core.Band {
+	if bandName == bandplan.BandUnknown {
+		return core.NoBand
+	}
+	return core.Band(bandName)
 }

@@ -159,7 +159,7 @@ func TestEntry_RemoveSpotsBefore(t *testing.T) {
 
 func TestEntries_AddNewEntry(t *testing.T) {
 	now := time.Now()
-	entries := NewEntries()
+	entries := NewEntries(countAllEntries)
 	assert.Equal(t, 0, entries.Len())
 
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now})
@@ -346,7 +346,7 @@ func TestEntries_insert(t *testing.T) {
 
 func TestEntries_CleanOutOldEntries(t *testing.T) {
 	now := time.Now()
-	entries := NewEntries()
+	entries := NewEntries(countAllEntries)
 
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)})
@@ -368,7 +368,7 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 
 func TestEntries_Notify(t *testing.T) {
 	now := time.Now()
-	entries := NewEntries()
+	entries := NewEntries(countAllEntries)
 	listener := new(testEntryListener)
 	entries.Notify(listener)
 
@@ -408,4 +408,8 @@ func (t *testEntryListener) EntryUpdated(e core.BandmapEntry) {
 
 func (t *testEntryListener) EntryRemoved(e core.BandmapEntry) {
 	t.removed = append(t.removed, e)
+}
+
+func countAllEntries(core.BandmapEntry) bool {
+	return true
 }

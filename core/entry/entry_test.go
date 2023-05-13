@@ -298,7 +298,6 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	log.On("Log", qso).Once()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
-	qsoList.On("LastBandAndMode").Return(core.NoBand, core.NoMode)
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()
@@ -510,7 +509,6 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	log.On("Log", dupe).Once()
 	qsoList.Activate()
 	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
-	qsoList.On("LastBandAndMode").Return(core.NoBand, core.NoMode)
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()

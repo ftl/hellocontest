@@ -453,7 +453,6 @@ func (l *Entries) Add(spot core.Spot) {
 	newEntry := NewEntry(spot)
 	if newEntry.Call.String() != "" {
 		newEntry.Info = l.callinfo.GetInfo(newEntry.Call, newEntry.Band, newEntry.Mode, []string{})
-		log.Printf("got callinfo for %s on band %s and mode %s : %+v", newEntry.Call, newEntry.Band, newEntry.Mode, newEntry.Info)
 	}
 	l.insert(&newEntry)
 	l.emitEntryAdded(newEntry)

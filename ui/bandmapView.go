@@ -383,7 +383,6 @@ func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
 		if w == nil {
 			return
 		}
-		log.Printf("New Entry @ %d: %s", entry.Index, entry.Call.String())
 		v.entryList.Insert(w, entry.Index)
 		v.entryList.QueueDraw()
 	})
@@ -400,7 +399,6 @@ func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
 		}
 		updateListEntry(row, entry)
 		row.ShowAll()
-		log.Printf("Updated Entry @ %d: %s", entry.Index, entry.Call.String())
 	})
 }
 
@@ -415,7 +413,6 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 		}
 		row.ToWidget().Destroy()
 		v.entryList.ShowAll()
-		log.Printf("Removed Entry @ %d: %s", entry.Index, entry.Call.String())
 	})
 }
 

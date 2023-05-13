@@ -141,11 +141,12 @@ func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
 		v.updateBands(frame.Bands)
 		v.entryList.SetFilterFunc(v.filterRow)
 
-		if v.initialFrameShown {
-			return
+		if !v.initialFrameShown {
+			v.initialFrameShown = true
+			v.showEntries(frame.Entries)
 		}
-		v.initialFrameShown = true
-		v.showEntries(frame.Entries)
+
+		v.entryList.ShowAll()
 	})
 }
 
@@ -287,7 +288,6 @@ func (v *bandmapView) showEntries(entries []core.BandmapEntry) {
 			v.entryList.Add(w)
 		}
 	}
-	v.entryList.ShowAll()
 }
 
 func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
@@ -384,7 +384,8 @@ func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
 			return
 		}
 		v.entryList.Insert(w, entry.Index)
-		v.entryList.QueueDraw()
+		// v.entryList.SetFilterFunc(v.filterRow)
+		// v.entryList.ShowAll()
 	})
 }
 
@@ -398,7 +399,7 @@ func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
 			return
 		}
 		updateListEntry(row, entry)
-		row.ShowAll()
+		// row.ShowAll()
 	})
 }
 
@@ -412,7 +413,7 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 			return
 		}
 		row.ToWidget().Destroy()
-		v.entryList.ShowAll()
+		// v.entryList.ShowAll()
 	})
 }
 

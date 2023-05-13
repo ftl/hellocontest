@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultUpdatePeriod: the bandmap is updated with this period
-	DefaultUpdatePeriod time.Duration = 10 * time.Second
+	DefaultUpdatePeriod time.Duration = 1 * time.Second
 	// DefaultMaximumAge of entries in the bandmap
 	// entries that were not seen within this period are removed from the bandmap
 	DefaultMaximumAge time.Duration = 10 * time.Minute
@@ -89,7 +89,6 @@ func (m *Bandmap) run() {
 			return
 		case spot := <-m.spots:
 			m.entries.Add(spot)
-			m.update()
 		case command := <-m.do:
 			command()
 		case <-updateTicker.C:
@@ -229,13 +228,15 @@ func (m *Bandmap) Clear() {
 }
 
 func (m *Bandmap) Add(spot core.Spot) {
-	mode := spot.Mode
-	if mode == core.NoMode {
-		mode = m.activeMode
-	}
-	_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
-	if worked {
-		spot.Source = core.WorkedSpot
+	m.do <- func() {
+		mode := spot.Mode
+		if mode == core.NoMode {
+			mode = m.activeMode
+		}
+		_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
+		if worked {
+			spot.Source = core.WorkedSpot
+		}
 	}
 	m.spots <- spot
 }

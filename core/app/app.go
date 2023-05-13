@@ -67,6 +67,7 @@ type Controller struct {
 	scpFinder         *scp.Finder
 	callHistoryFinder *callhistory.Finder
 
+	VFO           *vfo.VFO
 	Logbook       *logbook.Logbook
 	QSOList       *logbook.QSOList
 	Entry         *entry.Controller
@@ -79,8 +80,6 @@ type Controller struct {
 	Settings      *settings.Settings
 	Bandmap       *bandmap.Bandmap
 	Clusters      *cluster.Clusters
-
-	OnLogbookChanged func()
 }
 
 // View defines the visual functionality of the main application window.
@@ -153,11 +152,11 @@ func (c *Controller) Startup() {
 	c.Entry.Notify(c.Bandmap)
 	c.QSOList.Notify(c.Entry)
 
-	vfo := vfo.NewVFO("VFO 1", c.bandplan)
-	vfo.Notify(c.Entry)
-	c.Entry.SetVFO(vfo)
-	vfo.Notify(c.Bandmap)
-	c.Bandmap.SetVFO(vfo)
+	c.VFO = vfo.NewVFO("VFO 1", c.bandplan)
+	c.VFO.Notify(c.Entry)
+	c.Entry.SetVFO(c.VFO)
+	c.VFO.Notify(c.Bandmap)
+	c.Bandmap.SetVFO(c.VFO)
 
 	var keyerCWClient keyer.CWClient
 	tciAddress := c.configuration.TCIAddress()
@@ -171,7 +170,7 @@ func (c *Controller) Startup() {
 			c.tciClient.Notify(c.ServiceStatus)
 			c.tciClient.SetSendSpots(c.session.SendSpotsToTci())
 			c.Bandmap.Notify(c.tciClient)
-			vfo.SetClient(c.tciClient)
+			c.VFO.SetClient(c.tciClient)
 			keyerCWClient = c.tciClient
 			log.Println("using the TCI client for CW")
 		}
@@ -179,7 +178,7 @@ func (c *Controller) Startup() {
 		c.hamlibClient = hamlib.New(hamlibAddress, c.bandplan)
 		c.hamlibClient.Notify(c.ServiceStatus)
 		c.hamlibClient.KeepOpen()
-		vfo.SetClient(c.hamlibClient)
+		c.VFO.SetClient(c.hamlibClient)
 		if c.configuration.KeyerType() == core.KeyerTypeHamlib {
 			keyerCWClient = c.hamlibClient
 			log.Println("using the hamlib client for CW")
@@ -315,22 +314,13 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 	c.Logbook.SetWriter(c.store)
 	c.Logbook.OnRowAdded(c.QSOList.Put)
 	c.Logbook.OnRowAdded(c.Workmode.RowAdded)
+
+	c.VFO.SetLogbook(c.Logbook)
 	c.Entry.SetLogbook(c.Logbook)
 
 	if c.view != nil {
 		c.view.ShowFilename(c.filename)
 	}
-	if c.OnLogbookChanged != nil {
-		c.OnLogbookChanged()
-	}
-
-	if c.tciClient != nil {
-		c.tciClient.Refresh()
-	}
-	if c.hamlibClient != nil {
-		c.hamlibClient.Refresh()
-	}
-	c.Entry.Clear()
 
 	err := c.session.SetLastFilename(c.filename)
 	if err != nil {

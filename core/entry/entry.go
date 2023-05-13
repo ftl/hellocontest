@@ -157,27 +157,28 @@ func (c *Controller) SetView(view View) {
 func (c *Controller) SetLogbook(logbook Logbook) {
 	c.logbook = logbook
 
-	c.vfo.Refresh()
+	// c.vfo.Refresh()
 
-	lastBand, lastMode := c.qsoList.LastBandAndMode()
-	if c.selectedBand == core.NoBand {
-		c.selectedBand = lastBand
-		c.selectedFrequency = 0
-	}
-	if c.selectedMode == core.NoMode {
-		c.selectedMode = lastMode
-	}
+	// lastBand, lastMode := c.qsoList.LastBandAndMode()
+	// if c.selectedBand == core.NoBand {
+	// 	c.selectedBand = lastBand
+	// 	c.selectedFrequency = 0
+	// }
+	// if c.selectedMode == core.NoMode {
+	// 	c.selectedMode = lastMode
+	// }
 
-	if c.selectedBand == core.NoBand {
-		c.selectedBand = core.Band160m
-	}
-	if c.selectedMode == core.NoMode {
-		c.selectedMode = core.ModeCW
-	}
+	// if c.selectedBand == core.NoBand {
+	// 	c.selectedBand = core.Band160m
+	// }
+	// if c.selectedMode == core.NoMode {
+	// 	c.selectedMode = core.ModeCW
+	// }
 
-	c.input.band = c.selectedBand.String()
-	c.input.mode = c.selectedMode.String()
+	// c.input.band = c.selectedBand.String()
+	// c.input.mode = c.selectedMode.String()
 
+	c.Clear()
 	c.showInput()
 }
 

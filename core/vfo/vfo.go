@@ -17,6 +17,11 @@ type Client interface {
 	SetMode(core.Mode)
 }
 
+type Logbook interface {
+	LastBand() core.Band
+	LastMode() core.Mode
+}
+
 type VFO struct {
 	Name string
 
@@ -83,6 +88,26 @@ func (v *VFO) SetMode(mode core.Mode) {
 	} else {
 		v.offlineClient.SetMode(mode)
 	}
+}
+
+func (v *VFO) SetLogbook(logbook Logbook) {
+	log.Printf("VFO logbook changed")
+
+	if v.online() {
+		return
+	}
+
+	lastBand := logbook.LastBand()
+	if lastBand != core.NoBand {
+		v.offlineClient.SetBand(lastBand)
+	}
+
+	lastMode := logbook.LastMode()
+	if lastMode != core.NoMode {
+		v.offlineClient.SetMode(lastMode)
+	}
+
+	v.Refresh()
 }
 
 func (v *VFO) VFOFrequencyChanged(frequency core.Frequency) {

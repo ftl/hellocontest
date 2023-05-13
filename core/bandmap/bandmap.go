@@ -548,10 +548,10 @@ func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
 		}
 	}
 
-	if maxPointsIndex < len(result) {
+	if maxPoints > 0 && maxPointsIndex < len(result) {
 		result[maxPointsIndex].MaxPoints = true
 	}
-	if maxMultisIndex < len(result) {
+	if maxMultis > 0 && maxMultisIndex < len(result) {
 		result[maxMultisIndex].MaxMultis = true
 	}
 

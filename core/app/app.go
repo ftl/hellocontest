@@ -150,6 +150,7 @@ func (c *Controller) Startup() {
 		c.asyncRunner,
 	)
 	c.Entry.Notify(c.Bandmap)
+	c.Bandmap.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
 
 	c.VFO = vfo.NewVFO("VFO 1", c.bandplan)
@@ -658,15 +659,15 @@ func (c *Controller) MarkInBandmap() {
 }
 
 func (c *Controller) GotoNearestSpot() {
-	c.Entry.GotoNearestSpot()
+	c.Bandmap.GotoNearestEntry()
 }
 
 func (c *Controller) GotoNextSpotUp() {
-	c.Entry.GotoNextSpotUp()
+	c.Bandmap.GotoNextEntryUp()
 }
 
 func (c *Controller) GotoNextSpotDown() {
-	c.Entry.GotoNextSpotDown()
+	c.Bandmap.GotoNextEntryDown()
 }
 
 func (c *Controller) SendSpotsToTci() bool {

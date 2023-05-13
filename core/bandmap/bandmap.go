@@ -248,6 +248,45 @@ func (m *Bandmap) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 	return <-result
 }
 
+func (m *Bandmap) GotoNearestEntry() {
+	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
+		return entry.Frequency != m.activeFrequency
+	})
+}
+
+func (m *Bandmap) GotoNextEntryUp() {
+	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
+		return entry.Frequency > m.activeFrequency
+	})
+}
+
+func (m *Bandmap) GotoNextEntryDown() {
+	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
+		return entry.Frequency < m.activeFrequency
+	})
+}
+
+func (m *Bandmap) findAndSelectNextEntry(f func(entry core.BandmapEntry) bool) {
+	m.do <- func() {
+		entries := m.entries.AllBy(core.BandmapByDistance(m.activeFrequency))
+		for i := 0; i < len(entries); i++ {
+			entry := entries[i]
+			if entry.Source == core.WorkedSpot {
+				continue
+			}
+			if entry.Band != m.activeBand {
+				continue
+			}
+			if !f(entry) {
+				continue
+			}
+
+			m.entries.Select(entry.Index)
+			break
+		}
+	}
+}
+
 const (
 	// spots within this distance to an entry's frequency will be added to the entry
 	spotFrequencyDeltaThreshold float64 = 500
@@ -372,6 +411,10 @@ type EntryRemovedListener interface {
 	EntryRemoved(core.BandmapEntry)
 }
 
+type EntrySelectedListener interface {
+	EntrySelected(core.BandmapEntry)
+}
+
 type Entries struct {
 	entries         []*Entry
 	bands           []core.Band
@@ -431,6 +474,14 @@ func (l *Entries) emitEntryRemoved(e Entry) {
 	for _, listener := range l.listeners {
 		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
 			entryRemovedListener.EntryRemoved(e.BandmapEntry)
+		}
+	}
+}
+
+func (l *Entries) emitEntrySelected(e Entry) {
+	for _, listener := range l.listeners {
+		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
+			entrySelectedListener.EntrySelected(e.BandmapEntry)
 		}
 	}
 }
@@ -576,6 +627,15 @@ func (l *Entries) DoOnEntry(index int, f func(core.BandmapEntry)) {
 
 	entry := l.entries[index]
 	f(entry.BandmapEntry)
+}
+
+func (l *Entries) Select(index int) {
+	if index < 0 || index >= len(l.entries) {
+		return
+	}
+
+	entry := l.entries[index]
+	l.emitEntrySelected(*entry)
 }
 
 func (l *Entries) All() []core.BandmapEntry {

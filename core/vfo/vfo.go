@@ -62,52 +62,61 @@ func (v *VFO) Refresh() {
 }
 
 func (v *VFO) SetFrequency(frequency core.Frequency) {
-	online := v.online() // v.online() might change concurrently
-	log.Printf("%s set frequency %f (online: %t)", v.Name, frequency, online)
-	if online {
+	if v.online() {
 		v.client.SetFrequency(frequency)
+	} else {
+		v.offlineClient.SetFrequency(frequency)
 	}
-	v.offlineClient.SetFrequency(frequency, !online)
 }
 
 func (v *VFO) SetBand(band core.Band) {
-	online := v.online() // v.online() might change concurrently
-	log.Printf("%s set band %s (online: %t)", v.Name, band, online)
-	if online {
+	if v.online() {
 		v.client.SetBand(band)
+	} else {
+		v.offlineClient.SetBand(band)
 	}
-	v.offlineClient.SetBand(band, !online)
 }
 
 func (v *VFO) SetMode(mode core.Mode) {
-	online := v.online() // v.online() might change concurrently
-	log.Printf("%s set mode %s (online: %t)", v.Name, mode, online)
-	if online {
+	if v.online() {
 		v.client.SetMode(mode)
+	} else {
+		v.offlineClient.SetMode(mode)
 	}
-	v.offlineClient.SetMode(mode, !online)
 }
 
-func (v *VFO) emitFrequencyChanged(f core.Frequency) {
+func (v *VFO) VFOFrequencyChanged(frequency core.Frequency) {
+	v.offlineClient.SetFrequency(frequency)
+}
+
+func (v *VFO) VFOBandChanged(band core.Band) {
+	v.offlineClient.SetBand(band)
+}
+
+func (v *VFO) VFOModeChanged(mode core.Mode) {
+	v.offlineClient.SetMode(mode)
+}
+
+func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 	for _, listener := range v.listeners {
 		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
-			frequencyListener.VFOFrequencyChanged(f)
+			frequencyListener.VFOFrequencyChanged(frequency)
 		}
 	}
 }
 
-func (v *VFO) emitBandChanged(b core.Band) {
+func (v *VFO) emitBandChanged(band core.Band) {
 	for _, listener := range v.listeners {
 		if bandListener, ok := listener.(core.VFOBandListener); ok {
-			bandListener.VFOBandChanged(b)
+			bandListener.VFOBandChanged(band)
 		}
 	}
 }
 
-func (v *VFO) emitModeChanged(m core.Mode) {
+func (v *VFO) emitModeChanged(mode core.Mode) {
 	for _, listener := range v.listeners {
 		if modeListener, ok := listener.(core.VFOModeListener); ok {
-			modeListener.VFOModeChanged(m)
+			modeListener.VFOModeChanged(mode)
 		}
 	}
 }
@@ -136,7 +145,6 @@ func newOfflineClient(vfo *VFO) *offlineClient {
 func (c *offlineClient) lastState(band core.Band) bandState {
 	result, ok := c.lastStates[band]
 	if ok {
-		log.Printf("last state found for %s: %f %s", band, result.frequency, result.mode)
 		return result
 	}
 	plan, ok := c.vfo.bandplan[bandplan.BandName(band)]
@@ -149,7 +157,6 @@ func (c *offlineClient) lastState(band core.Band) bandState {
 		mode:      core.ModeCW,
 	}
 	c.lastStates[band] = result
-	log.Printf("last state %s: %f %s", band, result.frequency, result.mode)
 	return result
 }
 
@@ -165,28 +172,23 @@ func (c *offlineClient) Refresh() {
 	c.vfo.emitModeChanged(state.mode)
 }
 
-func (c *offlineClient) SetFrequency(frequency core.Frequency, offline bool) {
+func (c *offlineClient) SetFrequency(frequency core.Frequency) {
 	planband := c.vfo.bandplan.ByFrequency(hamradio.Frequency(frequency))
 	newBand := core.Band(planband.Name)
 
 	state := c.lastState(newBand)
 	state.frequency = frequency
 	c.lastStates[newBand] = state
-	if offline {
-		c.vfo.emitFrequencyChanged(frequency)
-	}
+	c.vfo.emitFrequencyChanged(frequency)
 
 	if newBand == c.currentBand {
 		return
 	}
 	c.currentBand = newBand
-	if offline {
-		c.vfo.emitBandChanged(c.currentBand)
-	}
+	c.vfo.emitBandChanged(c.currentBand)
 }
 
-func (c *offlineClient) SetBand(band core.Band, offline bool) {
-	log.Printf("offline client SetBand %s (offline %t)", band, offline)
+func (c *offlineClient) SetBand(band core.Band) {
 	plan, ok := c.vfo.bandplan[bandplan.BandName(band)]
 	if !ok {
 		log.Printf("Band %s not found in bandplan (2)", band)
@@ -199,21 +201,15 @@ func (c *offlineClient) SetBand(band core.Band, offline bool) {
 	}
 
 	state := c.lastState(newBand)
-	if offline {
-		c.vfo.emitFrequencyChanged(state.frequency)
-	}
+	c.vfo.emitFrequencyChanged(state.frequency)
 
 	c.currentBand = newBand
-	if offline {
-		c.vfo.emitBandChanged(c.currentBand)
-	}
+	c.vfo.emitBandChanged(c.currentBand)
 }
 
-func (c *offlineClient) SetMode(mode core.Mode, offline bool) {
+func (c *offlineClient) SetMode(mode core.Mode) {
 	state := c.lastState(c.currentBand)
 	state.mode = mode
 	c.lastStates[c.currentBand] = state
-	if offline {
-		c.vfo.emitModeChanged(mode)
-	}
+	c.vfo.emitModeChanged(mode)
 }

@@ -172,7 +172,6 @@ func (m *Bandmap) VFOFrequencyChanged(frequency core.Frequency) {
 }
 
 func (m *Bandmap) VFOBandChanged(band core.Band) {
-	log.Printf("vfo band changed: %s", band)
 	m.do <- func() {
 		if m.activeBand == m.visibleBand {
 			m.visibleBand = band
@@ -183,7 +182,6 @@ func (m *Bandmap) VFOBandChanged(band core.Band) {
 }
 
 func (m *Bandmap) VFOModeChanged(mode core.Mode) {
-	log.Printf("vfo mode changed")
 	m.do <- func() {
 		m.activeMode = mode
 		m.update()
@@ -191,7 +189,6 @@ func (m *Bandmap) VFOModeChanged(mode core.Mode) {
 }
 
 func (m *Bandmap) SetVisibleBand(band core.Band) {
-	log.Printf("visible band changed: %s", band)
 	m.do <- func() {
 		m.visibleBand = band
 		m.update()
@@ -199,7 +196,6 @@ func (m *Bandmap) SetVisibleBand(band core.Band) {
 }
 
 func (m *Bandmap) SetActiveBand(band core.Band) {
-	log.Printf("active band changed: %s", band)
 	m.vfo.SetBand(band)
 }
 

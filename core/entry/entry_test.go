@@ -67,26 +67,6 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.AssertExpectations(t)
 }
 
-func TestEntryController_SetLastSelectedBandAndModeOnClear(t *testing.T) {
-	_, log, qsoList, _, controller, _ := setupEntryTest()
-	log.Activate()
-	log.On("NextNumber").Once().Return(core.QSONumber(1))
-	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
-	qsoList.Activate()
-	qsoList.On("SelectLastQSO").Once()
-
-	controller.SetActiveField(core.BandField)
-	controller.Enter("30m")
-	controller.SetActiveField(core.ModeField)
-	controller.Enter("RTTY")
-	controller.Clear()
-
-	assert.Equal(t, "30m", controller.input.band)
-	assert.Equal(t, core.Band30m, controller.selectedBand)
-	assert.Equal(t, "RTTY", controller.input.mode)
-	assert.Equal(t, core.ModeRTTY, controller.selectedMode)
-}
-
 func TestEntryController_UpdateExchangeFields(t *testing.T) {
 	const wagDOKProperty = conval.Property("wag_dok")
 
@@ -282,6 +262,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	qso := core.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now(),
+		Frequency:     1810000,
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		TheirReport:   core.RST("559"),
@@ -481,6 +462,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	qso := core.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now().Add(-1 * time.Minute),
+		Frequency:     1810000,
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		TheirReport:   core.RST("559"),
@@ -493,6 +475,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	dupe := core.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now(),
+		Frequency:     1810000,
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		TheirReport:   core.RST("569"),
@@ -621,6 +604,8 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	view := new(mocked.EntryView)
 	settings := &testSettings{myCall: "DL0ABC"}
 	controller := NewController(settings, clock, qsoList, new(nullBandmap), testIgnoreAsync)
+	vfo := &testVFO{controller}
+	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 	controller.updateExchangeFields(settings.Contest())
@@ -637,6 +622,8 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	exchangeFields := []conval.ExchangeField{{conval.RSTProperty}, {conval.SerialNumberProperty}, {conval.GenericTextProperty}}
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
 	controller := NewController(settings, clock, qsoList, new(nullBandmap), testIgnoreAsync)
+	vfo := &testVFO{controller}
+	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 	controller.updateExchangeFields(settings.Contest())
@@ -657,6 +644,8 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	}
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: exchangeValues}
 	controller := NewController(settings, clock, qsoList, new(nullBandmap), testIgnoreAsync)
+	vfo := &testVFO{controller}
+	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
 	controller.SetView(view)
 	controller.updateExchangeFields(settings.Contest())
@@ -712,3 +701,16 @@ func fieldDefinition(fields ...conval.ExchangeField) *conval.Definition {
 		},
 	}
 }
+
+type testVFO struct{ controller *Controller }
+
+func (v *testVFO) Notify(any)   {}
+func (v *testVFO) Active() bool { return false }
+func (v *testVFO) Refresh() {
+	v.controller.VFOFrequencyChanged(1810000)
+	v.controller.VFOBandChanged(core.Band160m)
+	v.controller.VFOModeChanged(core.ModeCW)
+}
+func (v *testVFO) SetFrequency(core.Frequency) {}
+func (v *testVFO) SetBand(core.Band)           {}
+func (v *testVFO) SetMode(core.Mode)           {}

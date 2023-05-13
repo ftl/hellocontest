@@ -386,7 +386,6 @@ func (c *Controller) frequencySelected(frequency core.Frequency) {
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
-	log.Printf("entry VFOFrequencyChanged %f (editing %t) (selected %f)", frequency, c.editing, c.selectedFrequency)
 	if c.editing {
 		return
 	}
@@ -407,7 +406,6 @@ func (c *Controller) bandSelected(s string) {
 }
 
 func (c *Controller) VFOBandChanged(band core.Band) {
-	log.Printf("entry VFOBandChanged %s (editing %t) (selected %s)", band, c.editing, c.selectedBand)
 	if c.editing {
 		return
 	}
@@ -460,7 +458,6 @@ func defaultReportForMode(mode core.Mode) string {
 }
 
 func (c *Controller) VFOModeChanged(mode core.Mode) {
-	log.Printf("entry VFOModeChanged %s (editing %t) (selected %s)", mode, c.editing, c.selectedMode)
 	if c.editing {
 		return
 	}

@@ -735,7 +735,6 @@ type BandmapEntry struct {
 	Mode      Mode
 	LastHeard time.Time
 	Source    SpotType
-	Lifetime  float64
 
 	Info Callinfo
 }

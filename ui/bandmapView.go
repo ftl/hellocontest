@@ -22,6 +22,7 @@ type BandmapController interface {
 	SetVisibleBand(core.Band)
 	SetActiveBand(core.Band)
 
+	RemainingLifetime(int) float64
 	EntryVisible(int) bool
 	SelectEntry(int)
 }
@@ -122,11 +123,8 @@ func setupBandmapView(builder *gtk.Builder, controller BandmapController) *bandm
 	return result
 }
 
-func (v *bandmapView) getLifetime(index int) float64 {
-	if index < 0 || index >= len(v.currentFrame.Entries) {
-		return 0
-	}
-	return v.currentFrame.Entries[index].Lifetime
+func (v *bandmapView) getRemainingLifetime(index int) float64 {
+	return v.controller.RemainingLifetime(index)
 }
 
 func (v *bandmapView) getProximity(index int) float64 {
@@ -359,7 +357,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	addStyleClass(&score.Widget, "score")
 	layout.Attach(score, 2, 2, 1, 2)
 
-	lifetimeIndicator := newLifetimeIndicator(root, v.getLifetime)
+	lifetimeIndicator := newLifetimeIndicator(root, v.getRemainingLifetime)
 	lifetimeIndicatorArea, _ := gtk.DrawingAreaNew()
 	lifetimeIndicatorArea.SetHExpand(true)
 	lifetimeIndicatorArea.SetHAlign(gtk.ALIGN_FILL)

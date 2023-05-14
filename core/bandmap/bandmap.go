@@ -198,6 +198,23 @@ func (m *Bandmap) SetActiveBand(band core.Band) {
 	m.vfo.SetBand(band)
 }
 
+func (m *Bandmap) RemainingLifetime(index int) float64 {
+	result := make(chan float64)
+	m.do <- func() {
+		m.entries.DoOnEntry(index, func(entry core.BandmapEntry) {
+			result <- m.remainingLifetime(entry)
+		})
+	}
+	return <-result
+}
+
+func (m *Bandmap) remainingLifetime(entry core.BandmapEntry) float64 {
+	age := m.clock.Now().UTC().UnixMilli() - entry.LastHeard.UTC().UnixMilli()
+	result := 1 - (float64(age) / float64(m.maximumAge.Milliseconds()))
+	result = math.Max(0, math.Min(1, result))
+	return result
+}
+
 func (m *Bandmap) EntryVisible(index int) bool {
 	result := make(chan bool)
 	m.do <- func() {
@@ -305,7 +322,8 @@ const (
 type Entry struct {
 	core.BandmapEntry
 
-	spots []core.Spot
+	spots   []core.Spot
+	updated bool
 }
 
 func NewEntry(spot core.Spot) Entry {
@@ -363,14 +381,17 @@ func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
 	e.spots = filterSlice(e.spots, func(s core.Spot) bool {
 		return !s.Time.Before(timestamp)
 	})
+	stillValid := len(e.spots) > 0
 
-	e.update()
+	if stillValid {
+		e.update()
+	}
 
-	return len(e.spots) > 0
+	return stillValid
 }
 
 func (e *Entry) update() {
-	e.updateFrequency()
+	frequencyUpdated := e.updateFrequency()
 
 	lastHeard := time.Time{}
 	source := core.MaxSpotType
@@ -382,14 +403,16 @@ func (e *Entry) update() {
 			source = s.Source
 		}
 	}
+
+	e.updated = frequencyUpdated || (lastHeard != e.LastHeard) || (source != e.Source)
 	e.LastHeard = lastHeard
 	e.Source = source
 }
 
-func (e *Entry) updateFrequency() {
+func (e *Entry) updateFrequency() bool {
 	if len(e.spots) == 0 {
 		e.Frequency = 0
-		return
+		return true
 	}
 
 	var sum core.Frequency
@@ -398,13 +421,10 @@ func (e *Entry) updateFrequency() {
 	}
 	downscaledMean := float64(sum) / (float64(len(e.spots)) * spotFrequencyStep)
 	roundedMean := math.RoundToEven(downscaledMean)
+	oldFrequency := e.Frequency
 	e.Frequency = core.Frequency(roundedMean * spotFrequencyStep)
-}
 
-func (e *Entry) updateLifetime(maximumAge time.Duration, now time.Time) {
-	age := now.UTC().UnixMilli() - e.LastHeard.UTC().UnixMilli()
-	e.Lifetime = 1 - (float64(age) / float64(maximumAge.Milliseconds()))
-	e.Lifetime = math.Max(0, math.Min(1, e.Lifetime))
+	return oldFrequency != e.Frequency
 }
 
 type EntryAddedListener interface {
@@ -557,11 +577,11 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 	deadline := now.Add(-maximumAge)
 	removedEntries := make([]Entry, 0, len(l.entries))
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
-		matches := e.RemoveSpotsBefore(deadline)
-		if !matches {
+		stillValid := e.RemoveSpotsBefore(deadline)
+		if !stillValid {
 			removedEntries = append(removedEntries, *e)
 		}
-		return matches
+		return stillValid
 	})
 	for i, e := range removedEntries {
 		e.Index -= i
@@ -571,10 +591,15 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
 		e.Index = i
+		oldPoints, oldMultis := e.Info.Points, e.Info.Multis
 		e.Info.Points, e.Info.Multis = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
-		e.updateLifetime(maximumAge, now)
+		updated := e.updated || (oldPoints != e.Info.Points) || (oldMultis != e.Info.Multis)
+		e.updated = false
 		l.entries[i] = e
-		l.emitEntryUpdated(*e)
+
+		if updated {
+			l.emitEntryUpdated(*e)
+		}
 		if l.countEntryValue(e.BandmapEntry) {
 			l.addToSummary(e)
 		}

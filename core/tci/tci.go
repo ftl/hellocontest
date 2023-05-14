@@ -27,6 +27,7 @@ func NewClient(address string, bandplan bandplan.Bandplan) (*Client, error) {
 	result.trx = &trxListener{
 		client: result,
 	}
+	result.resetSpots()
 	result.client = client.KeepOpen(host, retryInterval, false)
 	result.client.Notify(result.trx)
 
@@ -37,7 +38,8 @@ type Client struct {
 	client   *client.Client
 	bandplan bandplan.Bandplan
 
-	sendSpots bool
+	sendSpots      bool
+	lastHeardSpots map[string]time.Time
 
 	trx       *trxListener
 	connected bool
@@ -159,31 +161,46 @@ var spotColors = map[core.SpotType]client.ARGB{
 
 func (c *Client) SetSendSpots(sendSpots bool) {
 	c.sendSpots = sendSpots
+	c.resetSpots()
 }
 
-func (c *Client) EntryAdded(e core.BandmapEntry) {
+func (c *Client) resetSpots() {
+	c.lastHeardSpots = make(map[string]time.Time)
+}
+func (c *Client) EntryAdded(entry core.BandmapEntry) {
 	if !c.sendSpots {
 		return
 	}
 
-	err := c.client.AddSpot(e.Call.String(), toClientMode(e.Mode), int(e.Frequency), spotColors[e.Source], "hellocontest")
+	if entry.Band != c.trx.band || entry.Mode != c.trx.mode {
+		return
+	}
+
+	lastHeard, ok := c.lastHeardSpots[entry.Call.String()]
+	if ok && !lastHeard.Before(entry.LastHeard) {
+		return
+	}
+
+	// log.Printf("TCI: adding spot %s", entry.Call)
+	c.lastHeardSpots[entry.Call.String()] = entry.LastHeard
+	err := c.client.AddSpot(entry.Call.String(), toClientMode(entry.Mode), int(entry.Frequency), spotColors[entry.Source], "hellocontest")
 	if err != nil {
-		log.Printf("cannot add spot: %v", err)
+		log.Printf("TCI: cannot add spot: %v", err)
 	}
 }
 
-func (c *Client) EntryUpdated(e core.BandmapEntry) {
-	c.EntryAdded(e)
+func (c *Client) EntryUpdated(entry core.BandmapEntry) {
+	c.EntryAdded(entry)
 }
 
-func (c *Client) EntryRemoved(e core.BandmapEntry) {
+func (c *Client) EntryRemoved(entry core.BandmapEntry) {
 	if !c.sendSpots {
 		return
 	}
 
-	err := c.client.DeleteSpot(e.Call.String())
+	err := c.client.DeleteSpot(entry.Call.String())
 	if err != nil {
-		log.Printf("cannot delete spot: %v", err)
+		log.Printf("TCI: cannot delete spot: %v", err)
 	}
 }
 
@@ -224,9 +241,9 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 		return
 	}
 	l.band = incomingBand
+	l.client.resetSpots()
 	l.client.emitBandChanged(l.band)
 	// log.Printf("incoming band: %v", l.band)
-
 }
 
 func (l *trxListener) SetMode(trx int, mode client.Mode) {

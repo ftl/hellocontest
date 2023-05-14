@@ -87,7 +87,7 @@ func TestBandmapEntry_ProximityFactor(t *testing.T) {
 		{
 			desc:      "higher frequency in proximity",
 			frequency: frequency + Frequency(spotFrequencyProximityThreshold/2),
-			expected:  0.5,
+			expected:  -0.5,
 		},
 		{
 			desc:      "frequency to low",

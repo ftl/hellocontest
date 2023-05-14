@@ -461,10 +461,8 @@ func (v *bandmapView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
 		buttonEvent := gdk.EventButtonNewFromEvent(event)
 		switch buttonEvent.Type() {
 		case gdk.EVENT_BUTTON_PRESS:
-			log.Printf("select %s as visible band: %v", band, button)
 			v.controller.SetVisibleBand(band)
 		case gdk.EVENT_DOUBLE_BUTTON_PRESS:
-			log.Printf("select %s as active band: %v", band, button)
 			v.controller.SetActiveBand(band)
 		}
 	}

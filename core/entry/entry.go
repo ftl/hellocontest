@@ -376,7 +376,7 @@ func (c *Controller) Enter(text string) {
 }
 
 func (c *Controller) frequencySelected(frequency core.Frequency) {
-	log.Printf("Frequency selected: %s", frequency)
+	// log.Printf("Frequency selected: %s", frequency)
 	c.selectedFrequency = frequency
 	c.vfo.SetFrequency(frequency)
 	c.input.callsign = ""
@@ -398,7 +398,7 @@ func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
 
 func (c *Controller) bandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
-		log.Printf("Band selected: %v", band)
+		// log.Printf("Band selected: %v", band)
 		c.selectedBand = band
 		c.vfo.SetBand(band)
 		c.enterCallsign(c.input.callsign)

@@ -250,6 +250,12 @@ func (m *Bandmap) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 	return <-result
 }
 
+func (m *Bandmap) SelectEntry(index int) {
+	m.do <- func() {
+		m.entries.Select(index)
+	}
+}
+
 func (m *Bandmap) GotoNearestEntry() {
 	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
 		return entry.Frequency != m.activeFrequency

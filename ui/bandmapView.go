@@ -23,6 +23,7 @@ type BandmapController interface {
 	SetActiveBand(core.Band)
 
 	EntryVisible(int) bool
+	SelectEntry(int)
 }
 
 type bandmapView struct {
@@ -36,6 +37,7 @@ type bandmapView struct {
 	bandsID           string
 	currentFrame      core.BandmapFrame
 	initialFrameShown bool
+	ignoreSelection   bool
 }
 
 func setupBandmapView(builder *gtk.Builder, controller BandmapController) *bandmapView {
@@ -47,6 +49,7 @@ func setupBandmapView(builder *gtk.Builder, controller BandmapController) *bandm
 	result.bandGrid = getUI(builder, "bandGrid").(*gtk.Grid)
 	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
 	result.entryList.SetFilterFunc(result.filterRow)
+	result.entryList.Connect("row-selected", result.onRowSelected)
 
 	result.style = newStyle(`
 	.row{
@@ -426,7 +429,19 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 	})
 }
 
+func (v *bandmapView) onRowSelected(listBox *gtk.ListBox, row *gtk.ListBoxRow) {
+	v.ignoreSelection = true
+	defer func() {
+		v.ignoreSelection = false
+	}()
+
+	v.controller.SelectEntry(row.GetIndex())
+}
+
 func (v *bandmapView) EntrySelected(entry core.BandmapEntry) {
+	if v.ignoreSelection {
+		return
+	}
 	v.RevealEntry(entry)
 }
 
@@ -459,6 +474,10 @@ func (v *bandmapView) RevealEntry(entry core.BandmapEntry) {
 func (v *bandmapView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
 	return func(button *gtk.Button, event *gdk.Event) {
 		buttonEvent := gdk.EventButtonNewFromEvent(event)
+		if buttonEvent.Button() != gdk.BUTTON_PRIMARY {
+			return
+		}
+
 		switch buttonEvent.Type() {
 		case gdk.EVENT_BUTTON_PRESS:
 			v.controller.SetVisibleBand(band)

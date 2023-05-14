@@ -126,6 +126,13 @@ func (v *bandmapView) getLifetime(index int) float64 {
 	return v.currentFrame.Entries[index].Lifetime
 }
 
+func (v *bandmapView) getProximity(index int) float64 {
+	if index < 0 || index >= len(v.currentFrame.Entries) {
+		return 0
+	}
+	return v.currentFrame.Entries[index].ProximityFactor(v.currentFrame.Frequency)
+}
+
 func (v *bandmapView) filterRow(row *gtk.ListBoxRow) bool {
 	return v.controller.EntryVisible(row.GetIndex())
 }
@@ -301,8 +308,14 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	addStyleClass(&layout.Widget, entrySourceStyles[entry.Source])
 	root.Add(layout)
 
-	proximityIndicator, _ := gtk.LabelNew("|")
-	layout.Attach(proximityIndicator, 0, 0, 1, 4)
+	proximityIndicator := newProximityIndicator(root, v.getProximity)
+	proximityIndicatorArea, _ := gtk.DrawingAreaNew()
+	proximityIndicatorArea.SetHExpand(false)
+	proximityIndicatorArea.SetHAlign(gtk.ALIGN_FILL)
+	proximityIndicatorArea.SetVAlign(gtk.ALIGN_FILL)
+	proximityIndicatorArea.SetSizeRequest(10, -1)
+	proximityIndicatorArea.Connect("draw", proximityIndicator.Draw)
+	layout.Attach(proximityIndicatorArea, 0, 0, 1, 5)
 
 	frequency, _ := gtk.LabelNew("")
 	frequency.SetHExpand(true)
@@ -350,7 +363,7 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	lifetimeIndicatorArea.SetVAlign(gtk.ALIGN_FILL)
 	lifetimeIndicatorArea.SetSizeRequest(-1, 10)
 	lifetimeIndicatorArea.Connect("draw", lifetimeIndicator.Draw)
-	layout.Attach(lifetimeIndicatorArea, 0, 4, 4, 1)
+	layout.Attach(lifetimeIndicatorArea, 1, 4, 3, 1)
 
 	updateListEntry(root, entry)
 

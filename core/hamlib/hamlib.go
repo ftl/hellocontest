@@ -137,7 +137,7 @@ func (c *Client) setIncomingFrequency(frequency client.Frequency) {
 	}
 	c.incoming.frequency = incomingFrequency
 	c.emitFrequencyChanged(c.incoming.frequency)
-	log.Printf("incoming frequency: %s", c.incoming.frequency)
+	// log.Printf("incoming frequency: %s", c.incoming.frequency)
 
 	band := c.bandplan.ByFrequency(frequency)
 	incomingBand := toCoreBand(band.Name)
@@ -146,7 +146,7 @@ func (c *Client) setIncomingFrequency(frequency client.Frequency) {
 	}
 	c.incoming.band = incomingBand
 	c.emitBandChanged(c.incoming.band)
-	log.Printf("incoming band: %v", c.incoming.band)
+	// log.Printf("incoming band: %v", c.incoming.band)
 }
 
 func (c *Client) setIncomingModeAndPassband(mode client.Mode, _ client.Frequency) {
@@ -156,7 +156,7 @@ func (c *Client) setIncomingModeAndPassband(mode client.Mode, _ client.Frequency
 	}
 	c.incoming.mode = incomingMode
 	c.emitModeChanged(c.incoming.mode)
-	log.Printf("incoming mode %v", incomingMode)
+	// log.Printf("incoming mode %v", incomingMode)
 }
 
 func (c *Client) SetFrequency(f core.Frequency) {

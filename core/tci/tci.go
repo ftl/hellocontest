@@ -216,7 +216,7 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 	}
 	l.frequency = incomingFrequency
 	l.client.emitFrequencyChanged(l.frequency)
-	log.Printf("incoming frequency: %s", l.frequency)
+	// log.Printf("incoming frequency: %s", l.frequency)
 
 	band := l.client.bandplan.ByFrequency(hamradio.Frequency(frequency))
 	incomingBand := toCoreBand(band.Name)
@@ -225,7 +225,7 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 	}
 	l.band = incomingBand
 	l.client.emitBandChanged(l.band)
-	log.Printf("incoming band: %v", l.band)
+	// log.Printf("incoming band: %v", l.band)
 
 }
 
@@ -239,7 +239,7 @@ func (l *trxListener) SetMode(trx int, mode client.Mode) {
 	}
 	l.mode = incomingMode
 	l.client.emitModeChanged(l.mode)
-	log.Printf("incoming mode %v", incomingMode)
+	// log.Printf("incoming mode %v", incomingMode)
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

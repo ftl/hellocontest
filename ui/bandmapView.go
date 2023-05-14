@@ -373,6 +373,10 @@ func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
 	child, _ := row.GetChild()
 	layout := child.(*gtk.Grid)
+	for _, class := range entrySourceStyles {
+		removeStyleClass(&layout.Widget, class)
+	}
+	addStyleClass(&layout.Widget, entrySourceStyles[entry.Source])
 
 	child, _ = layout.GetChildAt(1, 0)
 	frequency := child.(*gtk.Label)
@@ -381,10 +385,6 @@ func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
 	child, _ = layout.GetChildAt(2, 2)
 	score := child.(*gtk.Label)
 	score.SetText(fmt.Sprintf("%dP %dM", entry.Info.Points, entry.Info.Multis))
-
-	child, _ = layout.GetChildAt(0, 4)
-	lifetimeIndicatorArea := child.(*gtk.DrawingArea)
-	lifetimeIndicatorArea.QueueDraw()
 }
 
 func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
@@ -397,8 +397,6 @@ func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
 			return
 		}
 		v.entryList.Insert(w, entry.Index)
-		// v.entryList.SetFilterFunc(v.filterRow)
-		// v.entryList.ShowAll()
 	})
 }
 
@@ -412,7 +410,6 @@ func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
 			return
 		}
 		updateListEntry(row, entry)
-		// row.ShowAll()
 	})
 }
 
@@ -426,7 +423,6 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 			return
 		}
 		row.ToWidget().Destroy()
-		// v.entryList.ShowAll()
 	})
 }
 

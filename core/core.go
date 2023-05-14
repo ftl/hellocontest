@@ -352,7 +352,7 @@ func (c Contest) Bands() []Band {
 	return result
 }
 
-func (c Contest) Started() bool {
+func (c Contest) Started(now time.Time) bool {
 	if c.StartTime.IsZero() {
 		return true
 	}
@@ -363,10 +363,10 @@ func (c Contest) Started() bool {
 		return true
 	}
 
-	return time.Now().After(c.StartTime)
+	return now.After(c.StartTime)
 }
 
-func (c Contest) Finished() bool {
+func (c Contest) Finished(now time.Time) bool {
 	if c.StartTime.IsZero() {
 		return false
 	}
@@ -377,11 +377,11 @@ func (c Contest) Finished() bool {
 		return false
 	}
 
-	return time.Now().After(c.StartTime.Add(c.Definition.Duration))
+	return now.After(c.StartTime.Add(c.Definition.Duration))
 }
 
-func (c Contest) Running() bool {
-	return c.Started() && !c.Finished()
+func (c Contest) Running(now time.Time) bool {
+	return c.Started(now) && !c.Finished(now)
 }
 
 func (c *Contest) UpdateExchangeFields() {

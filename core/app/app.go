@@ -201,7 +201,7 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Keyer)
 	c.Entry.SetKeyer(c.Keyer)
 
-	c.Rate = rate.NewCounter(c.asyncRunner)
+	c.Rate = rate.NewCounter(c.clock, c.asyncRunner)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 

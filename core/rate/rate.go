@@ -18,14 +18,15 @@ func (f RateUpdatedListenerFunc) RateUpdated(rate core.QSORate) {
 	f(rate)
 }
 
-func NewCounter(asyncRunner core.AsyncRunner) *Counter {
+func NewCounter(clock core.Clock, asyncRunner core.AsyncRunner) *Counter {
 	result := &Counter{
 		QSORate: core.QSORate{
 			QSOsPerHours: make(core.QSOsPerHours),
 		},
+		clock:       clock,
 		view:        new(nullView),
 		asyncRunner: asyncRunner,
-		isRunning: func() bool {
+		isRunning: func(time.Time) bool {
 			return true
 		},
 	}
@@ -35,7 +36,8 @@ func NewCounter(asyncRunner core.AsyncRunner) *Counter {
 
 type Counter struct {
 	core.QSORate
-	view View
+	clock core.Clock
+	view  View
 
 	listeners []interface{}
 
@@ -45,7 +47,7 @@ type Counter struct {
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
 
-	isRunning  func() bool
+	isRunning  func(time.Time) bool
 	qsosGoal   int
 	pointsGoal int
 	multisGoal int
@@ -181,7 +183,7 @@ func (c *Counter) Refresh() {
 			c.Last5MinMultis = int((float64(c.Last5MinMultis) / duration.Seconds()) * time.Hour.Seconds())
 		}
 
-		if !c.isRunning() || c.lastQSOTime.IsZero() {
+		if !c.isRunning(c.clock.Now()) || c.lastQSOTime.IsZero() {
 			c.SinceLastQSO = 0
 		} else {
 			c.SinceLastQSO = now.Sub(c.lastQSOTime)

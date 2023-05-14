@@ -213,7 +213,7 @@ func (m *Bandmap) entryVisible(entry core.BandmapEntry) bool {
 }
 
 func (m *Bandmap) countEntryValue(entry core.BandmapEntry) bool {
-	return (entry.Mode == m.activeMode)
+	return (entry.Mode == m.activeMode) && (entry.Source != core.WorkedSpot)
 }
 
 func (m *Bandmap) Notify(listener any) {

@@ -24,6 +24,7 @@ type View interface {
 	Hide()
 
 	ShowFrame(frame core.BandmapFrame)
+	RevealEntry(entry core.BandmapEntry)
 }
 
 type DupeChecker interface {
@@ -275,7 +276,7 @@ func (m *Bandmap) findAndSelectNextEntry(f func(entry core.BandmapEntry) bool) {
 			if entry.Source == core.WorkedSpot {
 				continue
 			}
-			if entry.Band != m.activeBand {
+			if !m.entryVisible(entry) {
 				continue
 			}
 			if !f(entry) {
@@ -682,9 +683,10 @@ func (l *Logger) EntryRemoved(e core.BandmapEntry) {
 
 type nullView struct{}
 
-func (v *nullView) Show()                       {}
-func (v *nullView) Hide()                       {}
-func (v *nullView) ShowFrame(core.BandmapFrame) {}
+func (v *nullView) Show()                         {}
+func (v *nullView) Hide()                         {}
+func (v *nullView) ShowFrame(core.BandmapFrame)   {}
+func (v *nullView) RevealEntry(core.BandmapEntry) {}
 
 type nullVFO struct{}
 

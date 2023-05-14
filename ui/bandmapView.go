@@ -426,6 +426,36 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 	})
 }
 
+func (v *bandmapView) EntrySelected(entry core.BandmapEntry) {
+	v.RevealEntry(entry)
+}
+
+func (v *bandmapView) RevealEntry(entry core.BandmapEntry) {
+	if v == nil {
+		return
+	}
+	runAsync(func() {
+		row := v.entryList.GetRowAtIndex(entry.Index)
+		if row == nil {
+			return
+		}
+
+		_, y, err := row.TranslateCoordinates(v.entryList, 0, 0)
+		if err != nil {
+			log.Printf("cannot translate list row box coordinates: %v", err)
+			return
+		}
+
+		adj := v.entryList.GetAdjustment()
+		if adj == nil {
+			return
+		}
+
+		_, rowHeight := row.GetPreferredHeight()
+		adj.SetValue(float64(y) - (adj.GetPageSize()-float64(rowHeight))/2)
+	})
+}
+
 func (v *bandmapView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
 	return func(button *gtk.Button, event *gdk.Event) {
 		buttonEvent := gdk.EventButtonNewFromEvent(event)

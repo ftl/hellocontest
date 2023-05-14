@@ -221,7 +221,7 @@ func (c *offlineClient) SetBand(band core.Band) {
 	}
 	newBand := core.Band(plan.Name)
 	if newBand == c.currentBand {
-		log.Printf("Band %s already selected!", band)
+		// log.Printf("Band %s already selected!", band)
 		return
 	}
 

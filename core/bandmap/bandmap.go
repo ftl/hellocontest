@@ -273,6 +273,24 @@ func (m *Bandmap) SelectEntry(index int) {
 	}
 }
 
+func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
+	result := make(chan bool, 1)
+	callStr := call.String()
+	m.do <- func() {
+		foundIndex := -1
+		m.entries.ForEach(func(entry core.BandmapEntry) bool {
+			if entry.Call.String() == callStr && entry.Band == m.visibleBand {
+				foundIndex = entry.Index
+				return true
+			}
+			return false
+		})
+		m.entries.Select(foundIndex)
+		result <- (foundIndex > -1)
+	}
+	return <-result
+}
+
 func (m *Bandmap) GotoNearestEntry() {
 	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
 		return entry.Frequency != m.activeFrequency
@@ -683,6 +701,14 @@ func (l *Entries) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 	result := l.All()
 	slices.SortStableFunc(result, order)
 	return result
+}
+
+func (l *Entries) ForEach(f func(entry core.BandmapEntry) bool) {
+	for _, entry := range l.entries {
+		if f(entry.BandmapEntry) {
+			return
+		}
+	}
 }
 
 func filterSlice[E any](slice []E, filter func(E) bool) []E {

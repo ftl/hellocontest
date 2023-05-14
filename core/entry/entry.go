@@ -80,6 +80,7 @@ type Bandmap interface {
 	Add(core.Spot)
 
 	AllBy(core.BandmapOrder) []core.BandmapEntry
+	SelectByCallsign(callsign.Callsign) bool
 }
 
 // NewController returns a new entry controller.
@@ -375,14 +376,17 @@ func (c *Controller) Enter(text string) {
 	}
 }
 
-func (c *Controller) frequencySelected(frequency core.Frequency) {
+func (c *Controller) frequencyEntered(frequency core.Frequency) {
 	// log.Printf("Frequency selected: %s", frequency)
 	c.selectedFrequency = frequency
 	c.vfo.SetFrequency(frequency)
-	c.input.callsign = ""
-	c.enterCallsign(c.input.callsign)
-	c.view.SetCallsign(c.input.callsign)
 	c.view.SetFrequency(frequency)
+}
+
+func (c *Controller) bandEntered(band core.Band) {
+	c.selectedBand = band
+	c.vfo.SetBand(band)
+	c.view.SetBand(string(band))
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
@@ -525,8 +529,10 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 }
 
 func (c *Controller) Log() {
-	if f, ok := parseKilohertz(c.input.callsign); ok && c.activeField == core.CallsignField {
-		c.frequencySelected(f)
+	if c.parseCallsignCommand() {
+		c.input.callsign = ""
+		c.enterCallsign(c.input.callsign)
+		c.view.SetCallsign(c.input.callsign)
 		return
 	}
 
@@ -646,12 +652,48 @@ func (c *Controller) Log() {
 	c.Clear()
 }
 
+func (c *Controller) parseCallsignCommand() bool {
+	if c.activeField != core.CallsignField {
+		return false
+	}
+
+	if f, ok := parseKilohertz(c.input.callsign); ok {
+		c.frequencyEntered(f)
+		return true
+	}
+
+	if b, err := parse.Band(c.input.callsign); err == nil {
+		c.bandEntered(b)
+		return true
+	}
+
+	if call, ok := parseBandmapCallsign(c.input.callsign); ok {
+		c.bandmap.SelectByCallsign(call)
+		return true
+	}
+
+	return false
+}
+
 func parseKilohertz(s string) (core.Frequency, bool) {
 	kHz, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, false
 	}
 	return core.Frequency(kHz * 1000), true
+}
+
+func parseBandmapCallsign(s string) (callsign.Callsign, bool) {
+	if !strings.HasPrefix(s, "@") {
+		return callsign.Callsign{}, false
+	}
+
+	call, err := callsign.Parse(s[1:])
+	if err != nil {
+		log.Printf("invalid bandmap callsign: %v", err)
+		return callsign.Callsign{}, false
+	}
+	return call, true
 }
 
 func (c *Controller) showErrorOnField(err error, field core.EntryField) {
@@ -853,7 +895,7 @@ func (c *Controller) MarkInBandmap() {
 func (c *Controller) EntrySelected(entry core.BandmapEntry) {
 	c.asyncRunner(func() {
 		c.Clear()
-		c.frequencySelected(entry.Frequency)
+		c.frequencyEntered(entry.Frequency)
 		c.activeField = core.CallsignField
 		c.Enter(entry.Call.String())
 		c.view.SetCallsign(c.input.callsign)
@@ -906,3 +948,4 @@ type nullBandmap struct{}
 
 func (n *nullBandmap) Add(core.Spot)                               {}
 func (n *nullBandmap) AllBy(core.BandmapOrder) []core.BandmapEntry { return nil }
+func (n *nullBandmap) SelectByCallsign(callsign.Callsign) bool     { return false }

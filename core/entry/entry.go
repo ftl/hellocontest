@@ -740,6 +740,10 @@ func (c *Controller) Clear() {
 			value = lastExchange[i]
 		}
 
+		if i >= len(c.myExchangeFields) {
+			continue
+		}
+
 		c.input.myExchange[i] = value
 		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
 			if c.generateReport {

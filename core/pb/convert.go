@@ -120,7 +120,8 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	buffer := bytes.NewBufferString(pbContest.DefinitionYaml)
 	definition, err := conval.LoadDefinitionYAML(buffer)
 	if err != nil {
-		return core.Contest{}, err
+		log.Print(err)
+		return contest, nil
 	}
 	contest.Definition = definition
 

@@ -1,7 +1,7 @@
+[![CI-Build](https://github.com/ftl/hellocontest/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/ftl/hellocontest/actions/workflows/ci.yml)
+
+
 # Hello Contest
-
-[![CI-Build](https://github.com/ftl/hellocontest/actions/workflows/ci.yml/badge.svg)](https://github.com/ftl/hellocontest/actions/workflows/ci.yml)
-
 A simple HF contest log for Linux, written in Go using [gotk3](https://github.com/gotk3) for the UI. As I'm using this only for CW contests on HF, the program might not be very useful for other modes or higher frequencies. Anyway, here are some highlights:
 
 * Calculate points, multis, and score per band and overall. The calculation is done using the [conval](https://github.com/ftl/conval) library. You can select the contest definition in the settings dialog (File > Settings).

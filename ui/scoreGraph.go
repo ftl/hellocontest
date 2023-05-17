@@ -102,19 +102,15 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		endX := float64(i+1) * binWidth
 		value := float64(g.graph.DataPoints[i].Points)
 		y := zeroY - math.Min(value*valueScaling, maxHeight)
-		lineAdded := false
 		if i == 0 {
 			cr.LineTo(startX, y)
 			cr.LineTo(centerX, y)
-			lineAdded = true
+		} else {
+			cr.CurveTo(startX, lastY, startX, y, centerX, y)
 		}
 		if i == valueCount-1 {
 			cr.LineTo(endX, y)
 			cr.LineTo(endX, zeroY)
-			lineAdded = true
-		}
-		if !lineAdded {
-			cr.CurveTo(startX, lastY, startX, y, centerX, y)
 		}
 		lastY = y
 	}
@@ -127,19 +123,15 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		endX := float64(i) * binWidth
 		value := float64(g.graph.DataPoints[i].Multis)
 		y := zeroY + math.Min(value*valueScaling, maxHeight)
-		lineAdded := false
 		if i == valueCount-1 {
 			cr.LineTo(startX, y)
 			cr.LineTo(centerX, y)
-			lineAdded = true
+		} else {
+			cr.CurveTo(startX, lastY, startX, y, centerX, y)
 		}
 		if i == 0 {
 			cr.LineTo(endX, y)
 			cr.LineTo(endX, zeroY)
-			lineAdded = true
-		}
-		if !lineAdded {
-			cr.CurveTo(startX, lastY, startX, y, centerX, y)
 		}
 		lastY = y
 	}

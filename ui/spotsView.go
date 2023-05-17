@@ -18,7 +18,7 @@ var entrySourceStyles = map[core.SpotType]string{
 	core.ClusterSpot: "clusterSpot",
 }
 
-type BandmapController interface {
+type SpotsController interface {
 	SetVisibleBand(core.Band)
 	SetActiveBand(core.Band)
 
@@ -27,8 +27,8 @@ type BandmapController interface {
 	SelectEntry(int)
 }
 
-type bandmapView struct {
-	controller BandmapController
+type spotsView struct {
+	controller SpotsController
 
 	bandGrid  *gtk.Grid
 	entryList *gtk.ListBox
@@ -41,8 +41,8 @@ type bandmapView struct {
 	ignoreSelection   bool
 }
 
-func setupBandmapView(builder *gtk.Builder, controller BandmapController) *bandmapView {
-	result := &bandmapView{
+func setupSpotsView(builder *gtk.Builder, controller SpotsController) *spotsView {
+	result := &spotsView{
 		controller:        controller,
 		initialFrameShown: false,
 	}
@@ -123,22 +123,22 @@ func setupBandmapView(builder *gtk.Builder, controller BandmapController) *bandm
 	return result
 }
 
-func (v *bandmapView) getRemainingLifetime(index int) float64 {
+func (v *spotsView) getRemainingLifetime(index int) float64 {
 	return v.controller.RemainingLifetime(index)
 }
 
-func (v *bandmapView) getProximity(index int) float64 {
+func (v *spotsView) getProximity(index int) float64 {
 	if index < 0 || index >= len(v.currentFrame.Entries) {
 		return 0
 	}
 	return v.currentFrame.Entries[index].ProximityFactor(v.currentFrame.Frequency)
 }
 
-func (v *bandmapView) filterRow(row *gtk.ListBoxRow) bool {
+func (v *spotsView) filterRow(row *gtk.ListBoxRow) bool {
 	return v.controller.EntryVisible(row.GetIndex())
 }
 
-func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
+func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	if v == nil {
 		return
 	}
@@ -158,7 +158,7 @@ func (v *bandmapView) ShowFrame(frame core.BandmapFrame) {
 	})
 }
 
-func (v *bandmapView) setupBands(bands []core.BandSummary) {
+func (v *spotsView) setupBands(bands []core.BandSummary) {
 	if v == nil {
 		return
 	}
@@ -195,7 +195,7 @@ func toBandsID(bands []core.BandSummary) string {
 	return string(result)
 }
 
-func (v *bandmapView) newBand(band core.BandSummary) *gtk.Widget {
+func (v *spotsView) newBand(band core.BandSummary) *gtk.Widget {
 	button, _ := gtk.ButtonNew()
 	button.SetName("band")
 	button.SetHAlign(gtk.ALIGN_END)
@@ -238,7 +238,7 @@ func (v *bandmapView) newBand(band core.BandSummary) *gtk.Widget {
 	return button.ToWidget()
 }
 
-func (v *bandmapView) updateBand(button *gtk.Button, band core.BandSummary) {
+func (v *spotsView) updateBand(button *gtk.Button, band core.BandSummary) {
 	child, _ := button.GetChild()
 	grid := child.(*gtk.Grid)
 
@@ -272,7 +272,7 @@ func (v *bandmapView) updateBand(button *gtk.Button, band core.BandSummary) {
 	}
 }
 
-func (v *bandmapView) updateBands(bands []core.BandSummary) {
+func (v *spotsView) updateBands(bands []core.BandSummary) {
 	for i, band := range bands {
 		child, _ := v.bandGrid.GetChildAt(i, 0)
 		button, ok := child.(*gtk.Button)
@@ -282,7 +282,7 @@ func (v *bandmapView) updateBands(bands []core.BandSummary) {
 	}
 }
 
-func (v *bandmapView) showEntries(entries []core.BandmapEntry) {
+func (v *spotsView) showEntries(entries []core.BandmapEntry) {
 	children := v.entryList.GetChildren()
 	children.Foreach(func(child any) {
 		w := child.(gtk.IWidget)
@@ -298,7 +298,7 @@ func (v *bandmapView) showEntries(entries []core.BandmapEntry) {
 	}
 }
 
-func (v *bandmapView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
+func (v *spotsView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	root, _ := gtk.ListBoxRowNew()
 	root.SetHExpand(true)
 
@@ -388,7 +388,7 @@ func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
 	score.SetText(fmt.Sprintf("%dP %dM", entry.Info.Points, entry.Info.Multis))
 }
 
-func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
+func (v *spotsView) EntryAdded(entry core.BandmapEntry) {
 	if v == nil {
 		return
 	}
@@ -401,7 +401,7 @@ func (v *bandmapView) EntryAdded(entry core.BandmapEntry) {
 	})
 }
 
-func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
+func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
 	if v == nil {
 		return
 	}
@@ -414,7 +414,7 @@ func (v *bandmapView) EntryUpdated(entry core.BandmapEntry) {
 	})
 }
 
-func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
+func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
 	if v == nil {
 		return
 	}
@@ -427,7 +427,7 @@ func (v *bandmapView) EntryRemoved(entry core.BandmapEntry) {
 	})
 }
 
-func (v *bandmapView) onRowSelected(listBox *gtk.ListBox, row *gtk.ListBoxRow) {
+func (v *spotsView) onRowSelected(listBox *gtk.ListBox, row *gtk.ListBoxRow) {
 	v.ignoreSelection = true
 	defer func() {
 		v.ignoreSelection = false
@@ -436,14 +436,14 @@ func (v *bandmapView) onRowSelected(listBox *gtk.ListBox, row *gtk.ListBoxRow) {
 	v.controller.SelectEntry(row.GetIndex())
 }
 
-func (v *bandmapView) EntrySelected(entry core.BandmapEntry) {
+func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
 	if v.ignoreSelection {
 		return
 	}
 	v.RevealEntry(entry)
 }
 
-func (v *bandmapView) RevealEntry(entry core.BandmapEntry) {
+func (v *spotsView) RevealEntry(entry core.BandmapEntry) {
 	if v == nil {
 		return
 	}
@@ -469,7 +469,7 @@ func (v *bandmapView) RevealEntry(entry core.BandmapEntry) {
 	})
 }
 
-func (v *bandmapView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
+func (v *spotsView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
 	return func(button *gtk.Button, event *gdk.Event) {
 		buttonEvent := gdk.EventButtonNewFromEvent(event)
 		if buttonEvent.Button() != gdk.BUTTON_PRIMARY {

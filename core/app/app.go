@@ -619,7 +619,7 @@ func (c *Controller) ShowRate() {
 	c.view.BringToFront()
 }
 
-func (c *Controller) ShowBandmap() {
+func (c *Controller) ShowSpots() {
 	c.Bandmap.Show()
 	c.view.BringToFront()
 }

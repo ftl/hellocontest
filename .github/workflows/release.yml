@@ -4,52 +4,44 @@ on:
   push:
     tags:
       - 'v*.*.*'
+
 jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
+    outputs:
+      version_number: ${{ steps.version_number.outputs.version_number }}
+      package_name: ${{ steps.package_filename.outputs.package_filename }}
     steps:
-    - id: version_number
-      run: echo "::set-output name=version_number::$(echo '${{github.ref}}' | sed -E 's#refs/tags/v##')"
- 
-    - uses: actions/checkout@v2
-    
     - name: Install Linux packages
       run: sudo apt update && sudo apt install -y --no-install-recommends libgtk-3-0 libgtk-3-dev libpango-1.0-0 libpango1.0-dev libpangocairo-1.0-0
       
-    - name: Set up Go 1.19
-      uses: actions/setup-go@v2
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v3
       with:
-        go-version: 1.19
+        fetch-depth: 0
+        
+    - name: Set up Go 1.20
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
       id: go
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-        
     - name: Get Gtk version and the environment
       run: |
         pkg-config --modversion gtk+-3.0
         env
 
-    - name: Caching build artifacts and modules
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/go/pkg/mod
-          ~/.cache/go-build
-        key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
-
-    - name: Get dependencies
-      run: go get -v -t -d ./...
+    - name: Version Number
+      id: version_number
+      run: echo "version_number=$(make version_number)" >> $GITHUB_OUTPUT
+          
+    - name: Show Version
+      run: echo "Version ${{ steps.version_number.outputs.version_number }}"
 
     - name: Build
-      run: |
-        echo "Version ${{ steps.version_number.outputs.version_number }}"
-        go build -v -ldflags "-X main.version=${{ steps.version_number.outputs.version_number }}" .
-
-    - name: Test
-      run: go test -v -timeout=30s ./...
+      run: make deps test build
 
     - name: Create package structure
       run: |
@@ -58,13 +50,13 @@ jobs:
         chmod +x ./.debpkg/usr/bin/hellocontest
 
     - name: Create deb package
-      run: ./build-debpkg.sh ${{ steps.version_number.outputs.version_number }}
+      run: make debpkg
 
     - id: package_filename
-      run: echo "::set-output name=package_filename::$(ls ./hellocontest*.deb | head -n 1)"
+      run: echo "package_filename=$(ls ./hellocontest*.deb | head -n 1)" >> $GITHUB_OUTPUT
 
     - name: 'Upload package for linux_x86_64'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: hellocontest-package
         path: ./hellocontest*.deb

@@ -1,6 +1,6 @@
 module github.com/ftl/hellocontest
 
-go 1.19
+go 1.20
 
 // replace github.com/ftl/cabrillo => ../cabrillo
 

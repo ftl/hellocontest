@@ -10,7 +10,7 @@ import (
 )
 
 type scoreGraph struct {
-	graph          core.BandGraph
+	graphs         []core.BandGraph
 	pointsGoal     int
 	multisGoal     int
 	timeFrameIndex int
@@ -21,7 +21,7 @@ type scoreGraph struct {
 
 func newScoreGraph() *scoreGraph {
 	result := &scoreGraph{
-		graph:      core.BandGraph{},
+		graphs:     nil,
 		pointsGoal: 60,
 		multisGoal: 60,
 	}
@@ -29,8 +29,8 @@ func newScoreGraph() *scoreGraph {
 	return result
 }
 
-func (g *scoreGraph) SetGraph(graph core.BandGraph) {
-	g.graph = graph
+func (g *scoreGraph) SetGraphs(graphs []core.BandGraph) {
+	g.graphs = graphs
 	g.updateBinGoals()
 	g.UpdateTimeFrame()
 }
@@ -42,12 +42,21 @@ func (g *scoreGraph) SetGoals(points int, multis int) {
 }
 
 func (g *scoreGraph) updateBinGoals() {
-	g.pointsBinGoal = g.graph.ScaleHourlyGoalToBin(g.pointsGoal)
-	g.multisBinGoal = g.graph.ScaleHourlyGoalToBin(g.multisGoal)
+	if len(g.graphs) == 0 {
+		g.pointsBinGoal = float64(g.pointsGoal)
+		g.multisBinGoal = float64(g.multisGoal)
+		return
+	}
+	g.pointsBinGoal = g.graphs[0].ScaleHourlyGoalToBin(g.pointsGoal)
+	g.multisBinGoal = g.graphs[0].ScaleHourlyGoalToBin(g.multisGoal)
 }
 
 func (g *scoreGraph) UpdateTimeFrame() {
-	g.timeFrameIndex = g.graph.Bindex(time.Now())
+	if len(g.graphs) == 0 {
+		g.timeFrameIndex = -1
+		return
+	}
+	g.timeFrameIndex = g.graphs[0].Bindex(time.Now()) // TODO: use the central clock!!!
 }
 
 type graphLayout struct {
@@ -66,7 +75,10 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	// preparations
 
-	valueCount := len(g.graph.DataPoints)
+	valueCount := 0
+	if len(g.graphs) > 0 {
+		valueCount = len(g.graphs[0].DataPoints)
+	}
 	layout := g.calculateLayout(da, valueCount)
 
 	// the background
@@ -90,8 +102,16 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Stroke()
 
 	// the graph
-	// TODO: draw the stacked band graph
-	g.drawDataPoints(cr, layout, g.graph.DataPoints)
+	for i := len(g.graphs) - 1; i >= 0; i-- {
+		graph := g.graphs[i]
+		color, ok := rateStyle.scoreGraphColors[graph.Band]
+		if !ok {
+			color = rateStyle.defaultScoreGraphColor
+		}
+		cr.SetSourceRGB(color.toRGB())
+
+		g.drawDataPoints(cr, layout, graph.DataPoints)
+	}
 
 	// the time frame
 	if g.timeFrameIndex >= 0 && valueCount > 1 {
@@ -139,7 +159,6 @@ func (g *scoreGraph) fillBackground(cr *cairo.Context) {
 func (g *scoreGraph) drawDataPoints(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
 	valueCount := len(datapoints)
 
-	cr.SetSourceRGB(rateStyle.scoreGraphColor.toRGB())
 	cr.MoveTo(0, layout.zeroY)
 
 	valueScaling := layout.lowZoneHeight / g.pointsBinGoal

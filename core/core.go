@@ -485,6 +485,37 @@ func (s Score) Result() BandScore {
 	return result
 }
 
+func (s Score) StackedGraphPerBand() []BandGraph {
+	result := make([]BandGraph, 0, len(Bands))
+	var lastDataPoints []BandScore
+	for _, band := range Bands {
+		graph, ok := s.GraphPerBand[band]
+		if !ok {
+			continue
+		}
+		stackedGraph := BandGraph{
+			Band:       graph.Band,
+			DataPoints: make([]BandScore, len(graph.DataPoints)),
+			startTime:  graph.startTime,
+			binSeconds: graph.binSeconds,
+		}
+
+		for i, dataPoint := range graph.DataPoints {
+			stackedGraph.DataPoints[i] = dataPoint
+			if lastDataPoints != nil {
+				stackedGraph.DataPoints[i].QSOs += lastDataPoints[i].QSOs
+				stackedGraph.DataPoints[i].Duplicates += lastDataPoints[i].Duplicates
+				stackedGraph.DataPoints[i].Points += lastDataPoints[i].Points
+				stackedGraph.DataPoints[i].Multis += lastDataPoints[i].Multis
+			}
+		}
+
+		result = append(result, stackedGraph)
+		lastDataPoints = stackedGraph.DataPoints
+	}
+	return result
+}
+
 type BandGraph struct {
 	Band       Band
 	DataPoints []BandScore

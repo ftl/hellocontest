@@ -67,6 +67,30 @@ func TestBandGraph_Bindex(t *testing.T) {
 	}
 }
 
+func TestScore_StackedGraphPerBand(t *testing.T) {
+	score := NewScore()
+	score.GraphPerBand[Band160m] = BandGraph{
+		Band:       Band160m,
+		DataPoints: []BandScore{{16, 16, 16, 16}, {15, 15, 15, 15}, {14, 14, 14, 14}},
+	}
+	score.GraphPerBand[Band80m] = BandGraph{
+		Band:       Band80m,
+		DataPoints: []BandScore{{8, 8, 8, 8}, {7, 7, 7, 7}, {6, 6, 6, 6}},
+	}
+	score.GraphPerBand[Band40m] = BandGraph{
+		Band:       Band40m,
+		DataPoints: []BandScore{{4, 4, 4, 4}, {3, 3, 3, 3}, {2, 2, 2, 2}},
+	}
+
+	stackedGraphs := score.StackedGraphPerBand()
+
+	assert.Equal(t, 3, len(stackedGraphs))
+
+	assert.Equal(t, 16, stackedGraphs[0].DataPoints[0].QSOs)
+	assert.Equal(t, 24, stackedGraphs[1].DataPoints[0].QSOs)
+	assert.Equal(t, 28, stackedGraphs[2].DataPoints[0].QSOs)
+}
+
 func TestBandmapEntry_ProximityFactor(t *testing.T) {
 	const frequency Frequency = 7035000
 	tt := []struct {

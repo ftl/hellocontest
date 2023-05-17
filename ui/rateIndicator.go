@@ -21,31 +21,40 @@ var timeColors = colorMap{
 const angleRotation = (3.0 / 2.0) * math.Pi
 
 var rateStyle = struct {
-	backgroundColor    color
-	fontColor          color
-	fontSize           float64
-	axisColor          color
-	axisMargin         float64
-	lowZoneColor       color
-	areaAlpha          float64
-	borderAlpha        float64
-	timeIndicatorWidth float64
-	timeFrameColor     color
-	timeFrameAlpha     float64
-	scoreGraphColor    color
+	backgroundColor        color
+	fontColor              color
+	fontSize               float64
+	axisColor              color
+	axisMargin             float64
+	lowZoneColor           color
+	areaAlpha              float64
+	borderAlpha            float64
+	timeIndicatorWidth     float64
+	timeFrameColor         color
+	timeFrameAlpha         float64
+	defaultScoreGraphColor color
+	scoreGraphColors       map[core.Band]color
 }{
-	backgroundColor:    color{1, 1, 1},
-	fontColor:          color{0.4, 0.4, 0.4},
-	fontSize:           15,
-	axisColor:          color{0.4, 0.4, 0.4},
-	axisMargin:         15,
-	lowZoneColor:       color{0.8, 0.8, 0.8},
-	areaAlpha:          0.4,
-	borderAlpha:        0.8,
-	timeIndicatorWidth: 10,
-	timeFrameColor:     color{1, 0.73, 0.2},
-	timeFrameAlpha:     1,
-	scoreGraphColor:    color{0.2, 0.47, 1},
+	backgroundColor:        color{1, 1, 1},
+	fontColor:              color{0.4, 0.4, 0.4},
+	fontSize:               15,
+	axisColor:              color{0.4, 0.4, 0.4},
+	axisMargin:             15,
+	lowZoneColor:           color{0.8, 0.8, 0.8},
+	areaAlpha:              0.4,
+	borderAlpha:            0.8,
+	timeIndicatorWidth:     10,
+	timeFrameColor:         color{1, 0.73, 0.2},
+	timeFrameAlpha:         1,
+	defaultScoreGraphColor: color{0.4, 0.4, 0.4},
+	scoreGraphColors: map[core.Band]color{
+		core.Band160m: {0.5, 0, 0.5},
+		core.Band80m:  {0, 0, 0.5},
+		core.Band40m:  {0, 1.0, 0},
+		core.Band20m:  {1, 1, 0},
+		core.Band15m:  {1, 0.5, 0},
+		core.Band10m:  {1, 0, 0},
+	},
 }
 
 type rateIndicator struct {

@@ -32,7 +32,7 @@ func (v *scoreView) ShowScore(score core.Score) {
 	if v == nil {
 		return
 	}
-	v.graph.SetGraph(score.GraphPerBand[core.NoBand])
+	v.graph.SetGraphs(score.StackedGraphPerBand())
 
 	if v.tableLabel != nil {
 		renderedScore := fmt.Sprintf("<span allow_breaks='true' font_family='monospace'>%s</span>", score)

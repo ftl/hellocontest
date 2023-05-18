@@ -1,6 +1,7 @@
 VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##' | sed -E 's#-#_#g')
 BINARY_NAME ?= hellocontest
-INSTALL_DIR ?= /usr/local/bin
+DESTDIR ?=
+INSTALL_DIR ?= /usr/bin
 
 all: clean test build
 
@@ -26,8 +27,9 @@ build:
 run: build
 	./${BINARY_NAME}
 
-install: clean build
-	cp ./${BINARY_NAME} ${INSTALL_DIR}/${BINARY_NAME}
+install:
+	mkdir -p ${DESTDIR}${INSTALL_DIR}
+	cp ./${BINARY_NAME} ${DESTDIR}${INSTALL_DIR}/${BINARY_NAME}
 
 uninstall:
 	rm ${INSTALL_DIR}/${BINARY_NAME}

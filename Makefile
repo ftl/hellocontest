@@ -1,4 +1,4 @@
-VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##' | sed -E 's#-#_#')
+VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##' | sed -E 's#-#_#g')
 BINARY_NAME ?= hellocontest
 INSTALL_DIR ?= /usr/local/bin
 

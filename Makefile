@@ -1,6 +1,5 @@
 BINARY_NAME = hellocontest
-VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##')
-AUR_VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##' | sed -E 's#-#_#g')
+VERSION_NUMBER ?= $(shell git describe --tags | sed -E 's#v##')
 
 DESTDIR ?=
 BINDIR ?= /usr/bin
@@ -20,9 +19,6 @@ generate:
 
 version_number:
 	@echo ${VERSION_NUMBER}
-
-aur_version_number:
-	@echo ${AUR_VERSION_NUMBER}
 
 test:
 	go test -v -timeout=30s ./...

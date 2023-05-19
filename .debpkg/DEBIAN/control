@@ -6,4 +6,4 @@ Version: !THE_VERSION!
 Maintainer: Florian Thienel/DL3NEY <ftl@thecodingflow.com>
 Homepage: https://github.com/ftl/hellocontest
 Bugs: https://github.com/ftl/hellocontest/issues
-Description: Hello Contest is a simple HF contest log for Linux.
+Description: A simple HF contest logger for Linux.

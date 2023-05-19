@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/hamradio/cwclient"
@@ -104,6 +105,7 @@ type Configuration interface {
 	KeyerPort() int
 	HamlibAddress() string
 	TCIAddress() string
+	SpotLifetime() time.Duration
 	SpotSources() []core.SpotSource
 }
 
@@ -141,7 +143,7 @@ func (c *Controller) Startup() {
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, bandmap.DefaultUpdatePeriod, bandmap.DefaultMaximumAge)
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder)
 	c.Entry = entry.NewController(
 		c.Settings,

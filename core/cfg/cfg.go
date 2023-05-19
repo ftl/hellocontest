@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ftl/hamradio/cfg"
 	"github.com/pkg/errors"
@@ -14,6 +15,7 @@ import (
 )
 
 const Filename = "hellocontest.json"
+const DefaultSpotLifetime = 10 * time.Minute
 
 var Default = Data{
 	LogDirectory: "$HOME/",
@@ -65,6 +67,7 @@ var Default = Data{
 	KeyerPort:     6789,
 	HamlibAddress: "localhost:4532",
 	TCIAddress:    "localhost:40001",
+	SpotLifetime:  "10m",
 	SpotSources: []core.SpotSource{
 		{
 			Name:        "Skimmer",
@@ -127,6 +130,7 @@ type Data struct {
 	KeyerPort     int                `json:"keyer_port"`
 	HamlibAddress string             `json:"hamlib_address"`
 	TCIAddress    string             `json:"tci_address"`
+	SpotLifetime  string             `json:"spot_lifetime"`
 	SpotSources   []core.SpotSource  `json:"spot_sources"`
 }
 
@@ -179,6 +183,15 @@ func (c *LoadedConfiguration) HamlibAddress() string {
 
 func (c *LoadedConfiguration) TCIAddress() string {
 	return c.data.TCIAddress
+}
+
+func (c *LoadedConfiguration) SpotLifetime() time.Duration {
+	result, err := time.ParseDuration(c.data.SpotLifetime)
+	if err != nil {
+		log.Printf("cannot parse spot lifetime: %v", err)
+		return DefaultSpotLifetime
+	}
+	return result
 }
 
 func (c *LoadedConfiguration) SpotSources() []core.SpotSource {

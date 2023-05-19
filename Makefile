@@ -1,7 +1,10 @@
-VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##' | sed -E 's#-#_#g')
-BINARY_NAME ?= hellocontest
+BINARY_NAME = hellocontest
+VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##')
+AUR_VERSION_NUMBER=$(shell git describe --tags | sed -E 's#v##' | sed -E 's#-#_#g')
+
 DESTDIR ?=
-INSTALL_DIR ?= /usr/bin
+BINDIR ?= /usr/bin
+SHAREDIR ?= /usr/share
 
 all: clean test build
 
@@ -18,6 +21,9 @@ generate:
 version_number:
 	@echo ${VERSION_NUMBER}
 
+aur_version_number:
+	@echo ${AUR_VERSION_NUMBER}
+
 test:
 	go test -v -timeout=30s ./...
 
@@ -28,11 +34,13 @@ run: build
 	./${BINARY_NAME}
 
 install:
-	mkdir -p ${DESTDIR}${INSTALL_DIR}
-	cp ./${BINARY_NAME} ${DESTDIR}${INSTALL_DIR}/${BINARY_NAME}
+	mkdir -p ${DESTDIR}${BINDIR}
+	cp ./${BINARY_NAME} ${DESTDIR}${BINDIR}/${BINARY_NAME}
+	mkdir -p ${DESTDIR}${SHAREDIR}/applications
+	cp ./.assets/${BINARY_NAME}.desktop ${DESTDIR}${SHAREDIR}/applications/${BINARY_NAME}.desktop
 
 uninstall:
-	rm ${INSTALL_DIR}/${BINARY_NAME}
+	rm ${DESTDIR}${BINDIR}/${BINARY_NAME}
 
 checkout_latest:
 	git checkout `git tag --sort=committerdate | tail -1`
@@ -41,5 +49,9 @@ latest: clean checkout_latest test build
 
 debpkg:
 	sed -i -E "s#!THE_VERSION!#${VERSION_NUMBER}#" ./.debpkg/DEBIAN/control
+	mkdir -p ./.debpkg${BINDIR}
+	cp ./${BINARY_NAME} ./.debpkg${BINDIR}/${BINARY_NAME}
+	mkdir -p ./.debpkg${SHAREDIR}/applications
+	cp ./.assets/${BINARY_NAME}.desktop ./.debpkg${SHAREDIR}/applications/${BINARY_NAME}.desktop
 	dpkg-deb --build ./.debpkg .
 	git restore ./.debpkg/DEBIAN/control

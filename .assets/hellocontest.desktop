@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Hello Contest
+Comment=Hello Contest is a simple HF contest log for Linux
+Exec=hellocontest
+Terminal=false
+X-MultipleArgs=false
+Type=Application
+Categories=HamRadio;
+StartupNotify=true

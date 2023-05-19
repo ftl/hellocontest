@@ -86,14 +86,15 @@ type Controller struct {
 type View interface {
 	BringToFront()
 	ShowFilename(string)
-	SelectOpenFile(string, ...string) (string, bool, error)
-	SelectSaveFile(string, string, ...string) (string, bool, error)
+	SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error)
+	SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error)
 	ShowInfoDialog(string, ...interface{})
 	ShowErrorDialog(string, ...interface{})
 }
 
 // Configuration provides read access to the configuration data.
 type Configuration interface {
+	LogDirectory() string
 	Station() core.Station
 	Contest() core.Contest
 	Keyer() core.Keyer
@@ -375,7 +376,7 @@ func (c *Controller) proposeFilename() string {
 
 func (c *Controller) New() {
 	proposedName := c.proposeFilename() + ".log"
-	filename, ok, err := c.view.SelectSaveFile("New Logfile", proposedName, "*.log")
+	filename, ok, err := c.view.SelectSaveFile("New Logfile", c.configuration.LogDirectory(), proposedName, "*.log")
 	if !ok {
 		return
 	}
@@ -417,7 +418,7 @@ func (c *Controller) New() {
 }
 
 func (c *Controller) Open() {
-	filename, ok, err := c.view.SelectOpenFile("Open Logfile", "*.log")
+	filename, ok, err := c.view.SelectOpenFile("Open Logfile", c.configuration.LogDirectory(), "*.log")
 	if !ok {
 		return
 	}
@@ -451,7 +452,7 @@ func (c *Controller) Open() {
 
 func (c *Controller) SaveAs() {
 	proposedName := c.proposeFilename() + ".log"
-	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", proposedName, "*.log")
+	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", c.configuration.LogDirectory(), proposedName, "*.log")
 	if !ok {
 		return
 	}
@@ -501,7 +502,7 @@ func (c *Controller) SaveAs() {
 
 func (c *Controller) ExportCabrillo() {
 	proposedName := c.proposeFilename() + ".cabrillo"
-	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", proposedName, "*.cabrillo")
+	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", c.configuration.LogDirectory(), proposedName, "*.cabrillo")
 	if !ok {
 		return
 	}
@@ -531,7 +532,7 @@ func (c *Controller) ExportCabrillo() {
 
 func (c *Controller) ExportADIF() {
 	proposedName := c.proposeFilename() + ".adif"
-	filename, ok, err := c.view.SelectSaveFile("Export ADIF File", proposedName, "*.adif")
+	filename, ok, err := c.view.SelectSaveFile("Export ADIF File", c.configuration.LogDirectory(), proposedName, "*.adif")
 	if !ok {
 		return
 	}
@@ -555,7 +556,7 @@ func (c *Controller) ExportADIF() {
 
 func (c *Controller) ExportCSV() {
 	proposedName := c.proposeFilename() + ".csv"
-	filename, ok, err := c.view.SelectSaveFile("Export CSV File", proposedName, "*.csv")
+	filename, ok, err := c.view.SelectSaveFile("Export CSV File", c.configuration.LogDirectory(), proposedName, "*.csv")
 	if !ok {
 		return
 	}
@@ -582,7 +583,7 @@ func (c *Controller) ExportCSV() {
 
 func (c *Controller) ExportCallhistory() {
 	proposedName := c.proposeFilename() + ".txt"
-	filename, ok, err := c.view.SelectSaveFile("Export Call History File", proposedName, "*.txt")
+	filename, ok, err := c.view.SelectSaveFile("Export Call History File", c.configuration.LogDirectory(), proposedName, "*.txt")
 	if !ok {
 		return
 	}

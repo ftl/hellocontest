@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 
 	"github.com/ftl/gmtry"
@@ -62,12 +63,16 @@ func (w *mainWindow) BringToFront() {
 	w.window.Present()
 }
 
-func (w *mainWindow) SelectOpenFile(title string, patterns ...string) (string, bool, error) {
+func (w *mainWindow) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {
 	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_OPEN, "Open", gtk.RESPONSE_ACCEPT)
 	if err != nil {
 		errors.Wrap(err, "cannot create a file selection dialog to open a file")
 	}
 	defer dlg.Destroy()
+
+	log.Printf("OPEN FILE in %s", dir)
+
+	dlg.SetCurrentFolder(dir)
 
 	if len(patterns) > 0 {
 		filter, err := gtk.FileFilterNew()
@@ -88,14 +93,17 @@ func (w *mainWindow) SelectOpenFile(title string, patterns ...string) (string, b
 	return dlg.GetFilename(), true, nil
 }
 
-func (w *mainWindow) SelectSaveFile(title string, filename string, patterns ...string) (string, bool, error) {
+func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error) {
 	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_SAVE, "Save", gtk.RESPONSE_ACCEPT)
 	if err != nil {
 		return "", false, errors.Wrap(err, "cannot create a file selection dialog to save a file")
 	}
 	defer dlg.Destroy()
 
+	log.Printf("SAVE FILE in %s", dir)
+
 	dlg.SetDoOverwriteConfirmation(true)
+	dlg.SetCurrentFolder(dir)
 	dlg.SetCurrentName(filename)
 
 	if len(patterns) > 0 {

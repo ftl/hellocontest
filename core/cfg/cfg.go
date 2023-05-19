@@ -2,6 +2,7 @@ package cfg
 
 import (
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,6 +16,7 @@ import (
 const Filename = "hellocontest.json"
 
 var Default = Data{
+	LogDirectory: "$HOME/",
 	Station: pb.Station{
 		Callsign: "DL0ABC",
 		Operator: "DL1ABC",
@@ -108,9 +110,10 @@ func AbsoluteFilename() string {
 }
 
 type Data struct {
-	Station       pb.Station
-	Contest       pb.Contest
-	Keyer         pb.Keyer
+	LogDirectory  string             `json:"log_directory"`
+	Station       pb.Station         `json:"station"`
+	Contest       pb.Contest         `json:"contest"`
+	Keyer         pb.Keyer           `json:"keyer"`
 	KeyerPresets  []core.KeyerPreset `json:"keyer_presets"`
 	KeyerType     core.KeyerType     `json:"keyer_type"`
 	KeyerHost     string             `json:"keyer_host"`
@@ -122,6 +125,10 @@ type Data struct {
 
 type LoadedConfiguration struct {
 	data Data
+}
+
+func (c *LoadedConfiguration) LogDirectory() string {
+	return os.ExpandEnv(c.data.LogDirectory)
 }
 
 func (c *LoadedConfiguration) Station() core.Station {

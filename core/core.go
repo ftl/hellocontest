@@ -700,16 +700,33 @@ func (r QSORate) SinceLastQSOFormatted() string {
 	}
 }
 
-type SpotType int
+type SpotType string
 
 const (
-	WorkedSpot SpotType = iota
-	ManualSpot
-	SkimmerSpot
-	RBNSpot
-	ClusterSpot
-	MaxSpotType
+	WorkedSpot  SpotType = "worked"
+	ManualSpot  SpotType = "manual"
+	SkimmerSpot SpotType = "skimmer"
+	RBNSpot     SpotType = "rbn"
+	ClusterSpot SpotType = "cluster"
+
+	maxSpotTypePriority = 10
 )
+
+var spotTypePriorities = map[SpotType]int{
+	WorkedSpot:  0,
+	ManualSpot:  1,
+	SkimmerSpot: 2,
+	RBNSpot:     3,
+	ClusterSpot: 4,
+}
+
+func (t SpotType) Priority() int {
+	priority, ok := spotTypePriorities[t]
+	if !ok {
+		return maxSpotTypePriority
+	}
+	return priority
+}
 
 type SpotFilter string
 

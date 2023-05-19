@@ -68,9 +68,16 @@ var Default = Data{
 	SpotSources: []core.SpotSource{
 		{
 			Name:        "Skimmer",
-			HostAddress: "localhost:7373",
-			Type:        2,
 			Username:    "dl0abc",
+			HostAddress: "localhost:7373",
+			Type:        core.SkimmerSpot,
+		},
+		{
+			Name:        "W3LPL",
+			Username:    "dl0abc",
+			HostAddress: "w3lpl.net:7373",
+			Type:        core.RBNSpot,
+			Filter:      core.OwnContinentSpotsOnly,
 		},
 	},
 }

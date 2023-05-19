@@ -388,7 +388,7 @@ func (e *Entry) Add(spot core.Spot) bool {
 	if e.LastHeard.Before(spot.Time) {
 		e.LastHeard = spot.Time
 	}
-	if e.Source > spot.Source {
+	if e.Source.Priority() > spot.Source.Priority() {
 		e.Source = spot.Source
 	}
 
@@ -412,12 +412,12 @@ func (e *Entry) update() {
 	frequencyUpdated := e.updateFrequency()
 
 	lastHeard := time.Time{}
-	source := core.MaxSpotType
+	var source core.SpotType
 	for _, s := range e.spots {
 		if lastHeard.Before(s.Time) {
 			lastHeard = s.Time
 		}
-		if source > s.Source {
+		if source.Priority() > s.Source.Priority() {
 			source = s.Source
 		}
 	}

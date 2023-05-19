@@ -14,6 +14,14 @@ A simple HF contest log for Linux, written in Go using [gotk3](https://github.co
 * Use the [TCI protocol](https://github.com/maksimus1210/TCI), the [Hamlib daemon](https://github.com/Hamlib/Hamlib), or the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
 * Connect to your transceiver through the [TCI protocol](https://github.com/maksimus1210/TCI) or the [Hamlib network protocol](https://github.com/Hamlib/Hamlib) to keep the band and mode information in sync.
 
+## Install
+
+### Debian, Ubuntu, etc.
+Download the Debian package of the latest release [here](https://github.com/ftl/hellocontest/releases/latest/).
+
+### Arch
+The latest release of Hello Contest is available as AUR package: [hellocontest](https://aur.archlinux.org/packages/hellocontest).
+
 ## Build
 Build hellocontest using the included Makefile by simply running
 

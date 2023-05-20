@@ -92,21 +92,26 @@ button.band label.max-value {
 
 .spot-frequency {
     font-size: small;
+    color: @hellocontest-spot-fg;
 }
 
 .spot-call {
     font-size: x-large;
     font-weight: bold;
+    color: @hellocontest-spot-fg;
 }
 
 .spot-geo-info{
     font-size: small;
+    color: @hellocontest-spot-fg;
 }
 
 .spot-predicted-exchange{
     font-size: x-large;
+    color: @hellocontest-spot-fg;
 }
 
 .spot-score{
     font-size: x-large;
+    color: @hellocontest-spot-fg;
 }

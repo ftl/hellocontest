@@ -8,15 +8,33 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 )
 
-var entrySourceStyles = map[core.SpotType]string{
-	core.WorkedSpot:  "workedSpot",
-	core.ManualSpot:  "manualSpot",
-	core.SkimmerSpot: "skimmerSpot",
-	core.RBNSpot:     "rbnSpot",
-	core.ClusterSpot: "clusterSpot",
+var entrySourceStyles = map[core.SpotType]style.Class{
+	core.WorkedSpot:  "worked-spot",
+	core.ManualSpot:  "manual-spot",
+	core.SkimmerSpot: "skimmer-spot",
+	core.RBNSpot:     "rbn-spot",
+	core.ClusterSpot: "cluster-spot",
 }
+
+const (
+	bandClass        style.Class = "band"
+	bandLabelClass   style.Class = "band-label"
+	bandPointsClass  style.Class = "band-points"
+	bandMultisClass  style.Class = "band-multis"
+	bandActiveClass  style.Class = "band-active"
+	bandVisibleClass style.Class = "band-visible"
+	maxValueClass    style.Class = "max-value"
+
+	spotRowClass               style.Class = "spot-row"
+	spotFrequencyClass         style.Class = "spot-frequency"
+	spotCallClass              style.Class = "spot-call"
+	spotGeoInfoClass           style.Class = "spot-geo-info"
+	spotPredictedExchangeClass style.Class = "spot-predicted-exchange"
+	spotScoreClass             style.Class = "spot-score"
+)
 
 type SpotsController interface {
 	SetVisibleBand(core.Band)
@@ -32,7 +50,7 @@ type spotsView struct {
 
 	bandGrid  *gtk.Grid
 	entryList *gtk.ListBox
-	style     *style
+	// style     *style
 
 	bands             []core.BandSummary
 	bandsID           string
@@ -51,74 +69,6 @@ func setupSpotsView(builder *gtk.Builder, controller SpotsController) *spotsView
 	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
 	result.entryList.SetFilterFunc(result.filterRow)
 	result.entryList.Connect("row-selected", result.onRowSelected)
-
-	result.style = newStyle(`
-	.row{
-		margin: 3px;
-		padding: 3px;
-		border: 2px solid black;
-		color: black;
-	}
-	.workedSpot{
-		background-color: rgba(128, 128, 128, 255);
-	}
-	.manualSpot{
-		background-color: rgba(255, 255, 255, 255);
-	}
-	.skimmerSpot{
-		background-color: rgba(255, 153, 255, 255);
-	}
-	.rbnSpot{
-		background-color: rgba(255, 255, 153, 255);
-	}
-	.clusterSpot{
-		background-color: rgba(153, 255, 255, 255);
-	}
-	.frequency{
-		font-size: small;
-	}
-	.call {
-		font-size: x-large;
-		font-weight: bold;
-	}
-	.geoInfo{
-		font-size: small;
-	}
-	.predictedExchange{
-		font-size: x-large;
-	}
-	.score{
-		font-size: x-large;
-	}
-
-	.band{
-		margin: 3px;
-		padding: 3px;
-	}
-	.bandActive{
-		border-top: 4px solid blue;
-	}
-	.bandVisible{
-		border-bottom: 4px solid black;
-	}
-	.maxValue{
-		background-color: red;
-		color: white;
-		border: 1px solid red;
-		border-radius: 3px;
-		font-weight: bold;
-	}
-	.bandLabel{
-		font-size: x-large;
-	}
-	.bandPoints{
-		font-size: medium;
-	}
-	.bandMultis{
-		font-size: medium;
-	}
-	`)
-	result.style.applyTo(&result.entryList.Widget)
 
 	return result
 }
@@ -197,13 +147,11 @@ func toBandsID(bands []core.BandSummary) string {
 
 func (v *spotsView) newBand(band core.BandSummary) *gtk.Widget {
 	button, _ := gtk.ButtonNew()
-	button.SetName("band")
 	button.SetHAlign(gtk.ALIGN_END)
 	button.SetVAlign(gtk.ALIGN_FILL)
 	button.SetHExpand(true)
-	v.style.applyTo(&button.Widget)
-	addStyleClass(&button.Widget, "band")
 	button.Connect("button-press-event", v.selectBand(band.Band))
+	style.AddClass(&button.Widget, bandClass)
 
 	grid, _ := gtk.GridNew()
 	grid.SetColumnSpacing(3)
@@ -213,25 +161,22 @@ func (v *spotsView) newBand(band core.BandSummary) *gtk.Widget {
 	label.SetHAlign(gtk.ALIGN_END)
 	label.SetVAlign(gtk.ALIGN_FILL)
 	label.SetHExpand(true)
-	v.style.applyTo(&label.Widget)
-	addStyleClass(&label.Widget, "bandLabel")
 	grid.Attach(label, 0, 0, 1, 2)
+	style.AddClass(&label.Widget, bandLabelClass)
 
 	points, _ := gtk.LabelNew("")
 	points.SetHAlign(gtk.ALIGN_FILL)
 	points.SetVAlign(gtk.ALIGN_FILL)
 	points.SetHExpand(true)
-	v.style.applyTo(&points.Widget)
-	addStyleClass(&points.Widget, "bandPoints")
 	grid.Attach(points, 1, 0, 1, 1)
+	style.AddClass(&points.Widget, bandPointsClass)
 
 	multis, _ := gtk.LabelNew("")
 	multis.SetHAlign(gtk.ALIGN_FILL)
 	multis.SetVAlign(gtk.ALIGN_FILL)
 	points.SetHExpand(true)
-	v.style.applyTo(&multis.Widget)
-	addStyleClass(&multis.Widget, "bandPoints")
 	grid.Attach(multis, 1, 1, 1, 1)
+	style.AddClass(&multis.Widget, bandMultisClass)
 
 	v.updateBand(button, band)
 
@@ -251,24 +196,24 @@ func (v *spotsView) updateBand(button *gtk.Button, band core.BandSummary) {
 	multis.SetText(fmt.Sprintf("%dM", band.Multis))
 
 	if band.MaxPoints {
-		addStyleClass(&points.Widget, "maxValue")
+		style.AddClass(&points.Widget, maxValueClass)
 	} else {
-		removeStyleClass(&points.Widget, "maxValue")
+		style.RemoveClass(&points.Widget, maxValueClass)
 	}
 	if band.MaxMultis {
-		addStyleClass(&multis.Widget, "maxValue")
+		style.AddClass(&multis.Widget, maxValueClass)
 	} else {
-		removeStyleClass(&multis.Widget, "maxValue")
+		style.RemoveClass(&multis.Widget, maxValueClass)
 	}
 	if band.Active {
-		addStyleClass(&button.Widget, "bandActive")
+		style.AddClass(&button.Widget, bandActiveClass)
 	} else {
-		removeStyleClass(&button.Widget, "bandActive")
+		style.RemoveClass(&button.Widget, bandActiveClass)
 	}
 	if band.Visible {
-		addStyleClass(&button.Widget, "bandVisible")
+		style.AddClass(&button.Widget, bandVisibleClass)
 	} else {
-		removeStyleClass(&button.Widget, "bandVisible")
+		style.RemoveClass(&button.Widget, bandVisibleClass)
 	}
 }
 
@@ -304,9 +249,8 @@ func (v *spotsView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 
 	layout, _ := gtk.GridNew()
 	layout.SetHExpand(true)
-	v.style.applyTo(&layout.Widget)
-	addStyleClass(&layout.Widget, "row")
-	addStyleClass(&layout.Widget, entrySourceStyles[entry.Source])
+	style.AddClass(&layout.Widget, spotRowClass)
+	style.AddClass(&layout.Widget, entrySourceStyles[entry.Source])
 	root.Add(layout)
 
 	proximityIndicator := newProximityIndicator(root, v.getProximity)
@@ -321,15 +265,13 @@ func (v *spotsView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	frequency, _ := gtk.LabelNew("")
 	frequency.SetHExpand(true)
 	frequency.SetHAlign(gtk.ALIGN_START)
-	v.style.applyTo(&frequency.Widget)
-	addStyleClass(&frequency.Widget, "frequency")
+	style.AddClass(&frequency.Widget, spotFrequencyClass)
 	layout.Attach(frequency, 1, 0, 1, 1)
 
 	call, _ := gtk.LabelNew(entry.Call.String())
 	call.SetHExpand(true)
 	call.SetHAlign(gtk.ALIGN_START)
-	v.style.applyTo(&call.Widget)
-	addStyleClass(&call.Widget, "call")
+	style.AddClass(&call.Widget, spotCallClass)
 	layout.Attach(call, 1, 1, 1, 2)
 
 	var geoInfoText string
@@ -339,22 +281,21 @@ func (v *spotsView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	geoInfo, _ := gtk.LabelNew(geoInfoText)
 	geoInfo.SetHExpand(true)
 	geoInfo.SetHAlign(gtk.ALIGN_START)
-	v.style.applyTo(&geoInfo.Widget)
-	addStyleClass(&geoInfo.Widget, "geoInfo")
+	style.AddClass(&geoInfo.Widget, spotGeoInfoClass)
 	layout.Attach(geoInfo, 1, 3, 1, 1)
 
 	predictedExchange, _ := gtk.LabelNew(entry.Info.ExchangeText)
 	predictedExchange.SetHExpand(true)
 	predictedExchange.SetHAlign(gtk.ALIGN_END)
-	v.style.applyTo(&predictedExchange.Widget)
-	addStyleClass(&predictedExchange.Widget, "predictedExchange")
+	// v.style.applyTo(&predictedExchange.Widget)
+	style.AddClass(&predictedExchange.Widget, spotPredictedExchangeClass)
 	layout.Attach(predictedExchange, 2, 0, 1, 2)
 
 	score, _ := gtk.LabelNew("")
 	score.SetHExpand(true)
 	score.SetHAlign(gtk.ALIGN_END)
-	v.style.applyTo(&score.Widget)
-	addStyleClass(&score.Widget, "score")
+	// v.style.applyTo(&score.Widget)
+	style.AddClass(&score.Widget, spotScoreClass)
 	layout.Attach(score, 2, 2, 1, 2)
 
 	lifetimeIndicator := newLifetimeIndicator(root, v.getRemainingLifetime)
@@ -375,9 +316,9 @@ func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
 	child, _ := row.GetChild()
 	layout := child.(*gtk.Grid)
 	for _, class := range entrySourceStyles {
-		removeStyleClass(&layout.Widget, class)
+		style.RemoveClass(&layout.Widget, class)
 	}
-	addStyleClass(&layout.Widget, entrySourceStyles[entry.Source])
+	style.AddClass(&layout.Widget, entrySourceStyles[entry.Source])
 
 	child, _ = layout.GetChildAt(1, 0)
 	frequency := child.(*gtk.Label)

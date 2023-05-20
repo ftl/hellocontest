@@ -13,6 +13,7 @@ import (
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/ui/glade"
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 // Run the application
@@ -38,6 +39,7 @@ type application struct {
 	version        string
 	app            *gtk.Application
 	builder        *gtk.Builder
+	style          *style.Style
 	windowGeometry *gmtry.Geometry
 	mainWindow     *mainWindow
 	callinfoWindow *callinfoWindow
@@ -76,6 +78,10 @@ func (a *application) activate() {
 	a.rateWindow = setupRateWindow(a.windowGeometry)
 	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.controller.Bandmap)
 	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
+
+	screen := a.mainWindow.window.GetScreen()
+	a.style = style.New()
+	a.style.AddToScreen(screen)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetSpotSourceMenuController(a.controller)

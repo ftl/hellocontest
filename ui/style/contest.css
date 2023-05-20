@@ -1,0 +1,112 @@
+/*
+ * Entry area
+ */
+
+ @define-color hellocontest-duplicate-bg red;
+ @define-color hellocontest-duplicate-fg white;
+
+.entry-duplicate {
+    background-color: @hellocontest-duplicate-bg;
+    color: @hellocontest-duplicate-fg;
+}
+
+.entry-editing {
+    background-color: #97C1F6;
+    color: black;
+}
+
+/*
+ * Score window, band selection buttons
+ */
+
+button.band {
+    margin: 3px;
+    padding: 3px;
+}
+
+button.band-active {
+    border-top: 4px solid @theme_selected_bg_color;
+}
+
+button.band-visible {
+    border-bottom: 4px solid @theme_text_color;
+}
+
+button.band label.band-label {
+    font-size: x-large;
+}
+
+button.band label.band-points {
+    font-size: medium;
+}
+
+button.band label.band-multis {
+    font-size: medium;
+}
+
+button.band label.max-value {
+    background-color: @theme_selected_bg_color;
+    color: @theme_selected_fg_color;
+    border: 1px solid @theme_selected_bg_color;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+/*
+ * Score window, spot list rows
+ */
+
+ @define-color hellocontest-spot-fg #000000;
+ @define-color hellocontest-worked-spot-bg #808080;
+ @define-color hellocontest-manual-spot-bg #FFFFFF;
+ @define-color hellocontest-skimmer-spot-bg #FF99FF;
+ @define-color hellocontest-rbn-spot-bg #FFFF99;
+ @define-color hellocontest-cluster-spot-bg #99FFFF;
+
+ .spot-row {
+    margin: 3px;
+    padding: 3px;
+    border: 2px solid @borders;
+    color: @hellocontest-spot-fg;
+}
+
+.worked-spot {
+    background-color: @hellocontest-worked-spot;
+}
+
+.manual-spot {
+    background-color: @hellocontest-manual-spot-bg;
+}
+
+.skimmer-spot {
+    background-color: @hellocontest-skimmer-spot-bg;
+}
+
+.rbn-spot {
+    background-color: @hellocontest-rbn-spot-bg;
+}
+
+.cluster-spot {
+    background-color: @hellocontest-cluster-spot-bg;
+}
+
+.spot-frequency {
+    font-size: small;
+}
+
+.spot-call {
+    font-size: x-large;
+    font-weight: bold;
+}
+
+.spot-geo-info{
+    font-size: small;
+}
+
+.spot-predicted-exchange{
+    font-size: x-large;
+}
+
+.spot-score{
+    font-size: x-large;
+}

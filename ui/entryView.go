@@ -9,6 +9,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 // EntryController controls the entry of QSO data.
@@ -28,7 +29,7 @@ type EntryController interface {
 type entryView struct {
 	controller EntryController
 
-	style       *style
+	// style       *style
 	ignoreInput bool
 
 	entryRoot            *gtk.Grid
@@ -72,17 +73,6 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 
 	setupBandCombo(result.band)
 	setupModeCombo(result.mode)
-
-	result.style = newStyle(`
-	.duplicate {
-		background-color: #FF0000; 
-		color: #FFFFFF;
-	}
-	.editing {
-		background-color: #66AAFF;
-	}
-	`)
-	result.style.applyTo(&result.entryRoot.Widget)
 
 	return result
 }
@@ -365,19 +355,24 @@ func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {
 	}
 }
 
+const (
+	entryDuplicateClass style.Class = "entry-duplicate"
+	entryEditingClass   style.Class = "entry-editing"
+)
+
 func (v *entryView) SetDuplicateMarker(duplicate bool) {
 	if duplicate {
-		addStyleClass(&v.entryRoot.Widget, "duplicate")
+		style.AddClass(&v.entryRoot.Widget, entryDuplicateClass)
 	} else {
-		removeStyleClass(&v.entryRoot.Widget, "duplicate")
+		style.RemoveClass(&v.entryRoot.Widget, entryDuplicateClass)
 	}
 }
 
 func (v *entryView) SetEditingMarker(editing bool) {
 	if editing {
-		addStyleClass(&v.entryRoot.Widget, "editing")
+		style.AddClass(&v.entryRoot.Widget, entryEditingClass)
 	} else {
-		removeStyleClass(&v.entryRoot.Widget, "editing")
+		style.RemoveClass(&v.entryRoot.Widget, entryEditingClass)
 	}
 }
 

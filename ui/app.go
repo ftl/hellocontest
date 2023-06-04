@@ -77,7 +77,7 @@ func (a *application) activate() {
 	a.style = style.New()
 	a.style.AddToScreen(screen)
 
-	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
+	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry, a.style, a.controller.Callinfo)
 	a.scoreWindow = setupScoreWindow(a.windowGeometry, a.style)
 	a.rateWindow = setupRateWindow(a.windowGeometry, a.style)
 	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.controller.Bandmap)

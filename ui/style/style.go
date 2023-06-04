@@ -2,6 +2,7 @@ package style
 
 import (
 	_ "embed"
+	"fmt"
 	"log"
 	"math"
 
@@ -42,6 +43,14 @@ func (c Color) ToRGB() (r, g, b float64) {
 
 func (c Color) ToRGBA() (r, g, b, a float64) {
 	return c.R, c.G, c.B, c.A
+}
+
+func (c Color) ToWeb() string {
+	return fmt.Sprintf("#%02x%02x%02x", toByte(c.R), toByte(c.G), toByte(c.G))
+}
+
+func toByte(f float64) byte {
+	return byte(f * 255)
 }
 
 func (c Color) WithAlpha(alpha float64) (r, g, b, a float64) {

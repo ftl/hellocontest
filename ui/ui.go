@@ -13,6 +13,13 @@ const (
 	axisColorName    = "hellocontest-graph-axis"
 	lowZoneColorName = "hellocontest-lowzone"
 	defaultBandColor = "hellocontest-band-default"
+
+	duplicateFGColorName = "hellocontest-duplicate-fg"
+	duplicateBGColorName = "hellocontest-duplicate-bg"
+	workedFGColorName    = "hellocontest-spot-fg"
+	workedBGColorName    = "hellocontest-worked-spot-bg"
+	worthlessFGColorName = "insensitive_fg_color"
+	worthlessBGColorName = "insensitive_bg_color"
 )
 
 func bandColor(colors colorProvider, band core.Band) style.Color {

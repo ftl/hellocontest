@@ -22,7 +22,7 @@
 
 @define-color hellocontest-graph-bg @theme_bg_color;
 @define-color hellocontest-graph-axis @theme_text_color;
-@define-color hellocontest-timeindicator #FFBF33;
+@define-color hellocontest-timeindicator @theme_selected_bg_color;
 @define-color hellocontest-lowzone #CCCCCC;
 
 /*
@@ -37,6 +37,62 @@
 .entry-editing {
     background-color: #97C1F6;
     color: black;
+}
+
+/*
+ * Callinfo window
+ */
+
+.callinfo {
+    background-color: @theme_bg_color;
+    color: @theme_fg_color;
+}
+
+.callinfo-duplicate {
+    background-color: @hellocontest-duplicate-bg;
+    color: @hellocontest-duplicate-fg;
+}
+
+.callinfo-worked {
+    background-color: @hellocontest-worked-spot-bg;
+    color: @hellocontest-spot-fg;
+}
+
+.callinfo-worthless {
+    background-color: @insensitive_bg_color;
+    color: @insensitive_fg_color;
+}
+
+.callinfo-multi {
+    font-weight: bold;
+}
+
+.callinfo-exact-match {
+    font-size: x-large;
+}
+
+.callinfo-predicted-exchange {
+    font-size: x-large;
+    font-style: italic;
+}
+
+.callinfo-match-insert {
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+}
+
+.callinfo-match-delete {
+    /* no default */
+}
+
+.callinfo-match-substitude {
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+}
+
+.callinfo-match-false-friend {
+    text-decoration-line: underline;
+    text-decoration-style: double;
 }
 
 /*

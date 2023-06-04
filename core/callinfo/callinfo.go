@@ -100,9 +100,13 @@ func (c *Callinfo) SetView(view View) {
 	c.view = view
 }
 
+func (c *Callinfo) Refresh() {
+	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastExchange)
+}
+
 func (c *Callinfo) Show() {
 	c.view.Show()
-	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastExchange)
+	c.Refresh()
 }
 
 func (c *Callinfo) Hide() {

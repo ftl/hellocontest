@@ -3,20 +3,26 @@ package ui
 import (
 	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 const CallinfoWindowID = gmtry.ID("callinfo")
 
 type callinfoWindow struct {
 	*callinfoView
+	controller CallinfoController
 
 	window   *gtk.Window
 	geometry *gmtry.Geometry
+	style    *style.Style
 }
 
-func setupCallinfoWindow(geometry *gmtry.Geometry) *callinfoWindow {
+func setupCallinfoWindow(geometry *gmtry.Geometry, style *style.Style, controller CallinfoController) *callinfoWindow {
 	result := &callinfoWindow{
-		geometry: geometry,
+		controller: controller,
+		geometry:   geometry,
+		style:      style,
 	}
 
 	return result
@@ -38,7 +44,8 @@ func (w *callinfoWindow) Show() {
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("Callsign Information")
 		w.window.Connect("destroy", w.onDestroy)
-		w.callinfoView = setupCallinfoView(builder)
+		w.callinfoView = setupCallinfoView(builder, w.style.ForWidget(w.window.ToWidget()), w.controller)
+		w.window.Connect("style-updated", w.callinfoView.RefreshStyle)
 		connectToGeometry(w.geometry, CallinfoWindowID, w.window)
 	}
 	w.window.ShowAll()

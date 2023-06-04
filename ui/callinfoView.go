@@ -7,19 +7,57 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 )
 
+type CallinfoController interface {
+	Refresh()
+}
+
+type callinfoStyle struct {
+	colorProvider
+
+	backgroundColor style.Color
+	fontColor       style.Color
+	fontSize        float64
+	duplicateFG     style.Color
+	duplicateBG     style.Color
+	workedFG        style.Color
+	workedBG        style.Color
+	worthlessFG     style.Color
+	worthlessBG     style.Color
+}
+
+func (s *callinfoStyle) Refresh() {
+	s.backgroundColor = s.colorProvider.BackgroundColor()
+	s.fontColor = s.colorProvider.ForegroundColor()
+	s.duplicateFG = s.colorProvider.ColorByName(duplicateFGColorName)
+	s.duplicateBG = s.colorProvider.ColorByName(duplicateBGColorName)
+	s.workedFG = s.colorProvider.ColorByName(workedFGColorName)
+	s.workedBG = s.colorProvider.ColorByName(workedBGColorName)
+	s.worthlessFG = s.colorProvider.ColorByName(worthlessFGColorName)
+	s.worthlessBG = s.colorProvider.ColorByName(worthlessBGColorName)
+}
+
 type callinfoView struct {
+	controller CallinfoController
+
 	callsignLabel   *gtk.Label
 	exchangeLabel   *gtk.Label
 	dxccLabel       *gtk.Label
 	valueLabel      *gtk.Label
 	userInfoLabel   *gtk.Label
 	supercheckLabel *gtk.Label
+
+	style *callinfoStyle
 }
 
-func setupCallinfoView(builder *gtk.Builder) *callinfoView {
-	result := new(callinfoView)
+func setupCallinfoView(builder *gtk.Builder, colors colorProvider, controller CallinfoController) *callinfoView {
+	result := &callinfoView{
+		controller: controller,
+		style:      &callinfoStyle{colorProvider: colors},
+	}
+	result.style.Refresh()
 
 	result.callsignLabel = getUI(builder, "callsignLabel").(*gtk.Label)
 	result.exchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
@@ -29,6 +67,21 @@ func setupCallinfoView(builder *gtk.Builder) *callinfoView {
 	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
 
 	return result
+}
+
+func (c *callinfoView) SetCallinfoController(controller CallinfoController) {
+	c.controller = controller
+}
+
+func (v *callinfoView) RefreshStyle() {
+	v.style.Refresh()
+	if v.controller != nil {
+		v.controller.Refresh()
+	}
+}
+
+func attr(name, value string) string {
+	return fmt.Sprintf("%s=%q", name, value)
 }
 
 func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
@@ -45,9 +98,15 @@ func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 	// see https://docs.gtk.org/Pango/pango_markup.html for reference
 	attributes := make([]string, 0, 1)
 	if duplicate {
-		attributes = append(attributes, "background='red' foreground='white'")
+		attributes = append(attributes,
+			attr("background", v.style.duplicateBG.ToWeb()),
+			attr("foreground", v.style.duplicateFG.ToWeb()),
+		)
 	} else if worked {
-		attributes = append(attributes, "foreground='orange'")
+		attributes = append(attributes,
+			attr("background", v.style.workedBG.ToWeb()),
+			attr("foreground", v.style.workedFG.ToWeb()),
+		)
 	}
 	attributeString := strings.Join(attributes, " ")
 
@@ -88,17 +147,17 @@ func (v *callinfoView) SetValue(points, multis int) {
 	var pointsMarkup string
 	switch {
 	case points < 1:
-		pointsMarkup = "foreground='silver'"
+		pointsMarkup = attr("foreground", "silver")
 	case points > 1:
-		pointsMarkup = "font-weight='heavy'"
+		pointsMarkup = attr("font-weight", "heavy")
 	}
 
 	var multisMarkup string
 	switch {
 	case multis < 1:
-		multisMarkup = "foreground='silver'"
+		multisMarkup = attr("foreground", "silver")
 	case multis > 1:
-		multisMarkup = "font-weight='heavy'"
+		multisMarkup = attr("font-weight", "heavy")
 	}
 
 	valueText := fmt.Sprintf("<span %s>%d points</span> / <span %s>%d multis</span>", pointsMarkup, points, multisMarkup, multis)
@@ -134,24 +193,41 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 		attributes := make([]string, 0, 3)
 		switch {
 		case callsign.Duplicate:
-			attributes = append(attributes, "foreground='red'")
+			attributes = append(attributes,
+				attr("background", v.style.duplicateBG.ToWeb()),
+				attr("foreground", v.style.duplicateFG.ToWeb()),
+			)
+
 		case callsign.Worked:
-			attributes = append(attributes, "foreground='orange'")
+			attributes = append(attributes,
+				attr("background", v.style.workedBG.ToWeb()),
+				attr("foreground", v.style.workedFG.ToWeb()),
+			)
 		case (callsign.Points == 0) && (callsign.Multis == 0):
-			attributes = append(attributes, "foreground='silver'")
+			attributes = append(attributes,
+				attr("background", v.style.worthlessBG.ToWeb()),
+				attr("foreground", v.style.worthlessFG.ToWeb()),
+			)
 		case callsign.Multis > 0:
-			attributes = append(attributes, "foreground='black'", "font-weight='heavy'")
+			attributes = append(attributes,
+				attr("background", v.style.backgroundColor.ToWeb()),
+				attr("foreground", v.style.fontColor.ToWeb()),
+				attr("font-weight", "heavy"),
+			)
 		default:
-			attributes = append(attributes, "foreground='black'")
+			attributes = append(attributes,
+				attr("background", v.style.backgroundColor.ToWeb()),
+				attr("foreground", v.style.fontColor.ToWeb()),
+			)
 		}
+
 		hasPredictedExchange := strings.Join(callsign.PredictedExchange, "") != ""
 		if callsign.ExactMatch || hasPredictedExchange {
-			attributes = append(attributes, "font-size='x-large'")
+			attributes = append(attributes, attr("font-size", "x-large"))
 		}
 		if hasPredictedExchange {
-			attributes = append(attributes, "font-style='italic'")
+			attributes = append(attributes, attr("font-style", "italic"))
 		}
-		attributes = append(attributes, "background='white'")
 		attributeString := strings.Join(attributes, " ")
 
 		var renderedCallsign string

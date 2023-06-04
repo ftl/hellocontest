@@ -6,7 +6,6 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
-	"github.com/ftl/hellocontest/ui/style"
 )
 
 type scoreView struct {
@@ -16,13 +15,13 @@ type scoreView struct {
 	graph *scoreGraph
 }
 
-func setupNewScoreView(builder *gtk.Builder, style *style.Style) *scoreView {
+func setupNewScoreView(builder *gtk.Builder, colors colorProvider) *scoreView {
 	result := &scoreView{}
 
 	result.tableLabel = getUI(builder, "tableLabel").(*gtk.Label)
 
+	result.graph = newScoreGraph(colors)
 	result.graphArea = getUI(builder, "scoreGraphArea").(*gtk.DrawingArea)
-	result.graph = newScoreGraph(style.ForWidget(result.graphArea.ToWidget()))
 	result.graphArea.Connect("draw", result.graph.Draw)
 	result.graphArea.Connect("style-updated", result.graph.RefreshStyle)
 

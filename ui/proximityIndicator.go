@@ -5,14 +5,16 @@ import (
 
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 var proximityStyle = struct {
-	color           color
-	colorExactMatch color
+	color           style.Color
+	colorExactMatch style.Color
 }{
-	color:           color{0, 0, 0},
-	colorExactMatch: color{0, 255, 0},
+	color:           style.Black,
+	colorExactMatch: style.Green,
 }
 
 type proximityIndicator struct {
@@ -51,7 +53,7 @@ func (ind *proximityIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		color = proximityStyle.colorExactMatch
 	}
 
-	cr.SetSourceRGB(color.toRGB())
+	cr.SetSourceRGB(color.ToRGB())
 	cr.MoveTo(0, startHeight)
 	cr.LineTo(width, startHeight)
 	cr.LineTo(width, endHeight)

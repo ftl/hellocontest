@@ -85,7 +85,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	g.fillBackground(cr)
 
 	// the zone
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.toRGBA(rateStyle.areaAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.areaAlpha))
 	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
@@ -93,7 +93,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.toRGBA(rateStyle.borderAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.borderAlpha))
 	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
@@ -108,7 +108,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		if !ok {
 			color = rateStyle.defaultScoreGraphColor
 		}
-		cr.SetSourceRGB(color.toRGB())
+		cr.SetSourceRGB(color.ToRGB())
 
 		g.drawDataPoints(cr, layout, graph.DataPoints)
 	}
@@ -117,7 +117,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	if g.timeFrameIndex >= 0 && valueCount > 1 {
 		startX := float64(g.timeFrameIndex) * layout.binWidth
 		endX := float64(g.timeFrameIndex+1) * layout.binWidth
-		cr.SetSourceRGBA(rateStyle.timeFrameColor.toRGBA(rateStyle.timeFrameAlpha)) // TODO calculate the achievment of the current time frame and use the corresponding color
+		cr.SetSourceRGBA(rateStyle.timeFrameColor.ToRGBA(rateStyle.timeFrameAlpha)) // TODO calculate the achievment of the current time frame and use the corresponding color
 		cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY+layout.maxHeight)
@@ -127,7 +127,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	}
 
 	// the zero line
-	cr.SetSourceRGB(rateStyle.axisColor.toRGB())
+	cr.SetSourceRGB(rateStyle.axisColor.ToRGB())
 	cr.MoveTo(0, layout.zeroY)
 	cr.LineTo(layout.width, layout.zeroY)
 	cr.Stroke()
@@ -152,7 +152,7 @@ func (g *scoreGraph) fillBackground(cr *cairo.Context) {
 	cr.Save()
 	defer cr.Restore()
 
-	cr.SetSourceRGB(rateStyle.backgroundColor.toRGB())
+	cr.SetSourceRGB(rateStyle.backgroundColor.ToRGB())
 	cr.Paint()
 }
 

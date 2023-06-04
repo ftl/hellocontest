@@ -3,12 +3,14 @@ package ui
 import (
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 var lifetimeStyle = struct {
-	color color
+	color style.Color
 }{
-	color: color{0, 0, 0},
+	color: style.Black,
 }
 
 type lifetimeIndicator struct {
@@ -36,7 +38,7 @@ func (ind *lifetimeIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	height := float64(da.GetAllocatedHeight())
 	width := lifetime * float64(da.GetAllocatedWidth())
 
-	cr.SetSourceRGB(lifetimeStyle.color.toRGB())
+	cr.SetSourceRGB(lifetimeStyle.color.ToRGB())
 	cr.MoveTo(0, 0)
 	cr.LineTo(width, 0)
 	cr.LineTo(width, height)

@@ -5,49 +5,51 @@ import (
 	"math"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 )
 
-var rateColors = colorMap{
+var rateColors = style.ColorMap{
 	{1, 0, 0}, {1, 0.6, 0.2}, {0, 0.8, 0},
 }
 
-var timeColors = colorMap{
+var timeColors = style.ColorMap{
 	{1, 0, 0}, {1, 0.6, 0.2}, {0, 0.8, 0}, {0, 0.8, 0}, {0, 0.8, 0}, {0, 0.8, 0},
 }
 
 const angleRotation = (3.0 / 2.0) * math.Pi
 
 var rateStyle = struct {
-	backgroundColor        color
-	fontColor              color
+	backgroundColor        style.Color
+	fontColor              style.Color
 	fontSize               float64
-	axisColor              color
+	axisColor              style.Color
 	axisMargin             float64
-	lowZoneColor           color
+	lowZoneColor           style.Color
 	areaAlpha              float64
 	borderAlpha            float64
 	timeIndicatorWidth     float64
-	timeFrameColor         color
+	timeFrameColor         style.Color
 	timeFrameAlpha         float64
-	defaultScoreGraphColor color
-	scoreGraphColors       map[core.Band]color
+	defaultScoreGraphColor style.Color
+	scoreGraphColors       map[core.Band]style.Color
 }{
-	backgroundColor:        color{1, 1, 1},
-	fontColor:              color{0.4, 0.4, 0.4},
+	backgroundColor:        style.Color{1, 1, 1},
+	fontColor:              style.Color{0.4, 0.4, 0.4},
 	fontSize:               15,
-	axisColor:              color{0.4, 0.4, 0.4},
+	axisColor:              style.Color{0.4, 0.4, 0.4},
 	axisMargin:             15,
-	lowZoneColor:           color{0.8, 0.8, 0.8},
+	lowZoneColor:           style.Color{0.8, 0.8, 0.8},
 	areaAlpha:              0.4,
 	borderAlpha:            0.8,
 	timeIndicatorWidth:     10,
-	timeFrameColor:         color{1, 0.73, 0.2},
+	timeFrameColor:         style.Color{1, 0.73, 0.2},
 	timeFrameAlpha:         1,
-	defaultScoreGraphColor: color{0.4, 0.4, 0.4},
-	scoreGraphColors: map[core.Band]color{
+	defaultScoreGraphColor: style.Color{0.4, 0.4, 0.4},
+	scoreGraphColors: map[core.Band]style.Color{
 		core.Band160m: {0.5, 0, 0.5},
 		core.Band80m:  {0, 0, 0.5},
 		core.Band40m:  {0, 1.0, 0},
@@ -97,14 +99,14 @@ func (ind *rateIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	ind.fillBackground(cr)
 
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.toRGBA(rateStyle.areaAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.areaAlpha))
 	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
 	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
 	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.toRGBA(rateStyle.borderAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.borderAlpha))
 	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
 	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
 	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)
@@ -112,14 +114,14 @@ func (ind *rateIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Stroke()
 
 	overallAchievment := (ind.qAxis.achievement + ind.pAxis.achievement + ind.mAxis.achievement) / 3
-	cr.SetSourceRGBA(rateColors.toRGBA(overallAchievment, rateStyle.areaAlpha))
+	cr.SetSourceRGBA(rateColors.ToRGBA(overallAchievment, rateStyle.areaAlpha))
 	cr.MoveTo(ind.qAxis.value1Point.x, ind.qAxis.value1Point.y)
 	cr.LineTo(ind.pAxis.value1Point.x, ind.pAxis.value1Point.y)
 	cr.LineTo(ind.mAxis.value1Point.x, ind.mAxis.value1Point.y)
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(rateColors.toRGBA(overallAchievment, rateStyle.borderAlpha))
+	cr.SetSourceRGBA(rateColors.ToRGBA(overallAchievment, rateStyle.borderAlpha))
 	cr.MoveTo(ind.qAxis.value1Point.x, ind.qAxis.value1Point.y)
 	cr.LineTo(ind.pAxis.value1Point.x, ind.pAxis.value1Point.y)
 	cr.LineTo(ind.mAxis.value1Point.x, ind.mAxis.value1Point.y)
@@ -136,7 +138,7 @@ func (ind *rateIndicator) fillBackground(cr *cairo.Context) {
 	cr.Save()
 	defer cr.Restore()
 
-	cr.SetSourceRGB(rateStyle.backgroundColor.toRGB())
+	cr.SetSourceRGB(rateStyle.backgroundColor.ToRGB())
 	cr.Paint()
 }
 
@@ -257,17 +259,17 @@ func (a *rateAxis) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.Save()
 	defer cr.Restore()
 
-	cr.SetSourceRGB(rateStyle.axisColor.toRGB())
+	cr.SetSourceRGB(rateStyle.axisColor.ToRGB())
 	cr.MoveTo(a.axisLine.left, a.axisLine.top)
 	cr.LineTo(a.axisLine.right, a.axisLine.bottom)
 	cr.Stroke()
 
-	cr.SetSourceRGB(rateStyle.fontColor.toRGB())
+	cr.SetSourceRGB(rateStyle.fontColor.ToRGB())
 	cr.SetFontSize(rateStyle.fontSize)
 	cr.MoveTo(a.labelRect.left, a.labelRect.bottom)
 	cr.ShowText(a.LabelText())
 
-	cr.SetSourceRGB(rateColors.toRGB(a.achievement))
+	cr.SetSourceRGB(rateColors.ToRGB(a.achievement))
 	cr.Arc(a.value1Point.x, a.value1Point.y, 5, 0, 2*math.Pi)
 	cr.Fill()
 	cr.Stroke()
@@ -337,12 +339,12 @@ func (ind *timeIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	radius := (math.Min(float64(da.GetAllocatedWidth()), float64(da.GetAllocatedHeight())) / 2) - (ind.lineWidth / 2)
 	angle := (1 - ind.achievement) * 2 * math.Pi
 
-	cr.SetSourceRGB(timeColors.toRGB(ind.achievement))
+	cr.SetSourceRGB(timeColors.ToRGB(ind.achievement))
 	cr.SetLineWidth(ind.lineWidth)
 	cr.Arc(center.x, center.y, radius, angleRotation, angle+angleRotation)
 	cr.Stroke()
 
-	cr.SetSourceRGB(rateStyle.fontColor.toRGB())
+	cr.SetSourceRGB(rateStyle.fontColor.ToRGB())
 	cr.SetFontSize(rateStyle.fontSize)
 	labelExtents := cr.TextExtents(ind.labelText)
 	label := point{

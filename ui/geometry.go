@@ -79,34 +79,3 @@ func degreesToRadians(d float64) float64 {
 	const halfcircle = 180 / math.Pi
 	return d / halfcircle
 }
-
-type color struct{ r, g, b float64 }
-
-func (c color) toRGB() (r, g, b float64) {
-	return c.r, c.g, c.b
-}
-
-func (c color) toRGBA(alpha float64) (r, g, b, a float64) {
-	return c.r, c.g, c.b, alpha
-}
-
-type colorMap []color
-
-func (c colorMap) toRGB(f float64) (r, g, b float64) {
-	f = math.Abs(f)
-	adaptedHeat := float64(f) * float64(len(c)-1)
-	colorIndex := int(adaptedHeat)
-	lower := c[int(math.Min(float64(colorIndex), float64(len(c)-1)))]
-	upper := c[int(math.Min(float64(colorIndex+1), float64(len(c)-1)))]
-	p := adaptedHeat - float64(colorIndex)
-	r = (1-p)*lower.r + p*upper.r
-	g = (1-p)*lower.g + p*upper.g
-	b = (1-p)*lower.b + p*upper.b
-	return
-}
-
-func (c colorMap) toRGBA(f float64, alpha float64) (r, g, b, a float64) {
-	r, g, b = c.toRGB(f)
-	a = alpha
-	return
-}

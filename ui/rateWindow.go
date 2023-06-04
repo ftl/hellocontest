@@ -3,6 +3,8 @@ package ui
 import (
 	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 const RateWindowID = "rate"
@@ -10,11 +12,12 @@ const RateWindowID = "rate"
 type rateWindow struct {
 	window   *gtk.Window
 	geometry *gmtry.Geometry
+	style    *style.Style
 
 	*rateView
 }
 
-func setupRateWindow(geometry *gmtry.Geometry) *rateWindow {
+func setupRateWindow(geometry *gmtry.Geometry, style *style.Style) *rateWindow {
 	result := &rateWindow{
 		geometry: geometry,
 	}
@@ -38,7 +41,7 @@ func (w *rateWindow) Show() {
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("QSO Rate")
 		w.window.Connect("destroy", w.onDestroy)
-		w.rateView = setupNewRateView(builder)
+		w.rateView = setupNewRateView(builder, w.style)
 		connectToGeometry(w.geometry, RateWindowID, w.window)
 	}
 	w.window.ShowAll()

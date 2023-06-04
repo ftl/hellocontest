@@ -73,15 +73,15 @@ func (a *application) activate() {
 	a.controller.Startup()
 
 	a.mainWindow = setupMainWindow(a.builder, a.app)
-	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
-	a.scoreWindow = setupScoreWindow(a.windowGeometry)
-	a.rateWindow = setupRateWindow(a.windowGeometry)
-	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.controller.Bandmap)
-	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
-
 	screen := a.mainWindow.window.GetScreen()
 	a.style = style.New()
 	a.style.AddToScreen(screen)
+
+	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry)
+	a.scoreWindow = setupScoreWindow(a.windowGeometry, a.style)
+	a.rateWindow = setupRateWindow(a.windowGeometry, a.style)
+	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.controller.Bandmap)
+	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetSpotSourceMenuController(a.controller)

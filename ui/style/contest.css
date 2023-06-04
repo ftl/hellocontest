@@ -1,9 +1,33 @@
 /*
- * Entry area
+ * Colors
  */
 
- @define-color hellocontest-duplicate-bg red;
- @define-color hellocontest-duplicate-fg white;
+@define-color hellocontest-duplicate-bg red;
+@define-color hellocontest-duplicate-fg white;
+
+@define-color hellocontest-spot-fg #000000;
+@define-color hellocontest-worked-spot-bg #808080;
+@define-color hellocontest-manual-spot-bg #FFFFFF;
+@define-color hellocontest-skimmer-spot-bg #FF99FF;
+@define-color hellocontest-rbn-spot-bg #FFFF99;
+@define-color hellocontest-cluster-spot-bg #99FFFF;
+
+@define-color hellocontest-band160m #7F007F;
+@define-color hellocontest-band80m #00007F;
+@define-color hellocontest-band40m #00FF00;
+@define-color hellocontest-band20m #FFFF00;
+@define-color hellocontest-band15m #FF7F00;
+@define-color hellocontest-band10m #FF0000;
+@define-color hellocontest-band-default @theme_text_color;
+
+@define-color hellocontest-graph-bg @theme_bg_color;
+@define-color hellocontest-graph-axis @theme_text_color;
+@define-color hellocontest-timeindicator #FFBF33;
+@define-color hellocontest-lowzone #CCCCCC;
+
+/*
+ * Entry area
+ */
 
 .entry-duplicate {
     background-color: @hellocontest-duplicate-bg;
@@ -55,13 +79,6 @@ button.band label.max-value {
 /*
  * Score window, spot list rows
  */
-
- @define-color hellocontest-spot-fg #000000;
- @define-color hellocontest-worked-spot-bg #808080;
- @define-color hellocontest-manual-spot-bg #FFFFFF;
- @define-color hellocontest-skimmer-spot-bg #FF99FF;
- @define-color hellocontest-rbn-spot-bg #FFFF99;
- @define-color hellocontest-cluster-spot-bg #99FFFF;
 
  .spot-row {
     margin: 3px;

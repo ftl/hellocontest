@@ -4,7 +4,32 @@ import (
 	"log"
 
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 )
+
+const (
+	axisColorName    = "hellocontest-graph-axis"
+	lowZoneColorName = "hellocontest-lowzone"
+	defaultBandColor = "hellocontest-band-default"
+)
+
+func bandColor(colors colorProvider, band core.Band) style.Color {
+	bandColorName := "hellocontest-band" + string(band)
+	if !colors.HasColor(bandColorName) {
+		return colors.ColorByName(defaultBandColor)
+	}
+	return colors.ColorByName(bandColorName)
+}
+
+type colorProvider interface {
+	HasColor(name string) bool
+	ColorByName(name string) style.Color
+	BackgroundColor() style.Color
+	ForegroundColor() style.Color
+	TextColor() style.Color
+}
 
 func getUI(builder *gtk.Builder, name string) interface{} {
 	obj, err := builder.GetObject(name)

@@ -4,6 +4,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 type rateView struct {
@@ -12,14 +13,13 @@ type rateView struct {
 	indicator *rateIndicator
 }
 
-func setupNewRateView(builder *gtk.Builder) *rateView {
-	result := &rateView{
-		indicator: newRateIndicator(),
-	}
+func setupNewRateView(builder *gtk.Builder, style *style.Style) *rateView {
+	result := &rateView{}
 
 	result.indicatorArea = getUI(builder, "rateIndicatorArea").(*gtk.DrawingArea)
-
+	result.indicator = newRateIndicator(style.ForWidget(result.indicatorArea.ToWidget()))
 	result.indicatorArea.Connect("draw", result.indicator.Draw)
+	result.indicatorArea.Connect("style-updated", result.indicator.RefreshStyle)
 
 	return result
 }

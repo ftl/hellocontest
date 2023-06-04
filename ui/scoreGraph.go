@@ -8,7 +8,27 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 )
+
+type scoreGraphStyle struct {
+	colorProvider
+
+	backgroundColor style.Color
+	axisColor       style.Color
+	lowZoneColor    style.Color
+	timeFrameColor  style.Color
+	areaAlpha       float64
+	borderAlpha     float64
+}
+
+func (s *scoreGraphStyle) Refresh() {
+	s.backgroundColor = s.colorProvider.BackgroundColor()
+	s.axisColor = s.colorProvider.ColorByName(axisColorName)
+	s.lowZoneColor = s.colorProvider.ColorByName(lowZoneColorName)
+	s.timeFrameColor = s.colorProvider.ColorByName(timeIndicatorColorName)
+
+}
 
 type scoreGraph struct {
 	graphs         []core.BandGraph
@@ -18,16 +38,34 @@ type scoreGraph struct {
 
 	pointsBinGoal float64
 	multisBinGoal float64
+
+	style *scoreGraphStyle
 }
 
-func newScoreGraph() *scoreGraph {
+const timeIndicatorColorName = "hellocontest-timeindicator"
+
+func newScoreGraph(colors colorProvider) *scoreGraph {
+	style := &scoreGraphStyle{
+		colorProvider: colors,
+		areaAlpha:     0.4,
+		borderAlpha:   0.8,
+	}
+	style.Refresh()
+
 	result := &scoreGraph{
 		graphs:     nil,
 		pointsGoal: 60,
 		multisGoal: 60,
+		style:      style,
 	}
+
 	result.updateBinGoals()
+
 	return result
+}
+
+func (g *scoreGraph) RefreshStyle() {
+	g.style.Refresh()
 }
 
 func (g *scoreGraph) SetGraphs(graphs []core.BandGraph) {
@@ -86,7 +124,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	g.fillBackground(cr)
 
 	// the zone
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.WithAlpha(rateStyle.areaAlpha))
+	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.areaAlpha))
 	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
@@ -94,7 +132,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.WithAlpha(rateStyle.borderAlpha))
+	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.borderAlpha))
 	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
@@ -105,10 +143,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	// the graph
 	for i := len(g.graphs) - 1; i >= 0; i-- {
 		graph := g.graphs[i]
-		color, ok := rateStyle.scoreGraphColors[graph.Band]
-		if !ok {
-			color = rateStyle.defaultScoreGraphColor
-		}
+		color := bandColor(g.style, graph.Band)
 		cr.SetSourceRGB(color.ToRGB())
 
 		g.drawDataPoints(cr, layout, graph.DataPoints)
@@ -118,7 +153,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	if g.timeFrameIndex >= 0 && valueCount > 1 {
 		startX := float64(g.timeFrameIndex) * layout.binWidth
 		endX := float64(g.timeFrameIndex+1) * layout.binWidth
-		cr.SetSourceRGBA(rateStyle.timeFrameColor.ToRGBA()) // TODO calculate the achievment of the current time frame and use the corresponding color
+		cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA()) // TODO calculate the achievment of the current time frame and use the corresponding color
 		cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY+layout.maxHeight)
@@ -128,7 +163,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	}
 
 	// the zero line
-	cr.SetSourceRGB(rateStyle.axisColor.ToRGB())
+	cr.SetSourceRGB(g.style.axisColor.ToRGB())
 	cr.MoveTo(0, layout.zeroY)
 	cr.LineTo(layout.width, layout.zeroY)
 	cr.Stroke()
@@ -153,7 +188,7 @@ func (g *scoreGraph) fillBackground(cr *cairo.Context) {
 	cr.Save()
 	defer cr.Restore()
 
-	cr.SetSourceRGB(rateStyle.backgroundColor.ToRGB())
+	cr.SetSourceRGB(g.style.backgroundColor.ToRGB())
 	cr.Paint()
 }
 

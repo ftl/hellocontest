@@ -4,9 +4,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 type scoreGraph struct {
@@ -85,7 +86,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	g.fillBackground(cr)
 
 	// the zone
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.areaAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.WithAlpha(rateStyle.areaAlpha))
 	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
@@ -93,7 +94,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.borderAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.WithAlpha(rateStyle.borderAlpha))
 	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
@@ -117,7 +118,7 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	if g.timeFrameIndex >= 0 && valueCount > 1 {
 		startX := float64(g.timeFrameIndex) * layout.binWidth
 		endX := float64(g.timeFrameIndex+1) * layout.binWidth
-		cr.SetSourceRGBA(rateStyle.timeFrameColor.ToRGBA(rateStyle.timeFrameAlpha)) // TODO calculate the achievment of the current time frame and use the corresponding color
+		cr.SetSourceRGBA(rateStyle.timeFrameColor.ToRGBA()) // TODO calculate the achievment of the current time frame and use the corresponding color
 		cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY+layout.maxHeight)

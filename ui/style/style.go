@@ -14,21 +14,33 @@ type Class string
 //go:embed contest.css
 var css string
 
-type Color struct{ R, G, B float64 }
+type Color struct{ R, G, B, A float64 }
 
 var (
 	Black = Color{}
-	White = Color{1, 1, 1}
-	Red   = Color{1, 0, 0}
-	Green = Color{0, 1, 0}
-	Blue  = Color{0, 0, 1}
+	White = Color{1, 1, 1, 1}
+	Red   = Color{1, 0, 0, 1}
+	Green = Color{0, 1, 0, 1}
+	Blue  = Color{0, 0, 1, 1}
 )
+
+func NewRGB(r, g, b float64) Color {
+	return NewRGBA(r, g, b, 1)
+}
+
+func NewRGBA(r, g, b, a float64) Color {
+	return Color{r, g, b, a}
+}
 
 func (c Color) ToRGB() (r, g, b float64) {
 	return c.R, c.G, c.B
 }
 
-func (c Color) ToRGBA(alpha float64) (r, g, b, a float64) {
+func (c Color) ToRGBA() (r, g, b, a float64) {
+	return c.R, c.G, c.B, c.A
+}
+
+func (c Color) WithAlpha(alpha float64) (r, g, b, a float64) {
 	return c.R, c.G, c.B, alpha
 }
 

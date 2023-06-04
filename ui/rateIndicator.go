@@ -13,11 +13,18 @@ import (
 )
 
 var rateColors = style.ColorMap{
-	{1, 0, 0}, {1, 0.6, 0.2}, {0, 0.8, 0},
+	style.NewRGB(1, 0, 0),
+	style.NewRGB(1, 0.6, 0.2),
+	style.NewRGB(0, 0.8, 0),
 }
 
 var timeColors = style.ColorMap{
-	{1, 0, 0}, {1, 0.6, 0.2}, {0, 0.8, 0}, {0, 0.8, 0}, {0, 0.8, 0}, {0, 0.8, 0},
+	style.NewRGB(1, 0, 0),
+	style.NewRGB(1, 0.6, 0.2),
+	style.NewRGB(0, 0.8, 0),
+	style.NewRGB(0, 0.8, 0),
+	style.NewRGB(0, 0.8, 0),
+	style.NewRGB(0, 0.8, 0),
 }
 
 const angleRotation = (3.0 / 2.0) * math.Pi
@@ -28,34 +35,32 @@ var rateStyle = struct {
 	fontSize               float64
 	axisColor              style.Color
 	axisMargin             float64
-	lowZoneColor           style.Color
 	areaAlpha              float64
 	borderAlpha            float64
+	lowZoneColor           style.Color
 	timeIndicatorWidth     float64
 	timeFrameColor         style.Color
-	timeFrameAlpha         float64
 	defaultScoreGraphColor style.Color
 	scoreGraphColors       map[core.Band]style.Color
 }{
-	backgroundColor:        style.Color{1, 1, 1},
-	fontColor:              style.Color{0.4, 0.4, 0.4},
+	backgroundColor:        style.NewRGB(1, 1, 1),
+	fontColor:              style.NewRGB(0.4, 0.4, 0.4),
 	fontSize:               15,
-	axisColor:              style.Color{0.4, 0.4, 0.4},
+	axisColor:              style.NewRGB(0.4, 0.4, 0.4),
 	axisMargin:             15,
-	lowZoneColor:           style.Color{0.8, 0.8, 0.8},
 	areaAlpha:              0.4,
 	borderAlpha:            0.8,
+	lowZoneColor:           style.NewRGB(0.8, 0.8, 0.8),
 	timeIndicatorWidth:     10,
-	timeFrameColor:         style.Color{1, 0.73, 0.2},
-	timeFrameAlpha:         1,
-	defaultScoreGraphColor: style.Color{0.4, 0.4, 0.4},
+	timeFrameColor:         style.NewRGB(1, 0.73, 0.2),
+	defaultScoreGraphColor: style.NewRGB(0.4, 0.4, 0.4),
 	scoreGraphColors: map[core.Band]style.Color{
-		core.Band160m: {0.5, 0, 0.5},
-		core.Band80m:  {0, 0, 0.5},
-		core.Band40m:  {0, 1.0, 0},
-		core.Band20m:  {1, 1, 0},
-		core.Band15m:  {1, 0.5, 0},
-		core.Band10m:  {1, 0, 0},
+		core.Band160m: style.NewRGB(0.5, 0, 0.5),
+		core.Band80m:  style.NewRGB(0, 0, 0.5),
+		core.Band40m:  style.NewRGB(0, 1.0, 0),
+		core.Band20m:  style.NewRGB(1, 1, 0),
+		core.Band15m:  style.NewRGB(1, 0.5, 0),
+		core.Band10m:  style.NewRGB(1, 0, 0),
 	},
 }
 
@@ -99,14 +104,14 @@ func (ind *rateIndicator) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	ind.fillBackground(cr)
 
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.areaAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.WithAlpha(rateStyle.areaAlpha))
 	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
 	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
 	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)
 	cr.ClosePath()
 	cr.Fill()
 
-	cr.SetSourceRGBA(rateStyle.lowZoneColor.ToRGBA(rateStyle.borderAlpha))
+	cr.SetSourceRGBA(rateStyle.lowZoneColor.WithAlpha(rateStyle.borderAlpha))
 	cr.MoveTo(ind.qAxis.goalPoint.x, ind.qAxis.goalPoint.y)
 	cr.LineTo(ind.pAxis.goalPoint.x, ind.pAxis.goalPoint.y)
 	cr.LineTo(ind.mAxis.goalPoint.x, ind.mAxis.goalPoint.y)

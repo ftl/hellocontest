@@ -496,6 +496,7 @@ func (s Score) StackedGraphPerBand() []BandGraph {
 		stackedGraph := BandGraph{
 			Band:       graph.Band,
 			DataPoints: make([]BandScore, len(graph.DataPoints)),
+			Max:        graph.Max,
 			startTime:  graph.startTime,
 			binSeconds: graph.binSeconds,
 		}
@@ -507,6 +508,7 @@ func (s Score) StackedGraphPerBand() []BandGraph {
 				stackedGraph.DataPoints[i].Duplicates += lastDataPoints[i].Duplicates
 				stackedGraph.DataPoints[i].Points += lastDataPoints[i].Points
 				stackedGraph.DataPoints[i].Multis += lastDataPoints[i].Multis
+				stackedGraph.Max = stackedGraph.Max.Max(stackedGraph.DataPoints[i])
 			}
 		}
 
@@ -519,6 +521,7 @@ func (s Score) StackedGraphPerBand() []BandGraph {
 type BandGraph struct {
 	Band       Band
 	DataPoints []BandScore
+	Max        BandScore
 
 	startTime  time.Time
 	binSeconds float64
@@ -534,6 +537,7 @@ func NewBandGraph(band Band, startTime time.Time, duration time.Duration) BandGr
 	return BandGraph{
 		Band:       band,
 		DataPoints: make([]BandScore, int(binCount)),
+		Max:        BandScore{},
 
 		binSeconds: duration.Seconds() / float64(binCount),
 		startTime:  startTime,
@@ -559,6 +563,8 @@ func (g *BandGraph) Add(timestamp time.Time, score QSOScore) {
 	bandScore := g.DataPoints[bindex]
 	bandScore.AddQSO(score)
 	g.DataPoints[bindex] = bandScore
+
+	g.Max = g.Max.Max(bandScore)
 }
 
 func (g *BandGraph) Bindex(timestamp time.Time) int {
@@ -623,6 +629,25 @@ func (s *BandScore) AddQSO(qso QSOScore) {
 		s.Points += qso.Points
 		s.Multis += qso.Multis
 	}
+}
+
+func (s BandScore) Max(other BandScore) BandScore {
+	result := s
+
+	if result.QSOs < other.QSOs {
+		result.QSOs = other.QSOs
+	}
+	if result.Duplicates < other.Duplicates {
+		result.Duplicates = other.Duplicates
+	}
+	if result.Points < other.Points {
+		result.Points = other.Points
+	}
+	if result.Multis < other.Multis {
+		result.Multis = other.Multis
+	}
+
+	return result
 }
 
 func (s BandScore) PointsPerQSO() float64 {

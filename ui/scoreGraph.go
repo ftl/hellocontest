@@ -32,6 +32,8 @@ func (s *scoreGraphStyle) Refresh() {
 
 type scoreGraph struct {
 	graphs         []core.BandGraph
+	maxPoints      int
+	maxMultis      int
 	pointsGoal     int
 	multisGoal     int
 	timeFrameIndex int
@@ -70,6 +72,16 @@ func (g *scoreGraph) RefreshStyle() {
 
 func (g *scoreGraph) SetGraphs(graphs []core.BandGraph) {
 	g.graphs = graphs
+	g.maxPoints = 0
+	g.maxMultis = 0
+	for _, graph := range graphs {
+		if g.maxPoints < graph.Max.Points {
+			g.maxPoints = graph.Max.Points
+		}
+		if g.maxMultis < graph.Max.Multis {
+			g.maxMultis = graph.Max.Multis
+		}
+	}
 	g.updateBinGoals()
 	g.UpdateTimeFrame()
 }
@@ -99,13 +111,14 @@ func (g *scoreGraph) UpdateTimeFrame() {
 }
 
 type graphLayout struct {
-	width         float64
-	height        float64
-	marginY       float64
-	zeroY         float64
-	maxHeight     float64
-	lowZoneHeight float64
-	binWidth      float64
+	width               float64
+	height              float64
+	marginY             float64
+	zeroY               float64
+	maxHeight           float64
+	pointsLowZoneHeight float64
+	multisLowZoneHeight float64
+	binWidth            float64
 }
 
 func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
@@ -125,18 +138,18 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 	// the zone
 	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.areaAlpha))
-	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
-	cr.LineTo(0, layout.zeroY+layout.lowZoneHeight)
+	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
+	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
 	cr.ClosePath()
 	cr.Fill()
 
 	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.borderAlpha))
-	cr.MoveTo(0, layout.zeroY-layout.lowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY-layout.lowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY+layout.lowZoneHeight)
-	cr.LineTo(0, layout.zeroY+layout.lowZoneHeight)
+	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
+	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
 	cr.ClosePath()
 	cr.Stroke()
 
@@ -146,14 +159,14 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		color := bandColor(g.style, graph.Band)
 		cr.SetSourceRGB(color.ToRGB())
 
-		g.drawDataPoints(cr, layout, graph.DataPoints)
+		g.drawDataPointsRectangular(cr, layout, graph.DataPoints)
 	}
 
 	// the time frame
 	if g.timeFrameIndex >= 0 && valueCount > 1 {
 		startX := float64(g.timeFrameIndex) * layout.binWidth
 		endX := float64(g.timeFrameIndex+1) * layout.binWidth
-		cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA()) // TODO calculate the achievment of the current time frame and use the corresponding color
+		cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
 		cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY-layout.maxHeight)
 		cr.LineTo(endX, layout.zeroY+layout.maxHeight)
@@ -178,7 +191,8 @@ func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, valueCount int) graphL
 
 	result.zeroY = result.height / 2.0
 	result.maxHeight = result.zeroY - result.marginY
-	result.lowZoneHeight = result.maxHeight / 2.0
+	result.pointsLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxPoints))*g.pointsBinGoal)
+	result.multisLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxMultis))*g.multisBinGoal)
 	result.binWidth = result.width / float64(valueCount)
 
 	return result
@@ -192,12 +206,49 @@ func (g *scoreGraph) fillBackground(cr *cairo.Context) {
 	cr.Paint()
 }
 
-func (g *scoreGraph) drawDataPoints(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
+func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
 	valueCount := len(datapoints)
 
 	cr.MoveTo(0, layout.zeroY)
 
-	valueScaling := layout.lowZoneHeight / g.pointsBinGoal
+	valueScaling := layout.pointsLowZoneHeight / g.pointsBinGoal
+	for i := 0; i < valueCount; i++ {
+		startX := float64(i) * layout.binWidth
+		endX := float64(i+1) * layout.binWidth
+		value := float64(datapoints[i].Points)
+		y := layout.zeroY - math.Min(value*valueScaling, layout.maxHeight)
+		cr.LineTo(startX, y)
+		cr.LineTo(endX, y)
+		if i == valueCount-1 {
+			cr.LineTo(endX, layout.zeroY)
+		}
+	}
+
+	valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
+	for i := valueCount - 1; i >= 0; i-- {
+		startX := float64(i+1) * layout.binWidth
+		endX := float64(i) * layout.binWidth
+		value := float64(datapoints[i].Multis)
+		y := layout.zeroY + math.Min(value*valueScaling, layout.maxHeight)
+		cr.LineTo(startX, y)
+		cr.LineTo(endX, y)
+		if i == valueCount-1 {
+			cr.LineTo(endX, layout.zeroY)
+		}
+		if i == 0 {
+			cr.LineTo(endX, layout.zeroY)
+		}
+	}
+	cr.ClosePath()
+	cr.Fill()
+}
+
+func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
+	valueCount := len(datapoints)
+
+	cr.MoveTo(0, layout.zeroY)
+
+	valueScaling := layout.pointsLowZoneHeight / g.pointsBinGoal
 	lastY := layout.zeroY
 	for i := 0; i < valueCount; i++ {
 		startX := float64(i) * layout.binWidth
@@ -219,7 +270,7 @@ func (g *scoreGraph) drawDataPoints(cr *cairo.Context, layout graphLayout, datap
 		lastY = y
 	}
 
-	valueScaling = layout.lowZoneHeight / g.multisBinGoal
+	valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
 	lastY = layout.zeroY
 	for i := valueCount - 1; i >= 0; i-- {
 		startX := float64(i+1) * layout.binWidth

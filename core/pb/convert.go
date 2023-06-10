@@ -157,18 +157,18 @@ func ContestToPB(contest core.Contest) Contest {
 	}
 }
 
-func ToKeyer(pbKeyer Keyer) (core.Keyer, error) {
-	var keyer core.Keyer
-	keyer.WPM = int(pbKeyer.Wpm)
-	keyer.SPMacros = pbKeyer.SpMacros
-	keyer.RunMacros = pbKeyer.RunMacros
-	return keyer, nil
+func ToKeyerSettings(pbSettings Keyer) (core.KeyerSettings, error) {
+	var result core.KeyerSettings
+	result.WPM = int(pbSettings.Wpm)
+	result.SPMacros = pbSettings.SpMacros
+	result.RunMacros = pbSettings.RunMacros
+	return result, nil
 }
 
-func KeyerToPB(keyer core.Keyer) Keyer {
+func KeyerSettingsToPB(settings core.KeyerSettings) Keyer {
 	return Keyer{
-		Wpm:       int32(keyer.WPM),
-		SpMacros:  keyer.SPMacros,
-		RunMacros: keyer.RunMacros,
+		Wpm:       int32(settings.WPM),
+		SpMacros:  settings.SPMacros,
+		RunMacros: settings.RunMacros,
 	}
 }

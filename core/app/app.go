@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/bandplan"
-	"github.com/ftl/hamradio/cwclient"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/bandmap"
@@ -22,16 +21,15 @@ import (
 	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
 	"github.com/ftl/hellocontest/core/export/csv"
-	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
+	"github.com/ftl/hellocontest/core/radio"
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
 	"github.com/ftl/hellocontest/core/scp"
 	"github.com/ftl/hellocontest/core/session"
 	"github.com/ftl/hellocontest/core/settings"
 	"github.com/ftl/hellocontest/core/store"
-	"github.com/ftl/hellocontest/core/tci"
 	"github.com/ftl/hellocontest/core/vfo"
 	"github.com/ftl/hellocontest/core/workmode"
 )
@@ -59,9 +57,6 @@ type Controller struct {
 	quitter       Quitter
 	asyncRunner   core.AsyncRunner
 	store         *store.FileStore
-	tciClient     *tci.Client
-	cwclient      *cwclient.Client
-	hamlibClient  *hamlib.Client
 
 	bandplan          bandplan.Bandplan
 	dxccFinder        *dxcc.Finder
@@ -73,6 +68,7 @@ type Controller struct {
 	QSOList       *logbook.QSOList
 	Entry         *entry.Controller
 	Workmode      *workmode.Controller
+	Radio         *radio.Controller
 	Keyer         *keyer.Keyer
 	Callinfo      *callinfo.Callinfo
 	Score         *score.Counter
@@ -98,15 +94,12 @@ type Configuration interface {
 	LogDirectory() string
 	Station() core.Station
 	Contest() core.Contest
-	Keyer() core.Keyer
+	KeyerSettings() core.KeyerSettings
 	KeyerPresets() []core.KeyerPreset
-	KeyerType() core.KeyerType
-	KeyerHost() string
-	KeyerPort() int
-	HamlibAddress() string
-	TCIAddress() string
 	SpotLifetime() time.Duration
 	SpotSources() []core.SpotSource
+	Radios() []core.Radio
+	Keyers() []core.Keyer
 }
 
 // Quitter allows to quit the application. This interface is used to call the actual application framework to quit.
@@ -162,43 +155,17 @@ func (c *Controller) Startup() {
 	c.VFO.Notify(c.Bandmap)
 	c.Bandmap.SetVFO(c.VFO)
 
-	var keyerCWClient keyer.CWClient
-	tciAddress := c.configuration.TCIAddress()
-	hamlibAddress := c.configuration.HamlibAddress()
-	if tciAddress != "" {
-		tciClient, err := tci.NewClient(tciAddress, c.bandplan)
-		if err != nil {
-			log.Printf("cannot open TCI connection: %v", err)
-		} else {
-			c.tciClient = tciClient
-			c.tciClient.Notify(c.ServiceStatus)
-			c.tciClient.SetSendSpots(c.session.SendSpotsToTci())
-			c.Bandmap.Notify(c.tciClient)
-			c.VFO.SetClient(c.tciClient)
-			keyerCWClient = c.tciClient
-			log.Println("using the TCI client for CW")
-		}
-	} else if hamlibAddress != "" {
-		c.hamlibClient = hamlib.New(hamlibAddress, c.bandplan)
-		c.hamlibClient.Notify(c.ServiceStatus)
-		c.hamlibClient.KeepOpen()
-		c.VFO.SetClient(c.hamlibClient)
-		if c.configuration.KeyerType() == core.KeyerTypeHamlib {
-			keyerCWClient = c.hamlibClient
-			log.Println("using the hamlib client for CW")
-		}
-	}
-
-	if keyerCWClient == nil || c.configuration.KeyerType() == core.KeyerTypeCWDaemon {
-		c.cwclient, _ = cwclient.New(c.configuration.KeyerHost(), c.configuration.KeyerPort())
-		keyerCWClient = c.cwclient
-		log.Println("using the CWDaemon for CW")
-	}
+	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
+	c.Bandmap.Notify(c.Radio) // TODO implement Entry... in radio.Controller
+	c.VFO.SetClient(c.Radio)
+	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
+	c.Radio.SelectRadio(c.session.Radio1())
+	c.Radio.SelectKeyer(c.session.Keyer1())
 
 	c.Workmode = workmode.NewController()
 	c.Workmode.Notify(c.Entry)
 
-	c.Keyer = keyer.New(c.Settings, keyerCWClient, c.configuration.Keyer(), c.Workmode.Workmode(), c.configuration.KeyerPresets())
+	c.Keyer = keyer.New(c.Settings, c.Radio, c.configuration.KeyerSettings(), c.Workmode.Workmode(), c.configuration.KeyerPresets())
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Workmode.Notify(c.Keyer)
@@ -287,7 +254,7 @@ func (c *Controller) openCurrentLog() error {
 	}
 
 	var newLogbook *logbook.Logbook
-	qsos, station, contest, keyer, err := store.ReadAll()
+	qsos, station, contest, keyerSettings, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
 		newLogbook = logbook.New(c.clock)
@@ -300,8 +267,8 @@ func (c *Controller) openCurrentLog() error {
 			c.Settings.SetContest(*contest)
 		}
 		c.Keyer.SetWriter(store)
-		if keyer != nil {
-			c.Keyer.SetKeyer(*keyer)
+		if keyerSettings != nil {
+			c.Keyer.SetSettings(*keyerSettings)
 		}
 		newLogbook = logbook.Load(c.clock, qsos)
 	}
@@ -333,15 +300,7 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 }
 
 func (c *Controller) Shutdown() {
-	if c.tciClient != nil {
-		c.tciClient.Disconnect()
-	}
-	if c.hamlibClient != nil {
-		c.hamlibClient.Disconnect()
-	}
-	if c.cwclient != nil {
-		c.cwclient.Disconnect()
-	}
+	c.Radio.Stop()
 }
 
 func (c *Controller) About() {
@@ -430,7 +389,7 @@ func (c *Controller) Open() {
 	}
 
 	store := store.NewFileStore(filename)
-	qsos, station, contest, keyer, err := store.ReadAll()
+	qsos, station, contest, keyerSettings, err := store.ReadAll()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open %s: %v", filepath.Base(filename), err)
 		return
@@ -444,8 +403,8 @@ func (c *Controller) Open() {
 		c.Settings.SetContest(*contest)
 	}
 	c.Keyer.SetWriter(store)
-	if keyer != nil {
-		c.Keyer.SetKeyer(*keyer)
+	if keyerSettings != nil {
+		c.Keyer.SetSettings(*keyerSettings)
 	}
 	log := logbook.Load(c.clock, qsos)
 	c.changeLogbook(filename, store, log)
@@ -678,10 +637,10 @@ func (c *Controller) SendSpotsToTci() bool {
 }
 
 func (c *Controller) SetSendSpotsToTci(sendSpotsToTci bool) {
-	if c.tciClient == nil {
+	if c.Radio == nil {
 		return
 	}
-	c.tciClient.SetSendSpots(sendSpotsToTci)
+	c.Radio.SetSendSpotsToTci(sendSpotsToTci)
 
 	err := c.session.SetSendSpotsToTci(sendSpotsToTci)
 	if err != nil {

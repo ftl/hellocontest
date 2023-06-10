@@ -4,4 +4,6 @@ package session;
 message State {
     string last_filename = 1;
     bool send_spots_to_tci = 2;
+    string radio1 = 3;
+    string keyer1 = 4;
 }

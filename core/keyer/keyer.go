@@ -35,21 +35,21 @@ type CWClient interface {
 type KeyerValueProvider func() core.KeyerValues
 
 type KeyerListener interface {
-	KeyerChanged(core.Keyer)
+	KeyerChanged(core.KeyerSettings)
 }
 
-type KeyerListenerFunc func(core.Keyer)
+type KeyerListenerFunc func(core.KeyerSettings)
 
-func (f KeyerListenerFunc) KeyerChanged(keyer core.Keyer) {
+func (f KeyerListenerFunc) KeyerChanged(keyer core.KeyerSettings) {
 	f(keyer)
 }
 
 type Writer interface {
-	WriteKeyer(core.Keyer) error
+	WriteKeyer(core.KeyerSettings) error
 }
 
 // New returns a new Keyer that has no patterns or templates defined yet.
-func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode core.Workmode, presets []core.KeyerPreset) *Keyer {
+func New(settings core.Settings, client CWClient, keyerSettings core.KeyerSettings, workmode core.Workmode, presets []core.KeyerPreset) *Keyer {
 	result := &Keyer{
 		writer:          new(nullWriter),
 		stationCallsign: settings.Station().Callsign,
@@ -63,7 +63,7 @@ func New(settings core.Settings, client CWClient, keyer core.Keyer, workmode cor
 		values:          noValues,
 	}
 	result.setWorkmode(workmode)
-	result.SetKeyer(keyer)
+	result.SetSettings(keyerSettings)
 	result.presetNames = presetNames(presets)
 	if result.client == nil {
 		result.client = new(nullClient)
@@ -86,10 +86,10 @@ type Keyer struct {
 	presets        []core.KeyerPreset
 	presetNames    []string
 	values         KeyerValueProvider
-	savedKeyer     core.Keyer
+	savedSettings  core.KeyerSettings
 	selectedPreset *core.KeyerPreset
 
-	listeners []interface{}
+	listeners []any
 
 	stationCallsign callsign.Callsign
 	workmode        core.Workmode
@@ -122,14 +122,24 @@ func (k *Keyer) SetWriter(writer Writer) {
 	k.writer = writer
 }
 
-func (k *Keyer) SetKeyer(keyer core.Keyer) {
-	k.savedKeyer = keyer
-	k.wpm = keyer.WPM
-	for i, pattern := range keyer.SPMacros {
+func (k *Keyer) SetSettings(settings core.KeyerSettings) {
+	k.savedSettings = settings
+
+	spMacros := settings.SPMacros
+	runMacros := settings.RunMacros
+
+	preset, ok := k.presetByName(settings.Preset)
+	if ok {
+		spMacros = applyPreset(settings.SPMacros, preset.SPMacros)
+		runMacros = applyPreset(settings.RunMacros, preset.RunMacros)
+	}
+
+	k.wpm = settings.WPM
+	for i, pattern := range spMacros {
 		k.spPatterns[i] = pattern
 		k.spTemplates[i], _ = template.New("").Parse(pattern)
 	}
-	for i, pattern := range keyer.RunMacros {
+	for i, pattern := range runMacros {
 		k.runPatterns[i] = pattern
 		k.runTemplates[i], _ = template.New("").Parse(pattern)
 	}
@@ -137,6 +147,38 @@ func (k *Keyer) SetKeyer(keyer core.Keyer) {
 	if k.view != nil {
 		k.view.SetSpeed(k.wpm)
 	}
+}
+
+func (k *Keyer) presetByName(name string) (core.KeyerPreset, bool) {
+	normalizeName := func(name string) string {
+		return strings.TrimSpace(strings.ToLower(name))
+	}
+
+	name = normalizeName(name)
+	if name == "" {
+		return core.KeyerPreset{}, false
+	}
+
+	for _, preset := range k.presets {
+		if normalizeName(preset.Name) == name {
+			return preset, true
+		}
+	}
+
+	return core.KeyerPreset{}, false
+}
+
+func applyPreset(settingsPatterns []string, presetPatterns []string) []string {
+	if len(strings.TrimSpace(strings.Join(settingsPatterns, ""))) != 0 {
+		return settingsPatterns
+	}
+	if len(settingsPatterns) != len(presetPatterns) {
+		return settingsPatterns
+	}
+
+	result := make([]string, len(settingsPatterns))
+	copy(result, presetPatterns)
+	return result
 }
 
 func (k *Keyer) SetView(view View) {
@@ -173,17 +215,17 @@ func (k *Keyer) Save() {
 	if !modified {
 		return
 	}
-	k.savedKeyer = keyer
+	k.savedSettings = keyer
 	k.writer.WriteKeyer(keyer)
 }
 
-func (k *Keyer) KeyerSettings() core.Keyer {
+func (k *Keyer) KeyerSettings() core.KeyerSettings {
 	keyer, _ := k.getKeyerSettings()
 	return keyer
 }
 
-func (k *Keyer) getKeyerSettings() (core.Keyer, bool) {
-	var keyer core.Keyer
+func (k *Keyer) getKeyerSettings() (core.KeyerSettings, bool) {
+	var keyer core.KeyerSettings
 	keyer.WPM = k.wpm
 	keyer.SPMacros = make([]string, len(k.spPatterns))
 	for i := range keyer.SPMacros {
@@ -202,7 +244,7 @@ func (k *Keyer) getKeyerSettings() (core.Keyer, bool) {
 		keyer.RunMacros[i] = pattern
 	}
 
-	modified := (fmt.Sprintf("%v", keyer) != fmt.Sprintf("%v", k.savedKeyer))
+	modified := (fmt.Sprintf("%v", keyer) != fmt.Sprintf("%v", k.savedSettings))
 	return keyer, modified
 }
 
@@ -221,14 +263,15 @@ func (k *Keyer) SelectPreset(name string) {
 	preset := *k.selectedPreset
 	k.view.SetPreset(preset.Name)
 
-	keyer := core.Keyer{
-		WPM:       k.savedKeyer.WPM,
+	settings := core.KeyerSettings{
+		WPM:       k.savedSettings.WPM,
+		Preset:    name,
 		SPMacros:  make([]string, len(preset.SPMacros)),
 		RunMacros: make([]string, len(preset.RunMacros)),
 	}
-	copy(keyer.SPMacros, preset.SPMacros)
-	copy(keyer.RunMacros, preset.RunMacros)
-	k.SetKeyer(keyer)
+	copy(settings.SPMacros, preset.SPMacros)
+	copy(settings.RunMacros, preset.RunMacros)
+	k.SetSettings(settings)
 }
 
 func (k *Keyer) EnterSpeed(speed int) {
@@ -346,27 +389,28 @@ func (k *Keyer) Stop() {
 	k.client.Abort()
 }
 
-func (k *Keyer) Notify(listener interface{}) {
+func (k *Keyer) Notify(listener any) {
 	k.listeners = append(k.listeners, listener)
 }
 
+// TODO here or in radio.go???
 func (k *Keyer) emitStatusChanged(available bool) {
 	log.Printf("cw status changed, notifying %d listeners", len(k.listeners))
 	for _, listener := range k.listeners {
 		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
-			serviceStatusListener.StatusChanged(core.CWDaemonService, available)
+			serviceStatusListener.StatusChanged(core.KeyerService, available)
 		}
 	}
 }
 
 func (k *Keyer) emitKeyerChanged() {
-	keyer := core.Keyer{
+	settings := core.KeyerSettings{
 		WPM: k.wpm,
 		// TODO add patterns here
 	}
 	for _, listener := range k.listeners {
 		if keyerListener, ok := listener.(KeyerListener); ok {
-			keyerListener.KeyerChanged(keyer)
+			keyerListener.KeyerChanged(settings)
 		}
 	}
 }
@@ -409,7 +453,7 @@ func noValues() core.KeyerValues {
 
 type nullWriter struct{}
 
-func (w *nullWriter) WriteKeyer(core.Keyer) error { return nil }
+func (w *nullWriter) WriteKeyer(core.KeyerSettings) error { return nil }
 
 type nullClient struct{}
 

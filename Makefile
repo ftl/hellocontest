@@ -16,6 +16,7 @@ deps:
 
 generate:
 	go generate ./core/pb
+	go generate ./core/session
 
 version_number:
 	@echo ${VERSION_NUMBER}

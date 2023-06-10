@@ -71,10 +71,10 @@ message Contest {
     bool generate_report = 27;
 }
 
-message Multis {
-    bool dxcc = 1;
-    bool wpx = 2;
-    bool xchange = 3;
+message Multis { // deprecated
+    bool dxcc = 1;  // deprecated
+    bool wpx = 2;  // deprecated
+    bool xchange = 3;  // deprecated
 }
 
 message Keyer {

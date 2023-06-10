@@ -26,7 +26,7 @@ func New(address string, bandplan bandplan.Bandplan) *Client {
 type Client struct {
 	conn *client.Conn
 
-	listeners []interface{}
+	listeners []any
 
 	address         string
 	pollingInterval time.Duration
@@ -93,7 +93,7 @@ func (c *Client) connect(whenClosed func()) error {
 
 	c.closed = make(chan struct{})
 	c.connected = true
-	c.emitStatusChanged(c.connected)
+	c.emitConnectionChanged(c.connected)
 
 	c.conn.StartPolling(c.pollingInterval, c.pollingTimeout,
 		client.PollCommand(client.OnFrequency(c.setIncomingFrequency)),
@@ -102,7 +102,7 @@ func (c *Client) connect(whenClosed func()) error {
 
 	c.conn.WhenClosed(func() {
 		c.connected = false
-		c.emitStatusChanged(c.connected)
+		c.emitConnectionChanged(c.connected)
 
 		if whenClosed != nil {
 			whenClosed()
@@ -261,14 +261,17 @@ func (c *Client) Abort() {
 	}
 }
 
-func (c *Client) Notify(listener interface{}) {
+func (c *Client) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Client) emitStatusChanged(available bool) {
+func (c *Client) emitConnectionChanged(connected bool) {
+	type listenerType interface {
+		ConnectionChanged(bool)
+	}
 	for _, listener := range c.listeners {
-		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
-			serviceStatusListener.StatusChanged(core.HamlibService, available)
+		if typedListener, ok := listener.(listenerType); ok {
+			typedListener.ConnectionChanged(connected)
 		}
 	}
 }

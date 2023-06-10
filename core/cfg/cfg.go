@@ -30,20 +30,30 @@ var Default = Data{
 		PointsGoal: 60,
 		MultisGoal: 12,
 	},
-	Keyer: pb.Keyer{
-		Wpm: 25,
-		SpMacros: []string{
-			"{{.MyCall}}",
-			"rr {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
-			"tu gl",
-			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+	Radios: []core.Radio{
+		{
+			Name:    "Hamlib Radio",
+			Type:    "hamlib",
+			Address: "localhost:4532",
+			Keyer:   "local cwdaemon",
 		},
-		RunMacros: []string{
-			"cq {{.MyCall}} test",
-			"{{.TheirCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
-			"tu {{.MyCall}} test",
-			"nr {{.MyNumber}} {{.MyXchange}} {{.MyNumber}} {{.MyXchange}}",
+		{
+			Name:    "TCI Radio",
+			Type:    "tci",
+			Address: "localhost:40001",
+			Keyer:   "radio",
 		},
+	},
+	Keyers: []core.Keyer{
+		{
+			Name:    "Local CWDaemon",
+			Type:    "cwdaemon",
+			Address: "localhost:6789",
+		},
+	},
+	KeyerSettings: core.KeyerSettings{
+		WPM:    25,
+		Preset: "Default",
 	},
 	KeyerPresets: []core.KeyerPreset{
 		{
@@ -62,12 +72,7 @@ var Default = Data{
 			},
 		},
 	},
-	KeyerType:     "tci",
-	KeyerHost:     "localhost",
-	KeyerPort:     6789,
-	HamlibAddress: "localhost:4532",
-	TCIAddress:    "localhost:40001",
-	SpotLifetime:  "10m",
+	SpotLifetime: "10m",
 	SpotSources: []core.SpotSource{
 		{
 			Name:        "Skimmer",
@@ -100,10 +105,23 @@ func Load() (*LoadedConfiguration, error) {
 	if err != nil {
 		return nil, err
 	}
-	data.KeyerType = core.KeyerType(strings.ToLower(strings.TrimSpace(string(data.KeyerType))))
+
+	for i, radio := range data.Radios {
+		radio.Type = core.RadioType(normalizeName(string(radio.Type)))
+		data.Radios[i] = radio
+	}
+	for i, keyer := range data.Keyers {
+		keyer.Type = core.KeyerType(normalizeName(string(keyer.Type)))
+		data.Keyers[i] = keyer
+	}
+
 	return &LoadedConfiguration{
 		data: data,
 	}, nil
+}
+
+func normalizeName(name string) string {
+	return strings.TrimSpace(strings.ToLower(name))
 }
 
 // Directory returns the configuration directory. It panics if the directory could not be determined.
@@ -123,13 +141,10 @@ type Data struct {
 	LogDirectory  string             `json:"log_directory"`
 	Station       pb.Station         `json:"station"`
 	Contest       pb.Contest         `json:"contest"`
-	Keyer         pb.Keyer           `json:"keyer"`
+	Radios        []core.Radio       `json:"radios"`
+	Keyers        []core.Keyer       `json:"keyers"`
+	KeyerSettings core.KeyerSettings `json:"keyer_settings"`
 	KeyerPresets  []core.KeyerPreset `json:"keyer_presets"`
-	KeyerType     core.KeyerType     `json:"keyer_type"`
-	KeyerHost     string             `json:"keyer_host"`
-	KeyerPort     int                `json:"keyer_port"`
-	HamlibAddress string             `json:"hamlib_address"`
-	TCIAddress    string             `json:"tci_address"`
 	SpotLifetime  string             `json:"spot_lifetime"`
 	SpotSources   []core.SpotSource  `json:"spot_sources"`
 }
@@ -156,33 +171,20 @@ func (c *LoadedConfiguration) Contest() core.Contest {
 	return result
 }
 
-func (c *LoadedConfiguration) Keyer() core.Keyer {
-	result, _ := pb.ToKeyer(c.data.Keyer)
-	return result
+func (c *LoadedConfiguration) Radios() []core.Radio {
+	return c.data.Radios
+}
+
+func (c *LoadedConfiguration) Keyers() []core.Keyer {
+	return c.data.Keyers
+}
+
+func (c *LoadedConfiguration) KeyerSettings() core.KeyerSettings {
+	return c.data.KeyerSettings
 }
 
 func (c *LoadedConfiguration) KeyerPresets() []core.KeyerPreset {
 	return c.data.KeyerPresets
-}
-
-func (c *LoadedConfiguration) KeyerType() core.KeyerType {
-	return c.data.KeyerType
-}
-
-func (c *LoadedConfiguration) KeyerHost() string {
-	return c.data.KeyerHost
-}
-
-func (c *LoadedConfiguration) KeyerPort() int {
-	return c.data.KeyerPort
-}
-
-func (c *LoadedConfiguration) HamlibAddress() string {
-	return c.data.HamlibAddress
-}
-
-func (c *LoadedConfiguration) TCIAddress() string {
-	return c.data.TCIAddress
 }
 
 func (c *LoadedConfiguration) SpotLifetime() time.Duration {

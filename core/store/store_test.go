@@ -162,10 +162,10 @@ func TestFileStore_V1KeyerRoundtrip(t *testing.T) {
 	err = fs.format.Clear(&pbReadWriter{writer: tmpFile})
 	require.NoError(t, err)
 
-	keyer1 := core.Keyer{
+	keyer1 := core.KeyerSettings{
 		WPM: 25,
 	}
-	keyer2 := core.Keyer{
+	keyer2 := core.KeyerSettings{
 		WPM: 35,
 	}
 	err = fs.WriteKeyer(keyer1)

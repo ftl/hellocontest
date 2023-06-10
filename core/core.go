@@ -425,25 +425,41 @@ func (c *Contest) UpdateExchangeFields() {
 	}
 }
 
-type Multis struct {
-	DXCC    bool
-	WPX     bool
-	Xchange bool
+type Radio struct {
+	Name    string            `json:"name"`
+	Type    RadioType         `json:"type"`
+	Address string            `json:"address"`
+	Keyer   string            `json:"keyer"`
+	Options map[string]string `json:"options"`
 }
 
+type RadioType string
+
+const (
+	RadioTypeHamlib RadioType = "hamlib"
+	RadioTypeTCI    RadioType = "tci"
+)
+
 type Keyer struct {
-	SPMacros  []string
-	RunMacros []string
-	WPM       int
+	Name    string    `json:"name"`
+	Type    KeyerType `json:"type"`
+	Address string    `json:"address"`
 }
+
+const RadioKeyer = "radio"
 
 type KeyerType string
 
 const (
 	KeyerTypeCWDaemon KeyerType = "cwdaemon"
-	KeyerTypeHamlib   KeyerType = "hamlib"
-	KeyerTypeTCI      KeyerType = "tci"
 )
+
+type KeyerSettings struct {
+	WPM       int      `json:"wpm"`
+	Preset    string   `json:"preset"`
+	SPMacros  []string `json:"sp_macros"`
+	RunMacros []string `json:"run_macros"`
+}
 
 type KeyerPreset struct {
 	Name      string   `json:"name"`
@@ -894,9 +910,8 @@ type Service int
 
 const (
 	NoService Service = iota
-	TCIService
-	HamlibService
-	CWDaemonService
+	RadioService
+	KeyerService
 	DXCCService
 	SCPService
 	CallHistoryService

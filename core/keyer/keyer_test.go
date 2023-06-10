@@ -11,10 +11,10 @@ import (
 )
 
 func TestSend(t *testing.T) {
-	keyerSettings := core.Keyer{
+	keyerSettings := core.KeyerSettings{
+		WPM:       25,
 		SPMacros:  []string{"", "", "", ""},
 		RunMacros: []string{"", "", "", ""},
-		WPM:       25,
 	}
 	values := func() core.KeyerValues {
 		return core.KeyerValues{

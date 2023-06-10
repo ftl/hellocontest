@@ -48,6 +48,24 @@ func (s *Session) SetSendSpotsToTci(sendSpotsToTci bool) error {
 	return s.Store()
 }
 
+func (s *Session) Radio1() string {
+	return s.state.Radio1
+}
+
+func (s *Session) SetRadio1(value string) error {
+	s.state.Radio1 = value
+	return s.Store()
+}
+
+func (s *Session) Keyer1() string {
+	return s.state.Keyer1
+}
+
+func (s *Session) SetKeyer1(value string) error {
+	s.state.Keyer1 = value
+	return s.Store()
+}
+
 func (s *Session) Restore() error {
 	f, err := os.Open(s.filename)
 	if err != nil {

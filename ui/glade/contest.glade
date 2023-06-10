@@ -1787,7 +1787,7 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=6 n-rows=1 -->
+          <!-- n-columns=5 n-rows=1 -->
           <object class="GtkGrid" id="statusGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -1797,13 +1797,24 @@ THE SOFTWARE.
             <property name="margin-bottom">5</property>
             <property name="column-spacing">15</property>
             <child>
-              <object class="GtkLabel" id="scpStatusLabel">
+              <object class="GtkLabel" id="radioStatusLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">SCP</property>
+                <property name="label" translatable="yes">Radio</property>
               </object>
               <packing>
-                <property name="left-attach">4</property>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="keyerStatusLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">CW</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
                 <property name="top-attach">0</property>
               </packing>
             </child>
@@ -1814,40 +1825,18 @@ THE SOFTWARE.
                 <property name="label" translatable="yes">DXCC</property>
               </object>
               <packing>
-                <property name="left-attach">3</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="cwStatusLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">CW</property>
-              </object>
-              <packing>
                 <property name="left-attach">2</property>
                 <property name="top-attach">0</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="hamlibStatusLabel">
+              <object class="GtkLabel" id="scpStatusLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Hamlib</property>
+                <property name="label" translatable="yes">SCP</property>
               </object>
               <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="tciStatusLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">TCI</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
+                <property name="left-attach">3</property>
                 <property name="top-attach">0</property>
               </packing>
             </child>
@@ -1858,7 +1847,7 @@ THE SOFTWARE.
                 <property name="label" translatable="yes">CH</property>
               </object>
               <packing>
-                <property name="left-attach">5</property>
+                <property name="left-attach">4</property>
                 <property name="top-attach">0</property>
               </packing>
             </child>

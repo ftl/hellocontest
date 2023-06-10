@@ -62,6 +62,7 @@ func (m *FileInfo) GetFormatVersion() int32 {
 
 type Entry struct {
 	// Types that are valid to be assigned to Entry:
+	//
 	//	*Entry_Qso
 	//	*Entry_Station
 	//	*Entry_Contest

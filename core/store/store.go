@@ -40,7 +40,7 @@ func (f *FileStore) Exists() bool {
 	return true
 }
 
-func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.Keyer, error) {
+func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, error) {
 	b, err := ioutil.ReadFile(f.filename)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -82,7 +82,7 @@ func (f *FileStore) WriteContest(contest core.Contest) error {
 	return f.format.WriteContest(&pbReadWriter{writer: file}, contest)
 }
 
-func (f *FileStore) WriteKeyer(keyer core.Keyer) error {
+func (f *FileStore) WriteKeyer(keyer core.KeyerSettings) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

@@ -47,19 +47,36 @@ type Client struct {
 	listeners []interface{}
 }
 
+func (c *Client) Connect() error {
+	if !c.connected {
+		return fmt.Errorf("cannot connect to TCI host")
+	}
+	return nil
+}
+
 func (c *Client) Disconnect() {
 	c.client.Disconnect()
+}
+
+func (c *Client) IsConnected() bool {
+	return c.connected
+}
+
+func (c *Client) Active() bool {
+	return c.connected
 }
 
 func (c *Client) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Client) emitStatusChanged(available bool) {
+func (c *Client) emitConnectionChanged(connected bool) {
+	type listenerType interface {
+		ConnectionChanged(bool)
+	}
 	for _, listener := range c.listeners {
-		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
-			serviceStatusListener.StatusChanged(core.TCIService, available)
-			serviceStatusListener.StatusChanged(core.CWDaemonService, available)
+		if typedListener, ok := listener.(listenerType); ok {
+			typedListener.ConnectionChanged(connected)
 		}
 	}
 }
@@ -86,21 +103,6 @@ func (c *Client) emitModeChanged(m core.Mode) {
 			modeListener.VFOModeChanged(m)
 		}
 	}
-}
-
-func (c *Client) Connect() error {
-	if !c.connected {
-		return fmt.Errorf("cannot connect to TCI host")
-	}
-	return nil
-}
-
-func (c *Client) IsConnected() bool {
-	return c.connected
-}
-
-func (c *Client) Active() bool {
-	return c.connected
 }
 
 func (c *Client) Speed(wpm int) {
@@ -220,7 +222,7 @@ func (l *trxListener) Refresh() {
 
 func (l *trxListener) Connected(connected bool) {
 	l.client.connected = connected
-	l.client.emitStatusChanged(connected)
+	// TODO emit connection status changed
 }
 
 func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {

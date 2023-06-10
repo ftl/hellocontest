@@ -31,8 +31,8 @@ THE SOFTWARE.
     <property name="can-focus">False</property>
     <property name="accept-focus">False</property>
     <child>
-      <!-- n-columns=2 n-rows=4 -->
-      <object class="GtkGrid">
+      <!-- n-columns=2 n-rows=5 -->
+      <object class="GtkGrid" id="callinfoGrid">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <property name="row-spacing">2</property>
@@ -47,12 +47,13 @@ THE SOFTWARE.
             <property name="label" translatable="yes">DL1ABC</property>
             <property name="wrap">True</property>
             <attributes>
-              <attribute name="scale" value="3"/>
+              <attribute name="scale" value="4"/>
             </attributes>
           </object>
           <packing>
             <property name="left-attach">0</property>
             <property name="top-attach">0</property>
+            <property name="height">2</property>
           </packing>
         </child>
         <child>
@@ -69,7 +70,8 @@ THE SOFTWARE.
           </object>
           <packing>
             <property name="left-attach">0</property>
-            <property name="top-attach">1</property>
+            <property name="top-attach">2</property>
+            <property name="width">2</property>
           </packing>
         </child>
         <child>
@@ -104,7 +106,7 @@ THE SOFTWARE.
           </object>
           <packing>
             <property name="left-attach">0</property>
-            <property name="top-attach">3</property>
+            <property name="top-attach">4</property>
             <property name="width">2</property>
           </packing>
         </child>
@@ -117,7 +119,7 @@ THE SOFTWARE.
             <property name="label" translatable="yes">1234</property>
             <property name="justify">right</property>
             <attributes>
-              <attribute name="scale" value="3"/>
+              <attribute name="scale" value="2"/>
             </attributes>
           </object>
           <packing>
@@ -133,9 +135,11 @@ THE SOFTWARE.
             <property name="margin-start">2</property>
             <property name="margin-end">2</property>
             <property name="hexpand">True</property>
-            <property name="label" translatable="yes">1 Points / 0 Multis</property>
-            <property name="use-markup">True</property>
+            <property name="label" translatable="yes">1P 1M</property>
             <property name="wrap">True</property>
+            <attributes>
+              <attribute name="scale" value="2"/>
+            </attributes>
           </object>
           <packing>
             <property name="left-attach">1</property>
@@ -152,7 +156,7 @@ THE SOFTWARE.
           </object>
           <packing>
             <property name="left-attach">0</property>
-            <property name="top-attach">2</property>
+            <property name="top-attach">3</property>
             <property name="width">2</property>
           </packing>
         </child>

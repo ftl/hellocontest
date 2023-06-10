@@ -43,23 +43,21 @@
  * Callinfo window
  */
 
-.callinfo {
-    background-color: @theme_bg_color;
-    color: @theme_fg_color;
-}
-
 .callinfo-duplicate {
     background-color: @hellocontest-duplicate-bg;
     color: @hellocontest-duplicate-fg;
+    padding-right: 3px;
+    padding-left: 3px;
 }
 
 .callinfo-worked {
     background-color: @hellocontest-worked-spot-bg;
     color: @hellocontest-spot-fg;
+    padding-right: 3px;
+    padding-left: 3px;
 }
 
 .callinfo-worthless {
-    background-color: @insensitive_bg_color;
     color: @insensitive_fg_color;
 }
 

@@ -39,9 +39,17 @@ func (s *callinfoStyle) Refresh() {
 	s.worthlessBG = s.colorProvider.ColorByName(worthlessBGColorName)
 }
 
+const (
+	callinfoDuplicateClass style.Class = "callinfo-duplicate"
+	callinfoWorkedClass    style.Class = "callinfo-worked"
+	callinfoWorthlessClass style.Class = "callinfo-worthless"
+	callinfoMultiClass     style.Class = "callinfo-multi"
+)
+
 type callinfoView struct {
 	controller CallinfoController
 
+	rootGrid        *gtk.Grid
 	callsignLabel   *gtk.Label
 	exchangeLabel   *gtk.Label
 	dxccLabel       *gtk.Label
@@ -59,6 +67,7 @@ func setupCallinfoView(builder *gtk.Builder, colors colorProvider, controller Ca
 	}
 	result.style.Refresh()
 
+	result.rootGrid = getUI(builder, "callinfoGrid").(*gtk.Grid)
 	result.callsignLabel = getUI(builder, "callsignLabel").(*gtk.Label)
 	result.exchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "dxccLabel").(*gtk.Label)
@@ -91,27 +100,19 @@ func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 
 	normalized := strings.ToUpper(strings.TrimSpace(callsign))
 	if normalized == "" {
-		v.callsignLabel.SetMarkup("-")
-		return
+		normalized = "-"
 	}
+	v.callsignLabel.SetText(normalized)
 
-	// see https://docs.gtk.org/Pango/pango_markup.html for reference
-	attributes := make([]string, 0, 1)
+	style.RemoveClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
+	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorkedClass)
+	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorthlessClass)
+
 	if duplicate {
-		attributes = append(attributes,
-			attr("background", v.style.duplicateBG.ToWeb()),
-			attr("foreground", v.style.duplicateFG.ToWeb()),
-		)
+		style.AddClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
 	} else if worked {
-		attributes = append(attributes,
-			attr("background", v.style.workedBG.ToWeb()),
-			attr("foreground", v.style.workedFG.ToWeb()),
-		)
+		style.AddClass(&v.callsignLabel.Widget, callinfoWorkedClass)
 	}
-	attributeString := strings.Join(attributes, " ")
-
-	renderedCallsign := fmt.Sprintf("<span %s>%s</span>", attributeString, normalized)
-	v.callsignLabel.SetMarkup(renderedCallsign)
 }
 
 func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlCompliant bool) {
@@ -143,25 +144,17 @@ func (v *callinfoView) SetValue(points, multis int) {
 		return
 	}
 
-	// see https://docs.gtk.org/Pango/pango_markup.html for reference
-	var pointsMarkup string
+	style.RemoveClass(&v.valueLabel.Widget, callinfoWorthlessClass)
+	style.RemoveClass(&v.valueLabel.Widget, callinfoMultiClass)
+
 	switch {
-	case points < 1:
-		pointsMarkup = attr("foreground", "silver")
-	case points > 1:
-		pointsMarkup = attr("font-weight", "heavy")
+	case points < 1 && multis < 1:
+		style.AddClass(&v.valueLabel.Widget, callinfoWorthlessClass)
+	case multis > 0:
+		style.AddClass(&v.valueLabel.Widget, callinfoMultiClass)
 	}
 
-	var multisMarkup string
-	switch {
-	case multis < 1:
-		multisMarkup = attr("foreground", "silver")
-	case multis > 1:
-		multisMarkup = attr("font-weight", "heavy")
-	}
-
-	valueText := fmt.Sprintf("<span %s>%d points</span> / <span %s>%d multis</span>", pointsMarkup, points, multisMarkup, multis)
-	v.valueLabel.SetMarkup(valueText)
+	v.valueLabel.SetText(fmt.Sprintf("%dP %dM", points, multis))
 }
 
 func (v *callinfoView) SetExchange(exchange string) {

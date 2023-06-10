@@ -149,6 +149,9 @@ func (c *Controller) Startup() {
 	c.Bandmap.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
 
+	c.Workmode = workmode.NewController()
+	c.Workmode.Notify(c.Entry)
+
 	c.VFO = vfo.NewVFO("VFO 1", c.bandplan)
 	c.VFO.Notify(c.Entry)
 	c.Entry.SetVFO(c.VFO)
@@ -156,14 +159,13 @@ func (c *Controller) Startup() {
 	c.Bandmap.SetVFO(c.VFO)
 
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
+	c.Radio.Notify(c.ServiceStatus)
 	c.Bandmap.Notify(c.Radio) // TODO implement Entry... in radio.Controller
 	c.VFO.SetClient(c.Radio)
+
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
 	c.Radio.SelectRadio(c.session.Radio1())
 	c.Radio.SelectKeyer(c.session.Keyer1())
-
-	c.Workmode = workmode.NewController()
-	c.Workmode.Notify(c.Entry)
 
 	c.Keyer = keyer.New(c.Settings, c.Radio, c.configuration.KeyerSettings(), c.Workmode.Workmode(), c.configuration.KeyerPresets())
 	c.Keyer.SetValues(c.Entry.CurrentValues)

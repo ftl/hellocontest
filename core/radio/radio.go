@@ -7,6 +7,7 @@ import (
 
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/hamradio/cwclient"
+
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/tci"

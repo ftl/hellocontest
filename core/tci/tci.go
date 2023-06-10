@@ -222,7 +222,7 @@ func (l *trxListener) Refresh() {
 
 func (l *trxListener) Connected(connected bool) {
 	l.client.connected = connected
-	// TODO emit connection status changed
+	l.client.emitConnectionChanged(connected)
 }
 
 func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {

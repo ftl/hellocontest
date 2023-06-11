@@ -27,8 +27,6 @@ type DXCCFinder interface {
 type View interface {
 	AddSpotSourceEntry(name string)
 	SetSpotSourceEnabled(name string, enabled bool)
-
-	ShowErrorDialog(string, ...interface{})
 }
 
 type Clusters struct {

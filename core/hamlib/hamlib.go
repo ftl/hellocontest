@@ -115,7 +115,15 @@ func (c *Client) connect(whenClosed func()) error {
 }
 
 func (c *Client) Disconnect() {
-	c.conn.Close()
+	select {
+	case <-c.done:
+		return
+	default:
+		close(c.done)
+		if c.conn != nil {
+			c.conn.Close()
+		}
+	}
 }
 
 func (c *Client) IsConnected() bool {

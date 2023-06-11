@@ -13,13 +13,25 @@ import (
 	"github.com/ftl/hellocontest/core/tci"
 )
 
+type View interface {
+	AddRadio(name string)
+	AddKeyer(name string)
+
+	SetRadioSelected(name string)
+	SetKeyerSelected(name string)
+}
+
 type Controller struct {
 	radios    []core.Radio
 	keyers    []core.Keyer
 	bandplan  bandplan.Bandplan
 	listeners []any
 
+	view          View
+	ignoreUpdates bool
+
 	activeRadio     radio
+	activeRadioName string
 	activeKeyer     keyer
 	activeKeyerName string
 	radioAsKeyer    bool
@@ -54,10 +66,39 @@ func NewController(radios []core.Radio, keyers []core.Keyer, bandplan bandplan.B
 	return result
 }
 
+func (c *Controller) SetView(view View) {
+	c.view = view
+	c.doIgnoreUpdates(func() {
+		for _, radio := range c.radios {
+			view.AddRadio(radio.Name)
+		}
+		view.AddKeyer(core.RadioKeyer)
+		for _, keyer := range c.keyers {
+			view.AddKeyer(keyer.Name)
+		}
+
+		if c.activeRadio != nil {
+			view.SetRadioSelected(c.activeRadioName)
+		}
+		if c.activeKeyer != nil {
+			view.SetRadioSelected(c.activeKeyerName)
+		}
+	})
+}
+
+func (c *Controller) doIgnoreUpdates(f func()) {
+	c.ignoreUpdates = true
+	defer func() {
+		c.ignoreUpdates = false
+	}()
+	f()
+}
+
 func (c *Controller) Stop() {
 	if c.activeRadio != nil {
 		c.activeRadio.Disconnect()
 		c.activeRadio = nil
+		c.activeRadioName = ""
 	}
 	if c.activeKeyer != nil {
 		c.activeKeyer.Abort()
@@ -95,6 +136,11 @@ func (c *Controller) emitRadioSelected(name string) {
 			typedListener.RadioSelected(name)
 		}
 	}
+	if c.view != nil {
+		c.doIgnoreUpdates(func() {
+			c.view.SetRadioSelected(name)
+		})
+	}
 }
 
 func (c *Controller) emitKeyerSelected(name string) {
@@ -105,6 +151,11 @@ func (c *Controller) emitKeyerSelected(name string) {
 		if typedListener, ok := listener.(listenerType); ok {
 			typedListener.KeyerSelected(name)
 		}
+	}
+	if c.view != nil {
+		c.doIgnoreUpdates(func() {
+			c.view.SetKeyerSelected(name)
+		})
 	}
 }
 
@@ -119,6 +170,7 @@ func (c *Controller) SelectRadio(name string) error {
 	if c.activeRadio != nil {
 		c.activeRadio.Disconnect()
 		c.activeRadio = nil
+		c.activeRadioName = ""
 	}
 	if c.activeKeyer != nil {
 		c.activeKeyer.Abort()
@@ -133,6 +185,7 @@ func (c *Controller) SelectRadio(name string) error {
 		hamlibClient := hamlib.New(config.Address, c.bandplan)
 		hamlibClient.KeepOpen()
 		c.activeRadio = hamlibClient
+		c.activeRadioName = name
 		radioKeyer = hamlibClient
 	case core.RadioTypeTCI:
 		tciClient, err := tci.NewClient(config.Address, c.bandplan)
@@ -142,6 +195,7 @@ func (c *Controller) SelectRadio(name string) error {
 		}
 		tciClient.SetSendSpots(c.sendSpotsToTci)
 		c.activeRadio = tciClient
+		c.activeRadioName = name
 		radioKeyer = tciClient
 	default:
 		c.emitRadioSelected("")
@@ -351,22 +405,3 @@ type connectionChangedFunc func(bool)
 func (f connectionChangedFunc) ConnectionChanged(connected bool) {
 	f(connected)
 }
-
-type nullRadio struct{}
-
-func (n *nullRadio) Disconnect()                 {}
-func (n *nullRadio) Active() bool                { return false }
-func (n *nullRadio) SetFrequency(core.Frequency) {}
-func (n *nullRadio) SetBand(core.Band)           {}
-func (n *nullRadio) SetMode(core.Mode)           {}
-func (n *nullRadio) Refresh()                    {}
-func (n *nullRadio) Notify(any)                  {}
-
-type nullKeyer struct{}
-
-func (n *nullKeyer) Connect() error    { return fmt.Errorf("no keyer configured") }
-func (n *nullKeyer) IsConnected() bool { return false }
-func (n *nullKeyer) Speed(int)         {}
-func (n *nullKeyer) Send(text string)  {}
-func (n *nullKeyer) Abort()            {}
-func (n *nullKeyer) Notify(any)        {}

@@ -84,6 +84,7 @@ func (a *application) activate() {
 	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
 
 	a.mainWindow.SetMainMenuController(a.controller)
+	a.mainWindow.SetRadioMenuController(a.controller)
 	a.mainWindow.SetSpotSourceMenuController(a.controller)
 	a.mainWindow.SetStopKeyController(a.controller)
 	a.mainWindow.SetLogbookController(a.controller.QSOList)
@@ -96,6 +97,7 @@ func (a *application) activate() {
 	a.controller.Entry.SetView(a.mainWindow)
 	a.controller.Workmode.SetView(a.mainWindow)
 	a.controller.Workmode.Notify(a.mainWindow)
+	a.controller.Radio.SetView(a.mainWindow)
 	a.controller.Keyer.SetView(a.mainWindow)
 	a.controller.ServiceStatus.Notify(a.mainWindow)
 	a.controller.Callinfo.SetView(a.callinfoWindow)

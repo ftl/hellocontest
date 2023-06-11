@@ -14,6 +14,7 @@ type mainWindow struct {
 	window *gtk.ApplicationWindow
 
 	*mainMenu
+	*radioMenu
 	*spotSourceMenu
 	*logbookView
 	*entryView
@@ -31,6 +32,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWi
 	result.window.SetDefaultSize(569, 700)
 
 	result.mainMenu = setupMainMenu(builder)
+	result.radioMenu = setupRadioMenu(builder)
 	result.spotSourceMenu = setupSpotSourceMenu(builder)
 	result.logbookView = setupLogbookView(builder)
 	result.entryView = setupEntryView(builder)
@@ -125,13 +127,13 @@ func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, p
 	return dlg.GetFilename(), true, nil
 }
 
-func (w *mainWindow) ShowInfoDialog(format string, a ...interface{}) {
+func (w *mainWindow) ShowInfoDialog(format string, a ...any) {
 	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()
 	dlg.Run()
 }
 
-func (w *mainWindow) ShowErrorDialog(format string, a ...interface{}) {
+func (w *mainWindow) ShowErrorDialog(format string, a ...any) {
 	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()
 	dlg.Run()

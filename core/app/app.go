@@ -654,6 +654,32 @@ func (c *Controller) SetSpotSourceEnabled(name string, enabled bool) {
 	c.Clusters.SetSpotSourceEnabled(name, enabled)
 }
 
+func (c *Controller) SelectRadio(name string) {
+	err := c.Radio.SelectRadio(name)
+	if err != nil {
+		log.Println(err) // TODO show an error dialog
+		return
+	}
+
+	err = c.session.SetRadio1(name)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (c *Controller) SelectKeyer(name string) {
+	err := c.Radio.SelectKeyer(name)
+	if err != nil {
+		log.Println(err) // TODO show an error dialog
+		return
+	}
+
+	err = c.session.SetKeyer1(name)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func (c *Controller) Stop() {
 	c.Keyer.Stop()
 }

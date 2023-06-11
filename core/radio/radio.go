@@ -2,13 +2,12 @@ package radio
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/ftl/hamradio/bandplan"
-	"github.com/ftl/hamradio/cwclient"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/cwdaemon"
 	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/tci"
 )
@@ -50,11 +49,11 @@ type radio interface {
 }
 
 type keyer interface {
-	Connect() error
 	IsConnected() bool
 	Speed(int)
 	Send(text string)
 	Abort()
+	Notify(any)
 }
 
 func NewController(radios []core.Radio, keyers []core.Keyer, bandplan bandplan.Bandplan) *Controller {
@@ -312,7 +311,7 @@ func (c *Controller) SelectKeyer(name string) error {
 
 	switch config.Type {
 	case core.KeyerTypeCWDaemon:
-		client, err := cwclient.New(toHostAndPort(config.Address, 6789))
+		client, err := cwdaemon.NewClient(config.Address)
 		if err != nil {
 			c.emitKeyerSelected("")
 			return err
@@ -324,28 +323,11 @@ func (c *Controller) SelectKeyer(name string) error {
 		return fmt.Errorf("unknown keyer %q", name)
 	}
 
+	c.activeKeyer.Notify(connectionChangedFunc(c.onKeyerConnectionChanged))
 	c.emitKeyerSelected(name)
+	c.emitKeyerStatusChanged(c.activeKeyer.IsConnected())
 
 	return nil
-}
-
-func toHostAndPort(address string, defaultPort int) (string, int) {
-	address = strings.TrimSpace(address)
-	if address == "" {
-		return "localhost", defaultPort
-	}
-
-	parts := strings.Split(address, ":")
-	if len(parts) == 1 {
-		return parts[0], defaultPort
-	}
-
-	port, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return parts[0], defaultPort
-	}
-
-	return parts[0], port
 }
 
 func (c *Controller) keyerConfig(name string) (core.Keyer, bool) {
@@ -358,19 +340,8 @@ func (c *Controller) keyerConfig(name string) (core.Keyer, bool) {
 	return core.Keyer{}, false
 }
 
-func (c *Controller) Connect() error {
-	// TODO move the connection handling from Keyer to radio.Controller
-	if c.activeKeyer == nil {
-		return fmt.Errorf("no keyer configured")
-	}
-	return nil
-}
-
-func (c *Controller) IsConnected() bool {
-	if c.activeKeyer == nil {
-		return false
-	}
-	return c.activeKeyer.IsConnected()
+func (c *Controller) onKeyerConnectionChanged(connected bool) {
+	c.emitKeyerStatusChanged(connected)
 }
 
 func (c *Controller) Speed(speed int) {

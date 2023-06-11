@@ -24,8 +24,6 @@ type View interface {
 
 // CWClient defines the interface used by the Keyer to output the CW.
 type CWClient interface {
-	Connect() error
-	IsConnected() bool
 	Speed(int)
 	Send(text string)
 	Abort()
@@ -33,16 +31,6 @@ type CWClient interface {
 
 // KeyerValueProvider provides the variable values for the Keyer templates on demand.
 type KeyerValueProvider func() core.KeyerValues
-
-type KeyerListener interface {
-	KeyerChanged(core.KeyerSettings)
-}
-
-type KeyerListenerFunc func(core.KeyerSettings)
-
-func (f KeyerListenerFunc) KeyerChanged(keyer core.KeyerSettings) {
-	f(keyer)
-}
 
 type Writer interface {
 	WriteKeyer(core.KeyerSettings) error
@@ -275,11 +263,8 @@ func (k *Keyer) SelectPreset(name string) {
 }
 
 func (k *Keyer) EnterSpeed(speed int) {
-	k.wpm = speed
-	if !k.client.IsConnected() {
-		return
-	}
 	log.Printf("speed entered: %d", speed)
+	k.wpm = speed
 	k.client.Speed(k.wpm)
 }
 
@@ -366,53 +351,17 @@ func (k *Keyer) SendQuestion(q string) {
 }
 
 func (k *Keyer) send(s string) {
-	if !k.client.IsConnected() {
-		err := k.client.Connect()
-		if err != nil {
-			k.view.ShowMessage(err)
-			k.emitStatusChanged(false)
-			return
-		}
-		k.emitStatusChanged(true)
-		k.client.Speed(k.wpm)
-	}
-
 	log.Printf("sending %s", s)
 	k.client.Send(s)
 }
 
 func (k *Keyer) Stop() {
-	if !k.client.IsConnected() {
-		return
-	}
 	log.Println("abort sending")
 	k.client.Abort()
 }
 
 func (k *Keyer) Notify(listener any) {
 	k.listeners = append(k.listeners, listener)
-}
-
-// TODO here or in radio.go???
-func (k *Keyer) emitStatusChanged(available bool) {
-	log.Printf("cw status changed, notifying %d listeners", len(k.listeners))
-	for _, listener := range k.listeners {
-		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
-			serviceStatusListener.StatusChanged(core.KeyerService, available)
-		}
-	}
-}
-
-func (k *Keyer) emitKeyerChanged() {
-	settings := core.KeyerSettings{
-		WPM: k.wpm,
-		// TODO add patterns here
-	}
-	for _, listener := range k.listeners {
-		if keyerListener, ok := listener.(KeyerListener); ok {
-			keyerListener.KeyerChanged(settings)
-		}
-	}
 }
 
 // softcut replaces 0 and 9 with their "cut" counterparts t and n.

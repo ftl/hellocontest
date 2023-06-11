@@ -169,6 +169,7 @@ func (c *Client) SetSendSpots(sendSpots bool) {
 func (c *Client) resetSpots() {
 	c.lastHeardSpots = make(map[string]time.Time)
 }
+
 func (c *Client) EntryAdded(entry core.BandmapEntry) {
 	if !c.sendSpots {
 		return

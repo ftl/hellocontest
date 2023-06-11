@@ -268,18 +268,47 @@ func (c *Controller) Refresh() {
 	c.activeRadio.Refresh()
 }
 
+/* TCI specific */
+
+type tciRadioType interface {
+	SetSendSpots(bool)
+	EntryAdded(core.BandmapEntry)
+	EntryUpdated(core.BandmapEntry)
+	EntryRemoved(core.BandmapEntry)
+}
+
 func (c *Controller) SetSendSpotsToTci(value bool) {
 	c.sendSpotsToTci = value
-
-	type tciRadioType interface {
-		SetSendSpots(bool)
-	}
 
 	tciRadio, ok := c.activeRadio.(tciRadioType)
 	if !ok {
 		return
 	}
 	tciRadio.SetSendSpots(c.sendSpotsToTci)
+}
+
+func (c *Controller) EntryAdded(entry core.BandmapEntry) {
+	tciRadio, ok := c.activeRadio.(tciRadioType)
+	if !ok {
+		return
+	}
+	tciRadio.EntryAdded(entry)
+}
+
+func (c *Controller) EntryUpdated(entry core.BandmapEntry) {
+	tciRadio, ok := c.activeRadio.(tciRadioType)
+	if !ok {
+		return
+	}
+	tciRadio.EntryUpdated(entry)
+}
+
+func (c *Controller) EntryRemoved(entry core.BandmapEntry) {
+	tciRadio, ok := c.activeRadio.(tciRadioType)
+	if !ok {
+		return
+	}
+	tciRadio.EntryRemoved(entry)
 }
 
 /* Keyer */

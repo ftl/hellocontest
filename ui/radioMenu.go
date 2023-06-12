@@ -74,6 +74,13 @@ func (m *radioMenu) AddKeyer(name string) {
 }
 
 func (m *radioMenu) SetRadioSelected(name string) {
+	if name == "" {
+		for _, item := range m.radioItems {
+			item.SetActive(false)
+		}
+		return
+	}
+
 	item, ok := m.radioItems[name]
 	if !ok {
 		return
@@ -82,6 +89,13 @@ func (m *radioMenu) SetRadioSelected(name string) {
 }
 
 func (m *radioMenu) SetKeyerSelected(name string) {
+	if name == "" {
+		for _, item := range m.keyerItems {
+			item.SetActive(false)
+		}
+		return
+	}
+
 	item, ok := m.keyerItems[name]
 	if !ok {
 		return

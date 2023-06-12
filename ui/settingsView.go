@@ -11,7 +11,7 @@ import (
 type SettingsController interface {
 	Save()
 	Reset()
-	OpenDefaults()
+	OpenConfigurationFile()
 
 	EnterStationCallsign(string)
 	EnterStationOperator(string)
@@ -63,7 +63,7 @@ type settingsView struct {
 	message               *gtk.Label
 	openContestRulesPage  *gtk.Button
 	openContestUploadPage *gtk.Button
-	openDefaults          *gtk.Button
+	openConfigurationFile *gtk.Button
 	reset                 *gtk.Button
 	close                 *gtk.Button
 
@@ -102,8 +102,8 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.clearCallHistorySettingsButton = getUI(builder, "contestCallHistoryClearButton").(*gtk.Button)
 	result.clearCallHistorySettingsButton.Connect("clicked", result.onClearCallHistoryPressed)
 
-	result.openDefaults = getUI(builder, "openDefaultsButton").(*gtk.Button)
-	result.openDefaults.Connect("clicked", result.onOpenDefaultsPressed)
+	result.openConfigurationFile = getUI(builder, "openConfigurationButton").(*gtk.Button)
+	result.openConfigurationFile.Connect("clicked", result.onOpenConfigurationFilePressed)
 	result.reset = getUI(builder, "resetButton").(*gtk.Button)
 	result.reset.Connect("clicked", result.onResetPressed)
 	result.close = getUI(builder, "closeButton").(*gtk.Button)
@@ -252,8 +252,8 @@ func (v *settingsView) onClearCallHistoryPressed(_ *gtk.Button) {
 	v.controller.ClearCallHistory()
 }
 
-func (v *settingsView) onOpenDefaultsPressed(_ *gtk.Button) {
-	v.controller.OpenDefaults()
+func (v *settingsView) onOpenConfigurationFilePressed(_ *gtk.Button) {
+	v.controller.OpenConfigurationFile()
 }
 
 func (v *settingsView) onResetPressed(_ *gtk.Button) {

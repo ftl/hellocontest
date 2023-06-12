@@ -54,7 +54,7 @@ type Writer interface {
 	WriteContest(core.Contest) error
 }
 
-type DefaultsOpener func()
+type ConfigurationFileOpener func()
 
 type BrowserOpener func(string)
 
@@ -91,18 +91,18 @@ type View interface {
 	SetMultisGoal(string)
 }
 
-func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, station core.Station, contest core.Contest) *Settings {
+func New(configurationFileOpener ConfigurationFileOpener, browserOpener BrowserOpener, station core.Station, contest core.Contest) *Settings {
 	result := &Settings{
-		writer:         new(nullWriter),
-		view:           new(nullView),
-		defaultsOpener: defaultsOpener,
-		browserOpener:  browserOpener,
-		station:        station,
-		contest:        contest,
-		defaultStation: station,
-		defaultContest: contest,
-		savedStation:   station,
-		savedContest:   deepCopyContest(contest),
+		writer:                  new(nullWriter),
+		view:                    new(nullView),
+		configurationFileOpener: configurationFileOpener,
+		browserOpener:           browserOpener,
+		station:                 station,
+		contest:                 contest,
+		defaultStation:          station,
+		defaultContest:          contest,
+		savedStation:            station,
+		savedContest:            deepCopyContest(contest),
 	}
 
 	result.availableCallHistoryFieldNames = make([]string, 0, len(scp.DefaultFieldSet))
@@ -116,7 +116,7 @@ func New(defaultsOpener DefaultsOpener, browserOpener BrowserOpener, station cor
 type Settings struct {
 	writer                         Writer
 	view                           View
-	defaultsOpener                 DefaultsOpener
+	configurationFileOpener        ConfigurationFileOpener
 	browserOpener                  BrowserOpener
 	reportFieldIndex               int
 	serialExchangeFieldIndex       int
@@ -314,11 +314,11 @@ func (s *Settings) Reset() {
 	s.emitContestChanged()
 }
 
-func (s *Settings) OpenDefaults() {
-	if s.defaultsOpener == nil {
+func (s *Settings) OpenConfigurationFile() {
+	if s.configurationFileOpener == nil {
 		return
 	}
-	s.defaultsOpener()
+	s.configurationFileOpener()
 }
 
 func (s *Settings) EnterStationCallsign(value string) {

@@ -245,8 +245,8 @@ THE SOFTWARE.
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
-              <object class="GtkButton" id="openDefaultsButton">
-                <property name="label" translatable="yes">Open _Defaults</property>
+              <object class="GtkButton" id="openConfigurationButton">
+                <property name="label" translatable="yes">Open Configuration</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -976,6 +976,36 @@ THE SOFTWARE.
                       <object class="GtkSeparatorMenuItem" id="separatorFile2">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuFileOpenRules">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Open Contest Rules...</property>
+                        <property name="use-underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuFileOpenUpload">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Open Upload Page...</property>
+                        <property name="use-underline">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuFileConfiguration">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Open Configuration File...</property>
+                        <property name="use-underline">True</property>
                       </object>
                     </child>
                     <child>

@@ -121,7 +121,7 @@ func (c *Controller) Startup() {
 	}
 
 	c.Settings = settings.New(
-		c.OpenDefaultConfigurationFile,
+		c.OpenConfigurationFile,
 		c.openWithExternalApplication,
 		c.configuration.Station(),
 		c.configuration.Contest(),
@@ -309,11 +309,19 @@ func (c *Controller) About() {
 	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\nThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version)
 }
 
+func (c *Controller) OpenContestRulesPage() {
+	c.Settings.OpenContestRulesPage()
+}
+
+func (c *Controller) OpenContestUploadPage() {
+	c.Settings.OpenContestUploadPage()
+}
+
 func (c *Controller) OpenSettings() {
 	c.Settings.Show()
 }
 
-func (c *Controller) OpenDefaultConfigurationFile() {
+func (c *Controller) OpenConfigurationFile() {
 	c.openWithExternalApplication(cfg.AbsoluteFilename())
 }
 

@@ -15,7 +15,10 @@ type MainMenuController interface {
 	ExportADIF()
 	ExportCSV()
 	ExportCallhistory()
+	OpenContestRulesPage()
+	OpenContestUploadPage()
 	OpenSettings()
+	OpenConfigurationFile()
 	Quit()
 	ShowCallinfo()
 	ShowScore()
@@ -45,7 +48,10 @@ type mainMenu struct {
 	fileExportADIF        *gtk.MenuItem
 	fileExportCSV         *gtk.MenuItem
 	fileExportCallhistory *gtk.MenuItem
+	fileOpenRules         *gtk.MenuItem
+	fileOpenUpload        *gtk.MenuItem
 	fileSettings          *gtk.MenuItem
+	fileConfiguration     *gtk.MenuItem
 	fileQuit              *gtk.MenuItem
 
 	editClearEntryFields *gtk.MenuItem
@@ -78,7 +84,10 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportADIF = getUI(builder, "menuFileExportADIF").(*gtk.MenuItem)
 	result.fileExportCSV = getUI(builder, "menuFileExportCSV").(*gtk.MenuItem)
 	result.fileExportCallhistory = getUI(builder, "menuFileExportCallhistory").(*gtk.MenuItem)
+	result.fileOpenRules = getUI(builder, "menuFileOpenRules").(*gtk.MenuItem)
+	result.fileOpenUpload = getUI(builder, "menuFileOpenUpload").(*gtk.MenuItem)
 	result.fileSettings = getUI(builder, "menuFileSettings").(*gtk.MenuItem)
+	result.fileConfiguration = getUI(builder, "menuFileConfiguration").(*gtk.MenuItem)
 	result.fileQuit = getUI(builder, "menuFileQuit").(*gtk.MenuItem)
 	result.editClearEntryFields = getUI(builder, "menuEditClearEntryFields").(*gtk.MenuItem)
 	result.editGotoEntryFields = getUI(builder, "menuEditGotoEntryFields").(*gtk.MenuItem)
@@ -104,7 +113,10 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.fileExportADIF.Connect("activate", result.onExportADIF)
 	result.fileExportCSV.Connect("activate", result.onExportCSV)
 	result.fileExportCallhistory.Connect("activate", result.onExportCallhistory)
+	result.fileOpenRules.Connect("activate", result.onOpenRules)
+	result.fileOpenUpload.Connect("activate", result.onOpenUpload)
 	result.fileSettings.Connect("activate", result.onSettings)
+	result.fileConfiguration.Connect("activate", result.onConfiguration)
 	result.fileQuit.Connect("activate", result.onQuit)
 	result.editClearEntryFields.Connect("activate", result.onClearEntryFields)
 	result.editGotoEntryFields.Connect("activate", result.onGotoEntryFields)
@@ -178,8 +190,20 @@ func (m *mainMenu) onExportCallhistory() {
 	m.controller.ExportCallhistory()
 }
 
+func (m *mainMenu) onOpenRules() {
+	m.controller.OpenContestRulesPage()
+}
+
+func (m *mainMenu) onOpenUpload() {
+	m.controller.OpenContestUploadPage()
+}
+
 func (m *mainMenu) onSettings() {
 	m.controller.OpenSettings()
+}
+
+func (m *mainMenu) onConfiguration() {
+	m.controller.OpenConfigurationFile()
 }
 
 func (m *mainMenu) onQuit() {

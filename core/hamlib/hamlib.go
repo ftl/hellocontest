@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/rigproxy/pkg/client"
 
@@ -183,22 +184,44 @@ func (c *Client) SetBand(band core.Band) {
 	if band == c.outgoing.band {
 		return
 	}
-	c.outgoing.band = band
-
-	outgoingBandName := toBandplanBandName(c.outgoing.band)
-	outgoingBand, ok := c.bandplan[outgoingBandName]
-	if !ok {
-		log.Printf("unknown band %v", c.outgoing.band)
-		return
-	}
 	if c.conn == nil || c.conn.Closed() {
 		return
 	}
+
+	outgoingBandName := toBandplanBandName(band)
+	outgoingBand, ok := c.bandplan[outgoingBandName]
+	if !ok {
+		log.Printf("unknown band %v", band)
+		return
+	}
+	c.outgoing.band = band
+	log.Printf("outgoing band: %v", band)
+
+	err := c.switchToBand(outgoingBand)
+	if err == nil {
+		return
+	}
+	log.Printf("cannot switch to band %s directly: %v", outgoingBand, err)
+
+	err = c.switchToBandByFrequencyAndMode(outgoingBand)
+	if err != nil {
+		log.Printf("cannot switch to band %s by frequency: %v", band, err)
+		return
+	}
+}
+
+func (c *Client) switchToBand(band bandplan.Band) error {
 	ctx, cancel := c.withRequestTimeout()
 	defer cancel()
-	c.conn.SwitchToBand(ctx, outgoingBand)
+	return c.conn.SwitchToBand(ctx, band)
+}
 
-	log.Printf("outgoing band: %v", band)
+func (c *Client) switchToBandByFrequencyAndMode(band bandplan.Band) error {
+	frequency := findModePortionCenter(c.bandplan, int(band.Center()), toBandplanMode(c.incoming.mode))
+
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+	return c.conn.SetFrequency(ctx, client.Frequency(frequency))
 }
 
 func (c *Client) SetMode(mode core.Mode) {
@@ -354,4 +377,44 @@ func toClientMode(mode core.Mode) client.Mode {
 	default:
 		return client.ModeNone
 	}
+}
+
+func toBandplanMode(mode core.Mode) bandplan.Mode {
+	log.Printf("to bandplan mode: %s", mode)
+	switch mode {
+	case core.ModeCW:
+		return bandplan.ModeCW
+	case core.ModeSSB, core.ModeFM:
+		return bandplan.ModePhone
+	case core.ModeDigital, core.ModeRTTY:
+		return bandplan.ModeDigital
+	default:
+		return bandplan.ModeDigital
+	}
+}
+
+func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) int {
+	log.Printf("find mode portion center: %d %s", f, mode)
+	frequency := hamradio.Frequency(f)
+	band := bp.ByFrequency(frequency)
+	var modePortion bandplan.Portion
+	var currentPortion bandplan.Portion
+	for _, portion := range band.Portions {
+		if (portion.Mode == mode && portion.From < frequency) || modePortion.Mode != mode {
+			modePortion = portion
+		}
+		if portion.Contains(frequency) {
+			currentPortion = portion
+		}
+		if modePortion.Mode == mode && currentPortion.Mode != "" {
+			break
+		}
+	}
+	if currentPortion.Mode == mode {
+		return int(currentPortion.Center())
+	}
+	if modePortion.Mode == mode {
+		return int(modePortion.Center())
+	}
+	return int(band.Center())
 }

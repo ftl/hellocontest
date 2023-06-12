@@ -15,7 +15,7 @@ import (
 
 const retryInterval = 10 * time.Second
 
-func NewClient(address string, bandplan bandplan.Bandplan) (*Client, error) {
+func NewClient(address string, trx int, bandplan bandplan.Bandplan) (*Client, error) {
 	host, err := network.ParseTCPAddr(address)
 	if err != nil {
 		return nil, err
@@ -26,6 +26,7 @@ func NewClient(address string, bandplan bandplan.Bandplan) (*Client, error) {
 	}
 	result.trx = &trxListener{
 		client: result,
+		trx:    trx,
 	}
 	result.resetSpots()
 	result.client = client.KeepOpen(host, retryInterval, false)

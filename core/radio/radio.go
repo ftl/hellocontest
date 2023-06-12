@@ -2,6 +2,7 @@ package radio
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ftl/hamradio/bandplan"
@@ -178,28 +179,23 @@ func (c *Controller) SelectRadio(name string) error {
 	}
 
 	c.radioAsKeyer = normalizeName(config.Keyer) == core.RadioKeyer
-	var radioKeyer keyer
+	var radio radio
+	var err error
 	switch config.Type {
 	case core.RadioTypeHamlib:
-		hamlibClient := hamlib.New(config.Address, c.bandplan)
-		hamlibClient.KeepOpen()
-		c.activeRadio = hamlibClient
-		c.activeRadioName = name
-		radioKeyer = hamlibClient
+		radio = c.newHamlibClient(config)
 	case core.RadioTypeTCI:
-		tciClient, err := tci.NewClient(config.Address, c.bandplan)
-		if err != nil {
-			c.emitRadioSelected("")
-			return err
-		}
-		tciClient.SetSendSpots(c.sendSpotsToTci)
-		c.activeRadio = tciClient
-		c.activeRadioName = name
-		radioKeyer = tciClient
+		radio, err = c.newTCIClient(config)
 	default:
-		c.emitRadioSelected("")
-		return fmt.Errorf("unknown radio type %q", config.Type)
+		err = fmt.Errorf("unknown radio type %q", config.Type)
 	}
+
+	if err != nil {
+		c.emitRadioSelected("")
+		return err
+	}
+	c.activeRadio = radio
+	c.activeRadioName = name
 
 	for _, listener := range c.listeners {
 		c.activeRadio.Notify(listener)
@@ -208,7 +204,7 @@ func (c *Controller) SelectRadio(name string) error {
 	c.emitRadioSelected(config.Name)
 
 	if c.radioAsKeyer {
-		c.activeKeyer = radioKeyer
+		c.activeKeyer = c.activeRadio
 		c.activeKeyerName = core.RadioKeyer
 		c.emitKeyerSelected(core.RadioKeyer)
 		return nil
@@ -231,6 +227,34 @@ func (c *Controller) onRadioConnectionChanged(connected bool) {
 	if c.radioAsKeyer {
 		c.emitKeyerStatusChanged(connected)
 	}
+}
+
+func (c *Controller) newHamlibClient(config core.Radio) radio {
+	hamlibClient := hamlib.New(config.Address, c.bandplan)
+	hamlibClient.KeepOpen()
+	return hamlibClient
+}
+
+const (
+	tciTRXOption = "trx"
+)
+
+func (c *Controller) newTCIClient(config core.Radio) (radio, error) {
+	var err error
+	trx := 0
+	trxStr, ok := config.Options[tciTRXOption]
+	if ok {
+		trx, err = strconv.Atoi(trxStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid trx option: %v", err)
+		}
+	}
+	tciClient, err := tci.NewClient(config.Address, trx, c.bandplan)
+	if err != nil {
+		return nil, err
+	}
+	tciClient.SetSendSpots(c.sendSpotsToTci)
+	return tciClient, nil
 }
 
 func (c *Controller) Active() bool {

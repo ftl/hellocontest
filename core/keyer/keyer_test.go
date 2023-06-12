@@ -32,7 +32,6 @@ func TestSend(t *testing.T) {
 	view.On("SetPresetNames", mock.Anything)
 	cwClient := new(mocked.CWClient)
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
-	cwClient.On("IsConnected").Return(true)
 
 	keyer := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
 	keyer.SetView(view)

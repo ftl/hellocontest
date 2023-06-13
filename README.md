@@ -16,6 +16,9 @@ A simple HF contest log for Linux, written in Go using [gotk3](https://github.co
 
 ## Install
 
+### AppImage
+Download the AppImage of the latest release [here](https://github.com/ftl/hellocontest/releases/latest/).
+
 ### Debian, Ubuntu, etc.
 Download the Debian package of the latest release [here](https://github.com/ftl/hellocontest/releases/latest/).
 

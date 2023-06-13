@@ -4,4 +4,9 @@
 *.adif
 hellocontest
 hellocontest*.deb
+hellocontest*.AppImage
+.appimage/*.desktop
+.appimage/*.png
+.appimage/.DirIcon
+.debpkg/usr
 ui/glade/#contest.glade#

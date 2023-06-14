@@ -16,12 +16,15 @@ import (
 	"github.com/ftl/hellocontest/ui/style"
 )
 
+const AppID = "ft.hellocontest"
+
 // Run the application
 func Run(version string, args []string) {
 	var err error
-	app := &application{id: "ft.hellocontest", version: version}
+	app := &application{id: AppID, version: version}
 
 	gdk.SetAllowedBackends("x11")
+	gtk.WindowSetDefaultIconName("hellocontest")
 
 	app.app, err = gtk.ApplicationNew(app.id, glib.APPLICATION_FLAGS_NONE)
 	if err != nil {

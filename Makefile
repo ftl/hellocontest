@@ -37,9 +37,31 @@ install:
 	cp ./${BINARY_NAME} ${DESTDIR}${BINDIR}/${BINARY_NAME}
 	mkdir -p ${DESTDIR}${SHAREDIR}/applications
 	cp ./.assets/${BINARY_NAME}.desktop ${DESTDIR}${SHAREDIR}/applications/${BINARY_NAME}.desktop
+	mkdir -p ${DESTDIR}${SHAREDIR}/icons/hicolor/256x256/apps/
+	cp ./.assets/${BINARY_NAME}-256x256.png ${DESTDIR}${SHAREDIR}/icons/hicolor/256x256/apps/${BINARY_NAME}.png
+	mkdir -p ${DESTDIR}${SHAREDIR}/icons/hicolor/128x128/apps/
+	cp ./.assets/${BINARY_NAME}-128x128.png ${DESTDIR}${SHAREDIR}/icons/hicolor/128x128/apps/${BINARY_NAME}.png
+	mkdir -p ${DESTDIR}${SHAREDIR}/icons/hicolor/48x48/apps/
+	cp ./.assets/${BINARY_NAME}-48x48.png ${DESTDIR}${SHAREDIR}/icons/hicolor/48x48/apps/${BINARY_NAME}.png
+	mkdir -p ${DESTDIR}${SHAREDIR}/icons/hicolor/32x32/apps/
+	cp ./.assets/${BINARY_NAME}-32x32.png ${DESTDIR}${SHAREDIR}/icons/hicolor/32x32/apps/${BINARY_NAME}.png
+	mkdir -p ${DESTDIR}${SHAREDIR}/icons/hicolor/16x16/apps/
+	cp ./.assets/${BINARY_NAME}-16x16.png ${DESTDIR}${SHAREDIR}/icons/hicolor/16x16/apps/${BINARY_NAME}.png
+	mkdir -p ${DESTDIR}${SHAREDIR}/icons/hicolor/scalable/apps/
+	cp ./.assets/${BINARY_NAME}.svg ${DESTDIR}${SHAREDIR}/icons/hicolor/scalable/apps/${BINARY_NAME}.svg
 
 uninstall:
-	rm ${DESTDIR}${BINDIR}/${BINARY_NAME}
+	rm -f ${DESTDIR}${BINDIR}/${BINARY_NAME}
+	rm -f ${DESTDIR}${SHAREDIR}/applications/${BINARY_NAME}.desktop
+	rm -f ${DESTDIR}${SHAREDIR}/icons/hicolor/256x256/apps/${BINARY_NAME}.png
+	rm -f ${DESTDIR}${SHAREDIR}/icons/hicolor/128x128/apps/${BINARY_NAME}.png
+	rm -f ${DESTDIR}${SHAREDIR}/icons/hicolor/48x48/apps/${BINARY_NAME}.png
+	rm -f ${DESTDIR}${SHAREDIR}/icons/hicolor/32x32/apps/${BINARY_NAME}.png
+	rm -f ${DESTDIR}${SHAREDIR}/icons/hicolor/16x16/apps/${BINARY_NAME}.png
+	rm -f ${DESTDIR}${SHAREDIR}/icons/hicolor/scalable/apps/${BINARY_NAME}.svg
+
+update_icons:
+	gtk-update-icon-cache ${DESTDIR}${SHAREDIR}/icons/hicolor
 
 checkout_latest:
 	git checkout `git tag --sort=committerdate | tail -1`
@@ -55,10 +77,14 @@ debpkg:
 	cp ./.assets/${BINARY_NAME}.desktop ./.debpkg${SHAREDIR}/applications/${BINARY_NAME}.desktop
 	mkdir -p ./.debpkg${SHAREDIR}/icons/hicolor/256x256/apps/
 	cp ./.assets/${BINARY_NAME}-256x256.png ./.debpkg${SHAREDIR}/icons/hicolor/256x256/apps/${BINARY_NAME}.png
+	mkdir -p ./.debpkg${SHAREDIR}/icons/hicolor/128x128/apps/
+	cp ./.assets/${BINARY_NAME}-128x128.png ./.debpkg${SHAREDIR}/icons/hicolor/128x128/apps/${BINARY_NAME}.png
 	mkdir -p ./.debpkg${SHAREDIR}/icons/hicolor/48x48/apps/
 	cp ./.assets/${BINARY_NAME}-48x48.png ./.debpkg${SHAREDIR}/icons/hicolor/48x48/apps/${BINARY_NAME}.png
 	mkdir -p ./.debpkg${SHAREDIR}/icons/hicolor/32x32/apps/
 	cp ./.assets/${BINARY_NAME}-32x32.png ./.debpkg${SHAREDIR}/icons/hicolor/32x32/apps/${BINARY_NAME}.png
+	mkdir -p ./.debpkg${SHAREDIR}/icons/hicolor/16x16/apps/
+	cp ./.assets/${BINARY_NAME}-16x16.png ./.debpkg${SHAREDIR}/icons/hicolor/16x16/apps/${BINARY_NAME}.png
 	mkdir -p ./.debpkg${SHAREDIR}/icons/hicolor/scalable/apps/
 	cp ./.assets/${BINARY_NAME}.svg ./.debpkg${SHAREDIR}/icons/hicolor/scalable/apps/${BINARY_NAME}.svg
 	dpkg-deb --build ./.debpkg .

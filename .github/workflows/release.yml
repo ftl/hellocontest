@@ -68,13 +68,13 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: hellocontest-appimage
-        path: ./${{ steps.create_appimage.outputs.appimage_filename }}
+        path: ${{ steps.create_appimage.outputs.appimage_filename }}
 
     - name: 'Upload Debian package'
       uses: actions/upload-artifact@v3
       with:
         name: hellocontest-debpkg
-        path: ./${{ steps.create_deb_package.outputs.deb_package_filename }}
+        path: ${{ steps.create_deb_package.outputs.deb_package_filename }}
   
     - name: Upload package to the release
       uses: svenstaro/upload-release-action@v2

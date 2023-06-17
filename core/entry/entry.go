@@ -384,9 +384,10 @@ func (c *Controller) frequencyEntered(frequency core.Frequency) {
 }
 
 func (c *Controller) bandEntered(band core.Band) {
+	c.input.band = band.String()
 	c.selectedBand = band
 	c.vfo.SetBand(band)
-	c.view.SetBand(string(band))
+	c.view.SetBand(c.input.band)
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {

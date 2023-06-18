@@ -10,4 +10,5 @@ hellocontest*.AppImage
 .appimage/*.svg
 .appimage/.DirIcon
 .debpkg/usr
+.config_backup
 ui/glade/#contest.glade#

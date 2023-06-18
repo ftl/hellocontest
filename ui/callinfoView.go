@@ -158,6 +158,10 @@ func (v *callinfoView) SetValue(points, multis int) {
 }
 
 func (v *callinfoView) SetExchange(exchange string) {
+	if v == nil {
+		return
+	}
+
 	var exchangeMarkup string
 	if exchange == "" {
 		exchange = "-"
@@ -172,6 +176,7 @@ func (v *callinfoView) SetUserInfo(value string) {
 	if v == nil {
 		return
 	}
+
 	v.userInfoLabel.SetText(value)
 }
 

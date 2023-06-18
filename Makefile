@@ -35,6 +35,17 @@ run: build
 config:
 	xdg-open ~/.config/hamradio/hellocontest.json
 
+config_backup:
+	mkdir -p ./.config_backup
+	cp -f ~/.config/hamradio/hellocontest.* ./.config_backup
+
+config_restore:
+	mkdir -p ~/.config/hamradio
+	cp -f ./.config_backup/*.* ~/.config/hamradio
+
+config_clear:
+	rm -f ~/.config/hamradio/hellocontest.*
+
 install:
 	mkdir -p ${DESTDIR}${BINDIR}
 	cp ./${BINARY_NAME} ${DESTDIR}${BINDIR}/${BINARY_NAME}

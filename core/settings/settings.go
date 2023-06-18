@@ -162,6 +162,8 @@ func (s *Settings) SetView(view View) {
 
 func (s *Settings) Notify(listener interface{}) {
 	s.listeners = append(s.listeners, listener)
+
+	s.updateContestPages()
 }
 
 func (s *Settings) Station() core.Station {
@@ -415,10 +417,6 @@ func (s *Settings) ProposeContestName(contestIdentifier string) string {
 }
 
 func (s *Settings) updateContestPages() {
-	if !s.view.Ready() {
-		return
-	}
-
 	if s.contest.Definition == nil {
 		s.emitContestPagesChanged(false, false)
 	} else {

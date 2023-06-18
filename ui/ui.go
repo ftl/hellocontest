@@ -22,6 +22,8 @@ const (
 	worthlessBGColorName = "insensitive_bg_color"
 )
 
+type fieldID string
+
 func bandColor(colors colorProvider, band core.Band) style.Color {
 	bandColorName := "hellocontest-band" + string(band)
 	if !colors.HasColor(bandColorName) {

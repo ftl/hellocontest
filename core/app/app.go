@@ -23,6 +23,7 @@ import (
 	"github.com/ftl/hellocontest/core/export/csv"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
+	"github.com/ftl/hellocontest/core/newcontest"
 	"github.com/ftl/hellocontest/core/radio"
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
@@ -74,6 +75,7 @@ type Controller struct {
 	Score         *score.Counter
 	Rate          *rate.Counter
 	ServiceStatus *ServiceStatus
+	NewContest    *newcontest.Controller
 	Settings      *settings.Settings
 	Bandmap       *bandmap.Bandmap
 	Clusters      *cluster.Clusters
@@ -126,6 +128,7 @@ func (c *Controller) Startup() {
 		c.configuration.Station(),
 		c.configuration.Contest(),
 	)
+	c.NewContest = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
 
 	c.ServiceStatus = newServiceStatus(c.asyncRunner)
 
@@ -346,43 +349,42 @@ func (c *Controller) proposeFilename() string {
 }
 
 func (c *Controller) New() {
-	proposedName := c.proposeFilename() + ".log"
-	filename, ok, err := c.view.SelectSaveFile("New Logfile", c.configuration.LogDirectory(), proposedName, "*.log")
+	var err error
+	newContest, ok := c.NewContest.Run()
 	if !ok {
 		return
 	}
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot select a file: %v", err)
-		return
-	}
-	store := store.NewFileStore(filename)
+
+	store := store.NewFileStore(newContest.Filename)
 	err = store.Clear()
 	if err != nil {
-		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(newContest.Filename), err)
 		return
 	}
 
 	c.Settings.Reset()
+	c.Settings.SelectContestIdentifier(newContest.Identifier)
+	c.Settings.EnterContestName(newContest.Name)
 
 	err = store.WriteStation(c.Settings.Station())
 	if err != nil {
-		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
 		return
 	}
 	err = store.WriteContest(c.Settings.Contest())
 	if err != nil {
-		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
 		return
 	}
 	err = store.WriteKeyer(c.Keyer.KeyerSettings())
 	if err != nil {
-		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
+		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
 		return
 	}
 
 	c.Settings.SetWriter(store)
 	c.Keyer.SetWriter(store)
-	c.changeLogbook(filename, store, logbook.New(c.clock))
+	c.changeLogbook(newContest.Filename, store, logbook.New(c.clock))
 	c.Refresh()
 
 	c.OpenSettings()

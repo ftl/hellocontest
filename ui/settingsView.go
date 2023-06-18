@@ -38,8 +38,6 @@ type SettingsController interface {
 	EnterMultisGoal(string)
 }
 
-type fieldID string
-
 const (
 	stationCallsign        fieldID = "stationCallsign"
 	stationOperator        fieldID = "stationOperator"
@@ -108,6 +106,8 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.reset.Connect("clicked", result.onResetPressed)
 	result.close = getUI(builder, "closeButton").(*gtk.Button)
 	result.close.Connect("clicked", result.onClosePressed)
+	result.close.SetCanDefault(true)
+	result.parent.SetDefault(&result.close.Widget)
 
 	result.addEntry(builder, stationCallsign)
 	result.addEntry(builder, stationOperator)

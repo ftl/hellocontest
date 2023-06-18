@@ -237,24 +237,7 @@ func (s *Settings) showSettings() {
 	s.view.SetStationLocator(s.station.Locator.String())
 
 	// contest definition
-	definitionNames, err := conval.IncludedDefinitionNames()
-	if err != nil {
-		log.Printf("Cannot get the included contest definitions: %v", err)
-	} else {
-		ids := make([]string, 1, len(definitionNames)+1)
-		ids[0] = ""
-		ids = append(ids, definitionNames...)
-		texts := make([]string, len(ids))
-		for i, id := range ids {
-			definition, err := conval.IncludedDefinition(id)
-			if err != nil {
-				continue
-			}
-			ids[i] = strings.ToUpper(id)
-			texts[i] = fmt.Sprintf("%s - %s", strings.ToUpper(id), definition.Name)
-		}
-		s.view.SetContestIdentifiers(ids, texts)
-	}
+	s.view.SetContestIdentifiers(s.ContestIdentifiers())
 
 	if s.contest.Definition != nil {
 		s.view.SelectContestIdentifier(strings.ToUpper(string(s.contest.Definition.Identifier)))
@@ -359,32 +342,66 @@ func (s *Settings) EnterStationLocator(value string) {
 	s.station.Locator = loc
 }
 
-func (s *Settings) SelectContestIdentifier(value string) {
-	var definition *conval.Definition
-	var err error
-
-	if value == "" {
-		definition = nil
-	} else {
-		definition, err = conval.IncludedDefinition(value)
-		if err != nil {
-			log.Printf("Cannot find the selected contest definition %s: %v", value, err)
-			definition = nil
-		}
-	}
-
-	s.contest.Definition = definition
+func (s *Settings) SelectContestIdentifier(contestIdentifier string) {
+	s.contest.Definition = s.ContestDefinition(contestIdentifier)
 	s.updateContestPages()
 	s.updateExchangeFields()
 
-	if definition != nil {
-		year := time.Now().Format("2006")
-		s.contest.Name = fmt.Sprintf("%s %s", definition.Identifier, year)
+	if s.contest.Definition != nil {
+		s.contest.Name = s.ProposeContestName(string(s.contest.Definition.Identifier))
 		s.view.SetContestName(s.contest.Name)
 	}
 }
 
+func (s *Settings) ContestIdentifiers() ([]string, []string) {
+	definitionNames, err := conval.IncludedDefinitionNames()
+	if err != nil {
+		log.Printf("Cannot get the included contest definitions: %v", err)
+		return nil, nil
+	}
+
+	// TODO: add support for user provided definitions here, e.g. by putting conval files into .local/share/hamradio/
+
+	ids := make([]string, 1, len(definitionNames)+1)
+	ids[0] = ""
+	ids = append(ids, definitionNames...)
+	texts := make([]string, len(ids))
+	for i, id := range ids {
+		definition, err := conval.IncludedDefinition(id)
+		if err != nil {
+			continue
+		}
+		ids[i] = strings.ToUpper(id)
+		texts[i] = fmt.Sprintf("%s - %s", strings.ToUpper(id), definition.Name)
+	}
+
+	return ids, texts
+}
+
+func (s *Settings) ContestDefinition(contestIdentifier string) *conval.Definition {
+	if contestIdentifier == "" {
+		return nil
+	}
+
+	result, err := conval.IncludedDefinition(contestIdentifier)
+	if err != nil {
+		log.Printf("Cannot find the selected contest definition %s: %v", contestIdentifier, err)
+		return nil
+	}
+
+	return result
+}
+
+func (s *Settings) ProposeContestName(contestIdentifier string) string {
+	year := time.Now().Format("2006") // TODO use the central clock instead of time.Now()!
+	return fmt.Sprintf("%s %s", contestIdentifier, year)
+}
+
 func (s *Settings) updateContestPages() {
+	if !s.view.Ready() {
+		return
+	}
+
 	if s.contest.Definition == nil {
 		s.view.SetContestPagesAvailable(false, false)
 	} else {
@@ -393,6 +410,10 @@ func (s *Settings) updateContestPages() {
 }
 
 func (s *Settings) updateExchangeFields() {
+	if !s.view.Ready() {
+		return
+	}
+
 	s.view.SetContestAvailableCallHistoryFieldNames(s.availableCallHistoryFieldNames)
 
 	var exchangeFields []core.ExchangeField

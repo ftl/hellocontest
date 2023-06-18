@@ -32,6 +32,9 @@ build:
 run: build
 	./${BINARY_NAME}
 
+config:
+	xdg-open ~/.config/hamradio/hellocontest.json
+
 install:
 	mkdir -p ${DESTDIR}${BINDIR}
 	cp ./${BINARY_NAME} ${DESTDIR}${BINDIR}/${BINARY_NAME}

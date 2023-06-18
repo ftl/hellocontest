@@ -38,18 +38,19 @@ func Run(version string, args []string) {
 }
 
 type application struct {
-	id             string
-	version        string
-	app            *gtk.Application
-	builder        *gtk.Builder
-	style          *style.Style
-	windowGeometry *gmtry.Geometry
-	mainWindow     *mainWindow
-	callinfoWindow *callinfoWindow
-	scoreWindow    *scoreWindow
-	rateWindow     *rateWindow
-	spotsWindow    *spotsWindow
-	settingsDialog *settingsDialog
+	id               string
+	version          string
+	app              *gtk.Application
+	builder          *gtk.Builder
+	style            *style.Style
+	windowGeometry   *gmtry.Geometry
+	mainWindow       *mainWindow
+	callinfoWindow   *callinfoWindow
+	scoreWindow      *scoreWindow
+	rateWindow       *rateWindow
+	spotsWindow      *spotsWindow
+	newContestDialog *newContestDialog
+	settingsDialog   *settingsDialog
 
 	controller *app.Controller
 }
@@ -85,6 +86,7 @@ func (a *application) activate() {
 	a.rateWindow = setupRateWindow(a.windowGeometry, a.style)
 	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.controller.Bandmap)
 	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
+	a.newContestDialog = setupNewContestDialog(a.controller.NewContest)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetRadioMenuController(a.controller)
@@ -110,6 +112,8 @@ func (a *application) activate() {
 	// TODO: use a listener model for the bandmap to allow multiple views on the bandmap (scope, spots list, mini-scope)
 	a.controller.Bandmap.SetView(a.spotsWindow)
 	a.controller.Settings.SetView(a.settingsDialog)
+	a.controller.NewContest.SetView(a.newContestDialog)
+	a.controller.NewContest.SetFileSelector(a.mainWindow)
 	a.controller.Clusters.SetView(a.mainWindow)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)

@@ -25,7 +25,6 @@ func (d *settingsDialog) Show() {
 	if d.dialog == nil {
 		builder := setupBuilder()
 		d.dialog = getUI(builder, "settingsDialog").(*gtk.Dialog)
-		d.dialog.SetTitle("Settings")
 		d.dialog.Connect("destroy", d.onDestroy)
 		d.settingsView = setupSettingsView(builder, d.dialog, d.controller)
 	}

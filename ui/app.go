@@ -112,6 +112,7 @@ func (a *application) activate() {
 	// TODO: use a listener model for the bandmap to allow multiple views on the bandmap (scope, spots list, mini-scope)
 	a.controller.Bandmap.SetView(a.spotsWindow)
 	a.controller.Settings.SetView(a.settingsDialog)
+	a.controller.Settings.Notify(a.mainWindow)
 	a.controller.NewContest.SetView(a.newContestDialog)
 	a.controller.NewContest.SetFileSelector(a.mainWindow)
 	a.controller.Clusters.SetView(a.mainWindow)

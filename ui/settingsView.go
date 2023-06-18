@@ -58,12 +58,9 @@ type settingsView struct {
 
 	ignoreChangedEvent bool
 
-	message               *gtk.Label
-	openContestRulesPage  *gtk.Button
-	openContestUploadPage *gtk.Button
-	openConfigurationFile *gtk.Button
-	reset                 *gtk.Button
-	close                 *gtk.Button
+	message *gtk.Label
+	reset   *gtk.Button
+	close   *gtk.Button
 
 	fields map[fieldID]interface{}
 
@@ -87,10 +84,6 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.fields = make(map[fieldID]interface{})
 
 	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
-	result.openContestRulesPage = getUI(builder, "openContestRulesPageButton").(*gtk.Button)
-	result.openContestRulesPage.Connect("clicked", result.onOpenContestRulesPagePressed)
-	result.openContestUploadPage = getUI(builder, "openContestUploadPageButton").(*gtk.Button)
-	result.openContestUploadPage.Connect("clicked", result.onOpenContestUploadPagePressed)
 	result.exchangeFieldsParent = getUI(builder, "contestExchangeFieldsGrid").(*gtk.Grid)
 	result.contestStartTimeTodayButton = getUI(builder, "contestStartTimeTodayButton").(*gtk.Button)
 	result.contestStartTimeTodayButton.Connect("clicked", result.onContestStartTimeTodayPressed)
@@ -100,8 +93,6 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.clearCallHistorySettingsButton = getUI(builder, "contestCallHistoryClearButton").(*gtk.Button)
 	result.clearCallHistorySettingsButton.Connect("clicked", result.onClearCallHistoryPressed)
 
-	result.openConfigurationFile = getUI(builder, "openConfigurationButton").(*gtk.Button)
-	result.openConfigurationFile.Connect("clicked", result.onOpenConfigurationFilePressed)
 	result.reset = getUI(builder, "resetButton").(*gtk.Button)
 	result.reset.Connect("clicked", result.onResetPressed)
 	result.close = getUI(builder, "closeButton").(*gtk.Button)
@@ -232,14 +223,6 @@ func (v *settingsView) onFieldChanged(w any) bool {
 	return false
 }
 
-func (v *settingsView) onOpenContestRulesPagePressed(_ *gtk.Button) {
-	v.controller.OpenContestRulesPage()
-}
-
-func (v *settingsView) onOpenContestUploadPagePressed(_ *gtk.Button) {
-	v.controller.OpenContestUploadPage()
-}
-
 func (v *settingsView) onContestStartTimeTodayPressed(_ *gtk.Button) {
 	v.controller.SetContestStartTimeToday()
 }
@@ -250,10 +233,6 @@ func (v *settingsView) onContestStartTimeNowPressed(_ *gtk.Button) {
 
 func (v *settingsView) onClearCallHistoryPressed(_ *gtk.Button) {
 	v.controller.ClearCallHistory()
-}
-
-func (v *settingsView) onOpenConfigurationFilePressed(_ *gtk.Button) {
-	v.controller.OpenConfigurationFile()
 }
 
 func (v *settingsView) onResetPressed(_ *gtk.Button) {
@@ -329,11 +308,6 @@ func (v *settingsView) SetContestIdentifiers(ids []string, texts []string) {
 		}
 		combo.SetActive(0)
 	})
-}
-
-func (v *settingsView) SetContestPagesAvailable(rulesPageAvailable bool, uploadPageAvailable bool) {
-	v.openContestRulesPage.SetSensitive(rulesPageAvailable)
-	v.openContestUploadPage.SetSensitive(uploadPageAvailable)
 }
 
 func (v *settingsView) SelectContestIdentifier(value string) {

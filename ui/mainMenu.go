@@ -158,6 +158,11 @@ func (m *mainMenu) WorkmodeChanged(workmode core.Workmode) {
 	}
 }
 
+func (m *mainMenu) ContestPagesChanged(rulesAvailable bool, uploadAvailable bool) {
+	m.fileOpenRules.SetSensitive(rulesAvailable)
+	m.fileOpenUpload.SetSensitive(uploadAvailable)
+}
+
 func (m *mainMenu) onAbout() {
 	m.controller.About()
 }

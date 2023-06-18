@@ -39,6 +39,16 @@ func (f ContestListenerFunc) ContestChanged(contest core.Contest) {
 	f(contest)
 }
 
+type ContestPagesListener interface {
+	ContestPagesChanged(rulesAvailable bool, uploadAvailable bool)
+}
+
+type ContestPagesListenerFunc func(bool, bool)
+
+func (f ContestPagesListenerFunc) ContestPagesChanged(rulesAvailable bool, uploadAvailable bool) {
+	f(rulesAvailable, uploadAvailable)
+}
+
 type SettingsListener interface {
 	SettingsChanged(core.Settings)
 }
@@ -71,7 +81,6 @@ type View interface {
 	SetStationLocator(string)
 
 	SetContestIdentifiers(ids []string, texts []string)
-	SetContestPagesAvailable(bool, bool)
 	SelectContestIdentifier(string)
 
 	SetContestExchangeFields([]core.ExchangeField)
@@ -208,6 +217,14 @@ func (s *Settings) emitContestChanged() {
 	for _, listener := range s.listeners {
 		if contestListener, ok := listener.(ContestListener); ok {
 			contestListener.ContestChanged(s.contest)
+		}
+	}
+}
+
+func (s *Settings) emitContestPagesChanged(rulesAvailable bool, uploadAvailable bool) {
+	for _, listener := range s.listeners {
+		if contestPagesListener, ok := listener.(ContestPagesListener); ok {
+			contestPagesListener.ContestPagesChanged(rulesAvailable, uploadAvailable)
 		}
 	}
 }
@@ -403,9 +420,9 @@ func (s *Settings) updateContestPages() {
 	}
 
 	if s.contest.Definition == nil {
-		s.view.SetContestPagesAvailable(false, false)
+		s.emitContestPagesChanged(false, false)
 	} else {
-		s.view.SetContestPagesAvailable(s.contest.Definition.OfficialRules != "", s.contest.Definition.UploadURL != "")
+		s.emitContestPagesChanged(s.contest.Definition.OfficialRules != "", s.contest.Definition.UploadURL != "")
 	}
 }
 

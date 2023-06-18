@@ -422,20 +422,6 @@ THE SOFTWARE.
             <property name="can-focus">False</property>
             <property name="layout-style">end</property>
             <child>
-              <object class="GtkButton" id="openConfigurationButton">
-                <property name="label" translatable="yes">Open Configuration</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="use-underline">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkButton" id="resetButton">
                 <property name="label">_Reset</property>
                 <property name="visible">True</property>
@@ -489,7 +475,7 @@ THE SOFTWARE.
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=14 -->
+          <!-- n-columns=2 n-rows=13 -->
           <object class="GtkGrid" id="stationGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -621,7 +607,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">6</property>
               </packing>
             </child>
             <child>
@@ -635,7 +621,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">7</property>
+                <property name="top-attach">6</property>
               </packing>
             </child>
             <child>
@@ -648,7 +634,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">12</property>
+                <property name="top-attach">11</property>
               </packing>
             </child>
             <child>
@@ -677,44 +663,6 @@ THE SOFTWARE.
               </packing>
             </child>
             <child>
-              <!-- n-columns=2 n-rows=1 -->
-              <object class="GtkGrid">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="column-spacing">5</property>
-                <child>
-                  <object class="GtkButton" id="openContestRulesPageButton">
-                    <property name="label" translatable="yes">Open Rules</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">True</property>
-                    <property name="hexpand">True</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">0</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkButton" id="openContestUploadPageButton">
-                    <property name="label" translatable="yes">Open Upload Page</property>
-                    <property name="visible">True</property>
-                    <property name="can-focus">True</property>
-                    <property name="receives-default">True</property>
-                    <property name="hexpand">True</property>
-                  </object>
-                  <packing>
-                    <property name="left-attach">1</property>
-                    <property name="top-attach">0</property>
-                  </packing>
-                </child>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">6</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -729,7 +677,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">9</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -751,7 +699,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">9</property>
+                <property name="top-attach">8</property>
               </packing>
             </child>
             <child>
@@ -773,7 +721,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">12</property>
+                <property name="top-attach">11</property>
               </packing>
             </child>
             <child>
@@ -786,7 +734,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
             <child>
@@ -825,7 +773,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">10</property>
               </packing>
             </child>
             <child>
@@ -921,7 +869,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">13</property>
+                <property name="top-attach">12</property>
               </packing>
             </child>
             <child>
@@ -935,7 +883,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">13</property>
+                <property name="top-attach">12</property>
               </packing>
             </child>
             <child>
@@ -949,7 +897,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>
@@ -974,7 +922,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">9</property>
               </packing>
             </child>
             <child>
@@ -990,7 +938,7 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">8</property>
+                <property name="top-attach">7</property>
               </packing>
             </child>
             <child>
@@ -1043,11 +991,8 @@ THE SOFTWARE.
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">8</property>
+                <property name="top-attach">7</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
           </object>
           <packing>

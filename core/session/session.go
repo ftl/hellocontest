@@ -15,6 +15,7 @@ import (
 
 type Session struct {
 	filename string
+	virgin   bool
 
 	state State
 }
@@ -22,12 +23,17 @@ type Session struct {
 func NewDefaultSession() *Session {
 	return &Session{
 		filename: filepath.Join(cfg.Directory(), "hellocontest.session"),
+		virgin:   true,
 
 		state: State{
 			LastFilename:   "current.log",
 			SendSpotsToTci: true,
 		},
 	}
+}
+
+func (s *Session) Virgin() bool {
+	return s.virgin
 }
 
 func (s *Session) LastFilename() string {
@@ -79,6 +85,7 @@ func (s *Session) Restore() error {
 	}
 
 	s.state = state
+	s.virgin = false
 
 	return nil
 }

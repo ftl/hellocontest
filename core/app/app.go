@@ -355,7 +355,24 @@ func (c *Controller) New() {
 		return
 	}
 
-	store := store.NewFileStore(newContest.Filename)
+	var proposedName string
+	if newContest.Name == "" {
+		proposedName = c.Settings.ProposeContestName(newContest.Identifier)
+	} else {
+		proposedName = newContest.Name
+	}
+	proposedFilename := proposedName + ".log"
+
+	filename, ok, err := c.view.SelectSaveFile("New Logfile", c.configuration.LogDirectory(), proposedFilename, "*.log")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+
+	store := store.NewFileStore(filename)
 	err = store.Clear()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(newContest.Filename), err)
@@ -384,7 +401,7 @@ func (c *Controller) New() {
 
 	c.Settings.SetWriter(store)
 	c.Keyer.SetWriter(store)
-	c.changeLogbook(newContest.Filename, store, logbook.New(c.clock))
+	c.changeLogbook(filename, store, logbook.New(c.clock))
 	c.Refresh()
 
 	c.OpenSettings()

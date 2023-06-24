@@ -1,23 +1,12 @@
 package newcontest
 
-import (
-	"os"
-	"path/filepath"
-)
-
 type View interface {
 	Show() bool
 
 	SetContestIdentifiers(ids []string, texts []string)
 	SelectContestIdentifier(value string)
 	SetContestName(value string)
-	SetContestFilename(value string)
 	SetDataComplete(bool)
-}
-
-type FileSelector interface {
-	SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error)
-	ShowErrorDialog(string, ...interface{})
 }
 
 type ContestProvider interface {
@@ -42,7 +31,6 @@ func NewController(contestProvider ContestProvider, logDirectory string) *Contro
 
 type Controller struct {
 	view         View
-	fileSelector FileSelector
 	logDirectory string
 
 	contestProvider ContestProvider
@@ -58,14 +46,6 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
-}
-
-func (c *Controller) SetFileSelector(fileSelector FileSelector) {
-	if fileSelector == nil {
-		c.fileSelector = new(nullFileSelector)
-		return
-	}
-	c.fileSelector = fileSelector
 }
 
 func (c *Controller) Run() (Result, bool) {
@@ -93,36 +73,12 @@ func (c *Controller) SelectContestIdentifier(identifier string) {
 		c.selectedName = c.contestProvider.ProposeContestName(c.selectedIdentifier)
 		c.view.SetContestName(c.selectedName)
 	}
+
+	c.view.SetDataComplete(c.selectedIdentifier != "")
 }
 
 func (c *Controller) EnterContestName(name string) {
 	c.selectedName = name
-}
-
-func (c *Controller) ChooseContestFilename() {
-	if c.selectedIdentifier != "" && c.selectedName == "" {
-		c.selectedName = c.contestProvider.ProposeContestName(c.selectedIdentifier)
-		c.view.SetContestName(c.selectedName)
-	}
-
-	proposedFilename := c.selectedName + ".log"
-
-	filename, ok, err := c.fileSelector.SelectSaveFile("New Logfile", c.logDirectory, proposedFilename, "*.log")
-	if !ok {
-		return
-	}
-	if err != nil {
-		c.fileSelector.ShowErrorDialog("Cannot select a file: %v", err)
-		return
-	}
-
-	c.selectedFilename = filename
-
-	_, err = os.Stat(filepath.Dir(c.selectedFilename))
-	complete := err == nil
-
-	c.view.SetContestFilename(c.selectedFilename)
-	c.view.SetDataComplete(complete)
 }
 
 type nullview struct{}
@@ -131,12 +87,4 @@ func (n *nullview) Show() bool                               { return false }
 func (n *nullview) SetContestIdentifiers([]string, []string) {}
 func (n *nullview) SelectContestIdentifier(string)           {}
 func (n *nullview) SetContestName(string)                    {}
-func (n *nullview) SetContestFilename(string)                {}
 func (n *nullview) SetDataComplete(bool)                     {}
-
-type nullFileSelector struct{}
-
-func (n *nullFileSelector) SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error) {
-	return "", false, nil
-}
-func (n *nullFileSelector) ShowErrorDialog(string, ...interface{}) {}

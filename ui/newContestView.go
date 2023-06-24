@@ -7,7 +7,6 @@ import (
 type NewContestController interface {
 	SelectContestIdentifier(string)
 	EnterContestName(string)
-	ChooseContestFilename()
 }
 
 type newContestView struct {
@@ -18,8 +17,6 @@ type newContestView struct {
 
 	identifierCombo *gtk.ComboBoxText
 	nameEntry       *gtk.Entry
-	filenameLabel   *gtk.Label
-	filenameChooser *gtk.Button
 	cancelButton    *gtk.Button
 	okButton        *gtk.Button
 }
@@ -31,8 +28,6 @@ func setupNewContestView(builder *gtk.Builder, parent *gtk.Dialog, controller Ne
 
 	result.identifierCombo = getUI(builder, "newContestIdentifierCombo").(*gtk.ComboBoxText)
 	result.nameEntry = getUI(builder, "newContestNameEntry").(*gtk.Entry)
-	result.filenameLabel = getUI(builder, "newContestFilenameLabel").(*gtk.Label)
-	result.filenameChooser = getUI(builder, "newContestChooseFileButton").(*gtk.Button)
 	result.cancelButton = getUI(builder, "cancelNewContestButton").(*gtk.Button)
 	result.okButton = getUI(builder, "createNewContestButton").(*gtk.Button)
 
@@ -49,7 +44,6 @@ func setupNewContestView(builder *gtk.Builder, parent *gtk.Dialog, controller Ne
 
 	result.identifierCombo.Connect("changed", result.onIdentifierChanged)
 	result.nameEntry.Connect("changed", result.onNameChanged)
-	result.filenameChooser.Connect("clicked", result.onChooseFilenameClicked)
 
 	return result
 }
@@ -69,10 +63,6 @@ func (v *newContestView) onIdentifierChanged() {
 func (v *newContestView) onNameChanged() {
 	text, _ := v.nameEntry.GetText()
 	v.controller.EnterContestName(text)
-}
-
-func (v *newContestView) onChooseFilenameClicked() {
-	v.controller.ChooseContestFilename()
 }
 
 func (v *newContestView) doIgnoreChanges(f func()) {
@@ -96,12 +86,6 @@ func (v *newContestView) SelectContestIdentifier(value string) {
 func (v *newContestView) SetContestName(value string) {
 	v.doIgnoreChanges(func() {
 		v.nameEntry.SetText(value)
-	})
-}
-
-func (v *newContestView) SetContestFilename(value string) {
-	v.doIgnoreChanges(func() {
-		v.filenameLabel.SetText(value)
 	})
 }
 

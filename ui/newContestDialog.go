@@ -36,6 +36,9 @@ func (d *newContestDialog) Show() bool {
 	d.dialog.ShowAll()
 	result := d.dialog.Run() == gtk.RESPONSE_OK
 	d.dialog.Close()
+	d.dialog.Destroy()
+	d.dialog = nil
+
 	return result
 }
 

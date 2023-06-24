@@ -114,7 +114,6 @@ func (a *application) activate() {
 	a.controller.Settings.SetView(a.settingsDialog)
 	a.controller.Settings.Notify(a.mainWindow)
 	a.controller.NewContest.SetView(a.newContestDialog)
-	a.controller.NewContest.SetFileSelector(a.mainWindow)
 	a.controller.Clusters.SetView(a.mainWindow)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)

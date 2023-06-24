@@ -22,7 +22,7 @@ var Default = Data{
 	Station: pb.Station{
 		Callsign: "DL0ABC",
 		Operator: "DL1ABC",
-		Locator:  "AA00zz",
+		Locator:  "AA00xx",
 	},
 	Contest: pb.Contest{
 		Name:       "Default",

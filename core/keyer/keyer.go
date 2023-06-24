@@ -13,6 +13,8 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+const PatternCount = 4
+
 // View represents the visual parts of the keyer.
 type View interface {
 	ShowMessage(...interface{})
@@ -131,6 +133,7 @@ func (k *Keyer) SetSettings(settings core.KeyerSettings) {
 		k.runPatterns[i] = pattern
 		k.runTemplates[i], _ = template.New("").Parse(pattern)
 	}
+
 	k.showPatterns()
 	if k.view != nil {
 		k.view.SetSpeed(k.wpm)
@@ -157,14 +160,14 @@ func (k *Keyer) presetByName(name string) (core.KeyerPreset, bool) {
 }
 
 func applyPreset(settingsPatterns []string, presetPatterns []string) []string {
+	if len(presetPatterns) > PatternCount {
+		presetPatterns = presetPatterns[:PatternCount]
+	}
 	if len(strings.TrimSpace(strings.Join(settingsPatterns, ""))) != 0 {
 		return settingsPatterns
 	}
-	if len(settingsPatterns) != len(presetPatterns) {
-		return settingsPatterns
-	}
 
-	result := make([]string, len(settingsPatterns))
+	result := make([]string, PatternCount)
 	copy(result, presetPatterns)
 	return result
 }
@@ -260,6 +263,7 @@ func (k *Keyer) SelectPreset(name string) {
 	copy(settings.SPMacros, preset.SPMacros)
 	copy(settings.RunMacros, preset.RunMacros)
 	k.SetSettings(settings)
+	k.Save()
 }
 
 func (k *Keyer) EnterSpeed(speed int) {

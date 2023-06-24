@@ -341,7 +341,11 @@ func (c *Controller) Quit() {
 }
 
 func (c *Controller) proposeFilename() string {
-	result := strings.Join([]string{c.Settings.Contest().Name, c.Settings.Station().Callsign.BaseCall}, " ")
+	return proposeFilename(c.Settings.Contest().Name, c.Settings.Station().Callsign.BaseCall)
+}
+
+func proposeFilename(contestName, callsign string) string {
+	result := strings.Join([]string{contestName, callsign}, " ")
 	result = strings.TrimSpace(result)
 	result = strings.ToUpper(result)
 	result = strings.ReplaceAll(result, " ", "_")
@@ -361,7 +365,7 @@ func (c *Controller) New() {
 	} else {
 		proposedName = newContest.Name
 	}
-	proposedFilename := proposedName + ".log"
+	proposedFilename := proposeFilename(proposedName, c.Settings.Station().Callsign.BaseCall) + ".log"
 
 	filename, ok, err := c.view.SelectSaveFile("New Logfile", c.configuration.LogDirectory(), proposedFilename, "*.log")
 	if !ok {

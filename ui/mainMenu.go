@@ -7,6 +7,7 @@ import (
 
 // MainMenuController provides the functionality for the main menu.
 type MainMenuController interface {
+	OpenWiki()
 	About()
 	New()
 	Open()
@@ -71,7 +72,9 @@ type mainMenu struct {
 	windowScore    *gtk.MenuItem
 	windowRate     *gtk.MenuItem
 	windowSpots    *gtk.MenuItem
-	helpAbout      *gtk.MenuItem
+
+	helpWiki  *gtk.MenuItem
+	helpAbout *gtk.MenuItem
 }
 
 func setupMainMenu(builder *gtk.Builder) *mainMenu {
@@ -104,6 +107,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
 	result.windowSpots = getUI(builder, "menuWindowSpots").(*gtk.MenuItem)
+	result.helpWiki = getUI(builder, "menuHelpWiki").(*gtk.MenuItem)
 	result.helpAbout = getUI(builder, "menuHelpAbout").(*gtk.MenuItem)
 
 	result.fileNew.Connect("activate", result.onNew)
@@ -133,6 +137,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.windowScore.Connect("activate", result.onScore)
 	result.windowRate.Connect("activate", result.onRate)
 	result.windowSpots.Connect("activate", result.onSpots)
+	result.helpWiki.Connect("activate", result.onWiki)
 	result.helpAbout.Connect("activate", result.onAbout)
 
 	return result
@@ -161,6 +166,10 @@ func (m *mainMenu) WorkmodeChanged(workmode core.Workmode) {
 func (m *mainMenu) ContestPagesChanged(rulesAvailable bool, uploadAvailable bool) {
 	m.fileOpenRules.SetSensitive(rulesAvailable)
 	m.fileOpenUpload.SetSensitive(uploadAvailable)
+}
+
+func (m *mainMenu) onWiki() {
+	m.controller.OpenWiki()
 }
 
 func (m *mainMenu) onAbout() {

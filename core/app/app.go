@@ -308,6 +308,10 @@ func (c *Controller) Shutdown() {
 	c.Radio.Stop()
 }
 
+func (c *Controller) OpenWiki() {
+	c.openWithExternalApplication("https://github.com/ftl/hellocontest/wiki")
+}
+
 func (c *Controller) About() {
 	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\nThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version)
 }

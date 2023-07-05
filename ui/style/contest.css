@@ -142,7 +142,7 @@ button.band label.max-value {
 }
 
 .worked-spot {
-    background-color: @hellocontest-worked-spot;
+    background-color: @hellocontest-worked-spot-bg;
 }
 
 .manual-spot {

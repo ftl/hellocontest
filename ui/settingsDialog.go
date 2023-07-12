@@ -1,16 +1,20 @@
 package ui
 
-import "github.com/gotk3/gotk3/gtk"
+import (
+	"github.com/gotk3/gotk3/gtk"
+)
 
 type settingsDialog struct {
 	dialog *gtk.Dialog
+	parent gtk.IWidget
 
 	controller SettingsController
 	*settingsView
 }
 
-func setupSettingsDialog(controller SettingsController) *settingsDialog {
+func setupSettingsDialog(parent gtk.IWidget, controller SettingsController) *settingsDialog {
 	result := &settingsDialog{
+		parent:     parent,
 		controller: controller,
 	}
 	return result
@@ -25,6 +29,8 @@ func (d *settingsDialog) Show() {
 	if d.dialog == nil {
 		builder := setupBuilder()
 		d.dialog = getUI(builder, "settingsDialog").(*gtk.Dialog)
+		d.dialog.SetParent(d.parent)
+		d.dialog.SetPosition(gtk.WIN_POS_CENTER)
 		d.dialog.Connect("destroy", d.onDestroy)
 		d.settingsView = setupSettingsView(builder, d.dialog, d.controller)
 	}

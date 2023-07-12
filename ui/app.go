@@ -85,8 +85,8 @@ func (a *application) activate() {
 	a.scoreWindow = setupScoreWindow(a.windowGeometry, a.style)
 	a.rateWindow = setupRateWindow(a.windowGeometry, a.style)
 	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.controller.Bandmap)
-	a.settingsDialog = setupSettingsDialog(a.controller.Settings)
-	a.newContestDialog = setupNewContestDialog(a.controller.NewContest)
+	a.settingsDialog = setupSettingsDialog(a.mainWindow.window, a.controller.Settings)
+	a.newContestDialog = setupNewContestDialog(a.mainWindow.window, a.controller.NewContest)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetRadioMenuController(a.controller)

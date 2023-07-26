@@ -57,8 +57,8 @@ func record(w io.Writer, qso core.QSO) error {
 		{"FREQ", frequency},
 		{"BAND", qso.Band.String()},
 		{"MODE", qso.Mode.String()},
-		{"RST_SENT", qso.MyReport.String()},
-		{"RST_RCVD", qso.TheirReport.String()},
+		{"RST_SENT", toReportValue(qso.Mode, qso.MyReport)},
+		{"RST_RCVD", toReportValue(qso.Mode, qso.TheirReport)},
 		{"COMMENT", fmt.Sprintf("%s %s", strings.Join(qso.MyExchange, " "), strings.Join(qso.TheirExchange, " "))},
 	}
 	for _, field := range fields {
@@ -69,6 +69,21 @@ func record(w io.Writer, qso core.QSO) error {
 	}
 	_, err := fmt.Fprintln(w, "<EOR>")
 	return err
+}
+
+var defaultReport = map[core.Mode]core.RST{
+	core.ModeCW:      "599",
+	core.ModeSSB:     "59",
+	core.ModeFM:      "5",
+	core.ModeRTTY:    "599",
+	core.ModeDigital: "599",
+}
+
+func toReportValue(mode core.Mode, rst core.RST) string {
+	if rst == "" {
+		return defaultReport[mode].String()
+	}
+	return rst.String()
 }
 
 func data(w io.Writer, field string, datatype string, data string) error {

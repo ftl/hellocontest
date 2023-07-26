@@ -74,7 +74,35 @@ func TestRecord(t *testing.T) {
 			expected: "<QSO_DATE:8>20090530<TIME_ON:4>0002<TIME_OFF:4>0002<CALL:4>S50A<FREQ:5>7.000<BAND:3>40m<MODE:2>CW<RST_SENT:3>599<RST_RCVD:3>589<COMMENT:23>599 001 ABC 589 004 DEF<EOR>\n",
 		},
 		{
+			desc: "40m CW no report",
+			qso: core.QSO{
+				Callsign:      theirCall,
+				Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
+				Band:          core.Band40m,
+				Mode:          core.ModeCW,
+				MyNumber:      core.QSONumber(1),
+				MyExchange:    []string{"001", "ABC"},
+				TheirNumber:   core.QSONumber(4),
+				TheirExchange: []string{"004", "DEF"},
+			},
+			expected: "<QSO_DATE:8>20090530<TIME_ON:4>0002<TIME_OFF:4>0002<CALL:4>S50A<FREQ:5>7.000<BAND:3>40m<MODE:2>CW<RST_SENT:3>599<RST_RCVD:3>599<COMMENT:15>001 ABC 004 DEF<EOR>\n",
+		},
+		{
 			desc: "20m SSB",
+			qso: core.QSO{
+				Callsign:      theirCall,
+				Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
+				Band:          core.Band20m,
+				Mode:          core.ModeSSB,
+				MyNumber:      core.QSONumber(1),
+				MyExchange:    []string{"001", "XXX"},
+				TheirNumber:   core.QSONumber(4),
+				TheirExchange: []string{"004", "YYY"},
+			},
+			expected: "<QSO_DATE:8>20090530<TIME_ON:4>0002<TIME_OFF:4>0002<CALL:4>S50A<FREQ:6>14.000<BAND:3>20m<MODE:3>SSB<RST_SENT:2>59<RST_RCVD:2>59<COMMENT:15>001 XXX 004 YYY<EOR>\n",
+		},
+		{
+			desc: "20m SSB no report",
 			qso: core.QSO{
 				Callsign:      theirCall,
 				Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),

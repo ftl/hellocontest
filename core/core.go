@@ -93,8 +93,8 @@ func (mode *Mode) String() string {
 // RST represents a signal report using the "Readability/Signalstrength/Tone" system.
 type RST string
 
-func (rst *RST) String() string {
-	return string(*rst)
+func (rst RST) String() string {
+	return string(rst)
 }
 
 // QSONumber is the unique number of a QSO in the log, either on my or on their side.

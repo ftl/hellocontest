@@ -243,15 +243,15 @@ func (c *Client) SetMode(mode core.Mode) {
 
 func (c *Client) Refresh() {
 	if c.incoming.frequency != 0 {
-		log.Printf("Refreshing VFO frequency")
+		log.Printf("Refreshing VFO frequency: %f", c.incoming.frequency)
 		c.emitFrequencyChanged(c.incoming.frequency)
 	}
 	if c.incoming.band != core.NoBand {
-		log.Printf("Refreshing VFO band")
+		log.Printf("Refreshing VFO band: %s", c.incoming.band)
 		c.emitBandChanged(c.incoming.band)
 	}
 	if c.incoming.mode != core.NoMode {
-		log.Printf("Refreshing VFO mode")
+		log.Printf("Refreshing VFO mode: %s", c.incoming.mode)
 		c.emitModeChanged(c.incoming.mode)
 	}
 }
@@ -318,6 +318,7 @@ func (c *Client) emitFrequencyChanged(f core.Frequency) {
 func (c *Client) emitBandChanged(b core.Band) {
 	for _, listener := range c.listeners {
 		if bandListener, ok := listener.(core.VFOBandListener); ok {
+			log.Printf("triggering band change on %T", bandListener)
 			bandListener.VFOBandChanged(b)
 		}
 	}

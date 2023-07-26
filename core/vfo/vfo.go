@@ -28,6 +28,7 @@ type VFO struct {
 	bandplan      bandplan.Bandplan
 	client        Client
 	offlineClient *offlineClient
+	refreshing    bool
 
 	listeners []any
 }
@@ -59,11 +60,13 @@ func (v *VFO) online() bool {
 }
 
 func (v *VFO) Refresh() {
+	v.refreshing = true
 	if !v.online() {
 		v.offlineClient.Refresh()
 		return
 	}
 	v.client.Refresh()
+	v.refreshing = false
 }
 
 func (v *VFO) SetFrequency(frequency core.Frequency) {
@@ -220,8 +223,8 @@ func (c *offlineClient) SetBand(band core.Band) {
 		return
 	}
 	newBand := core.Band(plan.Name)
-	if newBand == c.currentBand {
-		// log.Printf("Band %s already selected!", band)
+	if newBand == c.currentBand && !c.vfo.refreshing {
+		log.Printf("Band %s already selected!", band)
 		return
 	}
 

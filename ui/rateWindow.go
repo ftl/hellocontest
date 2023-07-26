@@ -4,6 +4,7 @@ import (
 	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gtk"
 
+	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/ui/style"
 )
 
@@ -13,6 +14,11 @@ type rateWindow struct {
 	window   *gtk.Window
 	geometry *gmtry.Geometry
 	style    *style.Style
+
+	rate       core.QSORate
+	qsosGoal   int
+	pointsGoal int
+	multisGoal int
 
 	*rateView
 }
@@ -43,6 +49,8 @@ func (w *rateWindow) Show() {
 		w.window.SetTitle("QSO Rate")
 		w.window.Connect("destroy", w.onDestroy)
 		w.rateView = setupNewRateView(builder, w.style.ForWidget(w.window.ToWidget()))
+		w.rateView.SetGoals(w.qsosGoal, w.pointsGoal, w.multisGoal)
+		w.rateView.ShowRate(w.rate)
 		connectToGeometry(w.geometry, RateWindowID, w.window)
 	}
 	w.window.ShowAll()
@@ -74,4 +82,20 @@ func (w *rateWindow) UseDefaultWindowGeometry() {
 func (w *rateWindow) onDestroy() {
 	w.window = nil
 	w.rateView = nil
+}
+
+func (w *rateWindow) ShowRate(rate core.QSORate) {
+	w.rate = rate
+	if w.rateView != nil {
+		w.rateView.ShowRate(rate)
+	}
+}
+
+func (w *rateWindow) SetGoals(qsos int, points int, multis int) {
+	w.qsosGoal = qsos
+	w.pointsGoal = points
+	w.multisGoal = multis
+	if w.rateView != nil {
+		w.rateView.SetGoals(qsos, points, multis)
+	}
 }

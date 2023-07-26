@@ -4,6 +4,7 @@ import (
 	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gtk"
 
+	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/ui/style"
 )
 
@@ -13,6 +14,10 @@ type scoreWindow struct {
 	window   *gtk.Window
 	geometry *gmtry.Geometry
 	style    *style.Style
+
+	score      core.Score
+	pointsGoal int
+	multisGoal int
 
 	*scoreView
 }
@@ -43,6 +48,8 @@ func (w *scoreWindow) Show() {
 		w.window.SetTitle("Score")
 		w.window.Connect("destroy", w.onDestroy)
 		w.scoreView = setupNewScoreView(builder, w.style.ForWidget(w.window.ToWidget()))
+		w.scoreView.SetGoals(w.pointsGoal, w.multisGoal)
+		w.scoreView.ShowScore(w.score)
 		connectToGeometry(w.geometry, ScoreWindowID, w.window)
 	}
 	w.window.ShowAll()
@@ -74,4 +81,19 @@ func (w *scoreWindow) UseDefaultWindowGeometry() {
 func (w *scoreWindow) onDestroy() {
 	w.window = nil
 	w.scoreView = nil
+}
+
+func (w *scoreWindow) ShowScore(score core.Score) {
+	w.score = score
+	if w.scoreView != nil {
+		w.scoreView.ShowScore(score)
+	}
+}
+
+func (w *scoreWindow) SetGoals(points int, multis int) {
+	w.pointsGoal = points
+	w.multisGoal = multis
+	if w.scoreView != nil {
+		w.scoreView.SetGoals(points, multis)
+	}
 }

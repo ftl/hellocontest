@@ -29,9 +29,6 @@ func setupNewScoreView(builder *gtk.Builder, colors colorProvider) *scoreView {
 }
 
 func (v *scoreView) ShowScore(score core.Score) {
-	if v == nil {
-		return
-	}
 	v.graph.SetGraphs(score.StackedGraphPerBand())
 
 	if v.tableLabel != nil {
@@ -45,9 +42,6 @@ func (v *scoreView) ShowScore(score core.Score) {
 }
 
 func (v *scoreView) SetGoals(points int, multis int) {
-	if v == nil {
-		return
-	}
 	v.graph.SetGoals(points, multis)
 }
 

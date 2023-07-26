@@ -24,9 +24,6 @@ func setupNewRateView(builder *gtk.Builder, colors colorProvider) *rateView {
 }
 
 func (v *rateView) ShowRate(rate core.QSORate) {
-	if v == nil {
-		return
-	}
 	v.indicator.SetRate(rate)
 	if v.indicatorArea != nil {
 		v.indicatorArea.QueueDraw()
@@ -34,8 +31,5 @@ func (v *rateView) ShowRate(rate core.QSORate) {
 }
 
 func (v *rateView) SetGoals(qsos int, points int, multis int) {
-	if v == nil {
-		return
-	}
 	v.indicator.SetGoals(qsos, points, multis)
 }

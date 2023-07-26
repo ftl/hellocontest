@@ -79,6 +79,7 @@ func (c *Counter) SetView(view View) {
 
 func (c *Counter) Show() {
 	c.view.Show()
+	c.view.SetGoals(c.qsosGoal, c.pointsGoal, c.multisGoal)
 	c.view.ShowRate(c.QSORate)
 }
 

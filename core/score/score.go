@@ -92,8 +92,8 @@ func (c *Counter) SetView(view View) {
 		return
 	}
 	c.view = view
-	c.view.ShowScore(c.Score)
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
+	c.view.ShowScore(c.Score)
 }
 
 func (c *Counter) StationChanged(station core.Station) {
@@ -152,6 +152,7 @@ func (c *Counter) Valid() bool {
 
 func (c *Counter) Show() {
 	c.view.Show()
+	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.ShowScore(c.Score)
 }
 

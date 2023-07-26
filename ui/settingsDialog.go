@@ -29,7 +29,6 @@ func (d *settingsDialog) Show() {
 	if d.dialog == nil {
 		builder := setupBuilder()
 		d.dialog = getUI(builder, "settingsDialog").(*gtk.Dialog)
-		d.dialog.SetParent(d.parent)
 		d.dialog.SetPosition(gtk.WIN_POS_CENTER)
 		d.dialog.Connect("destroy", d.onDestroy)
 		d.settingsView = setupSettingsView(builder, d.dialog, d.controller)

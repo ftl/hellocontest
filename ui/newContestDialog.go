@@ -32,7 +32,6 @@ func (d *newContestDialog) Show() bool {
 	if d.dialog == nil {
 		builder := setupBuilder()
 		d.dialog = getUI(builder, "newContestDialog").(*gtk.Dialog)
-		d.dialog.SetParent(d.parent)
 		d.dialog.SetPosition(gtk.WIN_POS_CENTER)
 		d.dialog.Connect("destroy", d.onDestroy)
 		d.newContestView = setupNewContestView(builder, d.dialog, d.controller, d.contestIdentifiers, d.contestLabels)

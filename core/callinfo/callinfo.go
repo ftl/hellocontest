@@ -300,15 +300,15 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 			if result[i] != "" {
 				continue
 			}
-			if len(field.Properties) != 1 {
+			if i < len(historicExchange) && historicExchange[i] != "" {
 				continue
 			}
 			switch {
-			case field.Properties[0] == conval.CQZoneProperty:
+			case field.Properties.Contains(conval.CQZoneProperty):
 				result[i] = strconv.Itoa(int(entity.CQZone))
-			case field.Properties[0] == conval.ITUZoneProperty:
+			case field.Properties.Contains(conval.ITUZoneProperty):
 				result[i] = strconv.Itoa(int(entity.ITUZone))
-			case field.Properties[0] == conval.DXCCEntityProperty, field.Properties[0] == conval.DXCCPrefixProperty:
+			case field.Properties.Contains(conval.DXCCEntityProperty), field.Properties.Contains(conval.DXCCPrefixProperty):
 				result[i] = entity.PrimaryPrefix
 			}
 		}

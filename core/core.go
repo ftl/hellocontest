@@ -805,14 +805,36 @@ type BandmapFrame struct {
 }
 
 type BandSummary struct {
-	Band   Band
-	Points int
-	Multis int
+	Band        Band
+	Points      int
+	MultiValues map[conval.Property]map[string]bool
 
 	MaxPoints bool
 	MaxMultis bool
 	Active    bool
 	Visible   bool
+}
+
+func (s *BandSummary) AddMultiValues(values map[conval.Property]string) {
+	if s.MultiValues == nil {
+		s.MultiValues = make(map[conval.Property]map[string]bool)
+	}
+	for property, value := range values {
+		propertyValues, ok := s.MultiValues[property]
+		if !ok {
+			propertyValues = make(map[string]bool)
+		}
+		propertyValues[value] = true
+		s.MultiValues[property] = propertyValues
+	}
+}
+
+func (s *BandSummary) Multis() int {
+	result := 0
+	for _, values := range s.MultiValues {
+		result += len(values)
+	}
+	return result
 }
 
 type BandmapEntry struct {
@@ -840,10 +862,11 @@ type Callinfo struct {
 	PredictedExchange []string
 	ExchangeText      string
 
-	Worked    bool // already worked on another band/mode, but does not count as duplicate
-	Duplicate bool // counts as duplicate
-	Points    int
-	Multis    int
+	Worked      bool // already worked on another band/mode, but does not count as duplicate
+	Duplicate   bool // counts as duplicate
+	Points      int
+	Multis      int
+	MultiValues map[conval.Property]string
 }
 
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"

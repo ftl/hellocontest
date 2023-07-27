@@ -215,7 +215,7 @@ func (c *Counter) emitScoreUpdated(score core.Score) {
 	}
 }
 
-func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int) {
+func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
 	continent, country, _, _ := toConvalDXCCEntity(entity)
 	convalQSO := conval.QSO{
 		TheirCall:      callsign,
@@ -227,7 +227,7 @@ func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band cor
 	}
 	qsoScore := c.counter.Probe(convalQSO)
 
-	return qsoScore.Points, qsoScore.Multis
+	return qsoScore.Points, qsoScore.Multis, qsoScore.MultiValues
 }
 
 func (c *Counter) toConvalQSO(qso core.QSO) conval.QSO {

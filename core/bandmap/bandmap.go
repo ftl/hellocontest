@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"golang.org/x/exp/slices"
 
@@ -33,7 +34,7 @@ type DupeChecker interface {
 
 type Callinfo interface {
 	GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo
-	GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int)
+	GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int, map[conval.Property]string)
 }
 
 type Bandmap struct {
@@ -610,7 +611,7 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 	for i, e := range l.entries {
 		e.Index = i
 		oldPoints, oldMultis := e.Info.Points, e.Info.Multis
-		e.Info.Points, e.Info.Multis = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
+		e.Info.Points, e.Info.Multis, e.Info.MultiValues = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
 		updated := e.updated || (oldPoints != e.Info.Points) || (oldMultis != e.Info.Multis)
 		e.updated = false
 		l.entries[i] = e
@@ -630,7 +631,7 @@ func (l *Entries) addToSummary(entry *Entry) {
 		summary = core.BandSummary{Band: entry.Band}
 	}
 	summary.Points += entry.Info.Points
-	summary.Multis += entry.Info.Multis
+	summary.AddMultiValues(entry.Info.MultiValues)
 	l.summaries[entry.Band] = summary
 }
 
@@ -654,8 +655,9 @@ func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
 			maxPoints = summary.Points
 			maxPointsIndex = i
 		}
-		if summary.Multis > maxMultis {
-			maxMultis = summary.Multis
+		multis := summary.Multis()
+		if multis > maxMultis {
+			maxMultis = multis
 			maxMultisIndex = i
 		}
 	}
@@ -759,6 +761,6 @@ type nullCallinfo struct{}
 func (n *nullCallinfo) GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo {
 	return core.Callinfo{}
 }
-func (n *nullCallinfo) GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int) {
-	return 0, 0
+func (n *nullCallinfo) GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int, map[conval.Property]string) {
+	return 0, 0, nil
 }

@@ -45,10 +45,12 @@ func TestConvalCounter(t *testing.T) {
 	entity, ok := myTestEntity.Find("dl1aaa")
 	require.True(t, ok)
 
-	points, multis := counter.Value(callsign.MustParse("dl1aaa"), entity, core.Band80m, core.ModeCW, []string{})
+	points, multis, multiValues := counter.Value(callsign.MustParse("dl1aaa"), entity, core.Band80m, core.ModeCW, []string{})
 
 	assert.Equal(t, 1, points, "points")
 	assert.Equal(t, 1, multis, "multis")
+	assert.Equal(t, 1, len(multiValues), "multiValues len")
+	assert.Equal(t, "DL1", multiValues[conval.WPXPrefixProperty], "multiValues value")
 }
 
 func TestAdd(t *testing.T) {

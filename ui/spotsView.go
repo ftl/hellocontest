@@ -193,7 +193,7 @@ func (v *spotsView) updateBand(button *gtk.Button, band core.BandSummary) {
 
 	child, _ = grid.GetChildAt(1, 1)
 	multis := child.(*gtk.Label)
-	multis.SetText(fmt.Sprintf("%dM", band.Multis))
+	multis.SetText(fmt.Sprintf("%dM", band.Multis()))
 
 	if band.MaxPoints {
 		style.AddClass(&points.Widget, maxValueClass)

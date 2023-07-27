@@ -71,7 +71,7 @@ type DupeChecker interface {
 
 // Valuer provides the points and multis of a QSO based on the given information.
 type Valuer interface {
-	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int)
+	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string)
 }
 
 // ExchangeFilter clears the exchange values that cannot be predicted (RST, serial).
@@ -153,7 +153,7 @@ func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mod
 	filteredExchange := c.exchangeFilter.FilterExchange(result.PredictedExchange)
 	result.ExchangeText = strings.Join(filteredExchange, " ")
 
-	result.Points, result.Multis = c.valuer.Value(call, entity, band, mode, exchange)
+	result.Points, result.Multis, result.MultiValues = c.valuer.Value(call, entity, band, mode, exchange)
 
 	return result
 }
@@ -193,10 +193,10 @@ func joinAvailableValues(values ...string) string {
 	return strings.Join(availableValues, ", ")
 }
 
-func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) (points, multis int) {
+func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
 	entity, found := c.findDXCCEntity(call.String())
 	if !found {
-		return 0, 0
+		return 0, 0, nil
 	}
 	return c.valuer.Value(call, entity, band, mode, exchange)
 }
@@ -259,7 +259,7 @@ func (c *Callinfo) showSupercheck(s string) {
 
 		var points, multis int
 		if entityFound {
-			points, multis = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, predictedExchange)
+			points, multis, _ = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, predictedExchange)
 		}
 
 		annotatedCallsign.Duplicate = duplicate

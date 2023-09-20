@@ -11,15 +11,16 @@ import (
 const ScoreWindowID = "score"
 
 type scoreWindow struct {
+	scoreView *scoreView
+
 	window   *gtk.Window
 	geometry *gmtry.Geometry
 	style    *style.Style
 
 	score      core.Score
+	rate       core.QSORate
 	pointsGoal int
 	multisGoal int
-
-	*scoreView
 }
 
 func setupScoreWindow(geometry *gmtry.Geometry, style *style.Style) *scoreWindow {
@@ -50,6 +51,7 @@ func (w *scoreWindow) Show() {
 		w.scoreView = setupNewScoreView(builder, w.style.ForWidget(w.window.ToWidget()))
 		w.scoreView.SetGoals(w.pointsGoal, w.multisGoal)
 		w.scoreView.ShowScore(w.score)
+		w.scoreView.RateUpdated(w.rate)
 		connectToGeometry(w.geometry, ScoreWindowID, w.window)
 	}
 	w.window.ShowAll()
@@ -95,5 +97,12 @@ func (w *scoreWindow) SetGoals(points int, multis int) {
 	w.multisGoal = multis
 	if w.scoreView != nil {
 		w.scoreView.SetGoals(points, multis)
+	}
+}
+
+func (w *scoreWindow) RateUpdated(rate core.QSORate) {
+	w.rate = rate
+	if w.scoreView != nil {
+		w.scoreView.RateUpdated(rate)
 	}
 }

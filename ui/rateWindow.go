@@ -11,6 +11,8 @@ import (
 const RateWindowID = "rate"
 
 type rateWindow struct {
+	rateView *rateView
+
 	window   *gtk.Window
 	geometry *gmtry.Geometry
 	style    *style.Style
@@ -19,8 +21,6 @@ type rateWindow struct {
 	qsosGoal   int
 	pointsGoal int
 	multisGoal int
-
-	*rateView
 }
 
 func setupRateWindow(geometry *gmtry.Geometry, style *style.Style) *rateWindow {

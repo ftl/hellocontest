@@ -2,13 +2,14 @@ package ui
 
 import (
 	"github.com/ftl/gmtry"
+	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gtk"
 )
 
 const SpotsWindowID = "spots"
 
 type spotsWindow struct {
-	*spotsView
+	spotsView *spotsView
 
 	window   *gtk.Window
 	geometry *gmtry.Geometry
@@ -73,4 +74,40 @@ func (w *spotsWindow) UseDefaultWindowGeometry() {
 func (w *spotsWindow) onDestroy() {
 	w.window = nil
 	w.spotsView = nil
+}
+
+func (w *spotsWindow) ShowFrame(frame core.BandmapFrame) {
+	if w.spotsView != nil {
+		w.spotsView.ShowFrame(frame)
+	}
+}
+
+func (w *spotsWindow) EntryAdded(entry core.BandmapEntry) {
+	if w.spotsView != nil {
+		w.spotsView.EntryAdded(entry)
+	}
+}
+
+func (w *spotsWindow) EntryUpdated(entry core.BandmapEntry) {
+	if w.spotsView != nil {
+		w.spotsView.EntryUpdated(entry)
+	}
+}
+
+func (w *spotsWindow) EntryRemoved(entry core.BandmapEntry) {
+	if w.spotsView != nil {
+		w.spotsView.EntryRemoved(entry)
+	}
+}
+
+func (w *spotsWindow) EntrySelected(entry core.BandmapEntry) {
+	if w.spotsView != nil {
+		w.spotsView.EntrySelected(entry)
+	}
+}
+
+func (w *spotsWindow) RevealEntry(entry core.BandmapEntry) {
+	if w.spotsView != nil {
+		w.spotsView.RevealEntry(entry)
+	}
 }

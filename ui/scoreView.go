@@ -31,14 +31,10 @@ func setupNewScoreView(builder *gtk.Builder, colors colorProvider) *scoreView {
 func (v *scoreView) ShowScore(score core.Score) {
 	v.graph.SetGraphs(score.StackedGraphPerBand())
 
-	if v.tableLabel != nil {
-		renderedScore := fmt.Sprintf("<span allow_breaks='true' font_family='monospace'>%s</span>", score)
-		v.tableLabel.SetMarkup(renderedScore)
-	}
+	renderedScore := fmt.Sprintf("<span allow_breaks='true' font_family='monospace'>%s</span>", score)
+	v.tableLabel.SetMarkup(renderedScore)
 
-	if v.graphArea != nil {
-		v.graphArea.QueueDraw()
-	}
+	v.graphArea.QueueDraw()
 }
 
 func (v *scoreView) SetGoals(points int, multis int) {
@@ -46,9 +42,6 @@ func (v *scoreView) SetGoals(points int, multis int) {
 }
 
 func (v *scoreView) RateUpdated(rate core.QSORate) {
-	if v == nil {
-		return
-	}
 	v.graph.UpdateTimeFrame()
 
 	if v.graphArea != nil {

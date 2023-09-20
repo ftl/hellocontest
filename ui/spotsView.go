@@ -89,10 +89,6 @@ func (v *spotsView) filterRow(row *gtk.ListBoxRow) bool {
 }
 
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
-	if v == nil {
-		return
-	}
-
 	runAsync(func() {
 		v.currentFrame = frame
 		v.setupBands(frame.Bands)
@@ -109,9 +105,6 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 }
 
 func (v *spotsView) setupBands(bands []core.BandSummary) {
-	if v == nil {
-		return
-	}
 	bandsID := toBandsID(bands)
 	if bandsID == v.bandsID {
 		return
@@ -330,9 +323,6 @@ func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
 }
 
 func (v *spotsView) EntryAdded(entry core.BandmapEntry) {
-	if v == nil {
-		return
-	}
 	runAsync(func() {
 		w := v.newListEntry(entry)
 		if w == nil {
@@ -343,9 +333,6 @@ func (v *spotsView) EntryAdded(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
-	if v == nil {
-		return
-	}
 	runAsync(func() {
 		row := v.entryList.GetRowAtIndex(entry.Index)
 		if row == nil {
@@ -356,9 +343,6 @@ func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
-	if v == nil {
-		return
-	}
 	runAsync(func() {
 		row := v.entryList.GetRowAtIndex(entry.Index)
 		if row == nil {

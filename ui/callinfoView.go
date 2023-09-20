@@ -78,10 +78,6 @@ func setupCallinfoView(builder *gtk.Builder, colors colorProvider, controller Ca
 	return result
 }
 
-func (c *callinfoView) SetCallinfoController(controller CallinfoController) {
-	c.controller = controller
-}
-
 func (v *callinfoView) RefreshStyle() {
 	v.style.Refresh()
 	if v.controller != nil {
@@ -94,10 +90,6 @@ func attr(name, value string) string {
 }
 
 func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
-	if v == nil {
-		return
-	}
-
 	normalized := strings.ToUpper(strings.TrimSpace(callsign))
 	if normalized == "" {
 		normalized = "-"
@@ -115,24 +107,20 @@ func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
 	}
 }
 
-func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlCompliant bool) {
-	if v == nil {
-		return
-	}
-
-	if name == "" {
+func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {
+	if dxccName == "" {
 		v.dxccLabel.SetMarkup("")
 		return
 	}
 
-	text := fmt.Sprintf("%s, %s", name, continent)
+	text := fmt.Sprintf("%s, %s", dxccName, continent)
 	if itu != 0 {
 		text += fmt.Sprintf(", ITU %d", itu)
 	}
 	if cq != 0 {
 		text += fmt.Sprintf(", CQ %d", cq)
 	}
-	if name != "" && !arrlCompliant {
+	if dxccName != "" && !arrlCompliant {
 		text += ", <span foreground='red' font-weight='heavy'>not ARRL compliant</span>"
 	}
 
@@ -140,10 +128,6 @@ func (v *callinfoView) SetDXCC(name, continent string, itu, cq int, arrlComplian
 }
 
 func (v *callinfoView) SetValue(points, multis int) {
-	if v == nil {
-		return
-	}
-
 	style.RemoveClass(&v.valueLabel.Widget, callinfoWorthlessClass)
 	style.RemoveClass(&v.valueLabel.Widget, callinfoMultiClass)
 
@@ -158,10 +142,6 @@ func (v *callinfoView) SetValue(points, multis int) {
 }
 
 func (v *callinfoView) SetExchange(exchange string) {
-	if v == nil {
-		return
-	}
-
 	var exchangeMarkup string
 	if exchange == "" {
 		exchange = "-"
@@ -173,18 +153,10 @@ func (v *callinfoView) SetExchange(exchange string) {
 }
 
 func (v *callinfoView) SetUserInfo(value string) {
-	if v == nil {
-		return
-	}
-
 	v.userInfoLabel.SetText(value)
 }
 
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
-	if v == nil {
-		return
-	}
-
 	var text string
 	for _, callsign := range callsigns {
 		// see https://docs.gtk.org/Pango/pango_markup.html for reference

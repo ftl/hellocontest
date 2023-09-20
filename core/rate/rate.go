@@ -39,7 +39,7 @@ type Counter struct {
 	clock core.Clock
 	view  View
 
-	listeners []interface{}
+	listeners []any
 
 	lastHourQSOs qsoList
 	lastQSOTime  time.Time
@@ -95,7 +95,7 @@ func (c *Counter) ContestChanged(contest core.Contest) {
 	c.view.SetGoals(contest.QSOsGoal, contest.PointsGoal, contest.MultisGoal)
 }
 
-func (c *Counter) Notify(listener interface{}) {
+func (c *Counter) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 

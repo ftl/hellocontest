@@ -23,7 +23,6 @@ type logbookView struct {
 	view *gtk.TreeView
 	list *gtk.ListStore
 
-	selection       *gtk.TreeSelection
 	ignoreSelection bool
 
 	columnUTC                int
@@ -69,8 +68,13 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	result.list = createListStore(int(result.view.GetNColumns()))
 	result.view.SetModel(result.list)
 
-	result.selection = getUI(builder, "logSelection").(*gtk.TreeSelection)
-	result.selection.Connect("changed", result.onSelectionChanged)
+	selection, err := result.view.GetSelection()
+	if err != nil {
+		log.Printf("no tree selection: %v", err)
+		return result
+	}
+	selection.Connect("changed", result.onSelectionChanged)
+
 	return result
 }
 

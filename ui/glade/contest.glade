@@ -233,7 +233,6 @@ THE SOFTWARE.
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="margin-left">10</property>
                 <property name="margin-start">10</property>
                 <property name="label" translatable="yes">Definition</property>
                 <property name="xalign">0</property>
@@ -261,7 +260,6 @@ THE SOFTWARE.
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="margin-left">10</property>
                 <property name="margin-start">10</property>
                 <property name="label" translatable="yes">Name</property>
                 <property name="xalign">0</property>
@@ -627,7 +625,6 @@ THE SOFTWARE.
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="valign">start</property>
-                <property name="margin-left">10</property>
                 <property name="margin-start">10</property>
                 <property name="hexpand">False</property>
                 <property name="vexpand">False</property>
@@ -836,7 +833,6 @@ THE SOFTWARE.
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="margin-left">10</property>
                 <property name="margin-start">10</property>
                 <property name="label" translatable="yes">Rate Goals</property>
               </object>
@@ -890,7 +886,6 @@ THE SOFTWARE.
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
                 <property name="valign">center</property>
-                <property name="margin-left">10</property>
                 <property name="margin-start">10</property>
                 <property name="label" translatable="yes">Start Time (UTC)</property>
                 <property name="xalign">0</property>
@@ -1407,8 +1402,8 @@ THE SOFTWARE.
           <object class="GtkGrid" id="entryGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">4</property>
-            <property name="margin-right">4</property>
+            <property name="margin-start">4</property>
+            <property name="margin-end">4</property>
             <property name="margin-top">5</property>
             <property name="margin-bottom">5</property>
             <property name="row-spacing">5</property>
@@ -1633,8 +1628,8 @@ THE SOFTWARE.
           <object class="GtkGrid" id="workmodeGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">4</property>
-            <property name="margin-right">4</property>
+            <property name="margin-start">4</property>
+            <property name="margin-end">4</property>
             <property name="margin-top">5</property>
             <property name="margin-bottom">5</property>
             <property name="column-spacing">5</property>
@@ -1708,8 +1703,8 @@ THE SOFTWARE.
           <object class="GtkGrid" id="keyerGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">4</property>
-            <property name="margin-right">4</property>
+            <property name="margin-start">4</property>
+            <property name="margin-end">4</property>
             <property name="margin-top">5</property>
             <property name="margin-bottom">5</property>
             <property name="row-spacing">2</property>
@@ -1885,7 +1880,7 @@ THE SOFTWARE.
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="margin-left">2</property>
+                <property name="margin-start">2</property>
                 <property name="hexpand">True</property>
                 <property name="label" translatable="yes">Stop TX</property>
                 <property name="xalign">0</property>
@@ -1932,8 +1927,8 @@ THE SOFTWARE.
           <object class="GtkGrid" id="statusGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="margin-left">4</property>
-            <property name="margin-right">4</property>
+            <property name="margin-start">4</property>
+            <property name="margin-end">4</property>
             <property name="margin-top">5</property>
             <property name="margin-bottom">5</property>
             <property name="column-spacing">15</property>

@@ -50,13 +50,19 @@ type spotsView struct {
 
 	bandGrid  *gtk.Grid
 	entryList *gtk.ListBox
-	// style     *style
+
+	table        *gtk.TreeView
+	tableContent *gtk.ListStore
+	tableFilter  *gtk.TreeModelFilter
 
 	bands             []core.BandSummary
 	bandsID           string
 	currentFrame      core.BandmapFrame
 	initialFrameShown bool
 	ignoreSelection   bool
+
+	columnFrequency int
+	columnCallsign  int
 }
 
 func setupSpotsView(builder *gtk.Builder, controller SpotsController) *spotsView {
@@ -66,9 +72,14 @@ func setupSpotsView(builder *gtk.Builder, controller SpotsController) *spotsView
 	}
 
 	result.bandGrid = getUI(builder, "bandGrid").(*gtk.Grid)
+
 	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
-	result.entryList.SetFilterFunc(result.filterRow)
-	result.entryList.Connect("row-selected", result.onRowSelected)
+	entryListContainer := getUI(builder, "entryListContainer").(*gtk.ScrolledWindow)
+	entryListContainer.Destroy()
+	// result.entryList.SetFilterFunc(result.filterRow)
+	// result.entryList.Connect("row-selected", result.onRowSelected)
+
+	setupSpotsTableView(result, builder, controller)
 
 	return result
 }
@@ -90,17 +101,24 @@ func (v *spotsView) filterRow(row *gtk.ListBoxRow) bool {
 
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	runAsync(func() {
+		bandChanged := (v.currentFrame.ActiveBand != frame.ActiveBand) || (v.currentFrame.VisibleBand != frame.VisibleBand)
 		v.currentFrame = frame
 		v.setupBands(frame.Bands)
 		v.updateBands(frame.Bands)
-		v.entryList.SetFilterFunc(v.filterRow)
+		// v.entryList.SetFilterFunc(v.filterRow)
 
 		if !v.initialFrameShown {
 			v.initialFrameShown = true
-			v.showEntries(frame.Entries)
+			v.showInitialFrameInTable(frame)
+
+			// v.showEntries(frame.Entries)
 		}
 
-		v.entryList.ShowAll()
+		if bandChanged {
+			v.refreshTable()
+		}
+
+		// v.entryList.ShowAll()
 	})
 }
 
@@ -177,6 +195,8 @@ func (v *spotsView) newBand(band core.BandSummary) *gtk.Widget {
 }
 
 func (v *spotsView) updateBand(button *gtk.Button, band core.BandSummary) {
+	// log.Printf("Band %s: %dp %dm", band.Band, band.Points, band.Multis())
+
 	child, _ := button.GetChild()
 	grid := child.(*gtk.Grid)
 
@@ -220,12 +240,27 @@ func (v *spotsView) updateBands(bands []core.BandSummary) {
 	}
 }
 
+func (v *spotsView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
+	return func(button *gtk.Button, event *gdk.Event) {
+		buttonEvent := gdk.EventButtonNewFromEvent(event)
+		if buttonEvent.Button() != gdk.BUTTON_PRIMARY {
+			return
+		}
+
+		switch buttonEvent.Type() {
+		case gdk.EVENT_BUTTON_PRESS:
+			v.controller.SetVisibleBand(band)
+		case gdk.EVENT_DOUBLE_BUTTON_PRESS:
+			v.controller.SetActiveBand(band)
+		}
+	}
+}
+
 func (v *spotsView) showEntries(entries []core.BandmapEntry) {
 	children := v.entryList.GetChildren()
 	children.Foreach(func(child any) {
 		w := child.(gtk.IWidget)
 		w.ToWidget().Destroy()
-
 	})
 
 	for _, entry := range entries {
@@ -324,31 +359,37 @@ func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
 
 func (v *spotsView) EntryAdded(entry core.BandmapEntry) {
 	runAsync(func() {
-		w := v.newListEntry(entry)
-		if w == nil {
-			return
-		}
-		v.entryList.Insert(w, entry.Index)
+		v.addTableEntry(entry)
+
+		// w := v.newListEntry(entry)
+		// if w == nil {
+		// 	return
+		// }
+		// v.entryList.Insert(w, entry.Index)
 	})
 }
 
 func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
 	runAsync(func() {
-		row := v.entryList.GetRowAtIndex(entry.Index)
-		if row == nil {
-			return
-		}
-		updateListEntry(row, entry)
+		v.updateTableEntry(entry)
+
+		// row := v.entryList.GetRowAtIndex(entry.Index)
+		// if row == nil {
+		// 	return
+		// }
+		// updateListEntry(row, entry)
 	})
 }
 
 func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
 	runAsync(func() {
-		row := v.entryList.GetRowAtIndex(entry.Index)
-		if row == nil {
-			return
-		}
-		row.ToWidget().Destroy()
+		v.removeTableEntry(entry)
+
+		// row := v.entryList.GetRowAtIndex(entry.Index)
+		// if row == nil {
+		// 	return
+		// }
+		// row.ToWidget().Destroy()
 	})
 }
 
@@ -365,47 +406,40 @@ func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
 	if v.ignoreSelection {
 		return
 	}
+	log.Printf("entry selected: %s %d", entry.Call, entry.Index)
+	runAsync(func() {
+		v.ignoreSelection = true
+		defer func() {
+			v.ignoreSelection = false
+		}()
+
+		v.selectTableEntry(entry)
+	})
+
 	v.RevealEntry(entry)
 }
 
 func (v *spotsView) RevealEntry(entry core.BandmapEntry) {
-	if v == nil {
-		return
-	}
 	runAsync(func() {
-		row := v.entryList.GetRowAtIndex(entry.Index)
-		if row == nil {
-			return
-		}
+		// TODO reveal entry in table
 
-		_, y, err := row.TranslateCoordinates(v.entryList, 0, 0)
-		if err != nil {
-			log.Printf("cannot translate list row box coordinates: %v", err)
-			return
-		}
+		// row := v.entryList.GetRowAtIndex(entry.Index)
+		// if row == nil {
+		// 	return
+		// }
 
-		adj := v.entryList.GetAdjustment()
-		if adj == nil {
-			return
-		}
+		// _, y, err := row.TranslateCoordinates(v.entryList, 0, 0)
+		// if err != nil {
+		// 	log.Printf("cannot translate list row box coordinates: %v", err)
+		// 	return
+		// }
 
-		_, rowHeight := row.GetPreferredHeight()
-		adj.SetValue(float64(y) - (adj.GetPageSize()-float64(rowHeight))/2)
+		// adj := v.entryList.GetAdjustment()
+		// if adj == nil {
+		// 	return
+		// }
+
+		// _, rowHeight := row.GetPreferredHeight()
+		// adj.SetValue(float64(y) - (adj.GetPageSize()-float64(rowHeight))/2)
 	})
-}
-
-func (v *spotsView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
-	return func(button *gtk.Button, event *gdk.Event) {
-		buttonEvent := gdk.EventButtonNewFromEvent(event)
-		if buttonEvent.Button() != gdk.BUTTON_PRIMARY {
-			return
-		}
-
-		switch buttonEvent.Type() {
-		case gdk.EVENT_BUTTON_PRESS:
-			v.controller.SetVisibleBand(band)
-		case gdk.EVENT_DOUBLE_BUTTON_PRESS:
-			v.controller.SetActiveBand(band)
-		}
-	}
 }

@@ -40,7 +40,7 @@ type colorProvider interface {
 	TextColor() style.Color
 }
 
-func getUI(builder *gtk.Builder, name string) interface{} {
+func getUI(builder *gtk.Builder, name string) any {
 	obj, err := builder.GetObject(name)
 	if err != nil {
 		log.Fatalf("Cannot get UI object %s: %v", name, err)

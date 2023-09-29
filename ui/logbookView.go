@@ -98,7 +98,7 @@ func createListStore(columnCount int) *gtk.ListStore {
 	}
 	result, err := gtk.ListStoreNew(types...)
 	if err != nil {
-		log.Fatalf("Cannot create QSO list store: %v", err)
+		log.Fatalf("Cannot create list store: %v", err)
 	}
 	return result
 }
@@ -174,7 +174,7 @@ func (v *logbookView) fillQSOToRow(row *gtk.TreeIter, qso core.QSO) error {
 			v.columnMultis,
 			v.columnDuplicate,
 		},
-		[]interface{}{
+		[]any{
 			qso.Time.In(time.UTC).Format("15:04"),
 			qso.Callsign.String(),
 			qso.Band.String(),

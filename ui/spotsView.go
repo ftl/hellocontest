@@ -26,13 +26,6 @@ const (
 	bandActiveClass  style.Class = "band-active"
 	bandVisibleClass style.Class = "band-visible"
 	maxValueClass    style.Class = "max-value"
-
-	spotRowClass               style.Class = "spot-row"
-	spotFrequencyClass         style.Class = "spot-frequency"
-	spotCallClass              style.Class = "spot-call"
-	spotGeoInfoClass           style.Class = "spot-geo-info"
-	spotPredictedExchangeClass style.Class = "spot-predicted-exchange"
-	spotScoreClass             style.Class = "spot-score"
 )
 
 type SpotsController interface {
@@ -48,8 +41,7 @@ type spotsView struct {
 	controller SpotsController
 	colors     colorProvider
 
-	bandGrid  *gtk.Grid
-	entryList *gtk.ListBox
+	bandGrid *gtk.Grid
 
 	table        *gtk.TreeView
 	tableContent *gtk.ListStore
@@ -71,12 +63,6 @@ func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller Spots
 
 	result.bandGrid = getUI(builder, "bandGrid").(*gtk.Grid)
 
-	result.entryList = getUI(builder, "entryList").(*gtk.ListBox)
-	entryListContainer := getUI(builder, "entryListContainer").(*gtk.ScrolledWindow)
-	entryListContainer.Destroy()
-	// result.entryList.SetFilterFunc(result.filterRow)
-	// result.entryList.Connect("row-selected", result.onRowSelected)
-
 	setupSpotsTableView(result, builder, controller)
 
 	return result
@@ -89,21 +75,6 @@ func (v *spotsView) getGeoInformation(entry core.BandmapEntry) string {
 	return fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCName, entry.Info.PrimaryPrefix, entry.Info.Continent, entry.Info.ITUZone, entry.Info.CQZone)
 }
 
-func (v *spotsView) getRemainingLifetime(index int) float64 {
-	return v.controller.RemainingLifetime(index)
-}
-
-func (v *spotsView) getProximity(index int) float64 {
-	if index < 0 || index >= len(v.currentFrame.Entries) {
-		return 0
-	}
-	return v.currentFrame.Entries[index].ProximityFactor(v.currentFrame.Frequency)
-}
-
-func (v *spotsView) filterRow(row *gtk.ListBoxRow) bool {
-	return v.controller.EntryVisible(row.GetIndex())
-}
-
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	runAsync(func() {
 		bandChanged := (v.currentFrame.ActiveBand != frame.ActiveBand) || (v.currentFrame.VisibleBand != frame.VisibleBand)
@@ -111,13 +82,10 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 		v.currentFrame = frame
 		v.setupBands(frame.Bands)
 		v.updateBands(frame.Bands)
-		// v.entryList.SetFilterFunc(v.filterRow)
 
 		if !v.initialFrameShown {
 			v.initialFrameShown = true
 			v.showInitialFrameInTable(frame)
-
-			// v.showEntries(frame.Entries)
 		}
 
 		if bandChanged {
@@ -126,8 +94,6 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 		for _, entry := range v.currentFrame.Entries {
 			v.updateFrequencyLabel(entry)
 		}
-
-		// v.entryList.ShowAll()
 	})
 }
 
@@ -263,146 +229,22 @@ func (v *spotsView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
 	}
 }
 
-func (v *spotsView) showEntries(entries []core.BandmapEntry) {
-	children := v.entryList.GetChildren()
-	children.Foreach(func(child any) {
-		w := child.(gtk.IWidget)
-		w.ToWidget().Destroy()
-	})
-
-	for _, entry := range entries {
-		w := v.newListEntry(entry)
-		if w != nil {
-			v.entryList.Add(w)
-		}
-	}
-}
-
-func (v *spotsView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
-	root, _ := gtk.ListBoxRowNew()
-	root.SetHExpand(true)
-
-	layout, _ := gtk.GridNew()
-	layout.SetHExpand(true)
-	style.AddClass(&layout.Widget, spotRowClass)
-	style.AddClass(&layout.Widget, entrySourceStyles[entry.Source])
-	root.Add(layout)
-
-	proximityIndicator := newProximityIndicator(root, v.getProximity)
-	proximityIndicatorArea, _ := gtk.DrawingAreaNew()
-	proximityIndicatorArea.SetHExpand(false)
-	proximityIndicatorArea.SetHAlign(gtk.ALIGN_FILL)
-	proximityIndicatorArea.SetVAlign(gtk.ALIGN_FILL)
-	proximityIndicatorArea.SetSizeRequest(10, -1)
-	proximityIndicatorArea.Connect("draw", proximityIndicator.Draw)
-	layout.Attach(proximityIndicatorArea, 0, 0, 1, 5)
-
-	frequency, _ := gtk.LabelNew("")
-	frequency.SetHExpand(true)
-	frequency.SetHAlign(gtk.ALIGN_START)
-	style.AddClass(&frequency.Widget, spotFrequencyClass)
-	layout.Attach(frequency, 1, 0, 1, 1)
-
-	call, _ := gtk.LabelNew(entry.Call.String())
-	call.SetHExpand(true)
-	call.SetHAlign(gtk.ALIGN_START)
-	style.AddClass(&call.Widget, spotCallClass)
-	layout.Attach(call, 1, 1, 1, 2)
-
-	geoInfo, _ := gtk.LabelNew(v.getGeoInformation(entry))
-	geoInfo.SetHExpand(true)
-	geoInfo.SetHAlign(gtk.ALIGN_START)
-	style.AddClass(&geoInfo.Widget, spotGeoInfoClass)
-	layout.Attach(geoInfo, 1, 3, 1, 1)
-
-	predictedExchange, _ := gtk.LabelNew(entry.Info.ExchangeText)
-	predictedExchange.SetHExpand(true)
-	predictedExchange.SetHAlign(gtk.ALIGN_END)
-	// v.style.applyTo(&predictedExchange.Widget)
-	style.AddClass(&predictedExchange.Widget, spotPredictedExchangeClass)
-	layout.Attach(predictedExchange, 2, 0, 1, 2)
-
-	score, _ := gtk.LabelNew("")
-	score.SetHExpand(true)
-	score.SetHAlign(gtk.ALIGN_END)
-	// v.style.applyTo(&score.Widget)
-	style.AddClass(&score.Widget, spotScoreClass)
-	layout.Attach(score, 2, 2, 1, 2)
-
-	lifetimeIndicator := newLifetimeIndicator(root, v.getRemainingLifetime)
-	lifetimeIndicatorArea, _ := gtk.DrawingAreaNew()
-	lifetimeIndicatorArea.SetHExpand(true)
-	lifetimeIndicatorArea.SetHAlign(gtk.ALIGN_FILL)
-	lifetimeIndicatorArea.SetVAlign(gtk.ALIGN_FILL)
-	lifetimeIndicatorArea.SetSizeRequest(-1, 10)
-	lifetimeIndicatorArea.Connect("draw", lifetimeIndicator.Draw)
-	layout.Attach(lifetimeIndicatorArea, 1, 4, 3, 1)
-
-	updateListEntry(root, entry)
-
-	return root.ToWidget()
-}
-
-func updateListEntry(row *gtk.ListBoxRow, entry core.BandmapEntry) {
-	child, _ := row.GetChild()
-	layout := child.(*gtk.Grid)
-	for _, class := range entrySourceStyles {
-		style.RemoveClass(&layout.Widget, class)
-	}
-	style.AddClass(&layout.Widget, entrySourceStyles[entry.Source])
-
-	child, _ = layout.GetChildAt(1, 0)
-	frequency := child.(*gtk.Label)
-	frequency.SetText(entry.Frequency.String())
-
-	child, _ = layout.GetChildAt(2, 2)
-	score := child.(*gtk.Label)
-	score.SetText(fmt.Sprintf("%dP %dM", entry.Info.Points, entry.Info.Multis))
-}
-
 func (v *spotsView) EntryAdded(entry core.BandmapEntry) {
 	runAsync(func() {
 		v.addTableEntry(entry)
-
-		// w := v.newListEntry(entry)
-		// if w == nil {
-		// 	return
-		// }
-		// v.entryList.Insert(w, entry.Index)
 	})
 }
 
 func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
 	runAsync(func() {
 		v.updateTableEntry(entry)
-
-		// row := v.entryList.GetRowAtIndex(entry.Index)
-		// if row == nil {
-		// 	return
-		// }
-		// updateListEntry(row, entry)
 	})
 }
 
 func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
 	runAsync(func() {
 		v.removeTableEntry(entry)
-
-		// row := v.entryList.GetRowAtIndex(entry.Index)
-		// if row == nil {
-		// 	return
-		// }
-		// row.ToWidget().Destroy()
 	})
-}
-
-func (v *spotsView) onRowSelected(listBox *gtk.ListBox, row *gtk.ListBoxRow) {
-	v.ignoreSelection = true
-	defer func() {
-		v.ignoreSelection = false
-	}()
-
-	v.controller.SelectEntry(row.GetIndex())
 }
 
 func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
@@ -421,24 +263,5 @@ func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
 func (v *spotsView) RevealEntry(entry core.BandmapEntry) {
 	runAsync(func() {
 		// TODO reveal entry in table
-
-		// row := v.entryList.GetRowAtIndex(entry.Index)
-		// if row == nil {
-		// 	return
-		// }
-
-		// _, y, err := row.TranslateCoordinates(v.entryList, 0, 0)
-		// if err != nil {
-		// 	log.Printf("cannot translate list row box coordinates: %v", err)
-		// 	return
-		// }
-
-		// adj := v.entryList.GetAdjustment()
-		// if adj == nil {
-		// 	return
-		// }
-
-		// _, rowHeight := row.GetPreferredHeight()
-		// adj.SetValue(float64(y) - (adj.GetPageSize()-float64(rowHeight))/2)
 	})
 }

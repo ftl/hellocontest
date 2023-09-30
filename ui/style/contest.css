@@ -94,7 +94,7 @@
 }
 
 /*
- * Score window, band selection buttons
+ * Spots window, band selection buttons
  */
 
 button.band {
@@ -130,59 +130,3 @@ button.band label.max-value {
     font-weight: bold;
 }
 
-/*
- * Score window, spot list rows
- */
-
- .spot-row {
-    margin: 3px;
-    padding: 3px;
-    border: 2px solid @borders;
-    color: @hellocontest-spot-fg;
-}
-
-.worked-spot {
-    background-color: @hellocontest-worked-spot-bg;
-}
-
-.manual-spot {
-    background-color: @hellocontest-manual-spot-bg;
-}
-
-.skimmer-spot {
-    background-color: @hellocontest-skimmer-spot-bg;
-}
-
-.rbn-spot {
-    background-color: @hellocontest-rbn-spot-bg;
-}
-
-.cluster-spot {
-    background-color: @hellocontest-cluster-spot-bg;
-}
-
-.spot-frequency {
-    font-size: small;
-    color: @hellocontest-spot-fg;
-}
-
-.spot-call {
-    font-size: x-large;
-    font-weight: bold;
-    color: @hellocontest-spot-fg;
-}
-
-.spot-geo-info{
-    font-size: small;
-    color: @hellocontest-spot-fg;
-}
-
-.spot-predicted-exchange{
-    font-size: x-large;
-    color: @hellocontest-spot-fg;
-}
-
-.spot-score{
-    font-size: x-large;
-    color: @hellocontest-spot-fg;
-}

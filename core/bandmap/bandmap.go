@@ -295,42 +295,46 @@ func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
 }
 
 func (m *Bandmap) GotoNearestEntry() {
-	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
-		return entry.Frequency != m.activeFrequency
+	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
+		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
 	})
 }
 
 func (m *Bandmap) GotoNextEntryUp() {
-	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
-		return entry.Frequency > m.activeFrequency
+	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
+		return entry.Frequency > m.activeFrequency && entry.Source != core.WorkedSpot
 	})
 }
 
 func (m *Bandmap) GotoNextEntryDown() {
-	m.findAndSelectNextEntry(func(entry core.BandmapEntry) bool {
-		return entry.Frequency < m.activeFrequency
+	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
+		return entry.Frequency < m.activeFrequency && entry.Source != core.WorkedSpot
 	})
 }
 
-func (m *Bandmap) findAndSelectNextEntry(f func(entry core.BandmapEntry) bool) {
+func (m *Bandmap) findAndSelectNextVisibleEntry(f func(entry core.BandmapEntry) bool) {
 	m.do <- func() {
-		entries := m.entries.AllBy(core.BandmapByDistance(m.activeFrequency))
-		for i := 0; i < len(entries); i++ {
-			entry := entries[i]
-			if entry.Source == core.WorkedSpot {
-				continue
-			}
-			if !m.entryVisible(entry) {
-				continue
-			}
-			if !f(entry) {
-				continue
-			}
-
+		entry, found := m.nextVisibleEntry(m.activeFrequency, f)
+		if found {
 			m.entries.Select(entry.Index)
-			break
 		}
 	}
+}
+
+func (m *Bandmap) nextVisibleEntry(frequency core.Frequency, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
+	entries := m.entries.AllBy(core.BandmapByDistance(frequency))
+	for i := 0; i < len(entries); i++ {
+		entry := entries[i]
+		if !m.entryVisible(entry) {
+			continue
+		}
+		if !f(entry) {
+			continue
+		}
+
+		return entry, true
+	}
+	return core.BandmapEntry{}, false
 }
 
 const (

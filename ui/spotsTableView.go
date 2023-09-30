@@ -254,17 +254,15 @@ func (v *spotsView) selectTableEntry(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) refreshTable() {
-	runAsync(func() {
-		v.ignoreSelection = true
-		defer func() {
-			v.ignoreSelection = false
-		}()
+	v.ignoreSelection = true
+	defer func() {
+		v.ignoreSelection = false
+	}()
 
-		selection, _ := v.table.GetSelection()
-		selection.UnselectAll()
+	selection, _ := v.table.GetSelection()
+	selection.UnselectAll()
 
-		v.tableFilter.Refilter()
-	})
+	v.tableFilter.Refilter()
 }
 
 func (v *spotsView) tableRowByIndex(index int) *gtk.TreeIter {

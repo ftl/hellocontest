@@ -872,6 +872,9 @@ type Callinfo struct {
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
 const spotFrequencyProximityThreshold float64 = 2500
 
+// spots with at least this proximity are recognized as "on frequency"
+const spotOnFrequencyThreshold float64 = 0.95
+
 // ProximityFactor increases the closer the given frequency is to this entry's frequency.
 // 0.0 = not in proximity, 1.0 = exactly on frequency
 // the sign indiciates if the entry's frequency is above (>0) or below (<0) the reference frequency
@@ -887,6 +890,11 @@ func (e BandmapEntry) ProximityFactor(frequency Frequency) float64 {
 	}
 
 	return result
+}
+
+// OnFrequency indicates if this entry is on the given frequency, within the defined threshold.
+func (e BandmapEntry) OnFrequency(frequency Frequency) bool {
+	return e.ProximityFactor(frequency) >= spotOnFrequencyThreshold
 }
 
 type BandmapOrder func(BandmapEntry, BandmapEntry) bool

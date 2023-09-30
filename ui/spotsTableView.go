@@ -130,7 +130,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 }
 
 func formatSpotFrequency(frequency core.Frequency, proximity float64, onFrequency bool) string {
-	size := 100 + math.Abs(proximity)*10
+	size := 100 + math.Abs(proximity)*30
 	result := fmt.Sprintf("<span size=\"%.0f%%\">%.2f kHz</span>", size, frequency/1000)
 	if onFrequency {
 		return fmt.Sprintf("<b>%s</b>", result)

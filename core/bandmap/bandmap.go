@@ -360,6 +360,7 @@ func NewEntry(spot core.Spot) Entry {
 			Mode:      spot.Mode,
 			LastHeard: spot.Time,
 			Source:    spot.Source,
+			SpotCount: 1,
 		},
 
 		spots: []core.Spot{spot},
@@ -432,6 +433,7 @@ func (e *Entry) update() {
 	e.updated = frequencyUpdated || (lastHeard != e.LastHeard) || (source != e.Source)
 	e.LastHeard = lastHeard
 	e.Source = source
+	e.SpotCount = len(e.spots)
 }
 
 func (e *Entry) updateFrequency() bool {

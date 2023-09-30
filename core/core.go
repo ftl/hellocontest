@@ -846,6 +846,7 @@ type BandmapEntry struct {
 	Mode      Mode
 	LastHeard time.Time
 	Source    SpotType
+	SpotCount int
 
 	Info Callinfo
 }
@@ -894,7 +895,7 @@ func (e BandmapEntry) ProximityFactor(frequency Frequency) float64 {
 
 // OnFrequency indicates if this entry is on the given frequency, within the defined threshold.
 func (e BandmapEntry) OnFrequency(frequency Frequency) bool {
-	return e.ProximityFactor(frequency) >= spotOnFrequencyThreshold
+	return math.Abs(e.ProximityFactor(frequency)) >= spotOnFrequencyThreshold
 }
 
 type BandmapOrder func(BandmapEntry, BandmapEntry) bool

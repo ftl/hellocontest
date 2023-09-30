@@ -18,6 +18,8 @@ const (
 	spotColumnPoints
 	spotColumnMultis
 	spotColumnInfo
+	spotColumnSpotCount
+
 	spotColumnForeground
 	spotColumnBackground
 
@@ -33,6 +35,7 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 	v.table.AppendColumn(createSpotTextColumn("Pts", spotColumnPoints))
 	v.table.AppendColumn(createSpotTextColumn("Mult", spotColumnMultis))
 	v.table.AppendColumn(createSpotTextColumn("Info", spotColumnInfo))
+	v.table.AppendColumn(createSpotTextColumn("Spots", spotColumnSpotCount))
 
 	v.tableContent = createSpotListStore(spotColumnCount)
 
@@ -108,6 +111,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			spotColumnPoints,
 			spotColumnMultis,
 			spotColumnInfo,
+			spotColumnSpotCount,
 			spotColumnForeground,
 			spotColumnBackground,
 		},
@@ -118,6 +122,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			pointsToString(entry.Info.Points, entry.Info.Duplicate),
 			pointsToString(entry.Info.Multis, entry.Info.Duplicate),
 			v.getGeoInformation(entry),
+			fmt.Sprintf("%d", entry.SpotCount),
 			foregroundColor.ToWeb(),
 			backgroundColor.ToWeb(),
 		},

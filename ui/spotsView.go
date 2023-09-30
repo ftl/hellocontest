@@ -47,6 +47,7 @@ type SpotsController interface {
 
 type spotsView struct {
 	controller SpotsController
+	colors     colorProvider
 
 	bandGrid  *gtk.Grid
 	entryList *gtk.ListBox
@@ -60,14 +61,12 @@ type spotsView struct {
 	currentFrame      core.BandmapFrame
 	initialFrameShown bool
 	ignoreSelection   bool
-
-	columnFrequency int
-	columnCallsign  int
 }
 
-func setupSpotsView(builder *gtk.Builder, controller SpotsController) *spotsView {
+func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller SpotsController) *spotsView {
 	result := &spotsView{
 		controller:        controller,
+		colors:            colors,
 		initialFrameShown: false,
 	}
 
@@ -82,6 +81,13 @@ func setupSpotsView(builder *gtk.Builder, controller SpotsController) *spotsView
 	setupSpotsTableView(result, builder, controller)
 
 	return result
+}
+
+func (v *spotsView) getGeoInformation(entry core.BandmapEntry) string {
+	if entry.Info.PrimaryPrefix == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCName, entry.Info.PrimaryPrefix, entry.Info.Continent, entry.Info.ITUZone, entry.Info.CQZone)
 }
 
 func (v *spotsView) getRemainingLifetime(index int) float64 {
@@ -302,11 +308,7 @@ func (v *spotsView) newListEntry(entry core.BandmapEntry) *gtk.Widget {
 	style.AddClass(&call.Widget, spotCallClass)
 	layout.Attach(call, 1, 1, 1, 2)
 
-	var geoInfoText string
-	if entry.Info.PrimaryPrefix != "" {
-		geoInfoText = fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCName, entry.Info.PrimaryPrefix, entry.Info.Continent, entry.Info.ITUZone, entry.Info.CQZone)
-	}
-	geoInfo, _ := gtk.LabelNew(geoInfoText)
+	geoInfo, _ := gtk.LabelNew(v.getGeoInformation(entry))
 	geoInfo.SetHExpand(true)
 	geoInfo.SetHAlign(gtk.ALIGN_START)
 	style.AddClass(&geoInfo.Widget, spotGeoInfoClass)

@@ -5,19 +5,35 @@ import (
 	"log"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
+)
+
+const (
+	spotColumnFrequency = iota
+	spotColumnCallsign
+	spotColumnPredictedExchange
+	spotColumnPoints
+	spotColumnMultis
+	spotColumnInfo
+	spotColumnForeground
+	spotColumnBackground
+
+	spotColumnCount
 )
 
 func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsController) {
 	v.table = getUI(builder, "entryTable").(*gtk.TreeView)
 
-	v.columnFrequency = 0
-	v.columnCallsign = 1
+	v.table.AppendColumn(createSpotTextColumn("Frequency", spotColumnFrequency))
+	v.table.AppendColumn(createSpotTextColumn("Callsign", spotColumnCallsign))
+	v.table.AppendColumn(createSpotTextColumn("Exchange", spotColumnPredictedExchange))
+	v.table.AppendColumn(createSpotTextColumn("Pts", spotColumnPoints))
+	v.table.AppendColumn(createSpotTextColumn("Mult", spotColumnMultis))
+	v.table.AppendColumn(createSpotTextColumn("Info", spotColumnInfo))
 
-	v.table.AppendColumn(createColumn("Frequency", v.columnFrequency))
-	v.table.AppendColumn(createColumn("Callsign", v.columnCallsign))
-
-	v.tableContent = createListStore(int(v.table.GetNColumns()))
+	v.tableContent = createSpotListStore(spotColumnCount)
 
 	filter, err := v.tableContent.FilterNew(nil)
 	if err != nil {
@@ -36,6 +52,83 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 		return
 	}
 	selection.Connect("changed", v.onTableSelectionChanged)
+}
+
+func createSpotTextColumn(title string, id int) *gtk.TreeViewColumn {
+	cellRenderer, err := gtk.CellRendererTextNew()
+	if err != nil {
+		log.Fatalf("Cannot create text cell renderer for column %s: %v", title, err)
+	}
+	cellRenderer.SetProperty("foreground-set", true)
+	cellRenderer.SetProperty("background-set", true)
+
+	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "text", id)
+	if err != nil {
+		log.Fatalf("Cannot create column %s: %v", title, err)
+	}
+	column.AddAttribute(cellRenderer, "foreground", spotColumnForeground)
+	column.AddAttribute(cellRenderer, "background", spotColumnBackground)
+	return column
+}
+
+func createSpotProgressColumn(title string, id int) *gtk.TreeViewColumn {
+	cellRenderer, err := gtk.CellRendererProgressNew()
+	if err != nil {
+		log.Fatalf("Cannot create progress cell renderer for column %s: %v", title, err)
+	}
+
+	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "value", id)
+	if err != nil {
+		log.Fatalf("Cannot create column %s: %v", title, err)
+	}
+	return column
+}
+
+func createSpotListStore(columnCount int) *gtk.ListStore {
+	types := make([]glib.Type, columnCount)
+	for i := range types {
+		types[i] = glib.TYPE_STRING
+	}
+	result, err := gtk.ListStoreNew(types...)
+	if err != nil {
+		log.Fatalf("Cannot create list store: %v", err)
+	}
+	return result
+}
+
+func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEntry) error {
+	foregroundColor, backgroundColor := v.getEntryColor(entry)
+
+	return v.tableContent.Set(row,
+		[]int{
+			spotColumnFrequency,
+			spotColumnCallsign,
+			spotColumnPredictedExchange,
+			spotColumnPoints,
+			spotColumnMultis,
+			spotColumnInfo,
+			spotColumnForeground,
+			spotColumnBackground,
+		},
+		[]any{
+			fmt.Sprintf("%.2f kHz", entry.Frequency/1000),
+			entry.Call.String(),
+			entry.Info.ExchangeText,
+			pointsToString(entry.Info.Points, entry.Info.Duplicate),
+			pointsToString(entry.Info.Multis, entry.Info.Duplicate),
+			v.getGeoInformation(entry),
+			foregroundColor.ToWeb(),
+			backgroundColor.ToWeb(),
+		},
+	)
+}
+
+func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, background style.Color) {
+	foreground = v.colors.ColorByName("hellocontest-spot-fg")
+	backgroundName := fmt.Sprintf("hellocontest-%s-bg", entrySourceStyles[entry.Source])
+	background = v.colors.ColorByName(backgroundName)
+
+	return foreground, background
 }
 
 func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) bool {
@@ -58,24 +151,6 @@ func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) boo
 
 	index := path.GetIndices()[0]
 	return v.controller.EntryVisible(index)
-}
-
-func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEntry) error {
-	err := v.tableContent.Set(row,
-		[]int{
-			v.columnFrequency,
-			v.columnCallsign,
-		},
-		[]any{
-			entry.Frequency.String(),
-			entry.Call.String(),
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (v *spotsView) showInitialFrameInTable(frame core.BandmapFrame) {

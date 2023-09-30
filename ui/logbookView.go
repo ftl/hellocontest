@@ -55,17 +55,17 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	result.columnMultis = result.columnPoints + 1
 	result.columnDuplicate = result.columnMultis + 1
 
-	result.view.AppendColumn(createColumn("UTC", result.columnUTC))
-	result.view.AppendColumn(createColumn("Callsign", result.columnCallsign))
-	result.view.AppendColumn(createColumn("Band", result.columnBand))
-	result.view.AppendColumn(createColumn("Mode", result.columnMode))
-	result.view.AppendColumn(createColumn("My Exch", result.columnFirstMyExchange))
-	result.view.AppendColumn(createColumn("Th Exch", result.columnFirstTheirExchange))
-	result.view.AppendColumn(createColumn("Pts", result.columnPoints))
-	result.view.AppendColumn(createColumn("Mult", result.columnMultis))
-	result.view.AppendColumn(createColumn("D", result.columnDuplicate))
+	result.view.AppendColumn(createLogColumn("UTC", result.columnUTC))
+	result.view.AppendColumn(createLogColumn("Callsign", result.columnCallsign))
+	result.view.AppendColumn(createLogColumn("Band", result.columnBand))
+	result.view.AppendColumn(createLogColumn("Mode", result.columnMode))
+	result.view.AppendColumn(createLogColumn("My Exch", result.columnFirstMyExchange))
+	result.view.AppendColumn(createLogColumn("Th Exch", result.columnFirstTheirExchange))
+	result.view.AppendColumn(createLogColumn("Pts", result.columnPoints))
+	result.view.AppendColumn(createLogColumn("Mult", result.columnMultis))
+	result.view.AppendColumn(createLogColumn("D", result.columnDuplicate))
 
-	result.list = createListStore(int(result.view.GetNColumns()))
+	result.list = createLogListStore(int(result.view.GetNColumns()))
 	result.view.SetModel(result.list)
 
 	selection, err := result.view.GetSelection()
@@ -78,7 +78,7 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	return result
 }
 
-func createColumn(title string, id int) *gtk.TreeViewColumn {
+func createLogColumn(title string, id int) *gtk.TreeViewColumn {
 	cellRenderer, err := gtk.CellRendererTextNew()
 	if err != nil {
 		log.Fatalf("Cannot create text cell renderer for column %s: %v", title, err)
@@ -91,7 +91,7 @@ func createColumn(title string, id int) *gtk.TreeViewColumn {
 	return column
 }
 
-func createListStore(columnCount int) *gtk.ListStore {
+func createLogListStore(columnCount int) *gtk.ListStore {
 	types := make([]glib.Type, columnCount)
 	for i := range types {
 		types[i] = glib.TYPE_STRING
@@ -130,7 +130,7 @@ func (v *logbookView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeFiel
 		} else {
 			columnName = "Exch"
 		}
-		v.view.AppendColumn(createColumn("My "+columnName, i))
+		v.view.AppendColumn(createLogColumn("My "+columnName, i))
 	}
 
 	for i := v.columnFirstTheirExchange; i <= v.columnLastTheirExchange; i++ {
@@ -141,14 +141,14 @@ func (v *logbookView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeFiel
 		} else {
 			columnName = "Exch"
 		}
-		v.view.AppendColumn(createColumn("Th "+columnName, i))
+		v.view.AppendColumn(createLogColumn("Th "+columnName, i))
 	}
 
-	v.view.AppendColumn(createColumn("Pts", v.columnPoints))
-	v.view.AppendColumn(createColumn("Mult", v.columnMultis))
-	v.view.AppendColumn(createColumn("D", v.columnDuplicate))
+	v.view.AppendColumn(createLogColumn("Pts", v.columnPoints))
+	v.view.AppendColumn(createLogColumn("Mult", v.columnMultis))
+	v.view.AppendColumn(createLogColumn("D", v.columnDuplicate))
 
-	v.list = createListStore(int(v.view.GetNColumns()))
+	v.list = createLogListStore(int(v.view.GetNColumns()))
 	v.view.SetModel(v.list)
 }
 

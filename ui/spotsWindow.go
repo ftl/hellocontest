@@ -4,6 +4,8 @@ import (
 	"github.com/ftl/gmtry"
 	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 const SpotsWindowID = "spots"
@@ -13,13 +15,15 @@ type spotsWindow struct {
 
 	window   *gtk.Window
 	geometry *gmtry.Geometry
+	style    *style.Style
 
 	controller SpotsController
 }
 
-func setupSpotsWindow(geometry *gmtry.Geometry, controller SpotsController) *spotsWindow {
+func setupSpotsWindow(geometry *gmtry.Geometry, style *style.Style, controller SpotsController) *spotsWindow {
 	result := &spotsWindow{
 		geometry:   geometry,
+		style:      style,
 		controller: controller,
 	}
 
@@ -42,7 +46,7 @@ func (w *spotsWindow) Show() {
 		w.window.SetDefaultSize(400, 900)
 		w.window.SetTitle("Spots")
 		w.window.Connect("destroy", w.onDestroy)
-		w.spotsView = setupSpotsView(builder, w.controller)
+		w.spotsView = setupSpotsView(builder, w.style.ForWidget(w.window.ToWidget()), w.controller)
 		connectToGeometry(w.geometry, SpotsWindowID, w.window)
 	}
 	w.window.ShowAll()

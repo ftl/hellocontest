@@ -252,7 +252,9 @@ func (m *Bandmap) Add(spot core.Spot) {
 		if mode == core.NoMode {
 			mode = m.activeMode
 		}
+
 		_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
+
 		if worked {
 			spot.Source = core.WorkedSpot
 		}
@@ -544,10 +546,12 @@ func (l *Entries) Len() int {
 func (l *Entries) Add(spot core.Spot) {
 	for _, e := range l.entries {
 		if e.Add(spot) {
+			e.Info = l.callinfo.GetInfo(spot.Call, spot.Band, spot.Mode, []string{})
 			l.emitEntryUpdated(*e)
 			return
 		}
 	}
+
 	newEntry := NewEntry(spot)
 	if newEntry.Call.String() != "" {
 		newEntry.Info = l.callinfo.GetInfo(newEntry.Call, newEntry.Band, newEntry.Mode, []string{})

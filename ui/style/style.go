@@ -46,11 +46,11 @@ func (c Color) ToRGBA() (r, g, b, a float64) {
 }
 
 func (c Color) ToWeb() string {
-	return fmt.Sprintf("#%02x%02x%02x", toByte(c.R), toByte(c.G), toByte(c.G))
+	return fmt.Sprintf("#%02x%02x%02x", toByte(c.R), toByte(c.G), toByte(c.B))
 }
 
 func toByte(f float64) byte {
-	return byte(f * 255)
+	return byte(f * 255.0)
 }
 
 func (c Color) WithAlpha(alpha float64) (r, g, b, a float64) {

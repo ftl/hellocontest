@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"log"
+	"math"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/ui/style"
@@ -62,7 +63,7 @@ func createSpotTextColumn(title string, id int) *gtk.TreeViewColumn {
 	cellRenderer.SetProperty("foreground-set", true)
 	cellRenderer.SetProperty("background-set", true)
 
-	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "text", id)
+	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "markup", id)
 	if err != nil {
 		log.Fatalf("Cannot create column %s: %v", title, err)
 	}
@@ -111,7 +112,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			spotColumnBackground,
 		},
 		[]any{
-			fmt.Sprintf("%.2f kHz", entry.Frequency/1000),
+			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
 			entry.Call.String(),
 			entry.Info.ExchangeText,
 			pointsToString(entry.Info.Points, entry.Info.Duplicate),
@@ -123,12 +124,38 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 	)
 }
 
+func formatSpotFrequency(frequency core.Frequency, proximity float64, onFrequency bool) string {
+	size := 100 + math.Abs(proximity)*10
+	result := fmt.Sprintf("<span size=\"%.0f%%\">%.2f kHz</span>", size, frequency/1000)
+	if onFrequency {
+		return fmt.Sprintf("<b>%s</b>", result)
+	}
+
+	return result
+}
+
 func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, background style.Color) {
 	foreground = v.colors.ColorByName("hellocontest-spot-fg")
 	backgroundName := fmt.Sprintf("hellocontest-%s-bg", entrySourceStyles[entry.Source])
 	background = v.colors.ColorByName(backgroundName)
 
 	return foreground, background
+}
+
+func (v *spotsView) updateFrequencyLabel(entry core.BandmapEntry) error {
+	row := v.tableRowByIndex(entry.Index)
+	if row == nil {
+		return fmt.Errorf("cannot reset frequency label for row with index %d", entry.Index)
+	}
+
+	return v.tableContent.Set(row,
+		[]int{
+			spotColumnFrequency,
+		},
+		[]any{
+			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
+		},
+	)
 }
 
 func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) bool {

@@ -107,6 +107,7 @@ func (v *spotsView) filterRow(row *gtk.ListBoxRow) bool {
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	runAsync(func() {
 		bandChanged := (v.currentFrame.ActiveBand != frame.ActiveBand) || (v.currentFrame.VisibleBand != frame.VisibleBand)
+
 		v.currentFrame = frame
 		v.setupBands(frame.Bands)
 		v.updateBands(frame.Bands)
@@ -121,6 +122,9 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 
 		if bandChanged {
 			v.refreshTable()
+		}
+		for _, entry := range v.currentFrame.Entries {
+			v.updateFrequencyLabel(entry)
 		}
 
 		// v.entryList.ShowAll()

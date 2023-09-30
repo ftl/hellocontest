@@ -203,7 +203,7 @@ func (v *entryView) SetMyCall(text string) {
 
 func (v *entryView) SetFrequency(frequency core.Frequency) {
 	runAsync(func() {
-		v.frequency.SetText(fmt.Sprintf("%7.2f kHz", frequency/1000.0))
+		v.frequency.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
 	})
 }
 

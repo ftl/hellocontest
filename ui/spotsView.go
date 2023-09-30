@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -201,8 +200,6 @@ func (v *spotsView) newBand(band core.BandSummary) *gtk.Widget {
 }
 
 func (v *spotsView) updateBand(button *gtk.Button, band core.BandSummary) {
-	// log.Printf("Band %s: %dp %dm", band.Band, band.Points, band.Multis())
-
 	child, _ := button.GetChild()
 	grid := child.(*gtk.Grid)
 
@@ -405,10 +402,6 @@ func (v *spotsView) onRowSelected(listBox *gtk.ListBox, row *gtk.ListBoxRow) {
 }
 
 func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
-	if v.ignoreSelection {
-		return
-	}
-	log.Printf("entry selected: %s %d", entry.Call, entry.Index)
 	runAsync(func() {
 		v.ignoreSelection = true
 		defer func() {

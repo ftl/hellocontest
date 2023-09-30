@@ -154,7 +154,6 @@ func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) boo
 }
 
 func (v *spotsView) showInitialFrameInTable(frame core.BandmapFrame) {
-	log.Printf("show inital frame in table")
 	v.tableContent.Clear()
 
 	for _, entry := range frame.Entries {
@@ -196,7 +195,6 @@ func (v *spotsView) removeTableEntry(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) selectTableEntry(entry core.BandmapEntry) {
-	log.Printf("select entry in table: %s %d", entry.Call, entry.Index)
 	if !v.controller.EntryVisible(entry.Index) {
 		log.Printf("invisible entry not selected")
 		return
@@ -213,9 +211,7 @@ func (v *spotsView) selectTableEntry(entry core.BandmapEntry) {
 		log.Printf("no table path found for index %d: %v", entry.Index, err)
 		return
 	}
-
 	filteredPath := v.tableFilter.ConvertChildPathToPath(path)
-	log.Printf("filtered path: %v", filteredPath)
 
 	column := v.table.GetColumn(1)
 	v.table.SetCursorOnCell(filteredPath, column, nil, false)
@@ -231,7 +227,7 @@ func (v *spotsView) refreshTable() {
 		defer func() {
 			v.ignoreSelection = false
 		}()
-		log.Printf("refresh table")
+
 		selection, _ := v.table.GetSelection()
 		selection.UnselectAll()
 
@@ -254,28 +250,18 @@ func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
 		return true
 	}
 
-	log.Printf("table selection changed entered")
-	defer func() {
-		log.Printf("table selection changed left")
-	}()
-
 	if v.controller == nil {
 		return true
 	}
 
-	log.Printf("getting selected rows")
 	rows := selection.GetSelectedRows(v.tableFilter)
 	if rows.Length() != 1 {
 		return true
 	}
 
-	log.Printf("extract the filtered row")
 	filteredPath := rows.NthData(0).(*gtk.TreePath)
-	log.Printf("convert path to child path %v", filteredPath)
 	path := v.tableFilter.ConvertPathToChildPath(filteredPath)
-	log.Printf("getting the index %v", path)
 	index := path.GetIndices()[0]
-	log.Printf("selecting the entry %d", index)
 	v.controller.SelectEntry(index)
 
 	return true

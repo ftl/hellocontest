@@ -664,8 +664,6 @@ func (l *Entries) cleanOutFalseEntries() {
 			switch CheckFalseEntry(entry1.BandmapEntry, entry2.BandmapEntry) {
 			case DifferentEntries:
 				continue
-			case EqualEntries:
-				// TODO: merge entry2 into entry1
 			case FirstIsFalse:
 				removedEntries = append(removedEntries, *entry1)
 				l.entries[i] = nil

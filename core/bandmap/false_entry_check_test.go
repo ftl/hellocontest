@@ -28,32 +28,6 @@ func Test(t *testing.T) {
 			expected: DifferentEntries,
 		},
 		{
-			desc: "equal callsign, equal frequency",
-			entry1: core.BandmapEntry{
-				Call:      callsign.MustParse("DL0ABC"),
-				SpotCount: 100,
-			},
-			entry2: core.BandmapEntry{
-				Call:      callsign.MustParse("DL0ABC"),
-				SpotCount: 1,
-			},
-			expected: EqualEntries,
-		},
-		{
-			desc: "equal callsign, similar frequency",
-			entry1: core.BandmapEntry{
-				Call:      callsign.MustParse("DL0ABC"),
-				Frequency: 7000000,
-				SpotCount: 100,
-			},
-			entry2: core.BandmapEntry{
-				Call:      callsign.MustParse("DL0ABC"),
-				Frequency: 7000050,
-				SpotCount: 1,
-			},
-			expected: EqualEntries,
-		},
-		{
 			desc: "similar callsign, same frequency, second more spots than first",
 			entry1: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0ABC"),

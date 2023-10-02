@@ -12,7 +12,6 @@ type FalseEntryCheckResult int
 
 const (
 	DifferentEntries FalseEntryCheckResult = iota
-	EqualEntries
 	FirstIsFalse
 	SecondIsFalse
 )
@@ -33,9 +32,7 @@ func CheckFalseEntry(entry1, entry2 core.BandmapEntry) FalseEntryCheckResult {
 	case !callsignSimilar:
 		return DifferentEntries
 	case !frequencySimilar:
-		return DifferentEntries // TODO if one entry is much older than the other, the older one is false
-	case callsignEqual:
-		return EqualEntries
+		return DifferentEntries
 	case callsignSimilar && firstHasFalseSpotCount:
 		return FirstIsFalse
 	case callsignSimilar && secondHasFalseSpotCount:

@@ -603,19 +603,8 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 }
 
 func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
-	deadline := now.Add(-maximumAge)
-	removedEntries := make([]Entry, 0, len(l.entries))
-	l.entries = filterSlice(l.entries, func(e *Entry) bool {
-		stillValid := e.RemoveSpotsBefore(deadline)
-		if !stillValid {
-			removedEntries = append(removedEntries, *e)
-		}
-		return stillValid
-	})
-	for i, e := range removedEntries {
-		e.Index -= i
-		l.emitEntryRemoved(e)
-	}
+	l.cleanOutOldEntries(maximumAge, now)
+	l.cleanOutFalseEntries()
 
 	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
@@ -632,6 +621,78 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
 		if l.countEntryValue(e.BandmapEntry) {
 			l.addToSummary(e)
 		}
+	}
+}
+
+func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
+	deadline := now.Add(-maximumAge)
+	removedEntries := make([]Entry, 0, len(l.entries))
+	l.entries = filterSlice(l.entries, func(e *Entry) bool {
+		stillValid := e.RemoveSpotsBefore(deadline)
+		if !stillValid {
+			removedEntries = append(removedEntries, *e)
+		}
+		return stillValid
+	})
+	for i, e := range removedEntries {
+		e.Index -= i
+		l.emitEntryRemoved(e)
+	}
+}
+
+func (l *Entries) cleanOutFalseEntries() {
+	removedEntries := make([]Entry, 0, len(l.entries))
+
+	i := 0
+	k := 0
+	for i < len(l.entries) {
+		entry1 := l.entries[i]
+		if entry1 == nil {
+			i++
+			continue
+		}
+
+		for j := i + 1; j < len(l.entries); j++ {
+			entry2 := l.entries[j]
+			if entry2 == nil {
+				continue
+			}
+			if !entry2.OnFrequency(entry1.Frequency) {
+				break
+			}
+
+			switch CheckFalseEntry(entry1.BandmapEntry, entry2.BandmapEntry) {
+			case DifferentEntries:
+				continue
+			case EqualEntries:
+				// TODO: merge entry2 into entry1
+			case FirstIsFalse:
+				removedEntries = append(removedEntries, *entry1)
+				l.entries[i] = nil
+				entry1 = nil
+			case SecondIsFalse:
+				removedEntries = append(removedEntries, *entry2)
+				l.entries[j] = nil
+			}
+			if entry1 == nil {
+				break
+			}
+		}
+
+		if entry1 != nil {
+			if i != k {
+				l.entries[k] = entry1
+			}
+			k++
+		}
+		i++
+	}
+	l.entries = l.entries[:k]
+
+	for i, e := range removedEntries {
+		e.Index -= i
+		l.emitEntryRemoved(e)
+		log.Printf("false entry %s on %.2f kHz removed", e.Call, e.Frequency)
 	}
 }
 

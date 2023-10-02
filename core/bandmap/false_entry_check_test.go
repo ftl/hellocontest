@@ -2,6 +2,7 @@ package bandmap
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -112,6 +113,83 @@ func Test(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			actual := CheckFalseEntry(tc.entry1, tc.entry2)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestEntries_cleanoutFalseEntries(t *testing.T) {
+	now := time.Now()
+	type testEntry struct {
+		call      string
+		frequency core.Frequency
+		spots     int
+	}
+	addTestEntries := func(entries *Entries, testEntries []testEntry) {
+		for _, testEntry := range testEntries {
+			call := callsign.MustParse(testEntry.call)
+			for i := 0; i < testEntry.spots; i++ {
+				spot := core.Spot{
+					Call:      call,
+					Frequency: testEntry.frequency,
+					Source:    core.ManualSpot,
+					Time:      now,
+				}
+				entries.Add(spot)
+			}
+		}
+		for _, entry := range entries.entries {
+			entry.SpotCount = len(entry.spots)
+		}
+	}
+	getCurrentTestEntries := func(entries *Entries) []testEntry {
+		result := make([]testEntry, len(entries.entries))
+		for i, entry := range entries.entries {
+			result[i] = testEntry{
+				call:      entry.Call.String(),
+				frequency: entry.Frequency,
+				spots:     len(entry.spots),
+			}
+		}
+		return result
+	}
+
+	tt := []struct {
+		desc     string
+		entries  []testEntry
+		expected []testEntry
+	}{
+		{
+			desc: "remove false entry1 with single spot",
+			entries: []testEntry{
+				{call: "DL1ABC", frequency: 7010000, spots: 1},
+				{call: "DL1AB", frequency: 7010050, spots: 4},
+				{call: "DL1ZZZ", frequency: 7020000, spots: 1},
+			},
+			expected: []testEntry{
+				{call: "DL1AB", frequency: 7010050, spots: 4},
+				{call: "DL1ZZZ", frequency: 7020000, spots: 1},
+			},
+		},
+		{
+			desc: "remove false entry2 with single spot",
+			entries: []testEntry{
+				{call: "DL1ABC", frequency: 7010000, spots: 4},
+				{call: "DL1AB", frequency: 7010050, spots: 1},
+				{call: "DL1ZZZ", frequency: 7020000, spots: 1},
+			},
+			expected: []testEntry{
+				{call: "DL1ABC", frequency: 7010000, spots: 4},
+				{call: "DL1ZZZ", frequency: 7020000, spots: 1},
+			},
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			entries := NewEntries(countAllEntries)
+			addTestEntries(entries, tc.entries)
+			entries.cleanOutFalseEntries()
+			actual := getCurrentTestEntries(entries)
 			assert.Equal(t, tc.expected, actual)
 		})
 	}

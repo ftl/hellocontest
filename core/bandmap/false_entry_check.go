@@ -53,5 +53,5 @@ func checkCallsignSimilar(call1, call2 callsign.Callsign) bool {
 }
 
 func checkFirstSpotCountIsFalse(count1, count2 int) bool {
-	return count1 == 1 && count2 > 1
+	return count1 == 1 && count2 > 2
 }

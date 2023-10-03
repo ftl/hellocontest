@@ -148,7 +148,7 @@ func TestEntries_cleanoutFalseEntries(t *testing.T) {
 				spot := core.Spot{
 					Call:      call,
 					Frequency: testEntry.frequency,
-					Source:    core.ManualSpot,
+					Source:    core.ClusterSpot,
 					Time:      now,
 				}
 				entries.Add(spot)

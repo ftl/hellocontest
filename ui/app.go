@@ -66,6 +66,13 @@ func (a *application) useDefaultWindowGeometry(cause error) {
 	a.mainWindow.UseDefaultWindowGeometry()
 }
 
+func (a *application) setAcceptFocus(acceptFocus bool) {
+	a.callinfoWindow.SetAcceptFocus(acceptFocus)
+	a.rateWindow.SetAcceptFocus(acceptFocus)
+	a.scoreWindow.SetAcceptFocus(acceptFocus)
+	a.spotsWindow.SetAcceptFocus(acceptFocus)
+}
+
 func (a *application) activate() {
 	a.builder = setupBuilder()
 
@@ -76,7 +83,7 @@ func (a *application) activate() {
 	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration)
 	a.controller.Startup()
 
-	a.mainWindow = setupMainWindow(a.builder, a.app)
+	a.mainWindow = setupMainWindow(a.builder, a.app, a.setAcceptFocus)
 	screen := a.mainWindow.window.GetScreen()
 	a.style = style.New()
 	a.style.AddToScreen(screen)

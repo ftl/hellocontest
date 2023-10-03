@@ -14,9 +14,10 @@ type callinfoWindow struct {
 	callinfoView *callinfoView
 	controller   CallinfoController
 
-	window   *gtk.Window
-	geometry *gmtry.Geometry
-	style    *style.Style
+	window      *gtk.Window
+	geometry    *gmtry.Geometry
+	style       *style.Style
+	acceptFocus bool
 
 	callsign          string
 	worked            bool
@@ -58,6 +59,7 @@ func (w *callinfoWindow) Show() {
 		w.window = getUI(builder, "callinfoWindow").(*gtk.Window)
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("Callsign Information")
+		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)
 		w.callinfoView = setupCallinfoView(builder, w.style.ForWidget(w.window.ToWidget()), w.controller)
 		w.callinfoView.SetCallsign(w.callsign, w.worked, w.duplicate)
@@ -98,6 +100,14 @@ func (w *callinfoWindow) UseDefaultWindowGeometry() {
 func (w *callinfoWindow) onDestroy() {
 	w.window = nil
 	w.callinfoView = nil
+}
+
+func (w *callinfoWindow) SetAcceptFocus(acceptFocus bool) {
+	w.acceptFocus = acceptFocus
+	if w.window == nil {
+		return
+	}
+	w.window.SetAcceptFocus(w.acceptFocus)
 }
 
 func (w *callinfoWindow) SetCallsign(callsign string, worked, duplicate bool) {

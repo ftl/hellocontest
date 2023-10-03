@@ -39,8 +39,11 @@ type MainMenuController interface {
 	SetSendSpotsToTci(bool)
 }
 
+type AcceptFocusFunc func(bool)
+
 type mainMenu struct {
-	controller MainMenuController
+	controller     MainMenuController
+	setAcceptFocus AcceptFocusFunc
 
 	fileNew               *gtk.MenuItem
 	fileOpen              *gtk.MenuItem
@@ -68,17 +71,19 @@ type mainMenu struct {
 	bandmapGotoNextSpotDown *gtk.MenuItem
 	bandmapSendSpotsToTci   *gtk.CheckMenuItem
 
-	windowCallinfo *gtk.MenuItem
-	windowScore    *gtk.MenuItem
-	windowRate     *gtk.MenuItem
-	windowSpots    *gtk.MenuItem
+	windowCallinfo    *gtk.MenuItem
+	windowScore       *gtk.MenuItem
+	windowRate        *gtk.MenuItem
+	windowSpots       *gtk.MenuItem
+	windowAcceptFocus *gtk.CheckMenuItem
 
 	helpWiki  *gtk.MenuItem
 	helpAbout *gtk.MenuItem
 }
 
-func setupMainMenu(builder *gtk.Builder) *mainMenu {
+func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMenu {
 	result := new(mainMenu)
+	result.setAcceptFocus = setAcceptFocus
 
 	result.fileNew = getUI(builder, "menuFileNew").(*gtk.MenuItem)
 	result.fileOpen = getUI(builder, "menuFileOpen").(*gtk.MenuItem)
@@ -107,6 +112,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
 	result.windowSpots = getUI(builder, "menuWindowSpots").(*gtk.MenuItem)
+	result.windowAcceptFocus = getUI(builder, "menuWindowAcceptFocus").(*gtk.CheckMenuItem)
 	result.helpWiki = getUI(builder, "menuHelpWiki").(*gtk.MenuItem)
 	result.helpAbout = getUI(builder, "menuHelpAbout").(*gtk.MenuItem)
 
@@ -137,6 +143,7 @@ func setupMainMenu(builder *gtk.Builder) *mainMenu {
 	result.windowScore.Connect("activate", result.onScore)
 	result.windowRate.Connect("activate", result.onRate)
 	result.windowSpots.Connect("activate", result.onSpots)
+	result.windowAcceptFocus.Connect("activate", result.onAcceptFocus)
 	result.helpWiki.Connect("activate", result.onWiki)
 	result.helpAbout.Connect("activate", result.onAbout)
 
@@ -289,4 +296,11 @@ func (m *mainMenu) onRate() {
 
 func (m *mainMenu) onSpots() {
 	m.controller.ShowSpots()
+}
+
+func (m *mainMenu) onAcceptFocus() {
+	if m.setAcceptFocus == nil {
+		return
+	}
+	m.setAcceptFocus(m.windowAcceptFocus.GetActive())
 }

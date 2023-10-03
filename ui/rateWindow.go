@@ -13,9 +13,10 @@ const RateWindowID = "rate"
 type rateWindow struct {
 	rateView *rateView
 
-	window   *gtk.Window
-	geometry *gmtry.Geometry
-	style    *style.Style
+	window      *gtk.Window
+	geometry    *gmtry.Geometry
+	style       *style.Style
+	acceptFocus bool
 
 	rate       core.QSORate
 	qsosGoal   int
@@ -47,6 +48,7 @@ func (w *rateWindow) Show() {
 		w.window = getUI(builder, "rateWindow").(*gtk.Window)
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("QSO Rate")
+		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)
 		w.rateView = setupNewRateView(builder, w.style.ForWidget(w.window.ToWidget()))
 		w.rateView.SetGoals(w.qsosGoal, w.pointsGoal, w.multisGoal)
@@ -82,6 +84,14 @@ func (w *rateWindow) UseDefaultWindowGeometry() {
 func (w *rateWindow) onDestroy() {
 	w.window = nil
 	w.rateView = nil
+}
+
+func (w *rateWindow) SetAcceptFocus(acceptFocus bool) {
+	w.acceptFocus = acceptFocus
+	if w.window == nil {
+		return
+	}
+	w.window.SetAcceptFocus(w.acceptFocus)
 }
 
 func (w *rateWindow) ShowRate(rate core.QSORate) {

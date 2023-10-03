@@ -13,9 +13,10 @@ const ScoreWindowID = "score"
 type scoreWindow struct {
 	scoreView *scoreView
 
-	window   *gtk.Window
-	geometry *gmtry.Geometry
-	style    *style.Style
+	window      *gtk.Window
+	geometry    *gmtry.Geometry
+	style       *style.Style
+	acceptFocus bool
 
 	score      core.Score
 	rate       core.QSORate
@@ -47,6 +48,7 @@ func (w *scoreWindow) Show() {
 		w.window = getUI(builder, "scoreWindow").(*gtk.Window)
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("Score")
+		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)
 		w.scoreView = setupNewScoreView(builder, w.style.ForWidget(w.window.ToWidget()))
 		w.scoreView.SetGoals(w.pointsGoal, w.multisGoal)
@@ -83,6 +85,14 @@ func (w *scoreWindow) UseDefaultWindowGeometry() {
 func (w *scoreWindow) onDestroy() {
 	w.window = nil
 	w.scoreView = nil
+}
+
+func (w *scoreWindow) SetAcceptFocus(acceptFocus bool) {
+	w.acceptFocus = acceptFocus
+	if w.window == nil {
+		return
+	}
+	w.window.SetAcceptFocus(w.acceptFocus)
 }
 
 func (w *scoreWindow) ShowScore(score core.Score) {

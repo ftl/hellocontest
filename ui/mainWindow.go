@@ -24,14 +24,14 @@ type mainWindow struct {
 	*stopKeyHandler
 }
 
-func setupMainWindow(builder *gtk.Builder, application *gtk.Application) *mainWindow {
+func setupMainWindow(builder *gtk.Builder, application *gtk.Application, setAcceptFocus AcceptFocusFunc) *mainWindow {
 	result := new(mainWindow)
 
 	result.window = getUI(builder, "mainWindow").(*gtk.ApplicationWindow)
 	result.window.SetApplication(application)
 	result.window.SetDefaultSize(569, 700)
 
-	result.mainMenu = setupMainMenu(builder)
+	result.mainMenu = setupMainMenu(builder, setAcceptFocus)
 	result.radioMenu = setupRadioMenu(builder)
 	result.spotSourceMenu = setupSpotSourceMenu(builder)
 	result.logbookView = setupLogbookView(builder)

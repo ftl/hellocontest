@@ -13,9 +13,10 @@ const SpotsWindowID = "spots"
 type spotsWindow struct {
 	spotsView *spotsView
 
-	window   *gtk.Window
-	geometry *gmtry.Geometry
-	style    *style.Style
+	window      *gtk.Window
+	geometry    *gmtry.Geometry
+	style       *style.Style
+	acceptFocus bool
 
 	controller SpotsController
 }
@@ -45,6 +46,7 @@ func (w *spotsWindow) Show() {
 		w.window = getUI(builder, "spotsWindow").(*gtk.Window)
 		w.window.SetDefaultSize(400, 900)
 		w.window.SetTitle("Spots")
+		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)
 		w.spotsView = setupSpotsView(builder, w.style.ForWidget(w.window.ToWidget()), w.controller)
 		connectToGeometry(w.geometry, SpotsWindowID, w.window)
@@ -78,6 +80,14 @@ func (w *spotsWindow) UseDefaultWindowGeometry() {
 func (w *spotsWindow) onDestroy() {
 	w.window = nil
 	w.spotsView = nil
+}
+
+func (w *spotsWindow) SetAcceptFocus(acceptFocus bool) {
+	w.acceptFocus = true
+	if w.window == nil {
+		return
+	}
+	w.window.SetAcceptFocus(w.acceptFocus)
 }
 
 func (w *spotsWindow) ShowFrame(frame core.BandmapFrame) {

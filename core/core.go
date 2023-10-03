@@ -681,6 +681,9 @@ func (s BandScore) QSOsPerMulti() float64 {
 }
 
 func (s BandScore) Result() int {
+	if s.Multis == 0 {
+		return s.Points
+	}
 	return s.Points * s.Multis
 }
 

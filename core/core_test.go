@@ -91,6 +91,15 @@ func TestScore_StackedGraphPerBand(t *testing.T) {
 	assert.Equal(t, 28, stackedGraphs[2].DataPoints[0].QSOs)
 }
 
+func TestBandScore_NoMultis(t *testing.T) {
+	score := new(BandScore)
+	score.AddQSO(QSOScore{Points: 2})
+	score.AddQSO(QSOScore{Points: 2})
+	score.AddQSO(QSOScore{Points: 2})
+	score.AddQSO(QSOScore{Points: 2})
+	assert.Equal(t, 8, score.Result())
+}
+
 func TestBandmapEntry_ProximityFactor(t *testing.T) {
 	const frequency Frequency = 7035000
 	tt := []struct {

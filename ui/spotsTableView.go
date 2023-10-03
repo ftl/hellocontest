@@ -268,7 +268,7 @@ func (v *spotsView) removeTableEntry(entry core.BandmapEntry) {
 	v.tableContent.Remove(row)
 }
 
-func (v *spotsView) selectTableEntry(entry core.BandmapEntry) {
+func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
 	if !v.controller.EntryVisible(entry.Index) {
 		log.Printf("invisible entry not selected")
 		return
@@ -290,8 +290,7 @@ func (v *spotsView) selectTableEntry(entry core.BandmapEntry) {
 	column := v.table.GetColumn(1)
 	v.table.ScrollToCell(filteredPath, column, false, 0, 0)
 
-	selection, _ := v.table.GetSelection()
-	selection.UnselectAll()
+	v.clearTableSelection()
 }
 
 func (v *spotsView) refreshTable() {

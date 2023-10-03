@@ -796,12 +796,14 @@ type Spot struct {
 }
 
 type BandmapFrame struct {
-	Frequency   Frequency
-	ActiveBand  Band
-	VisibleBand Band
-	Mode        Mode
-	Bands       []BandSummary
-	Entries     []BandmapEntry
+	Frequency          Frequency
+	ActiveBand         Band
+	VisibleBand        Band
+	Mode               Mode
+	Bands              []BandSummary
+	Entries            []BandmapEntry
+	NearestEntry       BandmapEntry
+	RevealNearestEntry bool
 }
 
 type BandSummary struct {

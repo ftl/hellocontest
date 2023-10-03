@@ -102,15 +102,21 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now())
 
+	nearestEntry, nearestEntryFound := m.nextVisibleEntry(m.activeFrequency, func(entry core.BandmapEntry) bool {
+		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
+	})
+
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
 	entries := m.entries.All()
 	frame := core.BandmapFrame{
-		Frequency:   m.activeFrequency,
-		ActiveBand:  m.activeBand,
-		VisibleBand: m.visibleBand,
-		Mode:        m.activeMode,
-		Bands:       bands,
-		Entries:     entries,
+		Frequency:          m.activeFrequency,
+		ActiveBand:         m.activeBand,
+		VisibleBand:        m.visibleBand,
+		Mode:               m.activeMode,
+		Bands:              bands,
+		Entries:            entries,
+		NearestEntry:       nearestEntry,
+		RevealNearestEntry: nearestEntryFound,
 	}
 	m.view.ShowFrame(frame)
 }

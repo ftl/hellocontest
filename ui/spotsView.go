@@ -77,6 +77,7 @@ func (v *spotsView) getDXCCInformation(entry core.BandmapEntry) string {
 
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	runAsync(func() {
+		frequencyChanged := v.currentFrame.Frequency != frame.Frequency
 		bandChanged := (v.currentFrame.ActiveBand != frame.ActiveBand) || (v.currentFrame.VisibleBand != frame.VisibleBand)
 
 		v.currentFrame = frame
@@ -93,6 +94,9 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 		}
 		for _, entry := range v.currentFrame.Entries {
 			v.updateFrequencyLabelAndAge(entry)
+		}
+		if (bandChanged || frequencyChanged) && v.currentFrame.RevealNearestEntry {
+			v.revealTableEntry(v.currentFrame.NearestEntry)
 		}
 	})
 }
@@ -261,14 +265,12 @@ func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
 			}()
 		}
 
-		v.selectTableEntry(entry)
+		v.revealTableEntry(entry)
 	})
-
-	v.RevealEntry(entry)
 }
 
 func (v *spotsView) RevealEntry(entry core.BandmapEntry) {
 	runAsync(func() {
-		// TODO reveal entry in table
+		v.revealTableEntry(entry)
 	})
 }

@@ -218,6 +218,8 @@ func (v *spotsView) updateTableEntry(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) removeTableEntry(entry core.BandmapEntry) {
+	v.clearTableSelection()
+
 	row := v.tableRowByIndex(entry.Index)
 	if row == nil {
 		return
@@ -246,7 +248,6 @@ func (v *spotsView) selectTableEntry(entry core.BandmapEntry) {
 	filteredPath := v.tableFilter.ConvertChildPathToPath(path)
 
 	column := v.table.GetColumn(1)
-	v.table.SetCursorOnCell(filteredPath, column, nil, false)
 	v.table.ScrollToCell(filteredPath, column, false, 0, 0)
 
 	selection, _ := v.table.GetSelection()
@@ -254,15 +255,21 @@ func (v *spotsView) selectTableEntry(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) refreshTable() {
-	v.ignoreSelection = true
-	defer func() {
-		v.ignoreSelection = false
-	}()
+	if !v.ignoreSelection {
+		v.ignoreSelection = true
+		defer func() {
+			v.ignoreSelection = false
+		}()
+	}
 
-	selection, _ := v.table.GetSelection()
-	selection.UnselectAll()
+	v.clearTableSelection()
 
 	v.tableFilter.Refilter()
+}
+
+func (v *spotsView) clearTableSelection() {
+	selection, _ := v.table.GetSelection()
+	selection.UnselectAll()
 }
 
 func (v *spotsView) tableRowByIndex(index int) *gtk.TreeIter {
@@ -284,15 +291,23 @@ func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
 		return true
 	}
 
+	index, selected := v.getSelectedIndex(selection)
+	if !selected {
+		return true
+	}
+
+	v.controller.SelectEntry(index)
+
+	return true
+}
+
+func (v *spotsView) getSelectedIndex(selection *gtk.TreeSelection) (int, bool) {
 	rows := selection.GetSelectedRows(v.tableFilter)
 	if rows.Length() != 1 {
-		return true
+		return 0, false
 	}
 
 	filteredPath := rows.NthData(0).(*gtk.TreePath)
 	path := v.tableFilter.ConvertPathToChildPath(filteredPath)
-	index := path.GetIndices()[0]
-	v.controller.SelectEntry(index)
-
-	return true
+	return path.GetIndices()[0], true
 }

@@ -243,16 +243,23 @@ func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
 
 func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
 	runAsync(func() {
+		v.ignoreSelection = true
+		defer func() {
+			v.ignoreSelection = false
+		}()
+
 		v.removeTableEntry(entry)
 	})
 }
 
 func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
 	runAsync(func() {
-		v.ignoreSelection = true
-		defer func() {
-			v.ignoreSelection = false
-		}()
+		if !v.ignoreSelection {
+			v.ignoreSelection = true
+			defer func() {
+				v.ignoreSelection = false
+			}()
+		}
 
 		v.selectTableEntry(entry)
 	})

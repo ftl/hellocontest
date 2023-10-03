@@ -10,7 +10,7 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func Test(t *testing.T) {
+func TestCheckFalseEntry(t *testing.T) {
 	tt := []struct {
 		desc     string
 		entry1   core.BandmapEntry
@@ -20,10 +20,12 @@ func Test(t *testing.T) {
 		{
 			desc: "different callsign, same frequency",
 			entry1: core.BandmapEntry{
-				Call: callsign.MustParse("DL0ABC"),
+				Call:   callsign.MustParse("DL0ABC"),
+				Source: core.ClusterSpot,
 			},
 			entry2: core.BandmapEntry{
-				Call: callsign.MustParse("OK0ZZZ"),
+				Call:   callsign.MustParse("OK0ZZZ"),
+				Source: core.ClusterSpot,
 			},
 			expected: DifferentEntries,
 		},
@@ -32,11 +34,13 @@ func Test(t *testing.T) {
 			entry1: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0ABC"),
 				Frequency: 7000000,
+				Source:    core.ClusterSpot,
 				SpotCount: 1,
 			},
 			entry2: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0AB"),
 				Frequency: 7000000,
+				Source:    core.ClusterSpot,
 				SpotCount: 100,
 			},
 			expected: FirstIsFalse,
@@ -46,11 +50,13 @@ func Test(t *testing.T) {
 			entry1: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0ABC"),
 				Frequency: 7000000,
+				Source:    core.ClusterSpot,
 				SpotCount: 100,
 			},
 			entry2: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0AB"),
 				Frequency: 7000000,
+				Source:    core.ClusterSpot,
 				SpotCount: 1,
 			},
 			expected: SecondIsFalse,
@@ -60,11 +66,13 @@ func Test(t *testing.T) {
 			entry1: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0ABC"),
 				Frequency: 7000000,
+				Source:    core.ClusterSpot,
 				SpotCount: 1,
 			},
 			entry2: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0AB"),
 				Frequency: 7000050,
+				Source:    core.ClusterSpot,
 				SpotCount: 100,
 			},
 			expected: FirstIsFalse,
@@ -74,14 +82,48 @@ func Test(t *testing.T) {
 			entry1: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0ABC"),
 				Frequency: 7000000,
+				Source:    core.ClusterSpot,
 				SpotCount: 100,
 			},
 			entry2: core.BandmapEntry{
 				Call:      callsign.MustParse("DL0AB"),
 				Frequency: 7000050,
+				Source:    core.ClusterSpot,
 				SpotCount: 1,
 			},
 			expected: SecondIsFalse,
+		},
+		{
+			desc: "similar callsign, similar frequency, first has less spots but is manually marked",
+			entry1: core.BandmapEntry{
+				Call:      callsign.MustParse("DL0ABC"),
+				Frequency: 7000000,
+				Source:    core.ManualSpot,
+				SpotCount: 1,
+			},
+			entry2: core.BandmapEntry{
+				Call:      callsign.MustParse("DL0AB"),
+				Frequency: 7000050,
+				Source:    core.ClusterSpot,
+				SpotCount: 100,
+			},
+			expected: DifferentEntries,
+		},
+		{
+			desc: "similar callsign, similar frequency, first has less spots but is worked",
+			entry1: core.BandmapEntry{
+				Call:      callsign.MustParse("DL0ABC"),
+				Frequency: 7000000,
+				Source:    core.WorkedSpot,
+				SpotCount: 1,
+			},
+			entry2: core.BandmapEntry{
+				Call:      callsign.MustParse("DL0AB"),
+				Frequency: 7000050,
+				Source:    core.ClusterSpot,
+				SpotCount: 100,
+			},
+			expected: DifferentEntries,
 		},
 	}
 	for _, tc := range tt {
@@ -133,6 +175,15 @@ func TestEntries_cleanoutFalseEntries(t *testing.T) {
 		entries  []testEntry
 		expected []testEntry
 	}{
+		{
+			desc: "single entry",
+			entries: []testEntry{
+				{call: "DL1ABC", frequency: 7010000, spots: 1},
+			},
+			expected: []testEntry{
+				{call: "DL1ABC", frequency: 7010000, spots: 1},
+			},
+		},
 		{
 			desc: "remove false entry1 with single spot",
 			entries: []testEntry{

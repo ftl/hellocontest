@@ -17,6 +17,10 @@ const (
 )
 
 func CheckFalseEntry(entry1, entry2 core.BandmapEntry) FalseEntryCheckResult {
+	if checkLocallyVerified(entry1) || checkLocallyVerified(entry2) {
+		return DifferentEntries
+	}
+
 	callsignEqual := entry1.Call == entry2.Call
 	var callsignSimilar bool
 	if callsignEqual {
@@ -40,6 +44,10 @@ func CheckFalseEntry(entry1, entry2 core.BandmapEntry) FalseEntryCheckResult {
 	default:
 		return DifferentEntries
 	}
+}
+
+func checkLocallyVerified(entry core.BandmapEntry) bool {
+	return entry.Source == core.WorkedSpot || entry.Source == core.ManualSpot
 }
 
 func checkCallsignSimilar(call1, call2 callsign.Callsign) bool {

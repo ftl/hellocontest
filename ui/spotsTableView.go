@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strings"
+	"time"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/ui/style"
@@ -17,8 +19,9 @@ const (
 	spotColumnPredictedExchange
 	spotColumnPoints
 	spotColumnMultis
-	spotColumnInfo
 	spotColumnSpotCount
+	spotColumnAge
+	spotColumnDXCC
 
 	spotColumnForeground
 	spotColumnBackground
@@ -29,13 +32,14 @@ const (
 func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsController) {
 	v.table = getUI(builder, "entryTable").(*gtk.TreeView)
 
-	v.table.AppendColumn(createSpotTextColumn("Frequency", spotColumnFrequency))
+	v.table.AppendColumn(createSpotMarkupColumn("Frequency", spotColumnFrequency))
 	v.table.AppendColumn(createSpotTextColumn("Callsign", spotColumnCallsign))
 	v.table.AppendColumn(createSpotTextColumn("Exchange", spotColumnPredictedExchange))
 	v.table.AppendColumn(createSpotTextColumn("Pts", spotColumnPoints))
 	v.table.AppendColumn(createSpotTextColumn("Mult", spotColumnMultis))
-	v.table.AppendColumn(createSpotTextColumn("Info", spotColumnInfo))
 	v.table.AppendColumn(createSpotTextColumn("Spots", spotColumnSpotCount))
+	v.table.AppendColumn(createSpotTextColumn("Age", spotColumnAge))
+	v.table.AppendColumn(createSpotTextColumn("DXCC", spotColumnDXCC))
 
 	v.tableContent = createSpotListStore(spotColumnCount)
 
@@ -59,6 +63,23 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 }
 
 func createSpotTextColumn(title string, id int) *gtk.TreeViewColumn {
+	cellRenderer, err := gtk.CellRendererTextNew()
+	if err != nil {
+		log.Fatalf("Cannot create text cell renderer for column %s: %v", title, err)
+	}
+	cellRenderer.SetProperty("foreground-set", true)
+	cellRenderer.SetProperty("background-set", true)
+
+	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "text", id)
+	if err != nil {
+		log.Fatalf("Cannot create column %s: %v", title, err)
+	}
+	column.AddAttribute(cellRenderer, "foreground", spotColumnForeground)
+	column.AddAttribute(cellRenderer, "background", spotColumnBackground)
+	return column
+}
+
+func createSpotMarkupColumn(title string, id int) *gtk.TreeViewColumn {
 	cellRenderer, err := gtk.CellRendererTextNew()
 	if err != nil {
 		log.Fatalf("Cannot create text cell renderer for column %s: %v", title, err)
@@ -110,8 +131,9 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			spotColumnPredictedExchange,
 			spotColumnPoints,
 			spotColumnMultis,
-			spotColumnInfo,
 			spotColumnSpotCount,
+			spotColumnAge,
+			spotColumnDXCC,
 			spotColumnForeground,
 			spotColumnBackground,
 		},
@@ -121,8 +143,9 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			entry.Info.ExchangeText,
 			pointsToString(entry.Info.Points, entry.Info.Duplicate),
 			pointsToString(entry.Info.Multis, entry.Info.Duplicate),
-			v.getGeoInformation(entry),
 			fmt.Sprintf("%d", entry.SpotCount),
+			formatSpotAge(entry.LastHeard),
+			v.getDXCCInformation(entry),
 			foregroundColor.ToWeb(),
 			backgroundColor.ToWeb(),
 		},
@@ -139,6 +162,21 @@ func formatSpotFrequency(frequency core.Frequency, proximity float64, onFrequenc
 	return result
 }
 
+func formatSpotAge(lastHeard time.Time) string {
+	result := time.Since(lastHeard).Truncate(time.Minute).String()
+	if result == "0s" {
+		return "< 1m"
+	}
+	if strings.HasSuffix(result, "m0s") {
+		result = result[:len(result)-2]
+	}
+	if strings.HasSuffix(result, "h0m") {
+		result = result[:len(result)-2]
+	}
+
+	return result
+}
+
 func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, background style.Color) {
 	foreground = v.colors.ColorByName("hellocontest-spot-fg")
 	backgroundName := fmt.Sprintf("hellocontest-%s-bg", entrySourceStyles[entry.Source])
@@ -147,7 +185,7 @@ func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, backgrou
 	return foreground, background
 }
 
-func (v *spotsView) updateFrequencyLabel(entry core.BandmapEntry) error {
+func (v *spotsView) updateFrequencyLabelAndAge(entry core.BandmapEntry) error {
 	row := v.tableRowByIndex(entry.Index)
 	if row == nil {
 		return fmt.Errorf("cannot reset frequency label for row with index %d", entry.Index)
@@ -156,9 +194,11 @@ func (v *spotsView) updateFrequencyLabel(entry core.BandmapEntry) error {
 	return v.tableContent.Set(row,
 		[]int{
 			spotColumnFrequency,
+			spotColumnAge,
 		},
 		[]any{
 			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
+			formatSpotAge(entry.LastHeard),
 		},
 	)
 }

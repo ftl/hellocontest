@@ -68,7 +68,7 @@ func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller Spots
 	return result
 }
 
-func (v *spotsView) getGeoInformation(entry core.BandmapEntry) string {
+func (v *spotsView) getDXCCInformation(entry core.BandmapEntry) string {
 	if entry.Info.PrimaryPrefix == "" {
 		return ""
 	}
@@ -92,7 +92,7 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 			v.refreshTable()
 		}
 		for _, entry := range v.currentFrame.Entries {
-			v.updateFrequencyLabel(entry)
+			v.updateFrequencyLabelAndAge(entry)
 		}
 	})
 }

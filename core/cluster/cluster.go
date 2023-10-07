@@ -2,7 +2,9 @@ package cluster
 
 import (
 	"log"
+	"net"
 	"strings"
+	"time"
 
 	"github.com/ftl/clusterix"
 	"github.com/ftl/hamradio"
@@ -53,10 +55,20 @@ func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.B
 	}
 
 	for _, spotSource := range sources {
-		result.clusters = append(result.clusters, newCluster(result, spotSource, bandmap, bandplan))
+		var cluster *cluster
+		if isDemoSource(spotSource.Name) {
+			cluster = newDemoCluster(result, spotSource, bandmap, bandplan)
+		} else {
+			cluster = newCluster(result, spotSource, bandmap, bandplan)
+		}
+		result.clusters = append(result.clusters, cluster)
 	}
 
 	return result
+}
+
+func isDemoSource(name string) bool {
+	return strings.ToLower(strings.TrimSpace(name)) == "demo"
 }
 
 func (c *Clusters) cluster(name string) *cluster {
@@ -150,13 +162,26 @@ func (c *Clusters) clusterConnected(name string, connected bool) {
 	}
 }
 
+type clusterClient interface {
+	Connected() bool
+	Notify(any)
+	Disconnect()
+}
+
+type openClusterFunc func(host *net.TCPAddr, username string, password string, trace bool) (clusterClient, error)
+
+func openClusterix(host *net.TCPAddr, username string, password string, trace bool) (clusterClient, error) {
+	return clusterix.Open(host, username, password, trace)
+}
+
 type cluster struct {
 	parent   *Clusters
 	source   core.SpotSource
 	bandmap  Bandmap
 	bandplan bandplan.Bandplan
 
-	client *clusterix.Client
+	client      clusterClient
+	openCluster openClusterFunc
 }
 
 func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan) *cluster {
@@ -165,6 +190,8 @@ func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandp
 		source:   source,
 		bandmap:  bandmap,
 		bandplan: bandplan,
+
+		openCluster: openClusterix,
 	}
 }
 
@@ -182,7 +209,7 @@ func (c *cluster) Enable() error {
 		return err
 	}
 
-	c.client, err = clusterix.Open(hostAddress, c.source.Username, c.source.Password, traceClusterix)
+	c.client, err = c.openCluster(hostAddress, c.source.Username, c.source.Password, traceClusterix)
 	if err != nil {
 		c.client = nil
 		return err
@@ -305,4 +332,100 @@ func toCoreBand(bandName bandplan.BandName) core.Band {
 		return core.NoBand
 	}
 	return core.Band(bandName)
+}
+
+func newDemoCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan) *cluster {
+	return &cluster{
+		parent:   parent,
+		source:   source,
+		bandmap:  bandmap,
+		bandplan: bandplan,
+
+		openCluster: openDemoCluster(bandmap),
+	}
+}
+
+func openDemoCluster(bandmap Bandmap) openClusterFunc {
+	return func(host *net.TCPAddr, username string, password string, trace bool) (clusterClient, error) {
+		result := &demoCluster{
+			connected: true,
+			bandmap:   bandmap,
+			spots: []core.Spot{
+				{
+					Call:      callsign.MustParse("W1WA"),
+					Frequency: 7012000,
+					Band:      core.Band40m,
+					Mode:      core.ModeCW,
+					Source:    core.ClusterSpot,
+				},
+				{
+					Call:      callsign.MustParse("DA0BCC"),
+					Frequency: 7013700,
+					Band:      core.Band40m,
+					Mode:      core.ModeCW,
+					Source:    core.RBNSpot,
+				},
+				{
+					Call:      callsign.MustParse("DA0HQ"),
+					Frequency: 7012300,
+					Band:      core.Band40m,
+					Mode:      core.ModeCW,
+					Source:    core.SkimmerSpot,
+				},
+				{
+					Call:      callsign.MustParse("G0ABC"),
+					Frequency: 7015000,
+					Band:      core.Band40m,
+					Mode:      core.ModeCW,
+					Source:    core.ManualSpot,
+				},
+				{
+					Call:      callsign.MustParse("PA0ABC"),
+					Frequency: 7019000,
+					Band:      core.Band40m,
+					Mode:      core.ModeCW,
+					Source:    core.WorkedSpot,
+				},
+			},
+		}
+		return result, nil
+	}
+}
+
+type demoCluster struct {
+	listeners []any
+	connected bool
+	bandmap   Bandmap
+	spots     []core.Spot
+}
+
+func (c *demoCluster) emitConnected() {
+	for _, l := range c.listeners {
+		if listener, ok := l.(clusterix.ConnectionListener); ok {
+			listener.Connected(c.connected)
+		}
+	}
+}
+
+func (c *demoCluster) emitDemoSpots() {
+	now := time.Now()
+	for i, spot := range c.spots {
+		spot.Time = now.Add(-1 * time.Duration(i) * time.Minute)
+		c.bandmap.Add(spot)
+	}
+}
+
+func (c *demoCluster) Connected() bool {
+	return c.connected
+}
+
+func (c *demoCluster) Notify(listener any) {
+	c.listeners = append(c.listeners, listener)
+	c.emitConnected()
+	c.emitDemoSpots()
+}
+
+func (c *demoCluster) Disconnect() {
+	c.connected = false
+	c.emitConnected()
 }

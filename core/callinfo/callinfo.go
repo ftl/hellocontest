@@ -153,7 +153,7 @@ func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mod
 	filteredExchange := c.exchangeFilter.FilterExchange(result.PredictedExchange)
 	result.ExchangeText = strings.Join(filteredExchange, " ")
 
-	result.Points, result.Multis, result.MultiValues = c.valuer.Value(call, entity, band, mode, exchange)
+	result.Points, result.Multis, result.MultiValues = c.valuer.Value(call, entity, band, mode, result.PredictedExchange)
 
 	return result
 }
@@ -198,7 +198,9 @@ func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mo
 	if !found {
 		return 0, 0, nil
 	}
-	return c.valuer.Value(call, entity, band, mode, exchange)
+	callinfo := c.GetInfo(call, band, mode, exchange)
+
+	return c.valuer.Value(call, entity, band, mode, callinfo.PredictedExchange)
 }
 
 func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {

@@ -193,7 +193,11 @@ func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, valueCount int) graphL
 	result.maxHeight = result.zeroY - result.marginY
 	result.pointsLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxPoints))*g.pointsBinGoal)
 	result.multisLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxMultis))*g.multisBinGoal)
-	result.binWidth = result.width / float64(valueCount)
+	if valueCount > 0 {
+		result.binWidth = result.width / float64(valueCount)
+	} else {
+		result.binWidth = result.width
+	}
 
 	return result
 }
@@ -211,7 +215,12 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 
 	cr.MoveTo(0, layout.zeroY)
 
-	valueScaling := layout.pointsLowZoneHeight / g.pointsBinGoal
+	var valueScaling float64
+	if g.pointsBinGoal > 0 {
+		valueScaling = layout.pointsLowZoneHeight / g.pointsBinGoal
+	} else {
+		valueScaling = 0
+	}
 	for i := 0; i < valueCount; i++ {
 		startX := float64(i) * layout.binWidth
 		endX := float64(i+1) * layout.binWidth
@@ -224,7 +233,11 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 		}
 	}
 
-	valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
+	if g.multisBinGoal > 0 {
+		valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
+	} else {
+		valueScaling = 0
+	}
 	for i := valueCount - 1; i >= 0; i-- {
 		startX := float64(i+1) * layout.binWidth
 		endX := float64(i) * layout.binWidth
@@ -248,7 +261,12 @@ func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout,
 
 	cr.MoveTo(0, layout.zeroY)
 
-	valueScaling := layout.pointsLowZoneHeight / g.pointsBinGoal
+	var valueScaling float64
+	if g.pointsBinGoal > 0 {
+		valueScaling = layout.pointsLowZoneHeight / g.pointsBinGoal
+	} else {
+		valueScaling = 0
+	}
 	lastY := layout.zeroY
 	for i := 0; i < valueCount; i++ {
 		startX := float64(i) * layout.binWidth
@@ -270,6 +288,11 @@ func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout,
 		lastY = y
 	}
 
+	if g.multisBinGoal > 0 {
+		valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
+	} else {
+		valueScaling = 0
+	}
 	valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
 	lastY = layout.zeroY
 	for i := valueCount - 1; i >= 0; i-- {

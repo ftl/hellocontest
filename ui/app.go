@@ -19,9 +19,9 @@ import (
 const AppID = "ft.hellocontest"
 
 // Run the application
-func Run(version string, args []string) {
+func Run(version string, sponsors string, args []string) {
 	var err error
-	app := &application{id: AppID, version: version}
+	app := &application{id: AppID, version: version, sponsors: sponsors}
 
 	gdk.SetAllowedBackends("x11")
 	gtk.WindowSetDefaultIconName("hellocontest")
@@ -38,8 +38,10 @@ func Run(version string, args []string) {
 }
 
 type application struct {
-	id               string
-	version          string
+	id       string
+	version  string
+	sponsors string
+
 	app              *gtk.Application
 	builder          *gtk.Builder
 	style            *style.Style
@@ -80,7 +82,7 @@ func (a *application) activate() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration)
+	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration, a.sponsors)
 	a.controller.Startup()
 
 	a.mainWindow = setupMainWindow(a.builder, a.app, a.setAcceptFocus)

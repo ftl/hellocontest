@@ -8,6 +8,7 @@ import (
 // MainMenuController provides the functionality for the main menu.
 type MainMenuController interface {
 	OpenWiki()
+	Sponsors()
 	About()
 	New()
 	Open()
@@ -77,8 +78,9 @@ type mainMenu struct {
 	windowSpots       *gtk.MenuItem
 	windowAcceptFocus *gtk.CheckMenuItem
 
-	helpWiki  *gtk.MenuItem
-	helpAbout *gtk.MenuItem
+	helpWiki     *gtk.MenuItem
+	helpSponsors *gtk.MenuItem
+	helpAbout    *gtk.MenuItem
 }
 
 func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMenu {
@@ -114,6 +116,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.windowSpots = getUI(builder, "menuWindowSpots").(*gtk.MenuItem)
 	result.windowAcceptFocus = getUI(builder, "menuWindowAcceptFocus").(*gtk.CheckMenuItem)
 	result.helpWiki = getUI(builder, "menuHelpWiki").(*gtk.MenuItem)
+	result.helpSponsors = getUI(builder, "menuHelpSponsors").(*gtk.MenuItem)
 	result.helpAbout = getUI(builder, "menuHelpAbout").(*gtk.MenuItem)
 
 	result.fileNew.Connect("activate", result.onNew)
@@ -145,6 +148,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.windowSpots.Connect("activate", result.onSpots)
 	result.windowAcceptFocus.Connect("activate", result.onAcceptFocus)
 	result.helpWiki.Connect("activate", result.onWiki)
+	result.helpSponsors.Connect("activate", result.onSponsors)
 	result.helpAbout.Connect("activate", result.onAbout)
 
 	return result
@@ -177,6 +181,10 @@ func (m *mainMenu) ContestPagesChanged(rulesAvailable bool, uploadAvailable bool
 
 func (m *mainMenu) onWiki() {
 	m.controller.OpenWiki()
+}
+
+func (m *mainMenu) onSponsors() {
+	m.controller.Sponsors()
 }
 
 func (m *mainMenu) onAbout() {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -36,13 +37,14 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(version string, clock core.Clock, quitter Quitter, asyncRunner core.AsyncRunner, configuration Configuration) *Controller {
+func NewController(version string, clock core.Clock, quitter Quitter, asyncRunner core.AsyncRunner, configuration Configuration, sponsors string) *Controller {
 	return &Controller{
 		version:       version,
 		clock:         clock,
 		quitter:       quitter,
 		asyncRunner:   asyncRunner,
 		configuration: configuration,
+		sponsors:      sponsors,
 	}
 }
 
@@ -55,6 +57,7 @@ type Controller struct {
 	clock         core.Clock
 	session       *session.Session
 	configuration Configuration
+	sponsors      string
 	quitter       Quitter
 	asyncRunner   core.AsyncRunner
 	store         *store.FileStore
@@ -108,6 +111,11 @@ type Configuration interface {
 type Quitter interface {
 	Quit()
 }
+
+const (
+	wikiURL     = "https://github.com/ftl/hellocontest/wiki"
+	sponsorsURL = "https://github.com/sponsors/ftl"
+)
 
 func (c *Controller) SetView(view View) {
 	c.view = view
@@ -309,11 +317,20 @@ func (c *Controller) Shutdown() {
 }
 
 func (c *Controller) OpenWiki() {
-	c.openWithExternalApplication("https://github.com/ftl/hellocontest/wiki")
+	c.openWithExternalApplication(wikiURL)
 }
 
 func (c *Controller) About() {
-	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\nThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version)
+	var sponsorText string
+	if strings.TrimSpace(c.sponsors) != "" {
+		sponsorText = fmt.Sprintf("sponsored by:\n%s\n\n", c.sponsors)
+	}
+
+	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\n%sThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version, sponsorText)
+}
+
+func (c *Controller) Sponsors() {
+	c.openWithExternalApplication(sponsorsURL)
 }
 
 func (c *Controller) OpenContestRulesPage() {

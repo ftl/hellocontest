@@ -1,6 +1,7 @@
 package main
 
 import (
+	// _ "net/http/pprof"
 	_ "embed"
 	"fmt"
 	"os"
@@ -24,6 +25,13 @@ func main() {
 			os.Exit(0)
 		}
 	}
+
+	// to activate the pprof endpoint at http://localhost:6060/debug/pprof
+	// - add import _ "net/http/pprof"
+	// - uncomment this piece of code
+	// go func() {
+	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
+	// }()
 
 	ui.Run(version, sponsors, os.Args)
 }

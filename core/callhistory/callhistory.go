@@ -29,6 +29,7 @@ func New(settings core.Settings, callback AvailabilityCallback) *Finder {
 	}
 
 	result.database = loadCallHistory(result.filename)
+	result.cache = make(map[string][]scp.Match)
 	result.callback(core.CallHistoryService, result.Available())
 	if result.Available() {
 		log.Printf("Using call history from %s", result.filename)
@@ -39,6 +40,7 @@ func New(settings core.Settings, callback AvailabilityCallback) *Finder {
 
 type Finder struct {
 	database *scp.Database
+	cache    map[string][]scp.Match
 	callback AvailabilityCallback
 
 	filename   string
@@ -60,6 +62,7 @@ func (f *Finder) ContestChanged(contest core.Contest) {
 	f.fieldNames = contest.CallHistoryFieldNames
 
 	f.database = loadCallHistory(f.filename)
+	f.cache = make(map[string][]scp.Match)
 	f.callback(core.CallHistoryService, f.Available())
 	if f.Available() {
 		log.Printf("Using call history from %s", f.filename)
@@ -77,7 +80,7 @@ func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 	}
 	searchString := searchCallsign.String()
 
-	entries, err := f.database.Find(searchString)
+	entries, err := f.findInDatabase(searchString)
 	if err != nil {
 		log.Print(err)
 		return core.AnnotatedCallsign{}, false
@@ -106,7 +109,7 @@ func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 		return nil, fmt.Errorf("the call history is currently not available")
 	}
 
-	matches, err := f.database.Find(s)
+	matches, err := f.findInDatabase(s)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +129,20 @@ func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 	}
 
 	return result, nil
+}
+
+func (f *Finder) findInDatabase(s string) ([]scp.Match, error) {
+	cached, hit := f.cache[s]
+	if hit {
+		return cached, nil
+	}
+
+	matches, err := f.database.Find(s)
+	if err != nil {
+		return nil, err
+	}
+	f.cache[s] = matches
+	return matches, nil
 }
 
 func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {

@@ -35,10 +35,10 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 	v.table.AppendColumn(createSpotMarkupColumn("Frequency", spotColumnFrequency))
 	v.table.AppendColumn(createSpotTextColumn("Callsign", spotColumnCallsign))
 	v.table.AppendColumn(createSpotTextColumn("Exchange", spotColumnPredictedExchange))
-	v.table.AppendColumn(createSpotTextColumn("Pts", spotColumnPoints))
-	v.table.AppendColumn(createSpotTextColumn("Mult", spotColumnMultis))
+	v.table.AppendColumn(createSpotMarkupColumn("Pts", spotColumnPoints))
+	v.table.AppendColumn(createSpotMarkupColumn("Mult", spotColumnMultis))
 	v.table.AppendColumn(createSpotTextColumn("Spots", spotColumnSpotCount))
-	v.table.AppendColumn(createSpotTextColumn("Age", spotColumnAge))
+	v.table.AppendColumn(createSpotMarkupColumn("Age", spotColumnAge))
 	v.table.AppendColumn(createSpotTextColumn("DXCC", spotColumnDXCC))
 
 	v.tableContent = createSpotListStore(spotColumnCount)
@@ -141,8 +141,8 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
 			entry.Call.String(),
 			entry.Info.ExchangeText,
-			pointsToString(entry.Info.Points, entry.Info.Duplicate),
-			pointsToString(entry.Info.Multis, entry.Info.Duplicate),
+			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
+			formatPoints(entry.Info.Multis, entry.Info.Duplicate, 0),
 			fmt.Sprintf("%d", entry.SpotCount),
 			formatSpotAge(entry.LastHeard),
 			v.getDXCCInformation(entry),
@@ -162,10 +162,18 @@ func formatSpotFrequency(frequency core.Frequency, proximity float64, onFrequenc
 	return result
 }
 
+func formatPoints(value int, duplicate bool, threshold int) string {
+	result := pointsToString(value, duplicate)
+	if value > threshold && !duplicate {
+		return fmt.Sprintf("<b>%s</b>", result)
+	}
+	return result
+}
+
 func formatSpotAge(lastHeard time.Time) string {
 	result := time.Since(lastHeard).Truncate(time.Minute).String()
 	if result == "0s" {
-		return "< 1m"
+		return "<b>&lt; 1m</b>"
 	}
 	if strings.HasSuffix(result, "m0s") {
 		result = result[:len(result)-2]

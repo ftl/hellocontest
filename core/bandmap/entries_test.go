@@ -358,7 +358,7 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 	assert.Equal(t, 3, entries.entries[0].Len())
 	assert.Equal(t, now.Add(-10*time.Minute), entries.entries[0].LastHeard)
 
-	entries.CleanOut(30*time.Minute, now)
+	entries.CleanOut(30*time.Minute, now, defaultWeights)
 
 	assert.Equal(t, 1, entries.Len())
 	assert.Equal(t, "DL1ABC", entries.entries[0].Call.String())
@@ -378,7 +378,7 @@ func TestEntries_Notify(t *testing.T) {
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)})
 	assert.Equal(t, "DL1ABC", listener.updated[0].Call.String())
 
-	entries.CleanOut(30*time.Minute, now)
+	entries.CleanOut(30*time.Minute, now, defaultWeights)
 	assert.Equal(t, "DL1ABC", listener.removed[0].Call.String())
 }
 

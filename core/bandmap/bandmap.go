@@ -36,6 +36,14 @@ type Callinfo interface {
 	GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int, map[conval.Property]string)
 }
 
+var defaultWeights = core.BandmapWeights{
+	TotalPoints: 1,
+	TotalMultis: 1,
+	AgeSeconds:  -0.01,
+	Spots:       0,
+	Source:      0,
+}
+
 type Bandmap struct {
 	entries *Entries
 
@@ -51,6 +59,7 @@ type Bandmap struct {
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
+	weights      core.BandmapWeights
 
 	spots  chan core.Spot
 	do     chan func()
@@ -69,6 +78,7 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 
 		updatePeriod: updatePeriod,
 		maximumAge:   maximumAge,
+		weights:      defaultWeights,
 
 		spots:  make(chan core.Spot),
 		do:     make(chan func()),
@@ -99,7 +109,7 @@ func (m *Bandmap) run() {
 }
 
 func (m *Bandmap) update() {
-	m.entries.CleanOut(m.maximumAge, m.clock.Now())
+	m.entries.CleanOut(m.maximumAge, m.clock.Now(), m.weights)
 
 	nearestEntry, nearestEntryFound := m.nextVisibleEntry(m.activeFrequency, func(entry core.BandmapEntry) bool {
 		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot

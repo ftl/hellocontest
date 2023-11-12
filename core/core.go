@@ -868,11 +868,12 @@ type Callinfo struct {
 	PredictedExchange []string
 	ExchangeText      string
 
-	Worked      bool // already worked on another band/mode, but does not count as duplicate
-	Duplicate   bool // counts as duplicate
-	Points      int
-	Multis      int
-	MultiValues map[conval.Property]string
+	Worked        bool // already worked on another band/mode, but does not count as duplicate
+	Duplicate     bool // counts as duplicate
+	Points        int
+	Multis        int
+	MultiValues   map[conval.Property]string
+	WeightedValue float64
 }
 
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
@@ -921,6 +922,14 @@ func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
 		deltaB := math.Abs(float64(b.Frequency - referenceFrequency))
 		return deltaA < deltaB
 	}
+}
+
+type BandmapWeights struct {
+	TotalPoints float64
+	TotalMultis float64
+	AgeSeconds  float64
+	Spots       float64
+	Source      float64
 }
 
 type VFO interface {

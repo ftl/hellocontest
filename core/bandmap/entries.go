@@ -274,16 +274,17 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 	return left
 }
 
-func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time) {
+func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core.BandmapWeights) {
 	l.cleanOutOldEntries(maximumAge, now)
 	l.cleanOutFalseEntries()
 
 	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
 		e.Index = i
-		oldPoints, oldMultis := e.Info.Points, e.Info.Multis
+		oldPoints, oldMultis, oldWeightedValue := e.Info.Points, e.Info.Multis, e.Info.WeightedValue
 		e.Info.Points, e.Info.Multis, e.Info.MultiValues = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
-		updated := e.updated || (oldPoints != e.Info.Points) || (oldMultis != e.Info.Multis)
+		e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
+		updated := e.updated || (oldPoints != e.Info.Points) || (oldMultis != e.Info.Multis) || (oldWeightedValue != e.Info.WeightedValue)
 		e.updated = false
 		l.entries[i] = e
 
@@ -364,6 +365,19 @@ func (l *Entries) cleanOutFalseEntries() {
 		l.emitEntryRemoved(e)
 		log.Printf("false entry %s on %.2f kHz removed", e.Call, e.Frequency)
 	}
+}
+
+func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {
+	points := float64(entry.Info.Points)
+	multis := float64(entry.Info.Multis)
+	value := (points * weights.TotalMultis) + (multis * weights.TotalPoints) + (points * multis)
+
+	ageSeconds := now.Sub(entry.LastHeard).Seconds()
+	spots := float64(entry.SpotCount)
+	sourcePriority := float64(entry.Source.Priority())
+	weight := 1 + (ageSeconds * weights.AgeSeconds) + (spots * weights.Spots) + (sourcePriority * weights.Source)
+
+	return value * weight
 }
 
 func (l *Entries) addToSummary(entry *Entry) {

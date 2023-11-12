@@ -33,6 +33,7 @@ type MainMenuController interface {
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
 	MarkInBandmap()
+	GotoHighestValueSpot()
 	GotoNearestSpot()
 	GotoNextSpotUp()
 	GotoNextSpotDown()
@@ -66,11 +67,12 @@ type mainMenu struct {
 	editSP               *gtk.RadioMenuItem
 	editRun              *gtk.RadioMenuItem
 
-	bandmapMark             *gtk.MenuItem
-	bandmapGotoNearestSpot  *gtk.MenuItem
-	bandmapGotoNextSpotUp   *gtk.MenuItem
-	bandmapGotoNextSpotDown *gtk.MenuItem
-	bandmapSendSpotsToTci   *gtk.CheckMenuItem
+	bandmapMark                 *gtk.MenuItem
+	bandmapGotoHighestValueSpot *gtk.MenuItem
+	bandmapGotoNearestSpot      *gtk.MenuItem
+	bandmapGotoNextSpotUp       *gtk.MenuItem
+	bandmapGotoNextSpotDown     *gtk.MenuItem
+	bandmapSendSpotsToTci       *gtk.CheckMenuItem
 
 	windowCallinfo    *gtk.MenuItem
 	windowScore       *gtk.MenuItem
@@ -106,6 +108,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
 	result.bandmapMark = getUI(builder, "menuBandmapMark").(*gtk.MenuItem)
+	result.bandmapGotoHighestValueSpot = getUI(builder, "menuBandmapGotoHighestValueSpot").(*gtk.MenuItem)
 	result.bandmapGotoNearestSpot = getUI(builder, "menuBandmapGotoNearestSpot").(*gtk.MenuItem)
 	result.bandmapGotoNextSpotUp = getUI(builder, "menuBandmapGotoNextSpotUp").(*gtk.MenuItem)
 	result.bandmapGotoNextSpotDown = getUI(builder, "menuBandmapGotoNextSpotDown").(*gtk.MenuItem)
@@ -138,6 +141,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
 	result.bandmapMark.Connect("activate", result.onMarkInBandmap)
+	result.bandmapGotoHighestValueSpot.Connect("activate", result.onGotoHighestValueSpot)
 	result.bandmapGotoNearestSpot.Connect("activate", result.onGotoNearestSpot)
 	result.bandmapGotoNextSpotUp.Connect("activate", result.onGotoNextSpotUp)
 	result.bandmapGotoNextSpotDown.Connect("activate", result.onGotoNextSpotDown)
@@ -269,6 +273,10 @@ func (m *mainMenu) onRun() {
 
 func (m *mainMenu) onMarkInBandmap() {
 	m.controller.MarkInBandmap()
+}
+
+func (m *mainMenu) onGotoHighestValueSpot() {
+	m.controller.GotoHighestValueSpot()
 }
 
 func (m *mainMenu) onGotoNearestSpot() {

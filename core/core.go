@@ -924,6 +924,10 @@ func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
 	}
 }
 
+func BandmapByDescendingValue(a, b BandmapEntry) bool {
+	return a.Info.WeightedValue > b.Info.WeightedValue
+}
+
 type BandmapWeights struct {
 	TotalPoints float64
 	TotalMultis float64

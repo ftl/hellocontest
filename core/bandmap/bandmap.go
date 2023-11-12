@@ -39,7 +39,7 @@ type Callinfo interface {
 var defaultWeights = core.BandmapWeights{
 	TotalPoints: 1,
 	TotalMultis: 1,
-	AgeSeconds:  -0.01,
+	AgeSeconds:  -0.001,
 	Spots:       0,
 	Source:      0,
 }
@@ -318,6 +318,12 @@ func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
 	return <-result
 }
 
+func (m *Bandmap) GotoHighestValueEntry() {
+	m.findAndSelectNextVisibleEntryBy(core.BandmapByDescendingValue, func(entry core.BandmapEntry) bool {
+		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
+	})
+}
+
 func (m *Bandmap) GotoNearestEntry() {
 	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
 		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
@@ -345,8 +351,21 @@ func (m *Bandmap) findAndSelectNextVisibleEntry(f func(entry core.BandmapEntry) 
 	}
 }
 
+func (m *Bandmap) findAndSelectNextVisibleEntryBy(order core.BandmapOrder, f func(entry core.BandmapEntry) bool) {
+	m.do <- func() {
+		entry, found := m.nextVisibleEntryBy(order, f)
+		if found {
+			m.entries.Select(entry.Index)
+		}
+	}
+}
+
 func (m *Bandmap) nextVisibleEntry(frequency core.Frequency, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
-	entries := m.entries.AllBy(core.BandmapByDistance(frequency))
+	return m.nextVisibleEntryBy(core.BandmapByDistance(frequency), f)
+}
+
+func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
+	entries := m.entries.AllBy(order)
 	for i := 0; i < len(entries); i++ {
 		entry := entries[i]
 		if !m.entryVisible(entry) {

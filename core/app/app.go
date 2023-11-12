@@ -675,6 +675,10 @@ func (c *Controller) MarkInBandmap() {
 	c.Entry.MarkInBandmap()
 }
 
+func (c *Controller) GotoHighestValueSpot() {
+	c.Bandmap.GotoHighestValueEntry()
+}
+
 func (c *Controller) GotoNearestSpot() {
 	c.Bandmap.GotoNearestEntry()
 }

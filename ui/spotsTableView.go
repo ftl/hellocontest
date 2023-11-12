@@ -21,6 +21,7 @@ const (
 	spotColumnMultis
 	spotColumnSpotCount
 	spotColumnAge
+	spotColumnWeightedValue
 	spotColumnDXCC
 
 	spotColumnForeground
@@ -39,6 +40,7 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 	v.table.AppendColumn(createSpotMarkupColumn("Mult", spotColumnMultis))
 	v.table.AppendColumn(createSpotTextColumn("Spots", spotColumnSpotCount))
 	v.table.AppendColumn(createSpotMarkupColumn("Age", spotColumnAge))
+	v.table.AppendColumn(createSpotMarkupColumn("Value", spotColumnWeightedValue))
 	v.table.AppendColumn(createSpotTextColumn("DXCC", spotColumnDXCC))
 
 	v.tableContent = createSpotListStore(spotColumnCount)
@@ -133,6 +135,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			spotColumnMultis,
 			spotColumnSpotCount,
 			spotColumnAge,
+			spotColumnWeightedValue,
 			spotColumnDXCC,
 			spotColumnForeground,
 			spotColumnBackground,
@@ -145,6 +148,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			formatPoints(entry.Info.Multis, entry.Info.Duplicate, 0),
 			fmt.Sprintf("%d", entry.SpotCount),
 			formatSpotAge(entry.LastHeard),
+			fmt.Sprintf("%.1f", entry.Info.WeightedValue),
 			v.getDXCCInformation(entry),
 			foregroundColor.ToWeb(),
 			backgroundColor.ToWeb(),
@@ -193,7 +197,7 @@ func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, backgrou
 	return foreground, background
 }
 
-func (v *spotsView) updateFrequencyLabelAndAge(entry core.BandmapEntry) error {
+func (v *spotsView) updateHighlightedColumns(entry core.BandmapEntry) error {
 	row := v.tableRowByIndex(entry.Index)
 	if row == nil {
 		return fmt.Errorf("cannot reset frequency label for row with index %d", entry.Index)
@@ -203,10 +207,12 @@ func (v *spotsView) updateFrequencyLabelAndAge(entry core.BandmapEntry) error {
 		[]int{
 			spotColumnFrequency,
 			spotColumnAge,
+			spotColumnWeightedValue,
 		},
 		[]any{
 			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
 			formatSpotAge(entry.LastHeard),
+			fmt.Sprintf("%.1f", entry.Info.WeightedValue),
 		},
 	)
 }

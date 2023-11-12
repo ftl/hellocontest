@@ -93,7 +93,7 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 			v.refreshTable()
 		}
 		for _, entry := range v.currentFrame.Entries {
-			v.updateFrequencyLabelAndAge(entry)
+			v.updateHighlightedColumns(entry)
 		}
 		if (bandChanged || frequencyChanged) && v.currentFrame.RevealNearestEntry {
 			v.revealTableEntry(v.currentFrame.NearestEntry)

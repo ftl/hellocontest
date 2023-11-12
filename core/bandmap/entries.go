@@ -368,6 +368,10 @@ func (l *Entries) cleanOutFalseEntries() {
 }
 
 func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {
+	if entry.Source == core.WorkedSpot {
+		return 0
+	}
+
 	points := float64(entry.Info.Points)
 	multis := float64(entry.Info.Multis)
 	value := (points * weights.TotalMultis) + (multis * weights.TotalPoints) + (points * multis)

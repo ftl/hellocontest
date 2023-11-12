@@ -180,6 +180,15 @@ func (m *Bandmap) ContestChanged(contest core.Contest) {
 	}
 }
 
+func (m *Bandmap) ScoreUpdated(score core.Score) {
+	m.do <- func() {
+		totalScore := score.Result()
+		m.weights.TotalPoints = float64(totalScore.Points)
+		m.weights.TotalMultis = float64(totalScore.Multis)
+		m.update()
+	}
+}
+
 func (m *Bandmap) VFOFrequencyChanged(frequency core.Frequency) {
 	m.do <- func() {
 		m.activeFrequency = frequency

@@ -159,6 +159,7 @@ func (c *Controller) Startup() {
 	c.Entry.Notify(c.Bandmap)
 	c.Bandmap.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
+	c.Score.Notify(c.Bandmap)
 
 	c.Workmode = workmode.NewController()
 	c.Workmode.Notify(c.Entry)

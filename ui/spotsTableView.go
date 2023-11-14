@@ -272,7 +272,6 @@ func (v *spotsView) updateTableEntry(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) removeTableEntry(entry core.BandmapEntry) {
-	v.clearTableSelection()
 
 	row := v.tableRowByIndex(entry.Index)
 	if row == nil {
@@ -284,7 +283,7 @@ func (v *spotsView) removeTableEntry(entry core.BandmapEntry) {
 
 func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
 	if !v.controller.EntryVisible(entry.Index) {
-		log.Printf("invisible entry not selected")
+		log.Printf("invisible entry #%d %s on %s not selected", entry.Index, entry.Call, entry.Band)
 		return
 	}
 
@@ -303,8 +302,6 @@ func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
 
 	column := v.table.GetColumn(1)
 	v.table.ScrollToCell(filteredPath, column, false, 0, 0)
-
-	v.clearTableSelection()
 }
 
 func (v *spotsView) refreshTable() {
@@ -315,14 +312,7 @@ func (v *spotsView) refreshTable() {
 		}()
 	}
 
-	v.clearTableSelection()
-
 	v.tableFilter.Refilter()
-}
-
-func (v *spotsView) clearTableSelection() {
-	selection, _ := v.table.GetSelection()
-	selection.UnselectAll()
 }
 
 func (v *spotsView) tableRowByIndex(index int) *gtk.TreeIter {
@@ -335,17 +325,18 @@ func (v *spotsView) tableRowByIndex(index int) *gtk.TreeIter {
 }
 
 func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
+	index, selected := v.getSelectedIndex(selection)
+	if !selected {
+		return true
+	}
+	selection.UnselectAll()
+
 	if v.ignoreSelection {
 		log.Printf("table selection change ignored")
 		return true
 	}
 
 	if v.controller == nil {
-		return true
-	}
-
-	index, selected := v.getSelectedIndex(selection)
-	if !selected {
 		return true
 	}
 

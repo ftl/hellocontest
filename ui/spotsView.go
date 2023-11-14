@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -257,7 +258,9 @@ func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
+	log.Printf("spotsView.EntrySelected incoming: #%d %s on %s", entry.Index, entry.Call, entry.Band)
 	runAsync(func() {
+		log.Printf("spotsView.EntrySelected handled: %t #%d %s on %s", v.ignoreSelection, entry.Index, entry.Call, entry.Band)
 		if !v.ignoreSelection {
 			v.ignoreSelection = true
 			defer func() {

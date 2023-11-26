@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultUpdatePeriod: the bandmap is updated with this period
-	DefaultUpdatePeriod time.Duration = 250 * time.Millisecond
+	DefaultUpdatePeriod time.Duration = 1 * time.Second
 	// DefaultMaximumAge of entries in the bandmap
 	// entries that were not seen within this period are removed from the bandmap
 	DefaultMaximumAge time.Duration = 10 * time.Minute

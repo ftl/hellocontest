@@ -221,10 +221,11 @@ func (l *Entries) Len() int {
 	return len(l.entries)
 }
 
-func (l *Entries) Add(spot core.Spot) {
+func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights) {
 	for _, e := range l.entries {
 		if e.Add(spot) {
 			e.Info = l.callinfo.GetInfo(spot.Call, spot.Band, spot.Mode, []string{})
+			e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
 			l.emitEntryUpdated(*e)
 			return
 		}
@@ -233,6 +234,7 @@ func (l *Entries) Add(spot core.Spot) {
 	newEntry := NewEntry(spot)
 	if newEntry.Call.String() != "" {
 		newEntry.Info = l.callinfo.GetInfo(newEntry.Call, newEntry.Band, newEntry.Mode, []string{})
+		newEntry.Info.WeightedValue = l.calculateWeightedValue(&newEntry, now, weights)
 	}
 	l.insert(&newEntry)
 	l.emitEntryAdded(newEntry)

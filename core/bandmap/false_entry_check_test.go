@@ -151,7 +151,7 @@ func TestEntries_cleanoutFalseEntries(t *testing.T) {
 					Source:    core.ClusterSpot,
 					Time:      now,
 				}
-				entries.Add(spot)
+				entries.Add(spot, time.Now(), defaultWeights)
 			}
 		}
 		for _, entry := range entries.entries {

@@ -162,7 +162,7 @@ func TestEntries_AddNewEntry(t *testing.T) {
 	entries := NewEntries(countAllEntries)
 	assert.Equal(t, 0, entries.Len())
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now}, now, defaultWeights)
 
 	assert.Equal(t, 1, entries.Len())
 
@@ -348,10 +348,10 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 	now := time.Now()
 	entries := NewEntries(countAllEntries)
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)})
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)})
-	entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535500, Time: now.Add(-10 * time.Hour)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535500, Time: now.Add(-10 * time.Hour)}, now, defaultWeights)
 
 	assert.Equal(t, 2, entries.Len())
 	assert.Equal(t, "DL1ABC", entries.entries[0].Call.String())
@@ -372,10 +372,10 @@ func TestEntries_Notify(t *testing.T) {
 	listener := new(testEntryListener)
 	entries.Notify(listener)
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
 	assert.Equal(t, "DL1ABC", listener.added[0].Call.String())
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)})
+	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)}, now, defaultWeights)
 	assert.Equal(t, "DL1ABC", listener.updated[0].Call.String())
 
 	entries.CleanOut(30*time.Minute, now, defaultWeights)

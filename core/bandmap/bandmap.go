@@ -40,7 +40,7 @@ var defaultWeights = core.BandmapWeights{
 	TotalPoints: 1,
 	TotalMultis: 1,
 	AgeSeconds:  -0.001,
-	Spots:       0,
+	Spots:       0.001,
 	Source:      0,
 }
 
@@ -94,12 +94,13 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 
 func (m *Bandmap) run() {
 	updateTicker := time.NewTicker(m.updatePeriod)
+	defer updateTicker.Stop()
 	for {
 		select {
 		case <-m.closed:
 			return
 		case spot := <-m.spots:
-			m.entries.Add(spot)
+			m.entries.Add(spot, m.clock.Now(), m.weights)
 		case command := <-m.do:
 			command()
 		case <-updateTicker.C:

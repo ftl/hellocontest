@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -48,11 +47,11 @@ type spotsView struct {
 	tableContent *gtk.ListStore
 	tableFilter  *gtk.TreeModelFilter
 
-	bands             []core.BandSummary
-	bandsID           string
-	currentFrame      core.BandmapFrame
-	initialFrameShown bool
-	ignoreSelection   bool
+	bands                []core.BandSummary
+	bandsID              string
+	currentFrame         core.BandmapFrame
+	initialFrameShown    bool
+	tableSelectionActive bool
 }
 
 func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller SpotsController) *spotsView {
@@ -248,26 +247,12 @@ func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
 
 func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
 	runAsync(func() {
-		v.ignoreSelection = true
-		defer func() {
-			v.ignoreSelection = false
-		}()
-
 		v.removeTableEntry(entry)
 	})
 }
 
 func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
-	log.Printf("spotsView.EntrySelected incoming: #%d %s on %s", entry.Index, entry.Call, entry.Band)
 	runAsync(func() {
-		log.Printf("spotsView.EntrySelected handled: %t #%d %s on %s", v.ignoreSelection, entry.Index, entry.Call, entry.Band)
-		if !v.ignoreSelection {
-			v.ignoreSelection = true
-			defer func() {
-				v.ignoreSelection = false
-			}()
-		}
-
 		v.revealTableEntry(entry)
 	})
 }

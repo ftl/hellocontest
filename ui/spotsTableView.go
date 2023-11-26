@@ -9,6 +9,7 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/ui/style"
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
@@ -32,6 +33,7 @@ const (
 
 func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsController) {
 	v.table = getUI(builder, "entryTable").(*gtk.TreeView)
+	v.table.Connect("button-press-event", v.activateTableSelection)
 
 	v.table.AppendColumn(createSpotMarkupColumn("Frequency", spotColumnFrequency))
 	v.table.AppendColumn(createSpotTextColumn("Callsign", spotColumnCallsign))
@@ -56,11 +58,13 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 	v.tableFilter = filter
 	v.table.SetModel(v.tableFilter)
 
+	v.tableSelectionActive = false
 	selection, err := v.table.GetSelection()
 	if err != nil {
 		log.Printf("no tree selection: %v", err)
 		return
 	}
+	selection.SetMode(gtk.SELECTION_NONE)
 	selection.Connect("changed", v.onTableSelectionChanged)
 }
 
@@ -305,13 +309,6 @@ func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) refreshTable() {
-	if !v.ignoreSelection {
-		v.ignoreSelection = true
-		defer func() {
-			v.ignoreSelection = false
-		}()
-	}
-
 	v.tableFilter.Refilter()
 }
 
@@ -324,15 +321,31 @@ func (v *spotsView) tableRowByIndex(index int) *gtk.TreeIter {
 	return result
 }
 
+func (v *spotsView) activateTableSelection(_ *gtk.TreeView, event *gdk.Event) {
+	buttonEvent := gdk.EventButtonNewFromEvent(event)
+	if buttonEvent.Button() != gdk.BUTTON_PRIMARY {
+		return
+	}
+
+	if buttonEvent.Type() == gdk.EVENT_BUTTON_PRESS {
+		v.tableSelectionActive = true
+		selection, _ := v.table.GetSelection()
+		selection.SetMode(gtk.SELECTION_SINGLE)
+	}
+}
+
 func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
 	index, selected := v.getSelectedIndex(selection)
-	if !selected {
+
+	if !v.tableSelectionActive {
+		log.Printf("table selection change ignored")
 		return true
 	}
+	v.tableSelectionActive = false
 	selection.UnselectAll()
+	selection.SetMode(gtk.SELECTION_NONE)
 
-	if v.ignoreSelection {
-		log.Printf("table selection change ignored")
+	if !selected {
 		return true
 	}
 

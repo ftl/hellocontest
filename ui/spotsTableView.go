@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/ui/style"
 	"github.com/gotk3/gotk3/gdk"
@@ -36,7 +37,7 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 	v.table.Connect("button-press-event", v.activateTableSelection)
 
 	v.table.AppendColumn(createSpotMarkupColumn("Frequency", spotColumnFrequency))
-	v.table.AppendColumn(createSpotTextColumn("Callsign", spotColumnCallsign))
+	v.table.AppendColumn(createSpotMarkupColumn("Callsign", spotColumnCallsign))
 	v.table.AppendColumn(createSpotTextColumn("Exchange", spotColumnPredictedExchange))
 	v.table.AppendColumn(createSpotMarkupColumn("Pts", spotColumnPoints))
 	v.table.AppendColumn(createSpotMarkupColumn("Mult", spotColumnMultis))
@@ -146,7 +147,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 		},
 		[]any{
 			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
-			entry.Call.String(),
+			formatSpotCall(entry.Call, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
 			entry.Info.ExchangeText,
 			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
 			formatPoints(entry.Info.Multis, entry.Info.Duplicate, 0),
@@ -163,6 +164,16 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 func formatSpotFrequency(frequency core.Frequency, proximity float64, onFrequency bool) string {
 	size := 100 + math.Abs(proximity)*30
 	result := fmt.Sprintf("<span size=\"%.0f%%\">%.2f kHz</span>", size, frequency/1000)
+	if onFrequency {
+		return fmt.Sprintf("<b>%s</b>", result)
+	}
+
+	return result
+}
+
+func formatSpotCall(call callsign.Callsign, proximity float64, onFrequency bool) string {
+	size := 100 + math.Abs(proximity)*30
+	result := fmt.Sprintf("<span size=\"%.0f%%\">%s</span>", size, call)
 	if onFrequency {
 		return fmt.Sprintf("<b>%s</b>", result)
 	}

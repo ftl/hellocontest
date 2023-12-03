@@ -46,7 +46,7 @@ type Clusters struct {
 	myContinent string
 }
 
-func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, entities DXCCFinder) *Clusters {
+func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, entities DXCCFinder, clock core.Clock) *Clusters {
 	result := &Clusters{
 		clusters: make([]*cluster, 0, len(sources)),
 		bandmap:  bandmap,
@@ -57,9 +57,9 @@ func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.B
 	for _, spotSource := range sources {
 		var cluster *cluster
 		if isDemoSource(spotSource.Name) {
-			cluster = newDemoCluster(result, spotSource, bandmap, bandplan)
+			cluster = newDemoCluster(result, spotSource, bandmap, bandplan, clock)
 		} else {
-			cluster = newCluster(result, spotSource, bandmap, bandplan)
+			cluster = newCluster(result, spotSource, bandmap, bandplan, clock)
 		}
 		result.clusters = append(result.clusters, cluster)
 	}
@@ -179,17 +179,19 @@ type cluster struct {
 	source   core.SpotSource
 	bandmap  Bandmap
 	bandplan bandplan.Bandplan
+	clock    core.Clock
 
 	client      clusterClient
 	openCluster openClusterFunc
 }
 
-func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan) *cluster {
+func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock) *cluster {
 	return &cluster{
 		parent:   parent,
 		source:   source,
 		bandmap:  bandmap,
 		bandplan: bandplan,
+		clock:    clock,
 
 		openCluster: openClusterix,
 	}
@@ -249,6 +251,9 @@ func (c *cluster) DX(msg clusterix.DXMessage) {
 		Mode:      c.inferCoreMode(msg),
 		Time:      msg.Time,
 		Source:    c.source.Type,
+	}
+	if c.source.IgnoreTimestamp {
+		spot.Time = c.clock.Now()
 	}
 	c.bandmap.Add(spot)
 }
@@ -334,12 +339,13 @@ func toCoreBand(bandName bandplan.BandName) core.Band {
 	return core.Band(bandName)
 }
 
-func newDemoCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan) *cluster {
+func newDemoCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock) *cluster {
 	return &cluster{
 		parent:   parent,
 		source:   source,
 		bandmap:  bandmap,
 		bandplan: bandplan,
+		clock:    clock,
 
 		openCluster: openDemoCluster(bandmap),
 	}

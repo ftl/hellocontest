@@ -148,7 +148,7 @@ func (c *Controller) Startup() {
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
 	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
-	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder)
+	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
 	c.Entry = entry.NewController(
 		c.Settings,
 		c.clock,

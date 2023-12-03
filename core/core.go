@@ -781,12 +781,13 @@ const (
 )
 
 type SpotSource struct {
-	Name        string     `json:"name"`
-	Type        SpotType   `json:"type"`
-	HostAddress string     `json:"host_address"`
-	Username    string     `json:"username"`
-	Password    string     `json:"password,omitempty"`
-	Filter      SpotFilter `json:"filter,omitempty"`
+	Name            string     `json:"name"`
+	Type            SpotType   `json:"type"`
+	HostAddress     string     `json:"host_address"`
+	Username        string     `json:"username"`
+	Password        string     `json:"password,omitempty"`
+	Filter          SpotFilter `json:"filter,omitempty"`
+	IgnoreTimestamp bool       `json:"ignore_timestamp,omitempty"`
 }
 
 type Spot struct {

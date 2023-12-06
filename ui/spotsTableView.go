@@ -221,11 +221,13 @@ func (v *spotsView) updateHighlightedColumns(entry core.BandmapEntry) error {
 	return v.tableContent.Set(row,
 		[]int{
 			spotColumnFrequency,
+			spotColumnCallsign,
 			spotColumnAge,
 			spotColumnWeightedValue,
 		},
 		[]any{
 			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
+			formatSpotCall(entry.Call, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
 			formatSpotAge(entry.LastHeard),
 			fmt.Sprintf("%.1f", entry.Info.WeightedValue),
 		},

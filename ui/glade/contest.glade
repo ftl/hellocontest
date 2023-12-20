@@ -246,7 +246,7 @@ THE SOFTWARE.
               <object class="GtkComboBoxText" id="newContestIdentifierCombo">
                 <property name="name">contestIdentifier</property>
                 <property name="visible">True</property>
-                <property name="can-focus">False</property>
+                <property name="can-focus">True</property>
                 <property name="hexpand">True</property>
               </object>
               <packing>

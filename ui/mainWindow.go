@@ -74,6 +74,7 @@ func (w *mainWindow) SelectOpenFile(title string, dir string, patterns ...string
 
 	log.Printf("OPEN FILE in %s", dir)
 
+	dlg.SetTransientFor(nil)
 	dlg.SetCurrentFolder(dir)
 
 	if len(patterns) > 0 {
@@ -104,6 +105,7 @@ func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, p
 
 	log.Printf("SAVE FILE in %s", dir)
 
+	dlg.SetTransientFor(nil)
 	dlg.SetDoOverwriteConfirmation(true)
 	dlg.SetCurrentFolder(dir)
 	dlg.SetCurrentName(filename)
@@ -130,11 +132,13 @@ func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, p
 func (w *mainWindow) ShowInfoDialog(format string, a ...any) {
 	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()
+	dlg.SetTransientFor(nil)
 	dlg.Run()
 }
 
 func (w *mainWindow) ShowErrorDialog(format string, a ...any) {
 	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()
+	dlg.SetTransientFor(nil)
 	dlg.Run()
 }

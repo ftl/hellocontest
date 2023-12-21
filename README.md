@@ -16,6 +16,10 @@ A simple HF contest log for Linux, written in Go using [gotk3](https://github.co
 
 ![main raw](https://github.com/ftl/hellocontest/assets/340928/b8849fdd-c6f4-4550-802e-1c89c10de1d6)
 
+## Known Issues
+
+In combination with wayland, the "new contest" dialog does not work properly *sometimes*: you cannot select anything and the entry field for the contest name does not respond to any input. I found no hint so far, what the causes this behavior. If you have problems running Hello Contest in combination with wayland, please switch to X11. If you have any hints, what could be the cause of this behavior, please don't hesitate to contact me.
+
 ## Install
 See also the [installation](https://github.com/ftl/hellocontest/wiki/Installation) wiki page for more details.
 

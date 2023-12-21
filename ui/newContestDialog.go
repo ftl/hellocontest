@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"log"
+
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -29,14 +31,18 @@ func (d *newContestDialog) onDestroy() {
 }
 
 func (d *newContestDialog) Show() bool {
-	if d.dialog == nil {
-		builder := setupBuilder()
-		d.dialog = getUI(builder, "newContestDialog").(*gtk.Dialog)
-		d.dialog.SetPosition(gtk.WIN_POS_CENTER)
-		d.dialog.Connect("destroy", d.onDestroy)
-		d.newContestView = setupNewContestView(builder, d.dialog, d.controller, d.contestIdentifiers, d.contestLabels)
+	if d.dialog != nil {
+		log.Print("new contest dialog already open")
+		return false
 	}
-	d.dialog.ShowAll()
+
+	builder := setupBuilder()
+	d.dialog = getUI(builder, "newContestDialog").(*gtk.Dialog)
+	d.dialog.SetTransientFor(nil)
+	d.dialog.SetPosition(gtk.WIN_POS_CENTER)
+	d.dialog.Connect("destroy", d.onDestroy)
+	d.newContestView = setupNewContestView(builder, d.dialog, d.controller, d.contestIdentifiers, d.contestLabels)
+
 	result := d.dialog.Run() == gtk.RESPONSE_OK
 	d.dialog.Close()
 	d.dialog.Destroy()

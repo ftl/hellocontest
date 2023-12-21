@@ -3,6 +3,7 @@ package score
 import (
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ftl/conval"
@@ -51,6 +52,7 @@ var toConvalMode = map[core.Mode]conval.Mode{
 type Counter struct {
 	core.Score
 	counter        convalCounter
+	counterMutex   *sync.RWMutex
 	view           View
 	prefixDatabase prefixDatabase
 	invalid        bool
@@ -71,6 +73,7 @@ func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 	result := &Counter{
 		Score:          core.NewScore(),
 		counter:        new(nullCounter),
+		counterMutex:   new(sync.RWMutex),
 		view:           new(nullView),
 		prefixDatabase: prefixDatabase{entities},
 	}
@@ -138,6 +141,9 @@ func (c *Counter) setContest(contest core.Contest) {
 }
 
 func (c *Counter) resetCounter() {
+	c.counterMutex.Lock()
+	defer c.counterMutex.Unlock()
+
 	if c.contestDefinition == nil {
 		c.counter = new(nullCounter)
 		return
@@ -173,8 +179,14 @@ func (c *Counter) Clear() {
 	c.emitScoreUpdated(c.Score)
 }
 
+func (c *Counter) countQSO(qso core.QSO) conval.QSOScore {
+	c.counterMutex.Lock()
+	defer c.counterMutex.Unlock()
+	return c.counter.Add(c.toConvalQSO(qso))
+}
+
 func (c *Counter) Add(qso core.QSO) core.QSOScore {
-	qsoScore := c.counter.Add(c.toConvalQSO(qso))
+	qsoScore := c.countQSO(qso)
 	result := core.QSOScore{
 		Points:    qsoScore.Points,
 		Multis:    qsoScore.Multis,
@@ -225,9 +237,15 @@ func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band cor
 		Mode:           toConvalMode[mode],
 		TheirExchange:  c.toQSOExchange(c.theirExchangeFields, exchange),
 	}
-	qsoScore := c.counter.Probe(convalQSO)
+	qsoScore := c.probeQSO(convalQSO)
 
 	return qsoScore.Points, qsoScore.Multis, qsoScore.MultiValues
+}
+
+func (c *Counter) probeQSO(qso conval.QSO) conval.QSOScore {
+	c.counterMutex.RLock()
+	defer c.counterMutex.RUnlock()
+	return c.counter.Probe(qso)
 }
 
 func (c *Counter) toConvalQSO(qso core.QSO) conval.QSO {

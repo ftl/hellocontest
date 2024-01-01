@@ -408,6 +408,7 @@ func (c *Controller) New() {
 	c.Settings.Reset()
 	c.Settings.SelectContestIdentifier(newContest.Identifier)
 	c.Settings.EnterContestName(newContest.Name)
+	c.Keyer.SetSettings(c.configuration.KeyerSettings())
 
 	err = store.WriteStation(c.Settings.Station())
 	if err != nil {

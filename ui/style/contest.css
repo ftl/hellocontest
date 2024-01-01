@@ -130,3 +130,11 @@ button.band label.max-value {
     font-weight: bold;
 }
 
+/*
+ * Score window, table
+ */
+
+label.score_table {
+    background-color: @theme_bg_color;
+    color: @theme_text_color;
+}

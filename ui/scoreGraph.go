@@ -27,7 +27,6 @@ func (s *scoreGraphStyle) Refresh() {
 	s.axisColor = s.colorProvider.ColorByName(axisColorName)
 	s.lowZoneColor = s.colorProvider.ColorByName(lowZoneColorName)
 	s.timeFrameColor = s.colorProvider.ColorByName(timeIndicatorColorName)
-
 }
 
 type scoreGraph struct {

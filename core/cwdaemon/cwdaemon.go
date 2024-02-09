@@ -1,8 +1,6 @@
 package cwdaemon
 
 import (
-	"log"
-
 	"github.com/ftl/hamradio/cwclient"
 
 	"github.com/ftl/hellocontest/core/network"
@@ -94,10 +92,14 @@ func (c *Client) Speed(wpm int) {
 }
 
 func (c *Client) Send(text string) {
-	err := c.connect()
-	if err != nil {
-		log.Printf("cannot send %q: %v", text, err)
+	if !c.client.IsConnected() {
+		if c.connected {
+			c.connected = false
+			c.emitConnectionChanged(false)
+		}
+		return
 	}
+	c.client.Send(text)
 }
 
 func (c *Client) Abort() {

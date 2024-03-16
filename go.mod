@@ -32,7 +32,7 @@ require (
 	github.com/stretchr/testify v1.8.2
 	github.com/texttheater/golang-levenshtein v1.0.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.33.0
 )
 
 require (

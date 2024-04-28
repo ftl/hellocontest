@@ -32,6 +32,13 @@ build:
 run: build
 	./${BINARY_NAME}
 
+cache_deps:
+	go install github.com/gotk3/gotk3/glib
+	go install github.com/gotk3/gotk3/cairo
+	go install github.com/gotk3/gotk3/pango
+	go install github.com/gotk3/gotk3/gdk
+	go install github.com/gotk3/gotk3/gtk
+
 config:
 	xdg-open ~/.config/hamradio/hellocontest.json
 

@@ -157,8 +157,10 @@ func (m *Bandmap) SetVFO(vfo core.VFO) {
 }
 
 func (m *Bandmap) SetCallinfo(callinfo Callinfo) {
-	m.entries.SetCallinfo(callinfo)
-	m.do <- m.update
+	m.do <- func() {
+		m.entries.SetCallinfo(callinfo)
+		m.update()
+	}
 }
 
 func (m *Bandmap) Show() {

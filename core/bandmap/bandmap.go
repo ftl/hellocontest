@@ -61,7 +61,6 @@ type Bandmap struct {
 	maximumAge   time.Duration
 	weights      core.BandmapWeights
 
-	spots  chan core.Spot
 	do     chan func()
 	closed chan struct{}
 }
@@ -80,7 +79,6 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 		maximumAge:   maximumAge,
 		weights:      defaultWeights,
 
-		spots:  make(chan core.Spot),
 		do:     make(chan func()),
 		closed: make(chan struct{}),
 	}
@@ -99,8 +97,6 @@ func (m *Bandmap) run() {
 		select {
 		case <-m.closed:
 			return
-		case spot := <-m.spots:
-			m.entries.Add(spot, m.clock.Now(), m.weights)
 		case command := <-m.do:
 			command()
 		case <-updateTicker.C:
@@ -283,8 +279,9 @@ func (m *Bandmap) Add(spot core.Spot) {
 		if worked {
 			spot.Source = core.WorkedSpot
 		}
+
+		m.entries.Add(spot, m.clock.Now(), m.weights)
 	}
-	m.spots <- spot
 }
 
 func (m *Bandmap) AllBy(order core.BandmapOrder) []core.BandmapEntry {

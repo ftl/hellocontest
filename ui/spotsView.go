@@ -68,13 +68,6 @@ func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller Spots
 	return result
 }
 
-func (v *spotsView) getDXCCInformation(entry core.BandmapEntry) string {
-	if entry.Info.PrimaryPrefix == "" {
-		return ""
-	}
-	return fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCName, entry.Info.PrimaryPrefix, entry.Info.Continent, entry.Info.ITUZone, entry.Info.CQZone)
-}
-
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	runAsync(func() {
 		frequencyChanged := v.currentFrame.Frequency != frame.Frequency

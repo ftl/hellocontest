@@ -154,7 +154,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			fmt.Sprintf("%d", entry.SpotCount),
 			formatSpotAge(entry.LastHeard),
 			fmt.Sprintf("%.1f", entry.Info.WeightedValue),
-			v.getDXCCInformation(entry),
+			getDXCCInformation(entry),
 			foregroundColor.ToWeb(),
 			backgroundColor.ToWeb(),
 		},
@@ -202,6 +202,13 @@ func formatSpotAge(lastHeard time.Time) string {
 	}
 
 	return result
+}
+
+func getDXCCInformation(entry core.BandmapEntry) string {
+	if entry.Info.PrimaryPrefix == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCName, entry.Info.PrimaryPrefix, entry.Info.Continent, entry.Info.ITUZone, entry.Info.CQZone)
 }
 
 func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, background style.Color) {
@@ -289,7 +296,6 @@ func (v *spotsView) updateTableEntry(entry core.BandmapEntry) {
 }
 
 func (v *spotsView) removeTableEntry(entry core.BandmapEntry) {
-
 	row := v.tableRowByIndex(entry.Index)
 	if row == nil {
 		return

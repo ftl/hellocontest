@@ -299,9 +299,6 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 
 	if entity.PrimaryPrefix != "" {
 		for i, field := range c.theirExchangeFields {
-			if result[i] != "" {
-				continue
-			}
 			if i < len(historicExchange) && historicExchange[i] != "" {
 				continue
 			}
@@ -317,9 +314,7 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 	}
 
 	for i := range result {
-		if result[i] != "" {
-			continue
-		}
+		foundInQSO := false
 		for _, qso := range qsos {
 			if i >= len(qso.TheirExchange) {
 				break
@@ -327,12 +322,14 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 
 			if result[i] == "" {
 				result[i] = qso.TheirExchange[i]
+				foundInQSO = true
 			} else if result[i] != qso.TheirExchange[i] {
 				result[i] = ""
+				foundInQSO = false
 				break
 			}
 		}
-		if i < len(historicExchange) && historicExchange[i] != "" {
+		if !foundInQSO && i < len(historicExchange) && historicExchange[i] != "" {
 			result[i] = historicExchange[i]
 		}
 	}

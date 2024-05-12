@@ -1153,6 +1153,15 @@ THE SOFTWARE.
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuEditRefreshPrediction">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Refresh _Prediction</property>
+                        <property name="use-underline">True</property>
+                        <accelerator key="p" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkMenuItem" id="menuEditLogQSO">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>

@@ -29,6 +29,7 @@ type MainMenuController interface {
 	ClearEntryFields()
 	GotoEntryFields()
 	EditLastQSO()
+	RefreshPrediction()
 	LogQSO()
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
@@ -60,12 +61,13 @@ type mainMenu struct {
 	fileConfiguration     *gtk.MenuItem
 	fileQuit              *gtk.MenuItem
 
-	editClearEntryFields *gtk.MenuItem
-	editGotoEntryFields  *gtk.MenuItem
-	editEditLastQSO      *gtk.MenuItem
-	editLogQSO           *gtk.MenuItem
-	editSP               *gtk.RadioMenuItem
-	editRun              *gtk.RadioMenuItem
+	editClearEntryFields  *gtk.MenuItem
+	editGotoEntryFields   *gtk.MenuItem
+	editEditLastQSO       *gtk.MenuItem
+	editRefreshPrediction *gtk.MenuItem
+	editLogQSO            *gtk.MenuItem
+	editSP                *gtk.RadioMenuItem
+	editRun               *gtk.RadioMenuItem
 
 	bandmapMark                 *gtk.MenuItem
 	bandmapGotoHighestValueSpot *gtk.MenuItem
@@ -104,6 +106,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editClearEntryFields = getUI(builder, "menuEditClearEntryFields").(*gtk.MenuItem)
 	result.editGotoEntryFields = getUI(builder, "menuEditGotoEntryFields").(*gtk.MenuItem)
 	result.editEditLastQSO = getUI(builder, "menuEditEditLastQSO").(*gtk.MenuItem)
+	result.editRefreshPrediction = getUI(builder, "menuEditRefreshPrediction").(*gtk.MenuItem)
 	result.editLogQSO = getUI(builder, "menuEditLogQSO").(*gtk.MenuItem)
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
@@ -137,6 +140,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editClearEntryFields.Connect("activate", result.onClearEntryFields)
 	result.editGotoEntryFields.Connect("activate", result.onGotoEntryFields)
 	result.editEditLastQSO.Connect("activate", result.onEditLastQSO)
+	result.editRefreshPrediction.Connect("activate", result.onEditRefreshPrediction)
 	result.editLogQSO.Connect("activate", result.onLogQSO)
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
@@ -253,6 +257,10 @@ func (m *mainMenu) onGotoEntryFields() {
 
 func (m *mainMenu) onEditLastQSO() {
 	m.controller.EditLastQSO()
+}
+
+func (m *mainMenu) onEditRefreshPrediction() {
+	m.controller.RefreshPrediction()
 }
 
 func (m *mainMenu) onLogQSO() {

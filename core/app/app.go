@@ -660,6 +660,10 @@ func (c *Controller) EditLastQSO() {
 	c.Entry.EditLastQSO()
 }
 
+func (c *Controller) RefreshPrediction() {
+	c.Entry.RefreshPrediction()
+}
+
 func (c *Controller) LogQSO() {
 	c.Entry.Log()
 }

@@ -277,6 +277,27 @@ func (c *Controller) leaveCallsignField() {
 	c.view.SetDuplicateMarker(true)
 }
 
+func (c *Controller) RefreshPrediction() {
+	if c.callinfo != nil {
+		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, []string{})
+	}
+
+	predictedExchange := c.callinfo.PredictedExchange()
+	if len(c.input.theirExchange) == len(predictedExchange) {
+		for i, field := range c.theirExchangeFields {
+			switch field.Field {
+			case c.theirReportExchangeField.Field:
+				continue
+			case c.theirNumberExchangeField.Field:
+				if len(c.theirNumberExchangeField.Properties) == 1 {
+					continue
+				}
+			}
+			c.setTheirExchangePrediction(i, predictedExchange[i])
+		}
+	}
+}
+
 func (c *Controller) StartAutoRefresh() {
 	c.refreshTicker.Start()
 }

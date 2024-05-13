@@ -23,7 +23,7 @@ require (
 	github.com/ftl/clusterix v0.1.0
 	github.com/ftl/conval v0.7.3
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
-	github.com/ftl/hamradio v0.2.7
+	github.com/ftl/hamradio v0.2.10
 	github.com/ftl/rigproxy v0.2.6
 	github.com/ftl/tci v0.3.2
 	github.com/golang/protobuf v1.5.2

@@ -772,6 +772,25 @@ func (t SpotType) Priority() int {
 	return priority
 }
 
+type SpotQuality int
+
+const (
+	UnknownSpotQuality SpotQuality = iota
+	BustedSpotQuality
+	QSYSpotQuality
+	ValidSpotQuality
+)
+
+const SpotQualityTags = "?BQV"
+
+func (q SpotQuality) Tag() string {
+	i := int(q)
+	if i > 0 && i < len(SpotQualityTags) {
+		return string(SpotQualityTags[q])
+	}
+	return string(SpotQualityTags[0])
+}
+
 type SpotFilter string
 
 const (
@@ -853,6 +872,7 @@ type BandmapEntry struct {
 	LastHeard time.Time
 	Source    SpotType
 	SpotCount int
+	Quality   SpotQuality
 
 	Info Callinfo
 }

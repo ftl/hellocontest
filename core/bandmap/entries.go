@@ -11,9 +11,11 @@ import (
 
 const (
 	// spots within this distance to an entry's frequency will be added to the entry
-	spotFrequencyDeltaThreshold float64 = 500
+	spotFrequencyDeltaThreshold float64 = 300
 	// the frequency of an entry is aligend to this is grid of accuracy
 	spotFrequencyStep float64 = 10
+	// at least this number of spots of the same callsign on the same frequency are required for a valid spot
+	spotValidThreshold = 3
 )
 
 type Entry struct {
@@ -43,24 +45,44 @@ func (e *Entry) Len() int {
 	return len(e.spots)
 }
 
-func (e *Entry) Matches(spot core.Spot) bool {
-	if spot.Call != e.Call {
-		return false
-	}
+func (e *Entry) Matches(spot core.Spot) (core.SpotQuality, bool) {
 	if spot.Band != e.Band {
-		return false
+		return core.UnknownSpotQuality, false
 	}
 	if spot.Mode != core.NoMode && e.Mode != core.NoMode && spot.Mode != e.Mode {
-		return false
+		return core.UnknownSpotQuality, false
+	}
+
+	var callsignDistance int
+	if spot.Call == e.Call {
+		callsignDistance = 0
+	} else {
+		callsignDistance = calculateCallsignDistance(spot.Call, e.Call)
 	}
 
 	frequencyDelta := math.Abs(float64(e.Frequency - spot.Frequency))
-	return frequencyDelta <= spotFrequencyDeltaThreshold
+	onFrequency := frequencyDelta <= spotFrequencyDeltaThreshold
+
+	quality := core.UnknownSpotQuality
+	if len(e.spots)+1 >= spotValidThreshold {
+		quality = core.ValidSpotQuality
+	}
+
+	if callsignDistance == 0 && onFrequency {
+		return quality, true
+	} else if e.Quality == core.ValidSpotQuality && callsignDistance == 0 && !onFrequency {
+		return core.QSYSpotQuality, false
+	} else if e.Quality == core.ValidSpotQuality && callsignDistance <= similarCallsignThreshold && onFrequency {
+		return core.BustedSpotQuality, false
+	} else {
+		return core.UnknownSpotQuality, false
+	}
 }
 
-func (e *Entry) Add(spot core.Spot) bool {
-	if !e.Matches(spot) {
-		return false
+func (e *Entry) Add(spot core.Spot) (core.SpotQuality, bool) {
+	quality, match := e.Matches(spot)
+	if !match {
+		return quality, false
 	}
 
 	e.spots = append(e.spots, spot)
@@ -71,8 +93,11 @@ func (e *Entry) Add(spot core.Spot) bool {
 	if e.Source.Priority() > spot.Source.Priority() {
 		e.Source = spot.Source
 	}
+	if quality == core.ValidSpotQuality {
+		e.Quality = quality
+	}
 
-	return true
+	return quality, true
 }
 
 func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
@@ -106,6 +131,9 @@ func (e *Entry) update() {
 	e.LastHeard = lastHeard
 	e.Source = source
 	e.SpotCount = len(e.spots)
+	if e.SpotCount < spotValidThreshold && e.Quality == core.ValidSpotQuality {
+		e.Quality = core.UnknownSpotQuality
+	}
 }
 
 func (e *Entry) updateFrequency() bool {
@@ -222,16 +250,22 @@ func (l *Entries) Len() int {
 }
 
 func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights) {
+	entryQuality := core.UnknownSpotQuality
 	for _, e := range l.entries {
-		if e.Add(spot) {
+		quality, added := e.Add(spot)
+		if added {
 			e.Info = l.callinfo.GetInfo(spot.Call, spot.Band, spot.Mode, []string{})
 			e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
 			l.emitEntryUpdated(*e)
 			return
 		}
+		if entryQuality < quality {
+			entryQuality = quality
+		}
 	}
 
 	newEntry := NewEntry(spot)
+	newEntry.Quality = entryQuality
 	if newEntry.Call.String() != "" {
 		newEntry.Info = l.callinfo.GetInfo(newEntry.Call, newEntry.Band, newEntry.Mode, []string{})
 		newEntry.Info.WeightedValue = l.calculateWeightedValue(&newEntry, now, weights)

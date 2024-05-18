@@ -65,7 +65,7 @@ func TestEntry_Add_OnlySameCallAndSimilarFrequency(t *testing.T) {
 				},
 			}
 
-			added := entry.Add(core.Spot{Call: callsign.MustParse(tc.call), Frequency: tc.frequency})
+			_, added := entry.Add(core.Spot{Call: callsign.MustParse(tc.call), Frequency: tc.frequency})
 			assert.Equal(t, tc.valid, added)
 		})
 	}
@@ -380,6 +380,57 @@ func TestEntries_Notify(t *testing.T) {
 
 	entries.CleanOut(30*time.Minute, now, defaultWeights)
 	assert.Equal(t, "DL1ABC", listener.removed[0].Call.String())
+}
+
+func TestEntry_Matches(t *testing.T) {
+	now := time.Now()
+	spot := core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-5 * time.Minute)}
+	entry := NewEntry(spot)
+	assert.Equal(t, core.UnknownSpotQuality, entry.Quality)
+
+	similarSpot := core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
+	quality, match := entry.Matches(similarSpot)
+	assert.False(t, match)
+	assert.Equal(t, core.UnknownSpotQuality, quality)
+	_, added := entry.Add(similarSpot)
+	assert.False(t, added)
+
+	quality, match = entry.Matches(spot)
+	assert.True(t, match)
+	assert.Equal(t, core.UnknownSpotQuality, quality)
+
+	_, added = entry.Add(spot)
+	assert.True(t, added)
+	assert.Equal(t, core.UnknownSpotQuality, entry.Quality)
+
+	quality, match = entry.Matches(spot)
+	assert.True(t, match)
+	assert.Equal(t, core.ValidSpotQuality, quality)
+
+	_, added = entry.Add(spot)
+	assert.True(t, added)
+	assert.Equal(t, core.ValidSpotQuality, entry.Quality)
+
+	qsySpot := core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3545000, Time: now.Add(-2 * time.Minute)}
+	quality, match = entry.Matches(qsySpot)
+	assert.False(t, match)
+	assert.Equal(t, core.QSYSpotQuality, quality)
+	_, added = entry.Add(qsySpot)
+	assert.False(t, added)
+
+	bustedSpot := core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
+	quality, match = entry.Matches(bustedSpot)
+	assert.False(t, match)
+	assert.Equal(t, core.BustedSpotQuality, quality)
+	_, added = entry.Add(bustedSpot)
+	assert.False(t, added)
+
+	completeDifferentSpot := core.Spot{Call: callsign.MustParse("dl3xyz"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
+	quality, match = entry.Matches(completeDifferentSpot)
+	assert.False(t, match)
+	assert.Equal(t, core.UnknownSpotQuality, quality)
+	_, added = entry.Add(completeDifferentSpot)
+	assert.False(t, added)
 }
 
 func TestFilterSlice(t *testing.T) {

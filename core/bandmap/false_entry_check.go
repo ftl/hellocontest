@@ -46,15 +46,17 @@ func CheckFalseEntry(entry1, entry2 core.BandmapEntry) FalseEntryCheckResult {
 	}
 }
 
+func calculateCallsignDistance(call1, call2 callsign.Callsign) int {
+	options := levenshtein.DefaultOptions
+	return levenshtein.DistanceForStrings([]rune(call1.String()), []rune(call2.String()), options)
+}
+
 func checkLocallyVerified(entry core.BandmapEntry) bool {
 	return entry.Source == core.WorkedSpot || entry.Source == core.ManualSpot
 }
 
 func checkCallsignSimilar(call1, call2 callsign.Callsign) bool {
-	options := levenshtein.DefaultOptions
-	distance := levenshtein.DistanceForStrings([]rune(call1.String()), []rune(call2.String()), options)
-
-	return distance <= similarCallsignThreshold
+	return calculateCallsignDistance(call1, call2) <= similarCallsignThreshold
 }
 
 func checkFirstSpotCountIsFalse(count1, count2 int) bool {

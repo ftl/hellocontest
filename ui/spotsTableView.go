@@ -18,6 +18,7 @@ import (
 const (
 	spotColumnFrequency = iota
 	spotColumnCallsign
+	spotColumnQualityTag
 	spotColumnPredictedExchange
 	spotColumnPoints
 	spotColumnMultis
@@ -38,6 +39,7 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 
 	v.table.AppendColumn(createSpotMarkupColumn("Frequency", spotColumnFrequency))
 	v.table.AppendColumn(createSpotMarkupColumn("Callsign", spotColumnCallsign))
+	v.table.AppendColumn(createSpotTextColumn("T", spotColumnQualityTag))
 	v.table.AppendColumn(createSpotTextColumn("Exchange", spotColumnPredictedExchange))
 	v.table.AppendColumn(createSpotMarkupColumn("Pts", spotColumnPoints))
 	v.table.AppendColumn(createSpotMarkupColumn("Mult", spotColumnMultis))
@@ -135,6 +137,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 		[]int{
 			spotColumnFrequency,
 			spotColumnCallsign,
+			spotColumnQualityTag,
 			spotColumnPredictedExchange,
 			spotColumnPoints,
 			spotColumnMultis,
@@ -148,6 +151,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 		[]any{
 			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
 			formatSpotCall(entry.Call, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
+			entry.Quality.Tag(),
 			entry.Info.ExchangeText,
 			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
 			formatPoints(entry.Info.Multis, entry.Info.Duplicate, 0),
@@ -229,12 +233,14 @@ func (v *spotsView) updateHighlightedColumns(entry core.BandmapEntry) error {
 		[]int{
 			spotColumnFrequency,
 			spotColumnCallsign,
+			spotColumnQualityTag,
 			spotColumnAge,
 			spotColumnWeightedValue,
 		},
 		[]any{
 			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
 			formatSpotCall(entry.Call, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
+			entry.Quality.Tag(),
 			formatSpotAge(entry.LastHeard),
 			fmt.Sprintf("%.1f", entry.Info.WeightedValue),
 		},

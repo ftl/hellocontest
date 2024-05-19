@@ -42,6 +42,7 @@ var defaultWeights = core.BandmapWeights{
 	AgeSeconds:  -0.001,
 	Spots:       0.001,
 	Source:      0,
+	Quality:     0.01,
 }
 
 type Bandmap struct {

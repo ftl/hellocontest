@@ -366,7 +366,11 @@ func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights co
 	ageSeconds := now.Sub(entry.LastHeard).Seconds()
 	spots := float64(entry.SpotCount)
 	sourcePriority := float64(entry.Source.Priority())
-	weight := 1 + (ageSeconds * weights.AgeSeconds) + (spots * weights.Spots) + (sourcePriority * weights.Source)
+	qualityFactor := 0.0
+	if entry.Quality > core.BustedSpotQuality {
+		qualityFactor = float64(entry.Quality)
+	}
+	weight := 1 + (ageSeconds * weights.AgeSeconds) + (spots * weights.Spots) + (sourcePriority * weights.Source) + (qualityFactor * weights.Quality)
 
 	return value * weight
 }

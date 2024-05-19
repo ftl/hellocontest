@@ -958,6 +958,7 @@ type BandmapWeights struct {
 	AgeSeconds  float64
 	Spots       float64
 	Source      float64
+	Quality     float64
 }
 
 type VFO interface {

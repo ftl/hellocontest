@@ -900,8 +900,11 @@ type Callinfo struct {
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
 const spotFrequencyProximityThreshold float64 = 2500
 
-// spots with at least this proximity are recognized as "on frequency"
-const spotOnFrequencyThreshold float64 = 0.95
+// spots within this distance to an entry's frequency will be considered "on frequency"
+const spotFrequencyDeltaThreshold float64 = 300
+
+// spots within at least this proximity will be considered "on frequency"
+const spotOnFrequencyThreshold float64 = 1.0 - (spotFrequencyDeltaThreshold / spotFrequencyProximityThreshold)
 
 // ProximityFactor increases the closer the given frequency is to this entry's frequency.
 // 0.0 = not in proximity, 1.0 = exactly on frequency

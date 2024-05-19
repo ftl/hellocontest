@@ -10,8 +10,6 @@ import (
 )
 
 const (
-	// spots within this distance to an entry's frequency will be added to the entry
-	spotFrequencyDeltaThreshold float64 = 300
 	// the frequency of an entry is aligend to this is grid of accuracy
 	spotFrequencyStep float64 = 10
 	// at least this number of spots of the same callsign on the same frequency are required for a valid spot
@@ -60,8 +58,7 @@ func (e *Entry) Matches(spot core.Spot) (core.SpotQuality, bool) {
 		callsignDistance = calculateCallsignDistance(spot.Call, e.Call)
 	}
 
-	frequencyDelta := math.Abs(float64(e.Frequency - spot.Frequency))
-	onFrequency := frequencyDelta <= spotFrequencyDeltaThreshold
+	onFrequency := e.OnFrequency(spot.Frequency)
 
 	quality := core.UnknownSpotQuality
 	if len(e.spots)+1 >= spotValidThreshold {

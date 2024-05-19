@@ -28,25 +28,25 @@ func TestEntry_Add_OnlySameCallAndSimilarFrequency(t *testing.T) {
 		{
 			desc:      "same call, lower similar frequency",
 			call:      "dl1abc",
-			frequency: frequency - core.Frequency(spotFrequencyDeltaThreshold) + 1,
+			frequency: frequency - 300,
 			valid:     true,
 		},
 		{
 			desc:      "same call, higher similar frequency",
 			call:      "dl1abc",
-			frequency: frequency + core.Frequency(spotFrequencyDeltaThreshold) - 1,
+			frequency: frequency + 300,
 			valid:     true,
 		},
 		{
 			desc:      "same call, frequency to low",
 			call:      "dl1abc",
-			frequency: frequency - core.Frequency(spotFrequencyDeltaThreshold) - 1,
+			frequency: frequency - 301,
 			valid:     false,
 		},
 		{
 			desc:      "same call, frequency to high",
 			call:      "dl1abc",
-			frequency: frequency + core.Frequency(spotFrequencyDeltaThreshold) + 1,
+			frequency: frequency + 301,
 			valid:     false,
 		},
 		{

@@ -433,6 +433,27 @@ func TestEntry_Matches(t *testing.T) {
 	assert.False(t, added)
 }
 
+func TestCalculateCallsignDistance(t *testing.T) {
+	tt := []struct {
+		call1    string
+		call2    string
+		expected int
+	}{
+		{"dl0abc", "dl0abc", 0},
+		{"dl0abc", "dl0ab", 1},
+		{"dl0abc", "dl0a", 2},
+	}
+	for _, tc := range tt {
+		t.Run(tc.call1+" "+tc.call2, func(t *testing.T) {
+			call1 := callsign.MustParse(tc.call1)
+			call2 := callsign.MustParse(tc.call2)
+			actual := calculateCallsignDistance(call1, call2)
+
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
 func TestFilterSlice(t *testing.T) {
 	input := []int{1, 10, 5, 2, 9, 7, 6, 3, 4}
 

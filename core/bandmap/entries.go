@@ -1,12 +1,14 @@
 package bandmap
 
 import (
-	"log"
 	"math"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/texttheater/golang-levenshtein/levenshtein"
 	"golang.org/x/exp/slices"
+
+	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hellocontest/core"
 )
 
 const (
@@ -14,6 +16,8 @@ const (
 	spotFrequencyStep float64 = 10
 	// at least this number of spots of the same callsign on the same frequency are required for a valid spot
 	spotValidThreshold = 3
+	// if one callsign can be transformed into another with only this number of transformations, they are considered similar
+	similarCallsignThreshold = 2
 )
 
 type Entry struct {
@@ -74,6 +78,11 @@ func (e *Entry) Matches(spot core.Spot) (core.SpotQuality, bool) {
 	} else {
 		return core.UnknownSpotQuality, false
 	}
+}
+
+func calculateCallsignDistance(call1, call2 callsign.Callsign) int {
+	options := levenshtein.DefaultOptions
+	return levenshtein.DistanceForStrings([]rune(call1.String()), []rune(call2.String()), options)
 }
 
 func (e *Entry) Add(spot core.Spot) (core.SpotQuality, bool) {
@@ -309,7 +318,6 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 
 func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core.BandmapWeights) {
 	l.cleanOutOldEntries(maximumAge, now)
-	l.cleanOutFalseEntries()
 
 	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
@@ -343,60 +351,6 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 	for i, e := range removedEntries {
 		e.Index -= i
 		l.emitEntryRemoved(e)
-	}
-}
-
-func (l *Entries) cleanOutFalseEntries() {
-	removedEntries := make([]Entry, 0, len(l.entries))
-
-	i := 0
-	k := 0
-	for i < len(l.entries) {
-		entry1 := l.entries[i]
-		if entry1 == nil {
-			i++
-			continue
-		}
-
-		for j := i + 1; j < len(l.entries); j++ {
-			entry2 := l.entries[j]
-			if entry2 == nil {
-				continue
-			}
-			if !entry2.OnFrequency(entry1.Frequency) {
-				break
-			}
-
-			switch CheckFalseEntry(entry1.BandmapEntry, entry2.BandmapEntry) {
-			case DifferentEntries:
-				continue
-			case FirstIsFalse:
-				removedEntries = append(removedEntries, *entry1)
-				l.entries[i] = nil
-				entry1 = nil
-			case SecondIsFalse:
-				removedEntries = append(removedEntries, *entry2)
-				l.entries[j] = nil
-			}
-			if entry1 == nil {
-				break
-			}
-		}
-
-		if entry1 != nil {
-			if i != k {
-				l.entries[k] = entry1
-			}
-			k++
-		}
-		i++
-	}
-	l.entries = l.entries[:k]
-
-	for i, e := range removedEntries {
-		e.Index -= i
-		l.emitEntryRemoved(e)
-		log.Printf("false entry %s on %.2f kHz removed", e.Call, e.Frequency)
 	}
 }
 

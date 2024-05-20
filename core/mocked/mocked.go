@@ -358,6 +358,10 @@ func (m *KeyerView) Pattern(index int) string {
 	return args.String(0)
 }
 
+func (m *KeyerView) SetLabel(index int, pattern string) {
+	m.Called(index, pattern)
+}
+
 func (m *KeyerView) SetPattern(index int, pattern string) {
 	m.Called(index, pattern)
 }

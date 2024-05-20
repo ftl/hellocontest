@@ -459,12 +459,16 @@ type KeyerSettings struct {
 	Preset    string   `json:"preset"`
 	SPMacros  []string `json:"sp_macros"`
 	RunMacros []string `json:"run_macros"`
+	SPLabels  []string `json:"sp_labels"`
+	RunLabels []string `json:"run_labels"`
 }
 
 type KeyerPreset struct {
 	Name      string   `json:"name"`
 	SPMacros  []string `json:"sp_macros"`
 	RunMacros []string `json:"run_macros"`
+	SPLabels  []string `json:"sp_labels"`
+	RunLabels []string `json:"run_labels"`
 }
 
 type Score struct {

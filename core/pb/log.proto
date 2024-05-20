@@ -81,4 +81,6 @@ message Keyer {
     int32 wpm = 1;
     repeated string sp_macros = 2;
     repeated string run_macros = 3;
+    repeated string sp_labels = 4;
+    repeated string run_labels = 5;
 }

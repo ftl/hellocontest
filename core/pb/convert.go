@@ -160,7 +160,9 @@ func ContestToPB(contest core.Contest) Contest {
 func ToKeyerSettings(pbSettings Keyer) (core.KeyerSettings, error) {
 	var result core.KeyerSettings
 	result.WPM = int(pbSettings.Wpm)
+	result.SPLabels = pbSettings.SpLabels
 	result.SPMacros = pbSettings.SpMacros
+	result.RunLabels = pbSettings.RunLabels
 	result.RunMacros = pbSettings.RunMacros
 	return result, nil
 }
@@ -168,7 +170,9 @@ func ToKeyerSettings(pbSettings Keyer) (core.KeyerSettings, error) {
 func KeyerSettingsToPB(settings core.KeyerSettings) Keyer {
 	return Keyer{
 		Wpm:       int32(settings.WPM),
+		SpLabels:  settings.SPLabels,
 		SpMacros:  settings.SPMacros,
+		RunLabels: settings.RunLabels,
 		RunMacros: settings.RunMacros,
 	}
 }

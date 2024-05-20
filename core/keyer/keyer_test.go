@@ -28,6 +28,7 @@ func TestSend(t *testing.T) {
 	view.On("SetKeyerController", mock.Anything)
 	view.On("ShowMessage", mock.Anything)
 	view.On("SetSpeed", mock.Anything)
+	view.On("SetLabel", mock.Anything, mock.Anything)
 	view.On("SetPattern", mock.Anything, mock.Anything)
 	view.On("SetPresetNames", mock.Anything)
 	cwClient := new(mocked.CWClient)

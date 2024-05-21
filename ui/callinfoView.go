@@ -19,7 +19,6 @@ type callinfoStyle struct {
 
 	backgroundColor style.Color
 	fontColor       style.Color
-	fontSize        float64
 	duplicateFG     style.Color
 	duplicateBG     style.Color
 	workedFG        style.Color
@@ -49,7 +48,6 @@ const (
 type callinfoView struct {
 	controller CallinfoController
 
-	rootGrid        *gtk.Grid
 	callsignLabel   *gtk.Label
 	exchangeLabel   *gtk.Label
 	dxccLabel       *gtk.Label
@@ -60,22 +58,24 @@ type callinfoView struct {
 	style *callinfoStyle
 }
 
-func setupCallinfoView(builder *gtk.Builder, colors colorProvider, controller CallinfoController) *callinfoView {
+func setupCallinfoView(builder *gtk.Builder, colors colorProvider) *callinfoView {
 	result := &callinfoView{
-		controller: controller,
-		style:      &callinfoStyle{colorProvider: colors},
+		style: &callinfoStyle{colorProvider: colors},
 	}
 	result.style.Refresh()
 
-	result.rootGrid = getUI(builder, "callinfoGrid").(*gtk.Grid)
-	result.callsignLabel = getUI(builder, "callsignLabel").(*gtk.Label)
-	result.exchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
-	result.dxccLabel = getUI(builder, "dxccLabel").(*gtk.Label)
-	result.valueLabel = getUI(builder, "valueLabel").(*gtk.Label)
-	result.userInfoLabel = getUI(builder, "userInfoLabel").(*gtk.Label)
-	result.supercheckLabel = getUI(builder, "supercheckLabel").(*gtk.Label)
+	result.callsignLabel = getUI(builder, "bestMatchCallsign").(*gtk.Label)
+	// result.exchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
+	result.dxccLabel = getUI(builder, "callsignDXCCLabel").(*gtk.Label)
+	result.valueLabel = getUI(builder, "predictedValueLabel").(*gtk.Label)
+	result.userInfoLabel = getUI(builder, "callsignUserInfoLabel").(*gtk.Label)
+	result.supercheckLabel = getUI(builder, "callsignSupercheckLabel").(*gtk.Label)
 
 	return result
+}
+
+func (v *callinfoView) SetCallinfoController(controller CallinfoController) {
+	v.controller = controller
 }
 
 func (v *callinfoView) RefreshStyle() {
@@ -89,22 +89,26 @@ func attr(name, value string) string {
 	return fmt.Sprintf("%s=%q", name, value)
 }
 
-func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
-	normalized := strings.ToUpper(strings.TrimSpace(callsign))
-	if normalized == "" {
-		normalized = "-"
-	}
-	v.callsignLabel.SetText(normalized)
+// func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
+// 	normalized := strings.ToUpper(strings.TrimSpace(callsign))
+// 	if normalized == "" {
+// 		normalized = "-"
+// 	}
+// 	v.callsignLabel.SetText(normalized)
 
-	style.RemoveClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
-	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorkedClass)
-	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorthlessClass)
+// 	style.RemoveClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
+// 	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorkedClass)
+// 	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorthlessClass)
 
-	if duplicate {
-		style.AddClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
-	} else if worked {
-		style.AddClass(&v.callsignLabel.Widget, callinfoWorkedClass)
-	}
+// 	if duplicate {
+// 		style.AddClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
+// 	} else if worked {
+// 		style.AddClass(&v.callsignLabel.Widget, callinfoWorkedClass)
+// 	}
+// }
+
+func (v *callinfoView) SetBestMatchingCallsign(callsign string) {
+
 }
 
 func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {
@@ -149,7 +153,8 @@ func (v *callinfoView) SetExchange(exchange string) {
 		exchange = strings.ToUpper(strings.TrimSpace(exchange))
 	}
 	exchangeText := fmt.Sprintf("<span %s>%s</span>", exchangeMarkup, exchange)
-	v.exchangeLabel.SetMarkup(exchangeText)
+	_ = exchangeText
+	// v.exchangeLabel.SetMarkup(exchangeText)
 }
 
 func (v *callinfoView) SetUserInfo(value string) {
@@ -192,9 +197,6 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 		}
 
 		hasPredictedExchange := strings.Join(callsign.PredictedExchange, "") != ""
-		if callsign.ExactMatch || hasPredictedExchange {
-			attributes = append(attributes, attr("font-size", "x-large"))
-		}
 		if hasPredictedExchange {
 			attributes = append(attributes, attr("font-style", "italic"))
 		}

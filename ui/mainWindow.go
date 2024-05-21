@@ -5,9 +5,11 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/pkg/errors"
+
+	"github.com/ftl/gmtry"
+	"github.com/ftl/hellocontest/ui/style"
 )
 
 type mainWindow struct {
@@ -21,10 +23,11 @@ type mainWindow struct {
 	*workmodeView
 	*keyerView
 	*statusView
+	*callinfoView
 	*stopKeyHandler
 }
 
-func setupMainWindow(builder *gtk.Builder, application *gtk.Application, setAcceptFocus AcceptFocusFunc) *mainWindow {
+func setupMainWindow(builder *gtk.Builder, application *gtk.Application, style *style.Style, setAcceptFocus AcceptFocusFunc) *mainWindow {
 	result := new(mainWindow)
 
 	result.window = getUI(builder, "mainWindow").(*gtk.ApplicationWindow)
@@ -39,7 +42,10 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application, setAcce
 	result.workmodeView = setupWorkmodeView(builder)
 	result.keyerView = setupKeyerView(builder)
 	result.statusView = setupStatusView(builder)
+	result.callinfoView = setupCallinfoView(builder, style.ForWidget(result.window.ToWidget()))
 	result.stopKeyHandler = setupStopKeyHandler(&result.window.Widget)
+
+	result.window.Connect("style-updated", result.callinfoView.RefreshStyle)
 
 	return result
 }

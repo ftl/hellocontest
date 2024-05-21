@@ -1853,14 +1853,6 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
-                      <object class="GtkMenuItem" id="menuWindowCallinfo">
-                        <property name="visible">True</property>
-                        <property name="can-focus">False</property>
-                        <property name="label" translatable="yes">Call_info</property>
-                        <property name="use-underline">True</property>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkMenuItem" id="menuWindowScore">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -1986,7 +1978,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
           </packing>
         </child>
         <child>
-          <!-- n-columns=7 n-rows=4 -->
+          <!-- n-columns=6 n-rows=10 -->
           <object class="GtkGrid" id="entryGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -2006,7 +1998,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
@@ -2020,34 +2012,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label1">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">My:</property>
-                <property name="ellipsize">start</property>
-                <property name="width-chars">6</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="messageLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Message</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
-                <property name="width">7</property>
+                <property name="top-attach">4</property>
               </packing>
             </child>
             <child>
@@ -2060,7 +2025,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">2</property>
-                <property name="top-attach">0</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
@@ -2073,60 +2038,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">3</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="clearButton">
-                <property name="label" translatable="yes">Clear</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Clear the entry fields</property>
-              </object>
-              <packing>
-                <property name="left-attach">5</property>
-                <property name="top-attach">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="logButton">
-                <property name="label" translatable="yes">Log</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="receives-default">True</property>
-                <property name="tooltip-text" translatable="yes">Log the QSO (&lt;Enter&gt;)</property>
-              </object>
-              <packing>
-                <property name="left-attach">5</property>
                 <property name="top-attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="utcLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">00:00</property>
-                <property name="ellipsize">start</property>
-                <property name="width-chars">4</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="myCallLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">DL0ABC</property>
-                <property name="ellipsize">start</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">1</property>
               </packing>
             </child>
             <child>
@@ -2140,30 +2052,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">0</property>
-              </packing>
-            </child>
-            <child>
-              <!-- n-columns=3 n-rows=1 -->
-              <object class="GtkGrid" id="myExchangesGrid">
-                <property name="name">myExchangesGrid</property>
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="column-spacing">5</property>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-                <child>
-                  <placeholder/>
-                </child>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">1</property>
-                <property name="width">3</property>
+                <property name="top-attach">2</property>
               </packing>
             </child>
             <child>
@@ -2185,9 +2074,231 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">2</property>
-                <property name="top-attach">2</property>
-                <property name="width">3</property>
+                <property name="top-attach">4</property>
+                <property name="width">2</property>
               </packing>
+            </child>
+            <child>
+              <!-- n-columns=3 n-rows=1 -->
+              <object class="GtkGrid" id="myExchangesGrid">
+                <property name="name">myExchangesGrid</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">0</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="myCallLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">DL0ABC</property>
+                <property name="ellipsize">start</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <!-- n-columns=3 n-rows=1 -->
+              <object class="GtkGrid" id="predictedExchangesGrid">
+                <property name="name">myExchangesGrid</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="column-spacing">5</property>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">3</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="logButton">
+                <property name="label" translatable="yes">Log</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Log the QSO (&lt;Enter&gt;)</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+                <property name="width">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="utcLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">00:00</property>
+                <property name="ellipsize">start</property>
+                <property name="width-chars">4</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">end</property>
+                <property name="label" translatable="yes">VFO:</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">9</property>
+                <property name="width">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="bestMatchCallsign">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">DL1ABC</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="clearButton">
+                <property name="label" translatable="yes">Clear</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="receives-default">True</property>
+                <property name="tooltip-text" translatable="yes">Clear the entry fields (2x ESC)</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="predictedValueLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">1P 1M</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="callsignUserInfoLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Hans, Salzgitter</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">7</property>
+                <property name="width">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="callsignSupercheckLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="label" translatable="yes">DL1ABC</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="ellipsize">end</property>
+                <property name="lines">1</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">8</property>
+                <property name="width">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="callsignDXCCLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="label" translatable="yes">Fed. Rep. of Germany (DL), EU, ITU 28, CQ 14</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="ellipsize">end</property>
+                <property name="lines">1</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">6</property>
+                <property name="width">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="messageLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Message</property>
+                <property name="xalign">0</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">5</property>
+                <property name="width">6</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>

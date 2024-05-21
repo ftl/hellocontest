@@ -47,7 +47,6 @@ type application struct {
 	style               *style.Style
 	windowGeometry      *gmtry.Geometry
 	mainWindow          *mainWindow
-	callinfoWindow      *callinfoWindow
 	scoreWindow         *scoreWindow
 	rateWindow          *rateWindow
 	spotsWindow         *spotsWindow
@@ -70,7 +69,6 @@ func (a *application) useDefaultWindowGeometry(cause error) {
 }
 
 func (a *application) setAcceptFocus(acceptFocus bool) {
-	a.callinfoWindow.SetAcceptFocus(acceptFocus)
 	a.rateWindow.SetAcceptFocus(acceptFocus)
 	a.scoreWindow.SetAcceptFocus(acceptFocus)
 	a.spotsWindow.SetAcceptFocus(acceptFocus)
@@ -86,12 +84,11 @@ func (a *application) activate() {
 	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration, a.sponsors)
 	a.controller.Startup()
 
-	a.mainWindow = setupMainWindow(a.builder, a.app, a.setAcceptFocus)
+	a.mainWindow = setupMainWindow(a.builder, a.app, a.style, a.setAcceptFocus)
 	screen := a.mainWindow.window.GetScreen()
 	a.style = style.New()
 	a.style.AddToScreen(screen)
 
-	a.callinfoWindow = setupCallinfoWindow(a.windowGeometry, a.style, a.controller.Callinfo)
 	a.scoreWindow = setupScoreWindow(a.windowGeometry, a.style)
 	a.rateWindow = setupRateWindow(a.windowGeometry, a.style)
 	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.style, a.controller.Bandmap)
@@ -107,6 +104,7 @@ func (a *application) activate() {
 	a.mainWindow.SetEntryController(a.controller.Entry)
 	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
 	a.mainWindow.SetKeyerController(a.controller.Keyer)
+	a.mainWindow.SetCallinfoController(a.controller.Callinfo)
 
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.mainWindow)
@@ -117,7 +115,7 @@ func (a *application) activate() {
 	a.controller.Keyer.SetView(a.mainWindow)
 	a.controller.Keyer.SetSettingsView(a.keyerSettingsDialog)
 	a.controller.ServiceStatus.Notify(a.mainWindow)
-	a.controller.Callinfo.SetView(a.callinfoWindow)
+	a.controller.Callinfo.SetView(a.mainWindow)
 	a.controller.Score.SetView(a.scoreWindow)
 	a.controller.Rate.SetView(a.rateWindow)
 	a.controller.Rate.Notify(a.scoreWindow)
@@ -135,7 +133,6 @@ func (a *application) activate() {
 	}
 
 	a.mainWindow.Show()
-	a.callinfoWindow.RestoreVisibility()
 	a.scoreWindow.RestoreVisibility()
 	a.rateWindow.RestoreVisibility()
 	a.spotsWindow.RestoreVisibility()

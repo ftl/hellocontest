@@ -81,10 +81,7 @@ type ExchangeFilter interface {
 
 // View defines the visual part of the call information window.
 type View interface {
-	Show()
-	Hide()
-
-	SetCallsign(callsign string, worked, duplicate bool)
+	SetBestMatchingCallsign(callsign string)
 	SetDXCC(string, string, int, int, bool)
 	SetValue(points, multis int)
 	SetExchange(exchange string)
@@ -102,15 +99,6 @@ func (c *Callinfo) SetView(view View) {
 
 func (c *Callinfo) Refresh() {
 	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastExchange)
-}
-
-func (c *Callinfo) Show() {
-	c.view.Show()
-	c.Refresh()
-}
-
-func (c *Callinfo) Hide() {
-	c.view.Hide()
 }
 
 func (c *Callinfo) ContestChanged(contest core.Contest) {
@@ -176,7 +164,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	}
 
 	c.showDXCCEntity(entity)
-	c.view.SetCallsign(call, callinfo.Worked, callinfo.Duplicate)
+	// c.view.SetCallsign(call, callinfo.Worked, callinfo.Duplicate)
 	c.view.SetUserInfo(callinfo.UserText)
 	c.view.SetValue(callinfo.Points, callinfo.Multis)
 	c.view.SetExchange(callinfo.ExchangeText)
@@ -339,11 +327,11 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 
 type nullView struct{}
 
-func (v *nullView) Show()                                               {}
-func (v *nullView) Hide()                                               {}
-func (v *nullView) SetCallsign(callsign string, worked, duplicate bool) {}
-func (v *nullView) SetDXCC(string, string, int, int, bool)              {}
-func (v *nullView) SetValue(int, int)                                   {}
-func (v *nullView) SetExchange(string)                                  {}
-func (v *nullView) SetUserInfo(string)                                  {}
-func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)    {}
+func (v *nullView) Show()                                            {}
+func (v *nullView) Hide()                                            {}
+func (v *nullView) SetBestMatchingCallsign(callsign string)          {}
+func (v *nullView) SetDXCC(string, string, int, int, bool)           {}
+func (v *nullView) SetValue(int, int)                                {}
+func (v *nullView) SetExchange(string)                               {}
+func (v *nullView) SetUserInfo(string)                               {}
+func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign) {}

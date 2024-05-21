@@ -622,11 +622,6 @@ func (c *Controller) ExportCallhistory() {
 	c.openWithExternalApplication(filename)
 }
 
-func (c *Controller) ShowCallinfo() {
-	c.Callinfo.Show()
-	c.view.BringToFront()
-}
-
 func (c *Controller) ShowScore() {
 	c.Score.Show()
 	c.view.BringToFront()

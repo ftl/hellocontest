@@ -22,7 +22,6 @@ type MainMenuController interface {
 	OpenSettings()
 	OpenConfigurationFile()
 	Quit()
-	ShowCallinfo()
 	ShowScore()
 	ShowRate()
 	ShowSpots()
@@ -76,7 +75,6 @@ type mainMenu struct {
 	bandmapGotoNextSpotDown     *gtk.MenuItem
 	bandmapSendSpotsToTci       *gtk.CheckMenuItem
 
-	windowCallinfo    *gtk.MenuItem
 	windowScore       *gtk.MenuItem
 	windowRate        *gtk.MenuItem
 	windowSpots       *gtk.MenuItem
@@ -116,7 +114,6 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.bandmapGotoNextSpotUp = getUI(builder, "menuBandmapGotoNextSpotUp").(*gtk.MenuItem)
 	result.bandmapGotoNextSpotDown = getUI(builder, "menuBandmapGotoNextSpotDown").(*gtk.MenuItem)
 	result.bandmapSendSpotsToTci = getUI(builder, "menuBandmapSendSpotsToTci").(*gtk.CheckMenuItem)
-	result.windowCallinfo = getUI(builder, "menuWindowCallinfo").(*gtk.MenuItem)
 	result.windowScore = getUI(builder, "menuWindowScore").(*gtk.MenuItem)
 	result.windowRate = getUI(builder, "menuWindowRate").(*gtk.MenuItem)
 	result.windowSpots = getUI(builder, "menuWindowSpots").(*gtk.MenuItem)
@@ -150,7 +147,6 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.bandmapGotoNextSpotUp.Connect("activate", result.onGotoNextSpotUp)
 	result.bandmapGotoNextSpotDown.Connect("activate", result.onGotoNextSpotDown)
 	result.bandmapSendSpotsToTci.Connect("toggled", result.onSendSpotsToTci)
-	result.windowCallinfo.Connect("activate", result.onCallinfo)
 	result.windowScore.Connect("activate", result.onScore)
 	result.windowRate.Connect("activate", result.onRate)
 	result.windowSpots.Connect("activate", result.onSpots)
@@ -304,10 +300,6 @@ func (m *mainMenu) onSendSpotsToTci() {
 		return
 	}
 	m.controller.SetSendSpotsToTci(m.bandmapSendSpotsToTci.GetActive())
-}
-
-func (m *mainMenu) onCallinfo() {
-	m.controller.ShowCallinfo()
 }
 
 func (m *mainMenu) onScore() {

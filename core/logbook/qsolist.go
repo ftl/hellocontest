@@ -2,6 +2,7 @@ package logbook
 
 import (
 	"log"
+	"sync"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -69,11 +70,12 @@ type QSOList struct {
 	theirExchangeFields []core.ExchangeField
 	bandRule            conval.BandRule
 
-	list    []core.QSO
-	scorer  QSOScorer
-	dupes   dupeIndex
-	worked  dupeIndex
-	invalid bool
+	dataLock *sync.RWMutex
+	list     []core.QSO
+	scorer   QSOScorer
+	dupes    dupeIndex
+	worked   dupeIndex
+	invalid  bool
 
 	listeners []interface{}
 }
@@ -83,6 +85,7 @@ func NewQSOList(settings core.Settings, scorer QSOScorer) *QSOList {
 	return &QSOList{
 		myExchangeFields:    contest.MyExchangeFields,
 		theirExchangeFields: contest.TheirExchangeFields,
+		dataLock:            &sync.RWMutex{},
 		list:                make([]core.QSO, 0),
 		scorer:              scorer,
 		dupes:               make(dupeIndex),
@@ -111,50 +114,77 @@ func (l *QSOList) Valid() bool {
 }
 
 func (l *QSOList) Clear() {
-	l.list = make([]core.QSO, 0)
-	l.dupes = make(dupeIndex)
-	l.worked = make(dupeIndex)
-	l.invalid = false
+	l.dataLock.Lock()
+	l.clear()
+	l.dataLock.Unlock()
 
 	l.emitQSOsCleared()
 }
 
+func (l *QSOList) clear() {
+	l.list = make([]core.QSO, 0)
+	l.dupes = make(dupeIndex)
+	l.worked = make(dupeIndex)
+	l.invalid = false
+}
+
 func (l *QSOList) Fill(qsos []core.QSO) {
+	l.dataLock.Lock()
+
 	l.scorer.Clear()
 	if len(l.list) > 0 {
-		l.Clear()
+		l.clear()
 	}
 
 	for _, qso := range qsos {
-		l.put(qso, true)
+		l.put(qso)
 	}
-
 	l.refreshScore()
-	for _, qso := range l.list {
+	allQSOs := l.all()
+
+	l.dataLock.Unlock()
+
+	l.emitQSOsCleared()
+	for _, qso := range allQSOs {
 		l.emitQSOAdded(qso)
 	}
 }
 
 func (l *QSOList) Put(qso core.QSO) {
-	l.put(qso, false)
+	l.dataLock.Lock()
+
+	emitNotifications := l.put(qso)
+
+	l.dataLock.Unlock()
+
+	emitNotifications()
 }
 
-func (l *QSOList) put(qso core.QSO, silent bool) {
+func (l *QSOList) put(qso core.QSO) func() {
 	if len(l.list) == 0 {
-		l.append(qso, silent)
-		return
+		return l.append(qso)
 	}
+
 	lastNumber := l.list[len(l.list)-1].MyNumber
 	if qso.MyNumber > lastNumber {
-		l.append(qso, silent)
-		return
+		return l.append(qso)
 	}
+
 	index, found := l.findIndex(qso.MyNumber)
 	if !found {
-		l.insert(index, qso, silent)
-		return
+		l.insert(index, qso)
+	} else {
+		l.update(index, qso)
 	}
-	l.update(index, qso, silent)
+	l.refreshScore()
+	qsos := l.all()
+
+	return func() {
+		l.emitQSOsCleared()
+		for _, qso := range qsos {
+			l.emitQSOAdded(qso)
+		}
+	}
 }
 
 func (l *QSOList) findIndex(number core.QSONumber) (int, bool) {
@@ -182,7 +212,7 @@ func findIndex(list []core.QSO, number core.QSONumber) (int, bool) {
 	return low, true
 }
 
-func (l *QSOList) append(qso core.QSO, silent bool) {
+func (l *QSOList) append(qso core.QSO) func() {
 	score := l.scorer.Add(qso)
 	qso.Points = score.Points
 	qso.Multis = score.Multis
@@ -194,34 +224,18 @@ func (l *QSOList) append(qso core.QSO, silent bool) {
 
 	l.list = append(l.list, qso)
 
-	if silent {
-		return
+	return func() {
+		l.emitQSOAdded(qso)
 	}
-
-	l.emitQSOAdded(qso)
 }
 
-func (l *QSOList) insert(index int, qso core.QSO, silent bool) {
+func (l *QSOList) insert(index int, qso core.QSO) {
 	l.list = append(l.list[:index+1], l.list[index:]...)
 	l.list[index] = qso
-
-	if silent {
-		return
-	}
-
-	l.refreshScore()
-	l.refreshAfterUpdate()
 }
 
-func (l *QSOList) update(index int, qso core.QSO, silent bool) {
+func (l *QSOList) update(index int, qso core.QSO) {
 	l.list[index] = qso
-
-	if silent {
-		return
-	}
-
-	l.refreshScore()
-	l.refreshAfterUpdate()
 }
 
 func (l *QSOList) refreshScore() {
@@ -242,13 +256,6 @@ func (l *QSOList) refreshScore() {
 	}
 }
 
-func (l *QSOList) refreshAfterUpdate() {
-	l.emitQSOsCleared()
-	for _, qso := range l.list {
-		l.emitQSOAdded(qso)
-	}
-}
-
 func (l *QSOList) dupeBandAndMode(band core.Band, mode core.Mode) (core.Band, core.Mode) {
 	switch l.bandRule {
 	case conval.Once:
@@ -263,22 +270,39 @@ func (l *QSOList) dupeBandAndMode(band core.Band, mode core.Mode) (core.Band, co
 }
 
 func (l *QSOList) All() []core.QSO {
-	return l.list
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	return l.all()
+}
+
+func (l *QSOList) all() []core.QSO {
+	result := make([]core.QSO, len(l.list))
+	copy(result, l.list)
+	return result
 }
 
 func (l *QSOList) SelectRow(index int) {
+	l.dataLock.RLock()
+
 	if index < 0 || index >= len(l.list) {
 		log.Printf("invalid QSO index %d", index)
+		l.dataLock.RUnlock()
 		return
 	}
-
 	qso := l.list[index]
+
+	l.dataLock.RUnlock()
+
 	l.emitQSOSelected(qso)
 	l.emitRowSelected(index)
 }
 
 func (l *QSOList) SelectQSO(qso core.QSO) {
+	l.dataLock.RLock()
 	index, ok := l.findIndex(qso.MyNumber)
+	l.dataLock.RUnlock()
+
 	if !ok {
 		log.Print("qso not found")
 		return
@@ -289,28 +313,45 @@ func (l *QSOList) SelectQSO(qso core.QSO) {
 }
 
 func (l *QSOList) SelectLastQSO() {
+	l.dataLock.RLock()
+
 	if len(l.list) == 0 {
+		l.dataLock.RUnlock()
 		return
 	}
 
 	index := len(l.list) - 1
 	qso := l.list[index]
+
+	l.dataLock.RUnlock()
+
 	l.emitQSOSelected(qso)
 	l.emitRowSelected(index)
 }
 
 func (l *QSOList) LastBandAndMode() (core.Band, core.Mode) {
+	l.dataLock.RLock()
+
 	if len(l.list) == 0 {
+		l.dataLock.RUnlock()
 		return core.NoBand, core.NoMode
 	}
+
 	index := len(l.list) - 1
 	qso := l.list[index]
+
+	l.dataLock.RUnlock()
+
 	return qso.Band, qso.Mode
 }
 
 func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	l.dataLock.RLock()
+	qsos := l.all()
+	l.dataLock.RUnlock()
+
 	result := make([]core.QSO, 0)
-	for _, qso := range l.list {
+	for _, qso := range qsos {
 		if callsign != qso.Callsign {
 			continue
 		}
@@ -326,12 +367,23 @@ func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 }
 
 func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
 	band, mode = l.dupeBandAndMode(band, mode)
 	numbers := l.dupes.Get(callsign, band, mode)
-	return l.GetQSOs(numbers)
+
+	return l.getQSOs(numbers)
 }
 
 func (l *QSOList) GetQSOs(numbers []core.QSONumber) []core.QSO {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	return l.getQSOs(numbers)
+}
+
+func (l *QSOList) getQSOs(numbers []core.QSONumber) []core.QSO {
 	result := make([]core.QSO, 0, len(numbers))
 	for _, n := range numbers {
 		listIndex, found := l.findIndex(n)
@@ -354,8 +406,13 @@ func (l *QSOList) GetQSOs(numbers []core.QSONumber) []core.QSO {
 }
 
 func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
+	l.dataLock.RLock()
+
 	numbers := l.worked.Get(callsign, core.NoBand, core.NoMode)
-	qsos := l.GetQSOs(numbers)
+	qsos := l.getQSOs(numbers)
+
+	l.dataLock.RUnlock()
+
 	if len(qsos) == 0 {
 		return qsos, false
 	}
@@ -384,6 +441,7 @@ func (l *QSOList) Notify(listener interface{}) {
 }
 
 func (l *QSOList) emitQSOsCleared() {
+	log.Printf("QSOs cleared")
 	for _, listener := range l.listeners {
 		if qsosClearedListener, ok := listener.(QSOsClearedListener); ok {
 			qsosClearedListener.QSOsCleared()
@@ -392,6 +450,7 @@ func (l *QSOList) emitQSOsCleared() {
 }
 
 func (l *QSOList) emitQSOAdded(qso core.QSO) {
+	log.Printf("QSO added")
 	for _, listener := range l.listeners {
 		if qsoAddedListener, ok := listener.(QSOAddedListener); ok {
 			qsoAddedListener.QSOAdded(qso)
@@ -400,6 +459,7 @@ func (l *QSOList) emitQSOAdded(qso core.QSO) {
 }
 
 func (l *QSOList) emitQSOSelected(qso core.QSO) {
+	log.Printf("QSO selected")
 	for _, listener := range l.listeners {
 		if qsoSelectedListener, ok := listener.(QSOSelectedListener); ok {
 			qsoSelectedListener.QSOSelected(qso)
@@ -408,6 +468,7 @@ func (l *QSOList) emitQSOSelected(qso core.QSO) {
 }
 
 func (l *QSOList) emitRowSelected(index int) {
+	log.Printf("Row selected")
 	for _, listener := range l.listeners {
 		if rowSelectedListener, ok := listener.(RowSelectedListener); ok {
 			rowSelectedListener.RowSelected(index)
@@ -416,6 +477,7 @@ func (l *QSOList) emitRowSelected(index int) {
 }
 
 func (l *QSOList) emitExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+	log.Printf("Exchange Fields changed")
 	for _, listener := range l.listeners {
 		if exchangeFieldsChangedListener, ok := listener.(ExchangeFieldsChangedListener); ok {
 			exchangeFieldsChangedListener.ExchangeFieldsChanged(myExchangeFields, theirExchangeFields)

@@ -80,7 +80,7 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 		maximumAge:   maximumAge,
 		weights:      defaultWeights,
 
-		do:     make(chan func()),
+		do:     make(chan func(), 1),
 		closed: make(chan struct{}),
 	}
 	result.entries = NewEntries(result.countEntryValue)

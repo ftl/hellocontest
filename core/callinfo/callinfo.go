@@ -163,12 +163,18 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 		c.predictedExchange = exchange
 	}
 
+	supercheck := c.calculateSupercheck(call)
+	bestMatch := ""
+	if len(supercheck) > 0 {
+		bestMatch = supercheck[0].Callsign.String()
+	}
+
 	c.showDXCCEntity(entity)
-	// c.view.SetCallsign(call, callinfo.Worked, callinfo.Duplicate)
+	c.view.SetBestMatchingCallsign(bestMatch)
 	c.view.SetUserInfo(callinfo.UserText)
 	c.view.SetValue(callinfo.Points, callinfo.Multis)
 	c.view.SetExchange(callinfo.ExchangeText)
-	c.showSupercheck(call)
+	c.view.SetSupercheck(supercheck)
 }
 
 func joinAvailableValues(values ...string) string {
@@ -206,12 +212,12 @@ func (c *Callinfo) showDXCCEntity(entity dxcc.Prefix) {
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
 }
 
-func (c *Callinfo) showSupercheck(s string) {
+func (c *Callinfo) calculateSupercheck(s string) []core.AnnotatedCallsign {
 	normalizedInput := strings.TrimSpace(strings.ToUpper(s))
 	scpMatches, err := c.callsigns.Find(s)
 	if err != nil {
 		log.Printf("Callsign search for failed for %s: %v", s, err)
-		return
+		return nil
 	}
 	historicMatches, _ := c.callHistory.Find(s)
 
@@ -266,7 +272,7 @@ func (c *Callinfo) showSupercheck(s string) {
 		return result[i].LessThan(result[j])
 	})
 
-	c.view.SetSupercheck(result)
+	return result
 }
 
 func placeholderToFilter(s string) *regexp.Regexp {

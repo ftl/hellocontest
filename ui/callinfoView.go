@@ -108,7 +108,7 @@ func attr(name, value string) string {
 // }
 
 func (v *callinfoView) SetBestMatchingCallsign(callsign string) {
-
+	v.callsignLabel.SetText(callsign)
 }
 
 func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {

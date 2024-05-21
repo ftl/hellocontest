@@ -441,7 +441,6 @@ func (l *QSOList) Notify(listener interface{}) {
 }
 
 func (l *QSOList) emitQSOsCleared() {
-	log.Printf("QSOs cleared")
 	for _, listener := range l.listeners {
 		if qsosClearedListener, ok := listener.(QSOsClearedListener); ok {
 			qsosClearedListener.QSOsCleared()
@@ -450,7 +449,6 @@ func (l *QSOList) emitQSOsCleared() {
 }
 
 func (l *QSOList) emitQSOAdded(qso core.QSO) {
-	log.Printf("QSO added")
 	for _, listener := range l.listeners {
 		if qsoAddedListener, ok := listener.(QSOAddedListener); ok {
 			qsoAddedListener.QSOAdded(qso)
@@ -459,7 +457,6 @@ func (l *QSOList) emitQSOAdded(qso core.QSO) {
 }
 
 func (l *QSOList) emitQSOSelected(qso core.QSO) {
-	log.Printf("QSO selected")
 	for _, listener := range l.listeners {
 		if qsoSelectedListener, ok := listener.(QSOSelectedListener); ok {
 			qsoSelectedListener.QSOSelected(qso)
@@ -468,7 +465,6 @@ func (l *QSOList) emitQSOSelected(qso core.QSO) {
 }
 
 func (l *QSOList) emitRowSelected(index int) {
-	log.Printf("Row selected")
 	for _, listener := range l.listeners {
 		if rowSelectedListener, ok := listener.(RowSelectedListener); ok {
 			rowSelectedListener.RowSelected(index)
@@ -477,7 +473,6 @@ func (l *QSOList) emitRowSelected(index int) {
 }
 
 func (l *QSOList) emitExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
-	log.Printf("Exchange Fields changed")
 	for _, listener := range l.listeners {
 		if exchangeFieldsChangedListener, ok := listener.(ExchangeFieldsChangedListener); ok {
 			exchangeFieldsChangedListener.ExchangeFieldsChanged(myExchangeFields, theirExchangeFields)

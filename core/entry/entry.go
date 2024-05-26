@@ -3,6 +3,7 @@ package entry
 import (
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,10 @@ import (
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
 	"github.com/ftl/hellocontest/core/ticker"
+)
+
+const (
+	jumpThreshold core.Frequency = 250 // Hz
 )
 
 // View represents the visual part of the QSO data entry.
@@ -430,8 +435,17 @@ func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
 	if c.selectedFrequency == frequency {
 		return
 	}
+	jump := math.Abs(float64(c.selectedFrequency-frequency)) > float64(jumpThreshold)
 	c.selectedFrequency = frequency
 	c.view.SetFrequency(c.selectedFrequency)
+
+	if jump {
+		c.asyncRunner(func() {
+			c.Clear()
+			c.activeField = core.CallsignField
+			c.view.SetActiveField(c.activeField)
+		})
+	}
 }
 
 func (c *Controller) bandSelected(s string) {

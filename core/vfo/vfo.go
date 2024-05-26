@@ -2,6 +2,7 @@ package vfo
 
 import (
 	"log"
+	"sync"
 
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
@@ -157,6 +158,7 @@ type bandState struct {
 type offlineClient struct {
 	vfo         *VFO
 	currentBand core.Band
+	stateLock   *sync.RWMutex
 	lastStates  map[core.Band]bandState
 }
 
@@ -164,6 +166,7 @@ func newOfflineClient(vfo *VFO) *offlineClient {
 	result := &offlineClient{
 		vfo:         vfo,
 		currentBand: core.Band160m,
+		stateLock:   &sync.RWMutex{},
 		lastStates:  make(map[core.Band]bandState),
 	}
 	_ = result.lastState(result.currentBand)
@@ -175,16 +178,19 @@ func (c *offlineClient) lastState(band core.Band) bandState {
 	if ok {
 		return result
 	}
+
 	plan, ok := c.vfo.bandplan[bandplan.BandName(band)]
 	if !ok {
 		log.Printf("Band %s not found in bandplan! (1)", band)
 		return bandState{}
 	}
+
 	result = bandState{
 		frequency: core.Frequency(plan.From),
 		mode:      core.ModeCW,
 	}
 	c.lastStates[band] = result
+
 	return result
 }
 
@@ -193,7 +199,9 @@ func (c *offlineClient) Active() bool {
 }
 
 func (c *offlineClient) Refresh() {
+	c.stateLock.RLock()
 	state := c.lastState(c.currentBand)
+	c.stateLock.RUnlock()
 
 	c.vfo.emitFrequencyChanged(state.frequency)
 	c.vfo.emitBandChanged(c.currentBand)
@@ -204,9 +212,12 @@ func (c *offlineClient) SetFrequency(frequency core.Frequency) {
 	planband := c.vfo.bandplan.ByFrequency(hamradio.Frequency(frequency))
 	newBand := core.Band(planband.Name)
 
+	c.stateLock.Lock()
 	state := c.lastState(newBand)
 	state.frequency = frequency
 	c.lastStates[newBand] = state
+	c.stateLock.Unlock()
+
 	c.vfo.emitFrequencyChanged(frequency)
 
 	if newBand == c.currentBand {
@@ -228,7 +239,10 @@ func (c *offlineClient) SetBand(band core.Band) {
 		return
 	}
 
+	c.stateLock.RLock()
 	state := c.lastState(newBand)
+	c.stateLock.RUnlock()
+
 	c.vfo.emitFrequencyChanged(state.frequency)
 
 	c.currentBand = newBand
@@ -236,8 +250,11 @@ func (c *offlineClient) SetBand(band core.Band) {
 }
 
 func (c *offlineClient) SetMode(mode core.Mode) {
+	c.stateLock.Lock()
 	state := c.lastState(c.currentBand)
 	state.mode = mode
 	c.lastStates[c.currentBand] = state
+	c.stateLock.Unlock()
+
 	c.vfo.emitModeChanged(mode)
 }

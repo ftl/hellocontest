@@ -891,6 +891,7 @@ type Callinfo struct {
 	CQZone            int
 	UserText          string
 	PredictedExchange []string
+	FilteredExchange  []string
 	ExchangeText      string
 
 	Worked        bool // already worked on another band/mode, but does not count as duplicate

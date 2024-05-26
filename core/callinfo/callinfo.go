@@ -84,7 +84,8 @@ type View interface {
 	SetBestMatchingCallsign(callsign string)
 	SetDXCC(string, string, int, int, bool)
 	SetValue(points, multis int)
-	SetExchange(exchange string)
+	SetPredictedExchange(index int, text string)
+	SetPredictedExchangeFields(fields []core.ExchangeField)
 	SetUserInfo(string)
 	SetSupercheck(callsigns []core.AnnotatedCallsign)
 }
@@ -95,6 +96,7 @@ func (c *Callinfo) SetView(view View) {
 		return
 	}
 	c.view = view
+	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
 func (c *Callinfo) Refresh() {
@@ -107,6 +109,7 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 		return
 	}
 	c.theirExchangeFields = contest.TheirExchangeFields
+	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
 func (c *Callinfo) PredictedExchange() []string {
@@ -138,8 +141,8 @@ func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mod
 	result.Duplicate = duplicate
 	result.Worked = len(qsos) > 0
 	result.PredictedExchange = c.predictExchange(entity, qsos, exchange, historicExchange)
-	filteredExchange := c.exchangeFilter.FilterExchange(result.PredictedExchange)
-	result.ExchangeText = strings.Join(filteredExchange, " ")
+	result.FilteredExchange = c.exchangeFilter.FilterExchange(result.PredictedExchange)
+	result.ExchangeText = strings.Join(result.FilteredExchange, " ")
 
 	result.Points, result.Multis, result.MultiValues = c.valuer.Value(call, entity, band, mode, result.PredictedExchange)
 
@@ -173,7 +176,13 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	c.view.SetBestMatchingCallsign(bestMatch)
 	c.view.SetUserInfo(callinfo.UserText)
 	c.view.SetValue(callinfo.Points, callinfo.Multis)
-	c.view.SetExchange(callinfo.ExchangeText)
+	for i := range c.theirExchangeFields {
+		text := ""
+		if i < len(callinfo.FilteredExchange) {
+			text = callinfo.FilteredExchange[i]
+		}
+		c.view.SetPredictedExchange(i+1, text)
+	}
 	c.view.SetSupercheck(supercheck)
 }
 
@@ -333,11 +342,12 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 
 type nullView struct{}
 
-func (v *nullView) Show()                                            {}
-func (v *nullView) Hide()                                            {}
-func (v *nullView) SetBestMatchingCallsign(callsign string)          {}
-func (v *nullView) SetDXCC(string, string, int, int, bool)           {}
-func (v *nullView) SetValue(int, int)                                {}
-func (v *nullView) SetExchange(string)                               {}
-func (v *nullView) SetUserInfo(string)                               {}
-func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign) {}
+func (v *nullView) Show()                                                  {}
+func (v *nullView) Hide()                                                  {}
+func (v *nullView) SetBestMatchingCallsign(callsign string)                {}
+func (v *nullView) SetDXCC(string, string, int, int, bool)                 {}
+func (v *nullView) SetValue(int, int)                                      {}
+func (v *nullView) SetPredictedExchange(int, string)                       {}
+func (v *nullView) SetPredictedExchangeFields(fields []core.ExchangeField) {}
+func (v *nullView) SetUserInfo(string)                                     {}
+func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)       {}

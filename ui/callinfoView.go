@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/gotk3/gotk3/gtk"
@@ -48,12 +49,13 @@ const (
 type callinfoView struct {
 	controller CallinfoController
 
-	callsignLabel   *gtk.Label
-	exchangeLabel   *gtk.Label
-	dxccLabel       *gtk.Label
-	valueLabel      *gtk.Label
-	userInfoLabel   *gtk.Label
-	supercheckLabel *gtk.Label
+	callsignLabel            *gtk.Label
+	dxccLabel                *gtk.Label
+	valueLabel               *gtk.Label
+	userInfoLabel            *gtk.Label
+	supercheckLabel          *gtk.Label
+	predictedExchangesParent *gtk.Grid
+	predictedExchanges       []*gtk.Label
 
 	style *callinfoStyle
 }
@@ -65,11 +67,11 @@ func setupCallinfoView(builder *gtk.Builder, colors colorProvider) *callinfoView
 	result.style.Refresh()
 
 	result.callsignLabel = getUI(builder, "bestMatchCallsign").(*gtk.Label)
-	// result.exchangeLabel = getUI(builder, "xchangeLabel").(*gtk.Label)
 	result.dxccLabel = getUI(builder, "callsignDXCCLabel").(*gtk.Label)
 	result.valueLabel = getUI(builder, "predictedValueLabel").(*gtk.Label)
 	result.userInfoLabel = getUI(builder, "callsignUserInfoLabel").(*gtk.Label)
 	result.supercheckLabel = getUI(builder, "callsignSupercheckLabel").(*gtk.Label)
+	result.predictedExchangesParent = getUI(builder, "predictedExchangesGrid").(*gtk.Grid)
 
 	return result
 }
@@ -88,24 +90,6 @@ func (v *callinfoView) RefreshStyle() {
 func attr(name, value string) string {
 	return fmt.Sprintf("%s=%q", name, value)
 }
-
-// func (v *callinfoView) SetCallsign(callsign string, worked, duplicate bool) {
-// 	normalized := strings.ToUpper(strings.TrimSpace(callsign))
-// 	if normalized == "" {
-// 		normalized = "-"
-// 	}
-// 	v.callsignLabel.SetText(normalized)
-
-// 	style.RemoveClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
-// 	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorkedClass)
-// 	style.RemoveClass(&v.callsignLabel.Widget, callinfoWorthlessClass)
-
-// 	if duplicate {
-// 		style.AddClass(&v.callsignLabel.Widget, callinfoDuplicateClass)
-// 	} else if worked {
-// 		style.AddClass(&v.callsignLabel.Widget, callinfoWorkedClass)
-// 	}
-// }
 
 func (v *callinfoView) SetBestMatchingCallsign(callsign string) {
 	v.callsignLabel.SetText(callsign)
@@ -143,18 +127,6 @@ func (v *callinfoView) SetValue(points, multis int) {
 	}
 
 	v.valueLabel.SetText(fmt.Sprintf("%dP %dM", points, multis))
-}
-
-func (v *callinfoView) SetExchange(exchange string) {
-	var exchangeMarkup string
-	if exchange == "" {
-		exchange = "-"
-	} else {
-		exchange = strings.ToUpper(strings.TrimSpace(exchange))
-	}
-	exchangeText := fmt.Sprintf("<span %s>%s</span>", exchangeMarkup, exchange)
-	_ = exchangeText
-	// v.exchangeLabel.SetMarkup(exchangeText)
 }
 
 func (v *callinfoView) SetUserInfo(value string) {
@@ -232,4 +204,49 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 		text += renderedCallsign
 	}
 	v.supercheckLabel.SetMarkup(text)
+}
+
+func (v *callinfoView) SetPredictedExchange(index int, text string) {
+	i := index - 1
+	if i < 0 || i >= len(v.predictedExchanges) {
+		return
+	}
+
+	var exchangeMarkup string
+	if text == "" {
+		text = "-"
+	} else {
+		text = strings.TrimSpace(text)
+	}
+	exchangeText := fmt.Sprintf("<span %s>%s</span>", exchangeMarkup, text)
+	v.predictedExchanges[i].SetMarkup(exchangeText)
+}
+
+func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {
+	v.setExchangeFields(fields, v.predictedExchangesParent, &v.predictedExchanges)
+}
+
+func (v *callinfoView) setExchangeFields(fields []core.ExchangeField, parent *gtk.Grid, labels *[]*gtk.Label) {
+	for _, label := range *labels {
+		label.Destroy()
+		parent.RemoveColumn(0)
+	}
+
+	*labels = make([]*gtk.Label, len(fields))
+	for i, field := range fields {
+		label, err := gtk.LabelNew("")
+		if err != nil {
+			log.Printf("cannot create entry for %s: %v", field.Field, err)
+			break
+		}
+		label.SetName(string(field.Field))
+		label.SetTooltipText(field.Short) // TODO use field.Hint
+		label.SetHExpand(true)
+		label.SetHAlign(gtk.ALIGN_FILL)
+		label.SetXAlign(0)
+
+		(*labels)[i] = label
+		parent.Add(label)
+	}
+	parent.ShowAll()
 }

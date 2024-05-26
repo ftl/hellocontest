@@ -1978,7 +1978,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
           </packing>
         </child>
         <child>
-          <!-- n-columns=6 n-rows=10 -->
+          <!-- n-columns=6 n-rows=9 -->
           <object class="GtkGrid" id="entryGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
@@ -2194,7 +2194,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">9</property>
+                <property name="top-attach">8</property>
                 <property name="width">6</property>
               </packing>
             </child>
@@ -2236,19 +2236,6 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="callsignUserInfoLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Hans, Salzgitter</property>
-                <property name="xalign">0</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
-                <property name="width">6</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="callsignSupercheckLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -2262,7 +2249,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">8</property>
+                <property name="top-attach">7</property>
                 <property name="width">6</property>
               </packing>
             </child>
@@ -2281,7 +2268,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">6</property>
-                <property name="width">6</property>
+                <property name="width">3</property>
               </packing>
             </child>
             <child>
@@ -2295,6 +2282,19 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                 <property name="left-attach">0</property>
                 <property name="top-attach">5</property>
                 <property name="width">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="callsignUserInfoLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">Hans, Salzgitter</property>
+                <property name="xalign">1</property>
+              </object>
+              <packing>
+                <property name="left-attach">3</property>
+                <property name="top-attach">6</property>
+                <property name="width">3</property>
               </packing>
             </child>
             <child>

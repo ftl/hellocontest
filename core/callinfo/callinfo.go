@@ -45,6 +45,8 @@ type Callinfo struct {
 	lastExchange        []string
 	predictedExchange   []string
 	theirExchangeFields []core.ExchangeField
+
+	bestMatches []string
 }
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -112,6 +114,10 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
+func (c *Callinfo) BestMatches() []string {
+	return c.bestMatches
+}
+
 func (c *Callinfo) PredictedExchange() []string {
 	return c.predictedExchange
 }
@@ -167,9 +173,13 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	}
 
 	supercheck := c.calculateSupercheck(call)
+	c.bestMatches = make([]string, 0, len(supercheck))
 	bestMatch := ""
-	if len(supercheck) > 0 {
-		bestMatch = supercheck[0].Callsign.String()
+	for i, match := range supercheck {
+		c.bestMatches = append(c.bestMatches, match.Callsign.String())
+		if i == 0 {
+			bestMatch = c.bestMatches[0]
+		}
 	}
 
 	c.showDXCCEntity(entity)

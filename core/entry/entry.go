@@ -73,6 +73,7 @@ type Keyer interface {
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
 	ShowInfo(call string, band core.Band, mode core.Mode, exchange []string)
+	BestMatches() []string
 	PredictedExchange() []string
 }
 
@@ -372,6 +373,17 @@ func (c *Controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 
 func (c *Controller) SetActiveField(field core.EntryField) {
 	c.activeField = field
+}
+
+func (c *Controller) SelectMatch(index int) {
+	matches := c.callinfo.BestMatches()
+	if index < 0 || index >= len(matches) {
+		return
+	}
+
+	c.input.callsign = matches[index]
+	c.enterCallsign(matches[index])
+	c.showInput()
 }
 
 func (c *Controller) Enter(text string) {
@@ -968,6 +980,7 @@ func (n *nullLogbook) Log(core.QSO)               {}
 type nullCallinfo struct{}
 
 func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, []string) {}
+func (n *nullCallinfo) BestMatches() []string                           { return []string{} }
 func (n *nullCallinfo) PredictedExchange() []string                     { return []string{} }
 
 type nullBandmap struct{}

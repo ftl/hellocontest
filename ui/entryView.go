@@ -19,6 +19,7 @@ type EntryController interface {
 	SetActiveField(core.EntryField)
 
 	Enter(string)
+	SelectMatch(int)
 	SendQuestion()
 	StopTX()
 
@@ -107,7 +108,18 @@ func (v *entryView) addEntryEventHandlers(w *gtk.Widget) {
 func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 	keyEvent := gdk.EventKeyNewFromEvent(event)
 	ctrl := keyEvent.State()&gdk.CONTROL_MASK != 0
-	switch keyEvent.KeyVal() {
+	alt := keyEvent.State()&gdk.MOD1_MASK != 0 // MOD1 = ALT right
+	key := keyEvent.KeyVal()
+
+	switch key {
+	case gdk.KEY_1, gdk.KEY_2, gdk.KEY_3, gdk.KEY_4, gdk.KEY_5, gdk.KEY_6, gdk.KEY_7, gdk.KEY_8, gdk.KEY_9:
+		if alt {
+			index := int(key - gdk.KEY_1)
+			v.controller.SelectMatch(index)
+			return true
+		} else {
+			return false
+		}
 	case gdk.KEY_Tab:
 		v.controller.GotoNextField()
 		return true
@@ -119,7 +131,11 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 		}
 		return true
 	case gdk.KEY_Return:
-		v.controller.Log()
+		if alt {
+			v.controller.SelectMatch(0)
+		} else {
+			v.controller.Log()
+		}
 		return true
 	case gdk.KEY_question:
 		v.controller.SendQuestion()

@@ -273,49 +273,6 @@ func TestSelectLastQSO(t *testing.T) {
 	assert.True(t, indexNotified, "indexNotified")
 }
 
-func TestFind(t *testing.T) {
-	list := NewQSOList(new(testSettings), new(testScorer))
-	aa1zzz := callsign.MustParse("AA1ZZZ")
-	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeCW, MyNumber: core.QSONumber(1)})
-	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band10m, Mode: core.ModeSSB, MyNumber: core.QSONumber(2)})
-	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeCW, MyNumber: core.QSONumber(3)})
-	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeSSB, MyNumber: core.QSONumber(4)})
-	list.Put(core.QSO{Callsign: aa1zzz, Band: core.Band20m, Mode: core.ModeRTTY, MyNumber: core.QSONumber(5)})
-
-	testCases := []struct {
-		band        core.Band
-		mode        core.Mode
-		expectedLen int
-	}{
-		{core.NoBand, core.NoMode, 5},
-		{core.Band10m, core.NoMode, 2},
-		{core.Band20m, core.NoMode, 3},
-		{core.Band10m, core.ModeCW, 1},
-		{core.Band10m, core.ModeRTTY, 0},
-		{core.NoBand, core.ModeCW, 2},
-	}
-	for _, tC := range testCases {
-		t.Run(fmt.Sprintf("%v, %v", tC.band, tC.mode), func(t *testing.T) {
-			qsos := list.Find(aa1zzz, tC.band, tC.mode)
-			assert.Equal(t, tC.expectedLen, len(qsos))
-		})
-	}
-}
-
-func TestDoNotFindEditedCallsign(t *testing.T) {
-	list := NewQSOList(new(testSettings), new(testScorer))
-	aa1zzz := callsign.MustParse("AA1ZZZ")
-	a1bc := callsign.MustParse("A1BC")
-	list.Put(core.QSO{Callsign: aa1zzz, MyNumber: core.QSONumber(5)})
-	list.Put(core.QSO{Callsign: a1bc, MyNumber: core.QSONumber(5)})
-
-	assert.Empty(t, list.Find(aa1zzz, core.NoBand, core.NoMode))
-	newQSOs := list.Find(a1bc, core.NoBand, core.NoMode)
-	require.Equal(t, 1, len(newQSOs))
-	assert.Equal(t, core.QSONumber(5), newQSOs[0].MyNumber)
-	assert.Equal(t, a1bc, newQSOs[0].Callsign)
-}
-
 func TestQSOAddedListener(t *testing.T) {
 	list := NewQSOList(new(testSettings), new(testScorer))
 	qso := core.QSO{MyNumber: 1}

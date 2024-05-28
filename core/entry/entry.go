@@ -62,7 +62,6 @@ type Logbook interface {
 
 // QSOList functionality used for QSO entry.
 type QSOList interface {
-	Find(callsign.Callsign, core.Band, core.Mode) []core.QSO
 	FindDuplicateQSOs(callsign.Callsign, core.Band, core.Mode) []core.QSO
 	SelectQSO(core.QSO)
 	SelectLastQSO()

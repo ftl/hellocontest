@@ -345,27 +345,6 @@ func (l *QSOList) LastBandAndMode() (core.Band, core.Mode) {
 	return qso.Band, qso.Mode
 }
 
-func (l *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
-	l.dataLock.RLock()
-	qsos := l.all()
-	l.dataLock.RUnlock()
-
-	result := make([]core.QSO, 0)
-	for _, qso := range qsos {
-		if callsign != qso.Callsign {
-			continue
-		}
-		if band != core.NoBand && band != qso.Band {
-			continue
-		}
-		if mode != core.NoMode && mode != qso.Mode {
-			continue
-		}
-		result = append(result, qso)
-	}
-	return result
-}
-
 func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()

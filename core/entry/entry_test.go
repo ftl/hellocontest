@@ -587,7 +587,7 @@ func TestEntryController_EditQSO(t *testing.T) {
 
 	log.Activate()
 	log.On("Log", changedQSO).Once()
-	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
+	log.On("LastExchange").Return([]string{"599", "001", ""}).Times(2)
 	log.On("NextNumber").Return(core.QSONumber(35))
 	controller.Log()
 
@@ -603,7 +603,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
 	settings := &testSettings{myCall: "DL0ABC"}
-	controller := NewController(settings, clock, qsoList, new(nullBandmap), testIgnoreAsync)
+	controller := NewController(settings, clock, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
 	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
@@ -621,7 +621,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	view := new(mocked.EntryView)
 	exchangeFields := []conval.ExchangeField{{conval.RSTProperty}, {conval.SerialNumberProperty}, {conval.GenericTextProperty}}
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
-	controller := NewController(settings, clock, qsoList, new(nullBandmap), testIgnoreAsync)
+	controller := NewController(settings, clock, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
 	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
@@ -643,7 +643,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 		exchangeFields[i] = conval.ExchangeField{conval.GenericTextProperty}
 	}
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: exchangeValues}
-	controller := NewController(settings, clock, qsoList, new(nullBandmap), testIgnoreAsync)
+	controller := NewController(settings, clock, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
 	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
@@ -691,6 +691,8 @@ func (s *testSettings) Contest() core.Contest {
 }
 
 func testIgnoreAsync(f func()) {}
+
+func testRunSync(f func()) { f() }
 
 func fieldDefinition(fields ...conval.ExchangeField) *conval.Definition {
 	return &conval.Definition{

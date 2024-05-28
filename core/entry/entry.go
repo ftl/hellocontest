@@ -424,23 +424,24 @@ func (c *Controller) bandEntered(band core.Band) {
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
-	if c.editing {
-		return
-	}
-	if c.selectedFrequency == frequency {
-		return
-	}
-	jump := math.Abs(float64(c.selectedFrequency-frequency)) > float64(jumpThreshold)
-	c.selectedFrequency = frequency
-	c.view.SetFrequency(c.selectedFrequency)
+	c.asyncRunner(func() {
+		if c.editing {
+			return
+		}
+		if c.selectedFrequency == frequency {
+			return
+		}
+		jump := math.Abs(float64(c.selectedFrequency-frequency)) > float64(jumpThreshold)
+		c.selectedFrequency = frequency
 
-	if jump {
-		c.asyncRunner(func() {
+		c.view.SetFrequency(frequency)
+
+		if jump {
 			c.Clear()
 			c.activeField = core.CallsignField
 			c.view.SetActiveField(c.activeField)
-		})
-	}
+		}
+	})
 }
 
 func (c *Controller) bandSelected(s string) {
@@ -453,15 +454,17 @@ func (c *Controller) bandSelected(s string) {
 }
 
 func (c *Controller) VFOBandChanged(band core.Band) {
-	if c.editing {
-		return
-	}
-	if band == core.NoBand || band == c.selectedBand {
-		return
-	}
-	c.selectedBand = band
-	c.input.band = c.selectedBand.String()
-	c.view.SetBand(c.input.band)
+	c.asyncRunner(func() {
+		if c.editing {
+			return
+		}
+		if band == core.NoBand || band == c.selectedBand {
+			return
+		}
+		c.selectedBand = band
+		c.input.band = c.selectedBand.String()
+		c.view.SetBand(c.input.band)
+	})
 }
 
 func (c *Controller) modeSelected(s string) {
@@ -478,7 +481,7 @@ func (c *Controller) modeSelected(s string) {
 }
 
 func (c *Controller) generateReportForMode(mode core.Mode) {
-	generatedReport := defaultReportForMode(c.selectedMode)
+	generatedReport := defaultReportForMode(mode)
 	myIndex := c.myReportExchangeField.Field.ExchangeIndex()
 	if myIndex > 0 {
 		c.input.myReport = generatedReport
@@ -505,15 +508,17 @@ func defaultReportForMode(mode core.Mode) string {
 }
 
 func (c *Controller) VFOModeChanged(mode core.Mode) {
-	if c.editing {
-		return
-	}
-	if mode == core.NoMode || mode == c.selectedMode {
-		return
-	}
-	c.selectedMode = mode
-	c.input.mode = c.selectedMode.String()
-	c.view.SetMode(c.input.mode)
+	c.asyncRunner(func() {
+		if c.editing {
+			return
+		}
+		if mode == core.NoMode || mode == c.selectedMode {
+			return
+		}
+		c.selectedMode = mode
+		c.input.mode = c.selectedMode.String()
+		c.view.SetMode(c.input.mode)
+	})
 }
 
 func (c *Controller) SendQuestion() {

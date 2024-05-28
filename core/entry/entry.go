@@ -54,8 +54,6 @@ type input struct {
 // Logbook functionality used for QSO entry.
 type Logbook interface {
 	NextNumber() core.QSONumber
-	LastBand() core.Band
-	LastMode() core.Mode
 	LastExchange() []string
 	Log(core.QSO)
 }

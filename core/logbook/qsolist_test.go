@@ -206,28 +206,6 @@ func TestFindWorkedQSOs(t *testing.T) {
 	assert.True(t, dupeDL2ABC, "dl2abc dupe")
 }
 
-func TestSelectQSO(t *testing.T) {
-	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
-	list := NewQSOList(new(testSettings), new(testScorer))
-	list.Put(qso)
-	list.Put(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
-	qsoNotified := false
-	indexNotified := false
-	list.Notify(QSOSelectedListenerFunc(func(selectedQSO core.QSO) {
-		qsoNotified = true
-		assert.Equal(t, qso, selectedQSO)
-	}))
-	list.Notify(RowSelectedListenerFunc(func(index int) {
-		indexNotified = true
-		assert.Equal(t, 0, index)
-	}))
-
-	list.SelectQSO(qso)
-
-	assert.True(t, qsoNotified, "qsoNotified")
-	assert.True(t, indexNotified, "indexNotified")
-}
-
 func TestSelectRow(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
 	list := NewQSOList(new(testSettings), new(testScorer))

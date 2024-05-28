@@ -298,20 +298,6 @@ func (l *QSOList) SelectRow(index int) {
 	l.emitRowSelected(index)
 }
 
-func (l *QSOList) SelectQSO(qso core.QSO) {
-	l.dataLock.RLock()
-	index, ok := l.findIndex(qso.MyNumber)
-	l.dataLock.RUnlock()
-
-	if !ok {
-		log.Print("qso not found")
-		return
-	}
-
-	l.emitQSOSelected(qso)
-	l.emitRowSelected(index)
-}
-
 func (l *QSOList) SelectLastQSO() {
 	l.dataLock.RLock()
 

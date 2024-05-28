@@ -315,22 +315,6 @@ func (l *QSOList) SelectLastQSO() {
 	l.emitRowSelected(index)
 }
 
-func (l *QSOList) LastBandAndMode() (core.Band, core.Mode) {
-	l.dataLock.RLock()
-
-	if len(l.list) == 0 {
-		l.dataLock.RUnlock()
-		return core.NoBand, core.NoMode
-	}
-
-	index := len(l.list) - 1
-	qso := l.list[index]
-
-	l.dataLock.RUnlock()
-
-	return qso.Band, qso.Mode
-}
-
 func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()

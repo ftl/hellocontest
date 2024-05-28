@@ -306,7 +306,7 @@ func (s *testScorer) Clear() {
 	s.worked = make([]string, 1)
 }
 
-func (s *testScorer) Add(qso core.QSO) core.QSOScore {
+func (s *testScorer) AddMuted(qso core.QSO) core.QSOScore {
 	if s.scores == nil {
 		s.scores = make(map[string]core.QSOScore)
 	}
@@ -325,3 +325,5 @@ func (s *testScorer) Add(qso core.QSO) core.QSOScore {
 	s.worked = append(s.worked, callsign)
 	return result
 }
+
+func (s *testScorer) Unmute() {}

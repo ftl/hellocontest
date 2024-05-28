@@ -62,7 +62,8 @@ func (f ExchangeFieldsChangedListenerFunc) ExchangeFieldsChanged(myExchangeField
 
 type QSOScorer interface {
 	Clear()
-	Add(qso core.QSO) core.QSOScore
+	AddMuted(qso core.QSO) core.QSOScore
+	Unmute()
 }
 
 type QSOList struct {
@@ -139,7 +140,6 @@ func (l *QSOList) Fill(qsos []core.QSO) {
 	for _, qso := range qsos {
 		l.put(qso)
 	}
-	l.refreshScore()
 	allQSOs := l.all()
 
 	l.dataLock.Unlock()
@@ -180,6 +180,7 @@ func (l *QSOList) put(qso core.QSO) func() {
 	qsos := l.all()
 
 	return func() {
+		l.scorer.Unmute()
 		l.emitQSOsCleared()
 		for _, qso := range qsos {
 			l.emitQSOAdded(qso)
@@ -213,7 +214,7 @@ func findIndex(list []core.QSO, number core.QSONumber) (int, bool) {
 }
 
 func (l *QSOList) append(qso core.QSO) func() {
-	score := l.scorer.Add(qso)
+	score := l.scorer.AddMuted(qso)
 	qso.Points = score.Points
 	qso.Multis = score.Multis
 	qso.Duplicate = score.Duplicate
@@ -225,6 +226,7 @@ func (l *QSOList) append(qso core.QSO) func() {
 	l.list = append(l.list, qso)
 
 	return func() {
+		l.scorer.Unmute()
 		l.emitQSOAdded(qso)
 	}
 }
@@ -243,7 +245,7 @@ func (l *QSOList) refreshScore() {
 	l.dupes = make(dupeIndex)
 	l.worked = make(dupeIndex)
 	for i, qso := range l.list {
-		score := l.scorer.Add(qso)
+		score := l.scorer.AddMuted(qso)
 		qso.Points = score.Points
 		qso.Multis = score.Multis
 		qso.Duplicate = score.Duplicate

@@ -181,8 +181,8 @@ func (m *Bandmap) ContestChanged(contest core.Contest) {
 }
 
 func (m *Bandmap) ScoreUpdated(score core.Score) {
+	totalScore := score.Result()
 	m.do <- func() {
-		totalScore := score.Result()
 		m.weights.TotalPoints = float64(totalScore.Points)
 		m.weights.TotalMultis = float64(totalScore.Multis)
 		m.update()

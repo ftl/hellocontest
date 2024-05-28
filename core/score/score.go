@@ -50,9 +50,10 @@ var toConvalMode = map[core.Mode]conval.Mode{
 }
 
 type Counter struct {
-	core.Score
-	counter        convalCounter
-	counterMutex   *sync.RWMutex
+	score          core.Score
+	readScore      core.Score
+	scoreLock      *sync.Mutex
+	counter        *safeConvalCounter
 	view           View
 	prefixDatabase prefixDatabase
 	invalid        bool
@@ -71,22 +72,27 @@ type Counter struct {
 
 func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 	result := &Counter{
-		Score:          core.NewScore(),
-		counter:        new(nullCounter),
-		counterMutex:   new(sync.RWMutex),
+		score:          core.NewScore(),
+		scoreLock:      &sync.Mutex{},
+		counter:        newSafeCounter(new(nullCounter)),
 		view:           new(nullView),
 		prefixDatabase: prefixDatabase{entities},
 	}
 
+	result.copyScore()
 	result.setStation(settings.Station())
 	result.setContest(settings.Contest())
-	result.resetCounter()
+	result.resetCounter() // CONVAL WRITE LOCK
 
 	return result
 }
 
+func (c *Counter) copyScore() {
+	c.readScore = c.score.Copy() // READ
+}
+
 func (c *Counter) Result() int {
-	return c.Score.Result().Result()
+	return c.readScore.Result().Result() // READ
 }
 
 func (c *Counter) SetView(view View) {
@@ -96,7 +102,7 @@ func (c *Counter) SetView(view View) {
 	}
 	c.view = view
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
-	c.view.ShowScore(c.Score)
+	c.view.ShowScore(c.readScore) // READ
 }
 
 func (c *Counter) StationChanged(station core.Station) {
@@ -104,7 +110,7 @@ func (c *Counter) StationChanged(station core.Station) {
 	c.setStation(station)
 	c.invalid = (oldSetup.MyCountry != c.contestSetup.MyCountry)
 
-	c.resetCounter()
+	c.resetCounter() // CONVAL WRITE LOCK
 }
 
 func (c *Counter) setStation(station core.Station) {
@@ -128,7 +134,7 @@ func (c *Counter) ContestChanged(contest core.Contest) {
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.invalid = true
 
-	c.resetCounter()
+	c.resetCounter() // CONVAL WRITE LOCK
 }
 
 func (c *Counter) setContest(contest core.Contest) {
@@ -140,18 +146,6 @@ func (c *Counter) setContest(contest core.Contest) {
 	c.theirExchangeFields = toConvalExchangeFields(contest.TheirExchangeFields)
 }
 
-func (c *Counter) resetCounter() {
-	c.counterMutex.Lock()
-	defer c.counterMutex.Unlock()
-
-	if c.contestDefinition == nil {
-		c.counter = new(nullCounter)
-		return
-	}
-
-	c.counter = conval.NewCounter(*c.contestDefinition, c.contestSetup, c.prefixDatabase)
-}
-
 func (c *Counter) Valid() bool {
 	return !c.invalid && (c.contestSetup.MyCountry != "") && (c.contestSetup.MyContinent != "")
 }
@@ -159,7 +153,7 @@ func (c *Counter) Valid() bool {
 func (c *Counter) Show() {
 	c.view.Show()
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
-	c.view.ShowScore(c.Score)
+	c.view.ShowScore(c.readScore) // READ
 }
 
 func (c *Counter) Hide() {
@@ -171,51 +165,55 @@ func (c *Counter) Notify(listener interface{}) {
 }
 
 func (c *Counter) Clear() {
-	c.Score = core.NewScore()
-
-	c.resetCounter()
+	c.scoreLock.Lock()
+	c.score = core.NewScore() // WRITE
+	c.copyScore()
+	c.scoreLock.Unlock()
+	c.resetCounter() // CONVAL WRITE LOCK
 
 	c.invalid = (c.contestSetup.MyCountry == "")
-	c.emitScoreUpdated(c.Score)
+
+	c.emitScoreUpdated(c.readScore) // READ
 }
 
-func (c *Counter) countQSO(qso core.QSO) conval.QSOScore {
-	c.counterMutex.Lock()
-	defer c.counterMutex.Unlock()
-	return c.counter.Add(c.toConvalQSO(qso))
-}
-
-func (c *Counter) Add(qso core.QSO) core.QSOScore {
-	qsoScore := c.countQSO(qso)
+func (c *Counter) AddMuted(qso core.QSO) core.QSOScore {
+	qsoScore := c.counter.Add(c.toConvalQSO(qso)) // CONVAL WRITE LOCK
 	result := core.QSOScore{
 		Points:    qsoScore.Points,
 		Multis:    qsoScore.Multis,
 		Duplicate: qsoScore.Duplicate,
 	}
 
-	bandScore := c.ScorePerBand[qso.Band]
+	c.scoreLock.Lock()
+
+	bandScore := c.score.ScorePerBand[qso.Band] // PREPARE WRITE
 	bandScore.AddQSO(result)
-	c.ScorePerBand[qso.Band] = bandScore
+	c.score.ScorePerBand[qso.Band] = bandScore // WRITE
 
 	if c.contestDefinition != nil {
-		graph, ok := c.GraphPerBand[qso.Band]
+		graph, ok := c.score.GraphPerBand[qso.Band] // PREPARE WRITE
 		if !ok {
 			graph = core.NewBandGraph(qso.Band, c.contestStartTime, c.contestDefinition.Duration)
 		}
 		graph.Add(qso.Time, result)
-		c.GraphPerBand[graph.Band] = graph
+		c.score.GraphPerBand[graph.Band] = graph // WRITE
 
-		sumGraph, ok := c.GraphPerBand[core.NoBand]
+		sumGraph, ok := c.score.GraphPerBand[core.NoBand] // PREPARE WRITE
 		if !ok {
 			sumGraph = core.NewBandGraph(core.NoBand, c.contestStartTime, c.contestDefinition.Duration)
 		}
 		sumGraph.Add(qso.Time, result)
-		c.GraphPerBand[core.NoBand] = sumGraph
+		c.score.GraphPerBand[core.NoBand] = sumGraph // WRITE
 	}
 
-	c.emitScoreUpdated(c.Score)
+	c.copyScore()
+	c.scoreLock.Unlock()
 
 	return result
+}
+
+func (c *Counter) Unmute() {
+	c.emitScoreUpdated(c.readScore)
 }
 
 func (c *Counter) emitScoreUpdated(score core.Score) {
@@ -237,15 +235,9 @@ func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band cor
 		Mode:           toConvalMode[mode],
 		TheirExchange:  c.toQSOExchange(c.theirExchangeFields, exchange),
 	}
-	qsoScore := c.probeQSO(convalQSO)
+	qsoScore := c.counter.Probe(convalQSO) // CONVAL READ LOCK
 
 	return qsoScore.Points, qsoScore.Multis, qsoScore.MultiValues
-}
-
-func (c *Counter) probeQSO(qso conval.QSO) conval.QSOScore {
-	c.counterMutex.RLock()
-	defer c.counterMutex.RUnlock()
-	return c.counter.Probe(qso)
 }
 
 func (c *Counter) toConvalQSO(qso core.QSO) conval.QSO {
@@ -267,6 +259,51 @@ func (c *Counter) toConvalQSO(qso core.QSO) conval.QSO {
 
 func (c *Counter) toQSOExchange(fields []conval.ExchangeField, values []string) conval.QSOExchange {
 	return conval.ParseExchange(fields, values, c.prefixDatabase, c.contestDefinition)
+}
+
+func (c *Counter) resetCounter() {
+	var counter convalCounter
+	if c.contestDefinition == nil {
+		counter = new(nullCounter)
+	} else {
+		counter = conval.NewCounter(*c.contestDefinition, c.contestSetup, c.prefixDatabase)
+	}
+	c.counter.Reset(counter) // CONVAL WRITE LOCK
+}
+
+type safeConvalCounter struct {
+	counter convalCounter
+	lock    *sync.RWMutex
+}
+
+func newSafeCounter(counter convalCounter) *safeConvalCounter {
+	return &safeConvalCounter{
+		counter: counter,
+		lock:    &sync.RWMutex{},
+	}
+}
+
+func (c *safeConvalCounter) Reset(counter convalCounter) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if counter == nil {
+		c.counter = new(nullCounter)
+	} else {
+		c.counter = counter
+	}
+}
+
+func (c *safeConvalCounter) Add(qso conval.QSO) conval.QSOScore {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.counter.Add(qso)
+}
+
+func (c *safeConvalCounter) Probe(qso conval.QSO) conval.QSOScore {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.counter.Probe(qso)
 }
 
 func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField {

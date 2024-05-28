@@ -483,6 +483,22 @@ func NewScore() Score {
 	}
 }
 
+func (s Score) Copy() Score {
+	result := Score{
+		ScorePerBand: make(map[Band]BandScore),
+		GraphPerBand: make(map[Band]BandGraph),
+	}
+
+	for band, bandScore := range s.ScorePerBand {
+		result.ScorePerBand[band] = bandScore
+	}
+	for band, bandGraph := range s.GraphPerBand {
+		result.GraphPerBand[band] = bandGraph.Copy()
+	}
+
+	return result
+}
+
 func (s Score) String() string {
 	buf := bytes.NewBufferString("")
 	fmt.Fprintf(buf, "Band QSOs  Dupe Pts     P/Q  Mult Q/M  Result \n")
@@ -562,6 +578,20 @@ func NewBandGraph(band Band, startTime time.Time, duration time.Duration) BandGr
 		binSeconds: duration.Seconds() / float64(binCount),
 		startTime:  startTime,
 	}
+}
+
+func (g BandGraph) Copy() BandGraph {
+	result := BandGraph{
+		Band:       g.Band,
+		DataPoints: make([]BandScore, len(g.DataPoints)),
+		Max:        g.Max,
+		startTime:  g.startTime,
+		binSeconds: g.binSeconds,
+	}
+
+	copy(result.DataPoints, g.DataPoints)
+
+	return result
 }
 
 func (g BandGraph) String() string {

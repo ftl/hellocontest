@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultUpdatePeriod: the bandmap is updated with this period
-	DefaultUpdatePeriod time.Duration = 1 * time.Second
+	DefaultUpdatePeriod time.Duration = 5 * time.Second
 	// DefaultMaximumAge of entries in the bandmap
 	// entries that were not seen within this period are removed from the bandmap
 	DefaultMaximumAge time.Duration = 10 * time.Minute
@@ -197,6 +197,10 @@ func (m *Bandmap) VFOFrequencyChanged(frequency core.Frequency) {
 
 func (m *Bandmap) VFOBandChanged(band core.Band) {
 	m.do <- func() {
+		if band == m.activeBand {
+			return
+		}
+
 		if m.activeBand == m.visibleBand {
 			m.visibleBand = band
 		}
@@ -207,6 +211,10 @@ func (m *Bandmap) VFOBandChanged(band core.Band) {
 
 func (m *Bandmap) VFOModeChanged(mode core.Mode) {
 	m.do <- func() {
+		if m.activeMode == mode {
+			return
+		}
+
 		m.activeMode = mode
 		m.update()
 	}

@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"log"
-	"math"
 	"strings"
 	"time"
 
@@ -149,8 +148,8 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			spotColumnBackground,
 		},
 		[]any{
-			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
-			formatSpotCall(entry.Call, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
+			formatSpotFrequency(entry.Frequency),
+			formatSpotCall(entry.Call),
 			entry.Quality.Tag(),
 			entry.Info.ExchangeText,
 			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
@@ -165,24 +164,12 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 	)
 }
 
-func formatSpotFrequency(frequency core.Frequency, proximity float64, onFrequency bool) string {
-	size := 100 + math.Abs(proximity)*30
-	result := fmt.Sprintf("<span size=\"%.0f%%\">%.2f kHz</span>", size, frequency/1000)
-	if onFrequency {
-		return fmt.Sprintf("<b>%s</b>", result)
-	}
-
-	return result
+func formatSpotFrequency(frequency core.Frequency) string {
+	return fmt.Sprintf("%.2f kHz", frequency/1000)
 }
 
-func formatSpotCall(call callsign.Callsign, proximity float64, onFrequency bool) string {
-	size := 100 + math.Abs(proximity)*30
-	result := fmt.Sprintf("<span size=\"%.0f%%\">%s</span>", size, call)
-	if onFrequency {
-		return fmt.Sprintf("<b>%s</b>", result)
-	}
-
-	return result
+func formatSpotCall(call callsign.Callsign) string {
+	return call.String()
 }
 
 func formatPoints(value int, duplicate bool, threshold int) string {
@@ -238,8 +225,8 @@ func (v *spotsView) updateHighlightedColumns(entry core.BandmapEntry) error {
 			spotColumnWeightedValue,
 		},
 		[]any{
-			formatSpotFrequency(entry.Frequency, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
-			formatSpotCall(entry.Call, entry.ProximityFactor(v.currentFrame.Frequency), entry.OnFrequency(v.currentFrame.Frequency)),
+			formatSpotFrequency(entry.Frequency),
+			formatSpotCall(entry.Call),
 			entry.Quality.Tag(),
 			formatSpotAge(entry.LastHeard),
 			fmt.Sprintf("%.1f", entry.Info.WeightedValue),

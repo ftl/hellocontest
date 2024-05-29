@@ -130,15 +130,16 @@ type Controller struct {
 	generateReport           bool
 	defaultExchangeValues    []string
 
-	input              input
-	activeField        core.EntryField
-	errorField         core.EntryField
-	selectedFrequency  core.Frequency
-	selectedBand       core.Band
-	selectedMode       core.Mode
-	editing            bool
-	editQSO            core.QSO
-	ignoreQSOSelection bool
+	input               input
+	activeField         core.EntryField
+	errorField          core.EntryField
+	selectedFrequency   core.Frequency
+	selectedBand        core.Band
+	selectedMode        core.Mode
+	editing             bool
+	editQSO             core.QSO
+	ignoreQSOSelection  bool
+	ignoreFrequencyJump bool
 }
 
 func (c *Controller) Notify(listener any) {
@@ -411,16 +412,12 @@ func (c *Controller) Enter(text string) {
 
 func (c *Controller) frequencyEntered(frequency core.Frequency) {
 	// log.Printf("Frequency selected: %s", frequency)
-	c.selectedFrequency = frequency
 	c.vfo.SetFrequency(frequency)
-	c.view.SetFrequency(frequency)
 }
 
 func (c *Controller) bandEntered(band core.Band) {
 	c.input.band = band.String()
-	c.selectedBand = band
 	c.vfo.SetBand(band)
-	c.view.SetBand(c.input.band)
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
@@ -436,11 +433,12 @@ func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
 
 		c.view.SetFrequency(frequency)
 
-		if jump {
+		if jump && !c.ignoreFrequencyJump {
 			c.Clear()
 			c.activeField = core.CallsignField
 			c.view.SetActiveField(c.activeField)
 		}
+		c.ignoreFrequencyJump = false
 	})
 }
 
@@ -947,6 +945,7 @@ func (c *Controller) MarkInBandmap() {
 func (c *Controller) EntrySelected(entry core.BandmapEntry) {
 	c.asyncRunner(func() {
 		c.Clear()
+		c.ignoreFrequencyJump = true
 		c.frequencyEntered(entry.Frequency)
 		c.activeField = core.CallsignField
 		c.Enter(entry.Call.String())

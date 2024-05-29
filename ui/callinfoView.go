@@ -135,7 +135,7 @@ func (v *callinfoView) SetUserInfo(value string) {
 
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 	var text string
-	for _, callsign := range callsigns {
+	for i, callsign := range callsigns {
 		// see https://docs.gtk.org/Pango/pango_markup.html for reference
 		attributes := make([]string, 0, 3)
 		switch {
@@ -175,6 +175,10 @@ func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 		attributeString := strings.Join(attributes, " ")
 
 		var renderedCallsign string
+		if i < 9 {
+			renderedCallsign += fmt.Sprintf("(%d) ", i+1)
+		}
+
 		for _, part := range callsign.Assembly {
 			var partAttributeString string
 			var partString string

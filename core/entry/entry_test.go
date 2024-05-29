@@ -245,7 +245,6 @@ func TestEntryController_EnterFrequency(t *testing.T) {
 
 	view.Activate()
 	view.On("SetCallsign", "").Once()
-	view.On("SetFrequency", core.Frequency(7028000)).Once()
 
 	controller.Enter("7028")
 	controller.Log()

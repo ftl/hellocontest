@@ -15,9 +15,10 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter) *Callinfo {
+func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter, asyncRunner core.AsyncRunner) *Callinfo {
 	result := &Callinfo{
 		view:           new(nullView),
+		asyncRunner:    asyncRunner,
 		entities:       entities,
 		callsigns:      callsigns,
 		callHistory:    callHistory,
@@ -31,7 +32,8 @@ func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryF
 }
 
 type Callinfo struct {
-	view View
+	view        View
+	asyncRunner core.AsyncRunner
 
 	entities       DXCCFinder
 	callsigns      CallsignFinder
@@ -48,7 +50,11 @@ type Callinfo struct {
 	theirExchangeFields []core.ExchangeField
 	totalScore          core.BandScore
 
-	bestMatches []string
+	matchOnFrequency          core.AnnotatedCallsign
+	matchOnFrequencyAvailable bool
+	bestMatch                 core.AnnotatedCallsign
+	bestMatchAvailable        bool
+	bestMatches               []string
 }
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -120,8 +126,45 @@ func (c *Callinfo) ScoreUpdated(score core.Score) {
 	c.totalScore = score.Result()
 }
 
+func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
+	c.asyncRunner(func() {
+		log.Printf("EntryOnFrequency: %v %t", entry, available)
+		c.matchOnFrequencyAvailable = available
+
+		if available && c.matchOnFrequency.Callsign.String() == entry.Call.String() {
+			// go on
+		} else if available {
+			normalizedCall := strings.TrimSpace(strings.ToUpper(c.lastCallsign))
+			exactMatch := normalizedCall == entry.Call.String()
+			c.matchOnFrequency = core.AnnotatedCallsign{
+				Callsign:          entry.Call,
+				Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
+				Duplicate:         entry.Info.Duplicate,
+				Worked:            entry.Info.Worked,
+				ExactMatch:        exactMatch,
+				Points:            entry.Info.Points,
+				Multis:            entry.Info.Multis,
+				PredictedExchange: entry.Info.PredictedExchange,
+				OnFrequency:       true,
+			}
+		} else {
+			c.matchOnFrequency = core.AnnotatedCallsign{}
+		}
+
+		c.showBestMatch()
+	})
+}
+
 func (c *Callinfo) BestMatches() []string {
 	return c.bestMatches
+}
+
+func (c *Callinfo) BestMatch() string {
+	bestMatch, available := c.findBestMatch()
+	if !available {
+		return ""
+	}
+	return bestMatch.Callsign.String()
 }
 
 func (c *Callinfo) PredictedExchange() []string {
@@ -181,16 +224,18 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 
 	supercheck := c.calculateSupercheck(call)
 	c.bestMatches = make([]string, 0, len(supercheck))
-	var bestMatch core.AnnotatedCallsign
+	c.bestMatch = core.AnnotatedCallsign{}
+	c.bestMatchAvailable = false
 	for i, match := range supercheck {
 		c.bestMatches = append(c.bestMatches, match.Callsign.String())
 		if i == 0 {
-			bestMatch = match
+			c.bestMatch = match
+			c.bestMatchAvailable = true
 		}
 	}
 
 	c.showDXCCEntity(entity)
-	c.view.SetBestMatchingCallsign(bestMatch)
+	c.showBestMatch()
 	c.view.SetUserInfo(callinfo.UserText)
 	c.view.SetValue(callinfo.Points, callinfo.Multis, callinfo.Value)
 	for i := range c.theirExchangeFields {
@@ -236,6 +281,21 @@ func (c *Callinfo) showDXCCEntity(entity dxcc.Prefix) {
 		dxccName = fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
 	}
 	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
+}
+
+func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {
+	match := c.matchOnFrequency
+
+	if c.bestMatchAvailable {
+		match = c.bestMatch
+	}
+
+	return match, (match.Callsign.String() != "")
+}
+
+func (c *Callinfo) showBestMatch() {
+	bestMatch, _ := c.findBestMatch()
+	c.view.SetBestMatchingCallsign(bestMatch)
 }
 
 func (c *Callinfo) calculateSupercheck(s string) []core.AnnotatedCallsign {

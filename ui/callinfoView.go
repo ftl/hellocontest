@@ -211,6 +211,10 @@ func (v *callinfoView) renderCallsign(callsign core.AnnotatedCallsign) string {
 		renderedCallsign += fmt.Sprintf("<span %s>%s</span>", strings.Join([]string{attributeString, partAttributeString}, " "), partString)
 	}
 
+	if callsign.OnFrequency {
+		renderedCallsign = fmt.Sprintf("[%s]", renderedCallsign)
+	}
+
 	return renderedCallsign
 }
 

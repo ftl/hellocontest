@@ -254,6 +254,7 @@ type AnnotatedCallsign struct {
 	PredictedExchange []string
 	Name              string
 	UserText          string
+	OnFrequency       bool
 
 	Comparable interface{}
 	Compare    func(interface{}, interface{}) bool

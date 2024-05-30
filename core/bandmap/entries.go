@@ -176,6 +176,10 @@ type EntrySelectedListener interface {
 	EntrySelected(core.BandmapEntry)
 }
 
+type EntryOnFrequencyListener interface {
+	EntryOnFrequency(core.BandmapEntry, bool)
+}
+
 type Entries struct {
 	entries         []*Entry
 	bands           []core.Band
@@ -243,6 +247,14 @@ func (l *Entries) emitEntrySelected(e Entry) {
 	for _, listener := range l.listeners {
 		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
 			entrySelectedListener.EntrySelected(e.BandmapEntry)
+		}
+	}
+}
+
+func (l *Entries) emitEntryOnFrequency(e core.BandmapEntry, available bool) {
+	for _, listener := range l.listeners {
+		if nearestEntryListener, ok := listener.(EntryOnFrequencyListener); ok {
+			nearestEntryListener.EntryOnFrequency(e, available)
 		}
 	}
 }

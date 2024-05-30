@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultUpdatePeriod: the bandmap is updated with this period
-	DefaultUpdatePeriod time.Duration = 5 * time.Second
+	DefaultUpdatePeriod time.Duration = 2 * time.Second
 	// DefaultMaximumAge of entries in the bandmap
 	// entries that were not seen within this period are removed from the bandmap
 	DefaultMaximumAge time.Duration = 10 * time.Minute
@@ -107,7 +107,12 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now(), m.weights)
 
-	nearestEntry, nearestEntryFound := m.nextVisibleEntry(m.activeFrequency, func(entry core.BandmapEntry) bool {
+	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntry(m.activeFrequency, 2, func(entry core.BandmapEntry) bool {
+		return entry.OnFrequency(m.activeFrequency)
+	})
+	m.entries.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
+
+	nearestEntry, nearestEntryFound := m.nextVisibleEntry(m.activeFrequency, 0, func(entry core.BandmapEntry) bool {
 		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
 	})
 
@@ -348,7 +353,7 @@ func (m *Bandmap) GotoNextEntryDown() {
 
 func (m *Bandmap) findAndSelectNextVisibleEntry(f func(entry core.BandmapEntry) bool) {
 	m.do <- func() {
-		entry, found := m.nextVisibleEntry(m.activeFrequency, f)
+		entry, found := m.nextVisibleEntry(m.activeFrequency, 0, f)
 		if found {
 			m.entries.Select(entry.Index)
 		}
@@ -357,20 +362,23 @@ func (m *Bandmap) findAndSelectNextVisibleEntry(f func(entry core.BandmapEntry) 
 
 func (m *Bandmap) findAndSelectNextVisibleEntryBy(order core.BandmapOrder, f func(entry core.BandmapEntry) bool) {
 	m.do <- func() {
-		entry, found := m.nextVisibleEntryBy(order, f)
+		entry, found := m.nextVisibleEntryBy(order, 0, f)
 		if found {
 			m.entries.Select(entry.Index)
 		}
 	}
 }
 
-func (m *Bandmap) nextVisibleEntry(frequency core.Frequency, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
-	return m.nextVisibleEntryBy(core.BandmapByDistance(frequency), f)
+func (m *Bandmap) nextVisibleEntry(frequency core.Frequency, limit int, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
+	return m.nextVisibleEntryBy(core.BandmapByDistance(frequency), limit, f)
 }
 
-func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
+func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, limit int, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
 	entries := m.entries.AllBy(order)
-	for i := 0; i < len(entries); i++ {
+	if limit == 0 || limit > len(entries) {
+		limit = len(entries)
+	}
+	for i := 0; i < limit; i++ {
 		entry := entries[i]
 		if !m.entryVisible(entry) {
 			continue

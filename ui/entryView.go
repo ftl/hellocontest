@@ -20,6 +20,7 @@ type EntryController interface {
 
 	Enter(string)
 	SelectMatch(int)
+	SelectBestMatch()
 	SendQuestion()
 	StopTX()
 
@@ -132,7 +133,7 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 		return true
 	case gdk.KEY_Return:
 		if alt {
-			v.controller.SelectMatch(0)
+			v.controller.SelectBestMatch()
 		} else {
 			v.controller.Log()
 		}

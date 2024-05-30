@@ -74,6 +74,7 @@ type Keyer interface {
 type Callinfo interface {
 	ShowInfo(call string, band core.Band, mode core.Mode, exchange []string)
 	BestMatches() []string
+	BestMatch() string
 	PredictedExchange() []string
 }
 
@@ -362,6 +363,18 @@ func (c *Controller) SelectMatch(index int) {
 
 	c.activeField = core.CallsignField
 	c.Enter(matches[index])
+	c.view.SetCallsign(c.input.callsign)
+	c.GotoNextField()
+}
+
+func (c *Controller) SelectBestMatch() {
+	match := c.callinfo.BestMatch()
+	if match == "" {
+		return
+	}
+
+	c.activeField = core.CallsignField
+	c.Enter(match)
 	c.view.SetCallsign(c.input.callsign)
 	c.GotoNextField()
 }
@@ -973,6 +986,7 @@ type nullCallinfo struct{}
 
 func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, []string) {}
 func (n *nullCallinfo) BestMatches() []string                           { return []string{} }
+func (n *nullCallinfo) BestMatch() string                               { return "" }
 func (n *nullCallinfo) PredictedExchange() []string                     { return []string{} }
 
 type nullBandmap struct{}

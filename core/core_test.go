@@ -146,3 +146,50 @@ func TestBandmapEntry_ProximityFactor(t *testing.T) {
 		})
 	}
 }
+
+func TestBandmapEntry_OnFrequency(t *testing.T) {
+	const frequency Frequency = 7035000
+	tt := []struct {
+		desc      string
+		frequency Frequency
+		expected  bool
+	}{
+		{
+			desc:      "same frequency",
+			frequency: frequency,
+			expected:  true,
+		},
+		{
+			desc:      "lower frequency in proximity",
+			frequency: frequency - Frequency(spotFrequencyDeltaThreshold-0.1),
+			expected:  true,
+		},
+		{
+			desc:      "higher frequency in proximity",
+			frequency: frequency + Frequency(spotFrequencyDeltaThreshold-0.1),
+			expected:  true,
+		},
+		{
+			desc:      "frequency to low",
+			frequency: frequency - Frequency(spotFrequencyDeltaThreshold+0.1),
+			expected:  false,
+		},
+		{
+			desc:      "frequency to high",
+			frequency: frequency + Frequency(spotFrequencyDeltaThreshold+0.1),
+			expected:  false,
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			entry := BandmapEntry{
+				Call:      callsign.MustParse("dl1abc"),
+				Frequency: frequency,
+			}
+
+			actual := entry.OnFrequency(tc.frequency)
+
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}

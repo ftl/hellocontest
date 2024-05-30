@@ -17,6 +17,7 @@ type statusView struct {
 	dxccLabel        *gtk.Label
 	scpLabel         *gtk.Label
 	callHistoryLabel *gtk.Label
+	mapLabel         *gtk.Label
 }
 
 const (
@@ -34,6 +35,7 @@ func setupStatusView(builder *gtk.Builder, colors colorProvider) *statusView {
 	result.dxccLabel = getUI(builder, "dxccStatusLabel").(*gtk.Label)
 	result.scpLabel = getUI(builder, "scpStatusLabel").(*gtk.Label)
 	result.callHistoryLabel = getUI(builder, "callHistoryStatusLabel").(*gtk.Label)
+	result.mapLabel = getUI(builder, "mapStatusLabel").(*gtk.Label)
 
 	style := result.indicatorStyle(false)
 	setStyledText(result.radioLabel, style, "Radio")
@@ -41,6 +43,7 @@ func setupStatusView(builder *gtk.Builder, colors colorProvider) *statusView {
 	setStyledText(result.dxccLabel, style, "DXCC")
 	setStyledText(result.scpLabel, style, "SCP")
 	setStyledText(result.callHistoryLabel, style, "CH")
+	setStyledText(result.mapLabel, style, "Map")
 
 	return result
 }
@@ -79,6 +82,8 @@ func (v *statusView) serviceLabel(service core.Service) (*gtk.Label, string) {
 		return v.scpLabel, "SCP"
 	case core.CallHistoryService:
 		return v.callHistoryLabel, "CH"
+	case core.MapService:
+		return v.mapLabel, "Map"
 	default:
 		return nil, ""
 	}

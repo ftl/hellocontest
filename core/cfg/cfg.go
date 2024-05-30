@@ -19,6 +19,7 @@ const DefaultSpotLifetime = 10 * time.Minute
 
 var Default = Data{
 	LogDirectory: "$HOME/",
+	HamDXMapPort: 17300,
 	Station: pb.Station{
 		Callsign: "DL0ABC",
 		Operator: "DL1ABC",
@@ -141,6 +142,7 @@ func AbsoluteFilename() string {
 
 type Data struct {
 	LogDirectory  string             `json:"log_directory"`
+	HamDXMapPort  int                `json:"ham_dx_map_port"`
 	Station       pb.Station         `json:"station"`
 	Contest       pb.Contest         `json:"contest"`
 	Radios        []core.Radio       `json:"radios"`
@@ -157,6 +159,10 @@ type LoadedConfiguration struct {
 
 func (c *LoadedConfiguration) LogDirectory() string {
 	return os.ExpandEnv(c.data.LogDirectory)
+}
+
+func (c *LoadedConfiguration) HamDXMapPort() int {
+	return c.data.HamDXMapPort
 }
 
 func (c *LoadedConfiguration) Station() core.Station {

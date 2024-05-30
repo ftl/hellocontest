@@ -22,6 +22,7 @@ import (
 	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
 	"github.com/ftl/hellocontest/core/export/csv"
+	"github.com/ftl/hellocontest/core/hamdxmap"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
 	"github.com/ftl/hellocontest/core/newcontest"
@@ -66,6 +67,7 @@ type Controller struct {
 	dxccFinder        *dxcc.Finder
 	scpFinder         *scp.Finder
 	callHistoryFinder *callhistory.Finder
+	hamDXMap          *hamdxmap.HamDXMap
 
 	VFO           *vfo.VFO
 	Logbook       *logbook.Logbook
@@ -97,6 +99,7 @@ type View interface {
 // Configuration provides read access to the configuration data.
 type Configuration interface {
 	LogDirectory() string
+	HamDXMapPort() int
 	Station() core.Station
 	Contest() core.Contest
 	KeyerSettings() core.KeyerSettings
@@ -144,6 +147,7 @@ func (c *Controller) Startup() {
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
 	c.callHistoryFinder = callhistory.New(c.Settings, c.ServiceStatus.StatusChanged)
+	c.hamDXMap = hamdxmap.NewHamDXMap(c.configuration.HamDXMapPort())
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
@@ -156,7 +160,7 @@ func (c *Controller) Startup() {
 		c.Bandmap,
 		c.asyncRunner,
 	)
-	c.Entry.Notify(c.Bandmap)
+	c.Entry.Notify(c.hamDXMap)
 	c.Bandmap.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
 	c.Score.Notify(c.Bandmap)
@@ -232,6 +236,10 @@ func (c *Controller) Startup() {
 	})
 	c.scpFinder.WhenAvailable(func() {
 		c.ServiceStatus.StatusChanged(core.SCPService, true)
+	})
+	c.ServiceStatus.StatusChanged(core.MapService, true)
+	c.hamDXMap.WhenStopped(func() {
+		c.ServiceStatus.StatusChanged(core.MapService, false)
 	})
 
 	c.Entry.StartAutoRefresh()

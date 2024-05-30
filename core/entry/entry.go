@@ -147,6 +147,22 @@ func (c *Controller) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
+func (c *Controller) emitCallsignEntered(callsign string) {
+	for _, l := range c.listeners {
+		if listener, ok := l.(core.CallsignEnteredListener); ok {
+			listener.CallsignEntered(callsign)
+		}
+	}
+}
+
+func (c *Controller) emitCallsignLogged(callsign string, frequency core.Frequency) {
+	for _, l := range c.listeners {
+		if listener, ok := l.(core.CallsignLoggedListener); ok {
+			listener.CallsignLogged(callsign, frequency)
+		}
+	}
+}
+
 func (c *Controller) SetView(view View) {
 	if view == nil {
 		c.view = &nullView{}
@@ -525,6 +541,7 @@ func (c *Controller) SendQuestion() {
 }
 
 func (c *Controller) enterCallsign(s string) {
+	c.emitCallsignEntered(c.input.callsign)
 	if c.callinfo != nil {
 		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
 	}
@@ -674,6 +691,7 @@ func (c *Controller) Log() {
 	}
 
 	c.logbook.Log(qso)
+	c.emitCallsignLogged(qso.Callsign.String(), qso.Frequency)
 
 	if c.workmode == core.SearchPounce {
 		spot := core.Spot{

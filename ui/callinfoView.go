@@ -91,8 +91,8 @@ func attr(name, value string) string {
 	return fmt.Sprintf("%s=%q", name, value)
 }
 
-func (v *callinfoView) SetBestMatchingCallsign(callsign string) {
-	v.callsignLabel.SetText(callsign)
+func (v *callinfoView) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {
+	v.callsignLabel.SetMarkup(v.renderCallsign(callsign))
 }
 
 func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {
@@ -136,78 +136,82 @@ func (v *callinfoView) SetUserInfo(value string) {
 func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
 	var text string
 	for i, callsign := range callsigns {
-		// see https://docs.gtk.org/Pango/pango_markup.html for reference
-		attributes := make([]string, 0, 3)
-		switch {
-		case callsign.Duplicate:
-			attributes = append(attributes,
-				attr("background", v.style.duplicateBG.ToWeb()),
-				attr("foreground", v.style.duplicateFG.ToWeb()),
-			)
-
-		case callsign.Worked:
-			attributes = append(attributes,
-				attr("background", v.style.workedBG.ToWeb()),
-				attr("foreground", v.style.workedFG.ToWeb()),
-			)
-		case (callsign.Points == 0) && (callsign.Multis == 0):
-			attributes = append(attributes,
-				attr("background", v.style.worthlessBG.ToWeb()),
-				attr("foreground", v.style.worthlessFG.ToWeb()),
-			)
-		case callsign.Multis > 0:
-			attributes = append(attributes,
-				attr("background", v.style.backgroundColor.ToWeb()),
-				attr("foreground", v.style.fontColor.ToWeb()),
-				attr("font-weight", "heavy"),
-			)
-		default:
-			attributes = append(attributes,
-				attr("background", v.style.backgroundColor.ToWeb()),
-				attr("foreground", v.style.fontColor.ToWeb()),
-			)
-		}
-
-		hasPredictedExchange := strings.Join(callsign.PredictedExchange, "") != ""
-		if hasPredictedExchange {
-			attributes = append(attributes, attr("font-style", "italic"))
-		}
-		attributeString := strings.Join(attributes, " ")
-
-		var renderedCallsign string
-		if i < 9 {
-			renderedCallsign += fmt.Sprintf("(%d) ", i+1)
-		}
-
-		for _, part := range callsign.Assembly {
-			var partAttributeString string
-			var partString string
-			switch part.OP {
-			case core.Matching:
-				partAttributeString = ""
-				partString = part.Value
-			case core.Insert:
-				partAttributeString = "underline='single'"
-				partString = part.Value
-			case core.Delete:
-				partAttributeString = ""
-				partString = "|"
-			case core.Substitute:
-				partAttributeString = "underline='single'"
-				partString = part.Value
-			case core.FalseFriend:
-				partAttributeString = "underline='double'"
-				partString = part.Value
-			}
-			renderedCallsign += fmt.Sprintf("<span %s>%s</span>", strings.Join([]string{attributeString, partAttributeString}, " "), partString)
-		}
-
 		if text != "" {
 			text += "   "
 		}
-		text += renderedCallsign
+		if i < 9 {
+			text += fmt.Sprintf("(%d) ", i+1)
+		}
+
+		text += v.renderCallsign(callsign)
 	}
 	v.supercheckLabel.SetMarkup(text)
+}
+
+func (v *callinfoView) renderCallsign(callsign core.AnnotatedCallsign) string {
+	// see https://docs.gtk.org/Pango/pango_markup.html for reference
+	attributes := make([]string, 0, 3)
+	switch {
+	case callsign.Duplicate:
+		attributes = append(attributes,
+			attr("background", v.style.duplicateBG.ToWeb()),
+			attr("foreground", v.style.duplicateFG.ToWeb()),
+		)
+
+	case callsign.Worked:
+		attributes = append(attributes,
+			attr("background", v.style.workedBG.ToWeb()),
+			attr("foreground", v.style.workedFG.ToWeb()),
+		)
+	case (callsign.Points == 0) && (callsign.Multis == 0):
+		attributes = append(attributes,
+			attr("background", v.style.worthlessBG.ToWeb()),
+			attr("foreground", v.style.worthlessFG.ToWeb()),
+		)
+	case callsign.Multis > 0:
+		attributes = append(attributes,
+			attr("background", v.style.backgroundColor.ToWeb()),
+			attr("foreground", v.style.fontColor.ToWeb()),
+			attr("font-weight", "heavy"),
+		)
+	default:
+		attributes = append(attributes,
+			attr("background", v.style.backgroundColor.ToWeb()),
+			attr("foreground", v.style.fontColor.ToWeb()),
+		)
+	}
+
+	hasPredictedExchange := strings.Join(callsign.PredictedExchange, "") != ""
+	if hasPredictedExchange {
+		attributes = append(attributes, attr("font-style", "italic"))
+	}
+	attributeString := strings.Join(attributes, " ")
+
+	renderedCallsign := ""
+	for _, part := range callsign.Assembly {
+		var partAttributeString string
+		var partString string
+		switch part.OP {
+		case core.Matching:
+			partAttributeString = ""
+			partString = part.Value
+		case core.Insert:
+			partAttributeString = "underline='single'"
+			partString = part.Value
+		case core.Delete:
+			partAttributeString = ""
+			partString = "|"
+		case core.Substitute:
+			partAttributeString = "underline='single'"
+			partString = part.Value
+		case core.FalseFriend:
+			partAttributeString = "underline='double'"
+			partString = part.Value
+		}
+		renderedCallsign += fmt.Sprintf("<span %s>%s</span>", strings.Join([]string{attributeString, partAttributeString}, " "), partString)
+	}
+
+	return renderedCallsign
 }
 
 func (v *callinfoView) SetPredictedExchange(index int, text string) {

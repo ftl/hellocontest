@@ -83,7 +83,7 @@ type ExchangeFilter interface {
 
 // View defines the visual part of the call information window.
 type View interface {
-	SetBestMatchingCallsign(callsign string)
+	SetBestMatchingCallsign(callsign core.AnnotatedCallsign)
 	SetDXCC(string, string, int, int, bool)
 	SetValue(points, multis int)
 	SetPredictedExchange(index int, text string)
@@ -174,11 +174,11 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 
 	supercheck := c.calculateSupercheck(call)
 	c.bestMatches = make([]string, 0, len(supercheck))
-	bestMatch := ""
+	var bestMatch core.AnnotatedCallsign
 	for i, match := range supercheck {
 		c.bestMatches = append(c.bestMatches, match.Callsign.String())
 		if i == 0 {
-			bestMatch = c.bestMatches[0]
+			bestMatch = match
 		}
 	}
 
@@ -352,12 +352,12 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 
 type nullView struct{}
 
-func (v *nullView) Show()                                                  {}
-func (v *nullView) Hide()                                                  {}
-func (v *nullView) SetBestMatchingCallsign(callsign string)                {}
-func (v *nullView) SetDXCC(string, string, int, int, bool)                 {}
-func (v *nullView) SetValue(int, int)                                      {}
-func (v *nullView) SetPredictedExchange(int, string)                       {}
-func (v *nullView) SetPredictedExchangeFields(fields []core.ExchangeField) {}
-func (v *nullView) SetUserInfo(string)                                     {}
-func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)       {}
+func (v *nullView) Show()                                                   {}
+func (v *nullView) Hide()                                                   {}
+func (v *nullView) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {}
+func (v *nullView) SetDXCC(string, string, int, int, bool)                  {}
+func (v *nullView) SetValue(int, int)                                       {}
+func (v *nullView) SetPredictedExchange(int, string)                        {}
+func (v *nullView) SetPredictedExchangeFields(fields []core.ExchangeField)  {}
+func (v *nullView) SetUserInfo(string)                                      {}
+func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)        {}

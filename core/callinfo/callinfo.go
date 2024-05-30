@@ -128,7 +128,6 @@ func (c *Callinfo) ScoreUpdated(score core.Score) {
 
 func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 	c.asyncRunner(func() {
-		log.Printf("EntryOnFrequency: %v %t", entry, available)
 		c.matchOnFrequencyAvailable = available
 
 		if available && c.matchOnFrequency.Callsign.String() == entry.Call.String() {

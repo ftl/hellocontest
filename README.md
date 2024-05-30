@@ -13,6 +13,7 @@ A simple HF contest log for Linux, written in Go using [gotk3](https://github.co
 * Define different CW macros for the running and the search&pounce working mode.
 * Use the [TCI protocol](https://github.com/maksimus1210/TCI), the [Hamlib daemon](https://github.com/Hamlib/Hamlib), or the [cwdaemon](https://github.com/acerion/cwdaemon) to transmit CW macros.
 * Connect to your transceiver through the [TCI protocol](https://github.com/maksimus1210/TCI) or the [Hamlib network protocol](https://github.com/Hamlib/Hamlib) to keep the band and mode information in sync.
+* Show the currently worked station on [F5UII's HamDXMap](https://dxmap.f5uii.net/).
 
 ![main raw](https://github.com/ftl/hellocontest/assets/340928/b8849fdd-c6f4-4550-802e-1c89c10de1d6)
 

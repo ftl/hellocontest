@@ -359,9 +359,7 @@ func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights co
 		return 0
 	}
 
-	points := float64(entry.Info.Points)
-	multis := float64(entry.Info.Multis)
-	value := (points * weights.TotalMultis) + (multis * weights.TotalPoints) + (points * multis)
+	value := float64(entry.Info.Value)
 
 	ageSeconds := now.Sub(entry.LastHeard).Seconds()
 	spots := float64(entry.SpotCount)

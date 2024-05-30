@@ -115,7 +115,7 @@ func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int, arrlComp
 	v.dxccLabel.SetMarkup(text)
 }
 
-func (v *callinfoView) SetValue(points, multis int) {
+func (v *callinfoView) SetValue(points int, multis int, value int) {
 	style.RemoveClass(&v.valueLabel.Widget, callinfoWorthlessClass)
 	style.RemoveClass(&v.valueLabel.Widget, callinfoMultiClass)
 
@@ -126,7 +126,7 @@ func (v *callinfoView) SetValue(points, multis int) {
 		style.AddClass(&v.valueLabel.Widget, callinfoMultiClass)
 	}
 
-	v.valueLabel.SetText(fmt.Sprintf("%dP %dM", points, multis))
+	v.valueLabel.SetText(fmt.Sprintf("%dP x %dM = %d", points, multis, value))
 }
 
 func (v *callinfoView) SetUserInfo(value string) {

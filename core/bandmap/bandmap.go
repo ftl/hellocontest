@@ -37,12 +37,10 @@ type Callinfo interface {
 }
 
 var defaultWeights = core.BandmapWeights{
-	TotalPoints: 1,
-	TotalMultis: 1,
-	AgeSeconds:  -0.001,
-	Spots:       0.001,
-	Source:      0,
-	Quality:     0.01,
+	AgeSeconds: -0.001,
+	Spots:      0.001,
+	Source:     0,
+	Quality:    0.01,
 }
 
 type Bandmap struct {
@@ -180,11 +178,8 @@ func (m *Bandmap) ContestChanged(contest core.Contest) {
 	}
 }
 
-func (m *Bandmap) ScoreUpdated(score core.Score) {
-	totalScore := score.Result()
+func (m *Bandmap) ScoreUpdated(_ core.Score) {
 	m.do <- func() {
-		m.weights.TotalPoints = float64(totalScore.Points)
-		m.weights.TotalMultis = float64(totalScore.Multis)
 		m.update()
 	}
 }

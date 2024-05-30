@@ -24,6 +24,7 @@ func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryF
 		dupeChecker:    dupeChecker,
 		valuer:         valuer,
 		exchangeFilter: exchangeFilter,
+		totalScore:     core.BandScore{Points: 1, Multis: 1},
 	}
 
 	return result
@@ -45,6 +46,7 @@ type Callinfo struct {
 	lastExchange        []string
 	predictedExchange   []string
 	theirExchangeFields []core.ExchangeField
+	totalScore          core.BandScore
 
 	bestMatches []string
 }
@@ -85,7 +87,7 @@ type ExchangeFilter interface {
 type View interface {
 	SetBestMatchingCallsign(callsign core.AnnotatedCallsign)
 	SetDXCC(string, string, int, int, bool)
-	SetValue(points, multis int)
+	SetValue(points, multis, value int)
 	SetPredictedExchange(index int, text string)
 	SetPredictedExchangeFields(fields []core.ExchangeField)
 	SetUserInfo(string)
@@ -112,6 +114,10 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 	}
 	c.theirExchangeFields = contest.TheirExchangeFields
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
+}
+
+func (c *Callinfo) ScoreUpdated(score core.Score) {
+	c.totalScore = score.Result()
 }
 
 func (c *Callinfo) BestMatches() []string {
@@ -151,6 +157,7 @@ func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mod
 	result.ExchangeText = strings.Join(result.FilteredExchange, " ")
 
 	result.Points, result.Multis, result.MultiValues = c.valuer.Value(call, entity, band, mode, result.PredictedExchange)
+	result.Value = (result.Points * c.totalScore.Multis) + (result.Multis * c.totalScore.Points) + (result.Points * result.Multis)
 
 	return result
 }
@@ -185,7 +192,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	c.showDXCCEntity(entity)
 	c.view.SetBestMatchingCallsign(bestMatch)
 	c.view.SetUserInfo(callinfo.UserText)
-	c.view.SetValue(callinfo.Points, callinfo.Multis)
+	c.view.SetValue(callinfo.Points, callinfo.Multis, callinfo.Value)
 	for i := range c.theirExchangeFields {
 		text := ""
 		if i < len(callinfo.FilteredExchange) {
@@ -356,7 +363,7 @@ func (v *nullView) Show()                                                   {}
 func (v *nullView) Hide()                                                   {}
 func (v *nullView) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {}
 func (v *nullView) SetDXCC(string, string, int, int, bool)                  {}
-func (v *nullView) SetValue(int, int)                                       {}
+func (v *nullView) SetValue(int, int, int)                                  {}
 func (v *nullView) SetPredictedExchange(int, string)                        {}
 func (v *nullView) SetPredictedExchangeFields(fields []core.ExchangeField)  {}
 func (v *nullView) SetUserInfo(string)                                      {}

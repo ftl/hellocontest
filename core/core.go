@@ -896,21 +896,6 @@ func (s *BandSummary) Multis() int {
 	return result
 }
 
-type BandmapEntry struct {
-	Index     int
-	Label     string
-	Call      callsign.Callsign
-	Frequency Frequency
-	Band      Band
-	Mode      Mode
-	LastHeard time.Time
-	Source    SpotType
-	SpotCount int
-	Quality   SpotQuality
-
-	Info Callinfo
-}
-
 type Callinfo struct {
 	Call callsign.Callsign
 
@@ -929,6 +914,7 @@ type Callinfo struct {
 	Points        int
 	Multis        int
 	MultiValues   map[conval.Property]string
+	Value         int
 	WeightedValue float64
 }
 
@@ -940,6 +926,21 @@ const spotFrequencyDeltaThreshold float64 = 300
 
 // spots within at least this proximity will be considered "on frequency"
 const spotOnFrequencyThreshold float64 = 1.0 - (spotFrequencyDeltaThreshold / spotFrequencyProximityThreshold)
+
+type BandmapEntry struct {
+	Index     int
+	Label     string
+	Call      callsign.Callsign
+	Frequency Frequency
+	Band      Band
+	Mode      Mode
+	LastHeard time.Time
+	Source    SpotType
+	SpotCount int
+	Quality   SpotQuality
+
+	Info Callinfo
+}
 
 // ProximityFactor increases the closer the given frequency is to this entry's frequency.
 // 0.0 = not in proximity, 1.0 = exactly on frequency
@@ -988,12 +989,10 @@ func BandmapByDescendingValue(a, b BandmapEntry) bool {
 }
 
 type BandmapWeights struct {
-	TotalPoints float64
-	TotalMultis float64
-	AgeSeconds  float64
-	Spots       float64
-	Source      float64
-	Quality     float64
+	AgeSeconds float64
+	Spots      float64
+	Source     float64
+	Quality    float64
 }
 
 type VFO interface {

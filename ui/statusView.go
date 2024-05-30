@@ -20,7 +20,7 @@ type statusView struct {
 }
 
 const (
-	availableColor   = "theme_selected_fg_color"
+	availableColor   = "theme_fg_color"
 	unavailableColor = "unfocused_insensitive_color"
 )
 

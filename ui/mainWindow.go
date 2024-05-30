@@ -41,7 +41,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application, style *
 	result.entryView = setupEntryView(builder)
 	result.workmodeView = setupWorkmodeView(builder)
 	result.keyerView = setupKeyerView(builder)
-	result.statusView = setupStatusView(builder)
+	result.statusView = setupStatusView(builder, style.ForWidget(result.window.ToWidget()))
 	result.callinfoView = setupCallinfoView(builder, style.ForWidget(result.window.ToWidget()))
 	result.stopKeyHandler = setupStopKeyHandler(&result.window.Widget)
 

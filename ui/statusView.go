@@ -10,6 +10,8 @@ import (
 )
 
 type statusView struct {
+	colors colorProvider
+
 	radioLabel       *gtk.Label
 	keyerLabel       *gtk.Label
 	dxccLabel        *gtk.Label
@@ -18,12 +20,14 @@ type statusView struct {
 }
 
 const (
-	availableStyle   = "foreground='black'"
-	unavailableStyle = "foreground='lightgray'"
+	availableColor   = "theme_selected_fg_color"
+	unavailableColor = "unfocused_insensitive_color"
 )
 
-func setupStatusView(builder *gtk.Builder) *statusView {
-	result := new(statusView)
+func setupStatusView(builder *gtk.Builder, colors colorProvider) *statusView {
+	result := &statusView{
+		colors: colors,
+	}
 
 	result.radioLabel = getUI(builder, "radioStatusLabel").(*gtk.Label)
 	result.keyerLabel = getUI(builder, "keyerStatusLabel").(*gtk.Label)
@@ -31,13 +35,24 @@ func setupStatusView(builder *gtk.Builder) *statusView {
 	result.scpLabel = getUI(builder, "scpStatusLabel").(*gtk.Label)
 	result.callHistoryLabel = getUI(builder, "callHistoryStatusLabel").(*gtk.Label)
 
-	setStyledText(result.radioLabel, unavailableStyle, "Radio")
-	setStyledText(result.keyerLabel, unavailableStyle, "CW")
-	setStyledText(result.dxccLabel, unavailableStyle, "DXCC")
-	setStyledText(result.scpLabel, unavailableStyle, "SCP")
-	setStyledText(result.callHistoryLabel, unavailableStyle, "CH")
+	style := result.indicatorStyle(false)
+	setStyledText(result.radioLabel, style, "Radio")
+	setStyledText(result.keyerLabel, style, "CW")
+	setStyledText(result.dxccLabel, style, "DXCC")
+	setStyledText(result.scpLabel, style, "SCP")
+	setStyledText(result.callHistoryLabel, style, "CH")
 
 	return result
+}
+
+func (v *statusView) indicatorStyle(available bool) string {
+	var color string
+	if available {
+		color = availableColor
+	} else {
+		color = unavailableColor
+	}
+	return fmt.Sprintf("foreground='%s'", v.colors.ColorByName(color).ToWeb())
 }
 
 func (v *statusView) StatusChanged(service core.Service, available bool) {
@@ -48,12 +63,7 @@ func (v *statusView) StatusChanged(service core.Service, available bool) {
 		return
 	}
 
-	var style string
-	if available {
-		style = availableStyle
-	} else {
-		style = unavailableStyle
-	}
+	style := v.indicatorStyle(available)
 	setStyledText(label, style, text)
 }
 

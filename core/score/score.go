@@ -172,8 +172,6 @@ func (c *Counter) Clear() {
 	c.resetCounter() // CONVAL WRITE LOCK
 
 	c.invalid = (c.contestSetup.MyCountry == "")
-
-	c.emitScoreUpdated(c.readScore) // READ
 }
 
 func (c *Counter) AddMuted(qso core.QSO) core.QSOScore {

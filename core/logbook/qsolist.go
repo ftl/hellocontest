@@ -144,6 +144,7 @@ func (l *QSOList) Fill(qsos []core.QSO) {
 
 	l.dataLock.Unlock()
 
+	l.scorer.Unmute()
 	l.emitQSOsCleared()
 	for _, qso := range allQSOs {
 		l.emitQSOAdded(qso)
@@ -155,12 +156,14 @@ func (l *QSOList) Put(qso core.QSO) {
 
 	emitNotifications := l.put(qso)
 
+	l.refreshScore()
+	allQSOs := l.all()
 	l.dataLock.Unlock()
 
-	emitNotifications()
+	emitNotifications(allQSOs)
 }
 
-func (l *QSOList) put(qso core.QSO) func() {
+func (l *QSOList) put(qso core.QSO) func([]core.QSO) {
 	if len(l.list) == 0 {
 		return l.append(qso)
 	}
@@ -176,10 +179,8 @@ func (l *QSOList) put(qso core.QSO) func() {
 	} else {
 		l.update(index, qso)
 	}
-	l.refreshScore()
-	qsos := l.all()
 
-	return func() {
+	return func(qsos []core.QSO) {
 		l.scorer.Unmute()
 		l.emitQSOsCleared()
 		for _, qso := range qsos {
@@ -213,7 +214,7 @@ func findIndex(list []core.QSO, number core.QSONumber) (int, bool) {
 	return low, true
 }
 
-func (l *QSOList) append(qso core.QSO) func() {
+func (l *QSOList) append(qso core.QSO) func([]core.QSO) {
 	score := l.scorer.AddMuted(qso)
 	qso.Points = score.Points
 	qso.Multis = score.Multis
@@ -225,7 +226,7 @@ func (l *QSOList) append(qso core.QSO) func() {
 
 	l.list = append(l.list, qso)
 
-	return func() {
+	return func([]core.QSO) {
 		l.scorer.Unmute()
 		l.emitQSOAdded(qso)
 	}

@@ -360,9 +360,10 @@ func (c *Controller) SelectMatch(index int) {
 		return
 	}
 
-	c.input.callsign = matches[index]
-	c.enterCallsign(matches[index])
-	c.showInput()
+	c.activeField = core.CallsignField
+	c.Enter(matches[index])
+	c.view.SetCallsign(c.input.callsign)
+	c.GotoNextField()
 }
 
 func (c *Controller) Enter(text string) {

@@ -2179,7 +2179,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="halign">end</property>
+                <property name="halign">start</property>
                 <property name="label" translatable="yes">VFO:</property>
               </object>
               <packing>

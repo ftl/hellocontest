@@ -21,7 +21,7 @@ go 1.22.3
 require (
 	github.com/ftl/cabrillo v0.2.2
 	github.com/ftl/clusterix v0.1.0
-	github.com/ftl/conval v0.7.3
+	github.com/ftl/conval v0.7.4
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
 	github.com/ftl/godxmap v1.0.0
 	github.com/ftl/hamradio v0.2.10

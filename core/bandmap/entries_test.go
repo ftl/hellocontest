@@ -188,50 +188,50 @@ func TestEntries_findIndexForInsert(t *testing.T) {
 		},
 		{
 			desc:     "before first",
-			fixture:  []int{2, 3, 4},
-			value:    1,
+			fixture:  []int{4, 3, 2},
+			value:    5,
 			expected: 0,
 		},
 		{
 			desc:     "at the first",
-			fixture:  []int{2, 3, 4},
-			value:    2,
+			fixture:  []int{4, 3, 2},
+			value:    4,
 			expected: 0,
 		},
 		{
 			desc:     "after the first",
-			fixture:  []int{2, 4, 5},
-			value:    3,
+			fixture:  []int{5, 3, 2},
+			value:    4,
 			expected: 1,
 		},
 		{
 			desc:     "at the center",
-			fixture:  []int{2, 3, 5, 6},
+			fixture:  []int{6, 5, 3, 2},
 			value:    4,
 			expected: 2,
 		},
 		{
 			desc:     "at the existing center",
-			fixture:  []int{2, 3, 4, 5, 6},
+			fixture:  []int{6, 5, 4, 3, 2},
 			value:    4,
 			expected: 2,
 		},
 		{
 			desc:     "before the last",
-			fixture:  []int{2, 3, 5},
-			value:    4,
+			fixture:  []int{5, 4, 2},
+			value:    3,
 			expected: 2,
 		},
 		{
 			desc:     "at the last",
-			fixture:  []int{2, 3, 4},
-			value:    4,
+			fixture:  []int{4, 3, 1},
+			value:    2,
 			expected: 2,
 		},
 		{
 			desc:     "after last",
-			fixture:  []int{2, 3, 4},
-			value:    5,
+			fixture:  []int{4, 3, 2},
+			value:    1,
 			expected: 3,
 		},
 	}
@@ -269,50 +269,50 @@ func TestEntries_insert(t *testing.T) {
 		},
 		{
 			desc:     "before first",
-			fixture:  []int{2, 3, 4},
-			value:    1,
+			fixture:  []int{4, 3, 2},
+			value:    5,
 			expected: 0,
 		},
 		{
 			desc:     "at the first",
-			fixture:  []int{2, 3, 4},
-			value:    2,
+			fixture:  []int{4, 3, 2},
+			value:    4,
 			expected: 0,
 		},
 		{
 			desc:     "after the first",
-			fixture:  []int{2, 4, 5},
-			value:    3,
+			fixture:  []int{5, 3, 2},
+			value:    4,
 			expected: 1,
 		},
 		{
 			desc:     "at the center",
-			fixture:  []int{2, 3, 5, 6},
+			fixture:  []int{6, 5, 3, 2},
 			value:    4,
 			expected: 2,
 		},
 		{
 			desc:     "at the existing center",
-			fixture:  []int{2, 3, 4, 5, 6},
+			fixture:  []int{6, 5, 4, 3, 2},
 			value:    4,
 			expected: 2,
 		},
 		{
 			desc:     "before the last",
-			fixture:  []int{2, 3, 5},
-			value:    4,
+			fixture:  []int{5, 4, 2},
+			value:    3,
 			expected: 2,
 		},
 		{
 			desc:     "at the last",
-			fixture:  []int{2, 3, 4},
-			value:    4,
+			fixture:  []int{4, 3, 1},
+			value:    2,
 			expected: 2,
 		},
 		{
 			desc:     "after last",
-			fixture:  []int{2, 3, 4},
-			value:    5,
+			fixture:  []int{4, 3, 2},
+			value:    1,
 			expected: 3,
 		},
 	}
@@ -354,9 +354,10 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 	entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535500, Time: now.Add(-10 * time.Hour)}, now, defaultWeights)
 
 	assert.Equal(t, 2, entries.Len())
-	assert.Equal(t, "DL1ABC", entries.entries[0].Call.String())
-	assert.Equal(t, 3, entries.entries[0].Len())
-	assert.Equal(t, now.Add(-10*time.Minute), entries.entries[0].LastHeard)
+	assert.Equal(t, "DL2ABC", entries.entries[0].Call.String())
+	assert.Equal(t, "DL1ABC", entries.entries[1].Call.String())
+	assert.Equal(t, 3, entries.entries[1].Len())
+	assert.Equal(t, now.Add(-10*time.Minute), entries.entries[1].LastHeard)
 
 	entries.CleanOut(30*time.Minute, now, defaultWeights)
 

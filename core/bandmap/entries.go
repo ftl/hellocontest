@@ -311,7 +311,7 @@ func (l *Entries) insert(entry *Entry) {
 
 func (l *Entries) findIndexForInsert(entry *Entry) int {
 	less := func(a, b *Entry) bool {
-		return l.order(a.BandmapEntry, b.BandmapEntry)
+		return l.order(b.BandmapEntry, a.BandmapEntry)
 	}
 	left := 0
 	right := len(l.entries) - 1

@@ -989,6 +989,50 @@ func BandmapByDescendingValue(a, b BandmapEntry) bool {
 	return a.Info.WeightedValue > b.Info.WeightedValue
 }
 
+type BandmapFilter func(entry BandmapEntry) bool
+
+func OnBand(band Band) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.Band == band
+	}
+}
+
+func InMode(mode Mode) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.Mode == mode
+	}
+}
+
+func FromSource(source SpotType) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.Source == source
+	}
+}
+
+func WithQuality(quality SpotQuality) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.Quality == quality
+	}
+}
+
+func HeardAfter(deadline time.Time) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.LastHeard.After(deadline)
+	}
+}
+
+func FromContinent(continent string) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.Info.Continent == continent
+	}
+}
+
+func FromDXCC(primaryPrefix string) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.Info.PrimaryPrefix == primaryPrefix
+	}
+}
+
 type BandmapWeights struct {
 	AgeSeconds float64
 	Spots      float64

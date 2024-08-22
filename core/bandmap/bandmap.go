@@ -301,6 +301,14 @@ func (m *Bandmap) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 	return <-result
 }
 
+func (m *Bandmap) Query(order core.BandmapOrder, filters ...core.BandmapFilter) []core.BandmapEntry {
+	result := make(chan []core.BandmapEntry)
+	m.do <- func() {
+		result <- m.entries.Query(order, filters...)
+	}
+	return <-result
+}
+
 func (m *Bandmap) SelectEntry(index int) {
 	m.do <- func() {
 		m.entries.Select(index)

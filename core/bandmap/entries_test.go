@@ -344,6 +344,50 @@ func TestEntries_insert(t *testing.T) {
 	}
 }
 
+func TestEntries_QueryByFilters(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries(countAllEntries)
+	entries.Add(core.Spot{Call: callsign.MustParse("DL1ABC"), Frequency: 7020000, Band: core.Band40m, Source: core.ManualSpot}, now.Add(-1*time.Minute), defaultWeights)
+	entries.Add(core.Spot{Call: callsign.MustParse("DL2ABC"), Frequency: 14015000, Band: core.Band20m, Source: core.ManualSpot}, now.Add(-2*time.Minute), defaultWeights)
+	entries.Add(core.Spot{Call: callsign.MustParse("DL3ABC"), Frequency: 14030000, Band: core.Band20m, Source: core.ClusterSpot}, now.Add(-2*time.Minute), defaultWeights)
+	entries.Add(core.Spot{Call: callsign.MustParse("DL4ABC"), Frequency: 28010000, Band: core.Band10m, Source: core.ClusterSpot}, now.Add(-2*time.Minute), defaultWeights)
+	actualCallsigns := make([]string, 0, 4)
+
+	tt := []struct {
+		desc     string
+		filters  []core.BandmapFilter
+		expected []string
+	}{
+		{
+			desc:     "all",
+			filters:  nil,
+			expected: []string{"DL1ABC", "DL2ABC", "DL3ABC", "DL4ABC"},
+		},
+		{
+			desc:     "on 20m",
+			filters:  []core.BandmapFilter{core.OnBand(core.Band20m)},
+			expected: []string{"DL2ABC", "DL3ABC"},
+		},
+		{
+			desc:     "on 20m from cluster",
+			filters:  []core.BandmapFilter{core.OnBand(core.Band20m), core.FromSource(core.ClusterSpot)},
+			expected: []string{"DL3ABC"},
+		},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			actualEntries := entries.Query(core.BandmapByFrequency, tc.filters...)
+			if len(actualCallsigns) > 0 {
+				actualCallsigns = actualCallsigns[:0]
+			}
+			for _, entry := range actualEntries {
+				actualCallsigns = append(actualCallsigns, entry.Call.String())
+			}
+			assert.Equal(t, tc.expected, actualCallsigns)
+		})
+	}
+}
+
 func TestEntries_CleanOutOldEntries(t *testing.T) {
 	now := time.Now()
 	entries := NewEntries(countAllEntries)

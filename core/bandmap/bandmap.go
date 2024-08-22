@@ -24,7 +24,6 @@ type View interface {
 	Hide()
 
 	ShowFrame(frame core.BandmapFrame)
-	RevealEntry(entry core.BandmapEntry)
 }
 
 type DupeChecker interface {

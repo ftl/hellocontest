@@ -249,9 +249,3 @@ func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
 		v.revealTableEntry(entry)
 	})
 }
-
-func (v *spotsView) RevealEntry(entry core.BandmapEntry) {
-	runAsync(func() {
-		v.revealTableEntry(entry)
-	})
-}

@@ -119,9 +119,3 @@ func (w *spotsWindow) EntrySelected(entry core.BandmapEntry) {
 		w.spotsView.EntrySelected(entry)
 	}
 }
-
-func (w *spotsWindow) RevealEntry(entry core.BandmapEntry) {
-	if w.spotsView != nil {
-		w.spotsView.RevealEntry(entry)
-	}
-}

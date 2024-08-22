@@ -146,7 +146,6 @@ func (m *Bandmap) SetView(view View) {
 	}
 
 	m.view = view
-	m.Notify(view)
 	m.do <- m.update
 }
 

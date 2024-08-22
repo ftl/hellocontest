@@ -76,15 +76,8 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 		v.currentFrame = frame
 		v.setupBands(frame.Bands)
 		v.updateBands(frame.Bands)
+		v.showFrameInTable(frame)
 
-		if !v.initialFrameShown {
-			v.initialFrameShown = true
-			v.showInitialFrameInTable(frame)
-		}
-
-		if bandChanged {
-			v.refreshTable()
-		}
 		for _, entry := range v.currentFrame.Entries {
 			v.updateHighlightedColumns(entry)
 		}
@@ -224,28 +217,4 @@ func (v *spotsView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
 			v.controller.SetActiveBand(band)
 		}
 	}
-}
-
-func (v *spotsView) EntryAdded(entry core.BandmapEntry) {
-	runAsync(func() {
-		v.addTableEntry(entry)
-	})
-}
-
-func (v *spotsView) EntryUpdated(entry core.BandmapEntry) {
-	runAsync(func() {
-		v.updateTableEntry(entry)
-	})
-}
-
-func (v *spotsView) EntryRemoved(entry core.BandmapEntry) {
-	runAsync(func() {
-		v.removeTableEntry(entry)
-	})
-}
-
-func (v *spotsView) EntrySelected(entry core.BandmapEntry) {
-	runAsync(func() {
-		v.revealTableEntry(entry)
-	})
 }

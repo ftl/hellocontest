@@ -95,27 +95,3 @@ func (w *spotsWindow) ShowFrame(frame core.BandmapFrame) {
 		w.spotsView.ShowFrame(frame)
 	}
 }
-
-func (w *spotsWindow) EntryAdded(entry core.BandmapEntry) {
-	if w.spotsView != nil {
-		w.spotsView.EntryAdded(entry)
-	}
-}
-
-func (w *spotsWindow) EntryUpdated(entry core.BandmapEntry) {
-	if w.spotsView != nil {
-		w.spotsView.EntryUpdated(entry)
-	}
-}
-
-func (w *spotsWindow) EntryRemoved(entry core.BandmapEntry) {
-	if w.spotsView != nil {
-		w.spotsView.EntryRemoved(entry)
-	}
-}
-
-func (w *spotsWindow) EntrySelected(entry core.BandmapEntry) {
-	if w.spotsView != nil {
-		w.spotsView.EntrySelected(entry)
-	}
-}

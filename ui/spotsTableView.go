@@ -256,7 +256,7 @@ func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) boo
 	return v.controller.EntryVisible(index)
 }
 
-func (v *spotsView) showInitialFrameInTable(frame core.BandmapFrame) {
+func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
 	v.tableContent.Clear()
 
 	for _, entry := range frame.Entries {
@@ -266,35 +266,6 @@ func (v *spotsView) showInitialFrameInTable(frame core.BandmapFrame) {
 			log.Printf("Cannot add entry to spots table row %v: %v", entry, err)
 		}
 	}
-}
-
-func (v *spotsView) addTableEntry(entry core.BandmapEntry) {
-	newRow := v.tableContent.Insert(entry.Index)
-	err := v.fillEntryToTableRow(newRow, entry)
-	if err != nil {
-		log.Printf("Cannot insert entry into spots table row %v: %v", entry, err)
-	}
-}
-
-func (v *spotsView) updateTableEntry(entry core.BandmapEntry) {
-	row := v.tableRowByIndex(entry.Index)
-	if row == nil {
-		return
-	}
-
-	err := v.fillEntryToTableRow(row, entry)
-	if err != nil {
-		log.Printf("Cannot update entry in spots table row %v: %v", entry, err)
-	}
-}
-
-func (v *spotsView) removeTableEntry(entry core.BandmapEntry) {
-	row := v.tableRowByIndex(entry.Index)
-	if row == nil {
-		return
-	}
-
-	v.tableContent.Remove(row)
 }
 
 func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
@@ -318,10 +289,6 @@ func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
 
 	column := v.table.GetColumn(1)
 	v.table.ScrollToCell(filteredPath, column, false, 0, 0)
-}
-
-func (v *spotsView) refreshTable() {
-	v.tableFilter.Refilter()
 }
 
 func (v *spotsView) tableRowByIndex(index int) *gtk.TreeIter {

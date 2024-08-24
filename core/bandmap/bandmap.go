@@ -2,7 +2,6 @@ package bandmap
 
 import (
 	"log"
-	"math"
 	"time"
 
 	"github.com/ftl/conval"
@@ -229,27 +228,10 @@ func (m *Bandmap) SetActiveBand(band core.Band) {
 	m.vfo.SetBand(band)
 }
 
-func (m *Bandmap) RemainingLifetime(index int) float64 {
-	result := make(chan float64)
-	m.do <- func() {
-		m.entries.DoOnEntry(index, func(entry core.BandmapEntry) {
-			result <- m.remainingLifetime(entry)
-		})
-	}
-	return <-result
-}
-
-func (m *Bandmap) remainingLifetime(entry core.BandmapEntry) float64 {
-	age := m.clock.Now().UTC().UnixMilli() - entry.LastHeard.UTC().UnixMilli()
-	result := 1 - (float64(age) / float64(m.maximumAge.Milliseconds()))
-	result = math.Max(0, math.Min(1, result))
-	return result
-}
-
-func (m *Bandmap) EntryVisible(index int) bool {
+func (m *Bandmap) EntryVisible(id core.BandmapEntryID) bool {
 	result := make(chan bool)
 	m.do <- func() {
-		m.entries.DoOnEntry(index, func(entry core.BandmapEntry) {
+		m.entries.DoOnEntry(id, func(entry core.BandmapEntry) {
 			result <- m.entryVisible(entry)
 		})
 	}
@@ -309,9 +291,9 @@ func (m *Bandmap) Query(order core.BandmapOrder, filters ...core.BandmapFilter) 
 	return <-result
 }
 
-func (m *Bandmap) SelectEntry(index int) {
+func (m *Bandmap) SelectEntry(id core.BandmapEntryID) {
 	m.do <- func() {
-		m.entries.Select(index)
+		m.entries.Select(id)
 	}
 }
 
@@ -319,16 +301,16 @@ func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
 	result := make(chan bool, 1)
 	callStr := call.String()
 	m.do <- func() {
-		foundIndex := -1
+		foundEntryID := core.NoEntryID
 		m.entries.ForEach(func(entry core.BandmapEntry) bool {
 			if entry.Call.String() == callStr && entry.Band == m.visibleBand {
-				foundIndex = entry.Index
+				foundEntryID = entry.ID
 				return true
 			}
 			return false
 		})
-		m.entries.Select(foundIndex)
-		result <- (foundIndex > -1)
+		m.entries.Select(foundEntryID)
+		result <- (foundEntryID > core.NoEntryID)
 	}
 	return <-result
 }
@@ -361,7 +343,7 @@ func (m *Bandmap) findAndSelectNextVisibleEntry(f func(entry core.BandmapEntry) 
 	m.do <- func() {
 		entry, found := m.nextVisibleEntry(m.activeFrequency, 0, f)
 		if found {
-			m.entries.Select(entry.Index)
+			m.entries.Select(entry.ID)
 		}
 	}
 }
@@ -370,7 +352,7 @@ func (m *Bandmap) findAndSelectNextVisibleEntryBy(order core.BandmapOrder, f fun
 	m.do <- func() {
 		entry, found := m.nextVisibleEntryBy(order, 0, f)
 		if found {
-			m.entries.Select(entry.Index)
+			m.entries.Select(entry.ID)
 		}
 	}
 }

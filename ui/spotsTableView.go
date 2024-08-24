@@ -210,30 +210,6 @@ func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, backgrou
 	return foreground, background
 }
 
-func (v *spotsView) updateHighlightedColumns(entry core.BandmapEntry) error {
-	row := v.tableRowByIndex(entry.Index)
-	if row == nil {
-		return fmt.Errorf("cannot reset frequency label for row with index %d", entry.Index)
-	}
-
-	return v.tableContent.Set(row,
-		[]int{
-			spotColumnFrequency,
-			spotColumnCallsign,
-			spotColumnQualityTag,
-			spotColumnAge,
-			spotColumnWeightedValue,
-		},
-		[]any{
-			formatSpotFrequency(entry.Frequency),
-			formatSpotCall(entry.Call),
-			entry.Quality.Tag(),
-			formatSpotAge(entry.LastHeard),
-			fmt.Sprintf("%.1f", entry.Info.WeightedValue),
-		},
-	)
-}
-
 func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) bool {
 	if v.controller == nil {
 		log.Print("filterTableRow: no controller")
@@ -253,7 +229,14 @@ func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) boo
 	}
 
 	index := path.GetIndices()[0]
-	return v.controller.EntryVisible(index)
+	if index < 0 || index >= len(v.currentFrame.Entries) {
+		log.Printf("filterTableRow: row index out of bounds: %d", index)
+		return false
+
+	}
+
+	entry := v.currentFrame.Entries[index]
+	return v.controller.EntryVisible(entry.ID)
 }
 
 func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
@@ -269,35 +252,38 @@ func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
 }
 
 func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
-	if !v.controller.EntryVisible(entry.Index) {
-		log.Printf("invisible entry #%d %s on %s not selected", entry.Index, entry.Call, entry.Band)
+	if !v.controller.EntryVisible(entry.ID) {
+		log.Printf("invisible entry #%d %s on %s not selected", entry.ID, entry.Call, entry.Band)
 		return
 	}
 
-	row, err := v.tableContent.GetIterFromString(fmt.Sprintf("%d", entry.Index))
+	index := -1
+	for i, e := range v.currentFrame.Entries {
+		if e.ID == entry.ID {
+			index = i
+			break
+		}
+	}
+	if index == -1 {
+		log.Printf("cannot find index for entry with ID %d", entry.ID)
+		return
+	}
+
+	row, err := v.tableContent.GetIterFromString(fmt.Sprintf("%d", index))
 	if err != nil {
-		log.Printf("cannot find table row with index %d", entry.Index)
+		log.Printf("cannot find table row with ID %d", entry.ID)
 		return
 	}
 
 	path, err := v.tableContent.GetPath(row)
 	if err != nil {
-		log.Printf("no table path found for index %d: %v", entry.Index, err)
+		log.Printf("no table path found for index with ID %d: %v", entry.ID, err)
 		return
 	}
 	filteredPath := v.tableFilter.ConvertChildPathToPath(path)
 
 	column := v.table.GetColumn(1)
 	v.table.ScrollToCell(filteredPath, column, false, 0, 0)
-}
-
-func (v *spotsView) tableRowByIndex(index int) *gtk.TreeIter {
-	result, err := v.tableContent.GetIterFromString(fmt.Sprintf("%d", index))
-	if err != nil {
-		log.Printf("Cannot find table row with index %d", index)
-		return nil
-	}
-	return result
 }
 
 func (v *spotsView) activateTableSelection(_ *gtk.TreeView, event *gdk.Event) {
@@ -314,7 +300,7 @@ func (v *spotsView) activateTableSelection(_ *gtk.TreeView, event *gdk.Event) {
 }
 
 func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
-	index, selected := v.getSelectedIndex(selection)
+	entry, selected := v.getSelectedEntry(selection)
 
 	if !v.tableSelectionActive {
 		log.Printf("table selection change ignored")
@@ -332,18 +318,23 @@ func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
 		return true
 	}
 
-	v.controller.SelectEntry(index)
+	v.controller.SelectEntry(entry.ID)
 
 	return true
 }
 
-func (v *spotsView) getSelectedIndex(selection *gtk.TreeSelection) (int, bool) {
+func (v *spotsView) getSelectedEntry(selection *gtk.TreeSelection) (core.BandmapEntry, bool) {
 	rows := selection.GetSelectedRows(v.tableFilter)
 	if rows.Length() != 1 {
-		return 0, false
+		return core.BandmapEntry{}, false
 	}
 
 	filteredPath := rows.NthData(0).(*gtk.TreePath)
 	path := v.tableFilter.ConvertPathToChildPath(filteredPath)
-	return path.GetIndices()[0], true
+	index := path.GetIndices()[0]
+	if index < 0 || index >= len(v.currentFrame.Entries) {
+		return core.BandmapEntry{}, false
+	}
+	entry := v.currentFrame.Entries[index]
+	return entry, true
 }

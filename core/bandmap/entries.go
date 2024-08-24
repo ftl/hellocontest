@@ -196,6 +196,7 @@ type Entries struct {
 	order           core.BandmapOrder
 	callinfo        Callinfo
 	countEntryValue func(core.BandmapEntry) bool
+	lastID          core.BandmapEntryID
 
 	listeners []any
 }
@@ -208,6 +209,11 @@ func NewEntries(countEntryValue func(core.BandmapEntry) bool) *Entries {
 	}
 	result.Clear()
 	return result
+}
+
+func (l *Entries) nextID() core.BandmapEntryID {
+	l.lastID++
+	return l.lastID
 }
 
 func (l *Entries) SetBands(bands []core.Band) {
@@ -302,20 +308,17 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 }
 
 func (l *Entries) insert(entry *Entry) {
+	entry.ID = l.nextID()
+
 	index := l.findIndexForInsert(entry)
 	if index == len(l.entries) {
 		l.entries = append(l.entries, entry)
-		entry.Index = len(l.entries) - 1
 		return
 	}
 
 	l.entries = append(l.entries, nil)
 	copy(l.entries[index+1:], l.entries[index:])
 	l.entries[index] = entry
-	for i, e := range l.entries {
-		e.Index = i
-		l.entries[i] = e
-	}
 }
 
 func (l *Entries) findIndexForInsert(entry *Entry) int {
@@ -342,7 +345,6 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core
 
 	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
-		e.Index = i
 		oldPoints, oldMultis, oldWeightedValue := e.Info.Points, e.Info.Multis, e.Info.WeightedValue
 		e.Info.Points, e.Info.Multis, e.Info.MultiValues = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
 		e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
@@ -361,18 +363,13 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core
 
 func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 	deadline := now.Add(-maximumAge)
-	removedEntries := make([]Entry, 0, len(l.entries))
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
 		stillValid := e.RemoveSpotsBefore(deadline)
 		if !stillValid {
-			removedEntries = append(removedEntries, *e)
+			l.emitEntryRemoved(*e)
 		}
 		return stillValid
 	})
-	for i, e := range removedEntries {
-		e.Index -= i
-		l.emitEntryRemoved(e)
-	}
 }
 
 func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {
@@ -441,23 +438,23 @@ func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
 	return result
 }
 
-func (l *Entries) DoOnEntry(index int, f func(core.BandmapEntry)) {
-	if index < 0 || index >= len(l.entries) {
-		f(core.BandmapEntry{})
-		return
+func (l *Entries) DoOnEntry(id core.BandmapEntryID, f func(core.BandmapEntry)) {
+	for _, entry := range l.entries {
+		if entry.ID == id {
+			f(entry.BandmapEntry)
+			return
+		}
 	}
-
-	entry := l.entries[index]
-	f(entry.BandmapEntry)
+	f(core.BandmapEntry{})
 }
 
-func (l *Entries) Select(index int) {
-	if index < 0 || index >= len(l.entries) {
-		return
+func (l *Entries) Select(id core.BandmapEntryID) {
+	for _, entry := range l.entries {
+		if entry.ID == id {
+			l.emitEntrySelected(*entry)
+			return
+		}
 	}
-
-	entry := l.entries[index]
-	l.emitEntrySelected(*entry)
 }
 
 func (l *Entries) All() []core.BandmapEntry {

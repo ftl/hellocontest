@@ -170,7 +170,7 @@ func TestEntries_AddNewEntry(t *testing.T) {
 	assert.Equal(t, "DL1ABC", newEntry.Call.String())
 	assert.Equal(t, core.Frequency(3760000), newEntry.Frequency)
 	assert.Equal(t, now, newEntry.LastHeard)
-	assert.Equal(t, 0, newEntry.Index)
+	assert.Equal(t, core.BandmapEntryID(1), newEntry.ID)
 	assert.Equal(t, 1, newEntry.Len())
 }
 
@@ -327,19 +327,17 @@ func TestEntries_insert(t *testing.T) {
 			}
 			for i, value := range tc.fixture {
 				entry := newEntry(value)
-				entry.Index = i
+				entry.ID = core.BandmapEntryID(i + 1)
 				entries.entries = append(entries.entries, entry)
 			}
+			entries.lastID = core.BandmapEntryID(len(entries.entries))
 
 			entry := newEntry(tc.value)
 			entry.Label = "inserted"
 			entries.insert(entry)
 
 			assert.Equal(t, "inserted", entries.entries[tc.expected].Label, "label")
-
-			for i, e := range entries.entries {
-				assert.Equal(t, i, e.Index, "index %d", i)
-			}
+			assert.Equal(t, len(entries.entries), int(entries.entries[tc.expected].ID), "id")
 		})
 	}
 }

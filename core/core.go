@@ -928,8 +928,12 @@ const spotFrequencyDeltaThreshold float64 = 300
 // spots within at least this proximity will be considered "on frequency"
 const spotOnFrequencyThreshold float64 = 1.0 - (spotFrequencyDeltaThreshold / spotFrequencyProximityThreshold)
 
+type BandmapEntryID uint64
+
+const NoEntryID BandmapEntryID = 0
+
 type BandmapEntry struct {
-	Index     int
+	ID        BandmapEntryID
 	Label     string
 	Call      callsign.Callsign
 	Frequency Frequency

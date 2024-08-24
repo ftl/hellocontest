@@ -32,9 +32,8 @@ type SpotsController interface {
 	SetVisibleBand(core.Band)
 	SetActiveBand(core.Band)
 
-	RemainingLifetime(int) float64
-	EntryVisible(int) bool
-	SelectEntry(int)
+	EntryVisible(core.BandmapEntryID) bool
+	SelectEntry(core.BandmapEntryID)
 }
 
 type spotsView struct {
@@ -78,9 +77,6 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 		v.updateBands(frame.Bands)
 		v.showFrameInTable(frame)
 
-		for _, entry := range v.currentFrame.Entries {
-			v.updateHighlightedColumns(entry)
-		}
 		if (bandChanged || frequencyChanged) && v.currentFrame.RevealNearestEntry {
 			v.revealTableEntry(v.currentFrame.NearestEntry)
 		}

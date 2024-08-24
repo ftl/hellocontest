@@ -126,6 +126,11 @@ func (m *Bandmap) update() {
 		NearestEntry:       nearestEntry,
 		RevealNearestEntry: nearestEntryFound,
 	}
+
+	selectedEntry, selected := m.entries.SelectedEntry()
+	if selected && m.entryVisible(selectedEntry) {
+		frame.SelectedEntry = selectedEntry
+	}
 	m.view.ShowFrame(frame)
 }
 

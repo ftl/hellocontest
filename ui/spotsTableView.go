@@ -139,7 +139,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 		},
 		[]any{
 			formatSpotFrequency(entry.Frequency),
-			formatSpotCall(entry.Call),
+			formatSpotCall(entry.Call, entry.ID == v.currentFrame.SelectedEntry.ID),
 			entry.Quality.Tag(),
 			entry.Info.ExchangeText,
 			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
@@ -158,7 +158,10 @@ func formatSpotFrequency(frequency core.Frequency) string {
 	return fmt.Sprintf("%.2f kHz", frequency/1000)
 }
 
-func formatSpotCall(call callsign.Callsign) string {
+func formatSpotCall(call callsign.Callsign, selected bool) string {
+	if selected {
+		return ">" + call.String()
+	}
 	return call.String()
 }
 

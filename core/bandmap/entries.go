@@ -197,6 +197,7 @@ type Entries struct {
 	callinfo        Callinfo
 	countEntryValue func(core.BandmapEntry) bool
 	lastID          core.BandmapEntryID
+	selectedEntry   *Entry
 
 	listeners []any
 }
@@ -449,12 +450,21 @@ func (l *Entries) DoOnEntry(id core.BandmapEntryID, f func(core.BandmapEntry)) {
 }
 
 func (l *Entries) Select(id core.BandmapEntryID) {
+	l.selectedEntry = nil
 	for _, entry := range l.entries {
 		if entry.ID == id {
+			l.selectedEntry = entry
 			l.emitEntrySelected(*entry)
 			return
 		}
 	}
+}
+
+func (l *Entries) SelectedEntry() (core.BandmapEntry, bool) {
+	if l.selectedEntry == nil {
+		return core.BandmapEntry{}, false
+	}
+	return l.selectedEntry.BandmapEntry, true
 }
 
 func (l *Entries) All() []core.BandmapEntry {

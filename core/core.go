@@ -862,6 +862,7 @@ type BandmapFrame struct {
 	Entries            []BandmapEntry
 	NearestEntry       BandmapEntry
 	RevealNearestEntry bool
+	SelectedEntry      BandmapEntry
 }
 
 type BandSummary struct {

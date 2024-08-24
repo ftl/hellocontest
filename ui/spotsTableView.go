@@ -48,17 +48,7 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 	v.table.AppendColumn(createSpotTextColumn("DXCC", spotColumnDXCC))
 
 	v.tableContent = createSpotListStore(spotColumnCount)
-
-	filter, err := v.tableContent.FilterNew(nil)
-	if err != nil {
-		log.Printf("No table filter: %v", err)
-		v.table.SetModel(v.tableContent)
-		return
-	}
-	filter.SetVisibleFunc(v.filterTableRow)
-
-	v.tableFilter = filter
-	v.table.SetModel(v.tableFilter)
+	v.table.SetModel(v.tableContent)
 
 	v.tableSelectionActive = false
 	selection, err := v.table.GetSelection()
@@ -210,35 +200,6 @@ func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, backgrou
 	return foreground, background
 }
 
-func (v *spotsView) filterTableRow(model *gtk.TreeModel, iter *gtk.TreeIter) bool {
-	if v.controller == nil {
-		log.Print("filterTableRow: no controller")
-		return false
-	}
-	if model == &v.tableContent.TreeModel {
-		log.Printf("filtering using the content model")
-	}
-	if model == &v.tableFilter.TreeModel {
-		log.Printf("filtering using the filter model")
-	}
-
-	path, err := model.GetPath(iter)
-	if err != nil {
-		log.Printf("filterTableRow: unable to get path for iter %v: %v", iter, err)
-		return false
-	}
-
-	index := path.GetIndices()[0]
-	if index < 0 || index >= len(v.currentFrame.Entries) {
-		log.Printf("filterTableRow: row index out of bounds: %d", index)
-		return false
-
-	}
-
-	entry := v.currentFrame.Entries[index]
-	return v.controller.EntryVisible(entry.ID)
-}
-
 func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
 	v.tableContent.Clear()
 
@@ -252,11 +213,6 @@ func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
 }
 
 func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
-	if !v.controller.EntryVisible(entry.ID) {
-		log.Printf("invisible entry #%d %s on %s not selected", entry.ID, entry.Call, entry.Band)
-		return
-	}
-
 	index := -1
 	for i, e := range v.currentFrame.Entries {
 		if e.ID == entry.ID {
@@ -280,10 +236,9 @@ func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
 		log.Printf("no table path found for index with ID %d: %v", entry.ID, err)
 		return
 	}
-	filteredPath := v.tableFilter.ConvertChildPathToPath(path)
 
 	column := v.table.GetColumn(1)
-	v.table.ScrollToCell(filteredPath, column, false, 0, 0)
+	v.table.ScrollToCell(path, column, false, 0, 0)
 }
 
 func (v *spotsView) activateTableSelection(_ *gtk.TreeView, event *gdk.Event) {
@@ -324,13 +279,12 @@ func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
 }
 
 func (v *spotsView) getSelectedEntry(selection *gtk.TreeSelection) (core.BandmapEntry, bool) {
-	rows := selection.GetSelectedRows(v.tableFilter)
+	rows := selection.GetSelectedRows(v.tableContent)
 	if rows.Length() != 1 {
 		return core.BandmapEntry{}, false
 	}
 
-	filteredPath := rows.NthData(0).(*gtk.TreePath)
-	path := v.tableFilter.ConvertPathToChildPath(filteredPath)
+	path := rows.NthData(0).(*gtk.TreePath)
 	index := path.GetIndices()[0]
 	if index < 0 || index >= len(v.currentFrame.Entries) {
 		return core.BandmapEntry{}, false

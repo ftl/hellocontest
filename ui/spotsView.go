@@ -32,7 +32,6 @@ type SpotsController interface {
 	SetVisibleBand(core.Band)
 	SetActiveBand(core.Band)
 
-	EntryVisible(core.BandmapEntryID) bool
 	SelectEntry(core.BandmapEntryID)
 }
 
@@ -44,7 +43,6 @@ type spotsView struct {
 
 	table        *gtk.TreeView
 	tableContent *gtk.ListStore
-	tableFilter  *gtk.TreeModelFilter
 
 	bands                []core.BandSummary
 	bandsID              string

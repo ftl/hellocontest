@@ -115,7 +115,7 @@ func (m *Bandmap) update() {
 	})
 
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
-	entries := m.entries.All()
+	entries := m.entries.Query(nil, m.entryVisible)
 	frame := core.BandmapFrame{
 		Frequency:          m.activeFrequency,
 		ActiveBand:         m.activeBand,
@@ -226,16 +226,6 @@ func (m *Bandmap) SetVisibleBand(band core.Band) {
 
 func (m *Bandmap) SetActiveBand(band core.Band) {
 	m.vfo.SetBand(band)
-}
-
-func (m *Bandmap) EntryVisible(id core.BandmapEntryID) bool {
-	result := make(chan bool)
-	m.do <- func() {
-		m.entries.DoOnEntry(id, func(entry core.BandmapEntry) {
-			result <- m.entryVisible(entry)
-		})
-	}
-	return <-result
 }
 
 func (m *Bandmap) entryVisible(entry core.BandmapEntry) bool {

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -70,6 +71,7 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 		// frequencyChanged := v.currentFrame.Frequency != frame.Frequency
 		bandChanged := (v.currentFrame.ActiveBand != frame.ActiveBand) || (v.currentFrame.VisibleBand != frame.VisibleBand)
 		selectionChanged := v.currentFrame.SelectedEntry.ID != frame.SelectedEntry.ID
+		isEntrySelected := frame.SelectedEntry.ID != core.NoEntryID
 
 		oldFrame := v.currentFrame
 		v.currentFrame = frame
@@ -79,11 +81,11 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 		if bandChanged {
 			v.showFrameInTable(frame)
 		} else {
-			v.updateFrame(oldFrame, frame)
+			v.updateTableFromFrame(oldFrame, frame)
 		}
 
-		if selectionChanged {
-			if frame.SelectedEntry.ID != core.NoEntryID {
+		if selectionChanged || bandChanged {
+			if isEntrySelected {
 				v.setSelectedTableEntry(frame.SelectedEntry)
 			} else {
 				v.clearSelection()
@@ -96,8 +98,35 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	})
 }
 
-func (v *spotsView) updateFrame(oldFrame core.BandmapFrame, newFrame core.BandmapFrame) {
-	v.showFrameInTable(newFrame)
+func (v *spotsView) updateTableFromFrame(oldFrame core.BandmapFrame, newFrame core.BandmapFrame) {
+	visitedEntries := make(map[core.BandmapEntryID]bool, len(newFrame.Entries))
+	newEntries := make([]core.BandmapEntryID, 0, len(newFrame.Entries))
+	for _, entry := range newFrame.Entries {
+		visitedEntries[entry.ID] = true
+		oldIndex, existed := oldFrame.IndexOf(entry.ID)
+		if existed {
+			v.updateTableEntry(oldIndex, entry)
+		} else {
+			newEntries = append(newEntries, entry.ID)
+		}
+	}
+
+	for i := len(oldFrame.Entries) - 1; i >= 0; i-- {
+		entry := oldFrame.Entries[i]
+		visited := visitedEntries[entry.ID]
+		if !visited {
+			v.removeTableEntry(i)
+		}
+	}
+
+	for _, id := range newEntries {
+		index, found := newFrame.IndexOf(id)
+		if !found {
+			log.Printf("cannot find new entry with ID %d", id)
+			continue
+		}
+		v.addTableEntry(index, newFrame.Entries[index])
+	}
 }
 
 func (v *spotsView) setupBands(bands []core.BandSummary) {

@@ -232,16 +232,59 @@ func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
 	}
 }
 
-func (v *spotsView) getTablePathForEntry(entry core.BandmapEntry) (*gtk.TreePath, bool) {
+func (v *spotsView) addTableEntry(index int, entry core.BandmapEntry) {
+	newRow := v.tableContent.Insert(index)
+	err := v.fillEntryToTableRow(newRow, entry)
+	if err != nil {
+		log.Printf("Cannot insert entry into spots table row %v: %v", entry, err)
+	}
+}
+
+func (v *spotsView) updateTableEntry(index int, entry core.BandmapEntry) {
+	row, found := v.getTableRowForIndex(index)
+	if !found {
+		return
+	}
+
+	err := v.fillEntryToTableRow(row, entry)
+	if err != nil {
+		log.Printf("Cannot update entry in spots table row %v: %v", entry, err)
+	}
+}
+
+func (v *spotsView) removeTableEntry(index int) {
+	row, found := v.getTableRowForIndex(index)
+	if !found {
+		return
+	}
+
+	v.tableContent.Remove(row)
+}
+
+func (v *spotsView) getTableRowForIndex(index int) (*gtk.TreeIter, bool) {
+	row, err := v.tableContent.GetIterFromString(fmt.Sprintf("%d", index))
+	if err != nil {
+		log.Printf("cannot find table row with index %d", index)
+		// panic(fmt.Errorf("cannot find table row with index %d", index))
+		return nil, false
+	}
+
+	return row, true
+}
+
+func (v *spotsView) getTableRowForEntry(entry core.BandmapEntry) (*gtk.TreeIter, bool) {
 	index, found := v.currentFrame.IndexOf(entry.ID)
 	if !found {
 		log.Printf("cannot find index for entry with ID %d", entry.ID)
 		return nil, false
 	}
 
-	row, err := v.tableContent.GetIterFromString(fmt.Sprintf("%d", index))
-	if err != nil {
-		log.Printf("cannot find table row with ID %d", entry.ID)
+	return v.getTableRowForIndex(index)
+}
+
+func (v *spotsView) getTablePathForEntry(entry core.BandmapEntry) (*gtk.TreePath, bool) {
+	row, found := v.getTableRowForEntry(entry)
+	if !found {
 		return nil, false
 	}
 
@@ -267,12 +310,14 @@ func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
 func (v *spotsView) setSelectedTableEntry(entry core.BandmapEntry) {
 	path, found := v.getTablePathForEntry(entry)
 	if !found {
+		v.clearSelection()
 		return
 	}
 
 	selection, err := v.table.GetSelection()
 	if err != nil {
 		log.Printf("no table selection available: %v", err)
+		return
 	}
 	selection.SelectPath(path)
 	column := v.table.GetColumn(1)

@@ -367,6 +367,9 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
 		stillValid := e.RemoveSpotsBefore(deadline)
 		if !stillValid {
+			if l.selectedEntry != nil && e.ID == l.selectedEntry.ID {
+				l.selectedEntry = nil
+			}
 			l.emitEntryRemoved(*e)
 		}
 		return stillValid

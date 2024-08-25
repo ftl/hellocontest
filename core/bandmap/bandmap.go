@@ -105,7 +105,7 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now(), m.weights)
 
-	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntry(m.activeFrequency, 2, func(entry core.BandmapEntry) bool {
+	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 2, func(entry core.BandmapEntry) bool {
 		return entry.OnFrequency(m.activeFrequency)
 	})
 	m.entries.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
@@ -124,18 +124,18 @@ func (m *Bandmap) update() {
 	}
 
 	selectedEntry, selected := m.entries.SelectedEntry()
-	if selected && m.entryVisible(selectedEntry) && selectedEntry.OnFrequency(m.activeFrequency) {
+	if selected && m.entryVisible(selectedEntry) {
 		frame.SelectedEntry = selectedEntry
 	}
 
-	nearestEntry, nearestEntryFound := m.nextVisibleEntry(m.activeFrequency, 0, func(entry core.BandmapEntry) bool {
+	nearestEntry, nearestEntryFound := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 0, func(entry core.BandmapEntry) bool {
 		return !entry.OnFrequency(m.activeFrequency) && entry.Source != core.WorkedSpot
 	})
 	if nearestEntryFound {
 		frame.NearestEntry = nearestEntry
 	}
 
-	highestValueEntry, highestValueEntryFound := m.nextVisibleEntryBy(core.BandmapByDescendingValue, 0, func(entry core.BandmapEntry) bool {
+	highestValueEntry, highestValueEntryFound := m.nextVisibleEntryBy(core.Descending(core.BandmapByValue), 0, func(entry core.BandmapEntry) bool {
 		return entry.Source != core.WorkedSpot
 	})
 	if highestValueEntryFound {
@@ -299,8 +299,13 @@ func (m *Bandmap) Query(order core.BandmapOrder, filters ...core.BandmapFilter) 
 
 func (m *Bandmap) SelectEntry(id core.BandmapEntryID) {
 	m.do <- func() {
-		m.entries.Select(id)
+		m.selectEntry(id)
 	}
+}
+
+func (m *Bandmap) selectEntry(id core.BandmapEntryID) {
+	m.entries.Select(id)
+	m.update()
 }
 
 func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
@@ -315,14 +320,14 @@ func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
 			}
 			return false
 		})
-		m.entries.Select(foundEntryID)
+		m.selectEntry(foundEntryID)
 		result <- (foundEntryID > core.NoEntryID)
 	}
 	return <-result
 }
 
 func (m *Bandmap) GotoHighestValueEntry() {
-	m.findAndSelectNextVisibleEntryBy(core.BandmapByDescendingValue, func(entry core.BandmapEntry) bool {
+	m.findAndSelectNextVisibleEntryBy(core.Descending(core.BandmapByValue), func(entry core.BandmapEntry) bool {
 		return entry.Source != core.WorkedSpot
 	})
 }
@@ -335,36 +340,29 @@ func (m *Bandmap) GotoNearestEntry() {
 
 func (m *Bandmap) GotoNextEntryUp() {
 	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
-		return entry.Frequency > m.activeFrequency && entry.Source != core.WorkedSpot
+		selectedEntry, selected := m.entries.SelectedEntry()
+		return ((entry.Frequency > m.activeFrequency) || (selected && entry.Frequency == m.activeFrequency && entry.ID > selectedEntry.ID)) && entry.Source != core.WorkedSpot
 	})
 }
 
 func (m *Bandmap) GotoNextEntryDown() {
 	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
-		return entry.Frequency < m.activeFrequency && entry.Source != core.WorkedSpot
+		selectedEntry, selected := m.entries.SelectedEntry()
+		return ((entry.Frequency < m.activeFrequency) || (selected && entry.Frequency == m.activeFrequency && entry.ID < selectedEntry.ID)) && entry.Source != core.WorkedSpot
 	})
 }
 
 func (m *Bandmap) findAndSelectNextVisibleEntry(f func(entry core.BandmapEntry) bool) {
-	m.do <- func() {
-		entry, found := m.nextVisibleEntry(m.activeFrequency, 0, f)
-		if found {
-			m.entries.Select(entry.ID)
-		}
-	}
+	m.findAndSelectNextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), f)
 }
 
 func (m *Bandmap) findAndSelectNextVisibleEntryBy(order core.BandmapOrder, f func(entry core.BandmapEntry) bool) {
 	m.do <- func() {
 		entry, found := m.nextVisibleEntryBy(order, 0, f)
 		if found {
-			m.entries.Select(entry.ID)
+			m.selectEntry(entry.ID)
 		}
 	}
-}
-
-func (m *Bandmap) nextVisibleEntry(frequency core.Frequency, limit int, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
-	return m.nextVisibleEntryBy(core.BandmapByDistance(frequency), limit, f)
 }
 
 func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, limit int, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {

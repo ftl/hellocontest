@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	spotColumnFrequency = iota
+	spotColumnMark = iota
+	spotColumnFrequency
 	spotColumnCallsign
 	spotColumnQualityTag
 	spotColumnPredictedExchange
@@ -36,6 +37,7 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 	v.table = getUI(builder, "entryTable").(*gtk.TreeView)
 	v.table.Connect("button-press-event", v.activateTableSelection)
 
+	v.table.AppendColumn(createSpotMarkupColumn("", spotColumnMark))
 	v.table.AppendColumn(createSpotMarkupColumn("Frequency", spotColumnFrequency))
 	v.table.AppendColumn(createSpotMarkupColumn("Callsign", spotColumnCallsign))
 	v.table.AppendColumn(createSpotTextColumn("T", spotColumnQualityTag))
@@ -56,7 +58,7 @@ func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsCon
 		log.Printf("no tree selection: %v", err)
 		return
 	}
-	selection.SetMode(gtk.SELECTION_NONE)
+	selection.SetMode(gtk.SELECTION_SINGLE)
 	selection.Connect("changed", v.onTableSelectionChanged)
 }
 
@@ -124,6 +126,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 
 	return v.tableContent.Set(row,
 		[]int{
+			spotColumnMark,
 			spotColumnFrequency,
 			spotColumnCallsign,
 			spotColumnQualityTag,
@@ -138,8 +141,9 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			spotColumnBackground,
 		},
 		[]any{
+			formatSpotMark(entry, v.currentFrame),
 			formatSpotFrequency(entry.Frequency),
-			formatSpotCall(entry.Call, entry.ID == v.currentFrame.SelectedEntry.ID),
+			formatSpotCall(entry.Call),
 			entry.Quality.Tag(),
 			entry.Info.ExchangeText,
 			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
@@ -154,14 +158,27 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 	)
 }
 
+func formatSpotMark(entry core.BandmapEntry, frame core.BandmapFrame) string {
+	if entry.ID == frame.HighestValueEntry.ID {
+		return "H"
+	}
+	if entry.ID == frame.SelectedEntry.ID {
+		return ">"
+	}
+	if entry.OnFrequency(frame.Frequency) {
+		return "|"
+	}
+	if entry.ID == frame.NearestEntry.ID {
+		return "N"
+	}
+	return ""
+}
+
 func formatSpotFrequency(frequency core.Frequency) string {
 	return fmt.Sprintf("%.2f kHz", frequency/1000)
 }
 
-func formatSpotCall(call callsign.Callsign, selected bool) string {
-	if selected {
-		return ">" + call.String()
-	}
+func formatSpotCall(call callsign.Callsign) string {
 	return call.String()
 }
 
@@ -215,27 +232,59 @@ func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
 	}
 }
 
-func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
+func (v *spotsView) getTablePathForEntry(entry core.BandmapEntry) (*gtk.TreePath, bool) {
 	index, found := v.currentFrame.IndexOf(entry.ID)
 	if !found {
 		log.Printf("cannot find index for entry with ID %d", entry.ID)
-		return
+		return nil, false
 	}
 
 	row, err := v.tableContent.GetIterFromString(fmt.Sprintf("%d", index))
 	if err != nil {
 		log.Printf("cannot find table row with ID %d", entry.ID)
-		return
+		return nil, false
 	}
 
 	path, err := v.tableContent.GetPath(row)
 	if err != nil {
 		log.Printf("no table path found for index with ID %d: %v", entry.ID, err)
+		return nil, false
+	}
+
+	return path, true
+}
+
+func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
+	path, found := v.getTablePathForEntry(entry)
+	if !found {
 		return
 	}
 
 	column := v.table.GetColumn(1)
 	v.table.ScrollToCell(path, column, false, 0, 0)
+}
+
+func (v *spotsView) setSelectedTableEntry(entry core.BandmapEntry) {
+	path, found := v.getTablePathForEntry(entry)
+	if !found {
+		return
+	}
+
+	selection, err := v.table.GetSelection()
+	if err != nil {
+		log.Printf("no table selection available: %v", err)
+	}
+	selection.SelectPath(path)
+	column := v.table.GetColumn(1)
+	v.table.ScrollToCell(path, column, false, 0, 0)
+}
+
+func (v *spotsView) clearSelection() {
+	selection, err := v.table.GetSelection()
+	if err != nil {
+		log.Printf("no table selection available: %v", err)
+	}
+	selection.UnselectAll()
 }
 
 func (v *spotsView) activateTableSelection(_ *gtk.TreeView, event *gdk.Event) {
@@ -259,8 +308,6 @@ func (v *spotsView) onTableSelectionChanged(selection *gtk.TreeSelection) bool {
 		return true
 	}
 	v.tableSelectionActive = false
-	selection.UnselectAll()
-	selection.SetMode(gtk.SELECTION_NONE)
 
 	if !selected {
 		return true

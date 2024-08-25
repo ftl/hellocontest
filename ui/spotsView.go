@@ -67,18 +67,37 @@ func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller Spots
 
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	runAsync(func() {
-		frequencyChanged := v.currentFrame.Frequency != frame.Frequency
+		// frequencyChanged := v.currentFrame.Frequency != frame.Frequency
 		bandChanged := (v.currentFrame.ActiveBand != frame.ActiveBand) || (v.currentFrame.VisibleBand != frame.VisibleBand)
+		selectionChanged := v.currentFrame.SelectedEntry.ID != frame.SelectedEntry.ID
 
+		oldFrame := v.currentFrame
 		v.currentFrame = frame
 		v.setupBands(frame.Bands)
 		v.updateBands(frame.Bands)
-		v.showFrameInTable(frame)
 
-		if (bandChanged || frequencyChanged) && v.currentFrame.RevealNearestEntry {
-			v.revealTableEntry(v.currentFrame.NearestEntry)
+		if bandChanged {
+			v.showFrameInTable(frame)
+		} else {
+			v.updateFrame(oldFrame, frame)
 		}
+
+		if selectionChanged {
+			if frame.SelectedEntry.ID != core.NoEntryID {
+				v.setSelectedTableEntry(frame.SelectedEntry)
+			} else {
+				v.clearSelection()
+			}
+		}
+
+		// if (bandChanged || frequencyChanged) && v.currentFrame.RevealNearestEntry {
+		// 	v.revealTableEntry(v.currentFrame.NearestEntry)
+		// }
 	})
+}
+
+func (v *spotsView) updateFrame(oldFrame core.BandmapFrame, newFrame core.BandmapFrame) {
+	v.showFrameInTable(newFrame)
 }
 
 func (v *spotsView) setupBands(bands []core.BandSummary) {

@@ -854,16 +854,16 @@ type Spot struct {
 }
 
 type BandmapFrame struct {
-	Frequency          Frequency
-	ActiveBand         Band
-	VisibleBand        Band
-	Mode               Mode
-	Bands              []BandSummary
-	Entries            []BandmapEntry
-	Index              BandmapFrameIndex
-	NearestEntry       BandmapEntry
-	RevealNearestEntry bool
-	SelectedEntry      BandmapEntry
+	Frequency         Frequency
+	ActiveBand        Band
+	VisibleBand       Band
+	Mode              Mode
+	Bands             []BandSummary
+	Entries           []BandmapEntry
+	Index             BandmapFrameIndex
+	SelectedEntry     BandmapEntry
+	NearestEntry      BandmapEntry
+	HighestValueEntry BandmapEntry
 }
 
 func (f BandmapFrame) IndexOf(id BandmapEntryID) (int, bool) {

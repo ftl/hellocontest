@@ -110,29 +110,38 @@ func (m *Bandmap) update() {
 	})
 	m.entries.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
 
-	nearestEntry, nearestEntryFound := m.nextVisibleEntry(m.activeFrequency, 0, func(entry core.BandmapEntry) bool {
-		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
-	})
-
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
 	entries := m.entries.Query(nil, m.entryVisible)
 	index := core.NewFrameIndex(entries)
 	frame := core.BandmapFrame{
-		Frequency:          m.activeFrequency,
-		ActiveBand:         m.activeBand,
-		VisibleBand:        m.visibleBand,
-		Mode:               m.activeMode,
-		Bands:              bands,
-		Entries:            entries,
-		Index:              index,
-		NearestEntry:       nearestEntry,
-		RevealNearestEntry: nearestEntryFound,
+		Frequency:   m.activeFrequency,
+		ActiveBand:  m.activeBand,
+		VisibleBand: m.visibleBand,
+		Mode:        m.activeMode,
+		Bands:       bands,
+		Entries:     entries,
+		Index:       index,
 	}
 
 	selectedEntry, selected := m.entries.SelectedEntry()
-	if selected && m.entryVisible(selectedEntry) {
+	if selected && m.entryVisible(selectedEntry) && selectedEntry.OnFrequency(m.activeFrequency) {
 		frame.SelectedEntry = selectedEntry
 	}
+
+	nearestEntry, nearestEntryFound := m.nextVisibleEntry(m.activeFrequency, 0, func(entry core.BandmapEntry) bool {
+		return !entry.OnFrequency(m.activeFrequency) && entry.Source != core.WorkedSpot
+	})
+	if nearestEntryFound {
+		frame.NearestEntry = nearestEntry
+	}
+
+	highestValueEntry, highestValueEntryFound := m.nextVisibleEntryBy(core.BandmapByDescendingValue, 0, func(entry core.BandmapEntry) bool {
+		return entry.Source != core.WorkedSpot
+	})
+	if highestValueEntryFound {
+		frame.HighestValueEntry = highestValueEntry
+	}
+
 	m.view.ShowFrame(frame)
 }
 
@@ -314,13 +323,13 @@ func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
 
 func (m *Bandmap) GotoHighestValueEntry() {
 	m.findAndSelectNextVisibleEntryBy(core.BandmapByDescendingValue, func(entry core.BandmapEntry) bool {
-		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
+		return entry.Source != core.WorkedSpot
 	})
 }
 
 func (m *Bandmap) GotoNearestEntry() {
 	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
-		return entry.Frequency != m.activeFrequency && entry.Source != core.WorkedSpot
+		return !entry.OnFrequency(m.activeFrequency) && entry.Source != core.WorkedSpot
 	})
 }
 

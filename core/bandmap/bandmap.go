@@ -116,6 +116,7 @@ func (m *Bandmap) update() {
 
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
 	entries := m.entries.Query(nil, m.entryVisible)
+	index := core.NewFrameIndex(entries)
 	frame := core.BandmapFrame{
 		Frequency:          m.activeFrequency,
 		ActiveBand:         m.activeBand,
@@ -123,6 +124,7 @@ func (m *Bandmap) update() {
 		Mode:               m.activeMode,
 		Bands:              bands,
 		Entries:            entries,
+		Index:              index,
 		NearestEntry:       nearestEntry,
 		RevealNearestEntry: nearestEntryFound,
 	}

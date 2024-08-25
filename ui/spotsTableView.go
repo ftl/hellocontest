@@ -216,14 +216,8 @@ func (v *spotsView) showFrameInTable(frame core.BandmapFrame) {
 }
 
 func (v *spotsView) revealTableEntry(entry core.BandmapEntry) {
-	index := -1
-	for i, e := range v.currentFrame.Entries {
-		if e.ID == entry.ID {
-			index = i
-			break
-		}
-	}
-	if index == -1 {
+	index, found := v.currentFrame.IndexOf(entry.ID)
+	if !found {
 		log.Printf("cannot find index for entry with ID %d", entry.ID)
 		return
 	}

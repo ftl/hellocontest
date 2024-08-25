@@ -860,9 +860,33 @@ type BandmapFrame struct {
 	Mode               Mode
 	Bands              []BandSummary
 	Entries            []BandmapEntry
+	Index              BandmapFrameIndex
 	NearestEntry       BandmapEntry
 	RevealNearestEntry bool
 	SelectedEntry      BandmapEntry
+}
+
+func (f BandmapFrame) IndexOf(id BandmapEntryID) (int, bool) {
+	index, found := f.Index[id]
+	return index, found
+}
+
+func (f BandmapFrame) EntryByID(id BandmapEntryID) (BandmapEntry, bool) {
+	index, found := f.IndexOf(id)
+	if !found {
+		return BandmapEntry{}, false
+	}
+	return f.Entries[index], true
+}
+
+type BandmapFrameIndex map[BandmapEntryID]int
+
+func NewFrameIndex(entries []BandmapEntry) BandmapFrameIndex {
+	result := make(BandmapFrameIndex, len(entries))
+	for i, entry := range entries {
+		result[entry.ID] = i
+	}
+	return result
 }
 
 type BandSummary struct {

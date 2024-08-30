@@ -376,22 +376,6 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 	result := make([]string, len(c.theirExchangeFields))
 	copy(result, currentExchange)
 
-	if entity.PrimaryPrefix != "" {
-		for i, field := range c.theirExchangeFields {
-			if i < len(historicExchange) && historicExchange[i] != "" {
-				continue
-			}
-			switch {
-			case field.Properties.Contains(conval.CQZoneProperty):
-				result[i] = strconv.Itoa(int(entity.CQZone))
-			case field.Properties.Contains(conval.ITUZoneProperty):
-				result[i] = strconv.Itoa(int(entity.ITUZone))
-			case field.Properties.Contains(conval.DXCCEntityProperty), field.Properties.Contains(conval.DXCCPrefixProperty):
-				result[i] = entity.PrimaryPrefix
-			}
-		}
-	}
-
 	for i := range result {
 		foundInQSO := false
 		for _, qso := range qsos {
@@ -408,8 +392,26 @@ func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentE
 				break
 			}
 		}
-		if !foundInQSO && i < len(historicExchange) && historicExchange[i] != "" {
+
+		if foundInQSO {
+			continue
+		}
+
+		if i < len(historicExchange) && historicExchange[i] != "" {
 			result[i] = historicExchange[i]
+		} else if entity.PrimaryPrefix != "" {
+			if i >= len(c.theirExchangeFields) {
+				continue
+			}
+			field := c.theirExchangeFields[i]
+			switch {
+			case field.Properties.Contains(conval.CQZoneProperty):
+				result[i] = strconv.Itoa(int(entity.CQZone))
+			case field.Properties.Contains(conval.ITUZoneProperty):
+				result[i] = strconv.Itoa(int(entity.ITUZone))
+			case field.Properties.Contains(conval.DXCCEntityProperty), field.Properties.Contains(conval.DXCCPrefixProperty):
+				result[i] = entity.PrimaryPrefix
+			}
 		}
 	}
 

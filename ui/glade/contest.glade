@@ -1236,7 +1236,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </packing>
             </child>
             <child>
-              <!-- n-columns=2 n-rows=1 -->
+              <!-- n-columns=3 n-rows=1 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -1265,6 +1265,19 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="contestOpenCallHistoryArchivePageButton">
+                    <property name="label" translatable="yes">🌐</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="tooltip-text" translatable="yes">Open N1MM's call history archive to download a proper call history file</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
                     <property name="top-attach">0</property>
                   </packing>
                 </child>

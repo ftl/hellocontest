@@ -18,6 +18,7 @@ import (
 )
 
 const contestStartTimeFormat = "02-01-2006 15:04"
+const callHistoryArchiveURL = "https://n1mmwp.hamdocs.com/mmfiles/categories/callhistory"
 
 type StationListener interface {
 	StationChanged(core.Station)
@@ -523,6 +524,10 @@ func (s *Settings) OpenContestUploadPage() {
 		return
 	}
 	s.browserOpener(url)
+}
+
+func (s *Settings) OpenCallHistoryArchivePage() {
+	s.browserOpener(callHistoryArchiveURL)
 }
 
 func (s *Settings) ClearCallHistory() {

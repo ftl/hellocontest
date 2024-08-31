@@ -20,6 +20,7 @@ type SettingsController interface {
 	SelectContestIdentifier(string)
 	OpenContestRulesPage()
 	OpenContestUploadPage()
+	OpenCallHistoryArchivePage()
 	ClearCallHistory()
 
 	EnterContestExchangeValue(core.EntryField, string)
@@ -64,17 +65,18 @@ type settingsView struct {
 
 	fields map[fieldID]interface{}
 
-	exchangeFieldsParent           *gtk.Grid
-	exchangeFieldCount             int
-	generateSerialExchangeButton   *gtk.CheckButton
-	generateReportButton           *gtk.CheckButton
-	serialExchangeEntry            *gtk.Entry
-	reportEntry                    *gtk.Entry
-	contestStartTimeTodayButton    *gtk.Button
-	contestStartTimeNowButton      *gtk.Button
-	callHistoryFieldNamesParent    *gtk.Grid
-	clearCallHistorySettingsButton *gtk.Button
-	availableCallHistoryFieldNames []string
+	exchangeFieldsParent             *gtk.Grid
+	exchangeFieldCount               int
+	generateSerialExchangeButton     *gtk.CheckButton
+	generateReportButton             *gtk.CheckButton
+	serialExchangeEntry              *gtk.Entry
+	reportEntry                      *gtk.Entry
+	contestStartTimeTodayButton      *gtk.Button
+	contestStartTimeNowButton        *gtk.Button
+	callHistoryFieldNamesParent      *gtk.Grid
+	clearCallHistorySettingsButton   *gtk.Button
+	openCallHistoryArchivePageButton *gtk.Button
+	availableCallHistoryFieldNames   []string
 }
 
 func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
@@ -92,6 +94,8 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.callHistoryFieldNamesParent = getUI(builder, "contestCallHistoryFieldNamesGrid").(*gtk.Grid)
 	result.clearCallHistorySettingsButton = getUI(builder, "contestCallHistoryClearButton").(*gtk.Button)
 	result.clearCallHistorySettingsButton.Connect("clicked", result.onClearCallHistoryPressed)
+	result.openCallHistoryArchivePageButton = getUI(builder, "contestOpenCallHistoryArchivePageButton").(*gtk.Button)
+	result.openCallHistoryArchivePageButton.Connect("clicked", result.onOpenCallHistoryArchivePagePressed)
 
 	result.reset = getUI(builder, "resetButton").(*gtk.Button)
 	result.reset.Connect("clicked", result.onResetPressed)
@@ -229,6 +233,10 @@ func (v *settingsView) onContestStartTimeTodayPressed(_ *gtk.Button) {
 
 func (v *settingsView) onContestStartTimeNowPressed(_ *gtk.Button) {
 	v.controller.SetContestStartTimeNow()
+}
+
+func (v *settingsView) onOpenCallHistoryArchivePagePressed(_ *gtk.Button) {
+	v.controller.OpenCallHistoryArchivePage()
 }
 
 func (v *settingsView) onClearCallHistoryPressed(_ *gtk.Button) {

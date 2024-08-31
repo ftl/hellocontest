@@ -334,11 +334,15 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		}
 		v.exchangeFieldsParent.RemoveRow(0)
 
-		fieldName, _ := v.callHistoryFieldNamesParent.GetChildAt(0, 0)
+		label, _ = v.callHistoryFieldNamesParent.GetChildAt(0, 0)
+		if label != nil {
+			label.ToWidget().Destroy()
+		}
+		fieldName, _ := v.callHistoryFieldNamesParent.GetChildAt(1, 0)
 		if fieldName != nil {
 			fieldName.ToWidget().Destroy()
 		}
-		v.callHistoryFieldNamesParent.RemoveColumn(0)
+		v.callHistoryFieldNamesParent.RemoveRow(0)
 	}
 	if v.generateSerialExchangeButton != nil {
 		v.generateSerialExchangeButton.Destroy()
@@ -367,7 +371,12 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		entry.Connect("changed", v.onExchangeFieldChanged)
 		v.exchangeFieldsParent.Attach(entry, 1, i, 1, 1)
 
-		v.callHistoryFieldNamesParent.InsertColumn(i)
+		v.callHistoryFieldNamesParent.InsertRow(i)
+		label, _ = gtk.LabelNew(field.Short)
+		label.SetHAlign(gtk.ALIGN_START)
+		label.SetHExpand(false)
+		v.callHistoryFieldNamesParent.Attach(label, 0, i, 1, 1)
+
 		fieldName, _ := gtk.ComboBoxTextNew()
 		fieldName.SetName(string(field.Field))
 		fieldName.Append("", "")
@@ -378,7 +387,7 @@ func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
 		fieldName.SetHAlign(gtk.ALIGN_FILL)
 		fieldName.SetHExpand(true)
 		fieldName.Connect("changed", v.onCallHistoryFieldNameChanged)
-		v.callHistoryFieldNamesParent.Attach(fieldName, i, 0, 1, 1)
+		v.callHistoryFieldNamesParent.Attach(fieldName, 1, i, 1, 1)
 
 		if field.CanContainSerial && v.generateSerialExchangeButton == nil {
 			serialCheckButton, _ := gtk.CheckButtonNew()
@@ -501,7 +510,7 @@ func (v *settingsView) onCallHistoryFieldNameChanged(entry *gtk.ComboBoxText) bo
 }
 
 func (v *settingsView) SetContestCallHistoryFieldName(i int, value string) {
-	child, _ := v.callHistoryFieldNamesParent.GetChildAt(i, 0)
+	child, _ := v.callHistoryFieldNamesParent.GetChildAt(1, i)
 	entry, ok := child.(*gtk.ComboBoxText)
 	if !ok {
 		return

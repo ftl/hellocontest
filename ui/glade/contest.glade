@@ -974,12 +974,12 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
           </packing>
         </child>
         <child>
-          <!-- n-columns=2 n-rows=13 -->
+          <!-- n-columns=2 n-rows=15 -->
           <object class="GtkGrid" id="stationGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="row-spacing">3</property>
-            <property name="column-spacing">5</property>
+            <property name="row-spacing">5</property>
+            <property name="column-spacing">9</property>
             <child>
               <object class="GtkLabel">
                 <property name="visible">True</property>
@@ -1128,12 +1128,16 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
+                <property name="valign">start</property>
                 <property name="margin-start">10</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
                 <property name="label" translatable="yes">Call History Fields</property>
+                <property name="xalign">0</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">12</property>
               </packing>
             </child>
             <child>
@@ -1219,7 +1223,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">11</property>
+                <property name="top-attach">12</property>
               </packing>
             </child>
             <child>
@@ -1232,7 +1236,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">11</property>
               </packing>
             </child>
             <child>
@@ -1284,7 +1288,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">10</property>
+                <property name="top-attach">11</property>
               </packing>
             </child>
             <child>
@@ -1380,7 +1384,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">1</property>
-                <property name="top-attach">12</property>
+                <property name="top-attach">14</property>
               </packing>
             </child>
             <child>
@@ -1393,7 +1397,7 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </object>
               <packing>
                 <property name="left-attach">0</property>
-                <property name="top-attach">12</property>
+                <property name="top-attach">14</property>
               </packing>
             </child>
             <child>
@@ -1501,6 +1505,38 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               <packing>
                 <property name="left-attach">1</property>
                 <property name="top-attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Call History</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">10</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Goals</property>
+                <attributes>
+                  <attribute name="weight" value="bold"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">13</property>
+                <property name="width">2</property>
               </packing>
             </child>
           </object>

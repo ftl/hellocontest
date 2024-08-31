@@ -1761,6 +1761,15 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="menuEditStartParrot">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Start Parrot</property>
+                        <property name="use-underline">True</property>
+                        <accelerator key="F1" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkSeparatorMenuItem">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>

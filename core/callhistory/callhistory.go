@@ -84,8 +84,8 @@ func (f *Finder) activateCallHistory() {
 
 func (f *Finder) emitAvailableCallHistoryFieldNames(fieldNames []string) {
 	for _, listener := range f.listeners {
-		if stationListener, ok := listener.(AvailableFieldNamesListener); ok {
-			stationListener.SetAvailableCallHistoryFieldNames(fieldNames)
+		if fieldNamesListener, ok := listener.(AvailableFieldNamesListener); ok {
+			fieldNamesListener.SetAvailableCallHistoryFieldNames(fieldNames)
 		}
 	}
 }

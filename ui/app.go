@@ -125,6 +125,7 @@ func (a *application) activate() {
 	a.controller.Settings.Notify(a.mainWindow)
 	a.controller.NewContest.SetView(a.newContestDialog)
 	a.controller.Clusters.SetView(a.mainWindow)
+	a.controller.Parrot.SetView(a.mainWindow)
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)
 	err = a.windowGeometry.Restore()

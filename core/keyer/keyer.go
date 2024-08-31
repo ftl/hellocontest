@@ -48,6 +48,11 @@ type Writer interface {
 	WriteKeyer(core.KeyerSettings) error
 }
 
+// KeyerStoppedListener is notified when the keyer was actively stopped by the user.
+type KeyerStoppedListener interface {
+	KeyerStopped()
+}
+
 // New returns a new Keyer that has no patterns or templates defined yet.
 func New(settings core.Settings, client CWClient, keyerSettings core.KeyerSettings, workmode core.Workmode, presets []core.KeyerPreset) *Keyer {
 	result := &Keyer{
@@ -509,10 +514,19 @@ func (k *Keyer) send(s string) {
 func (k *Keyer) Stop() {
 	log.Println("abort sending")
 	k.client.Abort()
+	k.emitKeyerStopped()
 }
 
 func (k *Keyer) Notify(listener any) {
 	k.listeners = append(k.listeners, listener)
+}
+
+func (k *Keyer) emitKeyerStopped() {
+	for _, listener := range k.listeners {
+		if keyerStoppedListener, ok := listener.(KeyerStoppedListener); ok {
+			keyerStoppedListener.KeyerStopped()
+		}
+	}
 }
 
 // softcut replaces 0 and 9 with their "cut" counterparts t and n.

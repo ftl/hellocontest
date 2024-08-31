@@ -8,6 +8,8 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
+const parrot = "🦜"
+
 // KeyerController controls the keyer.
 type KeyerController interface {
 	Send(int)
@@ -24,6 +26,9 @@ type keyerView struct {
 	stopButton              *gtk.Button
 	openKeyerSettingsButton *gtk.Button
 	speedEntry              *gtk.SpinButton
+
+	cqLabelText  string
+	parrotActive bool
 
 	ignoreChangedEvent bool
 }
@@ -113,14 +118,36 @@ func (k *keyerView) SetKeyerController(controller KeyerController) {
 	k.controller = controller
 }
 
+func (k *keyerView) SetParrotActive(active bool) {
+	k.parrotActive = active
+	k.updateCQButtonLabel()
+}
+
+func (k *keyerView) updateCQButtonLabel() {
+	k.buttons[0].SetLabel(k.buildLabel(0, k.cqLabelText))
+}
+
 func (k *keyerView) SetLabel(index int, text string) {
-	var label string
-	if text == "" {
-		label = fmt.Sprintf("F%d", index+1)
-	} else {
-		label = fmt.Sprintf("F%d: %s", index+1, text)
+	if index == 0 {
+		k.cqLabelText = text
 	}
+
+	label := k.buildLabel(index, text)
 	k.buttons[index].SetLabel(label)
+}
+
+func (k *keyerView) buildLabel(index int, text string) string {
+	var decoration string
+	if index == 0 && k.parrotActive {
+		decoration = parrot
+	} else {
+		decoration = fmt.Sprintf("F%d", index+1)
+	}
+
+	if text == "" {
+		return decoration
+	}
+	return fmt.Sprintf("%s: %s", decoration, text)
 }
 
 func (k *keyerView) SetPattern(index int, text string) {

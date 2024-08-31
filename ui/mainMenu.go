@@ -30,6 +30,7 @@ type MainMenuController interface {
 	EditLastQSO()
 	RefreshPrediction()
 	LogQSO()
+	StartParrot()
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
 	MarkInBandmap()
@@ -65,6 +66,7 @@ type mainMenu struct {
 	editEditLastQSO       *gtk.MenuItem
 	editRefreshPrediction *gtk.MenuItem
 	editLogQSO            *gtk.MenuItem
+	editStartParrot       *gtk.MenuItem
 	editSP                *gtk.RadioMenuItem
 	editRun               *gtk.RadioMenuItem
 
@@ -106,6 +108,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editEditLastQSO = getUI(builder, "menuEditEditLastQSO").(*gtk.MenuItem)
 	result.editRefreshPrediction = getUI(builder, "menuEditRefreshPrediction").(*gtk.MenuItem)
 	result.editLogQSO = getUI(builder, "menuEditLogQSO").(*gtk.MenuItem)
+	result.editStartParrot = getUI(builder, "menuEditStartParrot").(*gtk.MenuItem)
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
 	result.bandmapMark = getUI(builder, "menuBandmapMark").(*gtk.MenuItem)
@@ -139,6 +142,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editEditLastQSO.Connect("activate", result.onEditLastQSO)
 	result.editRefreshPrediction.Connect("activate", result.onEditRefreshPrediction)
 	result.editLogQSO.Connect("activate", result.onLogQSO)
+	result.editStartParrot.Connect("activate", result.onStartParrot)
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
 	result.bandmapMark.Connect("activate", result.onMarkInBandmap)
@@ -261,6 +265,10 @@ func (m *mainMenu) onEditRefreshPrediction() {
 
 func (m *mainMenu) onLogQSO() {
 	m.controller.LogQSO()
+}
+
+func (m *mainMenu) onStartParrot() {
+	m.controller.StartParrot()
 }
 
 func (m *mainMenu) onSP() {

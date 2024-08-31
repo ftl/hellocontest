@@ -26,6 +26,7 @@ import (
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
 	"github.com/ftl/hellocontest/core/newcontest"
+	"github.com/ftl/hellocontest/core/parrot"
 	"github.com/ftl/hellocontest/core/radio"
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
@@ -84,6 +85,7 @@ type Controller struct {
 	Settings      *settings.Settings
 	Bandmap       *bandmap.Bandmap
 	Clusters      *cluster.Clusters
+	Parrot        *parrot.Parrot
 }
 
 // View defines the visual functionality of the main application window.
@@ -200,6 +202,11 @@ func (c *Controller) Startup() {
 	c.Bandmap.SetCallinfo(c.Callinfo)
 	c.Bandmap.Notify(c.Callinfo)
 	c.Score.Notify(c.Callinfo)
+
+	c.Parrot = parrot.New(c.Workmode, c.Keyer)
+	c.Keyer.Notify(c.Parrot)
+	c.Workmode.Notify(c.Parrot)
+	c.Entry.Notify(c.Parrot)
 
 	c.Settings.Notify(c.Entry)
 	c.Settings.Notify(c.Workmode)
@@ -673,6 +680,10 @@ func (c *Controller) RefreshPrediction() {
 
 func (c *Controller) LogQSO() {
 	c.Entry.Log()
+}
+
+func (c *Controller) StartParrot() {
+	c.Parrot.Start()
 }
 
 func (c *Controller) SwitchToSPWorkmode() {

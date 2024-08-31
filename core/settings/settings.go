@@ -69,6 +69,12 @@ type ConfigurationFileOpener func()
 
 type BrowserOpener func(string)
 
+type CallHistory interface {
+	Activate(filename string)
+	Deactivate()
+	SelectFieldNames(fieldNames []string)
+}
+
 type XchangeRegexpMatcher func(*regexp.Regexp, string) (string, bool)
 
 type View interface {
@@ -101,12 +107,13 @@ type View interface {
 	SetMultisGoal(string)
 }
 
-func New(configurationFileOpener ConfigurationFileOpener, browserOpener BrowserOpener, station core.Station, contest core.Contest) *Settings {
+func New(configurationFileOpener ConfigurationFileOpener, browserOpener BrowserOpener, callHistory CallHistory, station core.Station, contest core.Contest) *Settings {
 	result := &Settings{
 		writer:                  new(nullWriter),
 		view:                    new(nullView),
 		configurationFileOpener: configurationFileOpener,
 		browserOpener:           browserOpener,
+		callHistory:             callHistory,
 		station:                 station,
 		contest:                 contest,
 		defaultStation:          station,
@@ -128,6 +135,7 @@ type Settings struct {
 	view                           View
 	configurationFileOpener        ConfigurationFileOpener
 	browserOpener                  BrowserOpener
+	callHistory                    CallHistory
 	reportFieldIndex               int
 	serialExchangeFieldIndex       int
 	availableCallHistoryFieldNames []string
@@ -159,6 +167,12 @@ func (s *Settings) SetView(view View) {
 	}
 	s.view = view
 	s.showSettings()
+}
+
+func (s *Settings) SetAvailableCallHistoryFieldNames(fieldNames []string) {
+	s.availableCallHistoryFieldNames = fieldNames
+
+	s.updateExchangeFields()
 }
 
 func (s *Settings) Notify(listener interface{}) {
@@ -197,6 +211,8 @@ func (s *Settings) SetContest(contest core.Contest) {
 	s.contest = contest
 	s.savedContest = deepCopyContest(contest)
 	s.contest.UpdateExchangeFields()
+	s.callHistory.Activate(s.contest.CallHistoryFilename)
+	s.callHistory.SelectFieldNames(s.contest.CallHistoryFieldNames)
 	s.emitContestChanged()
 }
 
@@ -532,7 +548,8 @@ func (s *Settings) OpenCallHistoryArchivePage() {
 
 func (s *Settings) ClearCallHistory() {
 	s.contest.CallHistoryFilename = ""
-	s.contest.CallHistoryFieldNames = make([]string, len(s.contest.ExchangeValues))
+	clear(s.contest.CallHistoryFieldNames)
+	s.callHistory.Deactivate()
 
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
 	for i := range s.contest.CallHistoryFieldNames {
@@ -627,6 +644,7 @@ func (s *Settings) SetOperationModeSprint(value bool) {
 
 func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
+	s.callHistory.Activate(s.contest.CallHistoryFilename)
 }
 
 func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value string) {
@@ -637,6 +655,7 @@ func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value
 	}
 
 	s.contest.CallHistoryFieldNames[i] = value
+	s.callHistory.SelectFieldNames(s.contest.CallHistoryFieldNames)
 }
 
 func (s *Settings) EnterQSOsGoal(value string) {

@@ -21,58 +21,84 @@ const (
 	Exch1Field = "Exch1"
 )
 
-func New(settings core.Settings, callback AvailabilityCallback) *Finder {
-	result := &Finder{
-		callback:   callback,
-		filename:   settings.Contest().CallHistoryFilename,
-		fieldNames: settings.Contest().CallHistoryFieldNames,
+func New(availabilityCallback AvailabilityCallback) *Finder {
+	return &Finder{
+		availabilityCallback: availabilityCallback,
 	}
-
-	result.database = loadCallHistory(result.filename)
-	result.cache = make(map[string][]scp.Match)
-	result.callback(core.CallHistoryService, result.Available())
-	if result.Available() {
-		log.Printf("Using call history from %s", result.filename)
-	}
-
-	return result
 }
 
 type Finder struct {
-	database *scp.Database
-	cache    map[string][]scp.Match
-	callback AvailabilityCallback
+	database             *scp.Database
+	cache                map[string][]scp.Match
+	availabilityCallback AvailabilityCallback
+
+	listeners []any
 
 	filename   string
 	fieldNames []string
 }
 
+type Settings interface {
+	core.Settings
+}
+
 type AvailabilityCallback func(service core.Service, available bool)
+
+type AvailableFieldNamesListener interface {
+	SetAvailableCallHistoryFieldNames(fieldNames []string)
+}
+
+func (f *Finder) Notify(listener any) {
+	f.listeners = append(f.listeners, listener)
+}
 
 func (f *Finder) Available() bool {
 	return f.database != nil
 }
 
-func (f *Finder) ContestChanged(contest core.Contest) {
-	if contest.CallHistoryFilename == f.filename {
+func (f *Finder) Activate(filename string) {
+	if f.filename == filename {
 		return
 	}
+	f.filename = filename
+	f.activateCallHistory()
+}
 
-	f.filename = contest.CallHistoryFilename
-	f.fieldNames = contest.CallHistoryFieldNames
+func (f *Finder) Deactivate() {
+	f.filename = ""
+	clear(f.fieldNames)
+}
 
+func (f *Finder) activateCallHistory() {
 	f.database = loadCallHistory(f.filename)
 	f.cache = make(map[string][]scp.Match)
-	f.callback(core.CallHistoryService, f.Available())
+	f.availabilityCallback(core.CallHistoryService, f.Available())
 	if f.Available() {
-		log.Printf("Using call history from %s", f.filename)
+		log.Printf("Using call history from %s with available field names %v", f.filename, f.database.FieldSet().UsableNames())
+		f.emitAvailableCallHistoryFieldNames(toFieldNames(f.database.FieldSet().UsableNames()))
+	} else {
+		log.Printf("No call history available from %s", f.filename)
+		f.emitAvailableCallHistoryFieldNames([]string{})
 	}
+}
+
+func (f *Finder) emitAvailableCallHistoryFieldNames(fieldNames []string) {
+	for _, listener := range f.listeners {
+		if stationListener, ok := listener.(AvailableFieldNamesListener); ok {
+			stationListener.SetAvailableCallHistoryFieldNames(fieldNames)
+		}
+	}
+}
+
+func (f *Finder) SelectFieldNames(fieldNames []string) {
+	f.fieldNames = fieldNames
 }
 
 func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 	if !f.Available() {
 		return core.AnnotatedCallsign{}, false
 	}
+
 	searchCallsign, err := callsign.Parse(s)
 	if err != nil {
 		log.Print(err)
@@ -174,6 +200,14 @@ func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
 		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
 	}
 
+	return result
+}
+
+func toFieldNames(fieldSet scp.FieldSet) []string {
+	result := make([]string, len(fieldSet))
+	for i, fieldName := range fieldSet {
+		result[i] = string(fieldName)
+	}
 	return result
 }
 

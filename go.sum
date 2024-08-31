@@ -12,8 +12,8 @@ github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04 h1:S7z3LXqDYk4avXKj+B2or
 github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04/go.mod h1:AQpbHYBSPV1Bc1nqG8vv8BK3qxXMZIn32OQBi/4A7Sc=
 github.com/ftl/godxmap v1.0.0 h1:5T1SYRtTd49AoISdFGvvRWcqJ9kFA1fzdx6yWJT54zM=
 github.com/ftl/godxmap v1.0.0/go.mod h1:Cl5gtnJFMPtVktcghGTaGeVSFQ1tlZFzkI3p/LylrdI=
-github.com/ftl/hamradio v0.2.10 h1:3PpmNpYPkap4z6sbYJjXpL++ZOV4/Xu6aUYlcbclj1w=
-github.com/ftl/hamradio v0.2.10/go.mod h1:BvA+ni3sOKmrIJpLt6f2sYK9vc3VfihZm4x0h8kzOPw=
+github.com/ftl/hamradio v0.2.11 h1:pUll2s4mW+XgxeXhDtrQxKSUjILvNMd1rbV1r3osdZY=
+github.com/ftl/hamradio v0.2.11/go.mod h1:BvA+ni3sOKmrIJpLt6f2sYK9vc3VfihZm4x0h8kzOPw=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 h1:ORI3EUKpLTsfA372C6xpuZFDXw+ckmCzLaCcJvakG24=
 github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9/go.mod h1:4sZLCxjgn++exy5u0muVzlvnahfanPuiHLQo0GJQnPA=
 github.com/ftl/rigproxy v0.2.6 h1:umsoOET+VWpWc3jSXz+FoZq5zwuodrigiOiwZyafr3o=

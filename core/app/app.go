@@ -133,20 +133,22 @@ func (c *Controller) Startup() {
 		c.session = session.NewDefaultSession()
 	}
 
+	c.ServiceStatus = newServiceStatus(c.asyncRunner)
+
+	c.callHistoryFinder = callhistory.New(c.ServiceStatus.StatusChanged)
 	c.Settings = settings.New(
 		c.OpenConfigurationFile,
 		c.openWithExternalApplication,
+		c.callHistoryFinder,
 		c.configuration.Station(),
 		c.configuration.Contest(),
 	)
+	c.callHistoryFinder.Notify(c.Settings)
 	c.NewContest = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
-
-	c.ServiceStatus = newServiceStatus(c.asyncRunner)
 
 	c.bandplan = bandplan.IARURegion1 // TODO: make the bandplan configurable
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
-	c.callHistoryFinder = callhistory.New(c.Settings, c.ServiceStatus.StatusChanged)
 	c.hamDXMap = hamdxmap.NewHamDXMap(c.configuration.HamDXMapPort())
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)

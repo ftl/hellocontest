@@ -9,6 +9,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
@@ -23,6 +24,7 @@ const (
 
 func New(availabilityCallback AvailabilityCallback) *Finder {
 	return &Finder{
+		dataLock:             new(sync.Mutex),
 		availabilityCallback: availabilityCallback,
 	}
 }
@@ -30,6 +32,7 @@ func New(availabilityCallback AvailabilityCallback) *Finder {
 type Finder struct {
 	database             *scp.Database
 	cache                map[string][]scp.Match
+	dataLock             *sync.Mutex
 	availabilityCallback AvailabilityCallback
 
 	listeners []any
@@ -52,10 +55,6 @@ func (f *Finder) Notify(listener any) {
 	f.listeners = append(f.listeners, listener)
 }
 
-func (f *Finder) Available() bool {
-	return f.database != nil
-}
-
 func (f *Finder) Activate(filename string) {
 	if f.filename == filename {
 		return
@@ -69,17 +68,47 @@ func (f *Finder) Deactivate() {
 	clear(f.fieldNames)
 }
 
+func (f *Finder) available() bool {
+	f.dataLock.Lock()
+	defer f.dataLock.Unlock()
+
+	return f.database != nil
+}
+
 func (f *Finder) activateCallHistory() {
+	f.dataLock.Lock()
+	defer f.dataLock.Unlock()
+
 	f.database = loadCallHistory(f.filename)
 	f.cache = make(map[string][]scp.Match)
-	f.availabilityCallback(core.CallHistoryService, f.Available())
-	if f.Available() {
+
+	available := f.database != nil
+	f.availabilityCallback(core.CallHistoryService, available)
+	if available {
 		log.Printf("Using call history from %s with available field names %v", f.filename, f.database.FieldSet().UsableNames())
 		f.emitAvailableCallHistoryFieldNames(toFieldNames(f.database.FieldSet().UsableNames()))
 	} else {
 		log.Printf("No call history available from %s", f.filename)
 		f.emitAvailableCallHistoryFieldNames([]string{})
 	}
+}
+
+func (f *Finder) findInDatabase(s string) ([]scp.Match, error) {
+	f.dataLock.Lock()
+	defer f.dataLock.Unlock()
+
+	cached, hit := f.cache[s]
+	if hit {
+		return cached, nil
+	}
+
+	matches, err := f.database.Find(s)
+	if err != nil {
+		return nil, err
+	}
+
+	f.cache[s] = matches
+	return matches, nil
 }
 
 func (f *Finder) emitAvailableCallHistoryFieldNames(fieldNames []string) {
@@ -95,7 +124,7 @@ func (f *Finder) SelectFieldNames(fieldNames []string) {
 }
 
 func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
-	if !f.Available() {
+	if !f.available() {
 		return core.AnnotatedCallsign{}, false
 	}
 
@@ -131,7 +160,7 @@ func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 }
 
 func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
-	if !f.Available() {
+	if !f.available() {
 		return nil, fmt.Errorf("the call history is currently not available")
 	}
 
@@ -155,20 +184,6 @@ func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 	}
 
 	return result, nil
-}
-
-func (f *Finder) findInDatabase(s string) ([]scp.Match, error) {
-	cached, hit := f.cache[s]
-	if hit {
-		return cached, nil
-	}
-
-	matches, err := f.database.Find(s)
-	if err != nil {
-		return nil, err
-	}
-	f.cache[s] = matches
-	return matches, nil
 }
 
 func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {

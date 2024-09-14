@@ -22,18 +22,21 @@ const (
 	Exch1Field = "Exch1"
 )
 
-func New(availabilityCallback AvailabilityCallback) *Finder {
+func New(availabilityCallback AvailabilityCallback, asyncRunner core.AsyncRunner) *Finder {
 	return &Finder{
 		dataLock:             new(sync.Mutex),
 		availabilityCallback: availabilityCallback,
+		asyncRunner:          asyncRunner,
 	}
 }
 
 type Finder struct {
-	database             *scp.Database
-	cache                map[string][]scp.Match
-	dataLock             *sync.Mutex
+	database *scp.Database
+	cache    map[string][]scp.Match
+	dataLock *sync.Mutex
+
 	availabilityCallback AvailabilityCallback
+	asyncRunner          core.AsyncRunner
 
 	listeners []any
 
@@ -114,7 +117,9 @@ func (f *Finder) findInDatabase(s string) ([]scp.Match, error) {
 func (f *Finder) emitAvailableCallHistoryFieldNames(fieldNames []string) {
 	for _, listener := range f.listeners {
 		if fieldNamesListener, ok := listener.(AvailableFieldNamesListener); ok {
-			fieldNamesListener.SetAvailableCallHistoryFieldNames(fieldNames)
+			f.asyncRunner(func() {
+				fieldNamesListener.SetAvailableCallHistoryFieldNames(fieldNames)
+			})
 		}
 	}
 }

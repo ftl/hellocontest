@@ -137,7 +137,7 @@ func (c *Controller) Startup() {
 
 	c.ServiceStatus = newServiceStatus(c.asyncRunner)
 
-	c.callHistoryFinder = callhistory.New(c.ServiceStatus.StatusChanged)
+	c.callHistoryFinder = callhistory.New(c.ServiceStatus.StatusChanged, c.asyncRunner)
 	c.Settings = settings.New(
 		c.OpenConfigurationFile,
 		c.openWithExternalApplication,

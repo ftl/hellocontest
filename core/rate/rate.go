@@ -69,9 +69,12 @@ func (c *Counter) StartAutoRefresh() {
 
 func (c *Counter) SetView(view View) {
 	if view == nil {
-		c.view = new(nullView)
-		return
+		panic("rate.Counter.SetView must not be called with nil")
 	}
+	if _, ok := c.view.(*nullView); !ok {
+		panic("rate.Counter.SetView was already called")
+	}
+
 	c.view = view
 	c.view.SetGoals(c.qsosGoal, c.pointsGoal, c.multisGoal)
 	c.view.ShowRate(c.QSORate)

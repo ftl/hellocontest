@@ -102,9 +102,12 @@ type View interface {
 
 func (c *Callinfo) SetView(view View) {
 	if view == nil {
-		c.view = new(nullView)
-		return
+		panic("callinfo.Callinfo.SetView must not be called with nil")
 	}
+	if _, ok := c.view.(*nullView); !ok {
+		panic("callinfo.Callinfo.SetView was already called")
+	}
+
 	c.view = view
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }

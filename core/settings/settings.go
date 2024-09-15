@@ -162,9 +162,12 @@ func (s *Settings) SetWriter(writer Writer) {
 
 func (s *Settings) SetView(view View) {
 	if view == nil {
-		s.view = new(nullView)
-		return
+		panic("settings.Settings.SetView must not be called with nil")
 	}
+	if _, ok := s.view.(*nullView); !ok {
+		panic("settings.Settings.SetView was already called")
+	}
+
 	s.view = view
 	s.showSettings()
 }

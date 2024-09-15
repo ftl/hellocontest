@@ -156,8 +156,10 @@ func (m *Bandmap) Close() {
 
 func (m *Bandmap) SetView(view View) {
 	if view == nil {
-		m.view = new(nullView)
-		return
+		panic("bandmap.Bandmap.SetView must not be called with nil")
+	}
+	if _, ok := m.view.(*nullView); !ok {
+		panic("bandmap.Bandmap.SetView was already called")
 	}
 
 	m.view = view

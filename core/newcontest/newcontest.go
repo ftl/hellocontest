@@ -42,9 +42,12 @@ type Controller struct {
 
 func (c *Controller) SetView(view View) {
 	if view == nil {
-		c.view = new(nullview)
-		return
+		panic("newcontest.Controller.SetView must not be called with nil")
 	}
+	if c.view != nil {
+		panic("newcontest.Controller.SetView was already called")
+	}
+
 	c.view = view
 }
 

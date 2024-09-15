@@ -97,9 +97,12 @@ func (c *Counter) Result() int {
 
 func (c *Counter) SetView(view View) {
 	if view == nil {
-		c.view = new(nullView)
-		return
+		panic("score.Counter.SetView must not be called with nil")
 	}
+	if _, ok := c.view.(*nullView); !ok {
+		panic("score.Counter.SetView was already called")
+	}
+
 	c.view = view
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.ShowScore(c.readScore) // READ

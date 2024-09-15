@@ -73,10 +73,15 @@ func (p *Parrot) Notify(listener any) {
 }
 
 func (p *Parrot) SetView(view View) {
-	p.view = view
-	if view != nil {
-		view.SetParrotActive(p.active)
+	if view == nil {
+		panic("parrot.Parrot.SetView must not be called with nil")
 	}
+	if p.view != nil {
+		panic("parrot.Parrot.SetView was already called")
+	}
+
+	p.view = view
+	view.SetParrotActive(p.active)
 }
 
 func (p *Parrot) SetInterval(interval time.Duration) {

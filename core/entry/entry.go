@@ -165,9 +165,12 @@ func (c *Controller) emitCallsignLogged(callsign string, frequency core.Frequenc
 
 func (c *Controller) SetView(view View) {
 	if view == nil {
-		c.view = &nullView{}
-		return
+		panic("entry.Controller.SetView must not be called with nil")
 	}
+	if _, ok := c.view.(*nullView); !ok {
+		panic("entry.Controller.SetView was already called")
+	}
+
 	c.view = view
 	c.Clear()
 	c.refreshUTC()
@@ -301,10 +304,6 @@ func (c *Controller) StartAutoRefresh() {
 
 func (c *Controller) refreshUTC() {
 	c.asyncRunner(func() {
-		if c.view == nil {
-			return
-		}
-
 		utc := c.clock.Now().UTC()
 		c.view.SetUTC(utc.Format("15:04"))
 	})

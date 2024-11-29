@@ -29,7 +29,13 @@ test:
 build:
 	go build -trimpath -buildmode=pie -mod=readonly -modcacherw -v -ldflags "-linkmode external -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
 
+buildfyne:
+	go build -tags fyne -trimpath -buildmode=pie -mod=readonly -modcacherw -v -ldflags "-linkmode external -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
+
 run: build
+	./${BINARY_NAME}
+
+runfyne: buildfyne
 	./${BINARY_NAME}
 
 cache_deps:
@@ -118,6 +124,6 @@ prepare_appimage:
 	cp ./.assets/${BINARY_NAME}.desktop ./.appimage/${BINARY_NAME}.desktop
 	cp ./.assets/${BINARY_NAME}-256x256.png ./.appimage/${BINARY_NAME}.png
 	cp ./.assets/${BINARY_NAME}.svg ./.appimage/${BINARY_NAME}.svg
-	
+
 appimage: prepare_appimage
 	env ARCH=${ARCH} ${APPIMAGETOOL} .appimage ${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.AppImage

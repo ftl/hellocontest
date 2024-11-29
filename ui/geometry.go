@@ -1,3 +1,5 @@
+//go:build !fyne
+
 package ui
 
 import "math"

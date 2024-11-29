@@ -29,7 +29,13 @@ test:
 build:
 	go build -trimpath -buildmode=pie -mod=readonly -modcacherw -v -ldflags "-linkmode external -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
 
+buildfyne:
+	go build -tags fyne -trimpath -buildmode=pie -mod=readonly -modcacherw -v -ldflags "-linkmode external -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
+
 run: build
+	./${BINARY_NAME}
+
+runfyne: buildfyne
 	./${BINARY_NAME}
 
 cache_deps:

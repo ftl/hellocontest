@@ -1,18 +1,18 @@
 package main
 
 import (
-	// _ "net/http/pprof"
 	_ "embed"
 	"fmt"
 	"os"
-
-	"github.com/ftl/hellocontest/ui"
 )
 
 var version = "development"
 
 //go:embed sponsors.txt
 var sponsors string
+
+var run func(string, string, []string)
+var startPprof = func() {}
 
 func main() {
 	if len(os.Args) > 1 {
@@ -26,12 +26,6 @@ func main() {
 		}
 	}
 
-	// to activate the pprof endpoint at http://localhost:6060/debug/pprof
-	// - add import _ "net/http/pprof"
-	// - uncomment this piece of code
-	// go func() {
-	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
-	// }()
-
-	ui.Run(version, sponsors, os.Args)
+	startPprof()
+	run(version, sponsors, os.Args)
 }

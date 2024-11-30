@@ -135,6 +135,7 @@ func (c *Controller) Startup() {
 		c.session = session.NewDefaultSession()
 	}
 
+	c.Logbook = logbook.New(c.clock)
 	c.ServiceStatus = newServiceStatus(c.asyncRunner)
 
 	c.callHistoryFinder = callhistory.New(c.ServiceStatus.StatusChanged, c.asyncRunner)

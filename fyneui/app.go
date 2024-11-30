@@ -33,6 +33,7 @@ type application struct {
 
 	app        fyne.App
 	mainWindow *mainWindow
+	mainMenu   *mainMenu
 
 	controller *app.Controller
 }
@@ -43,8 +44,11 @@ func (a *application) activate() {
 		log.Fatal(err)
 	}
 	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration, a.sponsors)
+	a.controller.Startup()
 
 	a.mainWindow = setupMainWindow(a.app.NewWindow("Hello Contest"))
+	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller)
+
 	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
 	a.mainWindow.Show()
 }

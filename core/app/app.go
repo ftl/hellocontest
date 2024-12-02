@@ -93,7 +93,7 @@ type Controller struct {
 type View interface {
 	BringToFront()
 	ShowFilename(string)
-	SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error)
+	SelectOpenFile(callback func(filename string, err error), title string, dir string, extensions ...string)
 	SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error)
 	ShowInfoDialog(title string, format string, args ...any)
 	ShowErrorDialog(string, ...any)
@@ -458,12 +458,15 @@ func (c *Controller) New() {
 }
 
 func (c *Controller) Open() {
-	filename, ok, err := c.view.SelectOpenFile("Open Logfile", c.configuration.LogDirectory(), "*.log")
-	if !ok {
-		return
-	}
+	c.view.SelectOpenFile(c.open, "Open Logfile", c.configuration.LogDirectory(), "log")
+}
+
+func (c *Controller) open(filename string, err error) {
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+	if filename == "" {
 		return
 	}
 

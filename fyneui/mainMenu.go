@@ -4,12 +4,20 @@ import "fyne.io/fyne/v2"
 
 type MainMenuController interface {
 	Quit()
+
+	OpenWiki()
+	Sponsors()
+	About()
 }
 
 type mainMenu struct {
 	controller MainMenuController
 
 	fileQuit *fyne.MenuItem
+
+	helpWiki     *fyne.MenuItem
+	helpSponsors *fyne.MenuItem
+	helpAbout    *fyne.MenuItem
 }
 
 func setupMainMenu(mainWindow fyne.Window, controller MainMenuController) *mainMenu {
@@ -17,16 +25,73 @@ func setupMainMenu(mainWindow fyne.Window, controller MainMenuController) *mainM
 		controller: controller,
 	}
 
-	result.fileQuit = fyne.NewMenuItem("Quit", result.onFileQuit)
-	result.fileQuit.IsQuit = true
-
-	fileMenu := fyne.NewMenu("File", result.fileQuit)
-	mainMenu := fyne.NewMainMenu(fileMenu)
+	mainMenu := fyne.NewMainMenu(
+		fyne.NewMenu("File", result.setupFileMenu()...),
+		fyne.NewMenu("Edit", result.setupEditMenu()...),
+		fyne.NewMenu("Bandmap", result.setupBandmapMenu()...),
+		fyne.NewMenu("Window", result.setupWindowMenu()...),
+		fyne.NewMenu("Help", result.setupHelpMenu()...),
+	)
 	mainWindow.SetMainMenu(mainMenu)
 
 	return result
 }
 
+// FILE
+
+func (m *mainMenu) setupFileMenu() []*fyne.MenuItem {
+	m.fileQuit = fyne.NewMenuItem("Quit", m.onFileQuit)
+	m.fileQuit.IsQuit = true
+
+	return []*fyne.MenuItem{
+		m.fileQuit,
+	}
+}
+
 func (m *mainMenu) onFileQuit() {
 	m.controller.Quit()
+}
+
+// EDIT
+
+func (m *mainMenu) setupEditMenu() []*fyne.MenuItem {
+	return nil
+}
+
+// BANDMAP
+
+func (m *mainMenu) setupBandmapMenu() []*fyne.MenuItem {
+	return nil
+}
+
+// WINDOW
+
+func (m *mainMenu) setupWindowMenu() []*fyne.MenuItem {
+	return nil
+}
+
+// HELP
+
+func (m *mainMenu) setupHelpMenu() []*fyne.MenuItem {
+	m.helpWiki = fyne.NewMenuItem("Wiki", m.onHelpWiki)
+	m.helpSponsors = fyne.NewMenuItem("Sponsors", m.onHelpSponsors)
+	m.helpAbout = fyne.NewMenuItem("About", m.onHelpAbout)
+
+	return []*fyne.MenuItem{
+		m.helpWiki,
+		m.helpSponsors,
+		m.helpAbout,
+	}
+}
+
+func (m *mainMenu) onHelpWiki() {
+	m.controller.OpenWiki()
+}
+
+func (m *mainMenu) onHelpSponsors() {
+	m.controller.Sponsors()
+}
+
+func (m *mainMenu) onHelpAbout() {
+	m.controller.About()
 }

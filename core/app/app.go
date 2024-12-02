@@ -95,8 +95,8 @@ type View interface {
 	ShowFilename(string)
 	SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error)
 	SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error)
-	ShowInfoDialog(string, ...interface{})
-	ShowErrorDialog(string, ...interface{})
+	ShowInfoDialog(title string, format string, args ...any)
+	ShowErrorDialog(string, ...any)
 }
 
 // Configuration provides read access to the configuration data.
@@ -350,7 +350,7 @@ func (c *Controller) About() {
 		sponsorText = fmt.Sprintf("sponsored by:\n%s\n\n", c.sponsors)
 	}
 
-	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\n%sThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version, sponsorText)
+	c.view.ShowInfoDialog("About", "Hello Contest\n\nVersion %s\n\n%sThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version, sponsorText)
 }
 
 func (c *Controller) Sponsors() {

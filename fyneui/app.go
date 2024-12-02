@@ -49,6 +49,8 @@ func (a *application) activate() {
 	a.mainWindow = setupMainWindow(a.app.NewWindow("Hello Contest"))
 	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller)
 
+	a.controller.SetView(a.mainWindow)
+
 	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
 	a.mainWindow.Show()
 }

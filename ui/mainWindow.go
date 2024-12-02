@@ -137,9 +137,10 @@ func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, p
 	return dlg.GetFilename(), true, nil
 }
 
-func (w *mainWindow) ShowInfoDialog(format string, a ...any) {
+func (w *mainWindow) ShowInfoDialog(title string, format string, a ...any) {
 	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_INFO, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()
+	dlg.SetTitle(title)
 	dlg.SetTransientFor(nil)
 	dlg.Run()
 }

@@ -18,6 +18,8 @@ go 1.22.3
 
 // replace github.com/gotk3/gotk3 => ../gotk3
 
+// replace fyne.io/fyne/v2 => ../fyne
+
 require (
 	fyne.io/fyne/v2 v2.5.2
 	github.com/ftl/cabrillo v0.2.4

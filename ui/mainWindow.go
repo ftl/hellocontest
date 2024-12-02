@@ -73,35 +73,37 @@ func (w *mainWindow) BringToFront() {
 	w.window.Present()
 }
 
-func (w *mainWindow) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {
+func (w *mainWindow) SelectOpenFile(callback func(string, error), title string, dir string, extensions ...string) {
 	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_OPEN, "Open", gtk.RESPONSE_ACCEPT)
 	if err != nil {
 		errors.Wrap(err, "cannot create a file selection dialog to open a file")
 	}
 	defer dlg.Destroy()
 
-	log.Printf("OPEN FILE in %s", dir)
+	log.Printf("OPEN FILE in %s with extensions %v", dir, extensions)
 
 	dlg.SetTransientFor(nil)
 	dlg.SetCurrentFolder(dir)
 
-	if len(patterns) > 0 {
+	if len(extensions) > 0 {
 		filter, err := gtk.FileFilterNew()
 		if err != nil {
-			return "", false, errors.Wrap(err, "cannot create a file selection dialog to open a file")
+			callback("", errors.Wrap(err, "cannot create a file selection dialog to open a file"))
+			return
 		}
-		for _, pattern := range patterns {
-			filter.AddPattern(pattern)
+		for _, extension := range extensions {
+			filter.AddPattern("*." + extension)
 		}
 		dlg.SetFilter(filter)
 	}
 
 	result := dlg.Run()
 	if result != gtk.RESPONSE_ACCEPT {
-		return "", false, nil
+		callback("", nil)
+		return
 	}
 
-	return dlg.GetFilename(), true, nil
+	callback(dlg.GetFilename(), nil)
 }
 
 func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error) {

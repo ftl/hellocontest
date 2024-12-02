@@ -2,10 +2,12 @@ package fyneui
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -40,8 +42,48 @@ func (w *mainWindow) UseDefaultWindowGeometry() {
 	w.window.CenterOnScreen()
 }
 
-func (w *mainWindow) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {
-	return "", false, nil
+func (w *mainWindow) SelectOpenFile(callback func(string, error), title string, dir string, extensions ...string) {
+	dirURI, err := storage.ListerForURI(storage.NewFileURI(dir))
+	if err != nil {
+		callback("", err)
+		return
+	}
+	log.Printf("OPEN FILE in %s with extensions %v", dir, extensions)
+
+	dialogCallback := func(reader fyne.URIReadCloser, err error) {
+		defer func() {
+			if reader != nil {
+				reader.Close()
+			}
+		}()
+		if err != nil {
+			callback("", err)
+			return
+		}
+		if reader == nil {
+			callback("", nil)
+			return
+		}
+		filename := reader.URI().Path()
+		log.Printf("file selected to open: %s", filename)
+		callback(filename, nil)
+	}
+
+	fileDialog := dialog.NewFileOpen(dialogCallback, w.window)
+	fileDialog.SetView(dialog.ListView)
+	fileDialog.Resize(fyne.NewSize(1000, 600))
+	// fileDialog.SetTitleText(title) // TODO: activate with fyne 2.6
+	fileDialog.SetConfirmText("Open")
+	fileDialog.SetDismissText("Cancel")
+	fileDialog.SetLocation(dirURI)
+	if len(extensions) > 0 {
+		filterExtensions := make([]string, len(extensions), len(extensions))
+		for i, extension := range extensions {
+			filterExtensions[i] = "." + extension
+		}
+		fileDialog.SetFilter(storage.NewExtensionFileFilter(filterExtensions))
+	}
+	fileDialog.Show()
 }
 
 func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error) {
@@ -56,6 +98,7 @@ func (w *mainWindow) ShowInfoDialog(title string, format string, a ...any) {
 	)
 }
 
-func (w *mainWindow) ShowErrorDialog(string, ...interface{}) {
-
+func (w *mainWindow) ShowErrorDialog(format string, a ...any) {
+	log.Printf(format, a...)
+	// TODO: show error dialog
 }

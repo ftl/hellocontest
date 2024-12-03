@@ -99,6 +99,10 @@ func (w *mainWindow) ShowInfoDialog(title string, format string, a ...any) {
 }
 
 func (w *mainWindow) ShowErrorDialog(format string, a ...any) {
-	log.Printf(format, a...)
-	// TODO: show error dialog
+	err := fmt.Errorf(format, a...)
+	log.Println(err)
+	dialog.ShowError(
+		err,
+		w.window,
+	)
 }

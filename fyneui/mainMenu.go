@@ -4,6 +4,9 @@ import "fyne.io/fyne/v2"
 
 type MainMenuController interface {
 	Open()
+	OpenContestRulesPage()
+	OpenContestUploadPage()
+	OpenConfigurationFile()
 	Quit()
 
 	OpenWiki()
@@ -27,7 +30,17 @@ type mainMenu struct {
 }
 
 type fileMenu struct {
-	fileOpen *fyne.MenuItem
+	fileNew,
+	fileOpen,
+	fileSaveAs,
+	fileExportCabrillo,
+	fileExportADIF,
+	fileExportCSV,
+	fileExportCallhistory,
+	fileOpenRules,
+	fileOpenUpload,
+	fileOpenSettings,
+	fileOpenConfigurationFile,
 	fileQuit *fyne.MenuItem
 }
 
@@ -41,9 +54,9 @@ type windowMenu struct {
 }
 
 type helpMenu struct {
-	helpWiki     *fyne.MenuItem
-	helpSponsors *fyne.MenuItem
-	helpAbout    *fyne.MenuItem
+	helpWiki,
+	helpSponsors,
+	helpAbout *fyne.MenuItem
 }
 
 func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortcuts ShortcutProvider) *mainMenu {
@@ -67,20 +80,82 @@ func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortc
 // FILE
 
 func (m *mainMenu) setupFileMenu() []*fyne.MenuItem {
+	m.fileNew = fyne.NewMenuItem("New...", m.onFileNew)
+
 	m.fileOpen = fyne.NewMenuItem("Open...", m.onFileOpen)
 	m.fileOpen.Shortcut = m.shortcuts.Get(OpenShortcut)
+
+	m.fileSaveAs = fyne.NewMenuItem("Save As...", m.onFileSaveAs)
+	m.fileExportCabrillo = fyne.NewMenuItem("Export Cabrillo...", m.onFileExportCabrillo)
+	m.fileExportADIF = fyne.NewMenuItem("Export ADIF...", m.onFileExportADIF)
+	m.fileExportCSV = fyne.NewMenuItem("Export CSV...", m.onFileExportCSV)
+	m.fileExportCallhistory = fyne.NewMenuItem("Export Call History...", m.onFileExportCallhistory)
+	m.fileOpenRules = fyne.NewMenuItem("Open Contest Rules...", m.onFileOpenRules)
+	m.fileOpenUpload = fyne.NewMenuItem("Open Upload Page...", m.onFileOpenUpload)
+	m.fileOpenConfigurationFile = fyne.NewMenuItem("Open Configuration File...", m.onFileOpenConfigurationFile)
+
+	m.fileOpenSettings = fyne.NewMenuItem("Settings...", m.onFileOpenSettings)
+	m.fileOpenSettings.Shortcut = m.shortcuts.Get(OpenSettingsShortcut)
+
 	m.fileQuit = fyne.NewMenuItem("Quit", m.onFileQuit)
 	m.fileQuit.Shortcut = m.shortcuts.Get(QuitShortcut)
 	m.fileQuit.IsQuit = true
 
 	return []*fyne.MenuItem{
+		m.fileNew,
 		m.fileOpen,
+		m.fileSaveAs,
+		fyne.NewMenuItemSeparator(),
+		m.fileExportCabrillo,
+		m.fileExportADIF,
+		m.fileExportCSV,
+		m.fileExportCallhistory,
+		fyne.NewMenuItemSeparator(),
+		m.fileOpenRules,
+		m.fileOpenUpload,
+		fyne.NewMenuItemSeparator(),
+		m.fileOpenConfigurationFile,
+		m.fileOpenSettings,
+		fyne.NewMenuItemSeparator(),
 		m.fileQuit,
 	}
 }
 
+func (m *mainMenu) onFileNew() {
+}
+
 func (m *mainMenu) onFileOpen() {
 	m.controller.Open()
+}
+
+func (m *mainMenu) onFileSaveAs() {
+}
+
+func (m *mainMenu) onFileExportCabrillo() {
+}
+
+func (m *mainMenu) onFileExportADIF() {
+}
+
+func (m *mainMenu) onFileExportCSV() {
+}
+
+func (m *mainMenu) onFileExportCallhistory() {
+}
+
+func (m *mainMenu) onFileOpenRules() {
+	m.controller.OpenContestRulesPage()
+}
+
+func (m *mainMenu) onFileOpenUpload() {
+	m.controller.OpenContestUploadPage()
+}
+
+func (m *mainMenu) onFileOpenConfigurationFile() {
+	m.controller.OpenConfigurationFile()
+}
+
+func (m *mainMenu) onFileOpenSettings() {
 }
 
 func (m *mainMenu) onFileQuit() {

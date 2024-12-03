@@ -11,8 +11,13 @@ type MainMenuController interface {
 	About()
 }
 
+type ShortcutProvider interface {
+	Get(ShortcutID) fyne.Shortcut
+}
+
 type mainMenu struct {
 	controller MainMenuController
+	shortcuts  ShortcutProvider
 
 	fileMenu
 	editMenu
@@ -41,9 +46,10 @@ type helpMenu struct {
 	helpAbout    *fyne.MenuItem
 }
 
-func setupMainMenu(mainWindow fyne.Window, controller MainMenuController) *mainMenu {
+func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortcuts ShortcutProvider) *mainMenu {
 	result := &mainMenu{
 		controller: controller,
+		shortcuts:  shortcuts,
 	}
 
 	mainMenu := fyne.NewMainMenu(
@@ -62,7 +68,9 @@ func setupMainMenu(mainWindow fyne.Window, controller MainMenuController) *mainM
 
 func (m *mainMenu) setupFileMenu() []*fyne.MenuItem {
 	m.fileOpen = fyne.NewMenuItem("Open...", m.onFileOpen)
+	m.fileOpen.Shortcut = m.shortcuts.Get(OpenShortcut)
 	m.fileQuit = fyne.NewMenuItem("Quit", m.onFileQuit)
+	m.fileQuit.Shortcut = m.shortcuts.Get(QuitShortcut)
 	m.fileQuit.IsQuit = true
 
 	return []*fyne.MenuItem{

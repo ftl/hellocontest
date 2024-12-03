@@ -32,6 +32,7 @@ type application struct {
 	sponsors string
 
 	app        fyne.App
+	shortcuts  *Shortcuts
 	mainWindow *mainWindow
 	mainMenu   *mainMenu
 
@@ -46,10 +47,14 @@ func (a *application) activate() {
 	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration, a.sponsors)
 	a.controller.Startup()
 
-	a.mainWindow = setupMainWindow(a.app.NewWindow("Hello Contest"))
-	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller)
+	a.shortcuts = setupShortcuts(a.controller)
 
+	mainWindow := a.app.NewWindow("Hello Contest")
+	a.mainWindow = setupMainWindow(mainWindow)
+	a.shortcuts.AddTo(mainWindow.Canvas())
 	a.controller.SetView(a.mainWindow)
+
+	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller, a.shortcuts)
 
 	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
 	a.mainWindow.Show()

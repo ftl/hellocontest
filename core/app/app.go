@@ -340,6 +340,10 @@ func (c *Controller) Shutdown() {
 	c.Radio.Stop()
 }
 
+func (c *Controller) NotYetImplemented() {
+	c.view.ShowErrorDialog("This feature is not yet available.")
+}
+
 func (c *Controller) OpenWiki() {
 	c.openWithExternalApplication(wikiURL)
 }

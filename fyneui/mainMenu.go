@@ -12,6 +12,8 @@ type MainMenuController interface {
 	OpenWiki()
 	Sponsors()
 	About()
+
+	NotYetImplemented()
 }
 
 type ShortcutProvider interface {
@@ -122,6 +124,7 @@ func (m *mainMenu) setupFileMenu() []*fyne.MenuItem {
 }
 
 func (m *mainMenu) onFileNew() {
+	m.controller.NotYetImplemented()
 }
 
 func (m *mainMenu) onFileOpen() {

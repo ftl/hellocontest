@@ -8,8 +8,9 @@ import (
 type ShortcutID string
 
 const (
-	OpenShortcut ShortcutID = "open"
-	QuitShortcut ShortcutID = "quit"
+	OpenShortcut         ShortcutID = "open"
+	OpenSettingsShortcut ShortcutID = "open_settings"
+	QuitShortcut         ShortcutID = "quit"
 )
 
 type ShortcutConsumer interface {
@@ -34,6 +35,7 @@ func (s *Shortcut) AddTo(consumer ShortcutConsumer) {
 
 type ShortcutController interface {
 	Open()
+	OpenSettings()
 	Quit()
 }
 
@@ -44,13 +46,18 @@ type Shortcuts struct {
 func setupShortcuts(controller ShortcutController) *Shortcuts {
 	return &Shortcuts{
 		shortcuts: map[ShortcutID]*Shortcut{
-			OpenShortcut: &Shortcut{
-				ID:             "open",
+			OpenShortcut: {
+				ID:             OpenShortcut,
 				Action:         controller.Open,
 				CustomShortcut: desktop.CustomShortcut{Modifier: fyne.KeyModifierControl, KeyName: fyne.KeyO},
 			},
-			QuitShortcut: &Shortcut{
-				ID:             "quit",
+			OpenSettingsShortcut: {
+				ID:             OpenSettingsShortcut,
+				Action:         controller.OpenSettings,
+				CustomShortcut: desktop.CustomShortcut{Modifier: fyne.KeyModifierControl, KeyName: fyne.KeyPeriod},
+			},
+			QuitShortcut: {
+				ID:             QuitShortcut,
 				Action:         controller.Quit,
 				CustomShortcut: desktop.CustomShortcut{Modifier: fyne.KeyModifierControl, KeyName: fyne.KeyQ},
 			},

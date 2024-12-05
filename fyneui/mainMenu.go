@@ -31,6 +31,7 @@ type mainMenu struct {
 
 	fileMenu
 	editMenu
+	radioMenu
 	bandmapMenu
 	windowMenu
 	helpMenu
@@ -54,6 +55,9 @@ type fileMenu struct {
 type editMenu struct {
 }
 
+type radioMenu struct {
+}
+
 type bandmapMenu struct {
 }
 
@@ -75,6 +79,7 @@ func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortc
 	mainMenu := fyne.NewMainMenu(
 		fyne.NewMenu("File", result.setupFileMenu()...),
 		fyne.NewMenu("Edit", result.setupEditMenu()...),
+		fyne.NewMenu("Radio", result.setupRadioMenu()...),
 		fyne.NewMenu("Bandmap", result.setupBandmapMenu()...),
 		fyne.NewMenu("Window", result.setupWindowMenu()...),
 		fyne.NewMenu("Help", result.setupHelpMenu()...),
@@ -178,6 +183,12 @@ func (m *mainMenu) onFileQuit() {
 // EDIT
 
 func (m *mainMenu) setupEditMenu() []*fyne.MenuItem {
+	return nil
+}
+
+// RADIO
+
+func (m *mainMenu) setupRadioMenu() []*fyne.MenuItem {
 	return nil
 }
 

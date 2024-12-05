@@ -35,6 +35,7 @@ type application struct {
 	shortcuts  *Shortcuts
 	mainWindow *mainWindow
 	mainMenu   *mainMenu
+	statusBar  *statusBar
 
 	controller *app.Controller
 }
@@ -48,13 +49,16 @@ func (a *application) activate() {
 	a.controller.Startup()
 
 	a.shortcuts = setupShortcuts(a.controller)
+	a.statusBar = setupStatusBar()
 
 	mainWindow := a.app.NewWindow("Hello Contest")
-	a.mainWindow = setupMainWindow(mainWindow)
+	a.mainWindow = setupMainWindow(mainWindow, a.statusBar)
 	a.shortcuts.AddTo(mainWindow.Canvas())
-	a.controller.SetView(a.mainWindow)
 
 	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller, a.shortcuts)
+
+	a.controller.SetView(a.mainWindow)
+	a.controller.ServiceStatus.Notify(a.statusBar)
 
 	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
 	a.mainWindow.Show()

@@ -77,6 +77,7 @@ func (w *mainWindow) SelectOpenFile(callback func(string, error), title string, 
 	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_OPEN, "Open", gtk.RESPONSE_ACCEPT)
 	if err != nil {
 		errors.Wrap(err, "cannot create a file selection dialog to open a file")
+		return
 	}
 	defer dlg.Destroy()
 
@@ -106,10 +107,11 @@ func (w *mainWindow) SelectOpenFile(callback func(string, error), title string, 
 	callback(dlg.GetFilename(), nil)
 }
 
-func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error) {
+func (w *mainWindow) SelectSaveFile(callback func(string, error), title string, dir string, filename string, patterns ...string) {
 	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_SAVE, "Save", gtk.RESPONSE_ACCEPT)
 	if err != nil {
-		return "", false, errors.Wrap(err, "cannot create a file selection dialog to save a file")
+		errors.Wrap(err, "cannot create a file selection dialog to save a file")
+		return
 	}
 	defer dlg.Destroy()
 
@@ -123,7 +125,8 @@ func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, p
 	if len(patterns) > 0 {
 		filter, err := gtk.FileFilterNew()
 		if err != nil {
-			return "", false, errors.Wrap(err, "cannot create a file selection dialog to save a file")
+			errors.Wrap(err, "cannot create a file selection dialog to save a file")
+			return
 		}
 		for _, pattern := range patterns {
 			filter.AddPattern(pattern)
@@ -133,10 +136,10 @@ func (w *mainWindow) SelectSaveFile(title string, dir string, filename string, p
 
 	result := dlg.Run()
 	if result != gtk.RESPONSE_ACCEPT {
-		return "", false, nil
+		return
 	}
 
-	return dlg.GetFilename(), true, nil
+	callback(dlg.GetFilename(), nil)
 }
 
 func (w *mainWindow) ShowInfoDialog(title string, format string, a ...any) {

@@ -93,7 +93,7 @@ type View interface {
 	BringToFront()
 	ShowFilename(string)
 	SelectOpenFile(callback func(filename string, err error), title string, dir string, extensions ...string)
-	SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error)
+	SelectSaveFile(callback func(filename string, err error), title string, dir string, filename string, patterns ...string)
 	ShowInfoDialog(title string, format string, args ...any)
 	ShowErrorDialog(string, ...any)
 }
@@ -399,7 +399,6 @@ func proposeFilename(contestName, callsign string) string {
 }
 
 func (c *Controller) New() {
-	var err error
 	newContest, ok := c.NewContest.Run()
 	if !ok {
 		return
@@ -413,49 +412,54 @@ func (c *Controller) New() {
 	}
 	proposedFilename := proposeFilename(proposedName, c.Settings.Station().Callsign.BaseCall) + ".log"
 
-	filename, ok, err := c.view.SelectSaveFile("New Logfile", c.configuration.LogDirectory(), proposedFilename, "*.log")
-	if !ok {
-		return
-	}
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot select a file: %v", err)
-		return
-	}
+	c.view.SelectSaveFile(c.new(newContest), "New Logfile", c.configuration.LogDirectory(), proposedFilename, "log")
+}
 
-	store := store.NewFileStore(filename)
-	err = store.Clear()
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(newContest.Filename), err)
-		return
-	}
+func (c *Controller) new(newContest newcontest.Result) func(filename string, err error) {
+	return func(filename string, err error) {
+		if err != nil {
+			c.view.ShowErrorDialog("Cannot select a file: %v", err)
+			return
+		}
+		if filename == "" {
+			return
+		}
 
-	c.Settings.Reset()
-	c.Settings.SelectContestIdentifier(newContest.Identifier)
-	c.Settings.EnterContestName(newContest.Name)
-	c.Keyer.SetSettings(c.configuration.KeyerSettings())
+		store := store.NewFileStore(filename)
+		err = store.Clear()
+		if err != nil {
+			c.view.ShowErrorDialog("Cannot create %s: %v", filepath.Base(newContest.Filename), err)
+			return
+		}
 
-	err = store.WriteStation(c.Settings.Station())
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
-		return
-	}
-	err = store.WriteContest(c.Settings.Contest())
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
-		return
-	}
-	err = store.WriteKeyer(c.Keyer.KeyerSettings())
-	if err != nil {
-		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
-		return
-	}
+		c.Settings.Reset()
+		c.Settings.SelectContestIdentifier(newContest.Identifier)
+		c.Settings.EnterContestName(newContest.Name)
+		c.Keyer.SetSettings(c.configuration.KeyerSettings())
 
-	c.Settings.SetWriter(store)
-	c.Keyer.SetWriter(store)
-	c.changeLogbook(filename, store, logbook.New(c.clock))
-	c.Refresh()
+		err = store.WriteStation(c.Settings.Station())
+		if err != nil {
+			c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
+			return
+		}
+		err = store.WriteContest(c.Settings.Contest())
+		if err != nil {
+			c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
+			return
+		}
+		err = store.WriteKeyer(c.Keyer.KeyerSettings())
+		if err != nil {
+			c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(newContest.Filename), err)
+			return
+		}
 
-	c.OpenSettings()
+		c.Settings.SetWriter(store)
+		c.Keyer.SetWriter(store)
+		c.changeLogbook(filename, store, logbook.New(c.clock))
+		c.Refresh()
+
+		c.OpenSettings()
+	}
 }
 
 func (c *Controller) Open() {
@@ -496,12 +500,15 @@ func (c *Controller) open(filename string, err error) {
 
 func (c *Controller) SaveAs() {
 	proposedName := c.proposeFilename() + ".log"
-	filename, ok, err := c.view.SelectSaveFile("Save Logfile As", c.configuration.LogDirectory(), proposedName, "*.log")
-	if !ok {
-		return
-	}
+	c.view.SelectSaveFile(c.save, "Save Logfile As", c.configuration.LogDirectory(), proposedName, "log")
+}
+
+func (c *Controller) save(filename string, err error) {
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+	if filename == "" {
 		return
 	}
 
@@ -546,12 +553,15 @@ func (c *Controller) SaveAs() {
 
 func (c *Controller) ExportCabrillo() {
 	proposedName := c.proposeFilename() + ".cabrillo"
-	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", c.configuration.LogDirectory(), proposedName, "*.cabrillo")
-	if !ok {
-		return
-	}
+	c.view.SelectSaveFile(c.exportCabrillo, "Export Cabrillo File", c.configuration.LogDirectory(), proposedName, "cabrillo", "cab")
+}
+
+func (c *Controller) exportCabrillo(filename string, err error) {
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+	if filename == "" {
 		return
 	}
 
@@ -576,12 +586,15 @@ func (c *Controller) ExportCabrillo() {
 
 func (c *Controller) ExportADIF() {
 	proposedName := c.proposeFilename() + ".adif"
-	filename, ok, err := c.view.SelectSaveFile("Export ADIF File", c.configuration.LogDirectory(), proposedName, "*.adif")
-	if !ok {
-		return
-	}
+	c.view.SelectSaveFile(c.exportADIF, "Export ADIF File", c.configuration.LogDirectory(), proposedName, "adif", "adi")
+}
+
+func (c *Controller) exportADIF(filename string, err error) {
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+	if filename == "" {
 		return
 	}
 
@@ -600,12 +613,15 @@ func (c *Controller) ExportADIF() {
 
 func (c *Controller) ExportCSV() {
 	proposedName := c.proposeFilename() + ".csv"
-	filename, ok, err := c.view.SelectSaveFile("Export CSV File", c.configuration.LogDirectory(), proposedName, "*.csv")
-	if !ok {
-		return
-	}
+	c.view.SelectSaveFile(c.exportCSV, "Export CSV File", c.configuration.LogDirectory(), proposedName, "csv")
+}
+
+func (c *Controller) exportCSV(filename string, err error) {
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+	if filename == "" {
 		return
 	}
 
@@ -627,12 +643,16 @@ func (c *Controller) ExportCSV() {
 
 func (c *Controller) ExportCallhistory() {
 	proposedName := c.proposeFilename() + ".txt"
-	filename, ok, err := c.view.SelectSaveFile("Export Call History File", c.configuration.LogDirectory(), proposedName, "*.txt")
-	if !ok {
-		return
-	}
+	c.view.SelectSaveFile(c.exportCallhistory, "Export Call History File", c.configuration.LogDirectory(), proposedName, "txt")
+}
+
+func (c *Controller) exportCallhistory(filename string, err error) {
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+	if filename == "" {
+		return
 	}
 
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)

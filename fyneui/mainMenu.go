@@ -4,6 +4,11 @@ import "fyne.io/fyne/v2"
 
 type MainMenuController interface {
 	Open()
+	SaveAs()
+	ExportCabrillo()
+	ExportADIF()
+	ExportCSV()
+	ExportCallhistory()
 	OpenContestRulesPage()
 	OpenContestUploadPage()
 	OpenConfigurationFile()
@@ -132,18 +137,23 @@ func (m *mainMenu) onFileOpen() {
 }
 
 func (m *mainMenu) onFileSaveAs() {
+	m.controller.SaveAs()
 }
 
 func (m *mainMenu) onFileExportCabrillo() {
+	m.controller.ExportCabrillo()
 }
 
 func (m *mainMenu) onFileExportADIF() {
+	m.controller.ExportADIF()
 }
 
 func (m *mainMenu) onFileExportCSV() {
+	m.controller.ExportCSV()
 }
 
 func (m *mainMenu) onFileExportCallhistory() {
+	m.controller.ExportCallhistory()
 }
 
 func (m *mainMenu) onFileOpenRules() {

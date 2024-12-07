@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/ftl/hellocontest/core"
 )
@@ -13,22 +14,22 @@ import (
 type statusBar struct {
 	container *fyne.Container
 
-	radio       *widget.Label
-	keyer       *widget.Label
-	dxcc        *widget.Label
-	scp         *widget.Label
-	callhistory *widget.Label
-	mapLabel    *widget.Label
+	radio       *widget.RichText
+	keyer       *widget.RichText
+	dxcc        *widget.RichText
+	scp         *widget.RichText
+	callhistory *widget.RichText
+	mapLabel    *widget.RichText
 }
 
 func setupStatusBar() *statusBar {
 	result := &statusBar{
-		radio:       widget.NewLabel(""),
-		keyer:       widget.NewLabel(""),
-		dxcc:        widget.NewLabel(""),
-		scp:         widget.NewLabel(""),
-		callhistory: widget.NewLabel(""),
-		mapLabel:    widget.NewLabel(""),
+		radio:       widget.NewRichText(&widget.TextSegment{}),
+		keyer:       widget.NewRichText(&widget.TextSegment{}),
+		dxcc:        widget.NewRichText(&widget.TextSegment{}),
+		scp:         widget.NewRichText(&widget.TextSegment{}),
+		callhistory: widget.NewRichText(&widget.TextSegment{}),
+		mapLabel:    widget.NewRichText(&widget.TextSegment{}),
 	}
 	result.container = container.New(layout.NewHBoxLayout(), result.radio, result.keyer, result.dxcc, result.scp, result.callhistory, result.mapLabel, layout.NewSpacer())
 
@@ -48,17 +49,26 @@ func (b *statusBar) StatusChanged(service core.Service, available bool) {
 }
 
 func (b *statusBar) updateStatus(service core.Service, available bool) {
-	label, text := b.serviceLabel(service)
-	if label == nil {
+	indicator, text := b.serviceIndicator(service)
+	if indicator == nil {
 		log.Printf("unknown service %d", service)
-		return
 	}
 
-	label.TextStyle.Bold = available
-	label.SetText(text)
+	var color fyne.ThemeColorName
+	if available {
+		color = theme.ColorNameForeground
+	} else {
+		color = theme.ColorNameDisabled
+	}
+
+	segment := indicator.Segments[0].(*widget.TextSegment)
+	segment.Text = text
+	segment.Style.ColorName = color
+	segment.Style.TextStyle.Bold = available
+	indicator.Refresh()
 }
 
-func (b *statusBar) serviceLabel(service core.Service) (*widget.Label, string) {
+func (b *statusBar) serviceIndicator(service core.Service) (*widget.RichText, string) {
 	switch service {
 	case core.RadioService:
 		return b.radio, "Radio"

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -17,7 +16,6 @@ type KeyerController interface {
 	Send(int)
 	Stop()
 	EnterSpeed(int)
-	Save()
 	OpenKeyerSettings()
 }
 
@@ -52,7 +50,6 @@ func setupKeyerView(builder *gtk.Builder) *keyerView {
 
 	result.speedEntry = getUI(builder, "speedEntry").(*gtk.SpinButton)
 	result.speedEntry.Connect("value-changed", result.onSpeedChanged)
-	result.speedEntry.Connect("focus_out_event", result.onEntryFocusOut)
 
 	return result
 }
@@ -67,11 +64,6 @@ func (v *keyerView) doIgnoreChanges(f func()) {
 		v.ignoreChangedEvent = false
 	}()
 	f()
-}
-
-func (v *keyerView) onEntryFocusOut(widget interface{}, _ *gdk.Event) bool {
-	v.controller.Save()
-	return false
 }
 
 func (k *keyerView) onButton(index int) func(button *gtk.Button) bool {

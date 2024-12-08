@@ -338,12 +338,10 @@ func (l *QSOList) GetQSOs(numbers []core.QSONumber) []core.QSO {
 func (l *QSOList) getQSOs(numbers []core.QSONumber) []core.QSO {
 	result := make([]core.QSO, 0, len(numbers))
 	for _, n := range numbers {
-		listIndex, found := l.findIndex(n)
+		qso, found := l.getQSO(n)
 		if !found {
-			log.Printf("QSO number %d not found", n)
 			continue
 		}
-		qso := l.list[listIndex]
 		if len(result) > 0 && n > result[len(result)-1].MyNumber {
 			result = append(result, qso)
 		} else {
@@ -355,6 +353,22 @@ func (l *QSOList) getQSOs(numbers []core.QSONumber) []core.QSO {
 		}
 	}
 	return result
+}
+
+func (l *QSOList) GetQSO(number core.QSONumber) (core.QSO, bool) {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	return l.getQSO(number)
+}
+
+func (l *QSOList) getQSO(number core.QSONumber) (core.QSO, bool) {
+	listIndex, found := l.findIndex(number)
+	if !found {
+		log.Printf("QSO number %d not found", number)
+		return core.QSO{}, false
+	}
+	return l.list[listIndex], true
 }
 
 func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {

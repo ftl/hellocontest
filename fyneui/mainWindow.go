@@ -9,25 +9,24 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
-	"fyne.io/fyne/v2/widget"
 )
 
 type mainWindow struct {
 	window fyne.Window
 }
 
-func setupMainWindow(window fyne.Window, statusBar *statusBar) *mainWindow {
+func setupMainWindow(window fyne.Window, qsoList *qsoList, statusBar *statusBar) *mainWindow {
 	result := &mainWindow{
 		window: window,
 	}
 	window.SetMaster()
 
 	root := container.NewBorder(
-		nil,                              // top
-		statusBar.container,              // bottom
-		nil,                              // left
-		nil,                              // right
-		widget.NewLabel("Hello Contest"), // center
+		nil,                 // top
+		statusBar.container, // bottom
+		nil,                 // left
+		nil,                 // right
+		qsoList.container,   // center
 	)
 	window.SetContent(root)
 

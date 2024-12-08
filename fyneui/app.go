@@ -50,7 +50,7 @@ func (a *application) activate() {
 	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration, a.sponsors)
 	a.controller.Startup()
 
-	a.shortcuts = setupShortcuts(a.controller)
+	a.shortcuts = setupShortcuts(a.controller, a.controller.Keyer)
 	a.qsoList = setupQSOList()
 	a.keyerControl = setupKeyerControl()
 	a.statusBar = setupStatusBar()

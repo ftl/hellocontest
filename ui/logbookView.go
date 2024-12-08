@@ -220,11 +220,6 @@ func boolToCheckmark(value bool) string {
 	return ""
 }
 
-func (v *logbookView) QSOInserted(index int, qso core.QSO) {
-	// insertion is currently not supported as it does not happen in practice
-	log.Printf("qso %d inserted at %d", qso.MyNumber, index)
-}
-
 func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 	row, err := v.list.GetIterFromString(fmt.Sprintf("%d", index))
 	if err != nil {

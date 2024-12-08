@@ -11,10 +11,17 @@ const (
 	OpenShortcut         ShortcutID = "open"
 	OpenSettingsShortcut ShortcutID = "open_settings"
 	QuitShortcut         ShortcutID = "quit"
+
+	SendMacroF1Shortcut ShortcutID = "macro_f1"
+	SendMacroF2Shortcut ShortcutID = "macro_f2"
+	SendMacroF3Shortcut ShortcutID = "macro_f3"
+	SendMacroF4Shortcut ShortcutID = "macro_f4"
+	StopTXShortcut      ShortcutID = "stop_tx"
 )
 
 type ShortcutConsumer interface {
 	AddShortcut(fyne.Shortcut, func(shortcut fyne.Shortcut))
+	SetOnTypedKey(func(*fyne.KeyEvent))
 }
 
 type Shortcut struct {
@@ -40,11 +47,16 @@ type ShortcutController interface {
 }
 
 type Shortcuts struct {
+	controller      ShortcutController
+	keyerController KeyerController
+
 	shortcuts map[ShortcutID]*Shortcut
 }
 
-func setupShortcuts(controller ShortcutController) *Shortcuts {
+func setupShortcuts(controller ShortcutController, keyerController KeyerController) *Shortcuts {
 	return &Shortcuts{
+		controller:      controller,
+		keyerController: keyerController,
 		shortcuts: map[ShortcutID]*Shortcut{
 			OpenShortcut: {
 				ID:             OpenShortcut,
@@ -72,5 +84,21 @@ func (s *Shortcuts) Get(id ShortcutID) fyne.Shortcut {
 func (s *Shortcuts) AddTo(consumer ShortcutConsumer) {
 	for _, shortcut := range s.shortcuts {
 		shortcut.AddTo(consumer)
+	}
+	consumer.SetOnTypedKey(s.onTypedKey)
+}
+
+func (s *Shortcuts) onTypedKey(key *fyne.KeyEvent) {
+	switch key.Name {
+	case fyne.KeyF1:
+		s.keyerController.Send(0)
+	case fyne.KeyF2:
+		s.keyerController.Send(1)
+	case fyne.KeyF3:
+		s.keyerController.Send(2)
+	case fyne.KeyF4:
+		s.keyerController.Send(3)
+	case fyne.KeyEscape:
+		s.keyerController.Stop()
 	}
 }

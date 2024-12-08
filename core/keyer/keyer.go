@@ -17,7 +17,7 @@ const PatternCount = 4
 
 // ButtonView represents the visual parts of trigger the transmission of the keyer macros.
 type ButtonView interface {
-	ShowMessage(...interface{})
+	ShowMessage(...any)
 	SetLabel(int, string)
 	SetPattern(int, string)
 	SetSpeed(int)

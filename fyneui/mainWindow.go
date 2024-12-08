@@ -15,18 +15,20 @@ type mainWindow struct {
 	window fyne.Window
 }
 
-func setupMainWindow(window fyne.Window, qsoList *qsoList, statusBar *statusBar) *mainWindow {
+func setupMainWindow(window fyne.Window, qsoList *qsoList, keyerControl *keyerControl, statusBar *statusBar) *mainWindow {
 	result := &mainWindow{
 		window: window,
 	}
 	window.SetMaster()
 
+	bottom := container.NewVBox(keyerControl.container, statusBar.container)
+
 	root := container.NewBorder(
-		nil,                 // top
-		statusBar.container, // bottom
-		nil,                 // left
-		nil,                 // right
-		qsoList.container,   // center
+		nil,               // top
+		bottom,            // bottom
+		nil,               // left
+		nil,               // right
+		qsoList.container, // center
 	)
 	window.SetContent(root)
 

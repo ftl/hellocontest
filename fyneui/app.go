@@ -72,7 +72,7 @@ func (a *application) activate() {
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.qsoList)
 	a.controller.Workmode.SetView(a.workmodeControl)
-	a.controller.Workmode.Notify(a.workmodeControl)
+	a.controller.Workmode.Notify(a.mainMenu)
 	a.controller.Keyer.SetView(a.keyerControl)
 	a.controller.ServiceStatus.Notify(a.statusBar)
 

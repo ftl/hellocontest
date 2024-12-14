@@ -31,13 +31,14 @@ type application struct {
 	version  string
 	sponsors string
 
-	app          fyne.App
-	shortcuts    *Shortcuts
-	mainWindow   *mainWindow
-	mainMenu     *mainMenu
-	qsoList      *qsoList
-	keyerControl *keyerControl
-	statusBar    *statusBar
+	app             fyne.App
+	shortcuts       *Shortcuts
+	mainWindow      *mainWindow
+	mainMenu        *mainMenu
+	qsoList         *qsoList
+	workmodeControl *workmodeControl
+	keyerControl    *keyerControl
+	statusBar       *statusBar
 
 	controller *app.Controller
 }
@@ -52,11 +53,12 @@ func (a *application) activate() {
 
 	a.shortcuts = setupShortcuts(a.controller, a.controller.Keyer)
 	a.qsoList = setupQSOList()
+	a.workmodeControl = setupWorkmodeControl()
 	a.keyerControl = setupKeyerControl()
 	a.statusBar = setupStatusBar()
 
 	mainWindow := a.app.NewWindow("Hello Contest")
-	a.mainWindow = setupMainWindow(mainWindow, a.qsoList, a.keyerControl, a.statusBar)
+	a.mainWindow = setupMainWindow(mainWindow, a.qsoList, a.workmodeControl, a.keyerControl, a.statusBar)
 	a.shortcuts.AddTo(mainWindow.Canvas())
 	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
 	a.mainWindow.Show()
@@ -64,10 +66,13 @@ func (a *application) activate() {
 	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller, a.shortcuts)
 
 	a.qsoList.SetLogbookController(a.controller.QSOList)
+	a.workmodeControl.SetWorkmodeController(a.controller.Workmode)
 	a.keyerControl.SetKeyerController(a.controller.Keyer)
 
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.qsoList)
+	a.controller.Workmode.SetView(a.workmodeControl)
+	a.controller.Workmode.Notify(a.workmodeControl)
 	a.controller.Keyer.SetView(a.keyerControl)
 	a.controller.ServiceStatus.Notify(a.statusBar)
 

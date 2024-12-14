@@ -11,7 +11,6 @@ import (
 
 const parrot = "🦜"
 
-// KeyerController controls the keyer.
 type KeyerController interface {
 	Send(int)
 	Stop()

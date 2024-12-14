@@ -194,7 +194,10 @@ func (l *qsoList) forRow(row int, f func(widget.TableCellID)) {
 }
 
 func (l *qsoList) RowSelected(row int) {
-	l.table.Select(widget.TableCellID{Row: row, Col: 0})
+	id := widget.TableCellID{Row: row, Col: 0}
+	l.table.ScrollToLeading()
+	l.table.ScrollTo(id)
+	l.table.Select(id)
 }
 
 func (l *qsoList) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {

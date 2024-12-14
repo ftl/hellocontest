@@ -9,30 +9,35 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/widget"
 )
 
 type mainWindow struct {
 	window fyne.Window
 }
 
-func setupMainWindow(window fyne.Window, qsoList *qsoList, workmodeControl *workmodeControl, keyerControl *keyerControl, statusBar *statusBar) *mainWindow {
+func setupMainWindow(window fyne.Window) *mainWindow {
 	result := &mainWindow{
 		window: window,
 	}
 	window.SetMaster()
 
-	bottom := container.NewVBox(workmodeControl.container, keyerControl.container, statusBar.container)
-
-	root := container.NewBorder(
-		nil,               // top
-		bottom,            // bottom
-		nil,               // left
-		nil,               // right
-		qsoList.container, // center
-	)
-	window.SetContent(root)
+	background := container.NewCenter(widget.NewLabel("loading...")) // TODO also show the Hello Contest logo
+	window.SetContent(background)
 
 	return result
+}
+
+func (w *mainWindow) setContent(center fyne.CanvasObject, bottoms ...fyne.CanvasObject) {
+	bottom := container.NewVBox(bottoms...)
+	root := container.NewBorder(
+		nil,
+		bottom,
+		nil,
+		nil,
+		center,
+	)
+	w.window.SetContent(root)
 }
 
 func (w *mainWindow) Show() {

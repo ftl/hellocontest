@@ -58,6 +58,8 @@ func (a *application) activate() {
 	mainWindow := a.app.NewWindow("Hello Contest")
 	a.mainWindow = setupMainWindow(mainWindow, a.qsoList, a.keyerControl, a.statusBar)
 	a.shortcuts.AddTo(mainWindow.Canvas())
+	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
+	a.mainWindow.Show()
 
 	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller, a.shortcuts)
 
@@ -68,10 +70,8 @@ func (a *application) activate() {
 	a.controller.QSOList.Notify(a.qsoList)
 	a.controller.Keyer.SetView(a.keyerControl)
 	a.controller.ServiceStatus.Notify(a.statusBar)
-	a.controller.Refresh()
 
-	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
-	a.mainWindow.Show()
+	a.controller.Refresh()
 }
 
 func (a *application) runAsync(f func()) {

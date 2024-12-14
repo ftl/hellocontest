@@ -80,7 +80,7 @@ type helpMenu struct {
 	helpAbout *fyne.MenuItem
 }
 
-func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortcuts ShortcutProvider) *mainMenu {
+func setupMainMenu(controller MainMenuController, shortcuts ShortcutProvider) *mainMenu {
 	result := &mainMenu{
 		controller: controller,
 		shortcuts:  shortcuts,
@@ -94,7 +94,6 @@ func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortc
 		fyne.NewMenu("Window", result.setupWindowMenu()...),
 		fyne.NewMenu("Help", result.setupHelpMenu()...),
 	)
-	mainWindow.SetMainMenu(result.root)
 
 	return result
 }

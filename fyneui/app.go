@@ -44,6 +44,10 @@ type application struct {
 }
 
 func (a *application) activate() {
+	a.mainWindow = setupMainWindow(a.app.NewWindow("Hello Contest"))
+	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
+	a.mainWindow.Show()
+
 	configuration, err := cfg.Load()
 	if err != nil {
 		log.Fatal(err)
@@ -52,18 +56,11 @@ func (a *application) activate() {
 	a.controller.Startup()
 
 	a.shortcuts = setupShortcuts(a.controller, a.controller.Keyer)
+	a.mainMenu = setupMainMenu(a.controller, a.shortcuts)
 	a.qsoList = setupQSOList()
 	a.workmodeControl = setupWorkmodeControl()
 	a.keyerControl = setupKeyerControl()
 	a.statusBar = setupStatusBar()
-
-	mainWindow := a.app.NewWindow("Hello Contest")
-	a.mainWindow = setupMainWindow(mainWindow, a.qsoList, a.workmodeControl, a.keyerControl, a.statusBar)
-	a.shortcuts.AddTo(mainWindow.Canvas())
-	a.mainWindow.UseDefaultWindowGeometry() // TODO: store/restore the window geometry
-	a.mainWindow.Show()
-
-	a.mainMenu = setupMainMenu(a.mainWindow.window, a.controller, a.shortcuts)
 
 	a.qsoList.SetLogbookController(a.controller.QSOList)
 	a.workmodeControl.SetWorkmodeController(a.controller.Workmode)
@@ -75,6 +72,10 @@ func (a *application) activate() {
 	a.controller.Workmode.Notify(a.mainMenu)
 	a.controller.Keyer.SetView(a.keyerControl)
 	a.controller.ServiceStatus.Notify(a.statusBar)
+
+	a.mainWindow.setContent(a.qsoList.container, a.workmodeControl.container, a.keyerControl.container, a.statusBar.container)
+	a.mainWindow.window.SetMainMenu(a.mainMenu.root)
+	a.shortcuts.AddTo(a.mainWindow.window.Canvas())
 
 	a.controller.Refresh()
 }

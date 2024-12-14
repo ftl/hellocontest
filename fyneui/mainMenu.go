@@ -1,6 +1,10 @@
 package fyneui
 
-import "fyne.io/fyne/v2"
+import (
+	"fyne.io/fyne/v2"
+
+	"github.com/ftl/hellocontest/core"
+)
 
 type MainMenuController interface {
 	Open()
@@ -13,6 +17,9 @@ type MainMenuController interface {
 	OpenContestUploadPage()
 	OpenConfigurationFile()
 	Quit()
+
+	SwitchToSPWorkmode()
+	SwitchToRunWorkmode()
 
 	OpenWiki()
 	Sponsors()
@@ -28,6 +35,7 @@ type ShortcutProvider interface {
 type mainMenu struct {
 	controller MainMenuController
 	shortcuts  ShortcutProvider
+	root       *fyne.MainMenu
 
 	fileMenu
 	editMenu
@@ -53,6 +61,8 @@ type fileMenu struct {
 }
 
 type editMenu struct {
+	editSearchPounce,
+	editRun *fyne.MenuItem
 }
 
 type radioMenu struct {
@@ -76,7 +86,7 @@ func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortc
 		shortcuts:  shortcuts,
 	}
 
-	mainMenu := fyne.NewMainMenu(
+	result.root = fyne.NewMainMenu(
 		fyne.NewMenu("File", result.setupFileMenu()...),
 		fyne.NewMenu("Edit", result.setupEditMenu()...),
 		fyne.NewMenu("Radio", result.setupRadioMenu()...),
@@ -84,7 +94,7 @@ func setupMainMenu(mainWindow fyne.Window, controller MainMenuController, shortc
 		fyne.NewMenu("Window", result.setupWindowMenu()...),
 		fyne.NewMenu("Help", result.setupHelpMenu()...),
 	)
-	mainWindow.SetMainMenu(mainMenu)
+	mainWindow.SetMainMenu(result.root)
 
 	return result
 }
@@ -183,7 +193,30 @@ func (m *mainMenu) onFileQuit() {
 // EDIT
 
 func (m *mainMenu) setupEditMenu() []*fyne.MenuItem {
-	return nil
+	m.editSearchPounce = fyne.NewMenuItem("Search & Pounce", m.onEditSearchPounce)
+	m.editSearchPounce.Shortcut = m.shortcuts.Get(WorkmodeSearchPounceShortcut)
+	m.editSearchPounce.Checked = true // this is the default workmode when starting up
+	m.editRun = fyne.NewMenuItem("Run", m.onEditRun)
+	m.editRun.Shortcut = m.shortcuts.Get(WorkmodeRunShortcut)
+
+	return []*fyne.MenuItem{
+		m.editSearchPounce,
+		m.editRun,
+	}
+}
+
+func (m *mainMenu) onEditSearchPounce() {
+	m.controller.SwitchToSPWorkmode()
+}
+
+func (m *mainMenu) onEditRun() {
+	m.controller.SwitchToRunWorkmode()
+}
+
+func (m *mainMenu) WorkmodeChanged(workmode core.Workmode) {
+	m.editSearchPounce.Checked = (workmode == core.SearchPounce)
+	m.editRun.Checked = (workmode == core.Run)
+	m.root.Items[1].Refresh() // TODO clean-up the whole menu object structure and use composition instead of embedding
 }
 
 // RADIO

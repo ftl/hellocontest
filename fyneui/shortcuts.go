@@ -12,6 +12,9 @@ const (
 	OpenSettingsShortcut ShortcutID = "open_settings"
 	QuitShortcut         ShortcutID = "quit"
 
+	WorkmodeSearchPounceShortcut ShortcutID = "workmode_sp"
+	WorkmodeRunShortcut          ShortcutID = "workmode_run"
+
 	SendMacroF1Shortcut ShortcutID = "macro_f1"
 	SendMacroF2Shortcut ShortcutID = "macro_f2"
 	SendMacroF3Shortcut ShortcutID = "macro_f3"
@@ -44,6 +47,9 @@ type ShortcutController interface {
 	Open()
 	OpenSettings()
 	Quit()
+
+	SwitchToSPWorkmode()
+	SwitchToRunWorkmode()
 }
 
 type Shortcuts struct {
@@ -72,6 +78,16 @@ func setupShortcuts(controller ShortcutController, keyerController KeyerControll
 				ID:             QuitShortcut,
 				Action:         controller.Quit,
 				CustomShortcut: desktop.CustomShortcut{Modifier: fyne.KeyModifierControl, KeyName: fyne.KeyQ},
+			},
+			WorkmodeSearchPounceShortcut: {
+				ID:             WorkmodeSearchPounceShortcut,
+				Action:         controller.SwitchToSPWorkmode,
+				CustomShortcut: desktop.CustomShortcut{Modifier: fyne.KeyModifierControl, KeyName: fyne.KeyS},
+			},
+			WorkmodeRunShortcut: {
+				ID:             WorkmodeRunShortcut,
+				Action:         controller.SwitchToRunWorkmode,
+				CustomShortcut: desktop.CustomShortcut{Modifier: fyne.KeyModifierControl, KeyName: fyne.KeyR},
 			},
 		},
 	}

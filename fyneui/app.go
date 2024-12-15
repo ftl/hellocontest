@@ -36,6 +36,7 @@ type application struct {
 	mainWindow      *mainWindow
 	mainMenu        *mainMenu
 	qsoList         *qsoList
+	entry           *entry
 	workmodeControl *workmodeControl
 	keyerControl    *keyerControl
 	statusBar       *statusBar
@@ -58,6 +59,7 @@ func (a *application) activate() {
 	a.shortcuts = setupShortcuts(a.controller, a.controller.Keyer)
 	a.mainMenu = setupMainMenu(a.controller, a.shortcuts)
 	a.qsoList = setupQSOList()
+	a.entry = setupEntry()
 	a.workmodeControl = setupWorkmodeControl()
 	a.keyerControl = setupKeyerControl()
 	a.statusBar = setupStatusBar()
@@ -73,7 +75,7 @@ func (a *application) activate() {
 	a.controller.Keyer.SetView(a.keyerControl)
 	a.controller.ServiceStatus.Notify(a.statusBar)
 
-	a.mainWindow.setContent(a.qsoList.container, a.workmodeControl.container, a.keyerControl.container, a.statusBar.container)
+	a.mainWindow.setContent(a.qsoList.container, a.entry.container, a.workmodeControl.container, a.keyerControl.container, a.statusBar.container)
 	a.mainWindow.window.SetMainMenu(a.mainMenu.root)
 	a.shortcuts.AddTo(a.mainWindow.window.Canvas())
 

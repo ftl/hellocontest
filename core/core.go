@@ -45,6 +45,10 @@ func (f Frequency) String() string {
 	return fmt.Sprintf("%.0fHz", float64(f))
 }
 
+func (f Frequency) LabelString() string {
+	return fmt.Sprintf("%.2f kHz", f/1000.0)
+}
+
 // Band represents an amateur radio band.
 type Band string
 

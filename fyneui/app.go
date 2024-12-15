@@ -59,7 +59,7 @@ func (a *application) activate() {
 	a.shortcuts = setupShortcuts(a.controller, a.controller.Keyer)
 	a.mainMenu = setupMainMenu(a.controller, a.shortcuts)
 	a.qsoList = setupQSOList()
-	a.entry = setupEntry()
+	a.entry = setupEntry(a.mainWindow.window.Canvas)
 	a.workmodeControl = setupWorkmodeControl()
 	a.keyerControl = setupKeyerControl()
 	a.statusBar = setupStatusBar()

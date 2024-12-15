@@ -70,6 +70,8 @@ func (a *application) activate() {
 
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.qsoList)
+	a.controller.Entry.SetView(a.entry)
+	a.controller.Callinfo.SetView(a.entry)
 	a.controller.Workmode.SetView(a.workmodeControl)
 	a.controller.Workmode.Notify(a.mainMenu)
 	a.controller.Keyer.SetView(a.keyerControl)

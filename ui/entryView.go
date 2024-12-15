@@ -387,7 +387,7 @@ func (v *entryView) SetEditingMarker(editing bool) {
 	}
 }
 
-func (v *entryView) ShowMessage(args ...interface{}) {
+func (v *entryView) ShowMessage(args ...any) {
 	v.messageLabel.SetText(fmt.Sprint(args...))
 }
 

@@ -16,12 +16,28 @@ import (
 	core_entry "github.com/ftl/hellocontest/core/entry"
 )
 
+type EntryController interface {
+	GotoNextField() core.EntryField
+	GotoNextPlaceholder()
+	SetActiveField(core.EntryField)
+
+	Enter(string)
+	SelectMatch(int)
+	SelectBestMatch()
+	SendQuestion()
+	StopTX()
+
+	Log()
+	Clear()
+}
+
 var _ core_entry.View = (*entry)(nil)
 var _ core_callinfo.View = (*entry)(nil)
 
 type entry struct {
-	container *fyne.Container
-	canvas    func() fyne.Canvas
+	controller EntryController
+	container  *fyne.Container
+	canvas     func() fyne.Canvas
 
 	// my data
 	utcLabel          *widget.Label
@@ -85,6 +101,7 @@ func setupEntry(canvas func() fyne.Canvas) *entry {
 	result.theirLabel = widget.NewLabel("Their:")
 	result.theirCall = widget.NewEntry()
 	result.theirCall.PlaceHolder = "Call"
+	result.addFieldEntryEventHandler(core.CallsignField, result.theirCall)
 	result.theirExchangesParent = container.NewHBox()
 	result.logButton = widget.NewButton("Log", result.onLog)
 	result.clearButton = widget.NewButton("Clear", result.onClear)
@@ -102,9 +119,11 @@ func setupEntry(canvas func() fyne.Canvas) *entry {
 	result.messageLabel = widget.NewLabel("")
 	result.messageLabel.Hide()
 	result.dxccLabel = widget.NewRichText()
+	result.dxccLabel.Truncation = fyne.TextTruncateClip
 	result.userInfoLabel = widget.NewLabel("")
 	result.infoLine = container.NewHBox(result.dxccLabel, layout.NewSpacer(), result.userInfoLabel)
 	result.supercheckLabel = widget.NewRichText()
+	result.supercheckLabel.Truncation = fyne.TextTruncateClip
 
 	result.container = container.NewVBox(
 		myDataRow,
@@ -134,6 +153,22 @@ func (e *entry) onModeSelect(modeLabel string) {
 	// TODO implement
 }
 
+func (e *entry) addFieldEntryEventHandler(field core.EntryField, w *widget.Entry) {
+	w.OnChanged = func(s string) {
+		e.onEntryChanged(field, s)
+	}
+}
+
+func (e *entry) onEntryChanged(field core.EntryField, s string) {
+	// TODO: this is a workaround because there is no public focus event on widget.Entry
+	e.controller.SetActiveField(field)
+	e.controller.Enter(s)
+}
+
+func (e *entry) SetEntryController(controller EntryController) {
+	e.controller = controller
+}
+
 func (e *entry) SetMyExchangeFields(fields []core.ExchangeField) {
 	e.setupExchangeEntry(fields, e.myExchangesParent, &e.myExchanges)
 }
@@ -152,7 +187,7 @@ func (e *entry) setupExchangeEntry(fields []core.ExchangeField, parent *fyne.Con
 		entry.Resize(fyne.NewSize(200, 0))
 		(*entries)[i] = entry
 		parent.Add(entry)
-		// TODO add event handler
+		e.addFieldEntryEventHandler(field.Field, entry)
 	}
 }
 
@@ -265,49 +300,35 @@ func (e *entry) SetUTC(utc string) {
 }
 
 func (e *entry) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {
-	e.predictedCallLabel.Segments = e.renderCallsign(callsign)
+	e.predictedCallLabel.ParseMarkdown(e.renderCallsign(callsign))
 }
 
 func (e *entry) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {
-	text := fmt.Sprintf("%s, %s", dxccName, continent)
+	md := fmt.Sprintf("%s, %s", dxccName, continent)
 	if itu != 0 {
-		text += fmt.Sprintf(", ITU %d", itu)
+		md += fmt.Sprintf(", ITU %d", itu)
 	}
 	if cq != 0 {
-		text += fmt.Sprintf(", CQ %d", cq)
-	}
-	segments := []widget.RichTextSegment{
-		&widget.TextSegment{Text: text},
+		md += fmt.Sprintf(", CQ %d", cq)
 	}
 	if dxccName != "" && !arrlCompliant {
-		segments = append(segments, &widget.TextSegment{
-			Text: ", not ARRL compliant",
-			Style: widget.RichTextStyle{
-				ColorName: theme.ColorRed,
-				TextStyle: fyne.TextStyle{
-					Bold: true,
-				},
-			},
-		})
+		md += ", <span color='red'>not ARRL compliant</span>"
 	}
-	e.dxccLabel.Segments = segments
+	e.dxccLabel.ParseMarkdown(md)
 }
 
 func (e *entry) SetSupercheck(callsigns []core.AnnotatedCallsign) {
-	var segments []widget.RichTextSegment
+	var md string
 	for i, callsign := range callsigns {
-		if len(segments) > 0 {
-			segments = append(segments, &widget.TextSegment{Text: "|"})
+		if len(md) > 0 {
+			md += "  "
 		}
 		if i < 9 {
-			text := &widget.TextSegment{
-				Text: fmt.Sprintf("(%d) ", i+1),
-			}
-			segments = append(segments, text)
+			md += fmt.Sprintf("(%d) ", i+1)
 		}
-		segments = append(segments, e.renderCallsign(callsign)...)
+		md += e.renderCallsign(callsign)
 	}
-	e.supercheckLabel.Segments = segments
+	e.supercheckLabel.ParseMarkdown(md)
 }
 
 func (e *entry) SetUserInfo(text string) {
@@ -325,15 +346,12 @@ func (e *entry) SetValue(points int, multis int, value int) {
 		segment.Style.TextStyle.Bold = true
 	}
 	e.predictedValueLabel.Segments = []widget.RichTextSegment{segment}
+	e.predictedValueLabel.Refresh()
 }
 
-func (e *entry) renderCallsign(callsign core.AnnotatedCallsign) []widget.RichTextSegment {
+func (e *entry) renderCallsign(callsign core.AnnotatedCallsign) string {
 	// TODO: visualize the annotations
-	return []widget.RichTextSegment{
-		&widget.TextSegment{
-			Text: callsign.Callsign.String(),
-		},
-	}
+	return callsign.Callsign.String()
 }
 
 func (e *entry) fieldToWidget(field core.EntryField) fyne.CanvasObject {

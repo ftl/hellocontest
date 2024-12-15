@@ -65,6 +65,7 @@ func (a *application) activate() {
 	a.statusBar = setupStatusBar()
 
 	a.qsoList.SetLogbookController(a.controller.QSOList)
+	a.entry.SetEntryController(a.controller.Entry)
 	a.workmodeControl.SetWorkmodeController(a.controller.Workmode)
 	a.keyerControl.SetKeyerController(a.controller.Keyer)
 

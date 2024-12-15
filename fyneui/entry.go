@@ -2,10 +2,13 @@ package fyneui
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/ftl/hellocontest/core"
@@ -18,6 +21,7 @@ var _ core_callinfo.View = (*entry)(nil)
 
 type entry struct {
 	container *fyne.Container
+	canvas    func() fyne.Canvas
 
 	// my data
 	utcLabel          *widget.Label
@@ -38,14 +42,14 @@ type entry struct {
 	theirExchanges       []fyne.CanvasObject
 
 	// prediction
-	predictedCallLabel       *widget.Label
+	predictedCallLabel       *widget.RichText
 	predictedExchangesParent *fyne.Container
 	predictedExchanges       []fyne.CanvasObject
-	predictedValueLabel      *widget.Label
+	predictedValueLabel      *widget.RichText
 
 	// information
 	messageLabel    *widget.Label
-	dxccLabel       *widget.Label
+	dxccLabel       *widget.RichText
 	userInfoLabel   *widget.Label
 	infoLine        *fyne.Container
 	supercheckLabel *widget.RichText
@@ -55,8 +59,10 @@ type entry struct {
 	clearButton *widget.Button
 }
 
-func setupEntry() *entry {
-	result := &entry{}
+func setupEntry(canvas func() fyne.Canvas) *entry {
+	result := &entry{
+		canvas: canvas,
+	}
 
 	// my data row
 	result.utcLabel = widget.NewLabel("00:00")
@@ -71,9 +77,9 @@ func setupEntry() *entry {
 	result.modeSelect = widget.NewSelect([]string{}, result.onModeSelect)
 
 	// entry row: predcition
-	result.predictedCallLabel = widget.NewLabel("DL1ABC")
+	result.predictedCallLabel = widget.NewRichText()
 	result.predictedExchangesParent = container.NewHBox()
-	result.predictedValueLabel = widget.NewLabel("0P 0M = 0")
+	result.predictedValueLabel = widget.NewRichText()
 
 	// entry row: input
 	result.theirLabel = widget.NewLabel("Their:")
@@ -95,10 +101,10 @@ func setupEntry() *entry {
 	// info
 	result.messageLabel = widget.NewLabel("")
 	result.messageLabel.Hide()
-	result.dxccLabel = widget.NewLabel("Fed. Rep. of Germany (DL), EU, ITU 28, CQ 14")
-	result.userInfoLabel = widget.NewLabel("Hans, Salzgitter")
+	result.dxccLabel = widget.NewRichText()
+	result.userInfoLabel = widget.NewLabel("")
 	result.infoLine = container.NewHBox(result.dxccLabel, layout.NewSpacer(), result.userInfoLabel)
-	result.supercheckLabel = widget.NewRichTextWithText("DL1ABC")
+	result.supercheckLabel = widget.NewRichText()
 
 	result.container = container.NewVBox(
 		myDataRow,
@@ -162,7 +168,6 @@ func (e *entry) setupExchangeLabels(fields []core.ExchangeField, parent *fyne.Co
 		label := widget.NewLabel("")
 		(*labels)[i] = label
 		parent.Add(label)
-		// TODO add event handler
 	}
 }
 
@@ -178,20 +183,36 @@ func (e *entry) ClearMessage() {
 	e.infoLine.Show()
 }
 
-func (e *entry) SelectText(core.EntryField, string) {
-	// TODO: implement
+func (e *entry) SelectText(field core.EntryField, s string) {
+	entry := e.fieldToEntry(field)
+	if entry == nil {
+		return
+	}
+	text := entry.Text
+	index := strings.Index(strings.ToUpper(text), strings.ToUpper(s))
+	if index == -1 {
+		return
+	}
+	// TODO: select text in the Entry widget
 }
 
-func (e *entry) SetActiveField(core.EntryField) {
-	// TODO: implement
+func (e *entry) SetActiveField(field core.EntryField) {
+	w := e.fieldToWidget(field)
+	if f, ok := w.(fyne.Focusable); ok {
+		e.canvas().Focus(f)
+	}
 }
 
-func (e *entry) SetBand(text string) {
-	// TODO: implement
+func (e *entry) SetBand(bandLabel string) {
+	e.bandSelect.Selected = bandLabel
 }
 
-func (e *entry) SetCallsign(string) {
-	// TODO: implement
+func (e *entry) SetMode(modeLabel string) {
+	e.modeSelect.Selected = modeLabel
+}
+
+func (e *entry) SetCallsign(callsign string) {
+	e.theirCall.SetText(callsign)
 }
 
 func (e *entry) SetDuplicateMarker(bool) {
@@ -202,24 +223,41 @@ func (e *entry) SetEditingMarker(bool) {
 	// TODO: implement
 }
 
-func (e *entry) SetFrequency(core.Frequency) {
-	// TODO: implement
-}
-
-func (e *entry) SetMode(text string) {
-	// TODO: implement
+func (e *entry) SetFrequency(frequency core.Frequency) {
+	e.frequencyLabel.Text = frequency.LabelString()
 }
 
 func (e *entry) SetMyCall(call string) {
 	e.myCallLabel.SetText(call)
 }
 
-func (e *entry) SetMyExchange(int, string) {
-	// TODO: implement
+func (e *entry) SetMyExchange(index int, text string) {
+	i := index - 1
+	if i < 0 || i >= len(e.myExchanges) {
+		return
+	}
+	e.myExchanges[i].(*widget.Entry).SetText(text)
 }
 
-func (e *entry) SetTheirExchange(int, string) {
-	// TODO: implement
+func (e *entry) SetTheirExchange(index int, text string) {
+	i := index - 1
+	if i < 0 || i >= len(e.theirExchanges) {
+		return
+	}
+	e.theirExchanges[i].(*widget.Entry).SetText(text)
+}
+
+func (e *entry) SetPredictedExchange(index int, text string) {
+	i := index - 1
+	if i < 0 || i >= len(e.predictedExchanges) {
+		return
+	}
+	if text == "" {
+		text = "-"
+	} else {
+		text = strings.TrimSpace(text)
+	}
+	e.predictedExchanges[i].(*widget.Label).SetText(text)
 }
 
 func (e *entry) SetUTC(utc string) {
@@ -227,25 +265,115 @@ func (e *entry) SetUTC(utc string) {
 }
 
 func (e *entry) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {
-	// TODO: implement
+	e.predictedCallLabel.Segments = e.renderCallsign(callsign)
 }
 
-func (e *entry) SetDXCC(string, string, int, int, bool) {
-	// TODO: implement
-}
-
-func (e *entry) SetPredictedExchange(index int, text string) {
-	// TODO: implement
+func (e *entry) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {
+	text := fmt.Sprintf("%s, %s", dxccName, continent)
+	if itu != 0 {
+		text += fmt.Sprintf(", ITU %d", itu)
+	}
+	if cq != 0 {
+		text += fmt.Sprintf(", CQ %d", cq)
+	}
+	segments := []widget.RichTextSegment{
+		&widget.TextSegment{Text: text},
+	}
+	if dxccName != "" && !arrlCompliant {
+		segments = append(segments, &widget.TextSegment{
+			Text: ", not ARRL compliant",
+			Style: widget.RichTextStyle{
+				ColorName: theme.ColorRed,
+				TextStyle: fyne.TextStyle{
+					Bold: true,
+				},
+			},
+		})
+	}
+	e.dxccLabel.Segments = segments
 }
 
 func (e *entry) SetSupercheck(callsigns []core.AnnotatedCallsign) {
-	// TODO: implement
+	var segments []widget.RichTextSegment
+	for i, callsign := range callsigns {
+		if len(segments) > 0 {
+			segments = append(segments, &widget.TextSegment{Text: "|"})
+		}
+		if i < 9 {
+			text := &widget.TextSegment{
+				Text: fmt.Sprintf("(%d) ", i+1),
+			}
+			segments = append(segments, text)
+		}
+		segments = append(segments, e.renderCallsign(callsign)...)
+	}
+	e.supercheckLabel.Segments = segments
 }
 
-func (e *entry) SetUserInfo(string) {
-	// TODO: implement
+func (e *entry) SetUserInfo(text string) {
+	e.userInfoLabel.SetText(text)
 }
 
 func (e *entry) SetValue(points int, multis int, value int) {
-	// TODO: implement
+	segment := &widget.TextSegment{
+		Text: fmt.Sprintf("%dP x %dM = %d", points, multis, value),
+	}
+	switch {
+	case points < 1 && multis < 1:
+		segment.Style.ColorName = theme.ColorNameDisabled
+	case multis > 0:
+		segment.Style.TextStyle.Bold = true
+	}
+	e.predictedValueLabel.Segments = []widget.RichTextSegment{segment}
+}
+
+func (e *entry) renderCallsign(callsign core.AnnotatedCallsign) []widget.RichTextSegment {
+	// TODO: visualize the annotations
+	return []widget.RichTextSegment{
+		&widget.TextSegment{
+			Text: callsign.Callsign.String(),
+		},
+	}
+}
+
+func (e *entry) fieldToWidget(field core.EntryField) fyne.CanvasObject {
+	switch field {
+	case core.CallsignField:
+		return e.theirCall
+	case core.BandField:
+		return e.bandSelect
+	case core.ModeField:
+		return e.modeSelect
+	case core.OtherField:
+		return e.theirCall
+	}
+	switch {
+	case field.IsMyExchange():
+		i := field.ExchangeIndex() - 1
+		return e.myExchanges[i]
+	case field.IsTheirExchange():
+		i := field.ExchangeIndex() - 1
+		return e.theirExchanges[i]
+	default:
+		log.Fatalf("Unknown entry field %s", field)
+	}
+	panic("this is never reached")
+}
+
+func (e *entry) fieldToEntry(field core.EntryField) *widget.Entry {
+	switch field {
+	case core.CallsignField:
+		return e.theirCall
+	case core.OtherField:
+		return e.theirCall
+	}
+	switch {
+	case field.IsMyExchange():
+		i := field.ExchangeIndex() - 1
+		return e.myExchanges[i].(*widget.Entry)
+	case field.IsTheirExchange():
+		i := field.ExchangeIndex() - 1
+		return e.theirExchanges[i].(*widget.Entry)
+	}
+	return nil
 }

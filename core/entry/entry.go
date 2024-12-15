@@ -35,7 +35,7 @@ type View interface {
 	SelectText(core.EntryField, string)
 	SetDuplicateMarker(bool)
 	SetEditingMarker(bool)
-	ShowMessage(...interface{})
+	ShowMessage(...any)
 	ClearMessage()
 }
 

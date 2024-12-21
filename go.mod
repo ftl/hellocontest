@@ -1,6 +1,6 @@
 module github.com/ftl/hellocontest
 
-go 1.22.3
+go 1.23.3
 
 // replace github.com/ftl/cabrillo => ../cabrillo
 
@@ -21,7 +21,7 @@ go 1.22.3
 // replace fyne.io/fyne/v2 => ../fyne
 
 require (
-	fyne.io/fyne/v2 v2.5.2
+	fyne.io/fyne/v2 v2.5.3
 	github.com/ftl/cabrillo v0.2.4
 	github.com/ftl/clusterix v0.1.0
 	github.com/ftl/conval v0.8.2
@@ -30,6 +30,7 @@ require (
 	github.com/ftl/hamradio v0.2.12
 	github.com/ftl/rigproxy v0.2.6
 	github.com/ftl/tci v0.3.2
+	github.com/ftl/wydget v0.0.0-20241221133158-be3cc2568e32
 	github.com/golang/protobuf v1.5.4
 	github.com/gotk3/gotk3 v0.6.5-0.20240618185848-ff349ae13f56
 	github.com/pkg/errors v0.9.1
@@ -47,7 +48,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 // indirect
 	github.com/fyne-io/gl-js v0.0.0-20220119005834-d2da28d9ccfe // indirect
-	github.com/fyne-io/glfw-js v0.0.0-20240101223322-6e1efdc71b7a // indirect
+	github.com/fyne-io/glfw-js v0.0.0-20241126112943-313d8a0fe1d0 // indirect
 	github.com/fyne-io/image v0.0.0-20220602074514-4956b0afb3d2 // indirect
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a // indirect
@@ -61,7 +62,7 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rymdport/portal v0.2.6 // indirect
+	github.com/rymdport/portal v0.3.0 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/objx v0.5.2 // indirect

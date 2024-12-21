@@ -14,6 +14,12 @@ import (
 	"github.com/ftl/hellocontest/core"
 	core_callinfo "github.com/ftl/hellocontest/core/callinfo"
 	core_entry "github.com/ftl/hellocontest/core/entry"
+	"github.com/ftl/wydget"
+)
+
+const (
+	minWidthExchange  = 100
+	minWidthTheirCall = 150
 )
 
 type EntryController interface {
@@ -53,7 +59,7 @@ type entry struct {
 
 	// their data
 	theirLabel           *widget.Label
-	theirCall            *widget.Entry
+	theirCall            *wydget.Entry
 	theirExchangesParent *fyne.Container
 	theirExchanges       []fyne.CanvasObject
 
@@ -99,7 +105,8 @@ func setupEntry(canvas func() fyne.Canvas) *entry {
 
 	// entry row: input
 	result.theirLabel = widget.NewLabel("Their:")
-	result.theirCall = widget.NewEntry()
+	result.theirCall = wydget.NewEntry()
+	result.theirCall.MinWidth = minWidthTheirCall
 	result.theirCall.PlaceHolder = "Call"
 	result.addFieldEntryEventHandler(core.CallsignField, result.theirCall)
 	result.theirExchangesParent = container.NewHBox()
@@ -153,7 +160,7 @@ func (e *entry) onModeSelect(modeLabel string) {
 	// TODO implement
 }
 
-func (e *entry) addFieldEntryEventHandler(field core.EntryField, w *widget.Entry) {
+func (e *entry) addFieldEntryEventHandler(field core.EntryField, w *wydget.Entry) {
 	w.OnChanged = func(s string) {
 		e.onEntryChanged(field, s)
 	}
@@ -182,9 +189,9 @@ func (e *entry) setupExchangeEntry(fields []core.ExchangeField, parent *fyne.Con
 
 	*entries = make([]fyne.CanvasObject, len(fields))
 	for i, field := range fields {
-		entry := widget.NewEntry()
+		entry := wydget.NewEntry()
 		entry.SetPlaceHolder(field.Short)
-		entry.Resize(fyne.NewSize(200, 0))
+		entry.MinWidth = minWidthExchange
 		(*entries)[i] = entry
 		parent.Add(entry)
 		e.addFieldEntryEventHandler(field.Field, entry)
@@ -271,7 +278,7 @@ func (e *entry) SetMyExchange(index int, text string) {
 	if i < 0 || i >= len(e.myExchanges) {
 		return
 	}
-	e.myExchanges[i].(*widget.Entry).SetText(text)
+	e.myExchanges[i].(*wydget.Entry).SetText(text)
 }
 
 func (e *entry) SetTheirExchange(index int, text string) {
@@ -279,7 +286,7 @@ func (e *entry) SetTheirExchange(index int, text string) {
 	if i < 0 || i >= len(e.theirExchanges) {
 		return
 	}
-	e.theirExchanges[i].(*widget.Entry).SetText(text)
+	e.theirExchanges[i].(*wydget.Entry).SetText(text)
 }
 
 func (e *entry) SetPredictedExchange(index int, text string) {
@@ -378,7 +385,7 @@ func (e *entry) fieldToWidget(field core.EntryField) fyne.CanvasObject {
 	panic("this is never reached")
 }
 
-func (e *entry) fieldToEntry(field core.EntryField) *widget.Entry {
+func (e *entry) fieldToEntry(field core.EntryField) *wydget.Entry {
 	switch field {
 	case core.CallsignField:
 		return e.theirCall
@@ -388,10 +395,10 @@ func (e *entry) fieldToEntry(field core.EntryField) *widget.Entry {
 	switch {
 	case field.IsMyExchange():
 		i := field.ExchangeIndex() - 1
-		return e.myExchanges[i].(*widget.Entry)
+		return e.myExchanges[i].(*wydget.Entry)
 	case field.IsTheirExchange():
 		i := field.ExchangeIndex() - 1
-		return e.theirExchanges[i].(*widget.Entry)
+		return e.theirExchanges[i].(*wydget.Entry)
 	}
 	return nil
 }

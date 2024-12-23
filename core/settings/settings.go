@@ -178,7 +178,7 @@ func (s *Settings) SetAvailableCallHistoryFieldNames(fieldNames []string) {
 	s.updateExchangeFields()
 }
 
-func (s *Settings) Notify(listener interface{}) {
+func (s *Settings) Notify(listener any) {
 	s.listeners = append(s.listeners, listener)
 
 	s.updateContestPages()

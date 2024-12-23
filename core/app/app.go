@@ -217,6 +217,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Callinfo)
 	c.Settings.Notify(c.Clusters)
 	c.Settings.Notify(c.Bandmap)
+	c.Settings.Notify(c.dxccFinder)
 	c.Settings.Notify(c.callHistoryFinder)
 	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
 		if !c.dxccFinder.Available() {

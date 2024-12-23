@@ -92,7 +92,7 @@ type ExchangeFilter interface {
 // View defines the visual part of the call information window.
 type View interface {
 	SetBestMatchingCallsign(callsign core.AnnotatedCallsign)
-	SetDXCC(string, string, int, int, bool)
+	SetDXCC(string, string, int, int)
 	SetValue(points, multis, value int)
 	SetPredictedExchange(index int, text string)
 	SetPredictedExchangeFields(fields []core.ExchangeField)
@@ -282,7 +282,7 @@ func (c *Callinfo) showDXCCEntity(entity dxcc.Prefix) {
 	if entity.PrimaryPrefix != "" {
 		dxccName = fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
 	}
-	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone), !entity.NotARRLCompliant)
+	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone))
 }
 
 func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {
@@ -426,7 +426,7 @@ type nullView struct{}
 func (v *nullView) Show()                                                   {}
 func (v *nullView) Hide()                                                   {}
 func (v *nullView) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {}
-func (v *nullView) SetDXCC(string, string, int, int, bool)                  {}
+func (v *nullView) SetDXCC(string, string, int, int)                        {}
 func (v *nullView) SetValue(int, int, int)                                  {}
 func (v *nullView) SetPredictedExchange(int, string)                        {}
 func (v *nullView) SetPredictedExchangeFields(fields []core.ExchangeField)  {}

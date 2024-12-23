@@ -95,7 +95,7 @@ func (v *callinfoView) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) 
 	v.callsignLabel.SetMarkup(v.renderCallsign(callsign))
 }
 
-func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {
+func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int) {
 	if dxccName == "" {
 		v.dxccLabel.SetMarkup("")
 		return
@@ -107,9 +107,6 @@ func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int, arrlComp
 	}
 	if cq != 0 {
 		text += fmt.Sprintf(", CQ %d", cq)
-	}
-	if dxccName != "" && !arrlCompliant {
-		text += ", <span foreground='red' font-weight='heavy'>not ARRL compliant</span>"
 	}
 
 	v.dxccLabel.SetMarkup(text)

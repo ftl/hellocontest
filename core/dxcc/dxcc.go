@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/ftl/hamradio/dxcc"
+	"github.com/ftl/hellocontest/core"
 )
 
 func New() *Finder {
@@ -21,8 +22,9 @@ func New() *Finder {
 }
 
 type Finder struct {
-	entities  *dxcc.Prefixes
-	available chan struct{}
+	entities          *dxcc.Prefixes
+	available         chan struct{}
+	onlyARRLCompliant bool
 }
 
 func (f *Finder) Available() bool {
@@ -41,6 +43,14 @@ func (f *Finder) WhenAvailable(callback func()) {
 	}()
 }
 
+func (f *Finder) ContestChanged(contest core.Contest) {
+	if contest.Definition == nil {
+		f.onlyARRLCompliant = false
+		return
+	}
+	f.onlyARRLCompliant = contest.Definition.ARRLCountryList
+}
+
 func (f *Finder) Find(s string) (entity dxcc.Prefix, found bool) {
 	if entities := f.FindAll(s); len(entities) > 0 {
 		entity = entities[0]
@@ -53,7 +63,12 @@ func (f *Finder) FindAll(s string) []dxcc.Prefix {
 	if f.entities == nil {
 		return []dxcc.Prefix{}
 	}
-	result, _ := f.entities.Find(s)
+	var result []dxcc.Prefix
+	if f.onlyARRLCompliant {
+		result, _ = f.entities.FindARRLCompliant(s)
+	} else {
+		result, _ = f.entities.Find(s)
+	}
 	return result
 }
 

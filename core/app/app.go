@@ -70,22 +70,23 @@ type Controller struct {
 	callHistoryFinder *callhistory.Finder
 	hamDXMap          *hamdxmap.HamDXMap
 
-	VFO           *vfo.VFO
-	Logbook       *logbook.Logbook
-	QSOList       *logbook.QSOList
-	Entry         *entry.Controller
-	Workmode      *workmode.Controller
-	Radio         *radio.Controller
-	Keyer         *keyer.Keyer
-	Callinfo      *callinfo.Callinfo
-	Score         *score.Counter
-	Rate          *rate.Counter
-	ServiceStatus *ServiceStatus
-	NewContest    *newcontest.Controller
-	Settings      *settings.Settings
-	Bandmap       *bandmap.Bandmap
-	Clusters      *cluster.Clusters
-	Parrot        *parrot.Parrot
+	VFO                  *vfo.VFO
+	Logbook              *logbook.Logbook
+	QSOList              *logbook.QSOList
+	Entry                *entry.Controller
+	Workmode             *workmode.Controller
+	Radio                *radio.Controller
+	Keyer                *keyer.Keyer
+	Callinfo             *callinfo.Callinfo
+	Score                *score.Counter
+	Rate                 *rate.Counter
+	ServiceStatus        *ServiceStatus
+	NewContestDialog     *newcontest.Controller
+	ExportCabrilloDialog *cabrillo.Controller
+	Settings             *settings.Settings
+	Bandmap              *bandmap.Bandmap
+	Clusters             *cluster.Clusters
+	Parrot               *parrot.Parrot
 }
 
 // View defines the visual functionality of the main application window.
@@ -146,7 +147,8 @@ func (c *Controller) Startup() {
 		c.configuration.Contest(),
 	)
 	c.callHistoryFinder.Notify(c.Settings)
-	c.NewContest = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
+	c.NewContestDialog = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
+	c.ExportCabrilloDialog = cabrillo.NewController()
 
 	c.bandplan = bandplan.IARURegion1 // TODO: make the bandplan configurable
 	c.dxccFinder = dxcc.New()
@@ -396,7 +398,7 @@ func proposeFilename(contestName, callsign string) string {
 
 func (c *Controller) New() {
 	var err error
-	newContest, ok := c.NewContest.Run()
+	newContest, ok := c.NewContestDialog.Run()
 	if !ok {
 		return
 	}
@@ -538,6 +540,12 @@ func (c *Controller) SaveAs() {
 }
 
 func (c *Controller) ExportCabrillo() {
+	var err error
+	ok := c.ExportCabrilloDialog.Run()
+	if !ok {
+		return
+	}
+
 	proposedName := c.proposeFilename() + ".cabrillo"
 	filename, ok, err := c.view.SelectSaveFile("Export Cabrillo File", c.configuration.LogDirectory(), proposedName, "*.cabrillo")
 	if !ok {

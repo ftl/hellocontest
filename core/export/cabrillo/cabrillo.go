@@ -12,6 +12,40 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+type View interface {
+	Show() bool
+}
+
+type Controller struct {
+	view View
+}
+
+func NewController() *Controller {
+	result := &Controller{}
+
+	return result
+}
+
+func (c *Controller) SetView(view View) {
+	if view == nil {
+		panic("cabrillo.Controller.SetView must not be called with nil")
+	}
+	if c.view != nil {
+		panic("cabrillo.Controller.SetView was already called")
+	}
+
+	c.view = view
+}
+
+func (c *Controller) Run() bool {
+	accepted := c.view.Show()
+	if !accepted {
+		return false
+	}
+
+	return accepted
+}
+
 // Export writes the given QSOs to the given writer in the Cabrillo format.
 // The header is very limited and needs to be completed manually after the log was written.
 func Export(w io.Writer, settings core.Settings, claimedScore int, qsos ...core.QSO) error {

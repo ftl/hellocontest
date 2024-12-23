@@ -39,6 +39,9 @@ cache_deps:
 	go install github.com/gotk3/gotk3/gdk
 	go install github.com/gotk3/gotk3/gtk
 
+cache_cgo:
+	go list -x -e -json=Name,ImportPath,Error,Dir,GoFiles,IgnoredGoFiles,IgnoredOtherFiles,CFiles,CgoFiles,CXXFiles,MFiles,HFiles,FFiles,SFiles,SwigFiles,SwigCXXFiles,SysoFiles,TestGoFiles,XTestGoFiles,CompiledGoFiles,Export,DepOnly,Imports,ImportMap,TestImports,XTestImports,ForTest,DepsErrors,Module,EmbedFiles -compiled=true -test=true -export=false -deps=true -find=false -pgo=off -- /home/florian/repo/hellocontest/... builtin
+
 config:
 	xdg-open ~/.config/hamradio/hellocontest.json
 
@@ -118,6 +121,6 @@ prepare_appimage:
 	cp ./.assets/${BINARY_NAME}.desktop ./.appimage/${BINARY_NAME}.desktop
 	cp ./.assets/${BINARY_NAME}-256x256.png ./.appimage/${BINARY_NAME}.png
 	cp ./.assets/${BINARY_NAME}.svg ./.appimage/${BINARY_NAME}.svg
-	
+
 appimage: prepare_appimage
 	env ARCH=${ARCH} ${APPIMAGETOOL} .appimage ${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.AppImage

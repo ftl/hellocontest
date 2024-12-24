@@ -3,25 +3,209 @@ package cabrillo
 import (
 	"fmt"
 	"io"
+	"log"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/ftl/cabrillo"
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
-// Export writes the given QSOs to the given writer in the Cabrillo format.
-// The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, settings core.Settings, claimedScore int, qsos ...core.QSO) error {
+type View interface {
+	Show() bool
+
+	SetCategoryAssisted(bool)
+	SetCategoryBand(string)
+	SetCategoryMode(string)
+	SetCategoryOperator(string)
+	SetCategoryPower(string)
+	SetName(string)
+	SetEmail(string)
+	SetOpenAfterExport(bool)
+}
+
+type Controller struct {
+	view View
+
+	definition      *conval.Definition
+	category        cabrillo.Category
+	name            string
+	email           string
+	openAfterExport bool
+}
+
+func NewController() *Controller {
+	result := &Controller{
+		openAfterExport: false,
+	}
+
+	return result
+}
+
+func (c *Controller) SetView(view View) {
+	if view == nil {
+		panic("cabrillo.Controller.SetView must not be called with nil")
+	}
+	if c.view != nil {
+		panic("cabrillo.Controller.SetView was already called")
+	}
+
+	c.view = view
+}
+
+func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO) (*cabrillo.Log, bool, bool) {
+	c.definition = settings.Contest().Definition
+
+	c.updateCategorySettings()
+	c.view.SetName(c.name)
+	c.view.SetEmail(c.email)
+	c.view.SetOpenAfterExport(c.openAfterExport)
+	accepted := c.view.Show()
+	if !accepted {
+		return nil, false, false
+	}
+
+	export := createCabrilloLog(settings, claimedScore, qsos)
+	export.Category = c.category
+	export.Name = c.name
+	export.Email = c.email
+
+	return export, c.openAfterExport, true
+}
+
+func (c *Controller) Categories() []string {
+	if c.definition == nil {
+		return nil
+	}
+	result := make([]string, len(c.definition.Categories))
+	for i, category := range c.definition.Categories {
+		result[i] = category.Name
+	}
+	return result
+}
+
+func (c *Controller) SetCategory(name string) {
+	category, found := c.findCategory(name)
+	if !found {
+		log.Printf("no category with name %q found", name)
+		return
+	}
+
+	c.category.Assisted = convalToCabrilloAssisted(category)
+	c.category.Band = convalToCabrilloBand(category, c.definition.Bands)
+	c.category.Mode = convalToCabrilloMode(category, c.definition.Modes)
+	c.category.Operator = convalToCabrilloOperator(category)
+	c.category.Power = convalToCabrilloPower(category)
+	c.updateCategorySettings()
+}
+
+func (c *Controller) updateCategorySettings() {
+	log.Printf("new category settings: %+v", c.category)
+	c.view.SetCategoryAssisted(c.category.Assisted == cabrillo.Assisted)
+	c.view.SetCategoryBand(string(c.category.Band))
+	c.view.SetCategoryMode(string(c.category.Mode))
+	c.view.SetCategoryOperator(string(c.category.Operator))
+	c.view.SetCategoryPower(string(c.category.Power))
+}
+
+func (c *Controller) findCategory(name string) (conval.Category, bool) {
+	if c.definition == nil {
+		return conval.Category{}, false
+	}
+	for _, category := range c.definition.Categories {
+		if category.Name == name {
+			return category, true
+		}
+	}
+	return conval.Category{}, false
+}
+
+func (c *Controller) SetCategoryAssisted(assisted bool) {
+	if assisted {
+		c.category.Assisted = cabrillo.Assisted
+	} else {
+		c.category.Assisted = cabrillo.NonAssisted
+	}
+}
+
+func (c *Controller) CategoryBands() []string {
+	if c.definition.Bands == nil {
+		return []string{
+			"ALL", "160M", "80M", "40M", "20M", "15M", "10M", "6M", "4M", "2M", "222", "432",
+			"902", "1.2G", "2.3G", "3.4G", "5.7G", "10G", "24G", "47G", "75G", "122G", "134G",
+			"241G", "LIGHT", "VHF-3-BAND", "VHF-FM-ONLY",
+		}
+	}
+	result := make([]string, len(c.definition.Bands)+1)
+	result[0] = "ALL"
+	for i, band := range c.definition.Bands {
+		result[i+1] = string(convertBand(band))
+	}
+	return result
+}
+
+func (c *Controller) SetCategoryBand(band string) {
+	c.category.Band = cabrillo.CategoryBand(strings.ToUpper(band))
+}
+
+func (c *Controller) CategoryModes() []string {
+	if c.definition.Modes == nil {
+		return []string{"CW", "PH", "RY", "DG", "FM", "MIXED"}
+	}
+	result := make([]string, len(c.definition.Modes))
+	for i, mode := range c.definition.Modes {
+		result[i] = string(convertMode(mode))
+	}
+	if len(result) > 1 {
+		result = append(result, "MIXED")
+	}
+	return result
+}
+
+func (c *Controller) SetCategoryMode(mode string) {
+	c.category.Mode = cabrillo.CategoryMode(strings.ToUpper(mode))
+}
+
+func (c *Controller) CategoryOperators() []string {
+	return []string{"SINGLE-OP", "MULTI-OP", "CHECKLOG"}
+}
+
+func (c *Controller) SetCategoryOperator(operator string) {
+	c.category.Operator = cabrillo.CategoryOperator(strings.ToUpper(operator))
+}
+
+func (c *Controller) CategoryPowers() []string {
+	return []string{"QRP", "LOW", "HIGH"}
+}
+
+func (c *Controller) SetCategoryPower(power string) {
+	c.category.Power = cabrillo.CategoryPower(strings.ToUpper(power))
+}
+
+func (c *Controller) SetName(name string) {
+	c.name = name
+}
+
+func (c *Controller) SetEmail(email string) {
+	c.email = email
+}
+
+func (c *Controller) SetOpenAfterExport(open bool) {
+	c.openAfterExport = open
+}
+
+func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO) *cabrillo.Log {
 	export := cabrillo.NewLog()
 	export.Callsign = settings.Station().Callsign
 	export.CreatedBy = "Hello Contest"
-	export.Contest = cabrillo.ContestIdentifier(settings.Contest().Name)
+	export.Contest = cabrillo.ContestIdentifier(settings.Contest().Definition.Identifier)
 	export.Operators = []callsign.Callsign{settings.Station().Operator}
 	export.GridLocator = settings.Station().Locator
 	export.ClaimedScore = claimedScore
+	export.Certificate = true
 
 	qsoData := make([]cabrillo.QSO, 0, len(qsos))
 	ignoredQSOs := make([]cabrillo.QSO, 0, len(qsos))
@@ -36,11 +220,13 @@ func Export(w io.Writer, settings core.Settings, claimedScore int, qsos ...core.
 	export.QSOData = qsoData
 	export.IgnoredQSOs = ignoredQSOs
 
-	return cabrillo.WriteWithTags(w, export, false, false, cabrillo.CreatedByTag, cabrillo.ContestTag,
-		cabrillo.CallsignTag, cabrillo.OperatorsTag, cabrillo.GridLocatorTag, cabrillo.ClaimedScoreTag,
-		cabrillo.Tag("SPECIFIC"), cabrillo.CategoryAssistedTag, cabrillo.CategoryBandTag, cabrillo.CategoryModeTag,
-		cabrillo.CategoryOperatorTag, cabrillo.CategoryPowerTag, cabrillo.ClubTag, cabrillo.NameTag,
-		cabrillo.EmailTag)
+	return export
+}
+
+// Export writes the given QSOs to the given writer in the Cabrillo format.
+// The header is very limited and needs to be completed manually after the log was written.
+func Export(w io.Writer, export *cabrillo.Log) error {
+	return cabrillo.Write(w, export, false)
 }
 
 var qrg = map[core.Band]string{

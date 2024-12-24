@@ -15,6 +15,8 @@ type ExportCabrilloController interface {
 	SetCategoryMode(string)
 	SetCategoryOperator(string)
 	SetCategoryPower(string)
+	SetName(string)
+	SetEmail(string)
 	SetOpenAfterExport(bool)
 }
 
@@ -27,6 +29,8 @@ type exportCabrilloView struct {
 	categoryModeCombo           *gtk.ComboBoxText
 	categoryOperatorCombo       *gtk.ComboBoxText
 	categoryPowerCombo          *gtk.ComboBoxText
+	nameEntry                   *gtk.Entry
+	emailEntry                  *gtk.Entry
 	openAfterExportCheckButton  *gtk.CheckButton
 }
 
@@ -38,6 +42,8 @@ func (v *exportCabrilloView) setup(controller ExportCabrilloController) {
 	v.categoryModeCombo.Connect("changed", v.onCategoryModeChanged)
 	v.categoryOperatorCombo.Connect("changed", v.onCategoryOperatorChanged)
 	v.categoryPowerCombo.Connect("changed", v.onCategoryPowerChanged)
+	v.nameEntry.Connect("changed", v.onNameChanged)
+	v.emailEntry.Connect("changed", v.onEmailChanged)
 	v.openAfterExportCheckButton.Connect("toggled", v.onOpenAfterExportToggled)
 }
 
@@ -63,6 +69,16 @@ func (v *exportCabrilloView) onCategoryOperatorChanged() {
 
 func (v *exportCabrilloView) onCategoryPowerChanged() {
 	v.controller.SetCategoryPower(v.categoryPowerCombo.GetActiveText())
+}
+
+func (v *exportCabrilloView) onNameChanged() {
+	text, _ := v.nameEntry.GetText()
+	v.controller.SetName(text)
+}
+
+func (v *exportCabrilloView) onEmailChanged() {
+	text, _ := v.emailEntry.GetText()
+	v.controller.SetEmail(text)
 }
 
 func (v *exportCabrilloView) onOpenAfterExportToggled() {

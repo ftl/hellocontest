@@ -16,6 +16,8 @@ type exportCabrilloDialog struct {
 	categoryMode     string
 	categoryOperator string
 	categoryPower    string
+	name             string
+	email            string
 	openAfterExport  bool
 }
 
@@ -106,18 +108,38 @@ func (d *exportCabrilloDialog) Show() bool {
 
 	separator, _ := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
 	separator.SetHExpand(true)
-	separator.SetVExpand(true)
+	separator.SetMarginTop(5)
+	separator.SetMarginBottom(5)
 	grid.Attach(separator, 0, 7, 2, 1)
+
+	label, _ = gtk.LabelNew("Name")
+	label.SetHAlign(gtk.ALIGN_END)
+	grid.Attach(label, 0, 8, 1, 1)
+	d.view.nameEntry, _ = gtk.EntryNew()
+	d.view.nameEntry.SetText(d.name)
+	grid.Attach(d.view.nameEntry, 1, 8, 1, 1)
+
+	label, _ = gtk.LabelNew("Email")
+	label.SetHAlign(gtk.ALIGN_END)
+	grid.Attach(label, 0, 9, 1, 1)
+	d.view.emailEntry, _ = gtk.EntryNew()
+	d.view.emailEntry.SetText(d.email)
+	grid.Attach(d.view.emailEntry, 1, 9, 1, 1)
+
+	separator, _ = gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
+	separator.SetHExpand(true)
+	separator.SetVExpand(true)
+	grid.Attach(separator, 0, 10, 2, 1)
 
 	d.view.openAfterExportCheckButton, _ = gtk.CheckButtonNewWithLabel("Open the file after export")
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
-	grid.Attach(d.view.openAfterExportCheckButton, 0, 8, 2, 1)
+	grid.Attach(d.view.openAfterExportCheckButton, 0, 11, 2, 1)
 
 	d.view.setup(d.controller)
 
 	dialog, _ := gtk.DialogNew()
 	d.dialog = dialog
-	d.dialog.SetDefaultSize(400, 300)
+	d.dialog.SetDefaultSize(400, 400)
 	d.dialog.SetTransientFor(nil)
 	d.dialog.SetPosition(gtk.WIN_POS_CENTER)
 	d.dialog.Connect("destroy", d.onDestroy)
@@ -171,6 +193,20 @@ func (d *exportCabrilloDialog) SetCategoryPower(power string) {
 	d.categoryPower = power
 	if d.view != nil {
 		d.view.categoryPowerCombo.SetActiveID(power)
+	}
+}
+
+func (d *exportCabrilloDialog) SetName(name string) {
+	d.name = name
+	if d.view != nil {
+		d.view.nameEntry.SetText(name)
+	}
+}
+
+func (d *exportCabrilloDialog) SetEmail(email string) {
+	d.email = email
+	if d.view != nil {
+		d.view.emailEntry.SetText(email)
 	}
 }
 

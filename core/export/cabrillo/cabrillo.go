@@ -22,6 +22,8 @@ type View interface {
 	SetCategoryMode(string)
 	SetCategoryOperator(string)
 	SetCategoryPower(string)
+	SetName(string)
+	SetEmail(string)
 	SetOpenAfterExport(bool)
 }
 
@@ -58,6 +60,8 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	c.definition = settings.Contest().Definition
 
 	c.updateCategorySettings()
+	c.view.SetName(c.name)
+	c.view.SetEmail(c.email)
 	c.view.SetOpenAfterExport(c.openAfterExport)
 	accepted := c.view.Show()
 	if !accepted {
@@ -66,6 +70,8 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 
 	export := createCabrilloLog(settings, claimedScore, qsos)
 	export.Category = c.category
+	export.Name = c.name
+	export.Email = c.email
 
 	return export, c.openAfterExport, true
 }
@@ -177,6 +183,14 @@ func (c *Controller) CategoryPowers() []string {
 
 func (c *Controller) SetCategoryPower(power string) {
 	c.category.Power = cabrillo.CategoryPower(strings.ToUpper(power))
+}
+
+func (c *Controller) SetName(name string) {
+	c.name = name
+}
+
+func (c *Controller) SetEmail(email string) {
+	c.email = email
 }
 
 func (c *Controller) SetOpenAfterExport(open bool) {

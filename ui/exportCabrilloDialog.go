@@ -7,25 +7,39 @@ import (
 type exportCabrilloDialog struct {
 	dialog *gtk.Dialog
 	parent gtk.IWidget
+
+	controller ExportCabrilloController
+	view       *exportCabrilloView
+
+	openAfterExport bool
 }
 
 func setupExportCabrilloDialog(parent gtk.IWidget, controller ExportCabrilloController) *exportCabrilloDialog {
 	result := &exportCabrilloDialog{
-		parent: parent,
+		parent:     parent,
+		controller: controller,
 	}
 	return result
 }
 
 func (d *exportCabrilloDialog) onDestroy() {
 	d.dialog = nil
+	d.view = nil
 }
 
 func (d *exportCabrilloDialog) Show() bool {
-	label, _ := gtk.LabelNew("Export the log as Cabrillo format.")
-
+	d.view = &exportCabrilloView{}
 	grid, _ := gtk.GridNew()
 	grid.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	grid.Add(label)
+
+	label, _ := gtk.LabelNew("Export the log as Cabrillo format.")
+	grid.Attach(label, 0, 0, 2, 1)
+
+	d.view.openAfterExportCheckButton, _ = gtk.CheckButtonNewWithLabel("Open the file after export")
+	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
+	grid.Attach(d.view.openAfterExportCheckButton, 0, 1, 2, 1)
+
+	d.view.setup(d.controller)
 
 	dialog, _ := gtk.DialogNew()
 	d.dialog = dialog
@@ -46,6 +60,11 @@ func (d *exportCabrilloDialog) Show() bool {
 	d.dialog.Close()
 	d.dialog.Destroy()
 	d.dialog = nil
+	d.view = nil
 
 	return result
+}
+
+func (d *exportCabrilloDialog) SetOpenAfterExport(open bool) {
+	d.openAfterExport = open
 }

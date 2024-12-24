@@ -95,8 +95,8 @@ func (a *application) activate() {
 	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.style, a.controller.Bandmap)
 	a.settingsDialog = setupSettingsDialog(a.mainWindow.window, a.controller.Settings)
 	a.keyerSettingsDialog = setupKeyerSettingsDialog(a.mainWindow.window, a.controller.Keyer)
-	a.newContestDialog = setupNewContestDialog(a.mainWindow.window, a.controller.NewContestDialog)
-	a.exportCabrilloDialog = setupExportCabrilloDialog(a.mainWindow.window, a.controller.ExportCabrillo)
+	a.newContestDialog = setupNewContestDialog(a.mainWindow.window, a.controller.NewContestController)
+	a.exportCabrilloDialog = setupExportCabrilloDialog(a.mainWindow.window, a.controller.ExportCabrilloController)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetRadioMenuController(a.controller)
@@ -125,8 +125,8 @@ func (a *application) activate() {
 	a.controller.Bandmap.SetView(a.spotsWindow)
 	a.controller.Settings.SetView(a.settingsDialog)
 	a.controller.Settings.Notify(a.mainWindow)
-	a.controller.NewContestDialog.SetView(a.newContestDialog)
-	a.controller.ExportCabrilloDialog.SetView(a.exportCabrilloDialog)
+	a.controller.NewContestController.SetView(a.newContestDialog)
+	a.controller.ExportCabrilloController.SetView(a.exportCabrilloDialog)
 	a.controller.Clusters.SetView(a.mainWindow)
 	a.controller.Parrot.SetView(a.mainWindow)
 

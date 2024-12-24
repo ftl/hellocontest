@@ -6,6 +6,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 	"github.com/stretchr/testify/assert"
@@ -68,9 +69,10 @@ func TestQsoLine(t *testing.T) {
 func TestExport(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte{})
 	settings := &testSettings{
-		stationCallsign: "AA1ZZZ",
-		stationOperator: "AA2ZZZ",
-		stationLocator:  "AA00AA",
+		stationCallsign:   "AA1ZZZ",
+		stationOperator:   "AA2ZZZ",
+		stationLocator:    "AA00AA",
+		contestIdentifier: "HELLO-CONTEST-CABRILLO-TEST",
 	}
 	theirCall, _ := callsign.Parse("S50A")
 	qso := core.QSO{
@@ -88,33 +90,34 @@ func TestExport(t *testing.T) {
 
 	expected := `START-OF-LOG: 3.0
 CREATED-BY: Hello Contest
-CONTEST: 
+CONTEST: HELLO-CONTEST-CABRILLO-TEST
 CALLSIGN: AA1ZZZ
 OPERATORS: AA2ZZZ
 GRID-LOCATOR: AA00aa
 CLAIMED-SCORE: 123
-SPECIFIC: 
-CATEGORY-ASSISTED: 
-CATEGORY-BAND: 
-CATEGORY-MODE: 
-CATEGORY-OPERATOR: 
-CATEGORY-POWER: 
-CLUB: 
-NAME: 
-EMAIL: 
+CATEGORY-ASSISTED:
+CATEGORY-BAND:
+CATEGORY-MODE:
+CATEGORY-OPERATOR:
+CATEGORY-POWER:
+CLUB:
+NAME:
+EMAIL:
 QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 ABC S50A 589 004 DEF
-END-OF-LOG: 
+END-OF-LOG:
 `
 
-	Export(buffer, settings, 123, qso)
+	export := createCabrilloLog(settings, 123, []core.QSO{qso})
+	Export(buffer, export)
 
 	assert.Equal(t, expected, buffer.String())
 }
 
 type testSettings struct {
-	stationCallsign string
-	stationOperator string
-	stationLocator  string
+	stationCallsign   string
+	stationOperator   string
+	stationLocator    string
+	contestIdentifier string
 }
 
 func (s *testSettings) Station() core.Station {
@@ -127,5 +130,9 @@ func (s *testSettings) Station() core.Station {
 }
 
 func (s *testSettings) Contest() core.Contest {
-	return core.Contest{}
+	return core.Contest{
+		Definition: &conval.Definition{
+			Identifier: conval.ContestIdentifier(s.contestIdentifier),
+		},
+	}
 }

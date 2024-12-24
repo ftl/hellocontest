@@ -14,14 +14,20 @@ import (
 
 type View interface {
 	Show() bool
+
+	SetOpenAfterExport(bool)
 }
 
 type Controller struct {
 	view View
+
+	openAfterExport bool
 }
 
 func NewController() *Controller {
-	result := &Controller{}
+	result := &Controller{
+		openAfterExport: false,
+	}
 
 	return result
 }
@@ -37,22 +43,27 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 }
 
-func (c *Controller) Run() bool {
+func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO) (*cabrillo.Log, bool, bool) {
+	c.view.SetOpenAfterExport(c.openAfterExport)
 	accepted := c.view.Show()
 	if !accepted {
-		return false
+		return nil, false, false
 	}
 
-	return accepted
+	export := createCabrilloLog(settings, claimedScore, qsos)
+
+	return export, c.openAfterExport, true
 }
 
-// Export writes the given QSOs to the given writer in the Cabrillo format.
-// The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, settings core.Settings, claimedScore int, qsos ...core.QSO) error {
+func (c *Controller) SetOpenAfterExport(open bool) {
+	c.openAfterExport = open
+}
+
+func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO) *cabrillo.Log {
 	export := cabrillo.NewLog()
 	export.Callsign = settings.Station().Callsign
 	export.CreatedBy = "Hello Contest"
-	export.Contest = cabrillo.ContestIdentifier(settings.Contest().Name)
+	export.Contest = cabrillo.ContestIdentifier(settings.Contest().Definition.Identifier)
 	export.Operators = []callsign.Callsign{settings.Station().Operator}
 	export.GridLocator = settings.Station().Locator
 	export.ClaimedScore = claimedScore
@@ -70,9 +81,15 @@ func Export(w io.Writer, settings core.Settings, claimedScore int, qsos ...core.
 	export.QSOData = qsoData
 	export.IgnoredQSOs = ignoredQSOs
 
+	return export
+}
+
+// Export writes the given QSOs to the given writer in the Cabrillo format.
+// The header is very limited and needs to be completed manually after the log was written.
+func Export(w io.Writer, export *cabrillo.Log) error {
 	return cabrillo.WriteWithTags(w, export, false, false, cabrillo.CreatedByTag, cabrillo.ContestTag,
 		cabrillo.CallsignTag, cabrillo.OperatorsTag, cabrillo.GridLocatorTag, cabrillo.ClaimedScoreTag,
-		cabrillo.Tag("SPECIFIC"), cabrillo.CategoryAssistedTag, cabrillo.CategoryBandTag, cabrillo.CategoryModeTag,
+		cabrillo.CategoryAssistedTag, cabrillo.CategoryBandTag, cabrillo.CategoryModeTag,
 		cabrillo.CategoryOperatorTag, cabrillo.CategoryPowerTag, cabrillo.ClubTag, cabrillo.NameTag,
 		cabrillo.EmailTag)
 }

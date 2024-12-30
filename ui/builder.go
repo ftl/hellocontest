@@ -25,17 +25,18 @@ func buildExplanationLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label
 	return label
 }
 
-func buildSeparator(grid *gtk.Grid, row int) {
+func buildSeparator(grid *gtk.Grid, row int, width int) {
 	separator, _ := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
 	separator.SetHExpand(true)
 	separator.SetMarginTop(5)
 	separator.SetMarginBottom(5)
-	grid.Attach(separator, 0, row, 2, 1)
+	grid.Attach(separator, 0, row, width, 1)
 }
 
 func buildLabeledCombo(grid *gtk.Grid, row int, labelText string, withEntry bool, items []string, handler any) *gtk.ComboBoxText {
 	label, _ := gtk.LabelNew(labelText)
 	label.SetHAlign(gtk.ALIGN_END)
+	label.SetHExpand(false)
 	grid.Attach(label, 0, row, 1, 1)
 
 	var combo *gtk.ComboBoxText
@@ -45,7 +46,6 @@ func buildLabeledCombo(grid *gtk.Grid, row int, labelText string, withEntry bool
 		combo, _ = gtk.ComboBoxTextNew()
 	}
 	combo.SetHExpand(true)
-	combo.RemoveAll()
 	combo.Append("", "")
 	for _, item := range items {
 		combo.Append(item, item)
@@ -60,6 +60,7 @@ func buildLabeledCombo(grid *gtk.Grid, row int, labelText string, withEntry bool
 func buildLabeledEntry(grid *gtk.Grid, row int, labelText string, handler any) *gtk.Entry {
 	label, _ := gtk.LabelNew(labelText)
 	label.SetHAlign(gtk.ALIGN_END)
+	label.SetHExpand(false)
 	grid.Attach(label, 0, row, 1, 1)
 
 	entry, _ := gtk.EntryNew()
@@ -71,10 +72,32 @@ func buildLabeledEntry(grid *gtk.Grid, row int, labelText string, handler any) *
 	return entry
 }
 
+func buildLabeledTextView(grid *gtk.Grid, row int, labelText string, handler any) *gtk.TextView {
+	label, _ := gtk.LabelNew(labelText)
+	label.SetHAlign(gtk.ALIGN_START)
+	grid.Attach(label, 0, row, 1, 1)
+
+	textView, _ := gtk.TextViewNew()
+
+	scrolledWindow, _ := gtk.ScrolledWindowNew(nil, nil)
+	scrolledWindow.Add(textView)
+	scrolledWindow.SetHExpand(true)
+	scrolledWindow.SetVExpand(true)
+	scrolledWindow.SetSizeRequest(0, 100)
+	scrolledWindow.SetMarginStart(5)
+	scrolledWindow.SetMarginEnd(5)
+	grid.Attach(scrolledWindow, 0, row+1, 1, 1)
+
+	buffer, _ := textView.GetBuffer()
+	buffer.Connect("changed", handler)
+
+	return textView
+}
+
 func buildCheckButton(grid *gtk.Grid, row int, labelText string, handler any) *gtk.CheckButton {
 	checkButton, _ := gtk.CheckButtonNewWithLabel(labelText)
 	checkButton.SetHExpand(true)
-	grid.Attach(checkButton, 0, row, 2, 1)
+	grid.Attach(checkButton, 0, row, 1, 1)
 
 	checkButton.Connect("toggled", handler)
 

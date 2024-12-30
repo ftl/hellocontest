@@ -21,8 +21,20 @@ type exportCabrilloDialog struct {
 	categoryOverlay     string
 	categoryTime        string
 
-	name            string
-	email           string
+	name                 string
+	email                string
+	location             string
+	addressText          string
+	addressCity          string
+	addressPostalCode    string
+	addressStateProvince string
+	addressCountry       string
+	club                 string
+	specific             string
+
+	certificate bool
+	soapBox     string
+
 	openAfterExport bool
 }
 
@@ -53,6 +65,18 @@ func (d *exportCabrilloDialog) Show() bool {
 	d.view.categoryTimeCombo.SetActiveID(d.categoryTime)
 	d.view.nameEntry.SetText(d.name)
 	d.view.emailEntry.SetText(d.email)
+	d.view.locationEntry.SetText(d.location)
+	d.view.addressTextEntry.SetText(d.addressText)
+	d.view.addressCityEntry.SetText(d.addressCity)
+	d.view.addressPostalCodeEntry.SetText(d.addressPostalCode)
+	d.view.addressStateProvinceEntry.SetText(d.addressStateProvince)
+	d.view.addressCountryEntry.SetText(d.addressCountry)
+	d.view.clubEntry.SetText(d.club)
+	d.view.specificEntry.SetText(d.specific)
+	d.view.certificateCheckButton.SetActive(d.certificate)
+	buffer, _ := d.view.soapBoxEntry.GetBuffer()
+	buffer.SetText(d.soapBox)
+	// d.view.soapBoxEntry.SetBuffer(buffer)
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
 
 	dialog, _ := gtk.DialogNew()
@@ -150,6 +174,77 @@ func (d *exportCabrilloDialog) SetEmail(email string) {
 	d.email = email
 	if d.view != nil {
 		d.view.emailEntry.SetText(email)
+	}
+}
+
+func (d *exportCabrilloDialog) SetLocation(location string) {
+	d.location = location
+	if d.view != nil {
+		d.view.locationEntry.SetText(location)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressText(addressText string) {
+	d.addressText = addressText
+	if d.view != nil {
+		d.view.addressTextEntry.SetText(addressText)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressCity(addressCity string) {
+	d.addressCity = addressCity
+	if d.view != nil {
+		d.view.addressCityEntry.SetText(addressCity)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressPostalCode(addressPostalCode string) {
+	d.addressPostalCode = addressPostalCode
+	if d.view != nil {
+		d.view.addressPostalCodeEntry.SetText(addressPostalCode)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressStateProvince(addressStateProvince string) {
+	d.addressStateProvince = addressStateProvince
+	if d.view != nil {
+		d.view.addressStateProvinceEntry.SetText(addressStateProvince)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressCountry(addressCountry string) {
+	d.addressCountry = addressCountry
+	if d.view != nil {
+		d.view.addressCountryEntry.SetText(addressCountry)
+	}
+}
+
+func (d *exportCabrilloDialog) SetClub(club string) {
+	d.club = club
+	if d.view != nil {
+		d.view.clubEntry.SetText(club)
+	}
+}
+
+func (d *exportCabrilloDialog) SetSpecific(specific string) {
+	d.specific = specific
+	if d.view != nil {
+		d.view.specificEntry.SetText(specific)
+	}
+}
+
+func (d *exportCabrilloDialog) SetCertificate(certificate bool) {
+	d.certificate = certificate
+	if d.view != nil {
+		d.view.certificateCheckButton.SetActive(certificate)
+	}
+}
+
+func (d *exportCabrilloDialog) SetSoapBox(soapBox string) {
+	d.soapBox = soapBox
+	if d.view != nil {
+		buffer, _ := d.view.soapBoxEntry.GetBuffer()
+		buffer.SetText(soapBox)
 	}
 }
 

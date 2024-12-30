@@ -29,6 +29,17 @@ type View interface {
 
 	SetName(string)
 	SetEmail(string)
+	SetLocation(string)
+	SetAddressText(string)
+	SetAddressCity(string)
+	SetAddressPostalCode(string)
+	SetAddressStateProvince(string)
+	SetAddressCountry(string)
+	SetClub(string)
+	SetSpecific(string)
+
+	SetCertificate(bool)
+	SetSoapBox(string)
 
 	SetOpenAfterExport(bool)
 }
@@ -40,10 +51,20 @@ type Controller struct {
 	qsoBand    cabrillo.CategoryBand
 	qsoMode    cabrillo.CategoryMode
 
-	category        cabrillo.Category
-	name            string
-	email           string
-	openAfterExport bool
+	category             cabrillo.Category
+	name                 string
+	email                string
+	location             string
+	addressText          string
+	addressCity          string
+	addressPostalCode    string
+	addressStateProvince string
+	addressCountry       string
+	club                 string
+	specific             string
+	certificate          bool
+	soapBox              string
+	openAfterExport      bool
 }
 
 func NewController() *Controller {
@@ -74,6 +95,16 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	c.updateCategorySettings()
 	c.view.SetName(c.name)
 	c.view.SetEmail(c.email)
+	c.view.SetLocation(c.location)
+	c.view.SetAddressText(c.addressText)
+	c.view.SetAddressCity(c.addressCity)
+	c.view.SetAddressPostalCode(c.addressPostalCode)
+	c.view.SetAddressStateProvince(c.addressStateProvince)
+	c.view.SetAddressCountry(c.addressCountry)
+	c.view.SetClub(c.club)
+	c.view.SetSpecific(c.specific)
+	c.view.SetCertificate(c.certificate)
+	c.view.SetSoapBox(c.soapBox)
 	c.view.SetOpenAfterExport(c.openAfterExport)
 	accepted := c.view.Show()
 	if !accepted {
@@ -84,6 +115,16 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	export.Category = c.category
 	export.Name = c.name
 	export.Email = c.email
+	export.Location = c.location
+	export.Address.Text = c.addressText
+	export.Address.City = c.addressCity
+	export.Address.Postalcode = c.addressPostalCode
+	export.Address.StateProvince = c.addressStateProvince
+	export.Address.Country = c.addressCountry
+	export.Club = c.club
+	export.Custom["SPECIFIC"] = c.specific
+	export.Certificate = c.certificate
+	export.Soapbox = c.soapBox
 
 	return export, c.openAfterExport, true
 }
@@ -320,6 +361,46 @@ func (c *Controller) SetEmail(email string) {
 	c.email = email
 }
 
+func (c *Controller) SetLocation(location string) {
+	c.location = location
+}
+
+func (c *Controller) SetAddressText(addressText string) {
+	c.addressText = addressText
+}
+
+func (c *Controller) SetAddressCity(addressCity string) {
+	c.addressCity = addressCity
+}
+
+func (c *Controller) SetAddressPostalCode(addressPostalCode string) {
+	c.addressPostalCode = addressPostalCode
+}
+
+func (c *Controller) SetAddressStateProvince(addressStateProvince string) {
+	c.addressStateProvince = addressStateProvince
+}
+
+func (c *Controller) SetAddressCountry(addressCountry string) {
+	c.addressCountry = addressCountry
+}
+
+func (c *Controller) SetClub(club string) {
+	c.club = club
+}
+
+func (c *Controller) SetSpecific(specific string) {
+	c.specific = specific
+}
+
+func (c *Controller) SetCertificate(certificate bool) {
+	c.certificate = certificate
+}
+
+func (c *Controller) SetSoapBox(soapBox string) {
+	c.soapBox = soapBox
+}
+
 func (c *Controller) SetOpenAfterExport(open bool) {
 	c.openAfterExport = open
 }
@@ -332,7 +413,6 @@ func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO
 	export.Operators = []callsign.Callsign{settings.Station().Operator}
 	export.GridLocator = settings.Station().Locator
 	export.ClaimedScore = claimedScore
-	export.Certificate = true
 
 	qsoData := make([]cabrillo.QSO, 0, len(qsos))
 	ignoredQSOs := make([]cabrillo.QSO, 0, len(qsos))

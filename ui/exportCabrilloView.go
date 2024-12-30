@@ -85,12 +85,14 @@ func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloV
 	result.root.SetVExpand(true)
 	result.root.SetColumnSpacing(5)
 	result.root.SetRowSpacing(5)
+	result.root.SetMarginStart(5)
+	result.root.SetMarginEnd(5)
 
 	columns, _ := gtk.GridNew()
 	columns.SetOrientation(gtk.ORIENTATION_HORIZONTAL)
 	columns.SetHExpand(true)
 	columns.SetVExpand(false)
-	columns.SetColumnSpacing(10)
+	columns.SetColumnSpacing(20)
 	result.root.Attach(columns, 0, 1, 1, 1)
 
 	leftColumn, _ := gtk.GridNew()
@@ -139,12 +141,14 @@ func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloV
 	result.clubEntry = buildLabeledEntry(rightColumn, 11, "Club", result.onClubChanged)
 	result.specificEntry = buildLabeledEntry(rightColumn, 12, "Specific", result.onSpecificChanged)
 
-	result.certificateCheckButton = buildCheckButton(result.root, 2, "Request a certificate", result.onCertificateToggled)
-	result.soapBoxEntry = buildLabeledTextView(result.root, 3, "Soap Box", result.onSoapBoxChanged)
+	buildSeparator(result.root, 2, 1)
 
-	buildSeparator(result.root, 5, 1)
+	result.certificateCheckButton = buildCheckButton(result.root, 3, "Request a certificate", result.onCertificateToggled)
+	result.soapBoxEntry = buildLabeledTextView(result.root, 4, "Soap Box", result.onSoapBoxChanged)
 
-	result.openAfterExportCheckButton = buildCheckButton(result.root, 6, "Open the file after export", result.onOpenAfterExportToggled)
+	buildSeparator(result.root, 6, 1)
+
+	result.openAfterExportCheckButton = buildCheckButton(result.root, 7, "Open the file after export", result.onOpenAfterExportToggled)
 
 	return result
 }

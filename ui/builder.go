@@ -65,6 +65,7 @@ func buildLabeledEntry(grid *gtk.Grid, row int, labelText string, handler any) *
 
 	entry, _ := gtk.EntryNew()
 	entry.SetHExpand(true)
+	entry.SetSizeRequest(200, 0)
 	grid.Attach(entry, 1, row, 1, 1)
 
 	entry.Connect("changed", handler)
@@ -84,8 +85,6 @@ func buildLabeledTextView(grid *gtk.Grid, row int, labelText string, handler any
 	scrolledWindow.SetHExpand(true)
 	scrolledWindow.SetVExpand(true)
 	scrolledWindow.SetSizeRequest(0, 100)
-	scrolledWindow.SetMarginStart(5)
-	scrolledWindow.SetMarginEnd(5)
 	grid.Attach(scrolledWindow, 0, row+1, 1, 1)
 
 	buffer, _ := textView.GetBuffer()
@@ -97,6 +96,8 @@ func buildLabeledTextView(grid *gtk.Grid, row int, labelText string, handler any
 func buildCheckButton(grid *gtk.Grid, row int, labelText string, handler any) *gtk.CheckButton {
 	checkButton, _ := gtk.CheckButtonNewWithLabel(labelText)
 	checkButton.SetHExpand(true)
+	checkButton.SetMarginTop(5)
+	checkButton.SetMarginBottom(5)
 	grid.Attach(checkButton, 0, row, 1, 1)
 
 	checkButton.Connect("toggled", handler)

@@ -17,11 +17,11 @@ import (
 type View interface {
 	Show() bool
 
-	SetCategoryAssisted(bool)
 	SetCategoryBand(string)
 	SetCategoryMode(string)
 	SetCategoryOperator(string)
 	SetCategoryPower(string)
+	SetCategoryAssisted(string)
 	SetName(string)
 	SetEmail(string)
 	SetOpenAfterExport(bool)
@@ -104,7 +104,7 @@ func (c *Controller) SetCategory(name string) {
 
 func (c *Controller) updateCategorySettings() {
 	log.Printf("new category settings: %+v", c.category)
-	c.view.SetCategoryAssisted(c.category.Assisted == cabrillo.Assisted)
+	c.view.SetCategoryAssisted(string(c.category.Assisted))
 	c.view.SetCategoryBand(string(c.category.Band))
 	c.view.SetCategoryMode(string(c.category.Mode))
 	c.view.SetCategoryOperator(string(c.category.Operator))
@@ -123,12 +123,12 @@ func (c *Controller) findCategory(name string) (conval.Category, bool) {
 	return conval.Category{}, false
 }
 
-func (c *Controller) SetCategoryAssisted(assisted bool) {
-	if assisted {
-		c.category.Assisted = cabrillo.Assisted
-	} else {
-		c.category.Assisted = cabrillo.NonAssisted
-	}
+func (c *Controller) CategoryAssisted() []string {
+	return []string{"", string(cabrillo.Assisted), string(cabrillo.NonAssisted)}
+}
+
+func (c *Controller) SetCategoryAssisted(assisted string) {
+	c.category.Assisted = cabrillo.CategoryAssisted(assisted)
 }
 
 func (c *Controller) CategoryBands() []string {

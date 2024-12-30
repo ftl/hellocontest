@@ -2,8 +2,8 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ftl/cabrillo v0.2.3 h1:x2Adf24QX6zQ0/OX12LJ6+2yp9sZBUpNV4Xsxb2w0H0=
-github.com/ftl/cabrillo v0.2.3/go.mod h1:yrVvhb4datmP7OTEfX6gpEsTP8QNpXH0LAoatwvsjCI=
+github.com/ftl/cabrillo v0.2.4 h1:htBOjPCkZIOBf4CL2QypTEb83G7+z6/YF8rAP6vGdPk=
+github.com/ftl/cabrillo v0.2.4/go.mod h1:yrVvhb4datmP7OTEfX6gpEsTP8QNpXH0LAoatwvsjCI=
 github.com/ftl/clusterix v0.1.0 h1:+fbTybTvkVorx3B4zZ3DBiVbmLV0hhFpfDGW50Ss9cg=
 github.com/ftl/clusterix v0.1.0/go.mod h1:N89RHOExeAbnWqoXs/MD76uackK2/9Dcu+FooVq1tKg=
 github.com/ftl/conval v0.8.0 h1:ZD1b+YpNne8ED53jmDR6l3Amv+wtOveLwHQSPSGgTMc=

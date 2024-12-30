@@ -122,7 +122,7 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	export.Address.StateProvince = c.addressStateProvince
 	export.Address.Country = c.addressCountry
 	export.Club = c.club
-	export.Custom["SPECIFIC"] = c.specific
+	export.Custom[cabrillo.SpecificTag] = c.specific
 	export.Certificate = c.certificate
 	export.Soapbox = c.soapBox
 
@@ -325,7 +325,7 @@ func (c *Controller) CategoryOverlays() []string {
 			string(cabrillo.YouthOverlay),
 			string(cabrillo.NoviceTechOverlay),
 			string(cabrillo.Over50Overlay),
-			"YL", // TODO: promote this to the cabrillo library
+			string(cabrillo.YLOverlay),
 		}
 	}
 

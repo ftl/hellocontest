@@ -15,9 +15,15 @@ func convalToCabrilloAssisted(category conval.Category) cabrillo.CategoryAssiste
 	}
 }
 
-func convalToCabrilloBand(category conval.Category, availableBands []conval.ContestBand) cabrillo.CategoryBand {
+func convalToCabrilloBand(category conval.Category, availableBands []conval.ContestBand, qsoBand cabrillo.CategoryBand) cabrillo.CategoryBand {
 	if category.BandCount == conval.AllBands {
 		return cabrillo.BandAll
+	}
+	if hasBand(availableBands, qsoBand) {
+		return qsoBand
+	}
+	if hasBand(category.Bands, qsoBand) {
+		return qsoBand
 	}
 	if (len(category.Bands) > 0) && (category.Bands[0] == conval.BandAll) {
 		return cabrillo.BandAll
@@ -28,11 +34,26 @@ func convalToCabrilloBand(category conval.Category, availableBands []conval.Cont
 	return ""
 }
 
+func hasBand(availableBands []conval.ContestBand, band cabrillo.CategoryBand) bool {
+	for _, b := range availableBands {
+		if convertBand(b) == band {
+			return true
+		}
+	}
+	return false
+}
+
 func convertBand(band conval.ContestBand) cabrillo.CategoryBand {
 	return cabrillo.CategoryBand(strings.ToUpper(string(band)))
 }
 
-func convalToCabrilloMode(category conval.Category, availableModes []conval.Mode) cabrillo.CategoryMode {
+func convalToCabrilloMode(category conval.Category, availableModes []conval.Mode, qsoMode cabrillo.CategoryMode) cabrillo.CategoryMode {
+	if hasMode(availableModes, qsoMode) {
+		return qsoMode
+	}
+	if hasMode(category.Modes, qsoMode) {
+		return qsoMode
+	}
 	if len(category.Modes) > 1 {
 		return cabrillo.ModeMIXED
 	}
@@ -43,6 +64,15 @@ func convalToCabrilloMode(category conval.Category, availableModes []conval.Mode
 		mode = availableModes[0]
 	}
 	return convertMode(mode)
+}
+
+func hasMode(availableModes []conval.Mode, mode cabrillo.CategoryMode) bool {
+	for _, m := range availableModes {
+		if convertMode(m) == mode {
+			return true
+		}
+	}
+	return false
 }
 
 func convertMode(mode conval.Mode) cabrillo.CategoryMode {
@@ -88,5 +118,35 @@ func convalToCabrilloPower(category conval.Category) cabrillo.CategoryPower {
 		return cabrillo.QRP
 	default:
 		return ""
+	}
+}
+
+func convalToCabrilloTransmitter(category conval.Category) cabrillo.CategoryTransmitter {
+	switch category.TX {
+	case conval.OneTX:
+		return cabrillo.OneTransmitter
+	case conval.TwoTX:
+		return cabrillo.TwoTransmitter
+	case conval.MultiTX:
+		return cabrillo.LimitedTransmitter
+	case conval.DistributedTX:
+		return cabrillo.UnlimitedTransmitter
+	default:
+		return ""
+	}
+}
+
+func convertOverlay(overlay conval.Overlay) cabrillo.CategoryOverlay {
+	switch overlay {
+	case conval.ClassicOverlay:
+		return cabrillo.ClassicOverlay
+	case conval.ThreeBandAndWiresOverlay:
+		return cabrillo.TBWiresOverlay
+	case conval.RookieOverlay:
+		return cabrillo.RookieOverlay
+	case conval.YouthOverlay:
+		return cabrillo.YouthOverlay
+	default:
+		return cabrillo.CategoryOverlay(strings.ToUpper(string(overlay)))
 	}
 }

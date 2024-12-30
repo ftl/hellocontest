@@ -11,14 +11,31 @@ type exportCabrilloDialog struct {
 	controller ExportCabrilloController
 	view       *exportCabrilloView
 
-	categoryAssisted bool
-	categoryBand     string
-	categoryMode     string
-	categoryOperator string
-	categoryPower    string
-	name             string
-	email            string
-	openAfterExport  bool
+	categoryBand        string
+	categoryMode        string
+	categoryOperator    string
+	categoryPower       string
+	categoryAssisted    string
+	categoryStation     string
+	categoryTransmitter string
+	categoryOverlay     string
+	categoryTime        string
+
+	name                 string
+	email                string
+	location             string
+	addressText          string
+	addressCity          string
+	addressPostalCode    string
+	addressStateProvince string
+	addressCountry       string
+	club                 string
+	specific             string
+
+	certificate bool
+	soapBox     string
+
+	openAfterExport bool
 }
 
 func setupExportCabrilloDialog(parent gtk.IWidget, controller ExportCabrilloController) *exportCabrilloDialog {
@@ -35,107 +52,32 @@ func (d *exportCabrilloDialog) onDestroy() {
 }
 
 func (d *exportCabrilloDialog) Show() bool {
-	d.view = &exportCabrilloView{}
-	grid, _ := gtk.GridNew()
-	grid.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	grid.SetHExpand(true)
-	grid.SetVExpand(true)
-	grid.SetColumnSpacing(5)
-
-	label, _ := gtk.LabelNew("Export the log as Cabrillo file.")
-	label.SetHAlign(gtk.ALIGN_START)
-	label.SetMarginBottom(10)
-	grid.Attach(label, 0, 0, 2, 1)
-
-	label, _ = gtk.LabelNew("Category")
-	label.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(label, 0, 1, 1, 1)
-	d.view.categoriesCombo, _ = gtk.ComboBoxTextNew()
-	d.view.categoriesCombo.Append("", "")
-	for _, category := range d.controller.Categories() {
-		d.view.categoriesCombo.Append(category, category)
-	}
-	d.view.categoriesCombo.SetActive(0)
-	grid.Attach(d.view.categoriesCombo, 1, 1, 1, 1)
-
-	d.view.categoryAssistedCheckButton, _ = gtk.CheckButtonNewWithLabel("Assisted")
-	d.view.categoryAssistedCheckButton.SetActive(d.categoryAssisted)
-	grid.Attach(d.view.categoryAssistedCheckButton, 1, 2, 1, 1)
-
-	label, _ = gtk.LabelNew("Band")
-	label.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(label, 0, 3, 1, 1)
-	d.view.categoryBandCombo, _ = gtk.ComboBoxTextNew()
-	d.view.categoryBandCombo.Append("", "")
-	for _, band := range d.controller.CategoryBands() {
-		d.view.categoryBandCombo.Append(band, band)
-	}
+	d.view = newExportCabrilloView(d.controller)
+	d.view.categoriesCombo.SetActiveID("")
 	d.view.categoryBandCombo.SetActiveID(d.categoryBand)
-	grid.Attach(d.view.categoryBandCombo, 1, 3, 1, 1)
-
-	label, _ = gtk.LabelNew("Mode")
-	label.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(label, 0, 4, 1, 1)
-	d.view.categoryModeCombo, _ = gtk.ComboBoxTextNew()
-	d.view.categoryModeCombo.Append("", "")
-	for _, mode := range d.controller.CategoryModes() {
-		d.view.categoryModeCombo.Append(mode, mode)
-	}
 	d.view.categoryModeCombo.SetActiveID(d.categoryMode)
-	grid.Attach(d.view.categoryModeCombo, 1, 4, 1, 1)
-
-	label, _ = gtk.LabelNew("Operator")
-	label.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(label, 0, 5, 1, 1)
-	d.view.categoryOperatorCombo, _ = gtk.ComboBoxTextNew()
-	d.view.categoryOperatorCombo.Append("", "")
-	for _, operator := range d.controller.CategoryOperators() {
-		d.view.categoryOperatorCombo.Append(operator, operator)
-	}
 	d.view.categoryOperatorCombo.SetActiveID(d.categoryOperator)
-	grid.Attach(d.view.categoryOperatorCombo, 1, 5, 1, 1)
-
-	label, _ = gtk.LabelNew("Power")
-	label.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(label, 0, 6, 1, 1)
-	d.view.categoryPowerCombo, _ = gtk.ComboBoxTextNew()
-	d.view.categoryPowerCombo.Append("", "")
-	for _, power := range d.controller.CategoryPowers() {
-		d.view.categoryPowerCombo.Append(power, power)
-	}
 	d.view.categoryPowerCombo.SetActiveID(d.categoryPower)
-	grid.Attach(d.view.categoryPowerCombo, 1, 6, 1, 1)
-
-	separator, _ := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
-	separator.SetHExpand(true)
-	separator.SetMarginTop(5)
-	separator.SetMarginBottom(5)
-	grid.Attach(separator, 0, 7, 2, 1)
-
-	label, _ = gtk.LabelNew("Name")
-	label.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(label, 0, 8, 1, 1)
-	d.view.nameEntry, _ = gtk.EntryNew()
+	d.view.categoryAssistedCombo.SetActiveID(d.categoryAssisted)
+	d.view.categoryStationCombo.SetActiveID(d.categoryStation)
+	d.view.categoryTransmitterCombo.SetActiveID(d.categoryTransmitter)
+	d.view.categoryOverlayCombo.SetActiveID(d.categoryOverlay)
+	d.view.categoryTimeCombo.SetActiveID(d.categoryTime)
 	d.view.nameEntry.SetText(d.name)
-	grid.Attach(d.view.nameEntry, 1, 8, 1, 1)
-
-	label, _ = gtk.LabelNew("Email")
-	label.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(label, 0, 9, 1, 1)
-	d.view.emailEntry, _ = gtk.EntryNew()
 	d.view.emailEntry.SetText(d.email)
-	grid.Attach(d.view.emailEntry, 1, 9, 1, 1)
-
-	separator, _ = gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
-	separator.SetHExpand(true)
-	separator.SetVExpand(true)
-	grid.Attach(separator, 0, 10, 2, 1)
-
-	d.view.openAfterExportCheckButton, _ = gtk.CheckButtonNewWithLabel("Open the file after export")
+	d.view.locationEntry.SetText(d.location)
+	d.view.addressTextEntry.SetText(d.addressText)
+	d.view.addressCityEntry.SetText(d.addressCity)
+	d.view.addressPostalCodeEntry.SetText(d.addressPostalCode)
+	d.view.addressStateProvinceEntry.SetText(d.addressStateProvince)
+	d.view.addressCountryEntry.SetText(d.addressCountry)
+	d.view.clubEntry.SetText(d.club)
+	d.view.specificEntry.SetText(d.specific)
+	d.view.certificateCheckButton.SetActive(d.certificate)
+	buffer, _ := d.view.soapBoxEntry.GetBuffer()
+	buffer.SetText(d.soapBox)
+	// d.view.soapBoxEntry.SetBuffer(buffer)
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
-	grid.Attach(d.view.openAfterExportCheckButton, 0, 11, 2, 1)
-
-	d.view.setup(d.controller)
 
 	dialog, _ := gtk.DialogNew()
 	d.dialog = dialog
@@ -147,7 +89,7 @@ func (d *exportCabrilloDialog) Show() bool {
 	d.dialog.SetDefaultResponse(gtk.RESPONSE_OK)
 	d.dialog.SetModal(true)
 	contentArea, _ := d.dialog.GetContentArea()
-	contentArea.Add(grid)
+	contentArea.Add(d.view.root)
 	d.dialog.AddButton("Export", gtk.RESPONSE_OK)
 	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)
 
@@ -159,13 +101,6 @@ func (d *exportCabrilloDialog) Show() bool {
 	d.view = nil
 
 	return result
-}
-
-func (d *exportCabrilloDialog) SetCategoryAssisted(assisted bool) {
-	d.categoryAssisted = assisted
-	if d.view != nil {
-		d.view.categoryAssistedCheckButton.SetActive(assisted)
-	}
 }
 
 func (d *exportCabrilloDialog) SetCategoryBand(band string) {
@@ -196,6 +131,38 @@ func (d *exportCabrilloDialog) SetCategoryPower(power string) {
 	}
 }
 
+func (d *exportCabrilloDialog) SetCategoryAssisted(assisted string) {
+	d.categoryAssisted = assisted
+	if d.view != nil {
+		d.view.categoryAssistedCombo.SetActiveID(assisted)
+	}
+}
+
+func (d *exportCabrilloDialog) SetCategoryStation(station string) {
+	d.categoryStation = station
+	if d.view != nil {
+		d.view.categoryStationCombo.SetActiveID(station)
+	}
+}
+func (d *exportCabrilloDialog) SetCategoryTransmitter(transmitter string) {
+	d.categoryTransmitter = transmitter
+	if d.view != nil {
+		d.view.categoryTransmitterCombo.SetActiveID(transmitter)
+	}
+}
+func (d *exportCabrilloDialog) SetCategoryOverlay(overlay string) {
+	d.categoryOverlay = overlay
+	if d.view != nil {
+		d.view.categoryOverlayCombo.SetActiveID(overlay)
+	}
+}
+func (d *exportCabrilloDialog) SetCategoryTime(time string) {
+	d.categoryTime = time
+	if d.view != nil {
+		d.view.categoryTimeCombo.SetActiveID(time)
+	}
+}
+
 func (d *exportCabrilloDialog) SetName(name string) {
 	d.name = name
 	if d.view != nil {
@@ -207,6 +174,77 @@ func (d *exportCabrilloDialog) SetEmail(email string) {
 	d.email = email
 	if d.view != nil {
 		d.view.emailEntry.SetText(email)
+	}
+}
+
+func (d *exportCabrilloDialog) SetLocation(location string) {
+	d.location = location
+	if d.view != nil {
+		d.view.locationEntry.SetText(location)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressText(addressText string) {
+	d.addressText = addressText
+	if d.view != nil {
+		d.view.addressTextEntry.SetText(addressText)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressCity(addressCity string) {
+	d.addressCity = addressCity
+	if d.view != nil {
+		d.view.addressCityEntry.SetText(addressCity)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressPostalCode(addressPostalCode string) {
+	d.addressPostalCode = addressPostalCode
+	if d.view != nil {
+		d.view.addressPostalCodeEntry.SetText(addressPostalCode)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressStateProvince(addressStateProvince string) {
+	d.addressStateProvince = addressStateProvince
+	if d.view != nil {
+		d.view.addressStateProvinceEntry.SetText(addressStateProvince)
+	}
+}
+
+func (d *exportCabrilloDialog) SetAddressCountry(addressCountry string) {
+	d.addressCountry = addressCountry
+	if d.view != nil {
+		d.view.addressCountryEntry.SetText(addressCountry)
+	}
+}
+
+func (d *exportCabrilloDialog) SetClub(club string) {
+	d.club = club
+	if d.view != nil {
+		d.view.clubEntry.SetText(club)
+	}
+}
+
+func (d *exportCabrilloDialog) SetSpecific(specific string) {
+	d.specific = specific
+	if d.view != nil {
+		d.view.specificEntry.SetText(specific)
+	}
+}
+
+func (d *exportCabrilloDialog) SetCertificate(certificate bool) {
+	d.certificate = certificate
+	if d.view != nil {
+		d.view.certificateCheckButton.SetActive(certificate)
+	}
+}
+
+func (d *exportCabrilloDialog) SetSoapBox(soapBox string) {
+	d.soapBox = soapBox
+	if d.view != nil {
+		buffer, _ := d.view.soapBoxEntry.GetBuffer()
+		buffer.SetText(soapBox)
 	}
 }
 

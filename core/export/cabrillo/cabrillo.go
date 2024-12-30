@@ -17,24 +17,54 @@ import (
 type View interface {
 	Show() bool
 
-	SetCategoryAssisted(bool)
 	SetCategoryBand(string)
 	SetCategoryMode(string)
 	SetCategoryOperator(string)
 	SetCategoryPower(string)
+	SetCategoryAssisted(string)
+	SetCategoryStation(string)
+	SetCategoryTransmitter(string)
+	SetCategoryOverlay(string)
+	SetCategoryTime(string)
+
 	SetName(string)
 	SetEmail(string)
+	SetLocation(string)
+	SetAddressText(string)
+	SetAddressCity(string)
+	SetAddressPostalCode(string)
+	SetAddressStateProvince(string)
+	SetAddressCountry(string)
+	SetClub(string)
+	SetSpecific(string)
+
+	SetCertificate(bool)
+	SetSoapBox(string)
+
 	SetOpenAfterExport(bool)
 }
 
 type Controller struct {
 	view View
 
-	definition      *conval.Definition
-	category        cabrillo.Category
-	name            string
-	email           string
-	openAfterExport bool
+	definition *conval.Definition
+	qsoBand    cabrillo.CategoryBand
+	qsoMode    cabrillo.CategoryMode
+
+	category             cabrillo.Category
+	name                 string
+	email                string
+	location             string
+	addressText          string
+	addressCity          string
+	addressPostalCode    string
+	addressStateProvince string
+	addressCountry       string
+	club                 string
+	specific             string
+	certificate          bool
+	soapBox              string
+	openAfterExport      bool
 }
 
 func NewController() *Controller {
@@ -58,10 +88,23 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO) (*cabrillo.Log, bool, bool) {
 	c.definition = settings.Contest().Definition
+	c.qsoBand, c.qsoMode = findBandAndMode(qsos)
+	c.category.Band = c.qsoBand
+	c.category.Mode = c.qsoMode
 
 	c.updateCategorySettings()
 	c.view.SetName(c.name)
 	c.view.SetEmail(c.email)
+	c.view.SetLocation(c.location)
+	c.view.SetAddressText(c.addressText)
+	c.view.SetAddressCity(c.addressCity)
+	c.view.SetAddressPostalCode(c.addressPostalCode)
+	c.view.SetAddressStateProvince(c.addressStateProvince)
+	c.view.SetAddressCountry(c.addressCountry)
+	c.view.SetClub(c.club)
+	c.view.SetSpecific(c.specific)
+	c.view.SetCertificate(c.certificate)
+	c.view.SetSoapBox(c.soapBox)
 	c.view.SetOpenAfterExport(c.openAfterExport)
 	accepted := c.view.Show()
 	if !accepted {
@@ -72,6 +115,16 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	export.Category = c.category
 	export.Name = c.name
 	export.Email = c.email
+	export.Location = c.location
+	export.Address.Text = c.addressText
+	export.Address.City = c.addressCity
+	export.Address.Postalcode = c.addressPostalCode
+	export.Address.StateProvince = c.addressStateProvince
+	export.Address.Country = c.addressCountry
+	export.Club = c.club
+	export.Custom[cabrillo.SpecificTag] = c.specific
+	export.Certificate = c.certificate
+	export.Soapbox = c.soapBox
 
 	return export, c.openAfterExport, true
 }
@@ -95,20 +148,26 @@ func (c *Controller) SetCategory(name string) {
 	}
 
 	c.category.Assisted = convalToCabrilloAssisted(category)
-	c.category.Band = convalToCabrilloBand(category, c.definition.Bands)
-	c.category.Mode = convalToCabrilloMode(category, c.definition.Modes)
+	c.category.Band = convalToCabrilloBand(category, c.definition.Bands, c.qsoBand)
+	c.category.Mode = convalToCabrilloMode(category, c.definition.Modes, c.qsoMode)
 	c.category.Operator = convalToCabrilloOperator(category)
 	c.category.Power = convalToCabrilloPower(category)
+	c.category.Transmitter = convalToCabrilloTransmitter(category)
+	c.category.Overlay = convertOverlay(category.Overlay)
 	c.updateCategorySettings()
 }
 
 func (c *Controller) updateCategorySettings() {
 	log.Printf("new category settings: %+v", c.category)
-	c.view.SetCategoryAssisted(c.category.Assisted == cabrillo.Assisted)
+	c.view.SetCategoryAssisted(string(c.category.Assisted))
 	c.view.SetCategoryBand(string(c.category.Band))
 	c.view.SetCategoryMode(string(c.category.Mode))
 	c.view.SetCategoryOperator(string(c.category.Operator))
 	c.view.SetCategoryPower(string(c.category.Power))
+	c.view.SetCategoryStation(string(c.category.Station))
+	c.view.SetCategoryTransmitter(string(c.category.Transmitter))
+	c.view.SetCategoryOverlay(string(c.category.Overlay))
+	c.view.SetCategoryTime(string(c.category.Time))
 }
 
 func (c *Controller) findCategory(name string) (conval.Category, bool) {
@@ -123,24 +182,40 @@ func (c *Controller) findCategory(name string) (conval.Category, bool) {
 	return conval.Category{}, false
 }
 
-func (c *Controller) SetCategoryAssisted(assisted bool) {
-	if assisted {
-		c.category.Assisted = cabrillo.Assisted
-	} else {
-		c.category.Assisted = cabrillo.NonAssisted
-	}
-}
-
 func (c *Controller) CategoryBands() []string {
 	if c.definition.Bands == nil {
 		return []string{
-			"ALL", "160M", "80M", "40M", "20M", "15M", "10M", "6M", "4M", "2M", "222", "432",
-			"902", "1.2G", "2.3G", "3.4G", "5.7G", "10G", "24G", "47G", "75G", "122G", "134G",
-			"241G", "LIGHT", "VHF-3-BAND", "VHF-FM-ONLY",
+			string(cabrillo.BandAll),
+			string(cabrillo.Band160m),
+			string(cabrillo.Band80m),
+			string(cabrillo.Band40m),
+			string(cabrillo.Band20m),
+			string(cabrillo.Band15m),
+			string(cabrillo.Band10m),
+			string(cabrillo.Band6m),
+			string(cabrillo.Band4m),
+			string(cabrillo.Band2m),
+			string(cabrillo.Band222),
+			string(cabrillo.Band432),
+			string(cabrillo.Band902),
+			string(cabrillo.Band1_2G),
+			string(cabrillo.Band2_3G),
+			string(cabrillo.Band3_4G),
+			string(cabrillo.Band5_6G),
+			string(cabrillo.Band10G),
+			string(cabrillo.Band24G),
+			string(cabrillo.Band47G),
+			string(cabrillo.Band75G),
+			string(cabrillo.Band122G),
+			string(cabrillo.Band134G),
+			string(cabrillo.Band241G),
+			string(cabrillo.BandLight),
+			string(cabrillo.BandVHF_3Band),
+			string(cabrillo.BandVHF_FMOnly),
 		}
 	}
 	result := make([]string, len(c.definition.Bands)+1)
-	result[0] = "ALL"
+	result[0] = string(cabrillo.BandAll)
 	for i, band := range c.definition.Bands {
 		result[i+1] = string(convertBand(band))
 	}
@@ -153,14 +228,20 @@ func (c *Controller) SetCategoryBand(band string) {
 
 func (c *Controller) CategoryModes() []string {
 	if c.definition.Modes == nil {
-		return []string{"CW", "PH", "RY", "DG", "FM", "MIXED"}
+		return []string{
+			string(cabrillo.ModeCW),
+			string(cabrillo.ModeSSB),
+			string(cabrillo.ModeRTTY),
+			string(cabrillo.ModeDIGI),
+			string(cabrillo.ModeMIXED),
+		}
 	}
 	result := make([]string, len(c.definition.Modes))
 	for i, mode := range c.definition.Modes {
 		result[i] = string(convertMode(mode))
 	}
 	if len(result) > 1 {
-		result = append(result, "MIXED")
+		result = append(result, string(cabrillo.ModeMIXED))
 	}
 	return result
 }
@@ -170,7 +251,11 @@ func (c *Controller) SetCategoryMode(mode string) {
 }
 
 func (c *Controller) CategoryOperators() []string {
-	return []string{"SINGLE-OP", "MULTI-OP", "CHECKLOG"}
+	return []string{
+		string(cabrillo.SingleOperator),
+		string(cabrillo.MultiOperator),
+		string(cabrillo.Checklog),
+	}
 }
 
 func (c *Controller) SetCategoryOperator(operator string) {
@@ -178,11 +263,94 @@ func (c *Controller) SetCategoryOperator(operator string) {
 }
 
 func (c *Controller) CategoryPowers() []string {
-	return []string{"QRP", "LOW", "HIGH"}
+	return []string{
+		string(cabrillo.QRP),
+		string(cabrillo.LowPower),
+		string(cabrillo.HighPower),
+	}
 }
 
 func (c *Controller) SetCategoryPower(power string) {
 	c.category.Power = cabrillo.CategoryPower(strings.ToUpper(power))
+}
+
+func (c *Controller) CategoryAssisted() []string {
+	return []string{string(cabrillo.Assisted), string(cabrillo.NonAssisted)}
+}
+
+func (c *Controller) SetCategoryAssisted(assisted string) {
+	c.category.Assisted = cabrillo.CategoryAssisted(assisted)
+}
+
+func (c *Controller) CategoryStations() []string {
+	return []string{
+		string(cabrillo.DistributedStation),
+		string(cabrillo.FixedStation),
+		string(cabrillo.MobileStation),
+		string(cabrillo.PortableStation),
+		string(cabrillo.RoverStation),
+		string(cabrillo.RoverLimitedStation),
+		string(cabrillo.RoverUnlimitedStation),
+		string(cabrillo.ExpeditionStation),
+		string(cabrillo.HQStation),
+		string(cabrillo.SchoolStation),
+		string(cabrillo.ExplorerStation),
+	}
+}
+
+func (c *Controller) SetCategoryStation(station string) {
+	c.category.Station = cabrillo.CategoryStation(station)
+}
+
+func (c *Controller) CategoryTransmitters() []string {
+	return []string{
+		string(cabrillo.OneTransmitter),
+		string(cabrillo.TwoTransmitter),
+		string(cabrillo.LimitedTransmitter),
+		string(cabrillo.UnlimitedTransmitter),
+		string(cabrillo.SWL),
+	}
+}
+
+func (c *Controller) SetCategoryTransmitter(transmitter string) {
+	c.category.Transmitter = cabrillo.CategoryTransmitter(transmitter)
+}
+
+func (c *Controller) CategoryOverlays() []string {
+	if len(c.definition.Overlays) == 0 {
+		return []string{
+			string(cabrillo.ClassicOverlay),
+			string(cabrillo.RookieOverlay),
+			string(cabrillo.TBWiresOverlay),
+			string(cabrillo.YouthOverlay),
+			string(cabrillo.NoviceTechOverlay),
+			string(cabrillo.Over50Overlay),
+			string(cabrillo.YLOverlay),
+		}
+	}
+
+	result := make([]string, len(c.definition.Overlays))
+	for i, overlay := range c.definition.Overlays {
+		result[i] = string(convertOverlay(overlay))
+	}
+	return result
+}
+
+func (c *Controller) SetCategoryOverlay(overlay string) {
+	c.category.Overlay = cabrillo.CategoryOverlay(overlay)
+}
+
+func (c *Controller) CategoryTimes() []string {
+	return []string{
+		string(cabrillo.Hours6),
+		string(cabrillo.Hours8),
+		string(cabrillo.Hours12),
+		string(cabrillo.Hours24),
+	}
+}
+
+func (c *Controller) SetCategoryTime(time string) {
+	c.category.Time = cabrillo.CategoryTime(time)
 }
 
 func (c *Controller) SetName(name string) {
@@ -191,6 +359,46 @@ func (c *Controller) SetName(name string) {
 
 func (c *Controller) SetEmail(email string) {
 	c.email = email
+}
+
+func (c *Controller) SetLocation(location string) {
+	c.location = location
+}
+
+func (c *Controller) SetAddressText(addressText string) {
+	c.addressText = addressText
+}
+
+func (c *Controller) SetAddressCity(addressCity string) {
+	c.addressCity = addressCity
+}
+
+func (c *Controller) SetAddressPostalCode(addressPostalCode string) {
+	c.addressPostalCode = addressPostalCode
+}
+
+func (c *Controller) SetAddressStateProvince(addressStateProvince string) {
+	c.addressStateProvince = addressStateProvince
+}
+
+func (c *Controller) SetAddressCountry(addressCountry string) {
+	c.addressCountry = addressCountry
+}
+
+func (c *Controller) SetClub(club string) {
+	c.club = club
+}
+
+func (c *Controller) SetSpecific(specific string) {
+	c.specific = specific
+}
+
+func (c *Controller) SetCertificate(certificate bool) {
+	c.certificate = certificate
+}
+
+func (c *Controller) SetSoapBox(soapBox string) {
+	c.soapBox = soapBox
 }
 
 func (c *Controller) SetOpenAfterExport(open bool) {
@@ -205,7 +413,6 @@ func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO
 	export.Operators = []callsign.Callsign{settings.Station().Operator}
 	export.GridLocator = settings.Station().Locator
 	export.ClaimedScore = claimedScore
-	export.Certificate = true
 
 	qsoData := make([]cabrillo.QSO, 0, len(qsos))
 	ignoredQSOs := make([]cabrillo.QSO, 0, len(qsos))
@@ -308,4 +515,25 @@ func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
 		},
 		Transmitter: 0,
 	}
+}
+
+func findBandAndMode(qsos []core.QSO) (band cabrillo.CategoryBand, mode cabrillo.CategoryMode) {
+	band = ""
+	mode = ""
+	for _, qso := range qsos {
+		qsoBand := cabrillo.CategoryBand(strings.ToUpper(string(qso.Band)))
+		if band == "" {
+			band = qsoBand
+		} else if band != cabrillo.BandAll && band != qsoBand {
+			band = cabrillo.BandAll
+		}
+
+		qsoMode := cabrillo.CategoryMode(strings.ToUpper(string(qso.Mode)))
+		if mode == "" {
+			mode = qsoMode
+		} else if mode != cabrillo.ModeMIXED && mode != qsoMode {
+			mode = cabrillo.ModeMIXED
+		}
+	}
+	return band, mode
 }

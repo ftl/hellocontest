@@ -1,15 +1,28 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/gotk3/gotk3/gtk"
 )
 
-func buildExplanationLabel(grid *gtk.Grid, row int, labelText string) {
+func buildHeaderLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label {
+	label, _ := gtk.LabelNew("")
+	label.SetHAlign(gtk.ALIGN_START)
+	label.SetMarginTop(5)
+	label.SetMarginBottom(5)
+	label.SetMarkup(fmt.Sprintf("<b>%s</b>", labelText))
+	grid.Attach(label, 0, row, 2, 1)
+	return label
+}
+
+func buildExplanationLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label {
 	label, _ := gtk.LabelNew(labelText)
 	label.SetHAlign(gtk.ALIGN_START)
 	label.SetMarginTop(5)
 	label.SetMarginBottom(5)
 	grid.Attach(label, 0, row, 2, 1)
+	return label
 }
 
 func buildSeparator(grid *gtk.Grid, row int) {
@@ -26,6 +39,7 @@ func buildLabeledCombo(grid *gtk.Grid, row int, labelText string, items []string
 	grid.Attach(label, 0, row, 1, 1)
 
 	combo, _ := gtk.ComboBoxTextNew()
+	combo.SetHExpand(true)
 	combo.Append("", "")
 	for _, item := range items {
 		combo.Append(item, item)
@@ -43,6 +57,7 @@ func buildLabeledEntry(grid *gtk.Grid, row int, labelText string, handler any) *
 	grid.Attach(label, 0, row, 1, 1)
 
 	entry, _ := gtk.EntryNew()
+	entry.SetHExpand(true)
 	grid.Attach(entry, 1, row, 1, 1)
 
 	entry.Connect("changed", handler)
@@ -52,6 +67,7 @@ func buildLabeledEntry(grid *gtk.Grid, row int, labelText string, handler any) *
 
 func buildCheckButton(grid *gtk.Grid, row int, labelText string, handler any) *gtk.CheckButton {
 	checkButton, _ := gtk.CheckButtonNewWithLabel(labelText)
+	checkButton.SetHExpand(true)
 	grid.Attach(checkButton, 0, row, 2, 1)
 
 	checkButton.Connect("toggled", handler)

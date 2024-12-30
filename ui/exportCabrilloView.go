@@ -1,6 +1,8 @@
 package ui
 
-import "github.com/gotk3/gotk3/gtk"
+import (
+	"github.com/gotk3/gotk3/gtk"
+)
 
 type ExportCabrilloController interface {
 	Categories() []string
@@ -47,24 +49,51 @@ func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloV
 	result.root.SetHExpand(true)
 	result.root.SetVExpand(true)
 	result.root.SetColumnSpacing(5)
+	result.root.SetRowSpacing(5)
 
 	buildExplanationLabel(result.root, 0, "Export the log as Cabrillo file.")
 
-	result.categoriesCombo = buildLabeledCombo(result.root, 1, "Category", result.controller.Categories(), result.onCategoryChanged)
-	result.categoryBandCombo = buildLabeledCombo(result.root, 2, "Band", result.controller.CategoryBands(), result.onCategoryBandChanged)
-	result.categoryModeCombo = buildLabeledCombo(result.root, 3, "Mode", result.controller.CategoryModes(), result.onCategoryModeChanged)
-	result.categoryOperatorCombo = buildLabeledCombo(result.root, 4, "Operator", result.controller.CategoryOperators(), result.onCategoryOperatorChanged)
-	result.categoryPowerCombo = buildLabeledCombo(result.root, 5, "Power", result.controller.CategoryPowers(), result.onCategoryPowerChanged)
-	result.categoryAssistedCombo = buildLabeledCombo(result.root, 6, "Assisted", result.controller.CategoryAssisted(), result.onCategoryAssistedChanged)
+	columns, _ := gtk.GridNew()
+	columns.SetOrientation(gtk.ORIENTATION_HORIZONTAL)
+	columns.SetHExpand(true)
+	columns.SetVExpand(true)
+	columns.SetColumnSpacing(5)
+	result.root.Attach(columns, 0, 1, 1, 1)
 
-	buildSeparator(result.root, 7)
+	leftColumn, _ := gtk.GridNew()
+	leftColumn.SetOrientation(gtk.ORIENTATION_VERTICAL)
+	leftColumn.SetHExpand(false)
+	leftColumn.SetVExpand(true)
+	leftColumn.SetColumnSpacing(5)
+	leftColumn.SetRowSpacing(5)
+	columns.Attach(leftColumn, 0, 0, 1, 1)
 
-	result.nameEntry = buildLabeledEntry(result.root, 8, "Name", result.onNameChanged)
-	result.emailEntry = buildLabeledEntry(result.root, 9, "Email", result.onEmailChanged)
+	rightColumn, _ := gtk.GridNew()
+	rightColumn.SetOrientation(gtk.ORIENTATION_VERTICAL)
+	rightColumn.SetHExpand(true)
+	rightColumn.SetVExpand(true)
+	rightColumn.SetColumnSpacing(5)
+	rightColumn.SetRowSpacing(5)
+	columns.Attach(rightColumn, 1, 0, 1, 1)
 
-	buildSeparator(result.root, 10)
+	buildHeaderLabel(leftColumn, 0, "Category")
+	result.categoriesCombo = buildLabeledCombo(leftColumn, 1, "Category", result.controller.Categories(), result.onCategoryChanged)
+	categoryExplanation := buildExplanationLabel(leftColumn, 2, "Choose one of the categories defined in the contest rules to fill out the Cabrillo category fields.")
+	categoryExplanation.SetHExpand(false)
+	categoryExplanation.SetLineWrap(true)
+	result.categoryBandCombo = buildLabeledCombo(leftColumn, 3, "Band", result.controller.CategoryBands(), result.onCategoryBandChanged)
+	result.categoryModeCombo = buildLabeledCombo(leftColumn, 4, "Mode", result.controller.CategoryModes(), result.onCategoryModeChanged)
+	result.categoryOperatorCombo = buildLabeledCombo(leftColumn, 5, "Operator", result.controller.CategoryOperators(), result.onCategoryOperatorChanged)
+	result.categoryPowerCombo = buildLabeledCombo(leftColumn, 6, "Power", result.controller.CategoryPowers(), result.onCategoryPowerChanged)
+	result.categoryAssistedCombo = buildLabeledCombo(leftColumn, 7, "Assisted", result.controller.CategoryAssisted(), result.onCategoryAssistedChanged)
 
-	result.openAfterExportCheckButton = buildCheckButton(result.root, 11, "Open the file after export", result.onOpenAfterExportToggled)
+	buildHeaderLabel(rightColumn, 0, "Personal Information")
+	result.nameEntry = buildLabeledEntry(rightColumn, 1, "Name", result.onNameChanged)
+	result.emailEntry = buildLabeledEntry(rightColumn, 2, "Email", result.onEmailChanged)
+
+	buildSeparator(result.root, 2)
+
+	result.openAfterExportCheckButton = buildCheckButton(result.root, 3, "Open the file after export", result.onOpenAfterExportToggled)
 
 	return result
 }

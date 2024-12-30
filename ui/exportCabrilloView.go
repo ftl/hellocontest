@@ -11,6 +11,10 @@ type ExportCabrilloController interface {
 	CategoryOperators() []string
 	CategoryPowers() []string
 	CategoryAssisted() []string
+	CategoryStations() []string
+	CategoryTransmitters() []string
+	CategoryOverlays() []string
+	CategoryTimes() []string
 
 	SetCategory(string)
 	SetCategoryBand(string)
@@ -18,6 +22,10 @@ type ExportCabrilloController interface {
 	SetCategoryOperator(string)
 	SetCategoryPower(string)
 	SetCategoryAssisted(string)
+	SetCategoryStation(string)
+	SetCategoryTransmitter(string)
+	SetCategoryOverlay(string)
+	SetCategoryTime(string)
 	SetName(string)
 	SetEmail(string)
 	SetOpenAfterExport(bool)
@@ -28,12 +36,17 @@ type exportCabrilloView struct {
 
 	root *gtk.Grid
 
-	categoriesCombo            *gtk.ComboBoxText
-	categoryBandCombo          *gtk.ComboBoxText
-	categoryModeCombo          *gtk.ComboBoxText
-	categoryOperatorCombo      *gtk.ComboBoxText
-	categoryPowerCombo         *gtk.ComboBoxText
-	categoryAssistedCombo      *gtk.ComboBoxText
+	categoriesCombo          *gtk.ComboBoxText
+	categoryBandCombo        *gtk.ComboBoxText
+	categoryModeCombo        *gtk.ComboBoxText
+	categoryOperatorCombo    *gtk.ComboBoxText
+	categoryPowerCombo       *gtk.ComboBoxText
+	categoryAssistedCombo    *gtk.ComboBoxText
+	categoryStationCombo     *gtk.ComboBoxText
+	categoryTransmitterCombo *gtk.ComboBoxText
+	categoryOverlayCombo     *gtk.ComboBoxText
+	categoryTimeCombo        *gtk.ComboBoxText
+
 	nameEntry                  *gtk.Entry
 	emailEntry                 *gtk.Entry
 	openAfterExportCheckButton *gtk.CheckButton
@@ -50,8 +63,6 @@ func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloV
 	result.root.SetVExpand(true)
 	result.root.SetColumnSpacing(5)
 	result.root.SetRowSpacing(5)
-
-	buildExplanationLabel(result.root, 0, "Export the log as Cabrillo file.")
 
 	columns, _ := gtk.GridNew()
 	columns.SetOrientation(gtk.ORIENTATION_HORIZONTAL)
@@ -77,15 +88,20 @@ func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloV
 	columns.Attach(rightColumn, 1, 0, 1, 1)
 
 	buildHeaderLabel(leftColumn, 0, "Category")
-	result.categoriesCombo = buildLabeledCombo(leftColumn, 1, "Category", result.controller.Categories(), result.onCategoryChanged)
+	result.categoriesCombo = buildLabeledCombo(leftColumn, 1, "Category", false, result.controller.Categories(), result.onCategoryChanged)
 	categoryExplanation := buildExplanationLabel(leftColumn, 2, "Choose one of the categories defined in the contest rules to fill out the Cabrillo category fields.")
 	categoryExplanation.SetHExpand(false)
 	categoryExplanation.SetLineWrap(true)
-	result.categoryBandCombo = buildLabeledCombo(leftColumn, 3, "Band", result.controller.CategoryBands(), result.onCategoryBandChanged)
-	result.categoryModeCombo = buildLabeledCombo(leftColumn, 4, "Mode", result.controller.CategoryModes(), result.onCategoryModeChanged)
-	result.categoryOperatorCombo = buildLabeledCombo(leftColumn, 5, "Operator", result.controller.CategoryOperators(), result.onCategoryOperatorChanged)
-	result.categoryPowerCombo = buildLabeledCombo(leftColumn, 6, "Power", result.controller.CategoryPowers(), result.onCategoryPowerChanged)
-	result.categoryAssistedCombo = buildLabeledCombo(leftColumn, 7, "Assisted", result.controller.CategoryAssisted(), result.onCategoryAssistedChanged)
+	result.categoryBandCombo = buildLabeledCombo(leftColumn, 3, "Band", false, result.controller.CategoryBands(), result.onCategoryBandChanged)
+	result.categoryModeCombo = buildLabeledCombo(leftColumn, 4, "Mode", false, result.controller.CategoryModes(), result.onCategoryModeChanged)
+	result.categoryOperatorCombo = buildLabeledCombo(leftColumn, 5, "Operator", false, result.controller.CategoryOperators(), result.onCategoryOperatorChanged)
+	result.categoryPowerCombo = buildLabeledCombo(leftColumn, 6, "Power", false, result.controller.CategoryPowers(), result.onCategoryPowerChanged)
+	result.categoryAssistedCombo = buildLabeledCombo(leftColumn, 7, "Assisted", false, result.controller.CategoryAssisted(), result.onCategoryAssistedChanged)
+	buildSeparator(leftColumn, 8)
+	result.categoryStationCombo = buildLabeledCombo(leftColumn, 9, "Station", false, result.controller.CategoryStations(), result.onCategoryStationChanged)
+	result.categoryTransmitterCombo = buildLabeledCombo(leftColumn, 10, "Transmitter", false, result.controller.CategoryTransmitters(), result.onCategoryTransmitterChanged)
+	result.categoryOverlayCombo = buildLabeledCombo(leftColumn, 11, "Overlay", true, result.controller.CategoryOverlays(), result.onCategoryOverlayChanged)
+	result.categoryTimeCombo = buildLabeledCombo(leftColumn, 12, "Time", true, result.controller.CategoryTimes(), result.onCategoryTimeChanged)
 
 	buildHeaderLabel(rightColumn, 0, "Personal Information")
 	result.nameEntry = buildLabeledEntry(rightColumn, 1, "Name", result.onNameChanged)
@@ -120,6 +136,22 @@ func (v *exportCabrilloView) onCategoryPowerChanged() {
 
 func (v *exportCabrilloView) onCategoryAssistedChanged() {
 	v.controller.SetCategoryAssisted(v.categoryAssistedCombo.GetActiveText())
+}
+
+func (v *exportCabrilloView) onCategoryStationChanged() {
+	v.controller.SetCategoryStation(v.categoryStationCombo.GetActiveText())
+}
+
+func (v *exportCabrilloView) onCategoryTransmitterChanged() {
+	v.controller.SetCategoryTransmitter(v.categoryTransmitterCombo.GetActiveText())
+}
+
+func (v *exportCabrilloView) onCategoryOverlayChanged() {
+	v.controller.SetCategoryOverlay(v.categoryOverlayCombo.GetActiveText())
+}
+
+func (v *exportCabrilloView) onCategoryTimeChanged() {
+	v.controller.SetCategoryTime(v.categoryTimeCombo.GetActiveText())
 }
 
 func (v *exportCabrilloView) onNameChanged() {

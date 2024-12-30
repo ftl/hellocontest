@@ -11,14 +11,19 @@ type exportCabrilloDialog struct {
 	controller ExportCabrilloController
 	view       *exportCabrilloView
 
-	categoryBand     string
-	categoryMode     string
-	categoryOperator string
-	categoryPower    string
-	categoryAssisted string
-	name             string
-	email            string
-	openAfterExport  bool
+	categoryBand        string
+	categoryMode        string
+	categoryOperator    string
+	categoryPower       string
+	categoryAssisted    string
+	categoryStation     string
+	categoryTransmitter string
+	categoryOverlay     string
+	categoryTime        string
+
+	name            string
+	email           string
+	openAfterExport bool
 }
 
 func setupExportCabrilloDialog(parent gtk.IWidget, controller ExportCabrilloController) *exportCabrilloDialog {
@@ -42,6 +47,10 @@ func (d *exportCabrilloDialog) Show() bool {
 	d.view.categoryOperatorCombo.SetActiveID(d.categoryOperator)
 	d.view.categoryPowerCombo.SetActiveID(d.categoryPower)
 	d.view.categoryAssistedCombo.SetActiveID(d.categoryAssisted)
+	d.view.categoryStationCombo.SetActiveID(d.categoryStation)
+	d.view.categoryTransmitterCombo.SetActiveID(d.categoryTransmitter)
+	d.view.categoryOverlayCombo.SetActiveID(d.categoryOverlay)
+	d.view.categoryTimeCombo.SetActiveID(d.categoryTime)
 	d.view.nameEntry.SetText(d.name)
 	d.view.emailEntry.SetText(d.email)
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
@@ -102,6 +111,31 @@ func (d *exportCabrilloDialog) SetCategoryAssisted(assisted string) {
 	d.categoryAssisted = assisted
 	if d.view != nil {
 		d.view.categoryAssistedCombo.SetActiveID(assisted)
+	}
+}
+
+func (d *exportCabrilloDialog) SetCategoryStation(station string) {
+	d.categoryStation = station
+	if d.view != nil {
+		d.view.categoryStationCombo.SetActiveID(station)
+	}
+}
+func (d *exportCabrilloDialog) SetCategoryTransmitter(transmitter string) {
+	d.categoryTransmitter = transmitter
+	if d.view != nil {
+		d.view.categoryTransmitterCombo.SetActiveID(transmitter)
+	}
+}
+func (d *exportCabrilloDialog) SetCategoryOverlay(overlay string) {
+	d.categoryOverlay = overlay
+	if d.view != nil {
+		d.view.categoryOverlayCombo.SetActiveID(overlay)
+	}
+}
+func (d *exportCabrilloDialog) SetCategoryTime(time string) {
+	d.categoryTime = time
+	if d.view != nil {
+		d.view.categoryTimeCombo.SetActiveID(time)
 	}
 }
 

@@ -120,3 +120,33 @@ func convalToCabrilloPower(category conval.Category) cabrillo.CategoryPower {
 		return ""
 	}
 }
+
+func convalToCabrilloTransmitter(category conval.Category) cabrillo.CategoryTransmitter {
+	switch category.TX {
+	case conval.OneTX:
+		return cabrillo.OneTransmitter
+	case conval.TwoTX:
+		return cabrillo.TwoTransmitter
+	case conval.MultiTX:
+		return cabrillo.LimitedTransmitter
+	case conval.DistributedTX:
+		return cabrillo.UnlimitedTransmitter
+	default:
+		return ""
+	}
+}
+
+func convertOverlay(overlay conval.Overlay) cabrillo.CategoryOverlay {
+	switch overlay {
+	case conval.ClassicOverlay:
+		return cabrillo.ClassicOverlay
+	case conval.ThreeBandAndWiresOverlay:
+		return cabrillo.TBWiresOverlay
+	case conval.RookieOverlay:
+		return cabrillo.RookieOverlay
+	case conval.YouthOverlay:
+		return cabrillo.YouthOverlay
+	default:
+		return cabrillo.CategoryOverlay(strings.ToUpper(string(overlay)))
+	}
+}

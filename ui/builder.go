@@ -21,7 +21,7 @@ func buildExplanationLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label
 	label.SetHAlign(gtk.ALIGN_START)
 	label.SetMarginTop(5)
 	label.SetMarginBottom(5)
-	grid.Attach(label, 0, row, 2, 1)
+	grid.Attach(label, 1, row, 1, 1)
 	return label
 }
 
@@ -33,13 +33,19 @@ func buildSeparator(grid *gtk.Grid, row int) {
 	grid.Attach(separator, 0, row, 2, 1)
 }
 
-func buildLabeledCombo(grid *gtk.Grid, row int, labelText string, items []string, handler any) *gtk.ComboBoxText {
+func buildLabeledCombo(grid *gtk.Grid, row int, labelText string, withEntry bool, items []string, handler any) *gtk.ComboBoxText {
 	label, _ := gtk.LabelNew(labelText)
 	label.SetHAlign(gtk.ALIGN_END)
 	grid.Attach(label, 0, row, 1, 1)
 
-	combo, _ := gtk.ComboBoxTextNew()
+	var combo *gtk.ComboBoxText
+	if withEntry {
+		combo, _ = gtk.ComboBoxTextNewWithEntry()
+	} else {
+		combo, _ = gtk.ComboBoxTextNew()
+	}
 	combo.SetHExpand(true)
+	combo.RemoveAll()
 	combo.Append("", "")
 	for _, item := range items {
 		combo.Append(item, item)

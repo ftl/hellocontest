@@ -15,9 +15,15 @@ func convalToCabrilloAssisted(category conval.Category) cabrillo.CategoryAssiste
 	}
 }
 
-func convalToCabrilloBand(category conval.Category, availableBands []conval.ContestBand) cabrillo.CategoryBand {
+func convalToCabrilloBand(category conval.Category, availableBands []conval.ContestBand, qsoBand cabrillo.CategoryBand) cabrillo.CategoryBand {
 	if category.BandCount == conval.AllBands {
 		return cabrillo.BandAll
+	}
+	if hasBand(availableBands, qsoBand) {
+		return qsoBand
+	}
+	if hasBand(category.Bands, qsoBand) {
+		return qsoBand
 	}
 	if (len(category.Bands) > 0) && (category.Bands[0] == conval.BandAll) {
 		return cabrillo.BandAll
@@ -28,11 +34,26 @@ func convalToCabrilloBand(category conval.Category, availableBands []conval.Cont
 	return ""
 }
 
+func hasBand(availableBands []conval.ContestBand, band cabrillo.CategoryBand) bool {
+	for _, b := range availableBands {
+		if convertBand(b) == band {
+			return true
+		}
+	}
+	return false
+}
+
 func convertBand(band conval.ContestBand) cabrillo.CategoryBand {
 	return cabrillo.CategoryBand(strings.ToUpper(string(band)))
 }
 
-func convalToCabrilloMode(category conval.Category, availableModes []conval.Mode) cabrillo.CategoryMode {
+func convalToCabrilloMode(category conval.Category, availableModes []conval.Mode, qsoMode cabrillo.CategoryMode) cabrillo.CategoryMode {
+	if hasMode(availableModes, qsoMode) {
+		return qsoMode
+	}
+	if hasMode(category.Modes, qsoMode) {
+		return qsoMode
+	}
 	if len(category.Modes) > 1 {
 		return cabrillo.ModeMIXED
 	}
@@ -43,6 +64,15 @@ func convalToCabrilloMode(category conval.Category, availableModes []conval.Mode
 		mode = availableModes[0]
 	}
 	return convertMode(mode)
+}
+
+func hasMode(availableModes []conval.Mode, mode cabrillo.CategoryMode) bool {
+	for _, m := range availableModes {
+		if convertMode(m) == mode {
+			return true
+		}
+	}
+	return false
 }
 
 func convertMode(mode conval.Mode) cabrillo.CategoryMode {

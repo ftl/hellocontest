@@ -30,7 +30,10 @@ type View interface {
 type Controller struct {
 	view View
 
-	definition      *conval.Definition
+	definition *conval.Definition
+	qsoBand    cabrillo.CategoryBand
+	qsoMode    cabrillo.CategoryMode
+
 	category        cabrillo.Category
 	name            string
 	email           string
@@ -58,6 +61,9 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO) (*cabrillo.Log, bool, bool) {
 	c.definition = settings.Contest().Definition
+	c.qsoBand, c.qsoMode = findBandAndMode(qsos)
+	c.category.Band = c.qsoBand
+	c.category.Mode = c.qsoMode
 
 	c.updateCategorySettings()
 	c.view.SetName(c.name)
@@ -95,8 +101,8 @@ func (c *Controller) SetCategory(name string) {
 	}
 
 	c.category.Assisted = convalToCabrilloAssisted(category)
-	c.category.Band = convalToCabrilloBand(category, c.definition.Bands)
-	c.category.Mode = convalToCabrilloMode(category, c.definition.Modes)
+	c.category.Band = convalToCabrilloBand(category, c.definition.Bands, c.qsoBand)
+	c.category.Mode = convalToCabrilloMode(category, c.definition.Modes, c.qsoMode)
 	c.category.Operator = convalToCabrilloOperator(category)
 	c.category.Power = convalToCabrilloPower(category)
 	c.updateCategorySettings()
@@ -308,4 +314,25 @@ func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
 		},
 		Transmitter: 0,
 	}
+}
+
+func findBandAndMode(qsos []core.QSO) (band cabrillo.CategoryBand, mode cabrillo.CategoryMode) {
+	band = ""
+	mode = ""
+	for _, qso := range qsos {
+		qsoBand := cabrillo.CategoryBand(strings.ToUpper(string(qso.Band)))
+		if band == "" {
+			band = qsoBand
+		} else if band != cabrillo.BandAll && band != qsoBand {
+			band = cabrillo.BandAll
+		}
+
+		qsoMode := cabrillo.CategoryMode(strings.ToUpper(string(qso.Mode)))
+		if mode == "" {
+			mode = qsoMode
+		} else if mode != cabrillo.ModeMIXED && mode != qsoMode {
+			mode = cabrillo.ModeMIXED
+		}
+	}
+	return band, mode
 }

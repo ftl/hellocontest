@@ -57,7 +57,7 @@ func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloV
 	columns.SetOrientation(gtk.ORIENTATION_HORIZONTAL)
 	columns.SetHExpand(true)
 	columns.SetVExpand(true)
-	columns.SetColumnSpacing(5)
+	columns.SetColumnSpacing(10)
 	result.root.Attach(columns, 0, 1, 1, 1)
 
 	leftColumn, _ := gtk.GridNew()

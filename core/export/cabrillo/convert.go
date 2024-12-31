@@ -123,9 +123,9 @@ func convalToCabrilloPower(category conval.Category) cabrillo.CategoryPower {
 
 func convalToCabrilloTransmitter(category conval.Category) cabrillo.CategoryTransmitter {
 	switch category.TX {
-	case conval.OneTX:
+	case conval.OneTX, "1":
 		return cabrillo.OneTransmitter
-	case conval.TwoTX:
+	case conval.TwoTX, "2":
 		return cabrillo.TwoTransmitter
 	case conval.MultiTX:
 		return cabrillo.LimitedTransmitter

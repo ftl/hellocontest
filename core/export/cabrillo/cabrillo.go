@@ -41,6 +41,7 @@ type View interface {
 	SetCertificate(bool)
 	SetSoapBox(string)
 
+	SetOpenUploadAfterExport(bool)
 	SetOpenAfterExport(bool)
 }
 
@@ -64,12 +65,21 @@ type Controller struct {
 	specific             string
 	certificate          bool
 	soapBox              string
-	openAfterExport      bool
+
+	openUploadAfterExport bool
+	openAfterExport       bool
+}
+
+type Result struct {
+	Export                *cabrillo.Log
+	OpenUploadAfterExport bool
+	OpenAfterExport       bool
 }
 
 func NewController() *Controller {
 	result := &Controller{
-		openAfterExport: false,
+		openUploadAfterExport: false,
+		openAfterExport:       false,
 	}
 
 	return result
@@ -86,7 +96,7 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 }
 
-func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO) (*cabrillo.Log, bool, bool) {
+func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO) (Result, bool) {
 	c.definition = settings.Contest().Definition
 	c.qsoBand, c.qsoMode = findBandAndMode(qsos)
 	c.category.Band = c.qsoBand
@@ -105,10 +115,11 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	c.view.SetSpecific(c.specific)
 	c.view.SetCertificate(c.certificate)
 	c.view.SetSoapBox(c.soapBox)
+	c.view.SetOpenUploadAfterExport(c.openUploadAfterExport)
 	c.view.SetOpenAfterExport(c.openAfterExport)
 	accepted := c.view.Show()
 	if !accepted {
-		return nil, false, false
+		return Result{nil, false, false}, false
 	}
 
 	export := createCabrilloLog(settings, claimedScore, qsos)
@@ -126,7 +137,7 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	export.Certificate = c.certificate
 	export.Soapbox = c.soapBox
 
-	return export, c.openAfterExport, true
+	return Result{export, c.openUploadAfterExport, c.openAfterExport}, true
 }
 
 func (c *Controller) Categories() []string {
@@ -399,6 +410,10 @@ func (c *Controller) SetCertificate(certificate bool) {
 
 func (c *Controller) SetSoapBox(soapBox string) {
 	c.soapBox = soapBox
+}
+
+func (c *Controller) SetOpenUploadAfterExport(open bool) {
+	c.openUploadAfterExport = open
 }
 
 func (c *Controller) SetOpenAfterExport(open bool) {

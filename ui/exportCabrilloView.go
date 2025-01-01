@@ -38,6 +38,7 @@ type ExportCabrilloController interface {
 	SetSpecific(string)
 	SetCertificate(bool)
 	SetSoapBox(string)
+	SetOpenUploadAfterExport(bool)
 	SetOpenAfterExport(bool)
 }
 
@@ -71,7 +72,8 @@ type exportCabrilloView struct {
 	certificateCheckButton *gtk.CheckButton
 	soapBoxEntry           *gtk.TextView
 
-	openAfterExportCheckButton *gtk.CheckButton
+	openUploadAfterExportCheckButton *gtk.CheckButton
+	openAfterExportCheckButton       *gtk.CheckButton
 }
 
 func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloView {
@@ -148,7 +150,8 @@ func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloV
 
 	buildSeparator(result.root, 6, 1)
 
-	result.openAfterExportCheckButton = buildCheckButton(result.root, 7, "Open the file after export", result.onOpenAfterExportToggled)
+	result.openUploadAfterExportCheckButton = buildCheckButton(result.root, 7, "Open the upload URL after export", result.onOpenUploadAfterExportToggled)
+	result.openAfterExportCheckButton = buildCheckButton(result.root, 8, "Open the file after export", result.onOpenAfterExportToggled)
 
 	return result
 }
@@ -251,6 +254,10 @@ func (v *exportCabrilloView) onSoapBoxChanged() {
 	buffer, _ := v.soapBoxEntry.GetBuffer()
 	text, _ := buffer.GetText(buffer.GetStartIter(), buffer.GetEndIter(), true)
 	v.controller.SetSoapBox(text)
+}
+
+func (v *exportCabrilloView) onOpenUploadAfterExportToggled() {
+	v.controller.SetOpenUploadAfterExport(v.openUploadAfterExportCheckButton.GetActive())
 }
 
 func (v *exportCabrilloView) onOpenAfterExportToggled() {

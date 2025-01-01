@@ -35,7 +35,8 @@ type exportCabrilloDialog struct {
 	certificate bool
 	soapBox     string
 
-	openAfterExport bool
+	openUploadAfterExport bool
+	openAfterExport       bool
 }
 
 func setupExportCabrilloDialog(parent gtk.IWidget, controller ExportCabrilloController) *exportCabrilloDialog {
@@ -76,7 +77,8 @@ func (d *exportCabrilloDialog) Show() bool {
 	d.view.certificateCheckButton.SetActive(d.certificate)
 	buffer, _ := d.view.soapBoxEntry.GetBuffer()
 	buffer.SetText(d.soapBox)
-	// d.view.soapBoxEntry.SetBuffer(buffer)
+
+	d.view.openUploadAfterExportCheckButton.SetActive(d.openUploadAfterExport)
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
 
 	dialog, _ := gtk.DialogNew()
@@ -246,6 +248,10 @@ func (d *exportCabrilloDialog) SetSoapBox(soapBox string) {
 		buffer, _ := d.view.soapBoxEntry.GetBuffer()
 		buffer.SetText(soapBox)
 	}
+}
+
+func (d *exportCabrilloDialog) SetOpenUploadAfterExport(open bool) {
+	d.openUploadAfterExport = open
 }
 
 func (d *exportCabrilloDialog) SetOpenAfterExport(open bool) {

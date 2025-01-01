@@ -541,7 +541,7 @@ func (c *Controller) SaveAs() {
 
 func (c *Controller) ExportCabrillo() {
 	var err error
-	export, openCabrilloFile, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All())
+	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All())
 	if !ok {
 		return
 	}
@@ -563,13 +563,16 @@ func (c *Controller) ExportCabrillo() {
 	}
 	defer file.Close()
 
-	err = cabrillo.Export(file, export)
+	err = cabrillo.Export(file, result.Export)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
 	}
 
-	if openCabrilloFile {
+	if result.OpenUploadAfterExport {
+		c.OpenContestUploadPage()
+	}
+	if result.OpenAfterExport {
 		c.openWithExternalApplication(filename)
 	}
 }

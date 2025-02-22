@@ -310,16 +310,13 @@ func (e *entry) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {
 	e.predictedCallLabel.ParseMarkdown(e.renderCallsign(callsign))
 }
 
-func (e *entry) SetDXCC(dxccName, continent string, itu, cq int, arrlCompliant bool) {
+func (e *entry) SetDXCC(dxccName, continent string, itu, cq int) {
 	md := fmt.Sprintf("%s, %s", dxccName, continent)
 	if itu != 0 {
 		md += fmt.Sprintf(", ITU %d", itu)
 	}
 	if cq != 0 {
 		md += fmt.Sprintf(", CQ %d", cq)
-	}
-	if dxccName != "" && !arrlCompliant {
-		md += ", <span color='red'>not ARRL compliant</span>"
 	}
 	e.dxccLabel.ParseMarkdown(md)
 }

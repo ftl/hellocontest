@@ -81,7 +81,6 @@ type Callinfo interface {
 type Bandmap interface {
 	Add(core.Spot)
 
-	AllBy(core.BandmapOrder) []core.BandmapEntry
 	SelectByCallsign(callsign.Callsign) bool
 }
 

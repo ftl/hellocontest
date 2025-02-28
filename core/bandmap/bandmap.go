@@ -260,12 +260,6 @@ func (m *Bandmap) Notify(listener any) {
 	}
 }
 
-func (m *Bandmap) Clear() {
-	m.do <- func() {
-		m.entries.Clear()
-	}
-}
-
 func (m *Bandmap) Add(spot core.Spot) {
 	m.do <- func() {
 		mode := spot.Mode
@@ -281,22 +275,6 @@ func (m *Bandmap) Add(spot core.Spot) {
 
 		m.entries.Add(spot, m.clock.Now(), m.weights)
 	}
-}
-
-func (m *Bandmap) AllBy(order core.BandmapOrder) []core.BandmapEntry {
-	result := make(chan []core.BandmapEntry)
-	m.do <- func() {
-		result <- m.entries.AllBy(order)
-	}
-	return <-result
-}
-
-func (m *Bandmap) Query(order core.BandmapOrder, filters ...core.BandmapFilter) []core.BandmapEntry {
-	result := make(chan []core.BandmapEntry)
-	m.do <- func() {
-		result <- m.entries.Query(order, filters...)
-	}
-	return <-result
 }
 
 func (m *Bandmap) SelectEntry(id core.BandmapEntryID) {

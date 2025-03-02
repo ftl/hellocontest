@@ -236,7 +236,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 		if added {
 			e.Info = l.callinfo.GetInfo(spot.Call, spot.Band, spot.Mode, []string{})
 			e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
-			l.notifier.emitEntryUpdated(*e)
+			l.notifier.emitEntryUpdated(e.BandmapEntry)
 			return
 		}
 		if entryQuality < quality {
@@ -251,7 +251,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 		newEntry.Info.WeightedValue = l.calculateWeightedValue(&newEntry, now, weights)
 	}
 	l.insert(&newEntry)
-	l.notifier.emitEntryAdded(newEntry)
+	l.notifier.emitEntryAdded(newEntry.BandmapEntry)
 }
 
 func (l *Entries) insert(entry *Entry) {
@@ -300,7 +300,7 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core
 		l.entries[i] = e
 
 		if updated {
-			l.notifier.emitEntryUpdated(*e)
+			l.notifier.emitEntryUpdated(e.BandmapEntry)
 		}
 		if l.countEntryValue(e.BandmapEntry) {
 			l.addToSummary(e)
@@ -316,7 +316,7 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 			if l.selectedEntry != nil && e.ID == l.selectedEntry.ID {
 				l.selectedEntry = nil
 			}
-			l.notifier.emitEntryRemoved(*e)
+			l.notifier.emitEntryRemoved(e.BandmapEntry)
 		}
 		return stillValid
 	})
@@ -396,24 +396,6 @@ func (l *Entries) DoOnEntry(id core.BandmapEntryID, f func(core.BandmapEntry)) {
 		}
 	}
 	f(core.BandmapEntry{})
-}
-
-func (l *Entries) Select(id core.BandmapEntryID) {
-	l.selectedEntry = nil
-	for _, entry := range l.entries {
-		if entry.ID == id {
-			l.selectedEntry = entry
-			l.notifier.emitEntrySelected(*entry)
-			return
-		}
-	}
-}
-
-func (l *Entries) SelectedEntry() (core.BandmapEntry, bool) {
-	if l.selectedEntry == nil {
-		return core.BandmapEntry{}, false
-	}
-	return l.selectedEntry.BandmapEntry, true
 }
 
 func (l *Entries) All() []core.BandmapEntry {

@@ -42,8 +42,9 @@ var defaultWeights = core.BandmapWeights{
 }
 
 type Bandmap struct {
-	notifier *Notifier
-	entries  *Entries
+	notifier  *Notifier
+	entries   *Entries
+	selection *Selection
 
 	clock       core.Clock
 	view        View
@@ -83,6 +84,7 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 	result.notifier = &Notifier{}
 	result.entries = NewEntries(result.notifier, result.countEntryValue)
 	result.entries.SetBands(settings.Contest().Bands())
+	result.selection = NewSelection(result.entries, result.notifier, result.entryVisible)
 
 	go result.run()
 
@@ -107,9 +109,7 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now(), m.weights)
 
-	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 2, func(entry core.BandmapEntry) bool {
-		return entry.OnFrequency(m.activeFrequency)
-	})
+	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 2, core.OnFrequency(m.activeFrequency))
 	m.notifier.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
 
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
@@ -125,26 +125,41 @@ func (m *Bandmap) update() {
 		Index:       index,
 	}
 
-	selectedEntry, selected := m.entries.SelectedEntry()
+	selectedEntry, selected := m.selection.SelectedEntry()
 	if selected && m.entryVisible(selectedEntry) {
 		frame.SelectedEntry = selectedEntry
 	}
 
-	nearestEntry, nearestEntryFound := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 0, func(entry core.BandmapEntry) bool {
-		return !entry.OnFrequency(m.activeFrequency) && entry.Source != core.WorkedSpot
-	})
+	nearestEntry, nearestEntryFound := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 0, core.Not(core.Or(core.OnFrequency(m.activeFrequency), core.IsWorkedSpot)))
 	if nearestEntryFound {
 		frame.NearestEntry = nearestEntry
 	}
 
-	highestValueEntry, highestValueEntryFound := m.nextVisibleEntryBy(core.Descending(core.BandmapByValue), 0, func(entry core.BandmapEntry) bool {
-		return entry.Source != core.WorkedSpot
-	})
+	highestValueEntry, highestValueEntryFound := m.nextVisibleEntryBy(core.Descending(core.BandmapByValue), 0, core.Not(core.IsWorkedSpot))
 	if highestValueEntryFound {
 		frame.HighestValueEntry = highestValueEntry
 	}
 
 	m.view.ShowFrame(frame)
+}
+
+func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, limit int, filter core.BandmapFilter) (core.BandmapEntry, bool) {
+	entries := m.entries.AllBy(order)
+	if limit == 0 || limit > len(entries) {
+		limit = len(entries)
+	}
+	for i := range limit {
+		entry := entries[i]
+		if !m.entryVisible(entry) {
+			continue
+		}
+		if !filter(entry) {
+			continue
+		}
+
+		return entry, true
+	}
+	return core.BandmapEntry{}, false
 }
 
 func (m *Bandmap) Close() {
@@ -281,90 +296,49 @@ func (m *Bandmap) Add(spot core.Spot) {
 
 func (m *Bandmap) SelectEntry(id core.BandmapEntryID) {
 	m.do <- func() {
-		m.selectEntry(id)
+		m.selection.SelectEntry(id)
+		m.update()
 	}
 }
 
-func (m *Bandmap) selectEntry(id core.BandmapEntryID) {
-	m.entries.Select(id)
-	m.update()
-}
-
-func (m *Bandmap) SelectByCallsign(call callsign.Callsign) bool {
-	result := make(chan bool, 1)
-	callStr := call.String()
+func (m *Bandmap) SelectByCallsign(call callsign.Callsign) {
 	m.do <- func() {
-		foundEntryID := core.NoEntryID
-		m.entries.ForEach(func(entry core.BandmapEntry) bool {
-			if entry.Call.String() == callStr && entry.Band == m.visibleBand {
-				foundEntryID = entry.ID
-				return true
-			}
-			return false
-		})
-		m.selectEntry(foundEntryID)
-		result <- (foundEntryID > core.NoEntryID)
+		m.selection.SelectByCallsign(call)
+		m.update()
 	}
-	return <-result
 }
 
 func (m *Bandmap) GotoHighestValueEntry() {
-	m.findAndSelectNextVisibleEntryBy(core.Descending(core.BandmapByValue), func(entry core.BandmapEntry) bool {
-		return entry.Source != core.WorkedSpot
-	})
+	m.do <- func() {
+		m.selection.SelectHighestValue()
+		m.update()
+	}
 }
 
 func (m *Bandmap) GotoNearestEntry() {
-	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
-		return !entry.OnFrequency(m.activeFrequency) && entry.Source != core.WorkedSpot
-	})
+	m.do <- func() {
+		m.selection.SelectNearest(m.activeFrequency)
+		m.update()
+	}
 }
 
 func (m *Bandmap) GotoNextEntryUp() {
-	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
-		selectedEntry, selected := m.entries.SelectedEntry()
-		return ((entry.Frequency > m.activeFrequency) || (selected && entry.Frequency == m.activeFrequency && entry.ID > selectedEntry.ID)) && entry.Source != core.WorkedSpot
-	})
+	m.do <- func() {
+		m.selection.SelectNextUp(m.activeFrequency)
+		m.update()
+	}
 }
 
 func (m *Bandmap) GotoNextEntryDown() {
-	m.findAndSelectNextVisibleEntry(func(entry core.BandmapEntry) bool {
-		selectedEntry, selected := m.entries.SelectedEntry()
-		return ((entry.Frequency < m.activeFrequency) || (selected && entry.Frequency == m.activeFrequency && entry.ID < selectedEntry.ID)) && entry.Source != core.WorkedSpot
-	})
-}
-
-func (m *Bandmap) findAndSelectNextVisibleEntry(f func(entry core.BandmapEntry) bool) {
-	m.findAndSelectNextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), f)
-}
-
-func (m *Bandmap) findAndSelectNextVisibleEntryBy(order core.BandmapOrder, f func(entry core.BandmapEntry) bool) {
 	m.do <- func() {
-		entry, found := m.nextVisibleEntryBy(order, 0, f)
-		if found {
-			m.selectEntry(entry.ID)
-		}
+		m.selection.SelectNextDown(m.activeFrequency)
+		m.update()
 	}
 }
 
-func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, limit int, f func(core.BandmapEntry) bool) (core.BandmapEntry, bool) {
-	entries := m.entries.AllBy(order)
-	if limit == 0 || limit > len(entries) {
-		limit = len(entries)
-	}
-	for i := 0; i < limit; i++ {
-		entry := entries[i]
-		if !m.entryVisible(entry) {
-			continue
-		}
-		if !f(entry) {
-			continue
-		}
-
-		return entry, true
-	}
-	return core.BandmapEntry{}, false
-}
+/**********
+ * HELPERS
+ **********/
 
 type Logger struct{}
 

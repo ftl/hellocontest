@@ -11,12 +11,14 @@ type Selection struct {
 	selected      bool
 
 	entries       *Entries
+	notifier      *Notifier
 	visibleFilter core.BandmapFilter
 }
 
-func NewSelection(entries *Entries, visibleFilter core.BandmapFilter) *Selection {
+func NewSelection(entries *Entries, notifier *Notifier, visibleFilter core.BandmapFilter) *Selection {
 	return &Selection{
 		entries:       entries,
+		notifier:      notifier,
 		visibleFilter: visibleFilter,
 	}
 }
@@ -24,15 +26,13 @@ func NewSelection(entries *Entries, visibleFilter core.BandmapFilter) *Selection
 func (s *Selection) selectEntry(entry core.BandmapEntry) {
 	s.selectedEntry = entry
 	s.selected = true
-
-	// TODO s.emitEntrySelected(entry)
+	s.notifier.emitEntrySelected(s.selectedEntry)
 }
 
 func (s *Selection) clear() {
 	s.selectedEntry = core.BandmapEntry{}
 	s.selected = false
-
-	// TODO s.emitEntrySelected(core.BandmapEntry{})
+	// TODO??? s.notifier.emitEntrySelected(s.selectedEntry)
 }
 
 func (s *Selection) findAndSelect(order core.BandmapOrder, filters ...core.BandmapFilter) {
@@ -40,6 +40,10 @@ func (s *Selection) findAndSelect(order core.BandmapOrder, filters ...core.Bandm
 	if len(entries) > 0 {
 		s.selectEntry(entries[0])
 	}
+}
+
+func (s *Selection) SelectedEntry() (core.BandmapEntry, bool) {
+	return s.selectedEntry, s.selected
 }
 
 func (s *Selection) SelectEntry(id core.BandmapEntryID) {
@@ -97,11 +101,11 @@ func (s *Selection) SelectNextUp(frequency core.Frequency) {
 
 func (s *Selection) SelectNextDown(frequency core.Frequency) {
 	s.findAndSelect(
-		core.BandmapByDistance(frequency),
+		core.BandmapByDistanceAndDescendingID(frequency),
 		s.visibleFilter,
 		func(entry core.BandmapEntry) bool {
-			return (entry.Frequency > frequency) ||
-				(s.selected && entry.Frequency == frequency && entry.ID > s.selectedEntry.ID)
+			return (entry.Frequency < frequency) ||
+				(s.selected && entry.Frequency == frequency && entry.ID < s.selectedEntry.ID)
 		},
 	)
 }

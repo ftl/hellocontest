@@ -32,34 +32,34 @@ func (n *Notifier) Notify(listener any) {
 	n.listeners = append(n.listeners, listener)
 }
 
-func (n *Notifier) emitEntryAdded(e Entry) {
+func (n *Notifier) emitEntryAdded(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryAddedListener, ok := listener.(EntryAddedListener); ok {
-			entryAddedListener.EntryAdded(e.BandmapEntry)
+			entryAddedListener.EntryAdded(e)
 		}
 	}
 }
 
-func (n *Notifier) emitEntryUpdated(e Entry) {
+func (n *Notifier) emitEntryUpdated(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryUpdatedListener, ok := listener.(EntryUpdatedListener); ok {
-			entryUpdatedListener.EntryUpdated(e.BandmapEntry)
+			entryUpdatedListener.EntryUpdated(e)
 		}
 	}
 }
 
-func (n *Notifier) emitEntryRemoved(e Entry) {
+func (n *Notifier) emitEntryRemoved(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
-			entryRemovedListener.EntryRemoved(e.BandmapEntry)
+			entryRemovedListener.EntryRemoved(e)
 		}
 	}
 }
 
-func (n *Notifier) emitEntrySelected(e Entry) {
+func (n *Notifier) emitEntrySelected(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
-			entrySelectedListener.EntrySelected(e.BandmapEntry)
+			entrySelectedListener.EntrySelected(e)
 		}
 	}
 }

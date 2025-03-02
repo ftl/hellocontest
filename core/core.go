@@ -1020,6 +1020,17 @@ func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
 	}
 }
 
+func BandmapByDistanceAndDescendingID(referenceFrequency Frequency) BandmapOrder {
+	return func(a, b BandmapEntry) bool {
+		deltaA := math.Abs(float64(a.Frequency - referenceFrequency))
+		deltaB := math.Abs(float64(b.Frequency - referenceFrequency))
+		if deltaA == deltaB {
+			return a.ID > b.ID
+		}
+		return deltaA < deltaB
+	}
+}
+
 func BandmapByValue(a, b BandmapEntry) bool {
 	if a.Info.WeightedValue == b.Info.WeightedValue {
 		return a.ID < b.ID

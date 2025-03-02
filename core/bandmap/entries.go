@@ -160,13 +160,22 @@ func (e *Entry) updateFrequency() bool {
 	return oldFrequency != e.Frequency
 }
 
-func (e *Entry) matchesFilters(filters ...core.BandmapFilter) bool {
+func (e *Entry) MatchesAllFilters(filters ...core.BandmapFilter) bool {
 	for _, filter := range filters {
 		if !filter(e.BandmapEntry) {
 			return false
 		}
 	}
 	return true
+}
+
+func (e *Entry) MatchesAnyFilter(filters ...core.BandmapFilter) bool {
+	for _, filter := range filters {
+		if filter(e.BandmapEntry) {
+			return true
+		}
+	}
+	return false
 }
 
 type EntryAddedListener interface {
@@ -489,7 +498,7 @@ func (l *Entries) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 func (l *Entries) Query(order core.BandmapOrder, filters ...core.BandmapFilter) []core.BandmapEntry {
 	result := make([]core.BandmapEntry, 0, len(l.entries))
 	for _, e := range l.entries {
-		if e.matchesFilters(filters...) {
+		if e.MatchesAllFilters(filters...) {
 			result = append(result, e.BandmapEntry)
 		}
 	}

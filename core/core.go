@@ -1029,6 +1029,44 @@ func BandmapByValue(a, b BandmapEntry) bool {
 
 type BandmapFilter func(entry BandmapEntry) bool
 
+func And(filters ...BandmapFilter) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		for _, filter := range filters {
+			if !filter(entry) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func Or(filters ...BandmapFilter) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		for _, filter := range filters {
+			if filter(entry) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func Not(filter BandmapFilter) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return !filter(entry)
+	}
+}
+
+func IsWorkedSpot(entry BandmapEntry) bool {
+	return entry.Source == WorkedSpot
+}
+
+func OnFrequency(frequency Frequency) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.OnFrequency(frequency)
+	}
+}
+
 func OnBand(band Band) BandmapFilter {
 	return func(entry BandmapEntry) bool {
 		return entry.Band == band

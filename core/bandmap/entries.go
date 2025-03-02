@@ -4,10 +4,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 	"golang.org/x/exp/slices"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -160,7 +160,7 @@ func (e *Entry) updateFrequency() bool {
 	return oldFrequency != e.Frequency
 }
 
-func (e *Entry) matchesFilters(filters ...core.BandmapFilter) bool {
+func (e *Entry) MatchesAllFilters(filters ...core.BandmapFilter) bool {
 	for _, filter := range filters {
 		if !filter(e.BandmapEntry) {
 			return false
@@ -169,24 +169,13 @@ func (e *Entry) matchesFilters(filters ...core.BandmapFilter) bool {
 	return true
 }
 
-type EntryAddedListener interface {
-	EntryAdded(core.BandmapEntry)
-}
-
-type EntryUpdatedListener interface {
-	EntryUpdated(core.BandmapEntry)
-}
-
-type EntryRemovedListener interface {
-	EntryRemoved(core.BandmapEntry)
-}
-
-type EntrySelectedListener interface {
-	EntrySelected(core.BandmapEntry)
-}
-
-type EntryOnFrequencyListener interface {
-	EntryOnFrequency(core.BandmapEntry, bool)
+func (e *Entry) MatchesAnyFilter(filters ...core.BandmapFilter) bool {
+	for _, filter := range filters {
+		if filter(e.BandmapEntry) {
+			return true
+		}
+	}
+	return false
 }
 
 type Entries struct {
@@ -197,16 +186,16 @@ type Entries struct {
 	callinfo        Callinfo
 	countEntryValue func(core.BandmapEntry) bool
 	lastID          core.BandmapEntryID
-	selectedEntry   *Entry
 
-	listeners []any
+	notifier *Notifier
 }
 
-func NewEntries(countEntryValue func(core.BandmapEntry) bool) *Entries {
+func NewEntries(notifier *Notifier, countEntryValue func(core.BandmapEntry) bool) *Entries {
 	result := &Entries{
 		order:           core.BandmapByFrequency,
 		callinfo:        new(nullCallinfo),
 		countEntryValue: countEntryValue,
+		notifier:        notifier,
 	}
 	result.Clear()
 	return result
@@ -231,50 +220,6 @@ func (l *Entries) SetCallinfo(callinfo Callinfo) {
 	l.callinfo = callinfo
 }
 
-func (l *Entries) Notify(listener any) {
-	l.listeners = append(l.listeners, listener)
-}
-
-func (l *Entries) emitEntryAdded(e Entry) {
-	for _, listener := range l.listeners {
-		if entryAddedListener, ok := listener.(EntryAddedListener); ok {
-			entryAddedListener.EntryAdded(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntryUpdated(e Entry) {
-	for _, listener := range l.listeners {
-		if entryUpdatedListener, ok := listener.(EntryUpdatedListener); ok {
-			entryUpdatedListener.EntryUpdated(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntryRemoved(e Entry) {
-	for _, listener := range l.listeners {
-		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
-			entryRemovedListener.EntryRemoved(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntrySelected(e Entry) {
-	for _, listener := range l.listeners {
-		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
-			entrySelectedListener.EntrySelected(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntryOnFrequency(e core.BandmapEntry, available bool) {
-	for _, listener := range l.listeners {
-		if nearestEntryListener, ok := listener.(EntryOnFrequencyListener); ok {
-			nearestEntryListener.EntryOnFrequency(e, available)
-		}
-	}
-}
-
 func (l *Entries) Clear() {
 	l.entries = make([]*Entry, 0, 100)
 }
@@ -288,9 +233,8 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 	for _, e := range l.entries {
 		quality, added := e.Add(spot)
 		if added {
-			e.Info = l.callinfo.GetInfo(spot.Call, spot.Band, spot.Mode, []string{})
-			e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
-			l.emitEntryUpdated(*e)
+			l.complementCallinfo(e, now, weights)
+			l.notifier.emitEntryUpdated(e.BandmapEntry)
 			return
 		}
 		if entryQuality < quality {
@@ -300,12 +244,9 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 
 	newEntry := NewEntry(spot)
 	newEntry.Quality = entryQuality
-	if newEntry.Call.String() != "" {
-		newEntry.Info = l.callinfo.GetInfo(newEntry.Call, newEntry.Band, newEntry.Mode, []string{})
-		newEntry.Info.WeightedValue = l.calculateWeightedValue(&newEntry, now, weights)
-	}
+	l.complementCallinfo(&newEntry, now, weights)
 	l.insert(&newEntry)
-	l.emitEntryAdded(newEntry)
+	l.notifier.emitEntryAdded(newEntry.BandmapEntry)
 }
 
 func (l *Entries) insert(entry *Entry) {
@@ -347,14 +288,13 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core
 	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
 		oldPoints, oldMultis, oldWeightedValue := e.Info.Points, e.Info.Multis, e.Info.WeightedValue
-		e.Info.Points, e.Info.Multis, e.Info.MultiValues = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
-		e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
+		l.complementValue(e, now, weights)
 		updated := e.updated || (oldPoints != e.Info.Points) || (oldMultis != e.Info.Multis) || (oldWeightedValue != e.Info.WeightedValue)
 		e.updated = false
 		l.entries[i] = e
 
 		if updated {
-			l.emitEntryUpdated(*e)
+			l.notifier.emitEntryUpdated(e.BandmapEntry)
 		}
 		if l.countEntryValue(e.BandmapEntry) {
 			l.addToSummary(e)
@@ -367,13 +307,26 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
 		stillValid := e.RemoveSpotsBefore(deadline)
 		if !stillValid {
-			if l.selectedEntry != nil && e.ID == l.selectedEntry.ID {
-				l.selectedEntry = nil
-			}
-			l.emitEntryRemoved(*e)
+			l.notifier.emitEntryRemoved(e.BandmapEntry)
 		}
 		return stillValid
 	})
+}
+
+func (l *Entries) complementCallinfo(entry *Entry, now time.Time, weights core.BandmapWeights) {
+	if entry.Call.String() == "" {
+		return
+	}
+	entry.Info = l.callinfo.GetInfo(entry.Call, entry.Band, entry.Mode, []string{})
+	entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
+}
+
+func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.BandmapWeights) {
+	if entry.Call.String() == "" {
+		return
+	}
+	entry.Info.Points, entry.Info.Multis, entry.Info.MultiValues = l.callinfo.GetValue(entry.Call, entry.Band, entry.Mode, []string{})
+	entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
 }
 
 func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {
@@ -452,24 +405,6 @@ func (l *Entries) DoOnEntry(id core.BandmapEntryID, f func(core.BandmapEntry)) {
 	f(core.BandmapEntry{})
 }
 
-func (l *Entries) Select(id core.BandmapEntryID) {
-	l.selectedEntry = nil
-	for _, entry := range l.entries {
-		if entry.ID == id {
-			l.selectedEntry = entry
-			l.emitEntrySelected(*entry)
-			return
-		}
-	}
-}
-
-func (l *Entries) SelectedEntry() (core.BandmapEntry, bool) {
-	if l.selectedEntry == nil {
-		return core.BandmapEntry{}, false
-	}
-	return l.selectedEntry.BandmapEntry, true
-}
-
 func (l *Entries) All() []core.BandmapEntry {
 	result := make([]core.BandmapEntry, len(l.entries))
 	for i, e := range l.entries {
@@ -489,7 +424,7 @@ func (l *Entries) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 func (l *Entries) Query(order core.BandmapOrder, filters ...core.BandmapFilter) []core.BandmapEntry {
 	result := make([]core.BandmapEntry, 0, len(l.entries))
 	for _, e := range l.entries {
-		if e.matchesFilters(filters...) {
+		if e.MatchesAllFilters(filters...) {
 			result = append(result, e.BandmapEntry)
 		}
 	}

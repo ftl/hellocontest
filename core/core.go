@@ -1020,6 +1020,17 @@ func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
 	}
 }
 
+func BandmapByDistanceAndDescendingID(referenceFrequency Frequency) BandmapOrder {
+	return func(a, b BandmapEntry) bool {
+		deltaA := math.Abs(float64(a.Frequency - referenceFrequency))
+		deltaB := math.Abs(float64(b.Frequency - referenceFrequency))
+		if deltaA == deltaB {
+			return a.ID > b.ID
+		}
+		return deltaA < deltaB
+	}
+}
+
 func BandmapByValue(a, b BandmapEntry) bool {
 	if a.Info.WeightedValue == b.Info.WeightedValue {
 		return a.ID < b.ID
@@ -1028,6 +1039,44 @@ func BandmapByValue(a, b BandmapEntry) bool {
 }
 
 type BandmapFilter func(entry BandmapEntry) bool
+
+func And(filters ...BandmapFilter) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		for _, filter := range filters {
+			if !filter(entry) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func Or(filters ...BandmapFilter) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		for _, filter := range filters {
+			if filter(entry) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func Not(filter BandmapFilter) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return !filter(entry)
+	}
+}
+
+func IsWorkedSpot(entry BandmapEntry) bool {
+	return entry.Source == WorkedSpot
+}
+
+func OnFrequency(frequency Frequency) BandmapFilter {
+	return func(entry BandmapEntry) bool {
+		return entry.OnFrequency(frequency)
+	}
+}
 
 func OnBand(band Band) BandmapFilter {
 	return func(entry BandmapEntry) bool {

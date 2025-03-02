@@ -159,7 +159,7 @@ func TestEntry_RemoveSpotsBefore(t *testing.T) {
 
 func TestEntries_AddNewEntry(t *testing.T) {
 	now := time.Now()
-	entries := NewEntries(countAllEntries)
+	entries := NewEntries(&Notifier{}, countAllEntries)
 	assert.Equal(t, 0, entries.Len())
 
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now}, now, defaultWeights)
@@ -344,7 +344,7 @@ func TestEntries_insert(t *testing.T) {
 
 func TestEntries_QueryByFilters(t *testing.T) {
 	now := time.Now()
-	entries := NewEntries(countAllEntries)
+	entries := NewEntries(&Notifier{}, countAllEntries)
 	entries.Add(core.Spot{Call: callsign.MustParse("DL1ABC"), Frequency: 7020000, Band: core.Band40m, Source: core.ManualSpot}, now.Add(-1*time.Minute), defaultWeights)
 	entries.Add(core.Spot{Call: callsign.MustParse("DL2ABC"), Frequency: 14015000, Band: core.Band20m, Source: core.ManualSpot}, now.Add(-2*time.Minute), defaultWeights)
 	entries.Add(core.Spot{Call: callsign.MustParse("DL3ABC"), Frequency: 14030000, Band: core.Band20m, Source: core.ClusterSpot}, now.Add(-2*time.Minute), defaultWeights)
@@ -388,7 +388,7 @@ func TestEntries_QueryByFilters(t *testing.T) {
 
 func TestEntries_CleanOutOldEntries(t *testing.T) {
 	now := time.Now()
-	entries := NewEntries(countAllEntries)
+	entries := NewEntries(&Notifier{}, countAllEntries)
 
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)}, now, defaultWeights)
@@ -411,9 +411,10 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 
 func TestEntries_Notify(t *testing.T) {
 	now := time.Now()
-	entries := NewEntries(countAllEntries)
+	notifier := &Notifier{}
+	entries := NewEntries(notifier, countAllEntries)
 	listener := new(testEntryListener)
-	entries.Notify(listener)
+	notifier.Notify(listener)
 
 	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
 	assert.Equal(t, "DL1ABC", listener.added[0].Call.String())

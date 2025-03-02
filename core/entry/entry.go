@@ -80,9 +80,7 @@ type Callinfo interface {
 
 type Bandmap interface {
 	Add(core.Spot)
-
-	AllBy(core.BandmapOrder) []core.BandmapEntry
-	SelectByCallsign(callsign.Callsign) bool
+	SelectByCallsign(callsign.Callsign)
 }
 
 // NewController returns a new entry controller.
@@ -1008,6 +1006,5 @@ func (n *nullCallinfo) PredictedExchange() []string                     { return
 
 type nullBandmap struct{}
 
-func (n *nullBandmap) Add(core.Spot)                               {}
-func (n *nullBandmap) AllBy(core.BandmapOrder) []core.BandmapEntry { return nil }
-func (n *nullBandmap) SelectByCallsign(callsign.Callsign) bool     { return false }
+func (n *nullBandmap) Add(core.Spot)                      {}
+func (n *nullBandmap) SelectByCallsign(callsign.Callsign) {}

@@ -178,26 +178,6 @@ func (e *Entry) MatchesAnyFilter(filters ...core.BandmapFilter) bool {
 	return false
 }
 
-type EntryAddedListener interface {
-	EntryAdded(core.BandmapEntry)
-}
-
-type EntryUpdatedListener interface {
-	EntryUpdated(core.BandmapEntry)
-}
-
-type EntryRemovedListener interface {
-	EntryRemoved(core.BandmapEntry)
-}
-
-type EntrySelectedListener interface {
-	EntrySelected(core.BandmapEntry)
-}
-
-type EntryOnFrequencyListener interface {
-	EntryOnFrequency(core.BandmapEntry, bool)
-}
-
 type Entries struct {
 	entries         []*Entry
 	bands           []core.Band
@@ -208,14 +188,15 @@ type Entries struct {
 	lastID          core.BandmapEntryID
 	selectedEntry   *Entry
 
-	listeners []any
+	notifier *Notifier
 }
 
-func NewEntries(countEntryValue func(core.BandmapEntry) bool) *Entries {
+func NewEntries(notifier *Notifier, countEntryValue func(core.BandmapEntry) bool) *Entries {
 	result := &Entries{
 		order:           core.BandmapByFrequency,
 		callinfo:        new(nullCallinfo),
 		countEntryValue: countEntryValue,
+		notifier:        notifier,
 	}
 	result.Clear()
 	return result
@@ -240,50 +221,6 @@ func (l *Entries) SetCallinfo(callinfo Callinfo) {
 	l.callinfo = callinfo
 }
 
-func (l *Entries) Notify(listener any) {
-	l.listeners = append(l.listeners, listener)
-}
-
-func (l *Entries) emitEntryAdded(e Entry) {
-	for _, listener := range l.listeners {
-		if entryAddedListener, ok := listener.(EntryAddedListener); ok {
-			entryAddedListener.EntryAdded(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntryUpdated(e Entry) {
-	for _, listener := range l.listeners {
-		if entryUpdatedListener, ok := listener.(EntryUpdatedListener); ok {
-			entryUpdatedListener.EntryUpdated(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntryRemoved(e Entry) {
-	for _, listener := range l.listeners {
-		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
-			entryRemovedListener.EntryRemoved(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntrySelected(e Entry) {
-	for _, listener := range l.listeners {
-		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
-			entrySelectedListener.EntrySelected(e.BandmapEntry)
-		}
-	}
-}
-
-func (l *Entries) emitEntryOnFrequency(e core.BandmapEntry, available bool) {
-	for _, listener := range l.listeners {
-		if nearestEntryListener, ok := listener.(EntryOnFrequencyListener); ok {
-			nearestEntryListener.EntryOnFrequency(e, available)
-		}
-	}
-}
-
 func (l *Entries) Clear() {
 	l.entries = make([]*Entry, 0, 100)
 }
@@ -299,7 +236,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 		if added {
 			e.Info = l.callinfo.GetInfo(spot.Call, spot.Band, spot.Mode, []string{})
 			e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
-			l.emitEntryUpdated(*e)
+			l.notifier.emitEntryUpdated(*e)
 			return
 		}
 		if entryQuality < quality {
@@ -314,7 +251,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 		newEntry.Info.WeightedValue = l.calculateWeightedValue(&newEntry, now, weights)
 	}
 	l.insert(&newEntry)
-	l.emitEntryAdded(newEntry)
+	l.notifier.emitEntryAdded(newEntry)
 }
 
 func (l *Entries) insert(entry *Entry) {
@@ -363,7 +300,7 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core
 		l.entries[i] = e
 
 		if updated {
-			l.emitEntryUpdated(*e)
+			l.notifier.emitEntryUpdated(*e)
 		}
 		if l.countEntryValue(e.BandmapEntry) {
 			l.addToSummary(e)
@@ -379,7 +316,7 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 			if l.selectedEntry != nil && e.ID == l.selectedEntry.ID {
 				l.selectedEntry = nil
 			}
-			l.emitEntryRemoved(*e)
+			l.notifier.emitEntryRemoved(*e)
 		}
 		return stillValid
 	})
@@ -466,7 +403,7 @@ func (l *Entries) Select(id core.BandmapEntryID) {
 	for _, entry := range l.entries {
 		if entry.ID == id {
 			l.selectedEntry = entry
-			l.emitEntrySelected(*entry)
+			l.notifier.emitEntrySelected(*entry)
 			return
 		}
 	}

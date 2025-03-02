@@ -42,7 +42,8 @@ var defaultWeights = core.BandmapWeights{
 }
 
 type Bandmap struct {
-	entries *Entries
+	notifier *Notifier
+	entries  *Entries
 
 	clock       core.Clock
 	view        View
@@ -79,7 +80,8 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 		do:     make(chan func(), 1),
 		closed: make(chan struct{}),
 	}
-	result.entries = NewEntries(result.countEntryValue)
+	result.notifier = &Notifier{}
+	result.entries = NewEntries(result.notifier, result.countEntryValue)
 	result.entries.SetBands(settings.Contest().Bands())
 
 	go result.run()
@@ -108,7 +110,7 @@ func (m *Bandmap) update() {
 	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 2, func(entry core.BandmapEntry) bool {
 		return entry.OnFrequency(m.activeFrequency)
 	})
-	m.entries.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
+	m.notifier.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
 
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
 	entries := m.entries.Query(nil, m.entryVisible)
@@ -256,7 +258,7 @@ func (m *Bandmap) countEntryValue(entry core.BandmapEntry) bool {
 
 func (m *Bandmap) Notify(listener any) {
 	m.do <- func() {
-		m.entries.Notify(listener)
+		m.notifier.Notify(listener)
 	}
 }
 

@@ -4,10 +4,10 @@ import (
 	"math"
 	"time"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 	"golang.org/x/exp/slices"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 

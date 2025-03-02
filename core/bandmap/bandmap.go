@@ -49,12 +49,12 @@ type Bandmap struct {
 	clock       core.Clock
 	view        View
 	dupeChecker DupeChecker
+	vfo         core.VFO
 
-	vfo             core.VFO
+	activeMode      core.Mode
 	activeFrequency core.Frequency
 	activeBand      core.Band
 	visibleBand     core.Band
-	activeMode      core.Mode
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
@@ -224,6 +224,7 @@ func (m *Bandmap) ScoreUpdated(_ core.Score) {
 func (m *Bandmap) VFOFrequencyChanged(frequency core.Frequency) {
 	m.do <- func() {
 		m.activeFrequency = frequency
+		// the frame is not updated with every frequency change, this creates too much load
 	}
 }
 

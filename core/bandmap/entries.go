@@ -186,7 +186,6 @@ type Entries struct {
 	callinfo        Callinfo
 	countEntryValue func(core.BandmapEntry) bool
 	lastID          core.BandmapEntryID
-	selectedEntry   *Entry
 
 	notifier *Notifier
 }
@@ -313,9 +312,6 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
 		stillValid := e.RemoveSpotsBefore(deadline)
 		if !stillValid {
-			if l.selectedEntry != nil && e.ID == l.selectedEntry.ID {
-				l.selectedEntry = nil
-			}
 			l.notifier.emitEntryRemoved(e.BandmapEntry)
 		}
 		return stillValid

@@ -3,10 +3,9 @@ name: Release-Build
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-22.04
@@ -15,71 +14,71 @@ jobs:
       deb_package_filename: ${{ steps.create_deb_package.outputs.deb_package_filename }}
       appimage_filenname: ${{ steps.create_appimage.outputs.appimage_filename }}
     steps:
-    - name: Install Linux packages and build tools
-      run: sudo apt update && sudo apt install -y --no-install-recommends libgtk-3-0 libgtk-3-dev libpango-1.0-0 libpango1.0-dev libpangocairo-1.0-0 libfuse2 desktop-file-utils zsync
-      
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        
-    - name: Set up Go 1.22.3
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.22.3'
-      id: go
+      - name: Install Linux packages and build tools
+        run: sudo apt update && sudo apt install -y --no-install-recommends libgtk-3-0 libgtk-3-dev libpango-1.0-0 libpango1.0-dev libpangocairo-1.0-0 libfuse2 desktop-file-utils zsync
 
-    - name: Get Gtk version and the environment
-      run: |
-        pkg-config --modversion gtk+-3.0
-        env
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-    - name: Version Number
-      id: version_number
-      run: echo "version_number=$(make version_number)" >> $GITHUB_OUTPUT
-          
-    - name: Show Version
-      run: echo "Version ${{ steps.version_number.outputs.version_number }}"
+      - name: Set up Go 1.22.3
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22.3"
+        id: go
 
-    - name: Build
-      run: make deps test build
+      - name: Get Gtk version and the environment
+        run: |
+          pkg-config --modversion gtk+-3.0
+          env
 
-    - name: Create AppImage
-      id: create_appimage
-      run: |
-        wget -nv -c https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-        chmod a+x appimagetool-x86_64.AppImage
-        env APPIMAGETOOL="$(pwd)/appimagetool-x86_64.AppImage" make appimage
-        echo "appimage_filename=$(ls ./hellocontest*.AppImage | head -n 1)" >> $GITHUB_OUTPUT
+      - name: Version Number
+        id: version_number
+        run: echo "version_number=$(make version_number)" >> $GITHUB_OUTPUT
 
-    - name: Create Debian package
-      id: create_deb_package
-      run: |
-        make debpkg
-        echo "deb_package_filename=$(ls ./hellocontest*.deb | head -n 1)" >> $GITHUB_OUTPUT
+      - name: Show Version
+        run: echo "Version ${{ steps.version_number.outputs.version_number }}"
 
-    - name: 'Upload binary for linux_x86_64'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hellocontest-binary
-        path: ./hellocontest
-  
-    - name: 'Upload AppImage'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hellocontest-appimage
-        path: ${{ steps.create_appimage.outputs.appimage_filename }}
+      - name: Build
+        run: make deps test build
 
-    - name: 'Upload Debian package'
-      uses: actions/upload-artifact@v3
-      with:
-        name: hellocontest-debpkg
-        path: ${{ steps.create_deb_package.outputs.deb_package_filename }}
-  
-    - name: Upload package to the release
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file_glob: true
-        file: ./hellocontest*.{deb,AppImage}
-        tag: ${{ github.ref }}
+      - name: Create AppImage
+        id: create_appimage
+        run: |
+          wget -nv -c https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod a+x appimagetool-x86_64.AppImage
+          env APPIMAGETOOL="$(pwd)/appimagetool-x86_64.AppImage" make appimage
+          echo "appimage_filename=$(ls ./hellocontest*.AppImage | head -n 1)" >> $GITHUB_OUTPUT
+
+      - name: Create Debian package
+        id: create_deb_package
+        run: |
+          make debpkg
+          echo "deb_package_filename=$(ls ./hellocontest*.deb | head -n 1)" >> $GITHUB_OUTPUT
+
+      - name: "Upload binary for linux_x86_64"
+        uses: actions/upload-artifact@v4
+        with:
+          name: hellocontest-binary
+          path: ./hellocontest
+
+      - name: "Upload AppImage"
+        uses: actions/upload-artifact@v4
+        with:
+          name: hellocontest-appimage
+          path: ${{ steps.create_appimage.outputs.appimage_filename }}
+
+      - name: "Upload Debian package"
+        uses: actions/upload-artifact@v4
+        with:
+          name: hellocontest-debpkg
+          path: ${{ steps.create_deb_package.outputs.deb_package_filename }}
+
+      - name: Upload package to the release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: ./hellocontest*.{deb,AppImage}
+          tag: ${{ github.ref }}

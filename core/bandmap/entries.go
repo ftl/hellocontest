@@ -233,8 +233,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 	for _, e := range l.entries {
 		quality, added := e.Add(spot)
 		if added {
-			e.Info = l.callinfo.GetInfo(spot.Call, spot.Band, spot.Mode, []string{})
-			e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
+			l.complementCallinfo(e, now, weights)
 			l.notifier.emitEntryUpdated(e.BandmapEntry)
 			return
 		}
@@ -245,10 +244,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 
 	newEntry := NewEntry(spot)
 	newEntry.Quality = entryQuality
-	if newEntry.Call.String() != "" {
-		newEntry.Info = l.callinfo.GetInfo(newEntry.Call, newEntry.Band, newEntry.Mode, []string{})
-		newEntry.Info.WeightedValue = l.calculateWeightedValue(&newEntry, now, weights)
-	}
+	l.complementCallinfo(&newEntry, now, weights)
 	l.insert(&newEntry)
 	l.notifier.emitEntryAdded(newEntry.BandmapEntry)
 }
@@ -292,8 +288,7 @@ func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core
 	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
 	for i, e := range l.entries {
 		oldPoints, oldMultis, oldWeightedValue := e.Info.Points, e.Info.Multis, e.Info.WeightedValue
-		e.Info.Points, e.Info.Multis, e.Info.MultiValues = l.callinfo.GetValue(e.Call, e.Band, e.Mode, []string{})
-		e.Info.WeightedValue = l.calculateWeightedValue(e, now, weights)
+		l.complementValue(e, now, weights)
 		updated := e.updated || (oldPoints != e.Info.Points) || (oldMultis != e.Info.Multis) || (oldWeightedValue != e.Info.WeightedValue)
 		e.updated = false
 		l.entries[i] = e
@@ -316,6 +311,22 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 		}
 		return stillValid
 	})
+}
+
+func (l *Entries) complementCallinfo(entry *Entry, now time.Time, weights core.BandmapWeights) {
+	if entry.Call.String() == "" {
+		return
+	}
+	entry.Info = l.callinfo.GetInfo(entry.Call, entry.Band, entry.Mode, []string{})
+	entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
+}
+
+func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.BandmapWeights) {
+	if entry.Call.String() == "" {
+		return
+	}
+	entry.Info.Points, entry.Info.Multis, entry.Info.MultiValues = l.callinfo.GetValue(entry.Call, entry.Band, entry.Mode, []string{})
+	entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
 }
 
 func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {

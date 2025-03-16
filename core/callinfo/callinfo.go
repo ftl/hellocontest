@@ -213,14 +213,20 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	c.lastMode = mode
 	c.lastExchange = exchange
 
-	entity, _ := c.findDXCCEntity(call)
-
 	var callinfo core.Callinfo
 	parsedCallsign, err := callsign.Parse(call)
 	if err == nil {
 		callinfo = c.GetInfo(parsedCallsign, band, mode, exchange)
 		c.predictedExchange = callinfo.PredictedExchange
 	} else {
+		entity, found := c.findDXCCEntity(call)
+		if found {
+			callinfo.DXCCName = entity.Name
+			callinfo.PrimaryPrefix = entity.PrimaryPrefix
+			callinfo.Continent = entity.Continent
+			callinfo.ITUZone = int(entity.ITUZone)
+			callinfo.CQZone = int(entity.CQZone)
+		}
 		c.predictedExchange = exchange
 	}
 
@@ -236,7 +242,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 		}
 	}
 
-	c.showDXCCEntity(entity)
+	c.showDXCCEntity(callinfo)
 	c.showBestMatch()
 	c.view.SetUserInfo(callinfo.UserText)
 	c.view.SetValue(callinfo.Points, callinfo.Multis, callinfo.Value)
@@ -277,12 +283,12 @@ func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {
 	return c.entities.Find(call)
 }
 
-func (c *Callinfo) showDXCCEntity(entity dxcc.Prefix) {
+func (c *Callinfo) showDXCCEntity(callinfo core.Callinfo) {
 	var dxccName string
-	if entity.PrimaryPrefix != "" {
-		dxccName = fmt.Sprintf("%s (%s)", entity.Name, entity.PrimaryPrefix)
+	if callinfo.PrimaryPrefix != "" {
+		dxccName = fmt.Sprintf("%s (%s)", callinfo.DXCCName, callinfo.PrimaryPrefix)
 	}
-	c.view.SetDXCC(dxccName, entity.Continent, int(entity.ITUZone), int(entity.CQZone))
+	c.view.SetDXCC(dxccName, callinfo.Continent, int(callinfo.ITUZone), int(callinfo.CQZone))
 }
 
 func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {

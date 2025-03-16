@@ -923,7 +923,9 @@ func (s *BandSummary) Multis() int {
 }
 
 type Callinfo struct {
-	Call callsign.Callsign
+	Input     string
+	Call      callsign.Callsign
+	CallValid bool
 
 	DXCCName          string
 	PrimaryPrefix     string

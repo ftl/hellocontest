@@ -927,12 +927,8 @@ type Callinfo struct {
 	Call      callsign.Callsign
 	CallValid bool
 
-	DXCCName          string
-	PrimaryPrefix     string
-	Continent         string
-	ITUZone           int
-	CQZone            int
-	UserText          string
+	DXCCEntity dxcc.Prefix
+
 	PredictedExchange []string
 	FilteredExchange  []string
 	ExchangeText      string
@@ -1112,13 +1108,13 @@ func HeardAfter(deadline time.Time) BandmapFilter {
 
 func FromContinent(continent string) BandmapFilter {
 	return func(entry BandmapEntry) bool {
-		return entry.Info.Continent == continent
+		return entry.Info.DXCCEntity.Continent == continent
 	}
 }
 
 func FromDXCC(primaryPrefix string) BandmapFilter {
 	return func(entry BandmapEntry) bool {
-		return entry.Info.PrimaryPrefix == primaryPrefix
+		return entry.Info.DXCCEntity.PrimaryPrefix == primaryPrefix
 	}
 }
 

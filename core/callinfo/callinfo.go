@@ -180,11 +180,7 @@ func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mod
 
 	entity, found := c.findDXCCEntity(call.String())
 	if found {
-		result.DXCCName = entity.Name
-		result.PrimaryPrefix = entity.PrimaryPrefix
-		result.Continent = entity.Continent
-		result.ITUZone = int(entity.ITUZone)
-		result.CQZone = int(entity.CQZone)
+		result.DXCCEntity = entity
 	}
 
 	entry, found := c.callHistory.FindEntry(call.String())
@@ -221,11 +217,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchang
 	} else {
 		entity, found := c.findDXCCEntity(call)
 		if found {
-			callinfo.DXCCName = entity.Name
-			callinfo.PrimaryPrefix = entity.PrimaryPrefix
-			callinfo.Continent = entity.Continent
-			callinfo.ITUZone = int(entity.ITUZone)
-			callinfo.CQZone = int(entity.CQZone)
+			callinfo.DXCCEntity = entity
 		}
 		c.predictedExchange = exchange
 	}
@@ -285,10 +277,10 @@ func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {
 
 func (c *Callinfo) showDXCCEntity(callinfo core.Callinfo) {
 	var dxccName string
-	if callinfo.PrimaryPrefix != "" {
-		dxccName = fmt.Sprintf("%s (%s)", callinfo.DXCCName, callinfo.PrimaryPrefix)
+	if callinfo.DXCCEntity.PrimaryPrefix != "" {
+		dxccName = fmt.Sprintf("%s (%s)", callinfo.DXCCEntity.Name, callinfo.DXCCEntity.PrimaryPrefix)
 	}
-	c.view.SetDXCC(dxccName, callinfo.Continent, int(callinfo.ITUZone), int(callinfo.CQZone))
+	c.view.SetDXCC(dxccName, callinfo.DXCCEntity.Continent, int(callinfo.DXCCEntity.ITUZone), int(callinfo.DXCCEntity.CQZone))
 }
 
 func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {

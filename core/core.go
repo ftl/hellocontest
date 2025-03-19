@@ -933,6 +933,8 @@ type Callinfo struct {
 	FilteredExchange  []string
 	ExchangeText      string
 
+	UserText string
+
 	Worked        bool // already worked on another band/mode, but does not count as duplicate
 	Duplicate     bool // counts as duplicate
 	Points        int

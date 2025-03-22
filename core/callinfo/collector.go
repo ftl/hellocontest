@@ -101,17 +101,8 @@ func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode
 }
 
 func (c *Collector) initializeCallinfo(info *core.Callinfo) {
-	info.DXCCEntity = dxcc.Prefix{}
-	info.UserText = ""
 	info.PredictedExchange = make([]string, 0, len(c.theirExchangeFields))
 	info.FilteredExchange = make([]string, 0, len(c.theirExchangeFields))
-	info.ExchangeText = ""
-	info.Duplicate = false
-	info.Worked = false
-	info.Points = 0
-	info.Multis = 0
-	info.MultiValues = make(map[conval.Property]string)
-	info.Value = 0
 }
 
 func (c *Collector) addDXCC(info *core.Callinfo) bool {

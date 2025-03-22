@@ -2,10 +2,13 @@ package dxcc
 
 import (
 	"log"
+	"time"
 
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hellocontest/core"
 )
+
+type Prefix = dxcc.Prefix
 
 func New() *Finder {
 	result := &Finder{
@@ -41,6 +44,15 @@ func (f *Finder) WhenAvailable(callback func()) {
 		<-f.available
 		callback()
 	}()
+}
+
+func (f *Finder) WaitUntilAvailable(timeout time.Duration) bool {
+	select {
+	case <-f.available:
+		return true
+	case <-time.After(timeout):
+		return false
+	}
 }
 
 func (f *Finder) ContestChanged(contest core.Contest) {

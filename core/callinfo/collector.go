@@ -6,9 +6,9 @@ import (
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/dxcc"
 )
 
 type Collector struct {

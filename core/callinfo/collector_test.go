@@ -42,3 +42,23 @@ func TestCollector_addCallsign(t *testing.T) {
 		})
 	}
 }
+
+func TestCollector_GetInfoForInput_normalizesInput(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{input: "", expected: ""},
+		{input: " dl1abc", expected: "DL1ABC"},
+		{input: "dl1abc ", expected: "DL1ABC"},
+		{input: " dl1abc ", expected: "DL1ABC"},
+		{input: " DL1abc ", expected: "DL1ABC"},
+	}
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			c := &Collector{}
+			actual := c.GetInfoForInput(test.input, core.Band10m, core.ModeCW, []string{})
+			assert.Equal(t, test.expected, actual.Input)
+		})
+	}
+}

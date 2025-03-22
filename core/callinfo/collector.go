@@ -6,6 +6,7 @@ import (
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -83,16 +84,34 @@ func (c *Collector) addCallsign(info *core.Callinfo) bool {
 }
 
 func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode, exchange []string) {
+	c.initializeCallinfo(info)
 	c.addDXCC(info)
 	c.addHistoryData(info)
 	if !info.CallValid {
 		return
 	}
 
+	if c.dupes == nil {
+		return
+	}
 	workedQSOs, duplicate := c.dupes.FindWorkedQSOs(info.Call, band, mode)
 	c.addWorkedState(info, workedQSOs, duplicate)
 	c.addPredictedExchange(info, workedQSOs, exchange)
 	c.addValue(info, band, mode)
+}
+
+func (c *Collector) initializeCallinfo(info *core.Callinfo) {
+	info.DXCCEntity = dxcc.Prefix{}
+	info.UserText = ""
+	info.PredictedExchange = make([]string, 0, len(c.theirExchangeFields))
+	info.FilteredExchange = make([]string, 0, len(c.theirExchangeFields))
+	info.ExchangeText = ""
+	info.Duplicate = false
+	info.Worked = false
+	info.Points = 0
+	info.Multis = 0
+	info.MultiValues = make(map[conval.Property]string)
+	info.Value = 0
 }
 
 func (c *Collector) addDXCC(info *core.Callinfo) bool {
@@ -111,9 +130,12 @@ func (c *Collector) addDXCC(info *core.Callinfo) bool {
 }
 
 func (c *Collector) addHistoryData(info *core.Callinfo) bool {
+	if c.history == nil {
+		return false
+	}
+
 	entry, found := c.history.FindEntry(info.Input)
 	if !found {
-		info.PredictedExchange = []string{}
 		return false
 	}
 
@@ -129,16 +151,19 @@ func (c *Collector) addWorkedState(info *core.Callinfo, workedQSOs []core.QSO, d
 }
 
 func (c *Collector) addPredictedExchange(info *core.Callinfo, workedQSOs []core.QSO, currentExchange []string) {
-	info.PredictedExchange = c.predictExchange(info, workedQSOs, currentExchange)
-	info.FilteredExchange = c.exchangeFilter.FilterExchange(info.PredictedExchange)
+	info.PredictedExchange = c.predictExchange(info.DXCCEntity, workedQSOs, currentExchange, info.PredictedExchange)
+	if c.exchangeFilter != nil {
+		info.FilteredExchange = c.exchangeFilter.FilterExchange(info.PredictedExchange)
+	} else {
+		info.FilteredExchange = info.PredictedExchange
+	}
 	info.ExchangeText = strings.Join(info.FilteredExchange, " ")
 }
 
-func (c *Collector) predictExchange(info *core.Callinfo, qsos []core.QSO, currentExchange []string) []string {
+func (c *Collector) predictExchange(dxcc dxcc.Prefix, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {
 	result := make([]string, len(c.theirExchangeFields))
 	copy(result, currentExchange)
 
-	historicExchange := info.PredictedExchange
 	for i := range result {
 		foundInQSO := false
 		for _, qso := range qsos {
@@ -162,18 +187,18 @@ func (c *Collector) predictExchange(info *core.Callinfo, qsos []core.QSO, curren
 
 		if i < len(historicExchange) && historicExchange[i] != "" {
 			result[i] = historicExchange[i]
-		} else if info.DXCCEntity.PrimaryPrefix != "" {
+		} else if dxcc.PrimaryPrefix != "" {
 			if i >= len(c.theirExchangeFields) {
 				continue
 			}
 			field := c.theirExchangeFields[i]
 			switch {
 			case field.Properties.Contains(conval.CQZoneProperty):
-				result[i] = strconv.Itoa(int(info.DXCCEntity.CQZone))
+				result[i] = strconv.Itoa(int(dxcc.CQZone))
 			case field.Properties.Contains(conval.ITUZoneProperty):
-				result[i] = strconv.Itoa(int(info.DXCCEntity.ITUZone))
+				result[i] = strconv.Itoa(int(dxcc.ITUZone))
 			case field.Properties.Contains(conval.DXCCEntityProperty), field.Properties.Contains(conval.DXCCPrefixProperty):
-				result[i] = info.DXCCEntity.PrimaryPrefix
+				result[i] = dxcc.PrimaryPrefix
 			}
 		}
 	}
@@ -181,7 +206,13 @@ func (c *Collector) predictExchange(info *core.Callinfo, qsos []core.QSO, curren
 	return result
 }
 
-func (c *Collector) addValue(info *core.Callinfo, band core.Band, mode core.Mode) {
+func (c *Collector) addValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
+	if c.valuer == nil {
+		return false
+	}
+
 	info.Points, info.Multis, info.MultiValues = c.valuer.Value(info.Call, info.DXCCEntity, band, mode, info.PredictedExchange)
 	info.Value = (info.Points * c.totalScore.Multis) + (info.Multis * c.totalScore.Points) + (info.Points * info.Multis)
+
+	return true
 }

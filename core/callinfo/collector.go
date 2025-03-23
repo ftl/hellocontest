@@ -68,6 +68,33 @@ func (c *Collector) GetInfo(call callsign.Callsign, band core.Band, mode core.Mo
 	return result
 }
 
+func (c *Collector) GetValue(call callsign.Callsign, band core.Band, mode core.Mode) (points, multis int, multiValues map[conval.Property]string) {
+	// TODO: replace GetValue with UpdateValue, which will not need the exchange prediction
+	// remember to invalidate the cached Callinfo when a new QSO with the callsign is added
+	if c.dxcc == nil || c.dupes == nil || c.valuer == nil {
+		return 0, 0, nil
+	}
+
+	info := &core.Callinfo{
+		Input: normalizeInput(call.String()),
+		Call:  call,
+	}
+	info.CallValid = (info.Input != "")
+	c.initializeCallinfo(info)
+
+	dxccValid := c.addDXCC(info)
+	if !dxccValid {
+		return 0, 0, nil
+	}
+
+	c.addHistoryData(info)
+	workedQSOs, _ := c.dupes.FindWorkedQSOs(info.Call, band, mode)
+	c.predictExchange(info.DXCCEntity, workedQSOs, []string{}, info.PredictedExchange)
+	c.addValue(info, band, mode)
+
+	return info.Points, info.Multis, info.MultiValues
+}
+
 func normalizeInput(input string) string {
 	return strings.TrimSpace(strings.ToUpper(input))
 }
@@ -85,8 +112,8 @@ func (c *Collector) addCallsign(info *core.Callinfo) bool {
 
 func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode, currentExchange []string) {
 	c.initializeCallinfo(info)
-	c.addDXCC(info)
-	if !info.CallValid {
+	dxccValid := c.addDXCC(info)
+	if !info.CallValid || !dxccValid {
 		return
 	}
 
@@ -155,7 +182,9 @@ func (c *Collector) addPredictedExchange(info *core.Callinfo, workedQSOs []core.
 
 func (c *Collector) predictExchange(dxccEntity dxcc.Prefix, workedQSOs []core.QSO, currentExchange []string, historicExchange []string) []string {
 	result := make([]string, len(c.theirExchangeFields))
-	copy(result, currentExchange)
+	if len(currentExchange) > 0 {
+		copy(result, currentExchange)
+	}
 
 	for i := range result {
 		qsoExchange, foundInQSO := findExchangeInQSOs(i, workedQSOs)

@@ -31,7 +31,7 @@ type DupeChecker interface {
 
 type Callinfo interface {
 	GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo
-	GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int, map[conval.Property]string)
+	GetValue(callsign.Callsign, core.Band, core.Mode) (int, int, map[conval.Property]string)
 }
 
 var defaultWeights = core.BandmapWeights{
@@ -376,6 +376,6 @@ type nullCallinfo struct{}
 func (n *nullCallinfo) GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo {
 	return core.Callinfo{}
 }
-func (n *nullCallinfo) GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int, map[conval.Property]string) {
+func (n *nullCallinfo) GetValue(callsign.Callsign, core.Band, core.Mode) (int, int, map[conval.Property]string) {
 	return 0, 0, nil
 }

@@ -325,7 +325,7 @@ func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.Band
 	if entry.Call.String() == "" {
 		return
 	}
-	entry.Info.Points, entry.Info.Multis, entry.Info.MultiValues = l.callinfo.GetValue(entry.Call, entry.Band, entry.Mode, []string{})
+	entry.Info.Points, entry.Info.Multis, entry.Info.MultiValues = l.callinfo.GetValue(entry.Call, entry.Band, entry.Mode)
 	entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
 }
 

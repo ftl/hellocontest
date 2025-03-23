@@ -231,13 +231,8 @@ func joinAvailableValues(values ...string) string {
 	return strings.Join(availableValues, ", ")
 }
 
-func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
-	// TODO: add GetValue to the collector, which computes as little as possible to get the current value
-	callinfo := c.collector.GetInfo(call, band, mode, exchange)
-	if !callinfo.CallValid {
-		return 0, 0, nil
-	}
-	return callinfo.Points, callinfo.Multis, callinfo.MultiValues
+func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode) (points, multis int, multiValues map[conval.Property]string) {
+	return c.collector.GetValue(call, band, mode)
 }
 
 func (c *Callinfo) showDXCCEntity(callinfo core.Callinfo) {

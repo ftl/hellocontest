@@ -5,7 +5,6 @@ import (
 	"log"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/ftl/conval"
@@ -280,7 +279,7 @@ func (c *Callinfo) calculateSupercheck(s string) []core.AnnotatedCallsign {
 		entity, _ := c.findDXCCEntity(matchString)
 
 		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
-		predictedExchange := c.predictExchange(entity, qsos, nil, annotatedCallsign.PredictedExchange)
+		predictedExchange := predictExchange(c.collector.theirExchangeFields, entity, qsos, nil, annotatedCallsign.PredictedExchange)
 
 		entity, entityFound := c.entities.Find(matchString)
 
@@ -325,50 +324,8 @@ func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {
 	return c.entities.Find(call)
 }
 
-func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {
-	result := make([]string, len(c.theirExchangeFields))
-	copy(result, currentExchange)
-
-	for i := range result {
-		foundInQSO := false
-		for _, qso := range qsos {
-			if i >= len(qso.TheirExchange) {
-				break
-			}
-
-			if result[i] == "" {
-				result[i] = qso.TheirExchange[i]
-				foundInQSO = true
-			} else if result[i] != qso.TheirExchange[i] {
-				result[i] = ""
-				foundInQSO = false
-				break
-			}
-		}
-
-		if foundInQSO {
-			continue
-		}
-
-		if i < len(historicExchange) && historicExchange[i] != "" {
-			result[i] = historicExchange[i]
-		} else if entity.PrimaryPrefix != "" {
-			if i >= len(c.theirExchangeFields) {
-				continue
-			}
-			field := c.theirExchangeFields[i]
-			switch {
-			case field.Properties.Contains(conval.CQZoneProperty):
-				result[i] = strconv.Itoa(int(entity.CQZone))
-			case field.Properties.Contains(conval.ITUZoneProperty):
-				result[i] = strconv.Itoa(int(entity.ITUZone))
-			case field.Properties.Contains(conval.DXCCEntityProperty), field.Properties.Contains(conval.DXCCPrefixProperty):
-				result[i] = entity.PrimaryPrefix
-			}
-		}
-	}
-
-	return result
+func normalizeInput(input string) string {
+	return strings.TrimSpace(strings.ToUpper(input))
 }
 
 type nullView struct{}

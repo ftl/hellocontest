@@ -93,10 +93,6 @@ func (c *Collector) GetValue(call callsign.Callsign, band core.Band, mode core.M
 	return info.Points, info.Multis, info.MultiValues
 }
 
-func normalizeInput(input string) string {
-	return strings.TrimSpace(strings.ToUpper(input))
-}
-
 func (c *Collector) addCallsign(info *core.Callinfo) bool {
 	call, err := callsign.Parse(info.Input)
 	info.CallValid = (err == nil)

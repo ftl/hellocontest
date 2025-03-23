@@ -19,6 +19,7 @@ func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryF
 	result := &Callinfo{
 		view:           new(nullView),
 		asyncRunner:    asyncRunner,
+		collector:      NewColletor(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
 		entities:       entities,
 		callsigns:      callsigns,
 		callHistory:    callHistory,
@@ -34,6 +35,7 @@ func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryF
 type Callinfo struct {
 	view        View
 	asyncRunner core.AsyncRunner
+	collector   *Collector
 
 	entities       DXCCFinder
 	callsigns      CallsignFinder
@@ -122,10 +124,12 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 		return
 	}
 	c.theirExchangeFields = contest.TheirExchangeFields
+	c.collector.SetTheirExchangeFields(c.theirExchangeFields)
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
 func (c *Callinfo) ScoreUpdated(score core.Score) {
+	c.collector.ScoreUpdated(score)
 	c.totalScore = score.Result()
 }
 
@@ -173,53 +177,22 @@ func (c *Callinfo) PredictedExchange() []string {
 	return c.predictedExchange
 }
 
-func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) core.Callinfo {
-	result := core.Callinfo{
-		Call: call,
-	}
-
-	entity, found := c.findDXCCEntity(call.String())
-	if found {
-		result.DXCCEntity = entity
-	}
-
-	entry, found := c.callHistory.FindEntry(call.String())
-	var historicExchange []string
-	if found {
-		historicExchange = entry.PredictedExchange
-		result.UserText = joinAvailableValues(entry.Name, entry.UserText)
-	}
-
-	qsos, duplicate := c.dupeChecker.FindWorkedQSOs(call, band, mode)
-	result.Duplicate = duplicate
-	result.Worked = len(qsos) > 0
-	result.PredictedExchange = c.predictExchange(entity, qsos, exchange, historicExchange)
-	result.FilteredExchange = c.exchangeFilter.FilterExchange(result.PredictedExchange)
-	result.ExchangeText = strings.Join(result.FilteredExchange, " ")
-
-	result.Points, result.Multis, result.MultiValues = c.valuer.Value(call, entity, band, mode, result.PredictedExchange)
-	result.Value = (result.Points * c.totalScore.Multis) + (result.Multis * c.totalScore.Points) + (result.Points * result.Multis)
-
-	return result
+func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
+	return c.collector.GetInfo(call, band, mode, currentExchange)
 }
 
-func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, exchange []string) {
+func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, currentExchange []string) {
 	c.lastCallsign = call
 	c.lastBand = band
 	c.lastMode = mode
-	c.lastExchange = exchange
+	c.lastExchange = currentExchange
 
-	var callinfo core.Callinfo
-	parsedCallsign, err := callsign.Parse(call)
-	if err == nil {
-		callinfo = c.GetInfo(parsedCallsign, band, mode, exchange)
+	callinfo := c.collector.GetInfoForInput(call, band, mode, currentExchange)
+	if callinfo.CallValid {
 		c.predictedExchange = callinfo.PredictedExchange
 	} else {
-		entity, found := c.findDXCCEntity(call)
-		if found {
-			callinfo.DXCCEntity = entity
-		}
-		c.predictedExchange = exchange
+		// TODO: should the currentExchange be used for the prediction at all?
+		c.predictedExchange = currentExchange
 	}
 
 	supercheck := c.calculateSupercheck(call)
@@ -259,20 +232,12 @@ func joinAvailableValues(values ...string) string {
 }
 
 func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
-	entity, found := c.findDXCCEntity(call.String())
-	if !found {
+	// TODO: add GetValue to the collector, which computes as little as possible to get the current value
+	callinfo := c.collector.GetInfo(call, band, mode, exchange)
+	if !callinfo.CallValid {
 		return 0, 0, nil
 	}
-	callinfo := c.GetInfo(call, band, mode, exchange)
-
-	return c.valuer.Value(call, entity, band, mode, callinfo.PredictedExchange)
-}
-
-func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {
-	if c.entities == nil {
-		return dxcc.Prefix{}, false
-	}
-	return c.entities.Find(call)
+	return callinfo.Points, callinfo.Multis, callinfo.MultiValues
 }
 
 func (c *Callinfo) showDXCCEntity(callinfo core.Callinfo) {
@@ -371,6 +336,13 @@ func placeholderToFilter(s string) *regexp.Regexp {
 		parts[i] = regexp.QuoteMeta(parts[i])
 	}
 	return regexp.MustCompile(strings.Join(parts, "."))
+}
+
+func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {
+	if c.entities == nil {
+		return dxcc.Prefix{}, false
+	}
+	return c.entities.Find(call)
 }
 
 func (c *Callinfo) predictExchange(entity dxcc.Prefix, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {

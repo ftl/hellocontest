@@ -45,25 +45,25 @@ func (c *Collector) ScoreUpdated(score core.Score) {
 	c.totalScore = score.Result()
 }
 
-func (c *Collector) GetInfoForInput(input string, band core.Band, mode core.Mode, exchange []string) core.Callinfo {
+func (c *Collector) GetInfoForInput(input string, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
 	result := core.Callinfo{
 		Input: normalizeInput(input),
 	}
 	c.addCallsign(&result)
 
-	c.addInfos(&result, band, mode, exchange)
+	c.addInfos(&result, band, mode, currentExchange)
 
 	return result
 }
 
-func (c *Collector) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, exchange []string) core.Callinfo {
+func (c *Collector) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
 	result := core.Callinfo{
 		Input: normalizeInput(call.String()),
 		Call:  call,
 	}
 	result.CallValid = (result.Input != "")
 
-	c.addInfos(&result, band, mode, exchange)
+	c.addInfos(&result, band, mode, currentExchange)
 
 	return result
 }
@@ -83,14 +83,14 @@ func (c *Collector) addCallsign(info *core.Callinfo) bool {
 	return info.CallValid
 }
 
-func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode, exchange []string) {
+func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode, currentExchange []string) {
 	c.initializeCallinfo(info)
 	c.addDXCC(info)
-	c.addHistoryData(info)
 	if !info.CallValid {
 		return
 	}
 
+	c.addHistoryData(info)
 	if c.dupes == nil {
 		return
 	}
@@ -98,7 +98,7 @@ func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode
 	c.addWorkedState(info, workedQSOs, duplicate)
 	// ATTENTION: temporal coupling! addPredictedExchange relies on addHistoryData putting
 	// the historic exchange into the Callinfo.PredictedExchange field.
-	c.addPredictedExchange(info, workedQSOs, exchange)
+	c.addPredictedExchange(info, workedQSOs, currentExchange)
 	c.addValue(info, band, mode)
 }
 

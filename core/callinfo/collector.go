@@ -96,6 +96,8 @@ func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode
 	}
 	workedQSOs, duplicate := c.dupes.FindWorkedQSOs(info.Call, band, mode)
 	c.addWorkedState(info, workedQSOs, duplicate)
+	// ATTENTION: temporal coupling! addPredictedExchange relies on addHistoryData putting
+	// the historic exchange into the Callinfo.PredictedExchange field.
 	c.addPredictedExchange(info, workedQSOs, exchange)
 	c.addValue(info, band, mode)
 }
@@ -151,50 +153,70 @@ func (c *Collector) addPredictedExchange(info *core.Callinfo, workedQSOs []core.
 	info.ExchangeText = strings.Join(info.FilteredExchange, " ")
 }
 
-func (c *Collector) predictExchange(dxcc dxcc.Prefix, qsos []core.QSO, currentExchange []string, historicExchange []string) []string {
+func (c *Collector) predictExchange(dxccEntity dxcc.Prefix, workedQSOs []core.QSO, currentExchange []string, historicExchange []string) []string {
 	result := make([]string, len(c.theirExchangeFields))
 	copy(result, currentExchange)
 
 	for i := range result {
-		foundInQSO := false
-		for _, qso := range qsos {
-			if i >= len(qso.TheirExchange) {
-				break
-			}
-
-			if result[i] == "" {
-				result[i] = qso.TheirExchange[i]
-				foundInQSO = true
-			} else if result[i] != qso.TheirExchange[i] {
-				result[i] = ""
-				foundInQSO = false
-				break
-			}
-		}
-
+		qsoExchange, foundInQSO := findExchangeInQSOs(i, workedQSOs)
 		if foundInQSO {
+			result[i] = qsoExchange
 			continue
 		}
 
-		if i < len(historicExchange) && historicExchange[i] != "" {
-			result[i] = historicExchange[i]
-		} else if dxcc.PrimaryPrefix != "" {
-			if i >= len(c.theirExchangeFields) {
-				continue
-			}
-			field := c.theirExchangeFields[i]
-			switch {
-			case field.Properties.Contains(conval.CQZoneProperty):
-				result[i] = strconv.Itoa(int(dxcc.CQZone))
-			case field.Properties.Contains(conval.ITUZoneProperty):
-				result[i] = strconv.Itoa(int(dxcc.ITUZone))
-			case field.Properties.Contains(conval.DXCCEntityProperty), field.Properties.Contains(conval.DXCCPrefixProperty):
-				result[i] = dxcc.PrimaryPrefix
-			}
+		historicExchange, foundInHistory := c.findExchangeInHistory(i, historicExchange, dxccEntity)
+		if foundInHistory {
+			result[i] = historicExchange
+			// continue (for symmetry)
 		}
 	}
 
 	return result
+}
+
+func findExchangeInQSOs(exchangeIndex int, workedQSOs []core.QSO) (string, bool) {
+	result := ""
+	found := false
+	for _, qso := range workedQSOs {
+		if exchangeIndex >= len(qso.TheirExchange) {
+			break
+		}
+		exchange := qso.TheirExchange[exchangeIndex]
+		if result == "" {
+			result = exchange
+			found = true
+		} else if result != exchange {
+			result = ""
+			found = false
+			break
+		}
+	}
+	return result, found
+}
+
+func (c *Collector) findExchangeInHistory(exchangeIndex int, historicExchange []string, dxccEntity dxcc.Prefix) (string, bool) {
+	if exchangeIndex < len(historicExchange) && historicExchange[exchangeIndex] != "" {
+		return historicExchange[exchangeIndex], true
+	}
+
+	if exchangeIndex >= len(c.theirExchangeFields) {
+		return "", false
+	}
+
+	if dxccEntity.PrimaryPrefix != "" {
+		field := c.theirExchangeFields[exchangeIndex]
+		switch {
+		case field.Properties.Contains(conval.CQZoneProperty):
+			return strconv.Itoa(int(dxccEntity.CQZone)), true
+		case field.Properties.Contains(conval.ITUZoneProperty):
+			return strconv.Itoa(int(dxccEntity.ITUZone)), true
+		case field.Properties.Contains(conval.DXCCEntityProperty),
+			field.Properties.Contains(conval.DXCCPrefixProperty):
+			return dxccEntity.PrimaryPrefix, true
+		}
+	}
+
+	return "", false
 }
 
 func (c *Collector) addValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {

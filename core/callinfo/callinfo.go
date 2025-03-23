@@ -10,9 +10,9 @@ import (
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/dxcc"
 )
 
 func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter, asyncRunner core.AsyncRunner) *Callinfo {

@@ -3,8 +3,6 @@ package callinfo
 import (
 	"fmt"
 	"log"
-	"regexp"
-	"sort"
 	"strings"
 
 	"github.com/ftl/conval"
@@ -13,46 +11,6 @@ import (
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
 )
-
-func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter, asyncRunner core.AsyncRunner) *Callinfo {
-	result := &Callinfo{
-		view:        new(nullView),
-		asyncRunner: asyncRunner,
-		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
-		entities:    entities,
-		callsigns:   callsigns,
-		callHistory: callHistory,
-		dupeChecker: dupeChecker,
-		valuer:      valuer,
-	}
-
-	return result
-}
-
-type Callinfo struct {
-	view        View
-	asyncRunner core.AsyncRunner
-	collector   *Collector
-
-	entities    DXCCFinder
-	callsigns   CallsignFinder
-	callHistory CallHistoryFinder
-	dupeChecker DupeChecker
-	valuer      Valuer
-
-	lastCallsign        string
-	lastBand            core.Band
-	lastMode            core.Mode
-	lastExchange        []string
-	predictedExchange   []string
-	theirExchangeFields []core.ExchangeField
-
-	matchOnFrequency          core.AnnotatedCallsign
-	matchOnFrequencyAvailable bool
-	bestMatch                 core.AnnotatedCallsign
-	bestMatchAvailable        bool
-	bestMatches               []string
-}
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
 type DXCCFinder interface {
@@ -97,6 +55,37 @@ type View interface {
 	SetSupercheck(callsigns []core.AnnotatedCallsign)
 }
 
+type Callinfo struct {
+	view        View
+	asyncRunner core.AsyncRunner
+	collector   *Collector
+	supercheck  *Supercheck
+
+	lastCallsign        string
+	lastBand            core.Band
+	lastMode            core.Mode
+	lastExchange        []string
+	predictedExchange   []string
+	theirExchangeFields []core.ExchangeField
+
+	matchOnFrequency          core.AnnotatedCallsign
+	matchOnFrequencyAvailable bool
+	bestMatch                 core.AnnotatedCallsign
+	bestMatchAvailable        bool
+	bestMatches               []string
+}
+
+func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter, asyncRunner core.AsyncRunner) *Callinfo {
+	result := &Callinfo{
+		view:        new(nullView),
+		asyncRunner: asyncRunner,
+		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
+		supercheck:  NewSupercheck(entities, callsigns, callHistory, dupeChecker, valuer),
+	}
+
+	return result
+}
+
 func (c *Callinfo) SetView(view View) {
 	if view == nil {
 		panic("callinfo.Callinfo.SetView must not be called with nil")
@@ -120,6 +109,7 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 	}
 	c.theirExchangeFields = contest.TheirExchangeFields
 	c.collector.SetTheirExchangeFields(c.theirExchangeFields)
+	c.supercheck.SetTheirExchangeFields(c.theirExchangeFields)
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
@@ -189,7 +179,8 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 		c.predictedExchange = currentExchange
 	}
 
-	supercheck := c.calculateSupercheck(call)
+	supercheck := c.supercheck.Calculate(call, c.lastBand, c.lastMode)
+
 	c.bestMatches = make([]string, 0, len(supercheck))
 	c.bestMatch = core.AnnotatedCallsign{}
 	c.bestMatchAvailable = false
@@ -240,88 +231,6 @@ func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {
 func (c *Callinfo) showBestMatch() {
 	bestMatch, _ := c.findBestMatch()
 	c.view.SetBestMatchingCallsign(bestMatch)
-}
-
-func (c *Callinfo) calculateSupercheck(s string) []core.AnnotatedCallsign {
-	normalizedInput := strings.TrimSpace(strings.ToUpper(s))
-	scpMatches, err := c.callsigns.Find(s)
-	if err != nil {
-		log.Printf("Callsign search for failed for %s: %v", s, err)
-		return nil
-	}
-	historicMatches, _ := c.callHistory.Find(s)
-
-	annotatedCallsigns := make(map[callsign.Callsign]core.AnnotatedCallsign, len(scpMatches)+len(historicMatches))
-	for _, match := range scpMatches {
-		annotatedCallsigns[match.Callsign] = match
-	}
-	for _, match := range historicMatches {
-		var annotatedCallsign core.AnnotatedCallsign
-		storedCallsign, found := annotatedCallsigns[match.Callsign]
-		if found {
-			annotatedCallsign = storedCallsign
-		} else {
-			annotatedCallsign = match
-		}
-		annotatedCallsign.PredictedExchange = match.PredictedExchange
-		annotatedCallsigns[annotatedCallsign.Callsign] = annotatedCallsign
-	}
-
-	filter := placeholderToFilter(normalizedInput)
-
-	result := make([]core.AnnotatedCallsign, 0, len(annotatedCallsigns))
-	for _, annotatedCallsign := range annotatedCallsigns {
-		matchString := annotatedCallsign.Callsign.String()
-		exactMatch := (matchString == normalizedInput)
-		if filter != nil && !filter.MatchString(matchString) {
-			continue
-		}
-		entity, _ := c.findDXCCEntity(matchString)
-
-		qsos, duplicate := c.dupeChecker.FindWorkedQSOs(annotatedCallsign.Callsign, c.lastBand, c.lastMode)
-		predictedExchange := predictExchange(c.collector.theirExchangeFields, entity, qsos, nil, annotatedCallsign.PredictedExchange)
-
-		entity, entityFound := c.entities.Find(matchString)
-
-		var points, multis int
-		if entityFound {
-			points, multis, _ = c.valuer.Value(annotatedCallsign.Callsign, entity, c.lastBand, c.lastMode, predictedExchange)
-		}
-
-		annotatedCallsign.Duplicate = duplicate
-		annotatedCallsign.Worked = len(qsos) > 0
-		annotatedCallsign.ExactMatch = exactMatch
-		annotatedCallsign.Points = points
-		annotatedCallsign.Multis = multis
-		annotatedCallsign.PredictedExchange = predictedExchange
-
-		result = append(result, annotatedCallsign)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].LessThan(result[j])
-	})
-
-	return result
-}
-
-func placeholderToFilter(s string) *regexp.Regexp {
-	if !strings.Contains(s, core.FilterPlaceholder) {
-		return nil
-	}
-
-	parts := strings.Split(s, core.FilterPlaceholder)
-	for i := range parts {
-		parts[i] = regexp.QuoteMeta(parts[i])
-	}
-	return regexp.MustCompile(strings.Join(parts, "."))
-}
-
-func (c *Callinfo) findDXCCEntity(call string) (dxcc.Prefix, bool) {
-	if c.entities == nil {
-		return dxcc.Prefix{}, false
-	}
-	return c.entities.Find(call)
 }
 
 func normalizeInput(input string) string {

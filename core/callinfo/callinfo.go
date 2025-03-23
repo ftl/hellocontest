@@ -17,16 +17,14 @@ import (
 
 func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter, asyncRunner core.AsyncRunner) *Callinfo {
 	result := &Callinfo{
-		view:           new(nullView),
-		asyncRunner:    asyncRunner,
-		collector:      NewCollector(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
-		entities:       entities,
-		callsigns:      callsigns,
-		callHistory:    callHistory,
-		dupeChecker:    dupeChecker,
-		valuer:         valuer,
-		exchangeFilter: exchangeFilter,
-		totalScore:     core.BandScore{Points: 1, Multis: 1},
+		view:        new(nullView),
+		asyncRunner: asyncRunner,
+		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
+		entities:    entities,
+		callsigns:   callsigns,
+		callHistory: callHistory,
+		dupeChecker: dupeChecker,
+		valuer:      valuer,
 	}
 
 	return result
@@ -37,12 +35,11 @@ type Callinfo struct {
 	asyncRunner core.AsyncRunner
 	collector   *Collector
 
-	entities       DXCCFinder
-	callsigns      CallsignFinder
-	callHistory    CallHistoryFinder
-	dupeChecker    DupeChecker
-	valuer         Valuer
-	exchangeFilter ExchangeFilter
+	entities    DXCCFinder
+	callsigns   CallsignFinder
+	callHistory CallHistoryFinder
+	dupeChecker DupeChecker
+	valuer      Valuer
 
 	lastCallsign        string
 	lastBand            core.Band
@@ -50,7 +47,6 @@ type Callinfo struct {
 	lastExchange        []string
 	predictedExchange   []string
 	theirExchangeFields []core.ExchangeField
-	totalScore          core.BandScore
 
 	matchOnFrequency          core.AnnotatedCallsign
 	matchOnFrequencyAvailable bool
@@ -130,7 +126,6 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 
 func (c *Callinfo) ScoreUpdated(score core.Score) {
 	c.collector.ScoreUpdated(score)
-	c.totalScore = score.Result()
 }
 
 func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
@@ -219,16 +214,6 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 		c.view.SetPredictedExchange(i+1, text)
 	}
 	c.view.SetSupercheck(supercheck)
-}
-
-func joinAvailableValues(values ...string) string {
-	availableValues := make([]string, 0, len(values))
-	for _, value := range values {
-		if value != "" {
-			availableValues = append(availableValues, value)
-		}
-	}
-	return strings.Join(availableValues, ", ")
 }
 
 func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode) (points, multis int, multiValues map[conval.Property]string) {

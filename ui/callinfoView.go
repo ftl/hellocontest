@@ -216,8 +216,7 @@ func (v *callinfoView) renderCallsign(callsign core.AnnotatedCallsign) string {
 }
 
 func (v *callinfoView) SetPredictedExchange(index int, text string) {
-	i := index - 1
-	if i < 0 || i >= len(v.predictedExchanges) {
+	if index < 0 || index >= len(v.predictedExchanges) {
 		return
 	}
 
@@ -228,7 +227,7 @@ func (v *callinfoView) SetPredictedExchange(index int, text string) {
 		text = strings.TrimSpace(text)
 	}
 	exchangeText := fmt.Sprintf("<span %s>%s</span>", exchangeMarkup, text)
-	v.predictedExchanges[i].SetMarkup(exchangeText)
+	v.predictedExchanges[index].SetMarkup(exchangeText)
 }
 
 func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {

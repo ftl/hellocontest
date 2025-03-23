@@ -201,7 +201,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 		if i < len(callinfo.FilteredExchange) {
 			text = callinfo.FilteredExchange[i]
 		}
-		c.view.SetPredictedExchange(i+1, text)
+		c.view.SetPredictedExchange(i, text)
 	}
 	c.view.SetSupercheck(supercheck)
 }

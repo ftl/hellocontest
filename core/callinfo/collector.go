@@ -23,7 +23,7 @@ type Collector struct {
 	totalScore          core.BandScore
 }
 
-func NewColletor(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistoryFinder,
+func NewCollector(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistoryFinder,
 	dupes DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter) *Collector {
 
 	return &Collector{

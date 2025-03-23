@@ -19,7 +19,7 @@ func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryF
 	result := &Callinfo{
 		view:           new(nullView),
 		asyncRunner:    asyncRunner,
-		collector:      NewColletor(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
+		collector:      NewCollector(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
 		entities:       entities,
 		callsigns:      callsigns,
 		callHistory:    callHistory,

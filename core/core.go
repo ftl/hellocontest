@@ -944,6 +944,21 @@ type Callinfo struct {
 	WeightedValue float64
 }
 
+type CallinfoFrame struct {
+	BestMatchingCallsign AnnotatedCallsign
+	DXCCEntity           dxcc.Prefix
+
+	PredictedExchange []string
+
+	Points int
+	Multis int
+	Value  int
+
+	UserInfo string
+
+	Supercheck []AnnotatedCallsign
+}
+
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
 const spotFrequencyProximityThreshold float64 = 2500
 

@@ -1,7 +1,6 @@
 package callinfo
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -46,13 +45,8 @@ type ExchangeFilter interface {
 
 // View defines the visual part of the call information window.
 type View interface {
-	SetBestMatchingCallsign(callsign core.AnnotatedCallsign)
-	SetDXCC(string, string, int, int)
-	SetValue(points, multis, value int)
-	SetPredictedExchange(index int, text string)
 	SetPredictedExchangeFields(fields []core.ExchangeField)
-	SetUserInfo(string)
-	SetSupercheck(callsigns []core.AnnotatedCallsign)
+	ShowFrame(core.CallinfoFrame)
 }
 
 type Callinfo struct {
@@ -68,6 +62,7 @@ type Callinfo struct {
 	predictedExchange   []string
 	theirExchangeFields []core.ExchangeField
 
+	frame                     core.CallinfoFrame
 	matchOnFrequency          core.AnnotatedCallsign
 	matchOnFrequencyAvailable bool
 	bestMatch                 core.AnnotatedCallsign
@@ -121,10 +116,6 @@ func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mo
 	return c.collector.GetValue(call, band, mode)
 }
 
-func (c *Callinfo) Refresh() {
-	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastExchange)
-}
-
 func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, currentExchange []string) {
 	c.lastCallsign = call
 	c.lastBand = band
@@ -152,31 +143,34 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 		}
 	}
 
-	c.showDXCCEntity(callinfo)
-	c.showBestMatch()
-	c.view.SetUserInfo(callinfo.UserText)
-	c.view.SetValue(callinfo.Points, callinfo.Multis, callinfo.Value)
+	c.setBestMatch()
+
+	c.frame.DXCCEntity = callinfo.DXCCEntity
+	c.frame.UserInfo = callinfo.UserText
+
+	c.frame.Points = callinfo.Points
+	c.frame.Multis = callinfo.Multis
+	c.frame.Value = callinfo.Value
+
+	if len(c.frame.PredictedExchange) != len(c.theirExchangeFields) {
+		c.frame.PredictedExchange = make([]string, len(c.theirExchangeFields))
+	}
 	for i := range c.theirExchangeFields {
 		text := ""
 		if i < len(callinfo.FilteredExchange) {
 			text = callinfo.FilteredExchange[i]
 		}
-		c.view.SetPredictedExchange(i, text)
+		c.frame.PredictedExchange[i] = text
 	}
-	c.view.SetSupercheck(supercheck)
+
+	c.frame.Supercheck = supercheck
+
+	c.view.ShowFrame(c.frame)
 }
 
-func (c *Callinfo) showDXCCEntity(callinfo core.Callinfo) {
-	var dxccName string
-	if callinfo.DXCCEntity.PrimaryPrefix != "" {
-		dxccName = fmt.Sprintf("%s (%s)", callinfo.DXCCEntity.Name, callinfo.DXCCEntity.PrimaryPrefix)
-	}
-	c.view.SetDXCC(dxccName, callinfo.DXCCEntity.Continent, int(callinfo.DXCCEntity.ITUZone), int(callinfo.DXCCEntity.CQZone))
-}
-
-func (c *Callinfo) showBestMatch() {
+func (c *Callinfo) setBestMatch() {
 	bestMatch, _ := c.findBestMatch()
-	c.view.SetBestMatchingCallsign(bestMatch)
+	c.frame.BestMatchingCallsign = bestMatch
 }
 
 func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {
@@ -229,7 +223,8 @@ func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 			c.matchOnFrequency = core.AnnotatedCallsign{}
 		}
 
-		c.showBestMatch()
+		c.setBestMatch()
+		c.view.ShowFrame(c.frame) // TODO
 	})
 }
 
@@ -239,12 +234,7 @@ func normalizeInput(input string) string {
 
 type nullView struct{}
 
-func (v *nullView) Show()                                                   {}
-func (v *nullView) Hide()                                                   {}
-func (v *nullView) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {}
-func (v *nullView) SetDXCC(string, string, int, int)                        {}
-func (v *nullView) SetValue(int, int, int)                                  {}
-func (v *nullView) SetPredictedExchange(int, string)                        {}
-func (v *nullView) SetPredictedExchangeFields(fields []core.ExchangeField)  {}
-func (v *nullView) SetUserInfo(string)                                      {}
-func (v *nullView) SetSupercheck(callsigns []core.AnnotatedCallsign)        {}
+func (v *nullView) Show()                                           {}
+func (v *nullView) Hide()                                           {}
+func (v *nullView) SetPredictedExchangeFields([]core.ExchangeField) {}
+func (v *nullView) ShowFrame(frame core.CallinfoFrame)              {}

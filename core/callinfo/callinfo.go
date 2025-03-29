@@ -98,10 +98,6 @@ func (c *Callinfo) SetView(view View) {
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
-func (c *Callinfo) Refresh() {
-	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastExchange)
-}
-
 func (c *Callinfo) ContestChanged(contest core.Contest) {
 	if contest.Definition == nil {
 		log.Printf("there is no contest definition!")
@@ -117,52 +113,16 @@ func (c *Callinfo) ScoreUpdated(score core.Score) {
 	c.collector.ScoreUpdated(score)
 }
 
-func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
-	c.asyncRunner(func() {
-		c.matchOnFrequencyAvailable = available
-
-		if available && c.matchOnFrequency.Callsign.String() == entry.Call.String() {
-			// go on
-		} else if available {
-			normalizedCall := strings.TrimSpace(strings.ToUpper(c.lastCallsign))
-			exactMatch := normalizedCall == entry.Call.String()
-			c.matchOnFrequency = core.AnnotatedCallsign{
-				Callsign:          entry.Call,
-				Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
-				Duplicate:         entry.Info.Duplicate,
-				Worked:            entry.Info.Worked,
-				ExactMatch:        exactMatch,
-				Points:            entry.Info.Points,
-				Multis:            entry.Info.Multis,
-				PredictedExchange: entry.Info.PredictedExchange,
-				OnFrequency:       true,
-			}
-		} else {
-			c.matchOnFrequency = core.AnnotatedCallsign{}
-		}
-
-		c.showBestMatch()
-	})
-}
-
-func (c *Callinfo) BestMatches() []string {
-	return c.bestMatches
-}
-
-func (c *Callinfo) BestMatch() string {
-	bestMatch, available := c.findBestMatch()
-	if !available {
-		return ""
-	}
-	return bestMatch.Callsign.String()
-}
-
-func (c *Callinfo) PredictedExchange() []string {
-	return c.predictedExchange
-}
-
 func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
 	return c.collector.GetInfo(call, band, mode, currentExchange)
+}
+
+func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode) (points, multis int, multiValues map[conval.Property]string) {
+	return c.collector.GetValue(call, band, mode)
+}
+
+func (c *Callinfo) Refresh() {
+	c.ShowInfo(c.lastCallsign, c.lastBand, c.lastMode, c.lastExchange)
 }
 
 func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, currentExchange []string) {
@@ -206,16 +166,17 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 	c.view.SetSupercheck(supercheck)
 }
 
-func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode) (points, multis int, multiValues map[conval.Property]string) {
-	return c.collector.GetValue(call, band, mode)
-}
-
 func (c *Callinfo) showDXCCEntity(callinfo core.Callinfo) {
 	var dxccName string
 	if callinfo.DXCCEntity.PrimaryPrefix != "" {
 		dxccName = fmt.Sprintf("%s (%s)", callinfo.DXCCEntity.Name, callinfo.DXCCEntity.PrimaryPrefix)
 	}
 	c.view.SetDXCC(dxccName, callinfo.DXCCEntity.Continent, int(callinfo.DXCCEntity.ITUZone), int(callinfo.DXCCEntity.CQZone))
+}
+
+func (c *Callinfo) showBestMatch() {
+	bestMatch, _ := c.findBestMatch()
+	c.view.SetBestMatchingCallsign(bestMatch)
 }
 
 func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {
@@ -228,9 +189,48 @@ func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {
 	return match, (match.Callsign.String() != "")
 }
 
-func (c *Callinfo) showBestMatch() {
-	bestMatch, _ := c.findBestMatch()
-	c.view.SetBestMatchingCallsign(bestMatch)
+func (c *Callinfo) BestMatches() []string {
+	return c.bestMatches
+}
+
+func (c *Callinfo) BestMatch() string {
+	bestMatch, available := c.findBestMatch()
+	if !available {
+		return ""
+	}
+	return bestMatch.Callsign.String()
+}
+
+func (c *Callinfo) PredictedExchange() []string {
+	return c.predictedExchange
+}
+
+func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
+	c.asyncRunner(func() {
+		c.matchOnFrequencyAvailable = available
+
+		if available && c.matchOnFrequency.Callsign.String() == entry.Call.String() {
+			// go on
+		} else if available {
+			normalizedCall := strings.TrimSpace(strings.ToUpper(c.lastCallsign))
+			exactMatch := normalizedCall == entry.Call.String()
+			c.matchOnFrequency = core.AnnotatedCallsign{
+				Callsign:          entry.Call,
+				Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
+				Duplicate:         entry.Info.Duplicate,
+				Worked:            entry.Info.Worked,
+				ExactMatch:        exactMatch,
+				Points:            entry.Info.Points,
+				Multis:            entry.Info.Multis,
+				PredictedExchange: entry.Info.PredictedExchange,
+				OnFrequency:       true,
+			}
+		} else {
+			c.matchOnFrequency = core.AnnotatedCallsign{}
+		}
+
+		c.showBestMatch()
+	})
 }
 
 func normalizeInput(input string) string {

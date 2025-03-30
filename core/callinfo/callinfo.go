@@ -50,7 +50,6 @@ type Callinfo struct {
 	collector   *Collector
 	supercheck  *Supercheck
 
-	predictedExchange   []string
 	theirExchangeFields []core.ExchangeField
 
 	frame                     core.CallinfoFrame
@@ -107,18 +106,12 @@ func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mo
 	return c.collector.GetValue(call, band, mode)
 }
 
-func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, currentExchange []string) {
+func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
 	normalizedCall := normalizeInput(call)
 
 	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
-	if callinfo.CallValid {
-		c.predictedExchange = callinfo.PredictedExchange
-	} else {
-		// TODO: should the currentExchange be used for the prediction at all?
-		c.predictedExchange = currentExchange
-	}
-
 	supercheck := c.supercheck.Calculate(normalizedCall, band, mode)
+
 	c.bestMatches = make([]string, 0, len(supercheck))
 	c.bestMatch = core.AnnotatedCallsign{}
 	c.bestMatchAvailable = false
@@ -143,6 +136,8 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 	c.frame.Supercheck = supercheck
 
 	c.view.ShowFrame(c.frame)
+
+	return callinfo
 }
 
 func (c *Callinfo) setBestMatch() {
@@ -170,10 +165,6 @@ func (c *Callinfo) BestMatch() string {
 		return ""
 	}
 	return bestMatch.Callsign.String()
-}
-
-func (c *Callinfo) PredictedExchange() []string {
-	return c.predictedExchange
 }
 
 func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {

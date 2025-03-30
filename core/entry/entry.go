@@ -72,9 +72,7 @@ type Keyer interface {
 
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
-	InputChanged(call string, band core.Band, mode core.Mode, exchange []string) core.Callinfo
-	BestMatches() []string
-	BestMatch() string
+	InputChanged(call string, band core.Band, mode core.Mode, exchange []string) core.CallinfoFrame
 }
 
 type Bandmap interface {
@@ -127,7 +125,7 @@ type Controller struct {
 	generateSerialExchange   bool
 	generateReport           bool
 	defaultExchangeValues    []string
-	predictedExchange        []string
+	currentCallinfoFrame     core.CallinfoFrame
 
 	input               input
 	activeField         core.EntryField
@@ -191,12 +189,11 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 
 func (c *Controller) notifyCallinfoInputChanged(call string, band core.Band, mode core.Mode, exchange []string) {
 	if c.callinfo == nil {
-		c.predictedExchange = nil
+		c.currentCallinfoFrame = core.CallinfoFrame{}
 		return
 	}
 
-	callinfo := c.callinfo.InputChanged(call, band, mode, exchange)
-	c.predictedExchange = callinfo.PredictedExchange
+	c.currentCallinfoFrame = c.callinfo.InputChanged(call, band, mode, exchange)
 }
 
 func (c *Controller) SetVFO(vfo core.VFO) {
@@ -255,13 +252,13 @@ func (c *Controller) leaveCallsignField() {
 		return
 	}
 
-	if len(c.input.theirExchange) == len(c.predictedExchange) {
+	if len(c.input.theirExchange) == len(c.currentCallinfoFrame.PredictedExchange) {
 		for i, field := range c.theirExchangeFields {
 			if !c.isPredictable(field.Field) {
 				continue
 			}
 			if c.input.theirExchange[i] == "" {
-				c.setTheirExchangePrediction(i, c.predictedExchange[i])
+				c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
 			}
 		}
 	}
@@ -295,12 +292,12 @@ func (c *Controller) isPredictable(field core.EntryField) bool {
 func (c *Controller) RefreshPrediction() {
 	c.notifyCallinfoInputChanged(c.input.callsign, c.selectedBand, c.selectedMode, []string{})
 
-	if len(c.input.theirExchange) == len(c.predictedExchange) {
+	if len(c.input.theirExchange) == len(c.currentCallinfoFrame.PredictedExchange) {
 		for i, field := range c.theirExchangeFields {
 			if !c.isPredictable(field.Field) {
 				continue
 			}
-			c.setTheirExchangePrediction(i, c.predictedExchange[i])
+			c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
 		}
 	}
 }
@@ -380,25 +377,19 @@ func (c *Controller) SetActiveField(field core.EntryField) {
 }
 
 func (c *Controller) SelectMatch(index int) {
-	matches := c.callinfo.BestMatches()
-	if index < 0 || index >= len(matches) {
-		return
-	}
-
-	c.activeField = core.CallsignField
-	c.Enter(matches[index])
-	c.view.SetCallsign(c.input.callsign)
-	c.GotoNextField()
+	c.selectCallsign(c.currentCallinfoFrame.GetMatch(index))
 }
 
-func (c *Controller) SelectBestMatch() {
-	match := c.callinfo.BestMatch()
-	if match == "" {
+func (c *Controller) SelectBestMatchOnFrequency() {
+	c.selectCallsign(c.currentCallinfoFrame.BestMatchOnFrequency().Callsign.String())
+}
+
+func (c *Controller) selectCallsign(callsign string) {
+	if callsign == "" {
 		return
 	}
-
 	c.activeField = core.CallsignField
-	c.Enter(match)
+	c.Enter(callsign)
 	c.view.SetCallsign(c.input.callsign)
 	c.GotoNextField()
 }
@@ -656,8 +647,8 @@ func (c *Controller) Log() {
 				return
 			}
 		default:
-			if qso.TheirExchange[i] == "" && len(c.predictedExchange) == len(qso.TheirExchange) {
-				c.setTheirExchangePrediction(i, c.predictedExchange[i])
+			if qso.TheirExchange[i] == "" && len(c.currentCallinfoFrame.PredictedExchange) == len(qso.TheirExchange) {
+				c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
 				c.showErrorOnField(fmt.Errorf("check their exchange"), field.Field)
 				return
 			}
@@ -985,8 +976,8 @@ func (n *nullLogbook) Log(core.QSO)               {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) core.Callinfo {
-	return core.Callinfo{}
+func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) core.CallinfoFrame {
+	return core.CallinfoFrame{}
 }
 func (n *nullCallinfo) BestMatches() []string { return []string{} }
 func (n *nullCallinfo) BestMatch() string     { return "" }

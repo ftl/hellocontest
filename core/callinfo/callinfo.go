@@ -52,12 +52,7 @@ type Callinfo struct {
 
 	theirExchangeFields []core.ExchangeField
 
-	frame                     core.CallinfoFrame
-	matchOnFrequency          core.AnnotatedCallsign
-	matchOnFrequencyAvailable bool
-	bestMatch                 core.AnnotatedCallsign
-	bestMatchAvailable        bool
-	bestMatches               []string
+	frame core.CallinfoFrame
 }
 
 func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, asyncRunner core.AsyncRunner) *Callinfo {
@@ -106,23 +101,11 @@ func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mo
 	return c.collector.GetValue(call, band, mode)
 }
 
-func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
+func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) core.CallinfoFrame {
 	normalizedCall := normalizeInput(call)
 
 	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
 	supercheck := c.supercheck.Calculate(normalizedCall, band, mode)
-
-	c.bestMatches = make([]string, 0, len(supercheck))
-	c.bestMatch = core.AnnotatedCallsign{}
-	c.bestMatchAvailable = false
-	for i, match := range supercheck {
-		c.bestMatches = append(c.bestMatches, match.Callsign.String())
-		if i == 0 {
-			c.bestMatch = match
-			c.bestMatchAvailable = true
-		}
-	}
-	c.setBestMatch()
 
 	c.frame.NormalizedCallInput = normalizedCall
 	c.frame.DXCCEntity = callinfo.DXCCEntity
@@ -135,47 +118,21 @@ func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, cur
 	c.frame.PredictedExchange = callinfo.PredictedExchange
 	c.frame.Supercheck = supercheck
 
+	// TODO: notify listeners
 	c.view.ShowFrame(c.frame)
 
-	return callinfo
-}
-
-func (c *Callinfo) setBestMatch() {
-	bestMatch, _ := c.findBestMatch()
-	c.frame.BestMatchingCallsign = bestMatch
-}
-
-func (c *Callinfo) findBestMatch() (core.AnnotatedCallsign, bool) {
-	match := c.matchOnFrequency
-
-	if c.bestMatchAvailable {
-		match = c.bestMatch
-	}
-
-	return match, (match.Callsign.String() != "")
-}
-
-func (c *Callinfo) BestMatches() []string {
-	return c.bestMatches
-}
-
-func (c *Callinfo) BestMatch() string {
-	bestMatch, available := c.findBestMatch()
-	if !available {
-		return ""
-	}
-	return bestMatch.Callsign.String()
+	return c.frame
 }
 
 func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
-	c.asyncRunner(func() {
-		c.matchOnFrequencyAvailable = available
-
-		if available && c.matchOnFrequency.Callsign.String() == entry.Call.String() {
+	c.asyncRunner(func() { // TODO move the asyncRunner closer to the other Go routine, do as much as possible in the main thread
+		if !available {
+			c.frame.CallsignOnFrequency = core.AnnotatedCallsign{}
+		} else if c.frame.CallsignOnFrequency.Callsign.String() == entry.Call.String() {
 			// go on
-		} else if available {
+		} else {
 			exactMatch := c.frame.NormalizedCallInput == entry.Call.String()
-			c.matchOnFrequency = core.AnnotatedCallsign{
+			c.frame.CallsignOnFrequency = core.AnnotatedCallsign{
 				Callsign:          entry.Call,
 				Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
 				Duplicate:         entry.Info.Duplicate,
@@ -186,12 +143,10 @@ func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 				PredictedExchange: entry.Info.PredictedExchange,
 				OnFrequency:       true,
 			}
-		} else {
-			c.matchOnFrequency = core.AnnotatedCallsign{}
 		}
 
-		c.setBestMatch()
-		c.view.ShowFrame(c.frame) // TODO
+		// TODO: notify listeners
+		c.view.ShowFrame(c.frame)
 	})
 }
 

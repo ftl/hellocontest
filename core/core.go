@@ -943,9 +943,10 @@ type Callinfo struct {
 }
 
 type CallinfoFrame struct {
-	NormalizedCallInput  string
-	BestMatchingCallsign AnnotatedCallsign
-	DXCCEntity           dxcc.Prefix
+	NormalizedCallInput string
+	DXCCEntity          dxcc.Prefix
+
+	CallsignOnFrequency AnnotatedCallsign
 
 	PredictedExchange []string
 
@@ -956,6 +957,23 @@ type CallinfoFrame struct {
 	UserInfo string
 
 	Supercheck []AnnotatedCallsign
+}
+
+func (f CallinfoFrame) BestMatchOnFrequency() AnnotatedCallsign {
+	if len(f.Supercheck) > 0 {
+		return f.Supercheck[0]
+	}
+	if f.CallsignOnFrequency.Callsign.String() != "" {
+		return f.CallsignOnFrequency
+	}
+	return AnnotatedCallsign{}
+}
+
+func (f CallinfoFrame) GetMatch(i int) string {
+	if i < len(f.Supercheck) {
+		return f.Supercheck[i].Callsign.String()
+	}
+	return ""
 }
 
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"

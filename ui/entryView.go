@@ -20,7 +20,7 @@ type EntryController interface {
 
 	Enter(string)
 	SelectMatch(int)
-	SelectBestMatch()
+	SelectBestMatchOnFrequency()
 	SendQuestion()
 	StopTX()
 
@@ -133,7 +133,7 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 		return true
 	case gdk.KEY_Return:
 		if alt {
-			v.controller.SelectBestMatch()
+			v.controller.SelectBestMatchOnFrequency()
 		} else {
 			v.controller.Log()
 		}

@@ -88,7 +88,7 @@ func (v *callinfoView) ShowFrame(frame core.CallinfoFrame) {
 }
 
 func (v *callinfoView) showCurrentFrame() {
-	v.setBestMatchingCallsign(v.currentFrame.BestMatchingCallsign)
+	v.setBestMatchingCallsign(v.currentFrame.BestMatchOnFrequency())
 	v.setDXCC(v.currentFrame.DXCCEntity)
 	v.setValue(v.currentFrame.Points, v.currentFrame.Multis, v.currentFrame.Value)
 	v.setUserInfo(v.currentFrame.UserInfo)

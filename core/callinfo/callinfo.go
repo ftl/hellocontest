@@ -55,10 +55,6 @@ type Callinfo struct {
 	collector   *Collector
 	supercheck  *Supercheck
 
-	lastCallsign        string
-	lastBand            core.Band
-	lastMode            core.Mode
-	lastExchange        []string
 	predictedExchange   []string
 	theirExchangeFields []core.ExchangeField
 
@@ -117,12 +113,9 @@ func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mo
 }
 
 func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, currentExchange []string) {
-	c.lastCallsign = call
-	c.lastBand = band
-	c.lastMode = mode
-	c.lastExchange = currentExchange
+	normalizedCall := normalizeInput(call)
 
-	callinfo := c.collector.GetInfoForInput(call, band, mode, currentExchange)
+	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
 	if callinfo.CallValid {
 		c.predictedExchange = callinfo.PredictedExchange
 	} else {
@@ -130,8 +123,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 		c.predictedExchange = currentExchange
 	}
 
-	supercheck := c.supercheck.Calculate(call, c.lastBand, c.lastMode)
-
+	supercheck := c.supercheck.Calculate(normalizedCall, band, mode)
 	c.bestMatches = make([]string, 0, len(supercheck))
 	c.bestMatch = core.AnnotatedCallsign{}
 	c.bestMatchAvailable = false
@@ -142,9 +134,9 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 			c.bestMatchAvailable = true
 		}
 	}
-
 	c.setBestMatch()
 
+	c.frame.NormalizedCallInput = normalizedCall
 	c.frame.DXCCEntity = callinfo.DXCCEntity
 	c.frame.UserInfo = callinfo.UserText
 
@@ -206,8 +198,7 @@ func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 		if available && c.matchOnFrequency.Callsign.String() == entry.Call.String() {
 			// go on
 		} else if available {
-			normalizedCall := strings.TrimSpace(strings.ToUpper(c.lastCallsign))
-			exactMatch := normalizedCall == entry.Call.String()
+			exactMatch := c.frame.NormalizedCallInput == entry.Call.String()
 			c.matchOnFrequency = core.AnnotatedCallsign{
 				Callsign:          entry.Call,
 				Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},

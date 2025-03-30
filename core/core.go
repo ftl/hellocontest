@@ -945,6 +945,7 @@ type Callinfo struct {
 }
 
 type CallinfoFrame struct {
+	NormalizedCallInput  string
 	BestMatchingCallsign AnnotatedCallsign
 	DXCCEntity           dxcc.Prefix
 

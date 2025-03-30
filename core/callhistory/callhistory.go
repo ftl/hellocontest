@@ -22,11 +22,10 @@ const (
 	Exch1Field = "Exch1"
 )
 
-func New(availabilityCallback AvailabilityCallback, asyncRunner core.AsyncRunner) *Finder {
+func New(availabilityCallback AvailabilityCallback) *Finder {
 	return &Finder{
 		dataLock:             new(sync.Mutex),
 		availabilityCallback: availabilityCallback,
-		asyncRunner:          asyncRunner,
 	}
 }
 
@@ -36,7 +35,6 @@ type Finder struct {
 	dataLock *sync.Mutex
 
 	availabilityCallback AvailabilityCallback
-	asyncRunner          core.AsyncRunner
 
 	listeners []any
 
@@ -73,12 +71,11 @@ func (f *Finder) Deactivate() {
 
 func (f *Finder) activateCallHistory() {
 	f.dataLock.Lock()
-	defer f.dataLock.Unlock()
-
 	f.database = loadCallHistory(f.filename)
 	f.cache = make(map[string][]scp.Match)
-
 	available := f.database != nil
+	f.dataLock.Unlock()
+
 	f.availabilityCallback(core.CallHistoryService, available)
 	if available {
 		log.Printf("Using call history from %s with available field names %v", f.filename, f.database.FieldSet().UsableNames())
@@ -86,6 +83,14 @@ func (f *Finder) activateCallHistory() {
 	} else {
 		log.Printf("No call history available from %s", f.filename)
 		f.emitAvailableCallHistoryFieldNames([]string{})
+	}
+}
+
+func (f *Finder) emitAvailableCallHistoryFieldNames(fieldNames []string) {
+	for _, listener := range f.listeners {
+		if fieldNamesListener, ok := listener.(AvailableFieldNamesListener); ok {
+			fieldNamesListener.SetAvailableCallHistoryFieldNames(fieldNames)
+		}
 	}
 }
 
@@ -109,16 +114,6 @@ func (f *Finder) findInDatabase(s string) ([]scp.Match, error) {
 
 	f.cache[s] = matches
 	return matches, nil
-}
-
-func (f *Finder) emitAvailableCallHistoryFieldNames(fieldNames []string) {
-	for _, listener := range f.listeners {
-		if fieldNamesListener, ok := listener.(AvailableFieldNamesListener); ok {
-			f.asyncRunner(func() {
-				fieldNamesListener.SetAvailableCallHistoryFieldNames(fieldNames)
-			})
-		}
-	}
 }
 
 func (f *Finder) SelectFieldNames(fieldNames []string) {

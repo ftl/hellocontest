@@ -106,7 +106,6 @@ func (a *application) activate() {
 	a.mainWindow.SetEntryController(a.controller.Entry)
 	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
 	a.mainWindow.SetKeyerController(a.controller.Keyer)
-	a.mainWindow.SetCallinfoController(a.controller.Callinfo)
 
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.mainWindow)

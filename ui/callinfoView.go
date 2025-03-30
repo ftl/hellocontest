@@ -8,12 +8,9 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/ui/style"
 )
-
-type CallinfoController interface {
-	Refresh()
-}
 
 type callinfoStyle struct {
 	colorProvider
@@ -47,7 +44,7 @@ const (
 )
 
 type callinfoView struct {
-	controller CallinfoController
+	currentFrame core.CallinfoFrame
 
 	callsignLabel            *gtk.Label
 	dxccLabel                *gtk.Label
@@ -76,43 +73,55 @@ func setupCallinfoView(builder *gtk.Builder, colors colorProvider) *callinfoView
 	return result
 }
 
-func (v *callinfoView) SetCallinfoController(controller CallinfoController) {
-	v.controller = controller
-}
-
 func (v *callinfoView) RefreshStyle() {
 	v.style.Refresh()
-	if v.controller != nil {
-		v.controller.Refresh()
-	}
+	v.showCurrentFrame()
 }
 
 func attr(name, value string) string {
 	return fmt.Sprintf("%s=%q", name, value)
 }
 
-func (v *callinfoView) SetBestMatchingCallsign(callsign core.AnnotatedCallsign) {
+func (v *callinfoView) ShowFrame(frame core.CallinfoFrame) {
+	v.currentFrame = frame
+	v.showCurrentFrame()
+}
+
+func (v *callinfoView) showCurrentFrame() {
+	v.setBestMatchingCallsign(v.currentFrame.BestMatchOnFrequency())
+	v.setDXCC(v.currentFrame.DXCCEntity)
+	v.setValue(v.currentFrame.Points, v.currentFrame.Multis, v.currentFrame.Value)
+	v.setUserInfo(v.currentFrame.UserInfo)
+	v.setSupercheck(v.currentFrame.Supercheck)
+	v.setPredictedExchanges(v.currentFrame.PredictedExchange)
+}
+
+func (v *callinfoView) setBestMatchingCallsign(callsign core.AnnotatedCallsign) {
 	v.callsignLabel.SetMarkup(v.renderCallsign(callsign))
 }
 
-func (v *callinfoView) SetDXCC(dxccName, continent string, itu, cq int) {
-	if dxccName == "" {
+func (v *callinfoView) setDXCC(entity dxcc.Prefix) {
+	if entity.Name == "" {
 		v.dxccLabel.SetMarkup("")
 		return
 	}
 
-	text := fmt.Sprintf("%s, %s", dxccName, continent)
-	if itu != 0 {
-		text += fmt.Sprintf(", ITU %d", itu)
+	text := entity.Name
+	if entity.PrimaryPrefix != "" {
+		text += fmt.Sprintf(" (%s)", entity.PrimaryPrefix)
 	}
-	if cq != 0 {
-		text += fmt.Sprintf(", CQ %d", cq)
+	text += fmt.Sprintf(", %s", entity.Continent)
+	if entity.ITUZone != 0 {
+		text += fmt.Sprintf(", ITU %d", entity.ITUZone)
+	}
+	if entity.CQZone != 0 {
+		text += fmt.Sprintf(", CQ %d", entity.CQZone)
 	}
 
 	v.dxccLabel.SetMarkup(text)
 }
 
-func (v *callinfoView) SetValue(points int, multis int, value int) {
+func (v *callinfoView) setValue(points int, multis int, value int) {
 	style.RemoveClass(&v.valueLabel.Widget, callinfoWorthlessClass)
 	style.RemoveClass(&v.valueLabel.Widget, callinfoMultiClass)
 
@@ -126,11 +135,11 @@ func (v *callinfoView) SetValue(points int, multis int, value int) {
 	v.valueLabel.SetText(fmt.Sprintf("%dP x %dM = %d", points, multis, value))
 }
 
-func (v *callinfoView) SetUserInfo(value string) {
+func (v *callinfoView) setUserInfo(value string) {
 	v.userInfoLabel.SetText(value)
 }
 
-func (v *callinfoView) SetSupercheck(callsigns []core.AnnotatedCallsign) {
+func (v *callinfoView) setSupercheck(callsigns []core.AnnotatedCallsign) {
 	var text string
 	for i, callsign := range callsigns {
 		if text != "" {
@@ -215,9 +224,14 @@ func (v *callinfoView) renderCallsign(callsign core.AnnotatedCallsign) string {
 	return renderedCallsign
 }
 
-func (v *callinfoView) SetPredictedExchange(index int, text string) {
-	i := index - 1
-	if i < 0 || i >= len(v.predictedExchanges) {
+func (v *callinfoView) setPredictedExchanges(exchanges []string) {
+	for i, exchange := range exchanges {
+		v.setPredictedExchange(i, exchange)
+	}
+}
+
+func (v *callinfoView) setPredictedExchange(index int, text string) {
+	if index < 0 || index >= len(v.predictedExchanges) {
 		return
 	}
 
@@ -228,7 +242,7 @@ func (v *callinfoView) SetPredictedExchange(index int, text string) {
 		text = strings.TrimSpace(text)
 	}
 	exchangeText := fmt.Sprintf("<span %s>%s</span>", exchangeMarkup, text)
-	v.predictedExchanges[i].SetMarkup(exchangeText)
+	v.predictedExchanges[index].SetMarkup(exchangeText)
 }
 
 func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {

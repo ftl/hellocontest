@@ -411,7 +411,11 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 
 func TestEntries_Notify(t *testing.T) {
 	now := time.Now()
-	notifier := &Notifier{}
+	notifier := &Notifier{
+		asyncRunner: func(f func()) {
+			f()
+		},
+	}
 	entries := NewEntries(notifier, countAllEntries)
 	listener := new(testEntryListener)
 	notifier.Notify(listener)

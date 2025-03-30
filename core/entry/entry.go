@@ -72,10 +72,7 @@ type Keyer interface {
 
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
-	ShowInfo(call string, band core.Band, mode core.Mode, exchange []string)
-	BestMatches() []string
-	BestMatch() string
-	PredictedExchange() []string
+	InputChanged(call string, band core.Band, mode core.Mode, exchange []string)
 }
 
 type Bandmap interface {
@@ -128,6 +125,7 @@ type Controller struct {
 	generateSerialExchange   bool
 	generateReport           bool
 	defaultExchangeValues    []string
+	currentCallinfoFrame     core.CallinfoFrame
 
 	input               input
 	activeField         core.EntryField
@@ -189,6 +187,18 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 	c.callinfo = callinfo
 }
 
+func (c *Controller) notifyCallinfoInputChanged(call string, band core.Band, mode core.Mode, exchange []string) {
+	if c.callinfo == nil {
+		return
+	}
+	c.callinfo.InputChanged(call, band, mode, exchange)
+}
+
+func (c *Controller) CallinfoFrameChanged(frame core.CallinfoFrame) {
+	c.currentCallinfoFrame = frame
+	// TODO what do we need to update here?
+}
+
 func (c *Controller) SetVFO(vfo core.VFO) {
 	if vfo == nil {
 		c.vfo = new(nullVFO)
@@ -245,19 +255,13 @@ func (c *Controller) leaveCallsignField() {
 		return
 	}
 
-	predictedExchange := c.callinfo.PredictedExchange()
-	if len(c.input.theirExchange) == len(predictedExchange) {
+	if len(c.input.theirExchange) == len(c.currentCallinfoFrame.PredictedExchange) {
 		for i, field := range c.theirExchangeFields {
-			switch field.Field {
-			case c.theirReportExchangeField.Field:
+			if !c.isPredictable(field.Field) {
 				continue
-			case c.theirNumberExchangeField.Field:
-				if len(c.theirNumberExchangeField.Properties) == 1 {
-					continue
-				}
 			}
-			if c.input.theirExchange[i] == "" && predictedExchange[i] != "" {
-				c.setTheirExchangePrediction(i, predictedExchange[i])
+			if c.input.theirExchange[i] == "" {
+				c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
 			}
 		}
 	}
@@ -275,23 +279,28 @@ func (c *Controller) leaveCallsignField() {
 	c.view.SetDuplicateMarker(true)
 }
 
-func (c *Controller) RefreshPrediction() {
-	if c.callinfo != nil {
-		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, []string{})
+// isPredictable returns true if the exchange for the given field is predictable.
+func (c *Controller) isPredictable(field core.EntryField) bool {
+	switch field {
+	case c.theirReportExchangeField.Field:
+		return false
+	case c.theirNumberExchangeField.Field:
+		if len(c.theirNumberExchangeField.Properties) == 1 {
+			return false
+		}
 	}
+	return true
+}
 
-	predictedExchange := c.callinfo.PredictedExchange()
-	if len(c.input.theirExchange) == len(predictedExchange) {
+func (c *Controller) RefreshPrediction() {
+	c.notifyCallinfoInputChanged(c.input.callsign, c.selectedBand, c.selectedMode, []string{})
+
+	if len(c.input.theirExchange) == len(c.currentCallinfoFrame.PredictedExchange) {
 		for i, field := range c.theirExchangeFields {
-			switch field.Field {
-			case c.theirReportExchangeField.Field:
+			if !c.isPredictable(field.Field) {
 				continue
-			case c.theirNumberExchangeField.Field:
-				if len(c.theirNumberExchangeField.Properties) == 1 {
-					continue
-				}
 			}
-			c.setTheirExchangePrediction(i, predictedExchange[i])
+			c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
 		}
 	}
 }
@@ -348,6 +357,8 @@ func (c *Controller) showInput() {
 	c.view.SetMode(c.input.mode)
 }
 
+// setTheirExchangePrediction replaces the value of the given field with the given predicted value,
+// if the given value is not empty.
 func (c *Controller) setTheirExchangePrediction(i int, value string) {
 	if value == "" {
 		return
@@ -369,25 +380,19 @@ func (c *Controller) SetActiveField(field core.EntryField) {
 }
 
 func (c *Controller) SelectMatch(index int) {
-	matches := c.callinfo.BestMatches()
-	if index < 0 || index >= len(matches) {
-		return
-	}
-
-	c.activeField = core.CallsignField
-	c.Enter(matches[index])
-	c.view.SetCallsign(c.input.callsign)
-	c.GotoNextField()
+	c.selectCallsign(c.currentCallinfoFrame.GetMatch(index))
 }
 
-func (c *Controller) SelectBestMatch() {
-	match := c.callinfo.BestMatch()
-	if match == "" {
+func (c *Controller) SelectBestMatchOnFrequency() {
+	c.selectCallsign(c.currentCallinfoFrame.BestMatchOnFrequency().Callsign.String())
+}
+
+func (c *Controller) selectCallsign(callsign string) {
+	if callsign == "" {
 		return
 	}
-
 	c.activeField = core.CallsignField
-	c.Enter(match)
+	c.Enter(callsign)
 	c.view.SetCallsign(c.input.callsign)
 	c.GotoNextField()
 }
@@ -539,9 +544,7 @@ func (c *Controller) SendQuestion() {
 
 func (c *Controller) enterCallsign(s string) {
 	c.emitCallsignEntered(c.input.callsign)
-	if c.callinfo != nil {
-		c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
-	}
+	c.notifyCallinfoInputChanged(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
 
 	callsign, err := callsign.Parse(s)
 	if err != nil {
@@ -561,7 +564,7 @@ func (c *Controller) enterTheirExchange(field core.EntryField) {
 	if c.callinfo == nil {
 		return
 	}
-	c.callinfo.ShowInfo(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
+	c.notifyCallinfoInputChanged(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
 	c.clearErrorOnField(field)
 }
 
@@ -577,7 +580,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.showQSO(qso)
 	c.view.SetActiveField(core.CallsignField)
 	c.view.SetEditingMarker(true)
-	c.callinfo.ShowInfo(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
+	c.notifyCallinfoInputChanged(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
 }
 
 func (c *Controller) Log() {
@@ -618,7 +621,6 @@ func (c *Controller) Log() {
 
 	// handle their exchange
 	qso.TheirExchange = make([]string, len(c.theirExchangeFields))
-	predictedExchange := c.callinfo.PredictedExchange()
 
 	for i, field := range c.theirExchangeFields {
 		value := c.input.theirExchange[i]
@@ -648,8 +650,8 @@ func (c *Controller) Log() {
 				return
 			}
 		default:
-			if qso.TheirExchange[i] == "" && len(predictedExchange) == len(qso.TheirExchange) && predictedExchange[i] != "" {
-				c.setTheirExchangePrediction(i, predictedExchange[i])
+			if qso.TheirExchange[i] == "" && len(c.currentCallinfoFrame.PredictedExchange) == len(qso.TheirExchange) {
+				c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
 				c.showErrorOnField(fmt.Errorf("check their exchange"), field.Field)
 				return
 			}
@@ -819,9 +821,7 @@ func (c *Controller) Clear() {
 	c.view.SetEditingMarker(false)
 	c.view.ClearMessage()
 	c.selectLastQSO()
-	if c.callinfo != nil {
-		c.callinfo.ShowInfo("", core.NoBand, core.NoMode, []string{})
-	}
+	c.notifyCallinfoInputChanged("", core.NoBand, core.NoMode, []string{})
 }
 
 func (c *Controller) setMyNumberInput(value string) {
@@ -912,26 +912,6 @@ func (c *Controller) updateViewExchangeFields() {
 	c.view.SetTheirExchangeFields(c.theirExchangeFields)
 }
 
-func (c *Controller) FilterExchange(values []string) []string {
-	result := make([]string, len(values))
-	for i := range values {
-		if i >= len(c.theirExchangeFields) {
-			break
-		}
-		field := c.theirExchangeFields[i]
-		switch field.Field {
-		case c.theirReportExchangeField.Field:
-			continue
-		case c.theirNumberExchangeField.Field:
-			if len(field.Properties) == 1 {
-				continue
-			}
-		}
-		result[i] = values[i]
-	}
-	return result
-}
-
 func (c *Controller) MarkInBandmap() {
 	call, err := callsign.Parse(c.input.callsign)
 	if err != nil {
@@ -950,15 +930,13 @@ func (c *Controller) MarkInBandmap() {
 }
 
 func (c *Controller) EntrySelected(entry core.BandmapEntry) {
-	c.asyncRunner(func() {
-		c.Clear()
-		c.ignoreFrequencyJump = true
-		c.frequencyEntered(entry.Frequency)
-		c.activeField = core.CallsignField
-		c.Enter(entry.Call.String())
-		c.view.SetCallsign(c.input.callsign)
-		c.GotoNextField()
-	})
+	c.Clear()
+	c.ignoreFrequencyJump = true
+	c.frequencyEntered(entry.Frequency)
+	c.activeField = core.CallsignField
+	c.Enter(entry.Call.String())
+	c.view.SetCallsign(c.input.callsign)
+	c.GotoNextField()
 }
 
 type nullView struct{}
@@ -999,10 +977,7 @@ func (n *nullLogbook) Log(core.QSO)               {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) ShowInfo(string, core.Band, core.Mode, []string) {}
-func (n *nullCallinfo) BestMatches() []string                           { return []string{} }
-func (n *nullCallinfo) BestMatch() string                               { return "" }
-func (n *nullCallinfo) PredictedExchange() []string                     { return []string{} }
+func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) {}
 
 type nullBandmap struct{}
 

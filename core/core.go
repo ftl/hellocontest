@@ -923,17 +923,15 @@ func (s *BandSummary) Multis() int {
 }
 
 type Callinfo struct {
-	Call callsign.Callsign
+	Input     string
+	Call      callsign.Callsign
+	CallValid bool
 
-	DXCCName          string
-	PrimaryPrefix     string
-	Continent         string
-	ITUZone           int
-	CQZone            int
-	UserText          string
+	DXCCEntity dxcc.Prefix
+
 	PredictedExchange []string
-	FilteredExchange  []string
-	ExchangeText      string
+
+	UserText string
 
 	Worked        bool // already worked on another band/mode, but does not count as duplicate
 	Duplicate     bool // counts as duplicate
@@ -942,6 +940,40 @@ type Callinfo struct {
 	MultiValues   map[conval.Property]string
 	Value         int
 	WeightedValue float64
+}
+
+type CallinfoFrame struct {
+	NormalizedCallInput string
+	DXCCEntity          dxcc.Prefix
+
+	CallsignOnFrequency AnnotatedCallsign
+
+	PredictedExchange []string
+
+	Points int
+	Multis int
+	Value  int
+
+	UserInfo string
+
+	Supercheck []AnnotatedCallsign
+}
+
+func (f CallinfoFrame) BestMatchOnFrequency() AnnotatedCallsign {
+	if len(f.Supercheck) > 0 {
+		return f.Supercheck[0]
+	}
+	if f.CallsignOnFrequency.Callsign.String() != "" {
+		return f.CallsignOnFrequency
+	}
+	return AnnotatedCallsign{}
+}
+
+func (f CallinfoFrame) GetMatch(i int) string {
+	if i < len(f.Supercheck) {
+		return f.Supercheck[i].Callsign.String()
+	}
+	return ""
 }
 
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
@@ -1110,13 +1142,13 @@ func HeardAfter(deadline time.Time) BandmapFilter {
 
 func FromContinent(continent string) BandmapFilter {
 	return func(entry BandmapEntry) bool {
-		return entry.Info.Continent == continent
+		return entry.Info.DXCCEntity.Continent == continent
 	}
 }
 
 func FromDXCC(primaryPrefix string) BandmapFilter {
 	return func(entry BandmapEntry) bool {
-		return entry.Info.PrimaryPrefix == primaryPrefix
+		return entry.Info.DXCCEntity.PrimaryPrefix == primaryPrefix
 	}
 }
 

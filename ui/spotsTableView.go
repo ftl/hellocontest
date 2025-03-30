@@ -145,7 +145,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			formatSpotFrequency(entry.Frequency),
 			formatSpotCall(entry.Call),
 			entry.Quality.Tag(),
-			entry.Info.ExchangeText,
+			formatSpotExchangeText(entry.Info.PredictedExchange),
 			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
 			formatPoints(entry.Info.Multis, entry.Info.Duplicate, 0),
 			fmt.Sprintf("%d", entry.SpotCount),
@@ -182,6 +182,10 @@ func formatSpotCall(call callsign.Callsign) string {
 	return call.String()
 }
 
+func formatSpotExchangeText(predictedExchange []string) string {
+	return strings.Join(predictedExchange, " ")
+}
+
 func formatPoints(value int, duplicate bool, threshold int) string {
 	result := pointsToString(value, duplicate)
 	if value > threshold && !duplicate {
@@ -206,10 +210,10 @@ func formatSpotAge(lastHeard time.Time) string {
 }
 
 func getDXCCInformation(entry core.BandmapEntry) string {
-	if entry.Info.PrimaryPrefix == "" {
+	if entry.Info.DXCCEntity.PrimaryPrefix == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCName, entry.Info.PrimaryPrefix, entry.Info.Continent, entry.Info.ITUZone, entry.Info.CQZone)
+	return fmt.Sprintf("%s (%s), %s, ITU %d, CQ %d", entry.Info.DXCCEntity.Name, entry.Info.DXCCEntity.PrimaryPrefix, entry.Info.DXCCEntity.Continent, entry.Info.DXCCEntity.ITUZone, entry.Info.DXCCEntity.CQZone)
 }
 
 func (v *spotsView) getEntryColor(entry core.BandmapEntry) (foreground, background style.Color) {

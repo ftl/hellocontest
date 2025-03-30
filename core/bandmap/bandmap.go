@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -31,7 +30,7 @@ type DupeChecker interface {
 
 type Callinfo interface {
 	GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo
-	GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int, map[conval.Property]string)
+	UpdateValue(*core.Callinfo, core.Band, core.Mode) bool
 }
 
 var defaultWeights = core.BandmapWeights{
@@ -49,6 +48,7 @@ type Bandmap struct {
 	clock       core.Clock
 	view        View
 	dupeChecker DupeChecker
+	asyncRunner core.AsyncRunner
 	vfo         core.VFO
 
 	activeMode      core.Mode
@@ -64,15 +64,16 @@ type Bandmap struct {
 	closed chan struct{}
 }
 
-func NewDefaultBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker) *Bandmap {
-	return NewBandmap(clock, settings, dupeChecker, DefaultUpdatePeriod, DefaultMaximumAge)
+func NewDefaultBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, asyncRunner core.AsyncRunner) *Bandmap {
+	return NewBandmap(clock, settings, dupeChecker, asyncRunner, DefaultUpdatePeriod, DefaultMaximumAge)
 }
 
-func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
+func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, asyncRunner core.AsyncRunner, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
 		clock:       clock,
 		view:        new(nullView),
 		dupeChecker: dupeChecker,
+		asyncRunner: asyncRunner,
 
 		updatePeriod: updatePeriod,
 		maximumAge:   maximumAge,
@@ -81,7 +82,9 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 		do:     make(chan func(), 1),
 		closed: make(chan struct{}),
 	}
-	result.notifier = &Notifier{}
+	result.notifier = &Notifier{
+		asyncRunner: result.asyncRunner,
+	}
 	result.entries = NewEntries(result.notifier, result.countEntryValue)
 	result.entries.SetBands(settings.Contest().Bands())
 	result.selection = NewSelection(result.entries, result.notifier, result.entryVisible)
@@ -140,7 +143,9 @@ func (m *Bandmap) update() {
 		frame.HighestValueEntry = highestValueEntry
 	}
 
-	m.view.ShowFrame(frame)
+	m.asyncRunner(func() {
+		m.view.ShowFrame(frame)
+	})
 }
 
 func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, limit int, filter core.BandmapFilter) (core.BandmapEntry, bool) {
@@ -376,6 +381,6 @@ type nullCallinfo struct{}
 func (n *nullCallinfo) GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo {
 	return core.Callinfo{}
 }
-func (n *nullCallinfo) GetValue(callsign.Callsign, core.Band, core.Mode, []string) (int, int, map[conval.Property]string) {
-	return 0, 0, nil
+func (n *nullCallinfo) UpdateValue(*core.Callinfo, core.Band, core.Mode) bool {
+	return false
 }

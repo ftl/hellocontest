@@ -325,8 +325,10 @@ func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.Band
 	if entry.Call.String() == "" {
 		return
 	}
-	entry.Info.Points, entry.Info.Multis, entry.Info.MultiValues = l.callinfo.GetValue(entry.Call, entry.Band, entry.Mode, []string{})
-	entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
+	ok := l.callinfo.UpdateValue(&entry.Info, entry.Band, entry.Mode)
+	if ok {
+		entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
+	}
 }
 
 func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {

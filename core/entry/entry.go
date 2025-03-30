@@ -191,13 +191,10 @@ func (c *Controller) notifyCallinfoInputChanged(call string, band core.Band, mod
 	if c.callinfo == nil {
 		return
 	}
-	log.Printf("CallinfoInputChanged on")
 	c.callinfo.InputChanged(call, band, mode, exchange)
-	log.Printf("CallinfoInputChanged off")
 }
 
 func (c *Controller) CallinfoFrameChanged(frame core.CallinfoFrame) {
-	log.Printf("CallinfoFrameChanged")
 	c.currentCallinfoFrame = frame
 	// TODO what do we need to update here?
 }

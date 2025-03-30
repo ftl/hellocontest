@@ -117,6 +117,10 @@ func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mo
 	return c.collector.GetValue(call, band, mode)
 }
 
+func (c *Callinfo) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
+	return c.collector.UpdateValue(info, band, mode)
+}
+
 func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) {
 	normalizedCall := normalizeInput(call)
 

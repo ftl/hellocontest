@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -31,7 +30,7 @@ type DupeChecker interface {
 
 type Callinfo interface {
 	GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo
-	GetValue(callsign.Callsign, core.Band, core.Mode) (int, int, map[conval.Property]string)
+	UpdateValue(*core.Callinfo, core.Band, core.Mode) bool
 }
 
 var defaultWeights = core.BandmapWeights{
@@ -382,6 +381,6 @@ type nullCallinfo struct{}
 func (n *nullCallinfo) GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo {
 	return core.Callinfo{}
 }
-func (n *nullCallinfo) GetValue(callsign.Callsign, core.Band, core.Mode) (int, int, map[conval.Property]string) {
-	return 0, 0, nil
+func (n *nullCallinfo) UpdateValue(*core.Callinfo, core.Band, core.Mode) bool {
+	return false
 }

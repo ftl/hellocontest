@@ -94,6 +94,18 @@ func (c *Collector) GetValue(call callsign.Callsign, band core.Band, mode core.M
 	return info.Points, info.Multis, info.MultiValues
 }
 
+func (c *Collector) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
+	if c.dxcc == nil || c.dupes == nil || c.valuer == nil {
+		return false
+	}
+
+	workedQSOs, _ := c.dupes.FindWorkedQSOs(info.Call, band, mode)
+	predictExchange(c.theirExchangeFields, info.DXCCEntity, workedQSOs, []string{}, info.PredictedExchange)
+	c.addValue(info, band, mode)
+
+	return true
+}
+
 func (c *Collector) addCallsign(info *core.Callinfo) bool {
 	call, err := callsign.Parse(info.Input)
 	info.CallValid = (err == nil)

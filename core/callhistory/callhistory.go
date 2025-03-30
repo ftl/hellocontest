@@ -71,13 +71,6 @@ func (f *Finder) Deactivate() {
 	clear(f.fieldNames)
 }
 
-func (f *Finder) available() bool {
-	f.dataLock.Lock()
-	defer f.dataLock.Unlock()
-
-	return f.database != nil
-}
-
 func (f *Finder) activateCallHistory() {
 	f.dataLock.Lock()
 	defer f.dataLock.Unlock()
@@ -99,6 +92,10 @@ func (f *Finder) activateCallHistory() {
 func (f *Finder) findInDatabase(s string) ([]scp.Match, error) {
 	f.dataLock.Lock()
 	defer f.dataLock.Unlock()
+
+	if f.database == nil {
+		return nil, fmt.Errorf("the call history is currently not available")
+	}
 
 	cached, hit := f.cache[s]
 	if hit {
@@ -129,10 +126,6 @@ func (f *Finder) SelectFieldNames(fieldNames []string) {
 }
 
 func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
-	if !f.available() {
-		return core.AnnotatedCallsign{}, false
-	}
-
 	searchCallsign, err := callsign.Parse(s)
 	if err != nil {
 		log.Print(err)
@@ -165,10 +158,6 @@ func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 }
 
 func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
-	if !f.available() {
-		return nil, fmt.Errorf("the call history is currently not available")
-	}
-
 	matches, err := f.findInDatabase(s)
 	if err != nil {
 		return nil, err

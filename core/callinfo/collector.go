@@ -1,8 +1,6 @@
 package callinfo
 
 import (
-	"strings"
-
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
@@ -10,33 +8,36 @@ import (
 )
 
 type Collector struct {
-	dxcc           DXCCFinder
-	callsigns      CallsignFinder
-	history        CallHistoryFinder
-	dupes          DupeChecker
-	valuer         Valuer
-	exchangeFilter ExchangeFilter
+	dxcc      DXCCFinder
+	callsigns CallsignFinder
+	history   CallHistoryFinder
+	dupes     DupeChecker
+	valuer    Valuer
 
-	theirExchangeFields []core.ExchangeField
-	totalScore          core.BandScore
+	theirExchangeFields      []core.ExchangeField
+	theirReportExchangeField core.ExchangeField
+	theirNumberExchangeField core.ExchangeField
+
+	totalScore core.BandScore
 }
 
 func NewCollector(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistoryFinder,
-	dupes DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter) *Collector {
+	dupes DupeChecker, valuer Valuer) *Collector {
 
 	return &Collector{
-		dxcc:           dxcc,
-		callsigns:      callsigns,
-		history:        history,
-		dupes:          dupes,
-		valuer:         valuer,
-		exchangeFilter: exchangeFilter,
-		totalScore:     core.BandScore{Points: 1, Multis: 1},
+		dxcc:       dxcc,
+		callsigns:  callsigns,
+		history:    history,
+		dupes:      dupes,
+		valuer:     valuer,
+		totalScore: core.BandScore{Points: 1, Multis: 1},
 	}
 }
 
-func (c *Collector) SetTheirExchangeFields(fields []core.ExchangeField) {
+func (c *Collector) SetTheirExchangeFields(fields []core.ExchangeField, theirReportExchangeField core.ExchangeField, theirNumberExchangeField core.ExchangeField) {
 	c.theirExchangeFields = fields
+	c.theirReportExchangeField = theirReportExchangeField
+	c.theirNumberExchangeField = theirNumberExchangeField
 }
 
 func (c *Collector) ScoreUpdated(score core.Score) {
@@ -125,7 +126,6 @@ func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode
 
 func (c *Collector) initializeCallinfo(info *core.Callinfo) {
 	info.PredictedExchange = make([]string, 0, len(c.theirExchangeFields))
-	info.FilteredExchange = make([]string, 0, len(c.theirExchangeFields))
 }
 
 func (c *Collector) addDXCC(info *core.Callinfo) bool {
@@ -165,13 +165,31 @@ func (c *Collector) addWorkedState(info *core.Callinfo, workedQSOs []core.QSO, d
 }
 
 func (c *Collector) addPredictedExchange(info *core.Callinfo, workedQSOs []core.QSO, currentExchange []string) {
+	// ATTENTION: temporal coupling! addPredictedExchange relies on addHistoryData putting
+	// the historic exchange into the Callinfo.PredictedExchange field.
 	info.PredictedExchange = predictExchange(c.theirExchangeFields, info.DXCCEntity, workedQSOs, currentExchange, info.PredictedExchange)
-	if c.exchangeFilter != nil {
-		info.FilteredExchange = c.exchangeFilter.FilterExchange(info.PredictedExchange)
-	} else {
-		info.FilteredExchange = info.PredictedExchange
+	info.PredictedExchange = c.clearUnpredictableFields(info.PredictedExchange)
+}
+
+// clearUnpredictableValues clears the values of unpredictable exchange fields (RST, serial).
+func (c *Collector) clearUnpredictableFields(values []string) []string {
+	result := make([]string, len(values))
+	for i := range values {
+		if i >= len(c.theirExchangeFields) {
+			break
+		}
+		field := c.theirExchangeFields[i]
+		switch field.Field {
+		case c.theirReportExchangeField.Field:
+			continue
+		case c.theirNumberExchangeField.Field:
+			if len(field.Properties) == 1 {
+				continue
+			}
+		}
+		result[i] = values[i]
 	}
-	info.ExchangeText = strings.Join(info.FilteredExchange, " ")
+	return result
 }
 
 func (c *Collector) addValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {

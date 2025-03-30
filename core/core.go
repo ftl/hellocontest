@@ -930,8 +930,6 @@ type Callinfo struct {
 	DXCCEntity dxcc.Prefix
 
 	PredictedExchange []string
-	FilteredExchange  []string
-	ExchangeText      string
 
 	UserText string
 

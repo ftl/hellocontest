@@ -912,26 +912,6 @@ func (c *Controller) updateViewExchangeFields() {
 	c.view.SetTheirExchangeFields(c.theirExchangeFields)
 }
 
-func (c *Controller) FilterExchange(values []string) []string {
-	result := make([]string, len(values))
-	for i := range values {
-		if i >= len(c.theirExchangeFields) {
-			break
-		}
-		field := c.theirExchangeFields[i]
-		switch field.Field {
-		case c.theirReportExchangeField.Field:
-			continue
-		case c.theirNumberExchangeField.Field:
-			if len(field.Properties) == 1 {
-				continue
-			}
-		}
-		result[i] = values[i]
-	}
-	return result
-}
-
 func (c *Controller) MarkInBandmap() {
 	call, err := callsign.Parse(c.input.callsign)
 	if err != nil {

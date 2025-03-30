@@ -38,11 +38,6 @@ type Valuer interface {
 	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string)
 }
 
-// ExchangeFilter clears the exchange values that cannot be predicted (RST, serial).
-type ExchangeFilter interface {
-	FilterExchange([]string) []string
-}
-
 // View defines the visual part of the call information window.
 type View interface {
 	SetPredictedExchangeFields(fields []core.ExchangeField)
@@ -66,11 +61,11 @@ type Callinfo struct {
 	bestMatches               []string
 }
 
-func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, exchangeFilter ExchangeFilter, asyncRunner core.AsyncRunner) *Callinfo {
+func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, asyncRunner core.AsyncRunner) *Callinfo {
 	result := &Callinfo{
 		view:        new(nullView),
 		asyncRunner: asyncRunner,
-		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer, exchangeFilter),
+		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer),
 		supercheck:  NewSupercheck(entities, callsigns, callHistory, dupeChecker, valuer),
 	}
 
@@ -95,7 +90,7 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 		return
 	}
 	c.theirExchangeFields = contest.TheirExchangeFields
-	c.collector.SetTheirExchangeFields(c.theirExchangeFields)
+	c.collector.SetTheirExchangeFields(c.theirExchangeFields, contest.TheirReportExchangeField, contest.TheirNumberExchangeField)
 	c.supercheck.SetTheirExchangeFields(c.theirExchangeFields)
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
@@ -144,17 +139,7 @@ func (c *Callinfo) ShowInfo(call string, band core.Band, mode core.Mode, current
 	c.frame.Multis = callinfo.Multis
 	c.frame.Value = callinfo.Value
 
-	if len(c.frame.PredictedExchange) != len(c.theirExchangeFields) {
-		c.frame.PredictedExchange = make([]string, len(c.theirExchangeFields))
-	}
-	for i := range c.theirExchangeFields {
-		text := ""
-		if i < len(callinfo.FilteredExchange) {
-			text = callinfo.FilteredExchange[i]
-		}
-		c.frame.PredictedExchange[i] = text
-	}
-
+	c.frame.PredictedExchange = callinfo.PredictedExchange
 	c.frame.Supercheck = supercheck
 
 	c.view.ShowFrame(c.frame)

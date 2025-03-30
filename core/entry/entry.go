@@ -933,15 +933,13 @@ func (c *Controller) MarkInBandmap() {
 }
 
 func (c *Controller) EntrySelected(entry core.BandmapEntry) {
-	c.asyncRunner(func() {
-		c.Clear()
-		c.ignoreFrequencyJump = true
-		c.frequencyEntered(entry.Frequency)
-		c.activeField = core.CallsignField
-		c.Enter(entry.Call.String())
-		c.view.SetCallsign(c.input.callsign)
-		c.GotoNextField()
-	})
+	c.Clear()
+	c.ignoreFrequencyJump = true
+	c.frequencyEntered(entry.Frequency)
+	c.activeField = core.CallsignField
+	c.Enter(entry.Call.String())
+	c.view.SetCallsign(c.input.callsign)
+	c.GotoNextField()
 }
 
 type nullView struct{}

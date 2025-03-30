@@ -157,7 +157,7 @@ func (c *Controller) Startup() {
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
 	c.Entry = entry.NewController(
 		c.Settings,
@@ -199,7 +199,7 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 
-	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.QSOList, c.Score, c.asyncRunner)
+	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.QSOList, c.Score)
 	c.Entry.SetCallinfo(c.Callinfo)
 	c.Callinfo.Notify(c.Entry)
 	c.Bandmap.SetCallinfo(c.Callinfo)

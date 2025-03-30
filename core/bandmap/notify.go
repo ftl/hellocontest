@@ -25,7 +25,8 @@ type EntryOnFrequencyListener interface {
 }
 
 type Notifier struct {
-	listeners []any
+	listeners   []any
+	asyncRunner core.AsyncRunner
 }
 
 func (n *Notifier) Notify(listener any) {
@@ -35,7 +36,9 @@ func (n *Notifier) Notify(listener any) {
 func (n *Notifier) emitEntryAdded(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryAddedListener, ok := listener.(EntryAddedListener); ok {
-			entryAddedListener.EntryAdded(e)
+			n.asyncRunner(func() {
+				entryAddedListener.EntryAdded(e)
+			})
 		}
 	}
 }
@@ -43,7 +46,9 @@ func (n *Notifier) emitEntryAdded(e core.BandmapEntry) {
 func (n *Notifier) emitEntryUpdated(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryUpdatedListener, ok := listener.(EntryUpdatedListener); ok {
-			entryUpdatedListener.EntryUpdated(e)
+			n.asyncRunner(func() {
+				entryUpdatedListener.EntryUpdated(e)
+			})
 		}
 	}
 }
@@ -51,7 +56,9 @@ func (n *Notifier) emitEntryUpdated(e core.BandmapEntry) {
 func (n *Notifier) emitEntryRemoved(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
-			entryRemovedListener.EntryRemoved(e)
+			n.asyncRunner(func() {
+				entryRemovedListener.EntryRemoved(e)
+			})
 		}
 	}
 }
@@ -59,7 +66,9 @@ func (n *Notifier) emitEntryRemoved(e core.BandmapEntry) {
 func (n *Notifier) emitEntrySelected(e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
-			entrySelectedListener.EntrySelected(e)
+			n.asyncRunner(func() {
+				entrySelectedListener.EntrySelected(e)
+			})
 		}
 	}
 }
@@ -67,7 +76,9 @@ func (n *Notifier) emitEntrySelected(e core.BandmapEntry) {
 func (n *Notifier) emitEntryOnFrequency(e core.BandmapEntry, available bool) {
 	for _, listener := range n.listeners {
 		if nearestEntryListener, ok := listener.(EntryOnFrequencyListener); ok {
-			nearestEntryListener.EntryOnFrequency(e, available)
+			n.asyncRunner(func() {
+				nearestEntryListener.EntryOnFrequency(e, available)
+			})
 		}
 	}
 }

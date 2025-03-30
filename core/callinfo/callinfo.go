@@ -49,23 +49,21 @@ type CallinfoFrameListener interface {
 }
 
 type Callinfo struct {
-	view        View
-	asyncRunner core.AsyncRunner
-	collector   *Collector
-	supercheck  *Supercheck
-	listeners   []any
+	view       View
+	collector  *Collector
+	supercheck *Supercheck
+	listeners  []any
 
 	theirExchangeFields []core.ExchangeField
 
 	frame core.CallinfoFrame
 }
 
-func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, asyncRunner core.AsyncRunner) *Callinfo {
+func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer) *Callinfo {
 	result := &Callinfo{
-		view:        new(nullView),
-		asyncRunner: asyncRunner,
-		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer),
-		supercheck:  NewSupercheck(entities, callsigns, callHistory, dupeChecker, valuer),
+		view:       new(nullView),
+		collector:  NewCollector(entities, callsigns, callHistory, dupeChecker, valuer),
+		supercheck: NewSupercheck(entities, callsigns, callHistory, dupeChecker, valuer),
 	}
 
 	return result
@@ -140,31 +138,29 @@ func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, cur
 }
 
 func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
-	c.asyncRunner(func() { // TODO move the asyncRunner closer to the other Go routine, do as much as possible in the main thread
-		last := c.frame.CallsignOnFrequency.Callsign.String()
-		if !available {
-			c.frame.CallsignOnFrequency = core.AnnotatedCallsign{}
-		} else if c.frame.CallsignOnFrequency.Callsign.String() == entry.Call.String() {
-			// go on
-		} else {
-			exactMatch := c.frame.NormalizedCallInput == entry.Call.String()
-			c.frame.CallsignOnFrequency = core.AnnotatedCallsign{
-				Callsign:          entry.Call,
-				Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
-				Duplicate:         entry.Info.Duplicate,
-				Worked:            entry.Info.Worked,
-				ExactMatch:        exactMatch,
-				Points:            entry.Info.Points,
-				Multis:            entry.Info.Multis,
-				PredictedExchange: entry.Info.PredictedExchange,
-				OnFrequency:       true,
-			}
+	last := c.frame.CallsignOnFrequency.Callsign.String()
+	if !available {
+		c.frame.CallsignOnFrequency = core.AnnotatedCallsign{}
+	} else if c.frame.CallsignOnFrequency.Callsign.String() == entry.Call.String() {
+		// go on
+	} else {
+		exactMatch := c.frame.NormalizedCallInput == entry.Call.String()
+		c.frame.CallsignOnFrequency = core.AnnotatedCallsign{
+			Callsign:          entry.Call,
+			Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
+			Duplicate:         entry.Info.Duplicate,
+			Worked:            entry.Info.Worked,
+			ExactMatch:        exactMatch,
+			Points:            entry.Info.Points,
+			Multis:            entry.Info.Multis,
+			PredictedExchange: entry.Info.PredictedExchange,
+			OnFrequency:       true,
 		}
+	}
 
-		if last != c.frame.CallsignOnFrequency.Callsign.String() {
-			c.emitFrameChanged()
-		}
-	})
+	if last != c.frame.CallsignOnFrequency.Callsign.String() {
+		c.emitFrameChanged()
+	}
 }
 
 func normalizeInput(input string) string {

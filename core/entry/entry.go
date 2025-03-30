@@ -72,7 +72,7 @@ type Keyer interface {
 
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
-	InputChanged(call string, band core.Band, mode core.Mode, exchange []string) core.CallinfoFrame
+	InputChanged(call string, band core.Band, mode core.Mode, exchange []string)
 }
 
 type Bandmap interface {
@@ -189,11 +189,17 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 
 func (c *Controller) notifyCallinfoInputChanged(call string, band core.Band, mode core.Mode, exchange []string) {
 	if c.callinfo == nil {
-		c.currentCallinfoFrame = core.CallinfoFrame{}
 		return
 	}
+	log.Printf("CallinfoInputChanged on")
+	c.callinfo.InputChanged(call, band, mode, exchange)
+	log.Printf("CallinfoInputChanged off")
+}
 
-	c.currentCallinfoFrame = c.callinfo.InputChanged(call, band, mode, exchange)
+func (c *Controller) CallinfoFrameChanged(frame core.CallinfoFrame) {
+	log.Printf("CallinfoFrameChanged")
+	c.currentCallinfoFrame = frame
+	// TODO what do we need to update here?
 }
 
 func (c *Controller) SetVFO(vfo core.VFO) {
@@ -976,11 +982,7 @@ func (n *nullLogbook) Log(core.QSO)               {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) core.CallinfoFrame {
-	return core.CallinfoFrame{}
-}
-func (n *nullCallinfo) BestMatches() []string { return []string{} }
-func (n *nullCallinfo) BestMatch() string     { return "" }
+func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) {}
 
 type nullBandmap struct{}
 

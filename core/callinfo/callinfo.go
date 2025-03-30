@@ -44,11 +44,16 @@ type View interface {
 	ShowFrame(core.CallinfoFrame)
 }
 
+type CallinfoFrameListener interface {
+	CallinfoFrameChanged(core.CallinfoFrame)
+}
+
 type Callinfo struct {
 	view        View
 	asyncRunner core.AsyncRunner
 	collector   *Collector
 	supercheck  *Supercheck
+	listeners   []any
 
 	theirExchangeFields []core.ExchangeField
 
@@ -93,6 +98,19 @@ func (c *Callinfo) ScoreUpdated(score core.Score) {
 	c.collector.ScoreUpdated(score)
 }
 
+func (c *Callinfo) Notify(listener any) {
+	c.listeners = append(c.listeners, listener)
+}
+
+func (c *Callinfo) emitFrameChanged() {
+	for _, listener := range c.listeners {
+		if l, ok := listener.(CallinfoFrameListener); ok {
+			l.CallinfoFrameChanged(c.frame)
+		}
+	}
+	c.view.ShowFrame(c.frame)
+}
+
 func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
 	return c.collector.GetInfo(call, band, mode, currentExchange)
 }
@@ -101,7 +119,7 @@ func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mo
 	return c.collector.GetValue(call, band, mode)
 }
 
-func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) core.CallinfoFrame {
+func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) {
 	normalizedCall := normalizeInput(call)
 
 	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
@@ -118,14 +136,12 @@ func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, cur
 	c.frame.PredictedExchange = callinfo.PredictedExchange
 	c.frame.Supercheck = supercheck
 
-	// TODO: notify listeners
-	c.view.ShowFrame(c.frame)
-
-	return c.frame
+	c.emitFrameChanged()
 }
 
 func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 	c.asyncRunner(func() { // TODO move the asyncRunner closer to the other Go routine, do as much as possible in the main thread
+		last := c.frame.CallsignOnFrequency.Callsign.String()
 		if !available {
 			c.frame.CallsignOnFrequency = core.AnnotatedCallsign{}
 		} else if c.frame.CallsignOnFrequency.Callsign.String() == entry.Call.String() {
@@ -145,8 +161,9 @@ func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 			}
 		}
 
-		// TODO: notify listeners
-		c.view.ShowFrame(c.frame)
+		if last != c.frame.CallsignOnFrequency.Callsign.String() {
+			c.emitFrameChanged()
+		}
 	})
 }
 

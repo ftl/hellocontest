@@ -1,6 +1,8 @@
 package logbook
 
 import (
+	"slices"
+
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -17,11 +19,10 @@ type dupeIndex map[dupeKey][]core.QSONumber
 func (i *dupeIndex) Add(callsign callsign.Callsign, band core.Band, mode core.Mode, number core.QSONumber) {
 	key := dupeKey{callsign, band, mode}
 	entry := (*i)[key]
-	for _, n := range entry {
-		if n == number {
-			return
-		}
+	if slices.Contains(entry, number) {
+		return
 	}
+
 	entry = append(entry, number)
 	(*i)[key] = entry
 }

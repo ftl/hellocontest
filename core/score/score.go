@@ -67,7 +67,7 @@ type Counter struct {
 	myExchangeFields    []conval.ExchangeField
 	theirExchangeFields []conval.ExchangeField
 
-	listeners []interface{}
+	listeners []any
 }
 
 func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
@@ -163,7 +163,7 @@ func (c *Counter) Hide() {
 	c.view.Hide()
 }
 
-func (c *Counter) Notify(listener interface{}) {
+func (c *Counter) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 

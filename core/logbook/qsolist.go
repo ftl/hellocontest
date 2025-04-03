@@ -78,7 +78,7 @@ type QSOList struct {
 	worked   dupeIndex
 	invalid  bool
 
-	listeners []interface{}
+	listeners []any
 }
 
 func NewQSOList(settings core.Settings, scorer QSOScorer) *QSOList {
@@ -388,7 +388,7 @@ func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mod
 	return qsos, duplicate
 }
 
-func (l *QSOList) Notify(listener interface{}) {
+func (l *QSOList) Notify(listener any) {
 	l.listeners = append(l.listeners, listener)
 }
 

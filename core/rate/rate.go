@@ -30,7 +30,7 @@ func NewCounter(clock core.Clock, asyncRunner core.AsyncRunner) *Counter {
 			return true
 		},
 	}
-	result.refreshTicker = ticker.New(result.Refresh)
+	result.refreshTicker = ticker.New(result.refresh)
 	return result
 }
 
@@ -115,7 +115,7 @@ func (c *Counter) Clear() {
 	c.QSOsPerHours = make(core.QSOsPerHours)
 }
 
-func (c *Counter) Refresh() {
+func (c *Counter) refresh() {
 	c.asyncRunner(func() {
 		now := time.Now()
 		lastHour := now.Add(-1 * time.Hour)
@@ -215,7 +215,7 @@ func (c *Counter) Add(qso core.QSO) {
 	qsosPerHour := c.QSOsPerHours[hour]
 	c.QSOsPerHours[hour] = qsosPerHour + 1
 
-	c.Refresh()
+	c.refresh()
 }
 
 func (c *Counter) Update(oldQSO, newQSO core.QSO) {
@@ -234,7 +234,7 @@ func (c *Counter) Update(oldQSO, newQSO core.QSO) {
 		c.QSOsPerHours[newHour] = qsosPerNewHour - 1
 	}
 
-	c.Refresh()
+	c.refresh()
 }
 
 type qsoList struct {

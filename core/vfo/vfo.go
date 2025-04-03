@@ -30,14 +30,16 @@ type VFO struct {
 	client        Client
 	offlineClient *offlineClient
 	refreshing    bool
+	asyncRunner   core.AsyncRunner
 
 	listeners []any
 }
 
-func NewVFO(name string, bandplan bandplan.Bandplan) *VFO {
+func NewVFO(name string, bandplan bandplan.Bandplan, asyncRunner core.AsyncRunner) *VFO {
 	result := &VFO{
-		Name:     name,
-		bandplan: bandplan,
+		Name:        name,
+		bandplan:    bandplan,
+		asyncRunner: asyncRunner,
 	}
 	result.offlineClient = newOfflineClient(result)
 	result.SetClient(nil)
@@ -129,7 +131,9 @@ func (v *VFO) VFOModeChanged(mode core.Mode) {
 func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 	for _, listener := range v.listeners {
 		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
-			frequencyListener.VFOFrequencyChanged(frequency)
+			v.asyncRunner(func() {
+				frequencyListener.VFOFrequencyChanged(frequency)
+			})
 		}
 	}
 }
@@ -137,7 +141,9 @@ func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 func (v *VFO) emitBandChanged(band core.Band) {
 	for _, listener := range v.listeners {
 		if bandListener, ok := listener.(core.VFOBandListener); ok {
-			bandListener.VFOBandChanged(band)
+			v.asyncRunner(func() {
+				bandListener.VFOBandChanged(band)
+			})
 		}
 	}
 }
@@ -145,7 +151,9 @@ func (v *VFO) emitBandChanged(band core.Band) {
 func (v *VFO) emitModeChanged(mode core.Mode) {
 	for _, listener := range v.listeners {
 		if modeListener, ok := listener.(core.VFOModeListener); ok {
-			modeListener.VFOModeChanged(mode)
+			v.asyncRunner(func() {
+				modeListener.VFOModeChanged(mode)
+			})
 		}
 	}
 }

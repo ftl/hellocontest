@@ -113,10 +113,6 @@ func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mod
 	return c.collector.GetInfo(call, band, mode, currentExchange)
 }
 
-func (c *Callinfo) GetValue(call callsign.Callsign, band core.Band, mode core.Mode) (points, multis int, multiValues map[conval.Property]string) {
-	return c.collector.GetValue(call, band, mode)
-}
-
 func (c *Callinfo) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
 	return c.collector.UpdateValue(info, band, mode)
 }

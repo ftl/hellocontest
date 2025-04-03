@@ -1,7 +1,8 @@
 package callinfo
 
 import (
-	"github.com/ftl/conval"
+	"sync"
+
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -13,6 +14,8 @@ type Collector struct {
 	history   CallHistoryFinder
 	dupes     DupeChecker
 	valuer    Valuer
+
+	dataLock *sync.RWMutex
 
 	theirExchangeFields      []core.ExchangeField
 	theirReportExchangeField core.ExchangeField
@@ -30,17 +33,24 @@ func NewCollector(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistory
 		history:    history,
 		dupes:      dupes,
 		valuer:     valuer,
+		dataLock:   &sync.RWMutex{},
 		totalScore: core.BandScore{Points: 1, Multis: 1},
 	}
 }
 
 func (c *Collector) SetTheirExchangeFields(fields []core.ExchangeField, theirReportExchangeField core.ExchangeField, theirNumberExchangeField core.ExchangeField) {
+	c.dataLock.Lock()
+	defer c.dataLock.Unlock()
+
 	c.theirExchangeFields = fields
 	c.theirReportExchangeField = theirReportExchangeField
 	c.theirNumberExchangeField = theirNumberExchangeField
 }
 
 func (c *Collector) ScoreUpdated(score core.Score) {
+	c.dataLock.Lock()
+	defer c.dataLock.Unlock()
+
 	c.totalScore = score.Result()
 }
 
@@ -67,40 +77,16 @@ func (c *Collector) GetInfo(call callsign.Callsign, band core.Band, mode core.Mo
 	return result
 }
 
-func (c *Collector) GetValue(call callsign.Callsign, band core.Band, mode core.Mode) (points, multis int, multiValues map[conval.Property]string) {
-	// TODO: replace GetValue with UpdateValue, which will not need the exchange prediction
-	// remember to invalidate the cached Callinfo when a new QSO with the callsign is added
-	if c.dxcc == nil || c.dupes == nil || c.valuer == nil {
-		return 0, 0, nil
-	}
-
-	info := &core.Callinfo{
-		Input: normalizeInput(call.String()),
-		Call:  call,
-	}
-	info.CallValid = (info.Input != "")
-	c.initializeCallinfo(info)
-
-	dxccValid := c.addDXCC(info)
-	if !dxccValid {
-		return 0, 0, nil
-	}
-
-	c.addHistoryData(info)
-	workedQSOs, _ := c.dupes.FindWorkedQSOs(info.Call, band, mode)
-	predictExchange(c.theirExchangeFields, info.DXCCEntity, workedQSOs, []string{}, info.PredictedExchange)
-	c.addValue(info, band, mode)
-
-	return info.Points, info.Multis, info.MultiValues
-}
-
 func (c *Collector) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
 	if c.dxcc == nil || c.dupes == nil || c.valuer == nil {
 		return false
 	}
 
 	workedQSOs, _ := c.dupes.FindWorkedQSOs(info.Call, band, mode)
-	predictExchange(c.theirExchangeFields, info.DXCCEntity, workedQSOs, []string{}, info.PredictedExchange)
+	c.dataLock.RLock()
+	c.addPredictedExchange(info, workedQSOs, nil)
+	c.dataLock.RUnlock()
+
 	c.addValue(info, band, mode)
 
 	return true
@@ -118,7 +104,6 @@ func (c *Collector) addCallsign(info *core.Callinfo) bool {
 }
 
 func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode, currentExchange []string) {
-	c.initializeCallinfo(info)
 	dxccValid := c.addDXCC(info)
 	if !info.CallValid || !dxccValid {
 		return
@@ -132,12 +117,11 @@ func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode
 	c.addWorkedState(info, workedQSOs, duplicate)
 	// ATTENTION: temporal coupling! addPredictedExchange relies on addHistoryData putting
 	// the historic exchange into the Callinfo.PredictedExchange field.
+	c.dataLock.RLock()
 	c.addPredictedExchange(info, workedQSOs, currentExchange)
-	c.addValue(info, band, mode)
-}
+	c.dataLock.RUnlock()
 
-func (c *Collector) initializeCallinfo(info *core.Callinfo) {
-	info.PredictedExchange = make([]string, 0, len(c.theirExchangeFields))
+	c.addValue(info, band, mode)
 }
 
 func (c *Collector) addDXCC(info *core.Callinfo) bool {

@@ -24,6 +24,7 @@ func New() *Finder {
 	return result
 }
 
+// Finder is thread-safe.
 type Finder struct {
 	entities          *dxcc.Prefixes
 	available         chan struct{}

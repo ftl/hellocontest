@@ -49,6 +49,7 @@ var toConvalMode = map[core.Mode]conval.Mode{
 	core.ModeDigital: conval.ModeDigital,
 }
 
+// Counter is thread-safe.
 type Counter struct {
 	score          core.Score
 	readScore      core.Score

@@ -66,6 +66,7 @@ type QSOScorer interface {
 	Unmute()
 }
 
+// QSOList is thread-safe.
 type QSOList struct {
 	myExchangeFields    []core.ExchangeField
 	theirExchangeFields []core.ExchangeField

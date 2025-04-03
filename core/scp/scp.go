@@ -26,6 +26,7 @@ func New() *Finder {
 	return result
 }
 
+// Finder is thread-safe.
 type Finder struct {
 	database  *scp.Database
 	available chan struct{}

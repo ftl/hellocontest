@@ -29,6 +29,7 @@ func New(availabilityCallback AvailabilityCallback) *Finder {
 	}
 }
 
+// Finder is thread-safe.
 type Finder struct {
 	database *scp.Database
 	cache    map[string][]scp.Match

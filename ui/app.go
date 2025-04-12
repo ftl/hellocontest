@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"context"
 	"log"
 	"path/filepath"
+	"time"
 
 	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gdk"
@@ -18,10 +20,14 @@ import (
 
 const AppID = "ft.hellocontest"
 
+type Script interface {
+	Step(ctx context.Context, app *app.Controller, ui func(func())) bool
+}
+
 // Run the application
-func Run(version string, sponsors string, args []string) {
+func Run(version string, sponsors string, script Script, args []string) {
 	var err error
-	app := &application{id: AppID, version: version, sponsors: sponsors}
+	app := &application{id: AppID, version: version, sponsors: sponsors, script: script}
 
 	gdk.SetAllowedBackends("x11")
 	gtk.WindowSetDefaultIconName("hellocontest")
@@ -41,6 +47,7 @@ type application struct {
 	id       string
 	version  string
 	sponsors string
+	script   Script
 
 	app                  *gtk.Application
 	builder              *gtk.Builder
@@ -141,6 +148,10 @@ func (a *application) activate() {
 	a.spotsWindow.RestoreVisibility()
 
 	a.controller.Refresh()
+
+	if a.script != nil {
+		a.runScript(context.Background(), a.script)
+	}
 }
 
 func (a *application) shutdown() {
@@ -150,6 +161,16 @@ func (a *application) shutdown() {
 	if err != nil {
 		log.Printf("Cannot store window geometry: %v", err)
 	}
+}
+
+func (a *application) runScript(ctx context.Context, script Script) {
+	go func() {
+		cont := true
+		for cont {
+			cont = script.Step(ctx, a.controller, a.runAsync)
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
 }
 
 func (a *application) runAsync(f func()) {

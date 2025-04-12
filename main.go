@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ftl/hellocontest/script"
 	"github.com/ftl/hellocontest/ui"
 )
 
@@ -33,5 +34,5 @@ func main() {
 	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
 	// }()
 
-	ui.Run(version, sponsors, os.Args)
+	ui.Run(version, sponsors, script.ScreenshotsScript, os.Args)
 }

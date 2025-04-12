@@ -353,6 +353,10 @@ func (c *Controller) About() {
 	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\n%sThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version, sponsorText)
 }
 
+func (c *Controller) ShowInfo(format string, args ...any) {
+	c.view.ShowInfoDialog(fmt.Sprintf(format, args...))
+}
+
 func (c *Controller) Sponsors() {
 	c.openWithExternalApplication(sponsorsURL)
 }

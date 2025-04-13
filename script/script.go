@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/ftl/hellocontest/core/app"
@@ -55,14 +56,15 @@ func Wait(duration time.Duration) Step {
 	}
 }
 
-func TriggerScreenshot() Step {
-	return TriggerScreenshotWithDelay(0)
+func TriggerScreenshot(filename string) Step {
+	return TriggerScreenshotWithDelay(filename, 0)
 }
 
-func TriggerScreenshotWithDelay(delay time.Duration) Step {
+func TriggerScreenshotWithDelay(filename string, delay time.Duration) Step {
 	return func(_ context.Context, _ *app.Controller, _ func(func())) time.Duration {
 		// TODO: evaluate ctx.Done() and stop the flameshot process
 		cmd := exec.Command("flameshot", "gui")
+		cmd.Args = append(cmd.Args, "--path", filepath.Join("./docs/screenshots", filename+".png"))
 		if delay > 0 {
 			cmd.Args = append(cmd.Args, "--delay", fmt.Sprintf("%d", delay.Milliseconds()))
 		}

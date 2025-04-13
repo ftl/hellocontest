@@ -6,7 +6,7 @@ The user documentation itself is kept in the project's [Github Wiki](https://git
 ## Screenshots
 
 The user documentation uses the following screenshot. Whenever the UI changes in a relevant
-area, the corresponding screenshot must be updated. The screenshots are just stored in the project's [Github Wiki](https://github.com/ftl/hellocontest/wiki).
+area, the corresponding screenshot must be updated. The screenshots are  stored in the [docs/screenshots](https://github.com/ftl/hellocontest/tree/master/docs/screenshots) folder.
 Use [flameshot](https://flameshot.org) to take the screenshots. Use the light mode for the UI when taking the screenshots.
 
 ### Main Menu

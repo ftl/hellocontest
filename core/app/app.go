@@ -95,8 +95,9 @@ type View interface {
 	ShowFilename(string)
 	SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error)
 	SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error)
-	ShowInfoDialog(string, ...interface{})
-	ShowErrorDialog(string, ...interface{})
+	ShowInfoDialog(string, ...any)
+	ShowQuestionDialog(string, ...any) bool
+	ShowErrorDialog(string, ...any)
 }
 
 // Configuration provides read access to the configuration data.
@@ -354,7 +355,15 @@ func (c *Controller) About() {
 }
 
 func (c *Controller) ShowInfo(format string, args ...any) {
-	c.view.ShowInfoDialog(fmt.Sprintf(format, args...))
+	c.view.ShowInfoDialog(format, args...)
+}
+
+func (c *Controller) ShowQuestion(format string, args ...any) bool {
+	return c.view.ShowQuestionDialog(format, args...)
+}
+
+func (c *Controller) ShowError(format string, args ...any) {
+	c.view.ShowErrorDialog(format, args...)
 }
 
 func (c *Controller) Sponsors() {

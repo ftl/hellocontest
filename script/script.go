@@ -38,7 +38,7 @@ func Describe(description string, delay time.Duration) Step {
 	return func(_ context.Context, app *app.Controller, ui func(func())) time.Duration {
 		ready := make(chan struct{})
 		ui(func() {
-			app.ShowInfo("[SCREENSHOT]\n\n%s\n\nin %v", description, delay)
+			app.ShowInfo("%s\n\nin %v", description, delay)
 			close(ready)
 		})
 		<-ready

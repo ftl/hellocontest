@@ -20,14 +20,14 @@ var ScreenshotsScript = &Script{
 	steps: []Step{
 		ClearScreenshotsFolder(),
 		Wait(2 * time.Second),
-		Describe("about dialog", 1*time.Second),
+		DescribeScreenshot("about dialog", 1*time.Second),
 		func(_ context.Context, app *app.Controller, ui func(func())) time.Duration {
 			ui(app.About)
 			return 0
 		},
 		TriggerScreenshot("about"),
 		Wait(2 * time.Second),
-		Describe("file menu, highlight QUIT", 10*time.Second),
+		DescribeScreenshot("file menu, highlight QUIT", 10*time.Second),
 		TriggerScreenshot("menu_file_quit"),
 		func(_ context.Context, app *app.Controller, ui func(func())) time.Duration {
 			ui(func() {
@@ -37,7 +37,7 @@ var ScreenshotsScript = &Script{
 			})
 			return 0
 		},
-		Describe("main window with data entry", 0),
+		DescribeScreenshot("main window with data entry", 0),
 		TriggerScreenshot("main_window_data"),
 		Describe("all screenshots taken, closing the application", 0),
 		func(_ context.Context, app *app.Controller, ui func(func())) time.Duration {
@@ -45,6 +45,10 @@ var ScreenshotsScript = &Script{
 			return 0
 		},
 	},
+}
+
+func DescribeScreenshot(description string, delay time.Duration) Step {
+	return Describe("[SCREENSHOT]\n\n"+description, delay)
 }
 
 func ClearScreenshotsFolder() Step {

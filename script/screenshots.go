@@ -2,6 +2,11 @@ package script
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
@@ -9,9 +14,12 @@ import (
 	"github.com/ftl/hellocontest/core/app"
 )
 
+const ScreenshotsFolder = "./docs/screenshots"
+
 var ScreenshotsScript = &Script{
 	steps: []Step{
-		Wait(4 * time.Second),
+		ClearScreenshotsFolder(),
+		Wait(2 * time.Second),
 		Describe("about dialog", 1*time.Second),
 		func(_ context.Context, app *app.Controller, ui func(func())) time.Duration {
 			ui(app.About)
@@ -37,4 +45,52 @@ var ScreenshotsScript = &Script{
 			return 0
 		},
 	},
+}
+
+func ClearScreenshotsFolder() Step {
+	return func(_ context.Context, _ *app.Controller, _ func(func())) time.Duration {
+		d, err := os.Open(ScreenshotsFolder)
+		if err != nil {
+			log.Printf("Cannot open screenshots folder: %v", err)
+			return 0
+		}
+		defer d.Close()
+
+		names, err := d.Readdirnames(-1)
+		if err != nil {
+			log.Printf("Cannot read filenames in %s: %v", ScreenshotsFolder, err)
+			return 0
+		}
+		for _, name := range names {
+			filename := filepath.Join(ScreenshotsFolder, name)
+			err = os.RemoveAll(filename)
+			if err != nil {
+				log.Printf("Cannot delete %s: %v", filename, err)
+			}
+		}
+		return 0
+	}
+}
+
+func TriggerScreenshot(filename string) Step {
+	return TriggerScreenshotWithDelay(filename, 0)
+}
+
+func TriggerScreenshotWithDelay(filename string, delay time.Duration) Step {
+	return func(_ context.Context, _ *app.Controller, _ func(func())) time.Duration {
+		// TODO: evaluate ctx.Done() and stop the flameshot process
+		cmd := exec.Command("flameshot", "gui")
+		cmd.Args = append(cmd.Args, "--path", filepath.Join(ScreenshotsFolder, filename+".png"))
+		if delay > 0 {
+			cmd.Args = append(cmd.Args, "--delay", fmt.Sprintf("%d", delay.Milliseconds()))
+		}
+
+		err := cmd.Run()
+		if err != nil {
+			log.Printf("Screenshot failed: %v", err)
+		} else {
+			log.Println("Screenshot successful")
+		}
+		return 0
+	}
 }

@@ -25,9 +25,9 @@ type Script interface {
 }
 
 // Run the application
-func Run(version string, sponsors string, script Script, args []string) {
+func Run(version string, sponsors string, startupScript Script, args []string) {
 	var err error
-	app := &application{id: AppID, version: version, sponsors: sponsors, script: script}
+	app := &application{id: AppID, version: version, sponsors: sponsors, startupScript: startupScript}
 
 	gdk.SetAllowedBackends("x11")
 	gtk.WindowSetDefaultIconName("hellocontest")
@@ -44,10 +44,10 @@ func Run(version string, sponsors string, script Script, args []string) {
 }
 
 type application struct {
-	id       string
-	version  string
-	sponsors string
-	script   Script
+	id            string
+	version       string
+	sponsors      string
+	startupScript Script
 
 	app                  *gtk.Application
 	builder              *gtk.Builder
@@ -149,8 +149,8 @@ func (a *application) activate() {
 
 	a.controller.Refresh()
 
-	if a.script != nil {
-		a.runScript(context.Background(), a.script)
+	if a.startupScript != nil {
+		a.runScript(context.Background(), a.startupScript)
 	}
 }
 

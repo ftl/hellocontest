@@ -32,6 +32,9 @@ build:
 run: build
 	./${BINARY_NAME}
 
+screenshots: build
+	./${BINARY_NAME} screenshots
+
 cache_deps:
 	go install github.com/gotk3/gotk3/glib
 	go install github.com/gotk3/gotk3/cairo

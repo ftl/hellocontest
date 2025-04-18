@@ -107,9 +107,10 @@ type View interface {
 	SetMultisGoal(string)
 }
 
-func New(configurationFileOpener ConfigurationFileOpener, browserOpener BrowserOpener, callHistory CallHistory, station core.Station, contest core.Contest) *Settings {
+func New(configurationFileOpener ConfigurationFileOpener, clock core.Clock, browserOpener BrowserOpener, callHistory CallHistory, station core.Station, contest core.Contest) *Settings {
 	result := &Settings{
 		writer:                  new(nullWriter),
+		clock:                   clock,
 		view:                    new(nullView),
 		configurationFileOpener: configurationFileOpener,
 		browserOpener:           browserOpener,
@@ -132,6 +133,7 @@ func New(configurationFileOpener ConfigurationFileOpener, browserOpener BrowserO
 
 type Settings struct {
 	writer                         Writer
+	clock                          core.Clock
 	view                           View
 	configurationFileOpener        ConfigurationFileOpener
 	browserOpener                  BrowserOpener
@@ -296,6 +298,10 @@ func (s *Settings) showSettings() {
 	s.view.SetMultisGoal(strconv.Itoa(s.contest.MultisGoal))
 }
 
+func (s *Settings) RefreshView() {
+	s.showSettings()
+}
+
 func (s *Settings) formattedContestStartTime() string {
 	if s.contest.StartTime.IsZero() {
 		return ""
@@ -432,7 +438,7 @@ func (s *Settings) ContestDefinition(contestIdentifier string) *conval.Definitio
 }
 
 func (s *Settings) ProposeContestName(contestIdentifier string) string {
-	year := time.Now().Format("2006") // TODO use the central clock instead of time.Now()!
+	year := s.clock.Now().Format("2006")
 	return fmt.Sprintf("%s %s", contestIdentifier, year)
 }
 
@@ -629,14 +635,14 @@ func (s *Settings) EnterContestStartTime(value string) {
 }
 
 func (s *Settings) SetContestStartTimeToday() {
-	year, month, day := time.Now().Date()
+	year, month, day := s.clock.Now().Date()
 	s.contest.StartTime = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 	s.view.HideMessage()
 	s.view.SetContestStartTime(s.formattedContestStartTime())
 }
 
 func (s *Settings) SetContestStartTimeNow() {
-	s.contest.StartTime = time.Now().UTC().Truncate(time.Hour)
+	s.contest.StartTime = s.clock.Now().UTC().Truncate(time.Hour)
 	s.view.HideMessage()
 	s.view.SetContestStartTime(s.formattedContestStartTime())
 }

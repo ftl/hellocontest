@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ftl/hellocontest/script"
 	"github.com/ftl/hellocontest/ui"
 )
 
@@ -15,6 +16,9 @@ var version = "development"
 var sponsors string
 
 func main() {
+	var startupScript ui.Script = nil
+	args := os.Args
+
 	if len(os.Args) > 1 {
 		switch {
 		case os.Args[1] == "version":
@@ -23,6 +27,9 @@ func main() {
 		case os.Args[1] == "sponsors":
 			fmt.Printf("This release of Hello Contest is sponsored by %s\n", sponsors)
 			os.Exit(0)
+		case os.Args[1] == "screenshots":
+			startupScript = script.ScreenshotsScript
+			args = args[0:1]
 		}
 	}
 
@@ -33,5 +40,5 @@ func main() {
 	// 	log.Println(http.ListenAndServe("localhost:6060", nil))
 	// }()
 
-	ui.Run(version, sponsors, os.Args)
+	ui.Run(version, sponsors, startupScript, args)
 }

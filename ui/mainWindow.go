@@ -142,6 +142,14 @@ func (w *mainWindow) ShowInfoDialog(format string, a ...any) {
 	dlg.Run()
 }
 
+func (w *mainWindow) ShowQuestionDialog(format string, a ...any) bool {
+	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, format, a...)
+	defer dlg.Destroy()
+	dlg.SetTransientFor(nil)
+	response := dlg.Run()
+	return response == gtk.RESPONSE_YES
+}
+
 func (w *mainWindow) ShowErrorDialog(format string, a ...any) {
 	dlg := gtk.MessageDialogNew(w.window, gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, format, a...)
 	defer dlg.Destroy()

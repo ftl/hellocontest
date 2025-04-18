@@ -1,14 +1,17 @@
 package ui
 
 import (
+	"context"
 	"log"
 	"path/filepath"
+	"time"
 
 	"github.com/ftl/gmtry"
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
+	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
@@ -18,10 +21,15 @@ import (
 
 const AppID = "ft.hellocontest"
 
+type Script interface {
+	app.Script
+	Now() time.Time
+}
+
 // Run the application
-func Run(version string, sponsors string, args []string) {
+func Run(version string, sponsors string, startupScript Script, args []string) {
 	var err error
-	app := &application{id: AppID, version: version, sponsors: sponsors}
+	app := &application{id: AppID, version: version, sponsors: sponsors, startupScript: startupScript}
 
 	gdk.SetAllowedBackends("x11")
 	gtk.WindowSetDefaultIconName("hellocontest")
@@ -38,9 +46,10 @@ func Run(version string, sponsors string, args []string) {
 }
 
 type application struct {
-	id       string
-	version  string
-	sponsors string
+	id            string
+	version       string
+	sponsors      string
+	startupScript Script
 
 	app                  *gtk.Application
 	builder              *gtk.Builder
@@ -82,7 +91,13 @@ func (a *application) activate() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.controller = app.NewController(a.version, clock.New(), a.app, a.runAsync, configuration, a.sponsors)
+	var timebase core.Clock
+	if a.startupScript != nil {
+		timebase = a.startupScript
+	} else {
+		timebase = clock.New()
+	}
+	a.controller = app.NewController(a.version, timebase, a.app, a.runAsync, configuration, a.sponsors)
 	a.controller.Startup()
 
 	a.mainWindow = setupMainWindow(a.builder, a.app, a.style, a.setAcceptFocus)
@@ -141,6 +156,10 @@ func (a *application) activate() {
 	a.spotsWindow.RestoreVisibility()
 
 	a.controller.Refresh()
+
+	if a.startupScript != nil {
+		a.controller.RunScript(context.Background(), a.startupScript)
+	}
 }
 
 func (a *application) shutdown() {

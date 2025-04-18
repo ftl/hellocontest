@@ -84,6 +84,15 @@ func (c *Controller) EnterContestName(name string) {
 	c.selectedName = name
 }
 
+func (c *Controller) EnterContestFilename(filename string) {
+	c.selectedFilename = filename
+}
+
+func (c *Controller) RefreshView() {
+	c.view.SelectContestIdentifier(c.selectedIdentifier)
+	c.view.SetContestName(c.selectedName)
+}
+
 type nullview struct{}
 
 func (n *nullview) Show() bool                               { return false }

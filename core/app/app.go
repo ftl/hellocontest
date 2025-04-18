@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -95,8 +96,9 @@ type View interface {
 	ShowFilename(string)
 	SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error)
 	SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error)
-	ShowInfoDialog(string, ...interface{})
-	ShowErrorDialog(string, ...interface{})
+	ShowInfoDialog(string, ...any)
+	ShowQuestionDialog(string, ...any) bool
+	ShowErrorDialog(string, ...any)
 }
 
 // Configuration provides read access to the configuration data.
@@ -111,6 +113,11 @@ type Configuration interface {
 	SpotSources() []core.SpotSource
 	Radios() []core.Radio
 	Keyers() []core.Keyer
+}
+
+// Script can be used to automate things
+type Script interface {
+	Step(ctx context.Context, app *Controller, ui func(func())) bool
 }
 
 // Quitter allows to quit the application. This interface is used to call the actual application framework to quit.
@@ -141,6 +148,7 @@ func (c *Controller) Startup() {
 	c.callHistoryFinder = callhistory.New(c.ServiceStatus.StatusChanged)
 	c.Settings = settings.New(
 		c.OpenConfigurationFile,
+		c.clock,
 		c.openWithExternalApplication,
 		c.callHistoryFinder,
 		c.configuration.Station(),
@@ -340,6 +348,21 @@ func (c *Controller) Shutdown() {
 	c.Radio.Stop()
 }
 
+func (c *Controller) RunScript(ctx context.Context, script Script) {
+	go func() {
+		cont := true
+		for cont {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				cont = script.Step(ctx, c, c.asyncRunner)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+}
+
 func (c *Controller) OpenWiki() {
 	c.openWithExternalApplication(wikiURL)
 }
@@ -351,6 +374,18 @@ func (c *Controller) About() {
 	}
 
 	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\n%sThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version, sponsorText)
+}
+
+func (c *Controller) ShowInfo(format string, args ...any) {
+	c.view.ShowInfoDialog(format, args...)
+}
+
+func (c *Controller) ShowQuestion(format string, args ...any) bool {
+	return c.view.ShowQuestionDialog(format, args...)
+}
+
+func (c *Controller) ShowError(format string, args ...any) {
+	c.view.ShowErrorDialog(format, args...)
 }
 
 func (c *Controller) Sponsors() {

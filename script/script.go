@@ -9,6 +9,7 @@ import (
 )
 
 type Script struct {
+	clock    *Clock
 	sections []*Section
 
 	currentSection int
@@ -23,18 +24,39 @@ type Section struct {
 	currentStep int
 }
 
-type Step func(ctx context.Context, app *app.Controller, ui func(func())) time.Duration
+type Runtime struct {
+	Clock *Clock
+	App   *app.Controller
+	UI    func(func())
+}
 
-type Condition func(ctx context.Context, app *app.Controller, ui func(func())) (bool, time.Duration)
+type Step func(ctx context.Context, r *Runtime) time.Duration
+
+type Condition func(ctx context.Context, r *Runtime) (bool, time.Duration)
+
+func (s *Script) Now() time.Time {
+	if s.clock == nil {
+		return time.Now()
+	}
+	return s.clock.Now()
+}
 
 func (s *Script) Step(ctx context.Context, app *app.Controller, ui func(func())) bool {
 	if s.currentSection >= len(s.sections) {
 		return false
 	}
+	if s.clock == nil {
+		s.clock = &Clock{}
+	}
 
 	section := s.sections[s.currentSection]
+	runtime := &Runtime{
+		Clock: s.clock,
+		App:   app,
+		UI:    ui,
+	}
 
-	cont := section.Step(ctx, app, ui)
+	cont := section.Step(ctx, runtime)
 	if !cont {
 		s.currentSection += 1
 	}
@@ -42,24 +64,24 @@ func (s *Script) Step(ctx context.Context, app *app.Controller, ui func(func()))
 	return true
 }
 
-func (s *Section) Step(ctx context.Context, app *app.Controller, ui func(func())) bool {
+func (s *Section) Step(ctx context.Context, r *Runtime) bool {
 	if s.currentStep == 0 {
-		return s.checkEntryCondition(ctx, app, ui)
+		return s.checkEntryCondition(ctx, r)
 	}
 
 	// TODO: execute the alternative if checkEntryCondition returns false
 
-	return s.executeStep(ctx, app, ui)
+	return s.executeStep(ctx, r)
 }
 
-func (s *Section) checkEntryCondition(ctx context.Context, app *app.Controller, ui func(func())) bool {
+func (s *Section) checkEntryCondition(ctx context.Context, r *Runtime) bool {
 	s.currentStep += 1
 	if s.enter == nil {
 		return true
 	}
 
 	now := time.Now()
-	enter, delay := s.enter(ctx, app, ui)
+	enter, delay := s.enter(ctx, r)
 	if delay != 0 {
 		s.waitUntil = now.Add(delay)
 	}
@@ -67,7 +89,7 @@ func (s *Section) checkEntryCondition(ctx context.Context, app *app.Controller, 
 	return enter
 }
 
-func (s *Section) executeStep(ctx context.Context, app *app.Controller, ui func(func())) bool {
+func (s *Section) executeStep(ctx context.Context, r *Runtime) bool {
 	now := time.Now()
 	if now.Before(s.waitUntil) {
 		return true
@@ -79,7 +101,7 @@ func (s *Section) executeStep(ctx context.Context, app *app.Controller, ui func(
 
 	step := s.steps[s.currentStep-1]
 
-	nextDuration := step(ctx, app, ui)
+	nextDuration := step(ctx, r)
 	s.waitUntil = now.Add(nextDuration)
 	s.currentStep += 1
 
@@ -87,11 +109,11 @@ func (s *Section) executeStep(ctx context.Context, app *app.Controller, ui func(
 }
 
 func Ask(description string, delay time.Duration) Condition {
-	return func(_ context.Context, app *app.Controller, ui func(func())) (bool, time.Duration) {
+	return func(_ context.Context, r *Runtime) (bool, time.Duration) {
 		enter := make(chan bool, 1)
 		defer close(enter)
-		ui(func() {
-			enter <- app.ShowQuestion("%s\n\nin %v", description, delay)
+		r.UI(func() {
+			enter <- r.App.ShowQuestion("%s\n\nin %v", description, delay)
 		})
 		doEnter := <-enter
 		return doEnter, delay
@@ -99,10 +121,10 @@ func Ask(description string, delay time.Duration) Condition {
 }
 
 func Describe(description string, delay time.Duration) Step {
-	return func(_ context.Context, app *app.Controller, ui func(func())) time.Duration {
+	return func(_ context.Context, r *Runtime) time.Duration {
 		ready := make(chan struct{})
-		ui(func() {
-			app.ShowInfo("%s\n\nin %v", description, delay)
+		r.UI(func() {
+			r.App.ShowInfo("%s\n\nin %v", description, delay)
 			close(ready)
 		})
 		<-ready
@@ -111,8 +133,29 @@ func Describe(description string, delay time.Duration) Step {
 }
 
 func Wait(duration time.Duration) Step {
-	return func(context.Context, *app.Controller, func(func())) time.Duration {
+	return func(context.Context, *Runtime) time.Duration {
 		log.Printf("[WAITING FOR %v]", duration)
 		return duration
+	}
+}
+
+func SetTimebase(timebase string) Step {
+	return func(ctx context.Context, r *Runtime) time.Duration {
+		r.Clock.SetFromRFC3339(timebase)
+		return 0
+	}
+}
+
+func AddTimebaseOffset(offset time.Duration) Step {
+	return func(ctx context.Context, r *Runtime) time.Duration {
+		r.Clock.Add(offset)
+		return 0
+	}
+}
+
+func ResetTimebase() Step {
+	return func(ctx context.Context, r *Runtime) time.Duration {
+		r.Clock.Reset()
+		return 0
 	}
 }

@@ -298,6 +298,10 @@ func (s *Settings) showSettings() {
 	s.view.SetMultisGoal(strconv.Itoa(s.contest.MultisGoal))
 }
 
+func (s *Settings) RefreshView() {
+	s.showSettings()
+}
+
 func (s *Settings) formattedContestStartTime() string {
 	if s.contest.StartTime.IsZero() {
 		return ""

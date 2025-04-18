@@ -15,8 +15,9 @@ type Script struct {
 }
 
 type Section struct {
-	enter Condition
-	steps []Step
+	enter       Condition
+	steps       []Step
+	alternative Step
 
 	waitUntil   time.Time
 	currentStep int
@@ -46,6 +47,8 @@ func (s *Section) Step(ctx context.Context, app *app.Controller, ui func(func())
 		return s.checkEntryCondition(ctx, app, ui)
 	}
 
+	// TODO: execute the alternative if checkEntryCondition returns false
+
 	return s.executeStep(ctx, app, ui)
 }
 
@@ -65,13 +68,13 @@ func (s *Section) checkEntryCondition(ctx context.Context, app *app.Controller, 
 }
 
 func (s *Section) executeStep(ctx context.Context, app *app.Controller, ui func(func())) bool {
-	if s.currentStep > len(s.steps) {
-		return false
-	}
-
 	now := time.Now()
 	if now.Before(s.waitUntil) {
 		return true
+	}
+
+	if s.currentStep > len(s.steps) {
+		return false
 	}
 
 	step := s.steps[s.currentStep-1]

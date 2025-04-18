@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -112,6 +113,11 @@ type Configuration interface {
 	SpotSources() []core.SpotSource
 	Radios() []core.Radio
 	Keyers() []core.Keyer
+}
+
+// Script can be used to automate things
+type Script interface {
+	Step(ctx context.Context, app *Controller, ui func(func())) bool
 }
 
 // Quitter allows to quit the application. This interface is used to call the actual application framework to quit.
@@ -339,6 +345,21 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, logb
 
 func (c *Controller) Shutdown() {
 	c.Radio.Stop()
+}
+
+func (c *Controller) RunScript(ctx context.Context, script Script) {
+	go func() {
+		cont := true
+		for cont {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				cont = script.Step(ctx, c, c.asyncRunner)
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
 }
 
 func (c *Controller) OpenWiki() {

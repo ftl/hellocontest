@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/script"
 	"github.com/ftl/hellocontest/ui"
 )
@@ -16,7 +17,7 @@ var version = "development"
 var sponsors string
 
 func main() {
-	var startupScript ui.Script = nil
+	var startupScript app.Script = nil
 	args := os.Args
 
 	if len(os.Args) > 1 {

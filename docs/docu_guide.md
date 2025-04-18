@@ -16,10 +16,9 @@ Use [flameshot](https://flameshot.org) to take the screenshots. Use the light mo
 ### Main Window
 - empty -> [main_window_empty](screenshots/main_window_empty.png) in [First Steps](https://github.com/ftl/hellocontest/wiki/First-Steps)
 - with some QSO data -> [main project page](https://github.com/ftl/hellocontest), [Main Window](https://github.com/ftl/hellocontest/wiki/Main-Window)
-- only the entry area -> [QSO Input](https://github.com/ftl/hellocontest/wiki/Main-Window#qso-input)
-- only the VFO control -> [VFO Control](https://github.com/ftl/hellocontest/wiki/Main-Window#vfo-control)
-- only the status bar -> [Status of External Systems and Databases](https://github.com/ftl/hellocontest/wiki/Main-Window#status-of-external-systems-and-databases)
-- only the entry area with callsign information -> [Callsign Information (move to Main Window)](https://github.com/ftl/hellocontest/wiki/Callsign-Information)
+- only the entry area with callsign information and predicted input -> [main_window_entry](screenshots/main_window_entry.png) in [QSO Input](https://github.com/ftl/hellocontest/wiki/Main-Window#qso-input)
+- only the VFO control -> [main_window_vfo](screenshots/main_window_vfo.png) in [VFO Control](https://github.com/ftl/hellocontest/wiki/Main-Window#vfo-control)
+- only the status bar -> [main_window_status_bar](screenshots/main_window_status_bar.png) in [Status of External Systems and Databases](https://github.com/ftl/hellocontest/wiki/Main-Window#status-of-external-systems-and-databases)
 
 ### Dialogs
 - 'Contest Settings'

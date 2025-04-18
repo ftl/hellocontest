@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/app"
 )
 
@@ -72,19 +70,20 @@ var ScreenshotsScript = &Script{
 			},
 		},
 		{
-			enter: AskForScreenshot("main window with QSO data", 0),
+			enter: AskForScreenshot("main window QSO data entry", 0),
 			steps: []Step{
 				func(_ context.Context, app *app.Controller, ui func(func())) time.Duration {
 					ui(func() {
-						app.Entry.EntrySelected(core.BandmapEntry{
-							Call: callsign.MustParse("DL3NEY"),
-						})
-						// TODO: app.Entry.RefreshView()
+						app.Entry.Clear()
+						app.Entry.Enter("DL3NEY")
+						app.Entry.RefreshView()
 					})
 					return 0
 				},
-				Describe("only the entry area", 1*time.Second),
+				Describe("only the entry area, mark (1) best matching callsign, (2) predicted exchange, (3) qso value, (4) callsign infos", 1*time.Second),
 				TriggerScreenshot("main_window_entry"),
+				Describe("only the supercheck area", 1*time.Second),
+				TriggerScreenshot("main_window_supercheck"),
 				Describe("only the vfo area", 1*time.Second),
 				TriggerScreenshot("main_window_vfo"),
 				Describe("only the status bar", 1*time.Second),

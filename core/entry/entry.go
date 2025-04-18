@@ -316,6 +316,10 @@ func (c *Controller) refreshUTC() {
 	})
 }
 
+func (c *Controller) RefreshView() {
+	c.showInput()
+}
+
 func (c *Controller) showQSO(qso core.QSO) {
 	c.input.callsign = qso.Callsign.String()
 	c.input.theirReport = qso.TheirReport.String()

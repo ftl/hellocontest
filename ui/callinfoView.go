@@ -225,8 +225,12 @@ func (v *callinfoView) renderCallsign(callsign core.AnnotatedCallsign) string {
 }
 
 func (v *callinfoView) setPredictedExchanges(exchanges []string) {
-	for i, exchange := range exchanges {
-		v.setPredictedExchange(i, exchange)
+	for i := range v.predictedExchanges {
+		if i < len(exchanges) {
+			v.setPredictedExchange(i, exchanges[i])
+		} else {
+			v.setPredictedExchange(i, "")
+		}
 	}
 }
 

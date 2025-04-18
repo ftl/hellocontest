@@ -2,7 +2,6 @@ package script
 
 import (
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -16,7 +15,6 @@ func (c *Clock) Now() time.Time {
 
 func (c *Clock) Set(now time.Time) {
 	c.offset = now.Sub(time.Now())
-	log.Printf("Clock offset set to %v, current time is %v", c.offset, c.Now())
 }
 
 func (c *Clock) SetFromRFC3339(s string) {
@@ -27,12 +25,16 @@ func (c *Clock) SetFromRFC3339(s string) {
 	c.Set(t)
 }
 
+func (c *Clock) SetMinute(minute int) {
+	now := c.Now()
+	offset := time.Duration(minute-now.Minute()) * time.Minute
+	c.Add(offset)
+}
+
 func (c *Clock) Add(offset time.Duration) {
 	c.offset += offset
-	log.Printf("Clock offset adjusted to %v, current time is %v", c.offset, c.Now())
 }
 
 func (c *Clock) Reset() {
 	c.offset = 0
-	log.Printf("Clock offset reset, current time is %v", c.Now())
 }

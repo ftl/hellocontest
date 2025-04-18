@@ -2,17 +2,23 @@ package script
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ftl/hellocontest/core"
 )
 
 const ScreenshotsFolder = "./docs/screenshots"
+
+//go:embed screenshots_qsos.csv
+var qsoDataCSV string
 
 var ScreenshotsScript = &Script{
 	sections: []*Section{
@@ -48,7 +54,7 @@ var ScreenshotsScript = &Script{
 			},
 		},
 		{
-			enter: AskForScreenshot("new CWT, enter name CWT 2025 Test", 1*time.Second),
+			enter: AskForScreenshot("new CWT contest session", 1*time.Second),
 			steps: []Step{
 				func(_ context.Context, r *Runtime) time.Duration {
 					r.UI(r.App.New)
@@ -73,13 +79,21 @@ var ScreenshotsScript = &Script{
 					})
 					return 0
 				},
-				Describe("set the current hour as start time, select a current call history file", 20*time.Second),
+				Describe("select a current call history file", 20*time.Second),
 				Describe("contest settings dialog, complete", 1*time.Second),
 				TriggerScreenshot("contest_settings_complete"),
-				Describe("contest settings dialog, section 'My Exchange' with name Flo and dxcc_prefix DL", 10*time.Second),
+				Describe("contest settings dialog, section 'My Exchange'", 1*time.Second),
 				TriggerScreenshot("contest_settings_myexchange_cwt"),
 				Describe("close the contest settings dialog, screenshot of empty main window", 10*time.Second),
 				TriggerScreenshot("main_window_empty"),
+			},
+		},
+		{
+			enter: AskForScreenshot("main window with QSO data", 0),
+			steps: []Step{
+				FillQSOList(),
+				Describe("main window complete", 1*time.Second),
+				TriggerScreenshot("main_window_filled"),
 			},
 		},
 		{
@@ -88,7 +102,7 @@ var ScreenshotsScript = &Script{
 				func(_ context.Context, r *Runtime) time.Duration {
 					r.UI(func() {
 						r.App.Entry.Clear()
-						r.App.Entry.Enter("DL3NEY")
+						r.App.Entry.Enter("AA3B")
 						r.App.Entry.RefreshView()
 					})
 					return 0
@@ -250,4 +264,68 @@ func removeBackup(name string) error {
 		return os.Remove(backupFilename)
 	}
 	return nil
+}
+
+func FillQSOList() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		qsos := parseQSOCSV()
+		for _, qso := range qsos {
+			enterQSOData(r, qso)
+		}
+		r.UI(r.App.Entry.Clear)
+		r.UI(r.App.Entry.RefreshPrediction)
+		return 0
+	}
+}
+
+type qsoData struct {
+	minute    int
+	frequency core.Frequency
+	workmode  core.Workmode
+	values    []string
+}
+
+func parseQSOCSV() []qsoData {
+	lines := strings.Split(qsoDataCSV, "\n")
+	result := make([]qsoData, 0, len(lines))
+	for _, line := range lines {
+		fields := strings.Split(line, ",")
+		if len(fields) < 4 {
+			continue
+		}
+
+		qso := qsoData{}
+		qso.minute, _ = strconv.Atoi(fields[0])
+		kHz, _ := strconv.Atoi(fields[1])
+		qso.frequency = core.Frequency(kHz * 1000)
+		if fields[2] == "r" {
+			qso.workmode = core.Run
+		} else {
+			qso.workmode = core.SearchPounce
+		}
+		qso.values = fields[3:]
+
+		result = append(result, qso)
+	}
+	return result
+}
+
+func enterQSOData(r *Runtime, qso qsoData) {
+	r.UI(r.App.Entry.Clear)
+	r.Clock.SetMinute(qso.minute)
+	r.App.VFO.SetFrequency(qso.frequency)
+	time.Sleep(100 * time.Millisecond)
+	r.UI(func() {
+		r.App.Workmode.SetWorkmode(qso.workmode)
+	})
+	r.UI(func() {
+		for i, value := range qso.values {
+			if i > 0 {
+				r.App.Entry.GotoNextField()
+			}
+			r.App.Entry.Enter(value)
+		}
+	})
+	r.UI(r.App.Entry.RefreshView)
+	r.UI(r.App.Entry.Log)
 }

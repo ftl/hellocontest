@@ -12,3 +12,4 @@ hellocontest*.AppImage
 .debpkg/usr
 .config_backup
 ui/glade/#contest.glade#
+docs/screenshots/*.bak.png

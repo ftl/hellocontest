@@ -166,13 +166,11 @@ func TriggerScreenshot(filename string) Step {
 
 func TriggerScreenshotWithDelay(name string, delay time.Duration) Step {
 	return func(_ context.Context, _ *Runtime) time.Duration {
-		filename := filepath.Join(ScreenshotsFolder, name+".png")
-		backupFilename := filepath.Join(ScreenshotsFolder, name+".bak.png")
-		_ = backupFilename
-		// TODO: do not delete the filename, but rename it to backupFilename; if the later already exists, delete it first
-		err := os.RemoveAll(filename)
+		filename, _ := screenshotFilenames(name)
+
+		err := backupScreenshot(name)
 		if err != nil {
-			log.Printf("Cannot delete %s: %v", filename, err)
+			log.Printf("Cannot backup screenshot %s: %v", filename, err)
 		}
 
 		// TODO: evaluate ctx.Done() and stop the flameshot process
@@ -189,8 +187,67 @@ func TriggerScreenshotWithDelay(name string, delay time.Duration) Step {
 			log.Printf("Screenshot %s successful", name)
 		}
 
-		// TODO: if the filename does not exist, flameshot was canceled; rename backupFilename to filename in order to restore the screenshot
+		if !fileExists(filename) {
+			log.Printf("restoring screenhot %s", name)
+			err = restoreScreenshot(name)
+		} else {
+			log.Printf("removing screenshot backup %s", name)
+			err = removeBackup(name)
+		}
+		if err != nil {
+			log.Printf("Screenshot %s backup handling failed: %v", name, err)
+		}
 
 		return 0
 	}
+}
+
+func screenshotFilenames(name string) (string, string) {
+	return filepath.Join(ScreenshotsFolder, name+".png"), filepath.Join(ScreenshotsFolder, name+".bak.png")
+
+}
+
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil
+}
+
+func backupScreenshot(name string) error {
+	filename, backupFilename := screenshotFilenames(name)
+	if !fileExists(filename) {
+		return nil
+	}
+
+	if fileExists(backupFilename) {
+		err := os.Remove(backupFilename)
+		if err != nil {
+			return err
+		}
+	}
+
+	return os.Rename(filename, backupFilename)
+}
+
+func restoreScreenshot(name string) error {
+	filename, backupFilename := screenshotFilenames(name)
+	if fileExists(filename) {
+		err := os.Remove(filename)
+		if err != nil {
+			return err
+		}
+	}
+
+	if fileExists(backupFilename) {
+		return os.Rename(backupFilename, filename)
+	}
+
+	return nil
+}
+
+func removeBackup(name string) error {
+	_, backupFilename := screenshotFilenames(name)
+	if fileExists(backupFilename) {
+		return os.Remove(backupFilename)
+	}
+	return nil
 }

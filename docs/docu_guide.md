@@ -23,7 +23,7 @@ Use [flameshot](https://flameshot.org) to take the screenshots. Use the light mo
 ### Dialogs
 - 'Contest Settings'
   - complete -> [contest_settings_complete](screenshots/contest_settings_complete.png)
-  - only 'My Exchange' for CWT -> [contest_settings_my_exchange_cwt](screenshots/contest_settings_my_exchange_cwt.png)
+  - only 'My Exchange' for CWT -> [contest_settings_my_exchange_cwt](screenshots/contest_settings_myexchange_cwt.png)
   - only 'My Exchange' for RST + serial, 'Gen. Report' selected
   - only 'My Exchange' for RST + serial, 'Gen. Report' not selected
 - 'New Contest'

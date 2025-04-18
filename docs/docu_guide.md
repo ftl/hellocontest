@@ -9,7 +9,7 @@ The user documentation contains the following screenshots. Whenever the UI chang
 Use [flameshot](https://flameshot.org) to take the screenshots. Use the light mode for the UI when taking the screenshots.
 
 ### Main Menu
-- 'Open Configuration File...' -> [menu_file_open_config](screenshots/menu_file_open_config.png) in [First Steps](https://github.com/ftl/hellocontest/wiki/First-Steps)
+- 'Open Configuration File...' -> [menu_file_open_configuration](screenshots/menu_file_open_configuration.png) in [First Steps](https://github.com/ftl/hellocontest/wiki/First-Steps)
 - 'New...' -> [menu_file_new](screenshots/menu_file_new.png) in [First Steps](https://github.com/ftl/hellocontest/wiki/First-Steps)
 - 'Bandmap' -> [Spots](https://github.com/ftl/hellocontest/wiki/Spots)
 

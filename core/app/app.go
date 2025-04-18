@@ -148,6 +148,7 @@ func (c *Controller) Startup() {
 	c.callHistoryFinder = callhistory.New(c.ServiceStatus.StatusChanged)
 	c.Settings = settings.New(
 		c.OpenConfigurationFile,
+		c.clock,
 		c.openWithExternalApplication,
 		c.callHistoryFinder,
 		c.configuration.Station(),

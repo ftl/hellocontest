@@ -26,7 +26,7 @@ Use [flameshot](https://flameshot.org) to take the screenshots. Use the light mo
   - only 'My Exchange' for CWT -> [contest_settings_my_exchange_cwt](screenshots/contest_settings_myexchange_cwt.png)
   - only 'My Exchange' for RST + serial, 'Gen. Report' selected
   - only 'My Exchange' for RST + serial, 'Gen. Report' not selected
-- 'New Contest'
+- 'New Contest' -> [new_cwt](screenshots/new_cwt.png)
 - 'Macros'
 - 'QSO-Rate', with some numbered bullet points to explain the graphic's components:
   - the ciruclar time indicator

@@ -15,7 +15,7 @@ A simple HF contest log for Linux, written in Go using [gotk3](https://github.co
 * Connect to your transceiver through the [TCI protocol](https://github.com/maksimus1210/TCI) or the [Hamlib network protocol](https://github.com/Hamlib/Hamlib) to keep the band and mode information in sync.
 * Show the currently worked station on [F5UII's HamDXMap](https://dxmap.f5uii.net/).
 
-![main raw](https://github.com/ftl/hellocontest/assets/340928/b8849fdd-c6f4-4550-802e-1c89c10de1d6)
+![main window with qso data](https://github.com/ftl/hellocontest/blob/master/docs/screenshots/main_window_filled.png?raw=true)
 
 ## Known Issues
 
@@ -61,7 +61,7 @@ go build -tags gtk_3_22
 ```
 
 ### Protobuf
-Hellocontest uses Google's [protocol buffers](https://developers.google.com/protocol-buffers/) to define the data format of the log data stored on disk. The proto definition of the data format resides in the `core/pb` package. This package also contains the generated Go code to access the binary logbook data according to the proto definition. If you make any changes to the proto definition, you need to regenerate this code. The code generation is done using Google's `protoc` compiler for protocol buffers (see Google's [documentation on protocol buffers](https://developers.google.com/protocol-buffers/) for more information about how to install this tool). To run the code generation simply execute 
+Hellocontest uses Google's [protocol buffers](https://developers.google.com/protocol-buffers/) to define the data format of the log data stored on disk. The proto definition of the data format resides in the `core/pb` package. This package also contains the generated Go code to access the binary logbook data according to the proto definition. If you make any changes to the proto definition, you need to regenerate this code. The code generation is done using Google's `protoc` compiler for protocol buffers (see Google's [documentation on protocol buffers](https://developers.google.com/protocol-buffers/) for more information about how to install this tool). To run the code generation simply execute
 
 ```
 make generate

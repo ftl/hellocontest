@@ -136,18 +136,20 @@ func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 	}
 
 	for _, entry := range entries {
-		if entry.Key() == searchString {
-			result, err := toAnnotatedCallsign(entry)
-			if err != nil {
-				log.Print(err)
-				return core.AnnotatedCallsign{}, false
-			}
-			result.PredictedExchange = make([]string, len(f.fieldNames))
-			for i := range f.fieldNames {
-				result.PredictedExchange[i] = entry.Get(scp.FieldName(f.fieldNames[i]))
-			}
-			return result, true
+		if entry.Key() != searchString {
+			continue
 		}
+
+		result, err := toAnnotatedCallsign(entry)
+		if err != nil {
+			log.Print(err)
+			return core.AnnotatedCallsign{}, false
+		}
+		result.PredictedExchange = make([]string, len(f.fieldNames))
+		for i := range f.fieldNames {
+			result.PredictedExchange[i] = entry.Get(scp.FieldName(f.fieldNames[i]))
+		}
+		return result, true
 	}
 
 	return core.AnnotatedCallsign{}, false
@@ -185,7 +187,7 @@ func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
 		Callsign:   cs,
 		Assembly:   toMatchingAssembly(match),
 		Comparable: match,
-		Compare: func(a interface{}, b interface{}) bool {
+		Compare: func(a any, b any) bool {
 			aMatch, aOk := a.(scp.Match)
 			bMatch, bOk := b.(scp.Match)
 			if !aOk || !bOk {

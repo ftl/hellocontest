@@ -654,6 +654,7 @@ func (s *Settings) SetOperationModeSprint(value bool) {
 func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
 	s.callHistory.Activate(s.contest.CallHistoryFilename)
+	s.callHistory.SelectFieldNames(s.contest.CallHistoryFieldNames)
 }
 
 func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value string) {

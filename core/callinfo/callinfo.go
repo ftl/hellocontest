@@ -81,6 +81,10 @@ func (c *Callinfo) SetView(view View) {
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
+func (c *Callinfo) StationChanged(station core.Station) {
+	c.collector.SetMyLocator(station.Locator)
+}
+
 func (c *Callinfo) ContestChanged(contest core.Contest) {
 	if contest.Definition == nil {
 		log.Printf("there is no contest definition!")
@@ -125,6 +129,8 @@ func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, cur
 
 	c.frame.NormalizedCallInput = normalizedCall
 	c.frame.DXCCEntity = callinfo.DXCCEntity
+	c.frame.Azimuth = callinfo.Azimuth
+	c.frame.Distance = callinfo.Distance
 	c.frame.UserInfo = callinfo.UserText
 
 	c.frame.Points = callinfo.Points

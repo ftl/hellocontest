@@ -11,6 +11,7 @@ import (
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
+	"github.com/ftl/hamradio/latlon"
 	"github.com/ftl/hamradio/locator"
 )
 
@@ -928,6 +929,8 @@ type Callinfo struct {
 	CallValid bool
 
 	DXCCEntity dxcc.Prefix
+	Azimuth    latlon.Degrees
+	Distance   latlon.Km
 
 	PredictedExchange []string
 
@@ -945,6 +948,8 @@ type Callinfo struct {
 type CallinfoFrame struct {
 	NormalizedCallInput string
 	DXCCEntity          dxcc.Prefix
+	Azimuth             latlon.Degrees
+	Distance            latlon.Km
 
 	CallsignOnFrequency AnnotatedCallsign
 

@@ -2318,15 +2318,15 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                 <property name="hexpand">True</property>
                 <property name="label" translatable="yes">Fed. Rep. of Germany (DL), EU, ITU 28, CQ 14</property>
                 <property name="use-markup">True</property>
-                <property name="wrap">True</property>
                 <property name="ellipsize">end</property>
+                <property name="single-line-mode">True</property>
                 <property name="lines">1</property>
                 <property name="xalign">0</property>
               </object>
               <packing>
                 <property name="left-attach">0</property>
                 <property name="top-attach">6</property>
-                <property name="width">3</property>
+                <property name="width">4</property>
               </packing>
             </child>
             <child>
@@ -2350,9 +2350,9 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                 <property name="xalign">1</property>
               </object>
               <packing>
-                <property name="left-attach">3</property>
+                <property name="left-attach">4</property>
                 <property name="top-attach">6</property>
-                <property name="width">3</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>

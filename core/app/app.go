@@ -263,6 +263,10 @@ func (c *Controller) Startup() {
 		c.ServiceStatus.StatusChanged(core.MapService, false)
 	})
 
+	// Toggle the workmode to make sure all the listeners are notified about the current workmode.
+	c.Workmode.SetWorkmode(core.Run)
+	c.Workmode.SetWorkmode(core.SearchPounce)
+
 	c.Entry.StartAutoRefresh()
 	c.Rate.StartAutoRefresh()
 

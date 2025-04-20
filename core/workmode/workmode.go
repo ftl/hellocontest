@@ -14,7 +14,7 @@ func NewController() *Controller {
 
 type Controller struct {
 	view      View
-	listeners []interface{}
+	listeners []any
 
 	workmode            core.Workmode
 	operationModeSprint bool
@@ -88,6 +88,9 @@ func (c *Controller) Workmode() core.Workmode {
 }
 
 func (c *Controller) SetWorkmode(workmode core.Workmode) {
+	if workmode == core.UnknownWorkmode {
+		workmode = core.SearchPounce
+	}
 	if c.workmode == workmode {
 		return
 	}

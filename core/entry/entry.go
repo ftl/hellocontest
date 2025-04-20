@@ -686,6 +686,9 @@ func (c *Controller) Log() {
 			}
 		}
 	}
+	if !c.editing {
+		qso.Workmode = c.workmode
+	}
 
 	c.logbook.Log(qso)
 	c.emitCallsignLogged(qso.Callsign.String(), qso.Frequency)

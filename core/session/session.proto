@@ -1,5 +1,6 @@
 syntax = "proto3";
 package session;
+option go_package = "core/session";
 
 message State {
     string last_filename = 1;

@@ -36,6 +36,9 @@ type logbookView struct {
 	columnPoints             int
 	columnMultis             int
 	columnDuplicate          int
+	columnWorkmode           int
+
+	columnLast int
 }
 
 func setupLogbookView(builder *gtk.Builder) *logbookView {
@@ -54,6 +57,8 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	result.columnPoints = result.columnLastTheirExchange + 1
 	result.columnMultis = result.columnPoints + 1
 	result.columnDuplicate = result.columnMultis + 1
+	result.columnWorkmode = result.columnMultis + 2
+	result.columnLast = result.columnWorkmode
 
 	result.view.AppendColumn(createLogColumn("UTC", result.columnUTC))
 	result.view.AppendColumn(createLogColumn("Callsign", result.columnCallsign))
@@ -64,6 +69,7 @@ func setupLogbookView(builder *gtk.Builder) *logbookView {
 	result.view.AppendColumn(createLogColumn("Pts", result.columnPoints))
 	result.view.AppendColumn(createLogColumn("Mult", result.columnMultis))
 	result.view.AppendColumn(createLogColumn("D", result.columnDuplicate))
+	result.view.AppendColumn(createLogColumn("WM", result.columnWorkmode))
 
 	result.list = createLogListStore(int(result.view.GetNColumns()))
 	result.view.SetModel(result.list)
@@ -121,6 +127,8 @@ func (v *logbookView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeFiel
 	v.columnPoints = v.columnLastTheirExchange + 1
 	v.columnMultis = v.columnPoints + 1
 	v.columnDuplicate = v.columnMultis + 1
+	v.columnWorkmode = v.columnMultis + 2
+	v.columnLast = v.columnWorkmode
 
 	for i := v.columnFirstMyExchange; i <= v.columnLastMyExchange; i++ {
 		field := myExchangeFields[i-v.columnFirstMyExchange]
@@ -147,6 +155,7 @@ func (v *logbookView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeFiel
 	v.view.AppendColumn(createLogColumn("Pts", v.columnPoints))
 	v.view.AppendColumn(createLogColumn("Mult", v.columnMultis))
 	v.view.AppendColumn(createLogColumn("D", v.columnDuplicate))
+	v.view.AppendColumn(createLogColumn("WM", v.columnWorkmode))
 
 	v.list = createLogListStore(int(v.view.GetNColumns()))
 	v.view.SetModel(v.list)
@@ -173,6 +182,7 @@ func (v *logbookView) fillQSOToRow(row *gtk.TreeIter, qso core.QSO) error {
 			v.columnPoints,
 			v.columnMultis,
 			v.columnDuplicate,
+			v.columnWorkmode,
 		},
 		[]any{
 			qso.Time.In(time.UTC).Format("15:04"),
@@ -182,6 +192,7 @@ func (v *logbookView) fillQSOToRow(row *gtk.TreeIter, qso core.QSO) error {
 			pointsToString(qso.Points, qso.Duplicate),
 			pointsToString(qso.Multis, qso.Duplicate),
 			boolToCheckmark(qso.Duplicate),
+			qso.Workmode.String(),
 		})
 	if err != nil {
 		return err

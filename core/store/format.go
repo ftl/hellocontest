@@ -96,7 +96,7 @@ func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 		} else if err != nil {
 			return nil, nil, nil, nil, err
 		}
-		qso, err := pb.ToQSO(pbQSO)
+		qso, err := pb.ToQSO(&pbQSO)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
@@ -106,7 +106,7 @@ func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 
 func (f *v0Format) WriteQSO(w pbWriter, qso core.QSO) error {
 	pbQSO := pb.QSOToPB(qso)
-	return w.Write(&pbQSO)
+	return w.Write(pbQSO)
 }
 
 func (f *v0Format) WriteStation(pbWriter, core.Station) error {
@@ -159,28 +159,28 @@ func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 		}
 
 		if pbQSO := pbEntry.GetQso(); pbQSO != nil {
-			qso, err := pb.ToQSO(*pbQSO)
+			qso, err := pb.ToQSO(pbQSO)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
 			qsos = append(qsos, qso)
 		}
 		if pbStation := pbEntry.GetStation(); pbStation != nil {
-			s, err := pb.ToStation(*pbStation)
+			s, err := pb.ToStation(pbStation)
 			station = &s
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
 		}
 		if pbContest := pbEntry.GetContest(); pbContest != nil {
-			c, err := pb.ToContest(*pbContest)
+			c, err := pb.ToContest(pbContest)
 			contest = &c
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
 		}
 		if pbKeyer := pbEntry.GetKeyer(); pbKeyer != nil {
-			k, err := pb.ToKeyerSettings(*pbKeyer)
+			k, err := pb.ToKeyerSettings(pbKeyer)
 			settings = &k
 			if err != nil {
 				return nil, nil, nil, nil, err
@@ -192,7 +192,7 @@ func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 func (f *v1Format) WriteQSO(w pbWriter, qso core.QSO) error {
 	pbQSO := pb.QSOToPB(qso)
 	pbEntry := &pb.Entry{
-		Entry: &pb.Entry_Qso{Qso: &pbQSO},
+		Entry: &pb.Entry_Qso{Qso: pbQSO},
 	}
 	return w.Write(pbEntry)
 }
@@ -200,7 +200,7 @@ func (f *v1Format) WriteQSO(w pbWriter, qso core.QSO) error {
 func (f *v1Format) WriteStation(w pbWriter, station core.Station) error {
 	pbStation := pb.StationToPB(station)
 	pbEntry := &pb.Entry{
-		Entry: &pb.Entry_Station{Station: &pbStation},
+		Entry: &pb.Entry_Station{Station: pbStation},
 	}
 	return w.Write(pbEntry)
 }
@@ -208,7 +208,7 @@ func (f *v1Format) WriteStation(w pbWriter, station core.Station) error {
 func (f *v1Format) WriteContest(w pbWriter, contest core.Contest) error {
 	pbContest := pb.ContestToPB(contest)
 	pbEntry := &pb.Entry{
-		Entry: &pb.Entry_Contest{Contest: &pbContest},
+		Entry: &pb.Entry_Contest{Contest: pbContest},
 	}
 	return w.Write(pbEntry)
 }
@@ -216,7 +216,7 @@ func (f *v1Format) WriteContest(w pbWriter, contest core.Contest) error {
 func (f *v1Format) WriteKeyer(w pbWriter, settings core.KeyerSettings) error {
 	pbKeyer := pb.KeyerSettingsToPB(settings)
 	pbEntry := &pb.Entry{
-		Entry: &pb.Entry_Keyer{Keyer: &pbKeyer},
+		Entry: &pb.Entry_Keyer{Keyer: pbKeyer},
 	}
 	return w.Write(pbEntry)
 }

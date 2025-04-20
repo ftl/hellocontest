@@ -14,7 +14,7 @@ import (
 	"github.com/ftl/hellocontest/core/parse"
 )
 
-func ToQSO(pbQSO QSO) (core.QSO, error) {
+func ToQSO(pbQSO *QSO) (core.QSO, error) {
 	var qso core.QSO
 	var err error
 	qso.Callsign, err = callsign.Parse(pbQSO.Callsign)
@@ -48,11 +48,12 @@ func ToQSO(pbQSO QSO) (core.QSO, error) {
 	qso.TheirNumber = core.QSONumber(pbQSO.TheirNumber)
 	qso.TheirExchange = pbQSO.TheirExchange
 	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
+	qso.Workmode = core.Workmode(pbQSO.Workmode)
 	return qso, nil
 }
 
-func QSOToPB(qso core.QSO) QSO {
-	return QSO{
+func QSOToPB(qso core.QSO) *QSO {
+	return &QSO{
 		Callsign:      qso.Callsign.String(),
 		Timestamp:     qso.Time.Unix(),
 		Frequency:     float64(qso.Frequency),
@@ -65,10 +66,11 @@ func QSOToPB(qso core.QSO) QSO {
 		TheirNumber:   int32(qso.TheirNumber),
 		TheirExchange: qso.TheirExchange,
 		LogTimestamp:  qso.LogTimestamp.Unix(),
+		Workmode:      Workmode(qso.Workmode),
 	}
 }
 
-func ToStation(pbStation Station) (core.Station, error) {
+func ToStation(pbStation *Station) (core.Station, error) {
 	var station core.Station
 	var err error
 	station.Callsign, err = callsign.Parse(pbStation.Callsign)
@@ -89,15 +91,15 @@ func ToStation(pbStation Station) (core.Station, error) {
 	return station, nil
 }
 
-func StationToPB(station core.Station) Station {
-	return Station{
+func StationToPB(station core.Station) *Station {
+	return &Station{
 		Callsign: station.Callsign.String(),
 		Operator: station.Operator.String(),
 		Locator:  station.Locator.String(),
 	}
 }
 
-func ToContest(pbContest Contest) (core.Contest, error) {
+func ToContest(pbContest *Contest) (core.Contest, error) {
 	var contest core.Contest
 
 	contest.Name = pbContest.Name
@@ -128,7 +130,7 @@ func ToContest(pbContest Contest) (core.Contest, error) {
 	return contest, nil
 }
 
-func ContestToPB(contest core.Contest) Contest {
+func ContestToPB(contest core.Contest) *Contest {
 	definitionYaml := ""
 	if contest.Definition != nil {
 		buffer := bytes.NewBuffer([]byte{})
@@ -140,7 +142,7 @@ func ContestToPB(contest core.Contest) Contest {
 		}
 	}
 
-	return Contest{
+	return &Contest{
 		DefinitionYaml:         definitionYaml,
 		ExchangeValues:         contest.ExchangeValues,
 		GenerateSerialExchange: contest.GenerateSerialExchange,
@@ -157,7 +159,7 @@ func ContestToPB(contest core.Contest) Contest {
 	}
 }
 
-func ToKeyerSettings(pbSettings Keyer) (core.KeyerSettings, error) {
+func ToKeyerSettings(pbSettings *Keyer) (core.KeyerSettings, error) {
 	var result core.KeyerSettings
 	result.WPM = int(pbSettings.Wpm)
 	result.SPLabels = pbSettings.SpLabels
@@ -167,8 +169,8 @@ func ToKeyerSettings(pbSettings Keyer) (core.KeyerSettings, error) {
 	return result, nil
 }
 
-func KeyerSettingsToPB(settings core.KeyerSettings) Keyer {
-	return Keyer{
+func KeyerSettingsToPB(settings core.KeyerSettings) *Keyer {
+	return &Keyer{
 		Wpm:       int32(settings.WPM),
 		SpLabels:  settings.SPLabels,
 		SpMacros:  settings.SPMacros,

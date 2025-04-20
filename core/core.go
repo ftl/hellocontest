@@ -33,10 +33,11 @@ type QSO struct {
 	Points        int
 	Multis        int
 	Duplicate     bool
+	Workmode      Workmode
 }
 
 func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%s|%s|%2d|%2d|%t", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), strings.Join(qso.MyExchange, " "), qso.TheirReport, qso.TheirNumber.String(), strings.Join(qso.TheirExchange, " "), qso.Points, qso.Multis, qso.Duplicate)
+	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%s|%s|%2d|%2d|%t|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), strings.Join(qso.MyExchange, " "), qso.TheirReport, qso.TheirNumber.String(), strings.Join(qso.TheirExchange, " "), qso.Points, qso.Multis, qso.Duplicate, qso.Workmode.String())
 }
 
 // Frequency in Hz.
@@ -115,9 +116,21 @@ type Workmode int
 
 // All work modes.
 const (
-	SearchPounce Workmode = iota
+	UnknownWorkmode Workmode = iota
+	SearchPounce
 	Run
 )
+
+func (workmode *Workmode) String() string {
+	switch *workmode {
+	case SearchPounce:
+		return "S"
+	case Run:
+		return "R"
+	default:
+		return ""
+	}
+}
 
 // EntryField represents an entry field in the visual part.
 type EntryField string

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -41,7 +40,7 @@ func (f *FileStore) Exists() bool {
 }
 
 func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, error) {
-	b, err := ioutil.ReadFile(f.filename)
+	b, err := os.ReadFile(f.filename)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

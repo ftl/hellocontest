@@ -7,6 +7,7 @@ import (
 
 	"github.com/gotk3/gotk3/gtk"
 
+	"github.com/ftl/hamradio/latlon"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/ui/style"
@@ -89,7 +90,7 @@ func (v *callinfoView) ShowFrame(frame core.CallinfoFrame) {
 
 func (v *callinfoView) showCurrentFrame() {
 	v.setBestMatchingCallsign(v.currentFrame.BestMatchOnFrequency())
-	v.setDXCC(v.currentFrame.DXCCEntity)
+	v.setDXCC(v.currentFrame.DXCCEntity, v.currentFrame.Azimuth, v.currentFrame.Distance)
 	v.setValue(v.currentFrame.Points, v.currentFrame.Multis, v.currentFrame.Value)
 	v.setUserInfo(v.currentFrame.UserInfo)
 	v.setSupercheck(v.currentFrame.Supercheck)
@@ -100,7 +101,7 @@ func (v *callinfoView) setBestMatchingCallsign(callsign core.AnnotatedCallsign) 
 	v.callsignLabel.SetMarkup(v.renderCallsign(callsign))
 }
 
-func (v *callinfoView) setDXCC(entity dxcc.Prefix) {
+func (v *callinfoView) setDXCC(entity dxcc.Prefix, azimuth latlon.Degrees, distance latlon.Km) {
 	if entity.Name == "" {
 		v.dxccLabel.SetMarkup("")
 		return
@@ -116,6 +117,9 @@ func (v *callinfoView) setDXCC(entity dxcc.Prefix) {
 	}
 	if entity.CQZone != 0 {
 		text += fmt.Sprintf(", CQ %d", entity.CQZone)
+	}
+	if distance > 0 {
+		text += fmt.Sprintf(", %s, %s", distance, azimuth)
 	}
 
 	v.dxccLabel.SetMarkup(text)

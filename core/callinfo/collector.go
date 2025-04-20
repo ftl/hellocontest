@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/locator"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -17,6 +18,7 @@ type Collector struct {
 
 	dataLock *sync.RWMutex
 
+	myLocator                locator.Locator
 	theirExchangeFields      []core.ExchangeField
 	theirReportExchangeField core.ExchangeField
 	theirNumberExchangeField core.ExchangeField
@@ -36,6 +38,13 @@ func NewCollector(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistory
 		dataLock:   &sync.RWMutex{},
 		totalScore: core.BandScore{Points: 1, Multis: 1},
 	}
+}
+
+func (c *Collector) SetMyLocator(loc locator.Locator) {
+	c.dataLock.Lock()
+	defer c.dataLock.Unlock()
+
+	c.myLocator = loc
 }
 
 func (c *Collector) SetTheirExchangeFields(fields []core.ExchangeField, theirReportExchangeField core.ExchangeField, theirNumberExchangeField core.ExchangeField) {
@@ -135,6 +144,11 @@ func (c *Collector) addDXCC(info *core.Callinfo) bool {
 	}
 
 	info.DXCCEntity = entity
+	if !c.myLocator.IsZero() {
+		entityLocator := locator.LatLonToLocator(entity.LatLon, 6)
+		info.Azimuth = locator.Azimuth(c.myLocator, entityLocator)
+		info.Distance = locator.Distance(c.myLocator, entityLocator)
+	}
 
 	return true
 }

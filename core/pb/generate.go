@@ -1,3 +1,3 @@
 package pb
 
-//go:generate protoc --go_out . log.proto
+//go:generate protoc --go_out ../.. log.proto

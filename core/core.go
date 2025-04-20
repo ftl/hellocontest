@@ -33,6 +33,7 @@ type QSO struct {
 	Points        int
 	Multis        int
 	Duplicate     bool
+	Workmode      Workmode
 }
 
 func (qso *QSO) String() string {
@@ -115,7 +116,8 @@ type Workmode int
 
 // All work modes.
 const (
-	SearchPounce Workmode = iota
+	UnknownWorkmode Workmode = iota
+	SearchPounce
 	Run
 )
 

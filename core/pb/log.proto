@@ -1,5 +1,6 @@
 syntax = "proto3";
 package pb;
+option go_package = "core/pb";
 
 import "google/protobuf/timestamp.proto";
 
@@ -13,8 +14,14 @@ message Entry {
         Station station = 2;
         Contest contest = 3;
         Keyer keyer = 4;
-    }    
-}    
+    }
+}
+
+enum Workmode {
+    WORKMODE_UNKNOWN = 0;
+    WORKMODE_SEARCH_POUNCE = 1;
+    WORKMODE_RUN = 2;
+}
 
 message QSO {
     string callsign = 1;
@@ -31,7 +38,8 @@ message QSO {
     double frequency = 12;
     reserved 13;
     repeated string my_exchange = 14;
-    repeated string their_exchange =15;
+    repeated string their_exchange = 15;
+    Workmode workmode = 16;
 }
 
 message Station {

@@ -4,11 +4,10 @@ package session
 import (
 	fmt "fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ftl/hellocontest/core/cfg"
 )
@@ -17,7 +16,7 @@ type Session struct {
 	filename string
 	virgin   bool
 
-	state State
+	state *State
 }
 
 func NewDefaultSession() *Session {
@@ -25,7 +24,7 @@ func NewDefaultSession() *Session {
 		filename: filepath.Join(cfg.Directory(), "hellocontest.session"),
 		virgin:   true,
 
-		state: State{
+		state: &State{
 			LastFilename:   "current.log",
 			SendSpotsToTci: true,
 		},
@@ -90,18 +89,18 @@ func (s *Session) Restore() error {
 	return nil
 }
 
-func readState(r io.Reader) (State, error) {
-	buffer, err := ioutil.ReadAll(r)
+func readState(r io.Reader) (*State, error) {
+	buffer, err := io.ReadAll(r)
 	if err != nil {
-		return State{}, fmt.Errorf("cannot read session state: %v", err)
+		return nil, fmt.Errorf("cannot read session state: %v", err)
 	}
 	result := new(State)
 	err = proto.Unmarshal(buffer, result)
 	if err != nil {
-		return State{}, fmt.Errorf("cannot unmarshal session state: %v", err)
+		return nil, fmt.Errorf("cannot unmarshal session state: %v", err)
 	}
 
-	return *result, nil
+	return result, nil
 }
 
 func (s *Session) Store() error {
@@ -114,8 +113,8 @@ func (s *Session) Store() error {
 	return writeState(f, s.state)
 }
 
-func writeState(w io.Writer, state State) error {
-	buffer, err := proto.Marshal(&state)
+func writeState(w io.Writer, state *State) error {
+	buffer, err := proto.Marshal(state)
 	if err != nil {
 		return fmt.Errorf("cannot marshal session state: %v", err)
 	}

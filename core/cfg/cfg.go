@@ -17,15 +17,15 @@ import (
 const Filename = "hellocontest.json"
 const DefaultSpotLifetime = 10 * time.Minute
 
-var Default = Data{
+var Default = &Data{
 	LogDirectory: "$HOME/",
 	HamDXMapPort: 17300,
-	Station: pb.Station{
+	Station: &pb.Station{
 		Callsign: "DL0ABC",
 		Operator: "DL1ABC",
 		Locator:  "AA00xx",
 	},
-	Contest: pb.Contest{
+	Contest: &pb.Contest{
 		Name:       "Default",
 		QsosGoal:   48,
 		PointsGoal: 60,
@@ -119,7 +119,7 @@ func Load() (*LoadedConfiguration, error) {
 	}
 
 	return &LoadedConfiguration{
-		data: data,
+		data: &data,
 	}, nil
 }
 
@@ -143,8 +143,8 @@ func AbsoluteFilename() string {
 type Data struct {
 	LogDirectory  string             `json:"log_directory"`
 	HamDXMapPort  int                `json:"ham_dx_map_port"`
-	Station       pb.Station         `json:"station"`
-	Contest       pb.Contest         `json:"contest"`
+	Station       *pb.Station        `json:"station"`
+	Contest       *pb.Contest        `json:"contest"`
 	Radios        []core.Radio       `json:"radios"`
 	Keyers        []core.Keyer       `json:"keyers"`
 	KeyerSettings core.KeyerSettings `json:"keyer_settings"`
@@ -154,7 +154,7 @@ type Data struct {
 }
 
 type LoadedConfiguration struct {
-	data Data
+	data *Data
 }
 
 func (c *LoadedConfiguration) LogDirectory() string {

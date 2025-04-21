@@ -373,8 +373,14 @@ func (c *Controller) OpenWiki() {
 
 func (c *Controller) About() {
 	var sponsorText string
-	if strings.TrimSpace(c.sponsors) != "" {
-		sponsorText = fmt.Sprintf("sponsored by:\n%s\n\n", c.sponsors)
+
+	sponsors := strings.Split(c.sponsors, "\n")
+	if len(sponsors) > 0 {
+		for sponsors[len(sponsors)-1] == "" {
+			sponsors = sponsors[:len(sponsors)-1]
+		}
+		sponsorsCSV := strings.Join(sponsors, ", ")
+		sponsorText = fmt.Sprintf("sponsored by:\n%s\n\n", sponsorsCSV)
 	}
 
 	c.view.ShowInfoDialog("Hello Contest\n\nVersion %s\n\n%sThis software is published under the MIT License.\n(c) Florian Thienel/DL3NEY", c.version, sponsorText)

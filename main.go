@@ -25,7 +25,7 @@ func main() {
 			fmt.Println(version)
 			os.Exit(0)
 		case os.Args[1] == "sponsors":
-			fmt.Printf("This release of Hello Contest is sponsored by %s\n", sponsors)
+			fmt.Printf("This release of Hello Contest is sponsored by:\n%s\nThank you all for your great support!\n73, Florian\n", sponsors)
 			os.Exit(0)
 		case os.Args[1] == "screenshots":
 			startupScript = script.ScreenshotsScript

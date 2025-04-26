@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"math"
 	"strconv"
 	"strings"
@@ -270,8 +271,8 @@ type AnnotatedCallsign struct {
 	UserText          string
 	OnFrequency       bool
 
-	Comparable interface{}
-	Compare    func(interface{}, interface{}) bool
+	Comparable any
+	Compare    func(any, any) bool
 }
 
 func (c AnnotatedCallsign) LessThan(o AnnotatedCallsign) bool {
@@ -504,9 +505,7 @@ func (s Score) Copy() Score {
 		GraphPerBand: make(map[Band]BandGraph),
 	}
 
-	for band, bandScore := range s.ScorePerBand {
-		result.ScorePerBand[band] = bandScore
-	}
+	maps.Copy(result.ScorePerBand, s.ScorePerBand)
 	for band, bandGraph := range s.GraphPerBand {
 		result.GraphPerBand[band] = bandGraph.Copy()
 	}
@@ -1195,6 +1194,10 @@ type VFOBandListener interface {
 
 type VFOModeListener interface {
 	VFOModeChanged(Mode)
+}
+
+type VFOXITListener interface {
+	VFOXITChanged(bool, Frequency)
 }
 
 type Service int

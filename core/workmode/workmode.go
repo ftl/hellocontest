@@ -98,7 +98,7 @@ func (c *Controller) SetWorkmode(workmode core.Workmode) {
 	c.emitWorkmodeChanged(c.workmode)
 }
 
-func (c *Controller) Notify(listener interface{}) {
+func (c *Controller) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 

@@ -3,11 +3,13 @@ package hamlib
 import (
 	"context"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/rigproxy/pkg/client"
+	"github.com/ftl/rigproxy/pkg/protocol"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -48,6 +50,8 @@ type vfoSettings struct {
 	frequency core.Frequency
 	band      core.Band
 	mode      core.Mode
+	xitActive bool
+	xitOffset core.Frequency
 }
 
 func (c *Client) KeepOpen() {
@@ -99,6 +103,7 @@ func (c *Client) connect(whenClosed func()) error {
 	c.conn.StartPolling(c.pollingInterval, c.pollingTimeout,
 		client.PollCommand(client.OnFrequency(c.setIncomingFrequency)),
 		client.PollCommand(client.OnModeAndPassband(c.setIncomingModeAndPassband)),
+		client.PollCommand(c.onXIT()),
 	)
 
 	c.conn.WhenClosed(func() {
@@ -166,6 +171,32 @@ func (c *Client) setIncomingModeAndPassband(mode client.Mode, _ client.Frequency
 	c.incoming.mode = incomingMode
 	c.emitModeChanged(c.incoming.mode)
 	// log.Printf("incoming mode %v", incomingMode)
+}
+
+func (c *Client) onXIT() (client.ResponseHandler, string) {
+	return client.ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
+		offset, err := strconv.Atoi(r.Data[0])
+		if err != nil {
+			log.Printf("cannot parse XIT offset: %v", err)
+			return
+		}
+		c.setIncomingXIT(offset)
+	}), "get_xit"
+}
+
+func (c *Client) setIncomingXIT(offset int) {
+	incomingXITActive := offset != 0
+	incomingXITOffset := core.Frequency(offset)
+	if c.incoming.xitActive == incomingXITActive && c.incoming.xitOffset == incomingXITOffset {
+		return
+	}
+	c.incoming.xitActive = incomingXITActive
+	c.incoming.xitOffset = incomingXITOffset
+	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
+	// log.Printf("incoming XIT: %v %d", c.incoming.xitActive, c.incoming.xitOffset)
 }
 
 func (c *Client) SetFrequency(f core.Frequency) {
@@ -241,6 +272,30 @@ func (c *Client) SetMode(mode core.Mode) {
 	log.Printf("outgoing mode: %v", mode)
 }
 
+func (c *Client) SetXIT(active bool, offset core.Frequency) {
+	if active == c.outgoing.xitActive && offset == c.outgoing.xitOffset {
+		return
+	}
+	c.outgoing.xitActive = active
+	c.outgoing.xitOffset = offset
+
+	if c.conn == nil || c.conn.Closed() {
+		return
+	}
+	ctx, cancel := c.withRequestTimeout()
+	defer cancel()
+
+	var err error
+	if active {
+		err = c.conn.Set(ctx, "set_xit", strconv.Itoa(int(offset)))
+	} else {
+		err = c.conn.Set(ctx, "set_xit", "0")
+	}
+	if err != nil {
+		log.Printf("setting the XIT failed: %v", err)
+	}
+}
+
 func (c *Client) Refresh() {
 	if c.incoming.frequency != 0 {
 		log.Printf("Refreshing VFO frequency: %f", c.incoming.frequency)
@@ -254,6 +309,7 @@ func (c *Client) Refresh() {
 		log.Printf("Refreshing VFO mode: %s", c.incoming.mode)
 		c.emitModeChanged(c.incoming.mode)
 	}
+	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
 }
 
 func (c *Client) Speed(speed int) {
@@ -328,6 +384,14 @@ func (c *Client) emitModeChanged(m core.Mode) {
 	for _, listener := range c.listeners {
 		if modeListener, ok := listener.(core.VFOModeListener); ok {
 			modeListener.VFOModeChanged(m)
+		}
+	}
+}
+
+func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
+	for _, listener := range c.listeners {
+		if xitListener, ok := listener.(core.VFOXITListener); ok {
+			xitListener.VFOXITChanged(active, offset)
 		}
 	}
 }

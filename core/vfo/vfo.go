@@ -16,6 +16,7 @@ type Client interface {
 	SetFrequency(core.Frequency)
 	SetBand(core.Band)
 	SetMode(core.Mode)
+	SetXIT(bool, core.Frequency)
 }
 
 type Logbook interface {
@@ -24,6 +25,8 @@ type Logbook interface {
 }
 
 type VFO struct {
+	XITControl
+
 	Name string
 
 	bandplan      bandplan.Bandplan
@@ -40,6 +43,9 @@ func NewVFO(name string, bandplan bandplan.Bandplan, asyncRunner core.AsyncRunne
 		Name:        name,
 		bandplan:    bandplan,
 		asyncRunner: asyncRunner,
+	}
+	result.XITControl = XITControl{
+		vfo: result,
 	}
 	result.offlineClient = newOfflineClient(result)
 	result.SetClient(nil)
@@ -96,6 +102,14 @@ func (v *VFO) SetMode(mode core.Mode) {
 	}
 }
 
+func (v *VFO) SetXIT(active bool, offset core.Frequency) {
+	if v.online() {
+		v.client.SetXIT(active, offset)
+	} else {
+		v.offlineClient.SetXIT(active, offset)
+	}
+}
+
 func (v *VFO) SetLogbook(logbook Logbook) {
 	log.Printf("VFO logbook changed")
 
@@ -128,6 +142,11 @@ func (v *VFO) VFOModeChanged(mode core.Mode) {
 	v.offlineClient.SetMode(mode)
 }
 
+func (v *VFO) VFOXITChanged(active bool, offset core.Frequency) {
+	v.XITControl.VFOXITChanged(active, offset)
+	v.offlineClient.SetXIT(active, offset)
+}
+
 func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 	for _, listener := range v.listeners {
 		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
@@ -158,9 +177,21 @@ func (v *VFO) emitModeChanged(mode core.Mode) {
 	}
 }
 
+func (v *VFO) emitXITChanged(active bool, offset core.Frequency) {
+	for _, listener := range v.listeners {
+		if modeListener, ok := listener.(core.VFOXITListener); ok {
+			v.asyncRunner(func() {
+				modeListener.VFOXITChanged(active, offset)
+			})
+		}
+	}
+}
+
 type bandState struct {
 	frequency core.Frequency
 	mode      core.Mode
+	xitActive bool
+	xitOffset core.Frequency
 }
 
 type offlineClient struct {
@@ -265,4 +296,15 @@ func (c *offlineClient) SetMode(mode core.Mode) {
 	c.stateLock.Unlock()
 
 	c.vfo.emitModeChanged(mode)
+}
+
+func (c *offlineClient) SetXIT(active bool, offset core.Frequency) {
+	c.stateLock.Lock()
+	state := c.lastState(c.currentBand)
+	state.xitActive = active
+	state.xitOffset = offset
+	c.lastStates[c.currentBand] = state
+	c.stateLock.Unlock()
+
+	c.vfo.emitXITChanged(state.xitActive, state.xitOffset)
 }

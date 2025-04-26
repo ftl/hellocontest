@@ -45,7 +45,7 @@ type Client struct {
 	trx       *trxListener
 	connected bool
 
-	listeners []interface{}
+	listeners []any
 }
 
 func (c *Client) Connect() error {
@@ -106,6 +106,14 @@ func (c *Client) emitModeChanged(m core.Mode) {
 	}
 }
 
+func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
+	for _, listener := range c.listeners {
+		if xitListener, ok := listener.(core.VFOXITListener); ok {
+			xitListener.VFOXITChanged(active, offset)
+		}
+	}
+}
+
 func (c *Client) Speed(wpm int) {
 	err := c.client.SetCWMacrosSpeed(wpm)
 	if err != nil {
@@ -147,6 +155,20 @@ func (c *Client) SetMode(mode core.Mode) {
 	err := c.client.SetMode(c.trx.trx, toClientMode(mode))
 	if err != nil {
 		log.Printf("cannot set mode: %v", err)
+	}
+}
+
+func (c *Client) SetXIT(active bool, offset core.Frequency) {
+	err := c.client.SetXITEnable(c.trx.trx, active)
+	if err != nil {
+		log.Printf("cannot enable XIT: %v", err)
+		return
+	}
+
+	err = c.client.SetXITOffset(c.trx.trx, int(offset))
+	if err != nil {
+		log.Printf("cannot set XIT offset: %v", err)
+		return
 	}
 }
 
@@ -214,12 +236,15 @@ type trxListener struct {
 	frequency core.Frequency
 	band      core.Band
 	mode      core.Mode
+	xitActive bool
+	xitOffset core.Frequency
 }
 
 func (l *trxListener) Refresh() {
 	l.client.emitFrequencyChanged(l.frequency)
 	l.client.emitBandChanged(l.band)
 	l.client.emitModeChanged(l.mode)
+	l.client.emitXITChanged(l.xitActive, l.xitOffset)
 }
 
 func (l *trxListener) Connected(connected bool) {
@@ -261,6 +286,32 @@ func (l *trxListener) SetMode(trx int, mode client.Mode) {
 	l.mode = incomingMode
 	l.client.emitModeChanged(l.mode)
 	// log.Printf("incoming mode %v", incomingMode)
+}
+
+func (l *trxListener) SetXITEnable(trx int, active bool) {
+	if trx != l.trx {
+		return
+	}
+	incomingActive := active
+	if incomingActive == l.xitActive {
+		return
+	}
+	l.xitActive = incomingActive
+	l.client.emitXITChanged(l.xitActive, l.xitOffset)
+	// log.Printf("incoming XIT active %v", incomingActive)
+}
+
+func (l *trxListener) SetXITOffset(trx int, offset int) {
+	if trx != l.trx {
+		return
+	}
+	incomingOffset := core.Frequency(offset)
+	if incomingOffset == l.xitOffset {
+		return
+	}
+	l.xitOffset = incomingOffset
+	l.client.emitXITChanged(l.xitActive, l.xitOffset)
+	// log.Printf("incoming XIT offset %v", incomingOffset)
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

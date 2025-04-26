@@ -187,6 +187,7 @@ func (c *Controller) Startup() {
 	c.Entry.SetVFO(c.VFO)
 	c.VFO.Notify(c.Bandmap)
 	c.Bandmap.SetVFO(c.VFO)
+	c.Workmode.Notify(c.VFO)
 
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
 	c.Radio.Notify(c.ServiceStatus)

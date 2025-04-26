@@ -89,6 +89,22 @@ var ScreenshotsScript = &Script{
 			},
 		},
 		{
+			enter: AskForScreenshot("main window CW macros", 0),
+			steps: []Step{
+				Describe("only the CW area, mark (1) workmode, (2) macro button, (3) macros... button, (4) speed setting", 3*time.Second),
+				TriggerScreenshot("main_window_macros"),
+				func(_ context.Context, r *Runtime) time.Duration {
+					r.UI(func() {
+						r.App.Keyer.OpenKeyerSettings()
+					})
+					return 0
+				},
+				Describe("the macros dialog complete, select a preset", 10*time.Second),
+				TriggerScreenshot("macros_dialog"),
+				Describe("close the macros dialog", 10*time.Second),
+			},
+		},
+		{
 			enter: AskForScreenshot("main window with QSO data", 0),
 			steps: []Step{
 				FillQSOList(),

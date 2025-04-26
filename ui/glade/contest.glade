@@ -2356,7 +2356,18 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkCheckButton" id="xitCheckbox">
+                <property name="label" translatable="yes">XIT</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">activates XIT in search&amp;pounce</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">2</property>
+              </packing>
             </child>
             <child>
               <placeholder/>

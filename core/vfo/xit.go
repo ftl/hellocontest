@@ -27,15 +27,13 @@ func (x *XITControl) SetXITActive(active bool) {
 
 func (x *XITControl) WorkmodeChanged(workmode core.Workmode) {
 	x.workmode = workmode
-	x.activateOnVFO()
+	if x.active {
+		x.activateOnVFO()
+	}
 }
 
 func (x *XITControl) activateOnVFO() {
-	if !x.active {
-		return
-	}
-
-	x.activeOnVFO = (x.workmode == core.SearchPounce)
+	x.activeOnVFO = x.active && (x.workmode == core.SearchPounce)
 	x.vfo.SetXIT(x.activeOnVFO, x.offset)
 }
 

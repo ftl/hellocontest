@@ -715,3 +715,6 @@ func (v *testVFO) Refresh() {
 func (v *testVFO) SetFrequency(core.Frequency) {}
 func (v *testVFO) SetBand(core.Band)           {}
 func (v *testVFO) SetMode(core.Mode)           {}
+func (v *testVFO) SetXIT(bool, core.Frequency) {}
+func (v *testVFO) XITActive() bool             { return false }
+func (v *testVFO) SetXITActive(bool)           {}

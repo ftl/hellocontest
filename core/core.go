@@ -1176,12 +1176,19 @@ type BandmapWeights struct {
 	Quality    float64
 }
 
+type XITControl interface {
+	XITActive() bool
+	SetXITActive(bool)
+}
+
 type VFO interface {
+	XITControl
 	Notify(any)
 	Refresh()
 	SetFrequency(Frequency)
 	SetBand(Band)
 	SetMode(Mode)
+	SetXIT(bool, Frequency)
 }
 
 type VFOFrequencyListener interface {

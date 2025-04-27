@@ -187,6 +187,7 @@ func (c *Controller) Startup() {
 	c.Entry.SetVFO(c.VFO)
 	c.VFO.Notify(c.Bandmap)
 	c.Bandmap.SetVFO(c.VFO)
+	c.Workmode.Notify(c.VFO)
 
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
 	c.Radio.Notify(c.ServiceStatus)
@@ -749,6 +750,14 @@ func (c *Controller) SwitchToSPWorkmode() {
 
 func (c *Controller) SwitchToRunWorkmode() {
 	c.Workmode.SetWorkmode(core.Run)
+}
+
+func (c *Controller) XITActive() bool {
+	return c.VFO.XITActive()
+}
+
+func (c *Controller) SetXITActive(active bool) {
+	c.VFO.SetXITActive(active)
 }
 
 func (c *Controller) MarkInBandmap() {

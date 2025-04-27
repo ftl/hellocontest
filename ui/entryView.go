@@ -23,6 +23,7 @@ type EntryController interface {
 	SelectBestMatchOnFrequency()
 	SendQuestion()
 	StopTX()
+	SetXITActive(bool)
 
 	Log()
 	Clear()
@@ -43,6 +44,7 @@ type entryView struct {
 	theirExchanges       []*gtk.Entry
 	band                 *gtk.ComboBoxText
 	mode                 *gtk.ComboBoxText
+	xit                  *gtk.CheckButton
 	myExchangesParent    *gtk.Grid
 	myExchanges          []*gtk.Entry
 	logButton            *gtk.Button
@@ -61,6 +63,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.theirExchangesParent = getUI(builder, "theirExchangesGrid").(*gtk.Grid)
 	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
 	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
+	result.xit = getUI(builder, "xitCheckbox").(*gtk.CheckButton)
 	result.myExchangesParent = getUI(builder, "myExchangesGrid").(*gtk.Grid)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.clearButton = getUI(builder, "clearButton").(*gtk.Button)
@@ -70,6 +73,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.addEntryEventHandlers(&result.band.Widget)
 	result.addEntryEventHandlers(&result.mode.Widget)
 
+	result.xit.Connect("clicked", result.onXITClicked)
 	result.logButton.Connect("clicked", result.onLogButtonClicked)
 	result.clearButton.Connect("clicked", result.onClearButtonClicked)
 
@@ -192,6 +196,14 @@ func (v *entryView) onEntryChanged(widget interface{}) bool {
 	return false
 }
 
+func (v *entryView) onXITClicked(button *gtk.CheckButton) bool {
+	if v.controller == nil {
+		return false
+	}
+	v.controller.SetXITActive(button.GetActive())
+	return true
+}
+
 func (v *entryView) onLogButtonClicked(button *gtk.Button) bool {
 	v.controller.Log()
 	return true
@@ -238,6 +250,21 @@ func (v *entryView) SetBand(text string) {
 
 func (v *entryView) SetMode(text string) {
 	v.setTextWithoutChangeEvent(func(s string) { v.mode.SetActiveID(s) }, text)
+}
+
+func (v *entryView) SetXITActive(active bool) {
+	if active == v.xit.GetActive() {
+		return
+	}
+	v.xit.SetActive(active)
+}
+
+func (v *entryView) SetXIT(active bool, offset core.Frequency) {
+	if active {
+		v.xit.SetLabel(fmt.Sprintf("XIT %s", offset))
+	} else {
+		v.xit.SetLabel("XIT")
+	}
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {

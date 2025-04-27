@@ -45,6 +45,7 @@ type radio interface {
 	SetFrequency(core.Frequency)
 	SetBand(core.Band)
 	SetMode(core.Mode)
+	SetXIT(bool, core.Frequency)
 	Refresh()
 	Notify(any)
 }
@@ -283,6 +284,13 @@ func (c *Controller) SetMode(m core.Mode) {
 		return
 	}
 	c.activeRadio.SetMode(m)
+}
+
+func (c *Controller) SetXIT(active bool, offset core.Frequency) {
+	if c.activeRadio == nil {
+		return
+	}
+	c.activeRadio.SetXIT(active, offset)
 }
 
 func (c *Controller) Refresh() {

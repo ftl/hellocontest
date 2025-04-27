@@ -243,6 +243,20 @@ func (m *EntryView) SetMode(text string) {
 	m.Called(text)
 }
 
+func (m *EntryView) SetXITActive(active bool) {
+	if !m.active {
+		return
+	}
+	m.Called(active)
+}
+
+func (m *EntryView) SetXIT(active bool, offset core.Frequency) {
+	if !m.active {
+		return
+	}
+	m.Called(active, offset)
+}
+
 func (m *EntryView) SetMyExchange(index int, value string) {
 	if !m.active {
 		return

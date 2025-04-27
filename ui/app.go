@@ -125,6 +125,7 @@ func (a *application) activate() {
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.mainWindow)
 	a.controller.Entry.SetView(a.mainWindow)
+	a.controller.VFO.Notify(a.mainWindow)
 	a.controller.Workmode.SetView(a.mainWindow)
 	a.controller.Workmode.Notify(a.mainWindow)
 	a.controller.Radio.SetView(a.mainWindow)

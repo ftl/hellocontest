@@ -33,6 +33,7 @@ type MainMenuController interface {
 	StartParrot()
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
+	SetXITActive(active bool)
 	MarkInBandmap()
 	GotoHighestValueSpot()
 	GotoNearestSpot()
@@ -69,6 +70,8 @@ type mainMenu struct {
 	editStartParrot       *gtk.MenuItem
 	editSP                *gtk.RadioMenuItem
 	editRun               *gtk.RadioMenuItem
+
+	radioXITActive *gtk.CheckMenuItem
 
 	bandmapMark                 *gtk.MenuItem
 	bandmapGotoHighestValueSpot *gtk.MenuItem
@@ -111,6 +114,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editStartParrot = getUI(builder, "menuEditStartParrot").(*gtk.MenuItem)
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
+	result.radioXITActive = getUI(builder, "menuRadioXITActive").(*gtk.CheckMenuItem)
 	result.bandmapMark = getUI(builder, "menuBandmapMark").(*gtk.MenuItem)
 	result.bandmapGotoHighestValueSpot = getUI(builder, "menuBandmapGotoHighestValueSpot").(*gtk.MenuItem)
 	result.bandmapGotoNearestSpot = getUI(builder, "menuBandmapGotoNearestSpot").(*gtk.MenuItem)
@@ -145,6 +149,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editStartParrot.Connect("activate", result.onStartParrot)
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
+	result.radioXITActive.Connect("toggled", result.onXITActive)
 	result.bandmapMark.Connect("activate", result.onMarkInBandmap)
 	result.bandmapGotoHighestValueSpot.Connect("activate", result.onGotoHighestValueSpot)
 	result.bandmapGotoNearestSpot.Connect("activate", result.onGotoNearestSpot)
@@ -179,6 +184,12 @@ func (m *mainMenu) WorkmodeChanged(workmode core.Workmode) {
 			return
 		}
 		m.editRun.SetActive(true)
+	}
+}
+
+func (m *mainMenu) XITActiveChanged(active bool) {
+	if m.radioXITActive.GetActive() != active {
+		m.radioXITActive.SetActive(active)
 	}
 }
 
@@ -281,6 +292,10 @@ func (m *mainMenu) onRun() {
 	if m.editRun.GetActive() {
 		m.controller.SwitchToRunWorkmode()
 	}
+}
+
+func (m *mainMenu) onXITActive() {
+	m.controller.SetXITActive(m.radioXITActive.GetActive())
 }
 
 func (m *mainMenu) onMarkInBandmap() {

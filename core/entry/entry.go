@@ -26,6 +26,8 @@ type View interface {
 	SetCallsign(string)
 	SetBand(text string)
 	SetMode(text string)
+	SetXITActive(active bool)
+	SetXIT(active bool, offset core.Frequency)
 	SetMyExchange(int, string)
 	SetTheirExchange(int, string)
 
@@ -434,6 +436,10 @@ func (c *Controller) bandEntered(band core.Band) {
 	c.vfo.SetBand(band)
 }
 
+func (c *Controller) SetXITActive(active bool) {
+	c.vfo.SetXITActive(active)
+}
+
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
 	if c.editing {
 		return
@@ -525,6 +531,14 @@ func (c *Controller) VFOModeChanged(mode core.Mode) {
 	c.selectedMode = mode
 	c.input.mode = c.selectedMode.String()
 	c.view.SetMode(c.input.mode)
+}
+
+func (c *Controller) VFOXITChanged(active bool, offset core.Frequency) {
+	c.view.SetXIT(active, offset)
+}
+
+func (c *Controller) XITActiveChanged(active bool) {
+	c.view.SetXITActive(active)
 }
 
 func (c *Controller) SendQuestion() {
@@ -887,7 +901,6 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 }
 
 func (c *Controller) WorkmodeChanged(workmode core.Workmode) {
-	log.Printf("ENTRY: workmode changed %d", workmode)
 	c.workmode = workmode
 }
 
@@ -948,6 +961,8 @@ func (n *nullView) SetFrequency(core.Frequency)                 {}
 func (n *nullView) SetCallsign(string)                          {}
 func (n *nullView) SetBand(text string)                         {}
 func (n *nullView) SetMode(text string)                         {}
+func (n *nullView) SetXITActive(active bool)                    {}
+func (n *nullView) SetXIT(active bool, offset core.Frequency)   {}
 func (n *nullView) SetMyExchange(int, string)                   {}
 func (n *nullView) SetTheirExchange(int, string)                {}
 func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
@@ -967,6 +982,9 @@ func (n *nullVFO) Refresh()                    {}
 func (n *nullVFO) SetFrequency(core.Frequency) {}
 func (n *nullVFO) SetBand(core.Band)           {}
 func (n *nullVFO) SetMode(core.Mode)           {}
+func (n *nullVFO) SetXIT(bool, core.Frequency) {}
+func (n *nullVFO) XITActive() bool             { return false }
+func (n *nullVFO) SetXITActive(bool)           {}
 
 type nullLogbook struct{}
 

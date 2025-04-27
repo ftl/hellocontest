@@ -375,6 +375,9 @@ func (n *nullVFO) Refresh()                    {}
 func (n *nullVFO) SetFrequency(core.Frequency) {}
 func (n *nullVFO) SetBand(core.Band)           {}
 func (n *nullVFO) SetMode(core.Mode)           {}
+func (n *nullVFO) SetXIT(bool, core.Frequency) {}
+func (n *nullVFO) XITActive() bool             { return false }
+func (n *nullVFO) SetXITActive(bool)           {}
 
 type nullCallinfo struct{}
 

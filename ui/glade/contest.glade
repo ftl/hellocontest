@@ -1812,6 +1812,21 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <child>
+                      <object class="GtkSeparatorMenuItem" id="menuRadioTopSeparator">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkCheckMenuItem" id="menuRadioXITActive">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">XIT in Search &amp; Pounce</property>
+                        <property name="use-underline">True</property>
+                        <accelerator key="x" signal="activate" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkSeparatorMenuItem" id="menuRadioSeparator">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
@@ -2356,7 +2371,18 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkCheckButton" id="xitCheckbox">
+                <property name="label" translatable="yes">XIT</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">False</property>
+                <property name="tooltip-text" translatable="yes">activates XIT in search&amp;pounce</property>
+                <property name="draw-indicator">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">4</property>
+                <property name="top-attach">2</property>
+              </packing>
             </child>
             <child>
               <placeholder/>

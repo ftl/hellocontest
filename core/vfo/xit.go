@@ -6,6 +6,10 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+type XITActiveListener interface {
+	XITActiveChanged(active bool)
+}
+
 type XITControl struct {
 	active      bool
 	activeOnVFO bool
@@ -23,6 +27,17 @@ func (x *XITControl) XITActive() bool {
 func (x *XITControl) SetXITActive(active bool) {
 	x.active = active
 	x.activateOnVFO()
+	x.emitXITActiveChanged(x.active)
+}
+
+func (x *XITControl) emitXITActiveChanged(active bool) {
+	for _, listener := range x.vfo.listeners {
+		if l, ok := listener.(XITActiveListener); ok {
+			x.vfo.asyncRunner(func() {
+				l.XITActiveChanged(active)
+			})
+		}
+	}
 }
 
 func (x *XITControl) WorkmodeChanged(workmode core.Workmode) {

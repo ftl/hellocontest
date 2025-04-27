@@ -752,6 +752,14 @@ func (c *Controller) SwitchToRunWorkmode() {
 	c.Workmode.SetWorkmode(core.Run)
 }
 
+func (c *Controller) XITActive() bool {
+	return c.VFO.XITActive()
+}
+
+func (c *Controller) SetXITActive(active bool) {
+	c.VFO.SetXITActive(active)
+}
+
 func (c *Controller) MarkInBandmap() {
 	c.Entry.MarkInBandmap()
 }

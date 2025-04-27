@@ -537,6 +537,10 @@ func (c *Controller) VFOXITChanged(active bool, offset core.Frequency) {
 	c.view.SetXIT(active, offset)
 }
 
+func (c *Controller) XITActiveChanged(active bool) {
+	c.view.SetXITActive(active)
+}
+
 func (c *Controller) SendQuestion() {
 	if c.keyer == nil {
 		return

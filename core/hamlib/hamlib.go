@@ -103,7 +103,8 @@ func (c *Client) connect(whenClosed func()) error {
 	c.conn.StartPolling(c.pollingInterval, c.pollingTimeout,
 		client.PollCommand(client.OnFrequency(c.setIncomingFrequency)),
 		client.PollCommand(client.OnModeAndPassband(c.setIncomingModeAndPassband)),
-		client.PollCommand(c.onXIT()),
+		client.PollCommand(c.onXITActive()),
+		client.PollCommand(c.onXITOffset()),
 	)
 
 	c.conn.WhenClosed(func() {
@@ -173,7 +174,26 @@ func (c *Client) setIncomingModeAndPassband(mode client.Mode, _ client.Frequency
 	// log.Printf("incoming mode %v", incomingMode)
 }
 
-func (c *Client) onXIT() (client.ResponseHandler, string) {
+func (c *Client) onXITActive() (client.ResponseHandler, string, string) {
+	return client.ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
+		active := (r.Data[0] == "1")
+		c.setIncomingXITActive(active)
+	}), "get_func", "XIT"
+}
+
+func (c *Client) setIncomingXITActive(active bool) {
+	if c.incoming.xitActive == active {
+		return
+	}
+	c.incoming.xitActive = active
+	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
+	// log.Printf("incoming XIT active: %v %d", c.incoming.xitActive, c.incoming.xitOffset)
+}
+
+func (c *Client) onXITOffset() (client.ResponseHandler, string) {
 	return client.ResponseHandlerFunc(func(r protocol.Response) {
 		if len(r.Data) == 0 {
 			return
@@ -183,20 +203,18 @@ func (c *Client) onXIT() (client.ResponseHandler, string) {
 			log.Printf("cannot parse XIT offset: %v", err)
 			return
 		}
-		c.setIncomingXIT(offset)
+		c.setIncomingXITOffset(offset)
 	}), "get_xit"
 }
 
-func (c *Client) setIncomingXIT(offset int) {
-	incomingXITActive := offset != 0
+func (c *Client) setIncomingXITOffset(offset int) {
 	incomingXITOffset := core.Frequency(offset)
-	if c.incoming.xitActive == incomingXITActive && c.incoming.xitOffset == incomingXITOffset {
+	if c.incoming.xitOffset == incomingXITOffset {
 		return
 	}
-	c.incoming.xitActive = incomingXITActive
 	c.incoming.xitOffset = incomingXITOffset
 	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
-	// log.Printf("incoming XIT: %v %d", c.incoming.xitActive, c.incoming.xitOffset)
+	// log.Printf("incoming XIT offset: %v %d", c.incoming.xitActive, c.incoming.xitOffset)
 }
 
 func (c *Client) SetFrequency(f core.Frequency) {
@@ -285,14 +303,21 @@ func (c *Client) SetXIT(active bool, offset core.Frequency) {
 	ctx, cancel := c.withRequestTimeout()
 	defer cancel()
 
-	var err error
+	activeStr := "0"
+	if active {
+		activeStr = "1"
+	}
+	err := c.conn.Set(ctx, "set_func", "XIT", activeStr)
+	if err != nil {
+		log.Printf("setting XTI active failed: %v", err)
+		return
+	}
+
 	if active {
 		err = c.conn.Set(ctx, "set_xit", strconv.Itoa(int(offset)))
-	} else {
-		err = c.conn.Set(ctx, "set_xit", "0")
 	}
 	if err != nil {
-		log.Printf("setting the XIT failed: %v", err)
+		log.Printf("setting the XIT offset failed: %v", err)
 	}
 }
 

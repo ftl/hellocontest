@@ -897,7 +897,6 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 }
 
 func (c *Controller) WorkmodeChanged(workmode core.Workmode) {
-	log.Printf("ENTRY: workmode changed %d", workmode)
 	c.workmode = workmode
 }
 

@@ -150,11 +150,11 @@ func (v *keyerSettingsView) SetKeyerController(controller KeyerSettingsControlle
 }
 
 func (v *keyerSettingsView) SetLabel(workmode core.Workmode, index int, text string) {
-	v.labels[int(workmode)][index].SetText(text)
+	v.labels[int(workmode)-1][index].SetText(text)
 }
 
 func (v *keyerSettingsView) SetMacro(workmode core.Workmode, index int, text string) {
-	v.macros[int(workmode)][index].SetText(text)
+	v.macros[int(workmode)-1][index].SetText(text)
 }
 
 func (v *keyerSettingsView) SetPresetNames(names []string) {

@@ -183,7 +183,6 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Entry)
 
 	c.VFO = vfo.NewVFO("VFO 1", c.bandplan, c.asyncRunner)
-	c.VFO.Notify(c.Entry)
 	c.Entry.SetVFO(c.VFO)
 	c.VFO.Notify(c.Bandmap)
 	c.Bandmap.SetVFO(c.VFO)

@@ -541,6 +541,10 @@ func (c *Controller) XITActiveChanged(active bool) {
 	c.view.SetXITActive(active)
 }
 
+func (c *Controller) VFOPTTChanged(active bool) {
+	log.Printf("PTT active: %t", active)
+}
+
 func (c *Controller) SendQuestion() {
 	if c.keyer == nil {
 		return

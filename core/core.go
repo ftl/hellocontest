@@ -1207,6 +1207,10 @@ type VFOXITListener interface {
 	VFOXITChanged(bool, Frequency)
 }
 
+type VFOPTTListener interface {
+	VFOPTTChanged(bool)
+}
+
 type Service int
 
 const (

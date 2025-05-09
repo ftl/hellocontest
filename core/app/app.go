@@ -218,6 +218,7 @@ func (c *Controller) Startup() {
 	c.Keyer.Notify(c.Parrot)
 	c.Workmode.Notify(c.Parrot)
 	c.Entry.Notify(c.Parrot)
+	c.Parrot.Notify(c.Entry)
 
 	c.Settings.Notify(c.Entry)
 	c.Settings.Notify(c.Workmode)

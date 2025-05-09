@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ftl/hamradio/callsign"
 
@@ -543,6 +544,14 @@ func (c *Controller) XITActiveChanged(active bool) {
 
 func (c *Controller) VFOPTTChanged(active bool) {
 	log.Printf("PTT active: %t", active)
+}
+
+func (c *Controller) ParrotActive(active bool) {
+	log.Printf("Parrot active: %t", active)
+}
+
+func (c *Controller) ParrotTimeLeft(timeLeft time.Duration) {
+	log.Printf("Parrot time left: %v", timeLeft)
 }
 
 func (c *Controller) SendQuestion() {

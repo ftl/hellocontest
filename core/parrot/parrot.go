@@ -22,6 +22,10 @@ type ParrotActiveListener interface {
 	ParrotActive(active bool)
 }
 
+type ParrotTimeListener interface {
+	ParrotTimeLeft(timeLeft time.Duration)
+}
+
 type View interface {
 	SetParrotActive(active bool)
 }
@@ -137,6 +141,14 @@ func (p *Parrot) emitParrotActive(active bool) {
 	for _, listener := range p.listeners {
 		if parrotActiveListener, ok := listener.(ParrotActiveListener); ok {
 			parrotActiveListener.ParrotActive(active)
+		}
+	}
+}
+
+func (p *Parrot) emitParrotTimeLeft(timeLeft time.Duration) {
+	for _, listener := range p.listeners {
+		if l, ok := listener.(ParrotTimeListener); ok {
+			l.ParrotTimeLeft(timeLeft)
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -45,6 +46,7 @@ type entryView struct {
 	band                 *gtk.ComboBoxText
 	mode                 *gtk.ComboBoxText
 	xit                  *gtk.CheckButton
+	txIndicator          *gtk.Label
 	myExchangesParent    *gtk.Grid
 	myExchanges          []*gtk.Entry
 	logButton            *gtk.Button
@@ -64,6 +66,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
 	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
 	result.xit = getUI(builder, "xitCheckbox").(*gtk.CheckButton)
+	result.txIndicator = getUI(builder, "txIndicatorLabel").(*gtk.Label)
 	result.myExchangesParent = getUI(builder, "myExchangesGrid").(*gtk.Grid)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.clearButton = getUI(builder, "clearButton").(*gtk.Button)
@@ -265,6 +268,24 @@ func (v *entryView) SetXIT(active bool, offset core.Frequency) {
 	} else {
 		v.xit.SetLabel("XIT")
 	}
+}
+
+func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+	log.Printf("new tx state: %t %t %v", ptt, parrotActive, parrotTimeLeft)
+
+	var text string
+	switch {
+	case parrotActive:
+		text = fmt.Sprintf("%s", parrot) // TODO: append parrotTimeLeft when available
+	case ptt:
+		text = "TX"
+	default:
+		text = "RX"
+	}
+
+	// TODO: set the background color to red while transmitting
+
+	v.txIndicator.SetText(text)
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {

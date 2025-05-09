@@ -2385,7 +2385,15 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkLabel" id="txIndicatorLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">RX</property>
+              </object>
+              <packing>
+                <property name="left-attach">5</property>
+                <property name="top-attach">2</property>
+              </packing>
             </child>
             <child>
               <placeholder/>

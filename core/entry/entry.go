@@ -29,6 +29,7 @@ type View interface {
 	SetMode(text string)
 	SetXITActive(active bool)
 	SetXIT(active bool, offset core.Frequency)
+	SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 	SetMyExchange(int, string)
 	SetTheirExchange(int, string)
 
@@ -140,6 +141,10 @@ type Controller struct {
 	editQSO             core.QSO
 	ignoreQSOSelection  bool
 	ignoreFrequencyJump bool
+
+	ptt            bool
+	parrotActive   bool
+	parrotTimeLeft time.Duration
 }
 
 func (c *Controller) Notify(listener any) {
@@ -543,15 +548,22 @@ func (c *Controller) XITActiveChanged(active bool) {
 }
 
 func (c *Controller) VFOPTTChanged(active bool) {
-	log.Printf("PTT active: %t", active)
+	c.ptt = active
+	c.updateTXState()
 }
 
 func (c *Controller) ParrotActive(active bool) {
-	log.Printf("Parrot active: %t", active)
+	c.parrotActive = active
+	c.updateTXState()
 }
 
 func (c *Controller) ParrotTimeLeft(timeLeft time.Duration) {
-	log.Printf("Parrot time left: %v", timeLeft)
+	c.parrotTimeLeft = timeLeft
+	c.updateTXState()
+}
+
+func (c *Controller) updateTXState() {
+	c.view.SetTXState(c.ptt, c.parrotActive, c.parrotTimeLeft)
 }
 
 func (c *Controller) SendQuestion() {
@@ -968,24 +980,25 @@ func (c *Controller) EntrySelected(entry core.BandmapEntry) {
 
 type nullView struct{}
 
-func (n *nullView) SetUTC(string)                               {}
-func (n *nullView) SetMyCall(string)                            {}
-func (n *nullView) SetFrequency(core.Frequency)                 {}
-func (n *nullView) SetCallsign(string)                          {}
-func (n *nullView) SetBand(text string)                         {}
-func (n *nullView) SetMode(text string)                         {}
-func (n *nullView) SetXITActive(active bool)                    {}
-func (n *nullView) SetXIT(active bool, offset core.Frequency)   {}
-func (n *nullView) SetMyExchange(int, string)                   {}
-func (n *nullView) SetTheirExchange(int, string)                {}
-func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
-func (n *nullView) SetTheirExchangeFields([]core.ExchangeField) {}
-func (n *nullView) SetActiveField(core.EntryField)              {}
-func (n *nullView) SelectText(core.EntryField, string)          {}
-func (n *nullView) SetDuplicateMarker(bool)                     {}
-func (n *nullView) SetEditingMarker(bool)                       {}
-func (n *nullView) ShowMessage(...interface{})                  {}
-func (n *nullView) ClearMessage()                               {}
+func (n *nullView) SetUTC(string)                                                        {}
+func (n *nullView) SetMyCall(string)                                                     {}
+func (n *nullView) SetFrequency(core.Frequency)                                          {}
+func (n *nullView) SetCallsign(string)                                                   {}
+func (n *nullView) SetBand(text string)                                                  {}
+func (n *nullView) SetMode(text string)                                                  {}
+func (n *nullView) SetXITActive(active bool)                                             {}
+func (n *nullView) SetXIT(active bool, offset core.Frequency)                            {}
+func (n *nullView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {}
+func (n *nullView) SetMyExchange(int, string)                                            {}
+func (n *nullView) SetTheirExchange(int, string)                                         {}
+func (n *nullView) SetMyExchangeFields([]core.ExchangeField)                             {}
+func (n *nullView) SetTheirExchangeFields([]core.ExchangeField)                          {}
+func (n *nullView) SetActiveField(core.EntryField)                                       {}
+func (n *nullView) SelectText(core.EntryField, string)                                   {}
+func (n *nullView) SetDuplicateMarker(bool)                                              {}
+func (n *nullView) SetEditingMarker(bool)                                                {}
+func (n *nullView) ShowMessage(...interface{})                                           {}
+func (n *nullView) ClearMessage()                                                        {}
 
 type nullVFO struct{}
 

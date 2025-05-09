@@ -278,12 +278,16 @@ func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.
 	case parrotActive:
 		text = fmt.Sprintf("%s", parrot) // TODO: append parrotTimeLeft when available
 	case ptt:
-		text = "TX"
+		text = "On Air"
 	default:
-		text = "RX"
+		text = ""
 	}
 
-	// TODO: set the background color to red while transmitting
+	if ptt {
+		style.AddClass(&v.txIndicator.Widget, txClass)
+	} else {
+		style.RemoveClass(&v.txIndicator.Widget, txClass)
+	}
 
 	v.txIndicator.SetText(text)
 }
@@ -415,6 +419,7 @@ func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {
 const (
 	entryDuplicateClass style.Class = "entry-duplicate"
 	entryEditingClass   style.Class = "entry-editing"
+	txClass             style.Class = "transmitting"
 )
 
 func (v *entryView) SetDuplicateMarker(duplicate bool) {

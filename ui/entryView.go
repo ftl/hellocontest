@@ -276,7 +276,7 @@ func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.
 	var text string
 	switch {
 	case parrotActive:
-		text = fmt.Sprintf("%s", parrot) // TODO: append parrotTimeLeft when available
+		text = fmt.Sprintf("%s: %v", parrot, parrotTimeLeft)
 	case ptt:
 		text = "On Air"
 	default:

@@ -91,4 +91,5 @@ message Keyer {
     repeated string run_macros = 3;
     repeated string sp_labels = 4;
     repeated string run_labels = 5;
+    int32 parrot_interval_seconds = 6;
 }

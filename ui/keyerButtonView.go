@@ -8,8 +8,6 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
-const parrot = "🦜"
-
 // KeyerController controls the keyer.
 type KeyerController interface {
 	Send(int)

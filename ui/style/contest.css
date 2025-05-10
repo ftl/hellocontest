@@ -25,6 +25,9 @@
 @define-color hellocontest-timeindicator @theme_selected_bg_color;
 @define-color hellocontest-lowzone #CCCCCC;
 
+@define-color hellocontest-tx-fg #FFFFFF;
+@define-color hellocontest-tx-bg #FF0000;
+
 /*
  * Entry area
  */
@@ -35,8 +38,14 @@
 }
 
 .entry-editing {
-    background-color: #97C1F6;
+    background-color: #97c1f6;
     color: black;
+}
+
+.transmitting {
+    background-color: @hellocontest-tx-bg;
+    color: @hellocontest-tx-fg;
+    border-radius: 10px;
 }
 
 /*

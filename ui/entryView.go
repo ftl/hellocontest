@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
@@ -45,6 +46,7 @@ type entryView struct {
 	band                 *gtk.ComboBoxText
 	mode                 *gtk.ComboBoxText
 	xit                  *gtk.CheckButton
+	txIndicator          *gtk.Label
 	myExchangesParent    *gtk.Grid
 	myExchanges          []*gtk.Entry
 	logButton            *gtk.Button
@@ -64,6 +66,7 @@ func setupEntryView(builder *gtk.Builder) *entryView {
 	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
 	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
 	result.xit = getUI(builder, "xitCheckbox").(*gtk.CheckButton)
+	result.txIndicator = getUI(builder, "txIndicatorLabel").(*gtk.Label)
 	result.myExchangesParent = getUI(builder, "myExchangesGrid").(*gtk.Grid)
 	result.logButton = getUI(builder, "logButton").(*gtk.Button)
 	result.clearButton = getUI(builder, "clearButton").(*gtk.Button)
@@ -267,6 +270,29 @@ func (v *entryView) SetXIT(active bool, offset core.Frequency) {
 	}
 }
 
+func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+	var text string
+	switch {
+	case parrotActive:
+		text = parrot
+		if parrotTimeLeft > 0 {
+			text += fmt.Sprintf(": %v", parrotTimeLeft)
+		}
+	case ptt:
+		text = "On Air"
+	default:
+		text = ""
+	}
+
+	if ptt {
+		style.AddClass(&v.txIndicator.Widget, txClass)
+	} else {
+		style.RemoveClass(&v.txIndicator.Widget, txClass)
+	}
+
+	v.txIndicator.SetText(text)
+}
+
 func (v *entryView) SetMyExchange(index int, text string) {
 	i := index - 1
 	if i < 0 || i >= len(v.myExchanges) {
@@ -394,6 +420,7 @@ func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {
 const (
 	entryDuplicateClass style.Class = "entry-duplicate"
 	entryEditingClass   style.Class = "entry-editing"
+	txClass             style.Class = "transmitting"
 )
 
 func (v *entryView) SetDuplicateMarker(duplicate bool) {

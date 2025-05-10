@@ -147,6 +147,10 @@ func (v *VFO) VFOXITChanged(active bool, offset core.Frequency) {
 	v.offlineClient.SetXIT(active, offset)
 }
 
+func (v *VFO) VFOPTTChanged(active bool) {
+	v.offlineClient.SetPTT(active)
+}
+
 func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 	for _, listener := range v.listeners {
 		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
@@ -169,9 +173,9 @@ func (v *VFO) emitBandChanged(band core.Band) {
 
 func (v *VFO) emitModeChanged(mode core.Mode) {
 	for _, listener := range v.listeners {
-		if modeListener, ok := listener.(core.VFOModeListener); ok {
+		if l, ok := listener.(core.VFOModeListener); ok {
 			v.asyncRunner(func() {
-				modeListener.VFOModeChanged(mode)
+				l.VFOModeChanged(mode)
 			})
 		}
 	}
@@ -179,9 +183,19 @@ func (v *VFO) emitModeChanged(mode core.Mode) {
 
 func (v *VFO) emitXITChanged(active bool, offset core.Frequency) {
 	for _, listener := range v.listeners {
-		if modeListener, ok := listener.(core.VFOXITListener); ok {
+		if l, ok := listener.(core.VFOXITListener); ok {
 			v.asyncRunner(func() {
-				modeListener.VFOXITChanged(active, offset)
+				l.VFOXITChanged(active, offset)
+			})
+		}
+	}
+}
+
+func (v *VFO) emitPTTChanged(active bool) {
+	for _, listener := range v.listeners {
+		if l, ok := listener.(core.VFOPTTListener); ok {
+			v.asyncRunner(func() {
+				l.VFOPTTChanged(active)
 			})
 		}
 	}
@@ -307,4 +321,8 @@ func (c *offlineClient) SetXIT(active bool, offset core.Frequency) {
 	c.stateLock.Unlock()
 
 	c.vfo.emitXITChanged(state.xitActive, state.xitOffset)
+}
+
+func (c *offlineClient) SetPTT(active bool) {
+	c.vfo.emitPTTChanged(active)
 }

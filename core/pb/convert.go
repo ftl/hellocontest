@@ -166,15 +166,17 @@ func ToKeyerSettings(pbSettings *Keyer) (core.KeyerSettings, error) {
 	result.SPMacros = pbSettings.SpMacros
 	result.RunLabels = pbSettings.RunLabels
 	result.RunMacros = pbSettings.RunMacros
+	result.ParrotIntervalSeconds = int(pbSettings.ParrotIntervalSeconds)
 	return result, nil
 }
 
 func KeyerSettingsToPB(settings core.KeyerSettings) *Keyer {
 	return &Keyer{
-		Wpm:       int32(settings.WPM),
-		SpLabels:  settings.SPLabels,
-		SpMacros:  settings.SPMacros,
-		RunLabels: settings.RunLabels,
-		RunMacros: settings.RunMacros,
+		Wpm:                   int32(settings.WPM),
+		SpLabels:              settings.SPLabels,
+		SpMacros:              settings.SPMacros,
+		RunLabels:             settings.RunLabels,
+		RunMacros:             settings.RunMacros,
+		ParrotIntervalSeconds: int32(settings.ParrotIntervalSeconds),
 	}
 }

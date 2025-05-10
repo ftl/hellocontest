@@ -183,7 +183,6 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Entry)
 
 	c.VFO = vfo.NewVFO("VFO 1", c.bandplan, c.asyncRunner)
-	c.VFO.Notify(c.Entry)
 	c.Entry.SetVFO(c.VFO)
 	c.VFO.Notify(c.Bandmap)
 	c.Bandmap.SetVFO(c.VFO)
@@ -215,10 +214,11 @@ func (c *Controller) Startup() {
 	c.Bandmap.Notify(c.Callinfo)
 	c.Score.Notify(c.Callinfo)
 
-	c.Parrot = parrot.New(c.Workmode, c.Keyer)
-	c.Keyer.Notify(c.Parrot)
+	c.Parrot = parrot.New(c.Workmode, c.Keyer, c.asyncRunner)
+	c.Keyer.SetParrot(c.Parrot)
 	c.Workmode.Notify(c.Parrot)
 	c.Entry.Notify(c.Parrot)
+	c.Parrot.Notify(c.Entry)
 
 	c.Settings.Notify(c.Entry)
 	c.Settings.Notify(c.Workmode)

@@ -257,6 +257,13 @@ func (m *EntryView) SetXIT(active bool, offset core.Frequency) {
 	m.Called(active, offset)
 }
 
+func (m *EntryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+	if !m.active {
+		return
+	}
+	m.Called(ptt, parrotActive, parrotTimeLeft)
+}
+
 func (m *EntryView) SetMyExchange(index int, value string) {
 	if !m.active {
 		return

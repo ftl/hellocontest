@@ -21,6 +21,8 @@ import (
 
 const AppID = "ft.hellocontest"
 
+const parrot = "🦜"
+
 type Script interface {
 	app.Script
 	Now() time.Time

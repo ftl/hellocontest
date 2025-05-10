@@ -114,6 +114,14 @@ func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
 	}
 }
 
+func (c *Client) emitPTTChanged(active bool) {
+	for _, listener := range c.listeners {
+		if xitListener, ok := listener.(core.VFOPTTListener); ok {
+			xitListener.VFOPTTChanged(active)
+		}
+	}
+}
+
 func (c *Client) Speed(wpm int) {
 	err := c.client.SetCWMacrosSpeed(wpm)
 	if err != nil {
@@ -238,6 +246,7 @@ type trxListener struct {
 	mode      core.Mode
 	xitActive bool
 	xitOffset core.Frequency
+	ptt       bool
 }
 
 func (l *trxListener) Refresh() {
@@ -245,6 +254,7 @@ func (l *trxListener) Refresh() {
 	l.client.emitBandChanged(l.band)
 	l.client.emitModeChanged(l.mode)
 	l.client.emitXITChanged(l.xitActive, l.xitOffset)
+	l.client.emitPTTChanged(l.ptt)
 }
 
 func (l *trxListener) Connected(connected bool) {
@@ -312,6 +322,18 @@ func (l *trxListener) SetXITOffset(trx int, offset int) {
 	l.xitOffset = incomingOffset
 	l.client.emitXITChanged(l.xitActive, l.xitOffset)
 	// log.Printf("incoming XIT offset %v", incomingOffset)
+}
+
+func (l *trxListener) SetTX(trx int, enable bool) {
+	if trx != l.trx {
+		return
+	}
+	if enable == l.ptt {
+		return
+	}
+	l.ptt = enable
+	l.client.emitPTTChanged(l.ptt)
+	// log.Printf("incoming PTT %v", enable)
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

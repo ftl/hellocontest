@@ -52,6 +52,7 @@ type vfoSettings struct {
 	mode      core.Mode
 	xitActive bool
 	xitOffset core.Frequency
+	ptt       bool
 }
 
 func (c *Client) KeepOpen() {
@@ -105,6 +106,7 @@ func (c *Client) connect(whenClosed func()) error {
 		client.PollCommand(client.OnModeAndPassband(c.setIncomingModeAndPassband)),
 		client.PollCommand(c.onXITActive()),
 		client.PollCommand(c.onXITOffset()),
+		client.PollCommand(c.onPTTActive()),
 	)
 
 	c.conn.WhenClosed(func() {
@@ -215,6 +217,25 @@ func (c *Client) setIncomingXITOffset(offset int) {
 	c.incoming.xitOffset = incomingXITOffset
 	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
 	// log.Printf("incoming XIT offset: %v %d", c.incoming.xitActive, c.incoming.xitOffset)
+}
+
+func (c *Client) onPTTActive() (client.ResponseHandler, string) {
+	return client.ResponseHandlerFunc(func(r protocol.Response) {
+		if len(r.Data) == 0 {
+			return
+		}
+		active := (r.Data[0] != "0")
+		c.setPTTActive(active)
+	}), "get_ptt"
+}
+
+func (c *Client) setPTTActive(active bool) {
+	if c.incoming.ptt == active {
+		return
+	}
+	c.incoming.ptt = active
+	c.emitPTTChanged(c.incoming.ptt)
+	// log.Printf("incoming PTT active: %v", c.incoming.ptt)
 }
 
 func (c *Client) SetFrequency(f core.Frequency) {
@@ -335,6 +356,7 @@ func (c *Client) Refresh() {
 		c.emitModeChanged(c.incoming.mode)
 	}
 	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
+	c.emitPTTChanged(c.incoming.ptt)
 }
 
 func (c *Client) Speed(speed int) {
@@ -417,6 +439,14 @@ func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
 	for _, listener := range c.listeners {
 		if xitListener, ok := listener.(core.VFOXITListener); ok {
 			xitListener.VFOXITChanged(active, offset)
+		}
+	}
+}
+
+func (c *Client) emitPTTChanged(active bool) {
+	for _, listener := range c.listeners {
+		if xitListener, ok := listener.(core.VFOPTTListener); ok {
+			xitListener.VFOPTTChanged(active)
 		}
 	}
 }

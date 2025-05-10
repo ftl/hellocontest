@@ -471,12 +471,13 @@ const (
 )
 
 type KeyerSettings struct {
-	WPM       int      `json:"wpm"`
-	Preset    string   `json:"preset"`
-	SPMacros  []string `json:"sp_macros"`
-	RunMacros []string `json:"run_macros"`
-	SPLabels  []string `json:"sp_labels"`
-	RunLabels []string `json:"run_labels"`
+	WPM                   int      `json:"wpm"`
+	Preset                string   `json:"preset"`
+	SPMacros              []string `json:"sp_macros"`
+	RunMacros             []string `json:"run_macros"`
+	SPLabels              []string `json:"sp_labels"`
+	RunLabels             []string `json:"run_labels"`
+	ParrotIntervalSeconds int      `json:"parrot_interval_seconds"`
 }
 
 type KeyerPreset struct {
@@ -1205,6 +1206,10 @@ type VFOModeListener interface {
 
 type VFOXITListener interface {
 	VFOXITChanged(bool, Frequency)
+}
+
+type VFOPTTListener interface {
+	VFOPTTChanged(bool)
 }
 
 type Service int

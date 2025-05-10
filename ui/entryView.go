@@ -271,12 +271,13 @@ func (v *entryView) SetXIT(active bool, offset core.Frequency) {
 }
 
 func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
-	log.Printf("new tx state: %t %t %v", ptt, parrotActive, parrotTimeLeft)
-
 	var text string
 	switch {
 	case parrotActive:
-		text = fmt.Sprintf("%s: %v", parrot, parrotTimeLeft)
+		text = parrot
+		if parrotTimeLeft > 0 {
+			text += fmt.Sprintf(": %v", parrotTimeLeft)
+		}
 	case ptt:
 		text = "On Air"
 	default:

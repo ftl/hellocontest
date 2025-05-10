@@ -124,6 +124,7 @@ func (p *Parrot) resetTick() {
 	p.tickLock.Lock()
 	defer p.tickLock.Unlock()
 	p.remaining = 0
+	p.emitParrotTimeLeft(0)
 }
 
 func (p *Parrot) Start() {

@@ -215,7 +215,7 @@ func (c *Controller) Startup() {
 	c.Score.Notify(c.Callinfo)
 
 	c.Parrot = parrot.New(c.Workmode, c.Keyer, c.asyncRunner)
-	c.Keyer.Notify(c.Parrot)
+	c.Keyer.SetParrot(c.Parrot)
 	c.Workmode.Notify(c.Parrot)
 	c.Entry.Notify(c.Parrot)
 	c.Parrot.Notify(c.Entry)

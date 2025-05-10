@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/ftl/hamradio/callsign"
 
@@ -32,6 +33,7 @@ type SettingsView interface {
 	SetMacro(core.Workmode, int, string)
 	SetPresetNames([]string)
 	SetPreset(string)
+	SetParrotIntervalSeconds(int)
 }
 
 // CWClient defines the interface used by the Keyer to output the CW.
@@ -53,10 +55,16 @@ type KeyerStoppedListener interface {
 	KeyerStopped()
 }
 
+type Parrot interface {
+	KeyerStoppedListener
+	SetInterval(time.Duration)
+}
+
 // New returns a new Keyer that has no patterns or templates defined yet.
 func New(settings core.Settings, client CWClient, keyerSettings core.KeyerSettings, workmode core.Workmode, presets []core.KeyerPreset) *Keyer {
 	result := &Keyer{
 		writer:          new(nullWriter),
+		parrot:          new(nullParrot),
 		stationCallsign: settings.Station().Callsign,
 		workmode:        workmode,
 		spLabels:        make(map[int]string),
@@ -88,6 +96,7 @@ func presetNames(presets []core.KeyerPreset) []string {
 
 type Keyer struct {
 	writer         Writer
+	parrot         Parrot
 	buttonView     ButtonView
 	settingsView   SettingsView
 	client         CWClient
@@ -99,18 +108,19 @@ type Keyer struct {
 
 	listeners []any
 
-	stationCallsign callsign.Callsign
-	workmode        core.Workmode
-	wpm             int
-	spLabels        map[int]string
-	spPatterns      map[int]string
-	spTemplates     map[int]*template.Template
-	runLabels       map[int]string
-	runPatterns     map[int]string
-	runTemplates    map[int]*template.Template
-	labels          *map[int]string
-	patterns        *map[int]string
-	templates       *map[int]*template.Template
+	stationCallsign       callsign.Callsign
+	workmode              core.Workmode
+	wpm                   int
+	parrotIntervalSeconds int
+	spLabels              map[int]string
+	spPatterns            map[int]string
+	spTemplates           map[int]*template.Template
+	runLabels             map[int]string
+	runPatterns           map[int]string
+	runTemplates          map[int]*template.Template
+	labels                *map[int]string
+	patterns              *map[int]string
+	templates             *map[int]*template.Template
 }
 
 func (k *Keyer) setWorkmode(workmode core.Workmode) {
@@ -133,6 +143,15 @@ func (k *Keyer) SetWriter(writer Writer) {
 		return
 	}
 	k.writer = writer
+}
+
+func (k *Keyer) SetParrot(parrot Parrot) {
+	if parrot == nil {
+		k.parrot = new(nullParrot)
+		return
+	}
+	k.parrot = parrot
+	k.parrot.SetInterval(time.Duration(k.parrotIntervalSeconds) * time.Second)
 }
 
 func (k *Keyer) SetSettings(settings core.KeyerSettings) {
@@ -166,6 +185,9 @@ func (k *Keyer) SetSettings(settings core.KeyerSettings) {
 		k.runPatterns[i] = pattern
 		k.runTemplates[i], _ = template.New("").Parse(pattern)
 	}
+
+	k.parrotIntervalSeconds = settings.ParrotIntervalSeconds
+	k.parrot.SetInterval(time.Duration(k.parrotIntervalSeconds) * time.Second)
 
 	k.showPatterns()
 	if k.buttonView != nil {
@@ -266,6 +288,7 @@ func (k *Keyer) showKeyerSettings() {
 	for i, pattern := range k.runPatterns {
 		k.settingsView.SetMacro(core.Run, i, pattern)
 	}
+	k.settingsView.SetParrotIntervalSeconds(k.parrotIntervalSeconds)
 }
 
 func (k *Keyer) WorkmodeChanged(workmode core.Workmode) {
@@ -298,6 +321,7 @@ func (k *Keyer) KeyerSettings() core.KeyerSettings {
 func (k *Keyer) getKeyerSettings() (core.KeyerSettings, bool) {
 	var keyer core.KeyerSettings
 	keyer.WPM = k.wpm
+	keyer.ParrotIntervalSeconds = k.parrotIntervalSeconds
 	keyer.SPLabels = make([]string, len(k.spLabels))
 	for i := range keyer.SPLabels {
 		label, ok := k.spLabels[i]
@@ -351,12 +375,13 @@ func (k *Keyer) SelectPreset(name string) {
 	k.settingsView.SetPreset(preset.Name)
 
 	settings := core.KeyerSettings{
-		WPM:       k.savedSettings.WPM,
-		Preset:    name,
-		SPLabels:  make([]string, len(preset.SPLabels)),
-		SPMacros:  make([]string, len(preset.SPMacros)),
-		RunLabels: make([]string, len(preset.RunLabels)),
-		RunMacros: make([]string, len(preset.RunMacros)),
+		WPM:                   k.savedSettings.WPM,
+		ParrotIntervalSeconds: k.savedSettings.ParrotIntervalSeconds,
+		Preset:                name,
+		SPLabels:              make([]string, len(preset.SPLabels)),
+		SPMacros:              make([]string, len(preset.SPMacros)),
+		RunLabels:             make([]string, len(preset.RunLabels)),
+		RunMacros:             make([]string, len(preset.RunMacros)),
 	}
 	copy(settings.SPLabels, preset.SPLabels)
 	copy(settings.SPMacros, preset.SPMacros)
@@ -370,6 +395,12 @@ func (k *Keyer) EnterSpeed(speed int) {
 	log.Printf("speed entered: %d", speed)
 	k.wpm = speed
 	k.client.Speed(k.wpm)
+}
+
+func (k *Keyer) EnterParrotIntervalSeconds(interval int) {
+	log.Printf("parrot interval entered: %d", interval)
+	k.parrotIntervalSeconds = interval
+	k.parrot.SetInterval(time.Duration(k.parrotIntervalSeconds) * time.Second)
 }
 
 func (k *Keyer) EnterLabel(workmode core.Workmode, index int, text string) {
@@ -514,6 +545,7 @@ func (k *Keyer) send(s string) {
 func (k *Keyer) Stop() {
 	log.Println("abort sending")
 	k.client.Abort()
+	k.parrot.KeyerStopped()
 	k.emitKeyerStopped()
 }
 
@@ -567,7 +599,7 @@ func noValues() core.KeyerValues {
 
 type nullWriter struct{}
 
-func (w *nullWriter) WriteKeyer(core.KeyerSettings) error { return nil }
+func (*nullWriter) WriteKeyer(core.KeyerSettings) error { return nil }
 
 type nullClient struct{}
 
@@ -576,3 +608,8 @@ func (*nullClient) IsConnected() bool { return true }
 func (*nullClient) Speed(int)         {}
 func (*nullClient) Send(text string)  {}
 func (*nullClient) Abort()            {}
+
+type nullParrot struct{}
+
+func (*nullParrot) KeyerStopped()             {}
+func (*nullParrot) SetInterval(time.Duration) {}

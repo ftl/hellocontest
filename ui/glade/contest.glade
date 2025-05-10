@@ -163,548 +163,6 @@ THE SOFTWARE.
       </object>
     </child>
   </object>
-  <object class="GtkDialog" id="keyerSettingsDialog">
-    <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Keyer Macros</property>
-    <property name="type-hint">dialog</property>
-    <child internal-child="vbox">
-      <object class="GtkBox">
-        <property name="can-focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox">
-            <property name="can-focus">False</property>
-            <property name="layout-style">end</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <object class="GtkButton" id="keyerSettingsCloseButton">
-                <property name="label" translatable="yes">_Close</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <property name="use-underline">True</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <!-- n-columns=3 n-rows=14 -->
-          <object class="GtkGrid">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">S &amp; P</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">4</property>
-                <property name="width">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">Label</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="label" translatable="yes">Macro</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F1</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">5</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F2</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F3</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F4</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">Run</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">9</property>
-                <property name="width">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F1</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">10</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F2</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">11</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F3</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">12</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">center</property>
-                <property name="valign">center</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">F4</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">13</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF1Label">
-                <property name="name">spF1Label</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">5</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF2Label">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF3Label">
-                <property name="name">spF1Label</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF4Label">
-                <property name="name">spF1Label</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF1Label">
-                <property name="name">spF1Label</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">10</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF2Label">
-                <property name="name">spF1Label</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">11</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF3Label">
-                <property name="name">spF1Label</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">12</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF4Label">
-                <property name="name">spF1Label</property>
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="halign">start</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-                <property name="max-length">10</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">13</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF1Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">5</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF2Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">6</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF3Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">7</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="spF4Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">8</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF1Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">10</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF2Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">11</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF3Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">12</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="runF4Macro">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">2</property>
-                <property name="top-attach">13</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-start">5</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="keyerSettingsMessageLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="valign">center</property>
-                <property name="hexpand">False</property>
-                <property name="vexpand">False</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">1</property>
-                <property name="width">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="docuLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">False</property>
-                <property name="label" translatable="yes">&lt;b&gt;Templates:&lt;/b&gt;
-
-{{.MyCall}}			the station callsign
-{{.MyReport}}		my report
-{{.MyNumber}}	my QSO number (t = 0, n = 9)
-{{.MyXchange}}	all exchange fields concatenated, except report and number
-{{.MyExchange}}	all exchange fields concatenated, including report and number
-{{.TheirCall}}		their callsign
-
-For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-Window#cw-macros"&gt;the  wiki&lt;/a&gt;.</property>
-                <property name="use-markup">True</property>
-                <property name="wrap">True</property>
-                <property name="selectable">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">0</property>
-                <property name="width">3</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="margin-start">5</property>
-                <property name="margin-end">5</property>
-                <property name="label" translatable="yes">Preset:</property>
-              </object>
-              <packing>
-                <property name="left-attach">0</property>
-                <property name="top-attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBoxText" id="keyerPresetCombo">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="hexpand">True</property>
-              </object>
-              <packing>
-                <property name="left-attach">1</property>
-                <property name="top-attach">2</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
   <object class="GtkDialog" id="newContestDialog">
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">New Contest</property>
@@ -824,6 +282,586 @@ For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-W
                 <property name="left-attach">1</property>
                 <property name="top-attach">1</property>
                 <property name="width">2</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkAdjustment" id="parrotIntervalAdjustment">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
+  <object class="GtkDialog" id="keyerSettingsDialog">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Keyer Macros</property>
+    <property name="type-hint">dialog</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="can-focus">False</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox">
+            <property name="can-focus">False</property>
+            <property name="layout-style">end</property>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkButton" id="keyerSettingsCloseButton">
+                <property name="label" translatable="yes">_Close</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="use-underline">True</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">False</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <!-- n-columns=3 n-rows=14 -->
+          <object class="GtkGrid">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="margin-top">15</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">S &amp; P</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">3</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-top">15</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">Label</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-top">15</property>
+                <property name="label" translatable="yes">Macro</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F1</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F2</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F3</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F4</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">Run</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">8</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F1</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F2</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F3</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">F4</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF1Label">
+                <property name="name">spF1Label</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF2Label">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF3Label">
+                <property name="name">spF1Label</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF4Label">
+                <property name="name">spF1Label</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF1Label">
+                <property name="name">spF1Label</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF2Label">
+                <property name="name">spF1Label</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF3Label">
+                <property name="name">spF1Label</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF4Label">
+                <property name="name">spF1Label</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="halign">start</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+                <property name="max-length">10</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF1Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF2Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF3Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">6</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="spF4Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF1Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">9</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF2Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">10</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF3Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">11</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="runF4Macro">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">12</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="keyerSettingsMessageLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="valign">center</property>
+                <property name="hexpand">False</property>
+                <property name="vexpand">False</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">1</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="docuLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">False</property>
+                <property name="label" translatable="yes">&lt;b&gt;Templates:&lt;/b&gt;
+
+{{.MyCall}}			the station callsign
+{{.MyReport}}		my report
+{{.MyNumber}}	my QSO number (t = 0, n = 9)
+{{.MyXchange}}	all exchange fields concatenated, except report and number
+{{.MyExchange}}	all exchange fields concatenated, including report and number
+{{.TheirCall}}		their callsign
+
+For more details see &lt;a href="https://github.com/ftl/hellocontest/wiki/Main-Window#cw-macros"&gt;the  wiki&lt;/a&gt;.</property>
+                <property name="use-markup">True</property>
+                <property name="wrap">True</property>
+                <property name="selectable">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">0</property>
+                <property name="width">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">5</property>
+                <property name="label" translatable="yes">Preset</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkComboBoxText" id="keyerPresetCombo">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">2</property>
+                <property name="width">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="margin-start">5</property>
+                <property name="margin-end">10</property>
+                <property name="margin-top">15</property>
+                <property name="margin-bottom">15</property>
+                <property name="label" translatable="yes">Parrot
+Interval</property>
+              </object>
+              <packing>
+                <property name="left-attach">0</property>
+                <property name="top-attach">13</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSpinButton" id="parrotIntervalSpin">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="valign">center</property>
+                <property name="adjustment">parrotIntervalAdjustment</property>
+              </object>
+              <packing>
+                <property name="left-attach">1</property>
+                <property name="top-attach">13</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="halign">start</property>
+                <property name="margin-start">5</property>
+                <property name="label" translatable="yes">Seconds</property>
+              </object>
+              <packing>
+                <property name="left-attach">2</property>
+                <property name="top-attach">13</property>
               </packing>
             </child>
           </object>

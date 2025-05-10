@@ -14,6 +14,7 @@ type KeyerSettingsController interface {
 	EnterLabel(core.Workmode, int, string)
 	EnterMacro(core.Workmode, int, string)
 	SelectPreset(string)
+	EnterParrotIntervalSeconds(int)
 	Save()
 }
 
@@ -21,15 +22,16 @@ type keyerSettingsView struct {
 	parent     *gtk.Dialog
 	controller KeyerSettingsController
 
-	spLabels     []*gtk.Entry
-	spMacros     []*gtk.Entry
-	runLabels    []*gtk.Entry
-	runMacros    []*gtk.Entry
-	labels       [][]*gtk.Entry
-	macros       [][]*gtk.Entry
-	presetCombo  *gtk.ComboBoxText
-	messageLabel *gtk.Label
-	close        *gtk.Button
+	spLabels              []*gtk.Entry
+	spMacros              []*gtk.Entry
+	runLabels             []*gtk.Entry
+	runMacros             []*gtk.Entry
+	labels                [][]*gtk.Entry
+	macros                [][]*gtk.Entry
+	presetCombo           *gtk.ComboBoxText
+	messageLabel          *gtk.Label
+	parrotIntervalSeconds *gtk.SpinButton
+	close                 *gtk.Button
 
 	ignoreChangedEvent bool
 }
@@ -56,6 +58,10 @@ func setupKeyerSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller
 
 	result.presetCombo = getUI(builder, "keyerPresetCombo").(*gtk.ComboBoxText)
 	result.presetCombo.Connect("changed", result.onPresetChanged)
+
+	result.parrotIntervalSeconds = getUI(builder, "parrotIntervalSpin").(*gtk.SpinButton)
+	result.parrotIntervalSeconds.Connect("value-changed", result.onParrotIntervalChanged)
+	result.parrotIntervalSeconds.Connect("focus_out_event", result.onEntryFocusOut)
 
 	result.messageLabel = getUI(builder, "keyerSettingsMessageLabel").(*gtk.Label)
 
@@ -86,6 +92,7 @@ func (v *keyerSettingsView) doIgnoreChanges(f func()) {
 }
 
 func (v *keyerSettingsView) onClosePressed(_ *gtk.Button) {
+	v.controller.Save()
 	v.parent.Close()
 }
 
@@ -145,6 +152,19 @@ func (v *keyerSettingsView) onPresetChanged(combo *gtk.ComboBoxText) bool {
 	return true
 }
 
+func (v *keyerSettingsView) onParrotIntervalChanged(spin *gtk.SpinButton) bool {
+	if v.ignoreChangedEvent {
+		return false
+	}
+	if v.controller == nil {
+		log.Println("onParrotIntervalChanged: no keyer controller")
+		return false
+	}
+
+	v.controller.EnterParrotIntervalSeconds(int(spin.GetValue()))
+	return true
+}
+
 func (v *keyerSettingsView) SetKeyerController(controller KeyerSettingsController) {
 	v.controller = controller
 }
@@ -170,6 +190,12 @@ func (v *keyerSettingsView) SetPresetNames(names []string) {
 func (v *keyerSettingsView) SetPreset(name string) {
 	v.doIgnoreChanges(func() {
 		v.presetCombo.SetActiveID(name)
+	})
+}
+
+func (v *keyerSettingsView) SetParrotIntervalSeconds(interval int) {
+	v.doIgnoreChanges(func() {
+		v.parrotIntervalSeconds.SetValue(float64(interval))
 	})
 }
 

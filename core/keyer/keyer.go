@@ -176,14 +176,14 @@ func (k *Keyer) SetSettings(settings core.KeyerSettings) {
 	}
 	for i, pattern := range spMacros {
 		k.spPatterns[i] = pattern
-		k.spTemplates[i], _ = template.New("").Parse(pattern)
+		k.spTemplates[i], _ = parseTemplate(pattern)
 	}
 	for i, label := range runLabels {
 		k.runLabels[i] = label
 	}
 	for i, pattern := range runMacros {
 		k.runPatterns[i] = pattern
-		k.runTemplates[i], _ = template.New("").Parse(pattern)
+		k.runTemplates[i], _ = parseTemplate(pattern)
 	}
 
 	k.parrotIntervalSeconds = settings.ParrotIntervalSeconds
@@ -417,7 +417,7 @@ func (k *Keyer) EnterLabel(workmode core.Workmode, index int, text string) {
 }
 
 func (k *Keyer) EnterMacro(workmode core.Workmode, index int, pattern string) {
-	t, err := template.New("").Parse(pattern)
+	t, err := parseTemplate(pattern)
 	if err != nil {
 		k.settingsView.ShowMessage(err)
 	} else {
@@ -458,7 +458,7 @@ func (k *Keyer) EnterMacro(workmode core.Workmode, index int, pattern string) {
 func (k *Keyer) EnterPattern(index int, pattern string) {
 	(*k.patterns)[index] = pattern
 	var err error
-	(*k.templates)[index], err = template.New("").Parse(pattern)
+	(*k.templates)[index], err = parseTemplate(pattern)
 	if err != nil {
 		k.buttonView.ShowMessage(err)
 	} else {
@@ -500,24 +500,16 @@ func (k *Keyer) GetText(index int) (string, error) {
 	return buffer.String(), nil
 }
 
-func (k *Keyer) fillins() map[string]string {
+func (k *Keyer) fillins() map[string]any {
 	values := k.values()
-	result := map[string]string{
-		"MyCall":     k.stationCallsign.String(),
-		"MyReport":   softcut(values.MyReport.String()),
-		"MyNumber":   softcut(values.MyNumber.String()),
-		"MyXchange":  values.MyXchange,
-		"MyExchange": values.MyExchange,
-		"TheirCall":  values.TheirCall,
-	}
-	for i, exchange := range values.MyExchanges {
-		key := fmt.Sprintf("MyExchange%d", i+1)
-		result[key] = exchange
-		_, err := strconv.Atoi(exchange)
-		if err == nil {
-			intKey := key + "Number"
-			result[intKey] = softcut(exchange)
-		}
+	result := map[string]any{
+		"MyCall":      k.stationCallsign.String(),
+		"MyReport":    cutDefault(values.MyReport.String()),
+		"MyNumber":    cutDefault(pad(3, values.MyNumber.String())),
+		"MyXchange":   values.MyXchange,
+		"MyExchange":  values.MyExchange,
+		"MyExchanges": values.MyExchanges,
+		"TheirCall":   values.TheirCall,
 	}
 	return result
 }
@@ -561,22 +553,58 @@ func (k *Keyer) emitKeyerStopped() {
 	}
 }
 
-// softcut replaces 0 and 9 with their "cut" counterparts t and n.
-func softcut(s string) string {
-	cuts := map[string]string{
-		"0": "t",
-		"9": "n",
+func parseTemplate(pattern string) (*template.Template, error) {
+	funcs := map[string]any{
+		"cut":     cutDefault,
+		"cutOnly": cutOnly,
+		"pad":     pad,
 	}
-	result := s
+	return template.New("").Funcs(funcs).Parse(pattern)
+}
+
+func cutDefault(value string) string {
+	return cut(value)
+}
+
+func cutOnly(args ...any) string {
+	if len(args) == 0 {
+		return ""
+	}
+	value, valueOK := args[len(args)-1].(string)
+	if !valueOK {
+		return ""
+	}
+
+	numbers := make([]int, 0, len(args)-2)
+	for i := range args[:len(args)-1] {
+		number, ok := args[i].(int)
+		if !ok {
+			continue
+		}
+		numbers = append(numbers, number)
+	}
+
+	return cut(value, numbers...)
+}
+
+func cut(value string, numbers ...int) string {
+	cuts := cutsFor(numbers...)
+	result := value
 	for digit, cut := range cuts {
 		result = strings.Replace(result, digit, cut, -1)
 	}
 	return result
 }
 
-// cut replaces digits with the "cut" counterparts. (see http://wiki.bavarian-contest-club.de/wiki/Contest-FAQ#Was_sind_.22Cut_Numbers.22.3F)
-func cut(s string) string {
-	cuts := map[string]string{
+func cutsFor(numbers ...int) map[string]string {
+	if len(numbers) == 0 {
+		return map[string]string{
+			"0": "t",
+			"9": "n",
+		}
+	}
+
+	allCuts := map[string]string{
 		"0": "t",
 		"1": "a",
 		"2": "u",
@@ -586,9 +614,21 @@ func cut(s string) string {
 		"8": "d",
 		"9": "n",
 	}
-	result := s
-	for digit, cut := range cuts {
-		result = strings.Replace(result, digit, cut, -1)
+	cuts := make(map[string]string)
+	for _, number := range numbers {
+		i := strconv.Itoa(number)
+		cut, ok := allCuts[i]
+		if ok {
+			cuts[i] = cut
+		}
+	}
+	return cuts
+}
+
+func pad(length int, value string) string {
+	result := value
+	for len(result) < length {
+		result = "0" + result
 	}
 	return result
 }

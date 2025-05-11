@@ -44,12 +44,20 @@ func TestSend(t *testing.T) {
 	cwClient.AssertExpectations(t)
 }
 
-func TestSoftcut(t *testing.T) {
-	assert.Equal(t, "t12345678n", softcut("0123456789"))
+func TestCutDefault(t *testing.T) {
+	assert.Equal(t, "t12345678n", cutDefault("0123456789"))
 }
 
-func TestCut(t *testing.T) {
-	assert.Equal(t, "tauv4e6gdn", cut("0123456789"))
+func TestCutOnly(t *testing.T) {
+	assert.Equal(t, "tauv4e6gdn", cutOnly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "0123456789"))
+}
+
+func TestPad(t *testing.T) {
+	assert.Equal(t, "0123456789", pad(10, "0123456789"))
+	assert.Equal(t, "0123456789", pad(5, "0123456789"))
+	assert.Equal(t, "0000000000", pad(10, ""))
+	assert.Equal(t, "00000", pad(5, ""))
+	assert.Equal(t, "", pad(0, ""))
 }
 
 type testSettings struct {

@@ -290,10 +290,11 @@ func (m *Bandmap) Add(spot core.Spot) {
 			mode = m.activeMode
 		}
 
-		_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
-
-		if worked {
-			spot.Source = core.WorkedSpot
+		if !spot.IsWorked() {
+			_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
+			if worked {
+				spot.Source = core.WorkedSpot
+			}
 		}
 
 		m.entries.Add(spot, m.clock.Now(), m.weights)

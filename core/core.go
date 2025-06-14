@@ -867,6 +867,10 @@ type Spot struct {
 	Source    SpotType
 }
 
+func (s Spot) IsWorked() bool {
+	return s.Source == WorkedSpot
+}
+
 type BandmapFrame struct {
 	Frequency         Frequency
 	ActiveBand        Band

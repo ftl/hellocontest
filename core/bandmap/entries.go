@@ -128,7 +128,7 @@ func (e *Entry) update() {
 		if lastHeard.Before(s.Time) {
 			lastHeard = s.Time
 		}
-		if source.Priority() > s.Source.Priority() {
+		if e.Source != core.WorkedSpot && source.Priority() > s.Source.Priority() {
 			source = s.Source
 		}
 	}
@@ -280,6 +280,12 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 		}
 	}
 	return left
+}
+
+func (l *Entries) MarkAsWorked(call callsign.Callsign, band core.Band, mode core.Mode) {
+	// TODO: implement
+	// find relevant entries
+	// set entry.Source = core.WorkedSpot
 }
 
 func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core.BandmapWeights) {

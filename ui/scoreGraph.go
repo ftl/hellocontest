@@ -220,7 +220,7 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 	} else {
 		valueScaling = 0
 	}
-	for i := 0; i < valueCount; i++ {
+	for i := range valueCount {
 		startX := float64(i) * layout.binWidth
 		endX := float64(i+1) * layout.binWidth
 		value := float64(datapoints[i].Points)
@@ -267,7 +267,7 @@ func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout,
 		valueScaling = 0
 	}
 	lastY := layout.zeroY
-	for i := 0; i < valueCount; i++ {
+	for i := range valueCount {
 		startX := float64(i) * layout.binWidth
 		centerX := startX + layout.binWidth/2.0
 		endX := float64(i+1) * layout.binWidth

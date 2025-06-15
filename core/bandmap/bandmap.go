@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -59,6 +60,7 @@ type Bandmap struct {
 	updatePeriod time.Duration
 	maximumAge   time.Duration
 	weights      core.BandmapWeights
+	bandRule     conval.BandRule
 
 	do     chan func()
 	closed chan struct{}
@@ -215,6 +217,7 @@ func (m *Bandmap) Hide() {
 
 func (m *Bandmap) ContestChanged(contest core.Contest) {
 	m.do <- func() {
+		m.bandRule = contest.Definition.Scoring.QSOBandRule
 		m.entries.SetBands(contest.Bands())
 		m.update()
 	}
@@ -290,13 +293,29 @@ func (m *Bandmap) Add(spot core.Spot) {
 			mode = m.activeMode
 		}
 
-		_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
-
-		if worked {
-			spot.Source = core.WorkedSpot
+		if !spot.IsWorked() {
+			_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
+			if worked {
+				spot.Source = core.WorkedSpot
+			}
 		}
 
 		m.entries.Add(spot, m.clock.Now(), m.weights)
+
+		if spot.IsWorked() {
+			band := spot.Band
+			switch m.bandRule {
+			case conval.Once:
+				band, mode = core.NoBand, core.NoMode
+			case conval.OncePerBand:
+				band, mode = band, core.NoMode
+			case conval.OncePerBandAndMode:
+				band, mode = band, mode
+			default:
+				band, mode = core.NoBand, core.NoMode
+			}
+			m.entries.MarkAsWorked(spot.Call, band, mode)
+		}
 	}
 }
 

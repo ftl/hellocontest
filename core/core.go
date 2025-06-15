@@ -801,6 +801,7 @@ const (
 	SkimmerSpot SpotType = "skimmer"
 	RBNSpot     SpotType = "rbn"
 	ClusterSpot SpotType = "cluster"
+	UnknownSpot SpotType = ""
 
 	maxSpotTypePriority = 10
 )
@@ -811,6 +812,7 @@ var spotTypePriorities = map[SpotType]int{
 	SkimmerSpot: 2,
 	RBNSpot:     3,
 	ClusterSpot: 4,
+	UnknownSpot: maxSpotTypePriority,
 }
 
 func (t SpotType) Priority() int {
@@ -865,6 +867,10 @@ type Spot struct {
 	Mode      Mode
 	Time      time.Time
 	Source    SpotType
+}
+
+func (s Spot) IsWorked() bool {
+	return s.Source == WorkedSpot
 }
 
 type BandmapFrame struct {

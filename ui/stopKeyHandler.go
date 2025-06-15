@@ -30,7 +30,7 @@ func setupStopKeyHandler(w *gtk.Widget) *stopKeyHandler {
 	return result
 }
 
-func (h *stopKeyHandler) onKeyPress(_ interface{}, event *gdk.Event) bool {
+func (h *stopKeyHandler) onKeyPress(_ any, event *gdk.Event) bool {
 	if h.controller == nil {
 		return false
 	}
@@ -49,7 +49,7 @@ func (h *stopKeyHandler) onKeyPress(_ interface{}, event *gdk.Event) bool {
 	}
 }
 
-func (h *stopKeyHandler) onKeyRelease(_ interface{}, event *gdk.Event) bool {
+func (h *stopKeyHandler) onKeyRelease(_ any, event *gdk.Event) bool {
 	if h.controller == nil {
 		return false
 	}
@@ -58,6 +58,7 @@ func (h *stopKeyHandler) onKeyRelease(_ interface{}, event *gdk.Event) bool {
 	switch keyEvent.KeyVal() {
 	case gdk.KEY_Escape:
 		h.keyDown = false
+		// It is ok to not use the central clock here as we are only measuring a duration.
 		now := time.Now()
 		duration := now.Sub(h.lastUp)
 		if duration < doubleStopThreshold {

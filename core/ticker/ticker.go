@@ -1,14 +1,20 @@
 package ticker
 
-import "time"
+import (
+	"time"
 
-func New(callback func()) *Ticker {
+	"github.com/ftl/hellocontest/core"
+)
+
+func New(clock core.Clock, callback func()) *Ticker {
 	return &Ticker{
+		clock:    clock,
 		callback: callback,
 	}
 }
 
 type Ticker struct {
+	clock      core.Clock
 	callback   func()
 	ticker     *time.Ticker
 	stopTicker chan struct{}
@@ -19,7 +25,7 @@ func (t *Ticker) Start() {
 		return
 	}
 
-	time.Sleep(tilNextSecond(time.Now()))
+	time.Sleep(tilNextSecond(t.clock.Now()))
 
 	t.ticker = time.NewTicker(1 * time.Second)
 	t.stopTicker = make(chan struct{})

@@ -98,7 +98,7 @@ func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, ba
 
 		stationCallsign: settings.Station().Callsign.String(),
 	}
-	result.refreshTicker = ticker.New(result.refreshUTC)
+	result.refreshTicker = ticker.New(clock, result.refreshUTC)
 	result.updateExchangeFields(settings.Contest())
 	return result
 }

@@ -128,14 +128,16 @@ func (e *Entry) update() {
 		if lastHeard.Before(s.Time) {
 			lastHeard = s.Time
 		}
-		if e.Source != core.WorkedSpot && source.Priority() > s.Source.Priority() {
+		if source.Priority() > s.Source.Priority() {
 			source = s.Source
 		}
 	}
 
 	e.updated = frequencyUpdated || (lastHeard != e.LastHeard) || (source != e.Source)
 	e.LastHeard = lastHeard
-	e.Source = source
+	if e.Source != core.WorkedSpot {
+		e.Source = source
+	}
 	e.SpotCount = len(e.spots)
 	if e.SpotCount < spotValidThreshold && e.Quality == core.ValidSpotQuality {
 		e.Quality = core.UnknownSpotQuality
@@ -283,9 +285,26 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 }
 
 func (l *Entries) MarkAsWorked(call callsign.Callsign, band core.Band, mode core.Mode) {
-	// TODO: implement
-	// find relevant entries
-	// set entry.Source = core.WorkedSpot
+	for _, e := range l.entries {
+		match := true
+		if call != e.Call {
+			match = false
+		}
+		if band != core.NoBand && band != e.Band {
+			match = false
+		}
+		if mode != core.NoMode && mode != e.Mode {
+			match = false
+		}
+
+		if !match {
+			continue
+		}
+
+		e.Source = core.WorkedSpot
+		e.update()
+		l.notifier.emitEntryUpdated(e.BandmapEntry)
+	}
 }
 
 func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core.BandmapWeights) {

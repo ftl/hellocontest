@@ -11,6 +11,7 @@ import (
 const ScoreWindowID = "score"
 
 type scoreWindow struct {
+	clock     core.Clock
 	scoreView *scoreView
 
 	window      *gtk.Window
@@ -24,8 +25,9 @@ type scoreWindow struct {
 	multisGoal int
 }
 
-func setupScoreWindow(geometry *gmtry.Geometry, style *style.Style) *scoreWindow {
+func setupScoreWindow(geometry *gmtry.Geometry, style *style.Style, clock core.Clock) *scoreWindow {
 	result := &scoreWindow{
+		clock:    clock,
 		geometry: geometry,
 		style:    style,
 	}
@@ -50,7 +52,7 @@ func (w *scoreWindow) Show() {
 		w.window.SetTitle("Score")
 		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)
-		w.scoreView = setupNewScoreView(builder, w.style.ForWidget(w.window.ToWidget()))
+		w.scoreView = setupNewScoreView(builder, w.style.ForWidget(w.window.ToWidget()), w.clock)
 		w.scoreView.SetGoals(w.pointsGoal, w.multisGoal)
 		w.scoreView.ShowScore(w.score)
 		w.scoreView.RateUpdated(w.rate)

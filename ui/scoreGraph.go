@@ -2,7 +2,6 @@ package ui
 
 import (
 	"math"
-	"time"
 
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gtk"
@@ -30,6 +29,7 @@ func (s *scoreGraphStyle) Refresh() {
 }
 
 type scoreGraph struct {
+	clock          core.Clock
 	graphs         []core.BandGraph
 	maxPoints      int
 	maxMultis      int
@@ -45,7 +45,7 @@ type scoreGraph struct {
 
 const timeIndicatorColorName = "hellocontest-timeindicator"
 
-func newScoreGraph(colors colorProvider) *scoreGraph {
+func newScoreGraph(colors colorProvider, clock core.Clock) *scoreGraph {
 	style := &scoreGraphStyle{
 		colorProvider: colors,
 		areaAlpha:     0.4,
@@ -54,6 +54,7 @@ func newScoreGraph(colors colorProvider) *scoreGraph {
 	style.Refresh()
 
 	result := &scoreGraph{
+		clock:      clock,
 		graphs:     nil,
 		pointsGoal: 60,
 		multisGoal: 60,
@@ -106,7 +107,7 @@ func (g *scoreGraph) UpdateTimeFrame() {
 		g.timeFrameIndex = -1
 		return
 	}
-	g.timeFrameIndex = g.graphs[0].Bindex(time.Now()) // TODO: use the central clock!!!
+	g.timeFrameIndex = g.graphs[0].Bindex(g.clock.Now())
 }
 
 type graphLayout struct {
@@ -220,7 +221,7 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 	} else {
 		valueScaling = 0
 	}
-	for i := 0; i < valueCount; i++ {
+	for i := range valueCount {
 		startX := float64(i) * layout.binWidth
 		endX := float64(i+1) * layout.binWidth
 		value := float64(datapoints[i].Points)
@@ -267,7 +268,7 @@ func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout,
 		valueScaling = 0
 	}
 	lastY := layout.zeroY
-	for i := 0; i < valueCount; i++ {
+	for i := range valueCount {
 		startX := float64(i) * layout.binWidth
 		centerX := startX + layout.binWidth/2.0
 		endX := float64(i+1) * layout.binWidth

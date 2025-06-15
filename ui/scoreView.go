@@ -16,13 +16,13 @@ type scoreView struct {
 	graph *scoreGraph
 }
 
-func setupNewScoreView(builder *gtk.Builder, colors colorProvider) *scoreView {
+func setupNewScoreView(builder *gtk.Builder, colors colorProvider, clock core.Clock) *scoreView {
 	result := &scoreView{}
 
 	result.tableLabel = getUI(builder, "tableLabel").(*gtk.Label)
 	style.AddClass(result.tableLabel.ToWidget(), "score_table")
 
-	result.graph = newScoreGraph(colors)
+	result.graph = newScoreGraph(colors, clock)
 	result.graphArea = getUI(builder, "scoreGraphArea").(*gtk.DrawingArea)
 	result.graphArea.Connect("draw", result.graph.Draw)
 	result.graphArea.Connect("style-updated", result.graph.RefreshStyle)

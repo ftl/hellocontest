@@ -394,12 +394,13 @@ func openClusterix(host *net.TCPAddr, username string, password string, trace bo
 }
 
 func newDemoCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock) *cluster {
-	return newCluster(parent, source, bandmap, bandplan, clock, openDemoCluster(bandmap))
+	return newCluster(parent, source, bandmap, bandplan, clock, openDemoCluster(bandmap, clock))
 }
 
-func openDemoCluster(bandmap Bandmap) openClusterFunc {
+func openDemoCluster(bandmap Bandmap, clock core.Clock) openClusterFunc {
 	return func(host *net.TCPAddr, username string, password string, trace bool) (clusterClient, error) {
 		result := &demoCluster{
+			clock:     clock,
 			connected: true,
 			bandmap:   bandmap,
 			spots: []core.Spot{
@@ -445,6 +446,7 @@ func openDemoCluster(bandmap Bandmap) openClusterFunc {
 }
 
 type demoCluster struct {
+	clock     core.Clock
 	listeners []any
 	connected bool
 	bandmap   Bandmap
@@ -460,7 +462,7 @@ func (c *demoCluster) emitConnected() {
 }
 
 func (c *demoCluster) emitDemoSpots() {
-	now := time.Now()
+	now := c.clock.Now()
 	for i, spot := range c.spots {
 		spot.Time = now.Add(-1 * time.Duration(i) * time.Minute)
 		c.bandmap.Add(spot)

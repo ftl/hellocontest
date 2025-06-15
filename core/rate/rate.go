@@ -30,7 +30,7 @@ func NewCounter(clock core.Clock, asyncRunner core.AsyncRunner) *Counter {
 			return true
 		},
 	}
-	result.refreshTicker = ticker.New(result.refresh)
+	result.refreshTicker = ticker.New(clock, result.refresh)
 	return result
 }
 
@@ -117,7 +117,7 @@ func (c *Counter) Clear() {
 
 func (c *Counter) refresh() {
 	c.asyncRunner(func() {
-		now := time.Now()
+		now := c.clock.Now()
 		lastHour := now.Add(-1 * time.Hour)
 		last5Min := now.Add(-5 * time.Minute)
 		const fillRatio = 0.6

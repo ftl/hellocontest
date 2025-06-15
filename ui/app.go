@@ -107,7 +107,7 @@ func (a *application) activate() {
 	a.style = style.New()
 	a.style.AddToScreen(screen)
 
-	a.scoreWindow = setupScoreWindow(a.windowGeometry, a.style)
+	a.scoreWindow = setupScoreWindow(a.windowGeometry, a.style, timebase)
 	a.rateWindow = setupRateWindow(a.windowGeometry, a.style)
 	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.style, a.controller.Bandmap)
 	a.settingsDialog = setupSettingsDialog(a.mainWindow.window, a.controller.Settings)

@@ -205,6 +205,9 @@ func (c *Client) EntryAdded(entry core.BandmapEntry) {
 	if !c.sendSpots {
 		return
 	}
+	if !c.client.Connected() {
+		return
+	}
 
 	if entry.Band != c.trx.band || entry.Mode != c.trx.mode {
 		return

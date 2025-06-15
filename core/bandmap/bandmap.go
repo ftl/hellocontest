@@ -217,7 +217,9 @@ func (m *Bandmap) Hide() {
 
 func (m *Bandmap) ContestChanged(contest core.Contest) {
 	m.do <- func() {
-		m.bandRule = contest.Definition.Scoring.QSOBandRule
+		if contest.Definition != nil {
+			m.bandRule = contest.Definition.Scoring.QSOBandRule
+		}
 		m.entries.SetBands(contest.Bands())
 		m.update()
 	}

@@ -107,7 +107,10 @@ var ScreenshotsScript = &Script{
 		{
 			enter: AskForScreenshot("main window with QSO data", 0),
 			steps: []Step{
-				FillQSOList(),
+				FillQSOList(0, 14),
+				Describe("score window complete, mark (1) the score graph and (2) the score table", 1*time.Second),
+				TriggerScreenshot("score_window_filled"),
+				FillQSOList(14, -1),
 				Describe("main window complete", 1*time.Second),
 				TriggerScreenshot("main_window_filled"),
 			},
@@ -282,10 +285,17 @@ func removeBackup(name string) error {
 	return nil
 }
 
-func FillQSOList() Step {
+func FillQSOList(begin, end int) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		qsos := parseQSOCSV()
-		for _, qso := range qsos {
+		if begin < 0 {
+			begin = 0
+		}
+		if end < 0 || end > len(qsos) {
+			end = len(qsos)
+		}
+		for i := begin; i < end; i++ {
+			qso := qsos[i]
 			enterQSOData(r, qso)
 		}
 		r.UI(r.App.Entry.Clear)

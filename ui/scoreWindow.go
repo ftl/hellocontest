@@ -52,7 +52,7 @@ func (w *scoreWindow) Show() {
 		w.window.SetCanFocus(false)
 		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)
-		w.scoreView = setupNewScoreView(w.window, w.style.ForWidget(w.window.ToWidget()), w.clock)
+		w.scoreView = setupNewScoreView(w.style.ForWidget(w.window.ToWidget()), w.clock)
 		w.scoreView.SetGoals(w.pointsGoal, w.multisGoal)
 		w.scoreView.ShowScore(w.score)
 		w.scoreView.RateUpdated(w.rate)

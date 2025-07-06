@@ -46,16 +46,18 @@ func (w *scoreWindow) RestoreVisibility() {
 
 func (w *scoreWindow) Show() {
 	if w.window == nil {
-		builder := setupBuilder()
-		w.window = getUI(builder, "scoreWindow").(*gtk.Window)
+		w.window, _ = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
 		w.window.SetDefaultSize(300, 500)
 		w.window.SetTitle("Score")
+		w.window.SetCanFocus(false)
 		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)
-		w.scoreView = setupNewScoreView(builder, w.style.ForWidget(w.window.ToWidget()), w.clock)
+		w.scoreView = setupNewScoreView(w.window, w.style.ForWidget(w.window.ToWidget()), w.clock)
 		w.scoreView.SetGoals(w.pointsGoal, w.multisGoal)
 		w.scoreView.ShowScore(w.score)
 		w.scoreView.RateUpdated(w.rate)
+
+		w.window.Add(w.scoreView.rootGrid.ToWidget())
 		connectToGeometry(w.geometry, ScoreWindowID, w.window)
 	}
 	w.window.ShowAll()

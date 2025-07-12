@@ -444,6 +444,7 @@ func (c *Controller) bandEntered(band core.Band) {
 
 func (c *Controller) SetXITActive(active bool) {
 	c.vfo.SetXITActive(active)
+	c.view.SetActiveField(c.activeField)
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {

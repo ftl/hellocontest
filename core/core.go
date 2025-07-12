@@ -725,6 +725,10 @@ func (g BandGraph) ElapsedTimePercent(timestamp time.Time) float64 {
 	return float64(g.ElapsedTime(timestamp)) / float64(g.duration)
 }
 
+func (g BandGraph) PercentAsDuration(percent float64) time.Duration {
+	return time.Duration(float64(g.duration) * percent)
+}
+
 type BandScore struct {
 	QSOs       int
 	Duplicates int

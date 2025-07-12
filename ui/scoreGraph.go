@@ -10,6 +10,8 @@ import (
 	"github.com/ftl/hellocontest/ui/style"
 )
 
+const useCurvedGraph = false
+
 type scoreGraphStyle struct {
 	colorProvider
 
@@ -40,7 +42,8 @@ type scoreGraph struct {
 	pointsBinGoal float64
 	multisBinGoal float64
 
-	style *scoreGraphStyle
+	style          *scoreGraphStyle
+	useCurvedGraph bool
 }
 
 const timeIndicatorColorName = "hellocontest-timeindicator"
@@ -54,11 +57,12 @@ func newScoreGraph(colors colorProvider, clock core.Clock) *scoreGraph {
 	style.Refresh()
 
 	result := &scoreGraph{
-		clock:      clock,
-		graphs:     nil,
-		pointsGoal: 60,
-		multisGoal: 60,
-		style:      style,
+		clock:          clock,
+		graphs:         nil,
+		pointsGoal:     60,
+		multisGoal:     60,
+		style:          style,
+		useCurvedGraph: useCurvedGraph,
 	}
 
 	result.updateBinGoals()
@@ -159,7 +163,11 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		color := bandColor(g.style, graph.Band)
 		cr.SetSourceRGB(color.ToRGB())
 
-		g.drawDataPointsRectangular(cr, layout, graph.DataPoints)
+		if useCurvedGraph {
+			g.drawDataPointsCurved(cr, layout, graph.DataPoints)
+		} else {
+			g.drawDataPointsRectangular(cr, layout, graph.DataPoints)
+		}
 	}
 
 	// the time frame

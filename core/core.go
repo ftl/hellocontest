@@ -583,7 +583,7 @@ func NewBandGraph(band Band, startTime time.Time, duration time.Duration) BandGr
 	if startTime.IsZero() || duration == 0 {
 		binCount = 1
 	} else {
-		binCount = 60
+		binCount = BinCountForDuration(duration)
 	}
 	return BandGraph{
 		Band:       band,
@@ -592,6 +592,27 @@ func NewBandGraph(band Band, startTime time.Time, duration time.Duration) BandGr
 
 		binSeconds: duration.Seconds() / float64(binCount),
 		startTime:  startTime,
+	}
+}
+
+func BinCountForDuration(duration time.Duration) int {
+	switch {
+	case duration <= 0:
+		return 1
+	case duration <= time.Hour:
+		return int(duration / time.Minute)
+	case duration <= 6*time.Hour:
+		return int(duration / (5 * time.Minute))
+	case duration <= 12*time.Hour:
+		return int(duration / (10 * time.Minute))
+	case duration <= 24*time.Hour:
+		return int(duration / (15 * time.Minute))
+	case duration <= 36*time.Hour:
+		return int(duration / (30 * time.Minute))
+	case duration <= 48*time.Hour:
+		return int(duration / (60 * time.Minute))
+	default:
+		return 50
 	}
 }
 
@@ -632,6 +653,7 @@ func (g *BandGraph) Add(timestamp time.Time, score QSOScore) {
 	g.Max = g.Max.Max(bandScore)
 }
 
+// Bindex returns the index of the bin corresponding to the given timestamp.
 func (g *BandGraph) Bindex(timestamp time.Time) int {
 	if g.startTime.IsZero() {
 		return 0

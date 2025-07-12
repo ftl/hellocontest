@@ -332,8 +332,8 @@ func (g *scoreGraph) drawLowZone(cr *cairo.Context, layout graphLayout) {
 	cr.Stroke()
 
 	// the legend
-	g.drawYLegendAt(cr, layout, layout.zeroY-layout.pointsLowZoneHeight, fmt.Sprintf("%d", int(g.pointsGoal)))
-	g.drawYLegendAt(cr, layout, layout.zeroY+layout.multisLowZoneHeight, fmt.Sprintf("%d", int(g.multisGoal)))
+	g.drawYLegendAt(cr, layout, layout.zeroY-layout.pointsLowZoneHeight, fmt.Sprintf("%dP", int(g.pointsGoal)))
+	g.drawYLegendAt(cr, layout, layout.zeroY+layout.multisLowZoneHeight, fmt.Sprintf("%dM", int(g.multisGoal)))
 }
 
 func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {

@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/gotk3/gotk3/cairo"
 	"github.com/gotk3/gotk3/gtk"
@@ -128,8 +129,8 @@ type graphLayout struct {
 	multisLowZoneHeight float64
 	binWidth            float64
 	divX                []float64
-	axisWidth           float64
-	divisionWidth       float64
+	axisLineWidth       float64
+	divisionLineWidth   float64
 	leftLegendWidth     float64
 	timeIndicatorHeight float64
 }
@@ -139,7 +140,6 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	defer cr.Restore()
 
 	// preparations
-
 	valueCount := 0
 	if len(g.graphs) > 0 {
 		valueCount = len(g.graphs[0].DataPoints)
@@ -169,32 +169,33 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 
 func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, cr *cairo.Context, valueCount int) graphLayout {
 	result := graphLayout{
-		width:         float64(da.GetAllocatedWidth()),
-		height:        float64(da.GetAllocatedHeight()),
-		marginY:       10.0,
-		axisWidth:     1.0,
-		divisionWidth: .5,
+		width:             float64(da.GetAllocatedWidth()),
+		height:            float64(da.GetAllocatedHeight()),
+		marginY:           10.0,
+		axisLineWidth:     1.0,
+		divisionLineWidth: .5,
 	}
 
 	cr.SetFontSize(g.style.fontSize)
 	result.leftLegendWidth = cr.TextExtents("00:00").Width + 2.0
 	result.timeIndicatorHeight = cr.TextExtents("Hg").Height + 2.0
+	graphWidth := result.width - result.leftLegendWidth
 
 	result.zeroY = (result.height - result.timeIndicatorHeight) / 2.0
 	result.maxHeight = result.zeroY - result.marginY
 	result.pointsLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxPoints))*g.pointsBinGoal)
 	result.multisLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxMultis))*g.multisBinGoal)
 	if valueCount > 0 {
-		result.binWidth = result.width / float64(valueCount)
+		result.binWidth = graphWidth / float64(valueCount)
 	} else {
-		result.binWidth = result.width
+		result.binWidth = graphWidth
 	}
 
 	const divCount = 8
 	if len(result.divX) != divCount {
 		result.divX = make([]float64, divCount-1)
 	}
-	divWidth := result.width / float64(divCount)
+	divWidth := graphWidth / float64(divCount)
 	for i := range result.divX {
 		result.divX[i] = float64(i+1) * divWidth
 	}
@@ -211,32 +212,60 @@ func (g *scoreGraph) fillBackground(cr *cairo.Context) {
 }
 
 func (g *scoreGraph) drawZeroLine(cr *cairo.Context, layout graphLayout) {
+	// the line
 	cr.SetSourceRGB(g.style.axisColor.ToRGB())
-	cr.SetLineWidth(layout.axisWidth)
-	cr.MoveTo(0, layout.zeroY)
+	cr.SetLineWidth(layout.axisLineWidth)
+	cr.MoveTo(layout.leftLegendWidth, layout.zeroY)
 	cr.LineTo(layout.width, layout.zeroY)
 	cr.Stroke()
+
+	// the legend
+	g.drawYLegendAt(cr, layout, layout.zeroY, "0")
+}
+
+func (g *scoreGraph) drawYLegendAt(cr *cairo.Context, layout graphLayout, y float64, text string) {
+	textExtents := cr.TextExtents(text)
+	left := layout.leftLegendWidth - textExtents.Width - 2.0
+	bottom := y + textExtents.Height/2.0
+	cr.SetSourceRGB(g.style.axisColor.ToRGB())
+	cr.SetFontSize(g.style.fontSize)
+	cr.MoveTo(left, bottom)
+	cr.ShowText(text)
 }
 
 func (g *scoreGraph) drawTimeDivisions(cr *cairo.Context, layout graphLayout) {
 	cr.SetSourceRGB(g.style.axisColor.ToRGB())
-	cr.SetLineWidth(layout.divisionWidth)
+	cr.SetLineWidth(layout.divisionLineWidth)
+	cr.SetFontSize(g.style.fontSize)
+
+	// the zero line
+	cr.MoveTo(layout.leftLegendWidth, layout.zeroY-layout.maxHeight)
+	cr.LineTo(layout.leftLegendWidth, layout.zeroY+layout.maxHeight)
+	cr.Stroke()
+
+	// the vertical divisions
 	for _, x := range layout.divX {
-		cr.MoveTo(x, layout.zeroY-layout.maxHeight)
-		cr.LineTo(x, layout.zeroY+layout.maxHeight)
+		cr.MoveTo(x+layout.leftLegendWidth, layout.zeroY-layout.maxHeight)
+		cr.LineTo(x+layout.leftLegendWidth, layout.zeroY+layout.maxHeight)
 		cr.Stroke()
 	}
 }
 
 func (g *scoreGraph) drawTimeIndicator(cr *cairo.Context, layout graphLayout) {
-	if g.timeFrameIndex <= 0 {
-		return
-	}
 	now := g.clock.Now()
 
+	var elapsedTime time.Duration
+	var elapsedTimePercent float64
+	if g.timeFrameIndex >= 0 && len(g.graphs) > 0 {
+		elapsedTime = g.graphs[0].ElapsedTime(now)
+		elapsedTimePercent = g.graphs[0].ElapsedTimePercent(now)
+	} else {
+		elapsedTime = 0
+		elapsedTimePercent = 0.0
+	}
+
 	// the time bar
-	elapsedTimePercent := g.graphs[0].ElapsedTimePercent(now)
-	left := 0.0
+	left := layout.leftLegendWidth
 	right := left + (layout.width-left)*elapsedTimePercent
 	bottom := layout.height - layout.marginY
 	top := bottom - layout.timeIndicatorHeight
@@ -250,45 +279,61 @@ func (g *scoreGraph) drawTimeIndicator(cr *cairo.Context, layout graphLayout) {
 	cr.Fill()
 
 	// the elapsed time
-	elapsedTime := g.graphs[0].ElapsedTime(now)
-	elapsedTimeText := fmt.Sprintf("%02d:%02d", int(elapsedTime.Hours()), int(elapsedTime.Minutes())%60)
+	elapsedTimeText := formatDuration(elapsedTime)
 
 	cr.SetSourceRGB(g.style.axisColor.ToRGB())
 	cr.SetFontSize(g.style.fontSize)
 	cr.MoveTo(1, layout.height-layout.marginY-1)
 	cr.ShowText(elapsedTimeText)
 
-	// the old box
-	startX := float64(g.timeFrameIndex) * layout.binWidth
-	endX := float64(g.timeFrameIndex+1) * layout.binWidth
+	// the time legend
+	for i, x := range layout.divX {
+		if i%2 == 1 && len(g.graphs) > 0 {
+			percent := float64(i+1) / float64(len(layout.divX)+1)
+			text := formatDuration(g.graphs[0].PercentAsDuration(percent))
+			textExtents := cr.TextExtents(text)
+			cr.MoveTo(x+layout.leftLegendWidth-textExtents.Width/2.0, layout.zeroY+layout.maxHeight+textExtents.Height+2)
+			cr.ShowText(text)
+		}
+	}
 
-	cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
-	cr.SetLineWidth(layout.divisionWidth)
-	cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
-	cr.LineTo(endX, layout.zeroY-layout.maxHeight)
-	cr.LineTo(endX, layout.zeroY+layout.maxHeight)
-	cr.LineTo(startX, layout.zeroY+layout.maxHeight)
-	cr.ClosePath()
-	cr.Stroke()
+	// the old box
+	if g.timeFrameIndex >= 0 {
+		startX := float64(g.timeFrameIndex)*layout.binWidth + layout.leftLegendWidth
+		endX := float64(g.timeFrameIndex+1)*layout.binWidth + layout.leftLegendWidth
+
+		cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
+		cr.SetLineWidth(layout.divisionLineWidth)
+		cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
+		cr.LineTo(endX, layout.zeroY-layout.maxHeight)
+		cr.LineTo(endX, layout.zeroY+layout.maxHeight)
+		cr.LineTo(startX, layout.zeroY+layout.maxHeight)
+		cr.ClosePath()
+		cr.Stroke()
+	}
 }
 
 func (g *scoreGraph) drawLowZone(cr *cairo.Context, layout graphLayout) {
 	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.areaAlpha))
-	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.MoveTo(layout.leftLegendWidth, layout.zeroY-layout.pointsLowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
-	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
+	cr.LineTo(layout.leftLegendWidth, layout.zeroY+layout.multisLowZoneHeight)
 	cr.ClosePath()
 	cr.Fill()
 
 	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.borderAlpha))
-	cr.SetLineWidth(layout.divisionWidth)
-	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.SetLineWidth(layout.divisionLineWidth)
+	cr.MoveTo(layout.leftLegendWidth, layout.zeroY-layout.pointsLowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
 	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
-	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
+	cr.LineTo(layout.leftLegendWidth, layout.zeroY+layout.multisLowZoneHeight)
 	cr.ClosePath()
 	cr.Stroke()
+
+	// the legend
+	g.drawYLegendAt(cr, layout, layout.zeroY-layout.pointsLowZoneHeight, fmt.Sprintf("%d", int(g.pointsGoal)))
+	g.drawYLegendAt(cr, layout, layout.zeroY+layout.multisLowZoneHeight, fmt.Sprintf("%d", int(g.multisGoal)))
 }
 
 func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
@@ -396,4 +441,8 @@ func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout,
 	}
 	cr.ClosePath()
 	cr.Fill()
+}
+
+func formatDuration(d time.Duration) string {
+	return fmt.Sprintf("%02d:%02d", int(d.Hours()), int(d.Minutes())%60)
 }

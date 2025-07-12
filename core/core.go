@@ -549,6 +549,7 @@ func (s Score) StackedGraphPerBand() []BandGraph {
 			DataPoints: make([]BandScore, len(graph.DataPoints)),
 			Max:        graph.Max,
 			startTime:  graph.startTime,
+			duration:   graph.duration,
 			binSeconds: graph.binSeconds,
 		}
 
@@ -575,6 +576,7 @@ type BandGraph struct {
 	Max        BandScore
 
 	startTime  time.Time
+	duration   time.Duration
 	binSeconds float64
 }
 
@@ -592,6 +594,7 @@ func NewBandGraph(band Band, startTime time.Time, duration time.Duration) BandGr
 
 		binSeconds: duration.Seconds() / float64(binCount),
 		startTime:  startTime,
+		duration:   duration,
 	}
 }
 
@@ -622,6 +625,7 @@ func (g BandGraph) Copy() BandGraph {
 		DataPoints: make([]BandScore, len(g.DataPoints)),
 		Max:        g.Max,
 		startTime:  g.startTime,
+		duration:   g.duration,
 		binSeconds: g.binSeconds,
 	}
 
@@ -688,6 +692,37 @@ func (g BandGraph) ScaleHourlyGoalToBin(goal int) float64 {
 		return float64(goal)
 	}
 	return (g.binSeconds / 3600.0) * float64(goal)
+}
+
+func (g BandGraph) ElapsedTime(timestamp time.Time) time.Duration {
+	if g.startTime.IsZero() {
+		return 0
+	}
+	if timestamp.IsZero() {
+		return 0
+	}
+	if timestamp.Before(g.startTime) {
+		return 0
+	}
+
+	return timestamp.Sub(g.startTime)
+}
+
+func (g BandGraph) ElapsedTimePercent(timestamp time.Time) float64 {
+	if g.startTime.IsZero() {
+		return 0
+	}
+	if g.duration == 0 {
+		return 0
+	}
+	if timestamp.IsZero() {
+		return 0
+	}
+	if timestamp.Before(g.startTime) {
+		return 0
+	}
+
+	return float64(g.ElapsedTime(timestamp)) / float64(g.duration)
 }
 
 type BandScore struct {

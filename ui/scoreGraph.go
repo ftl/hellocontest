@@ -348,8 +348,8 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 		valueScaling = 0
 	}
 	for i := range valueCount {
-		startX := float64(i) * layout.binWidth
-		endX := float64(i+1) * layout.binWidth
+		startX := float64(i)*layout.binWidth + layout.leftLegendWidth
+		endX := float64(i+1)*layout.binWidth + layout.leftLegendWidth
 		value := float64(datapoints[i].Points)
 		y := layout.zeroY - math.Min(value*valueScaling, layout.maxHeight)
 		cr.LineTo(startX, y)
@@ -365,8 +365,8 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 		valueScaling = 0
 	}
 	for i := valueCount - 1; i >= 0; i-- {
-		startX := float64(i+1) * layout.binWidth
-		endX := float64(i) * layout.binWidth
+		startX := float64(i+1)*layout.binWidth + layout.leftLegendWidth
+		endX := float64(i)*layout.binWidth + layout.leftLegendWidth
 		value := float64(datapoints[i].Multis)
 		y := layout.zeroY + math.Min(value*valueScaling, layout.maxHeight)
 		cr.LineTo(startX, y)
@@ -395,9 +395,9 @@ func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout,
 	}
 	lastY := layout.zeroY
 	for i := range valueCount {
-		startX := float64(i) * layout.binWidth
+		startX := float64(i)*layout.binWidth + layout.leftLegendWidth
 		centerX := startX + layout.binWidth/2.0
-		endX := float64(i+1) * layout.binWidth
+		endX := float64(i+1)*layout.binWidth + layout.leftLegendWidth
 		value := float64(datapoints[i].Points)
 		y := layout.zeroY - math.Min(value*valueScaling, layout.maxHeight)
 		if i == 0 {
@@ -422,9 +422,9 @@ func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout,
 	valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
 	lastY = layout.zeroY
 	for i := valueCount - 1; i >= 0; i-- {
-		startX := float64(i+1) * layout.binWidth
+		startX := float64(i+1)*layout.binWidth + layout.leftLegendWidth
 		centerX := startX - layout.binWidth/2.0
-		endX := float64(i) * layout.binWidth
+		endX := float64(i)*layout.binWidth + layout.leftLegendWidth
 		value := float64(datapoints[i].Multis)
 		y := layout.zeroY + math.Min(value*valueScaling, layout.maxHeight)
 		if i == valueCount-1 {

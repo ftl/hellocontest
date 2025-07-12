@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/gotk3/gotk3/cairo"
@@ -12,6 +13,8 @@ import (
 
 const useCurvedGraph = false
 
+const timeIndicatorColorName = "hellocontest-timeindicator"
+
 type scoreGraphStyle struct {
 	colorProvider
 
@@ -21,6 +24,8 @@ type scoreGraphStyle struct {
 	timeFrameColor  style.Color
 	areaAlpha       float64
 	borderAlpha     float64
+
+	fontSize float64
 }
 
 func (s *scoreGraphStyle) Refresh() {
@@ -46,13 +51,12 @@ type scoreGraph struct {
 	useCurvedGraph bool
 }
 
-const timeIndicatorColorName = "hellocontest-timeindicator"
-
 func newScoreGraph(colors colorProvider, clock core.Clock) *scoreGraph {
 	style := &scoreGraphStyle{
 		colorProvider: colors,
 		areaAlpha:     0.4,
 		borderAlpha:   0.8,
+		fontSize:      15,
 	}
 	style.Refresh()
 
@@ -123,6 +127,11 @@ type graphLayout struct {
 	pointsLowZoneHeight float64
 	multisLowZoneHeight float64
 	binWidth            float64
+	divX                []float64
+	axisWidth           float64
+	divisionWidth       float64
+	leftLegendWidth     float64
+	timeIndicatorHeight float64
 }
 
 func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
@@ -135,27 +144,10 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 	if len(g.graphs) > 0 {
 		valueCount = len(g.graphs[0].DataPoints)
 	}
-	layout := g.calculateLayout(da, valueCount)
+	layout := g.calculateLayout(da, cr, valueCount)
 
-	// the background
 	g.fillBackground(cr)
-
-	// the zone
-	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.areaAlpha))
-	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
-	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
-	cr.ClosePath()
-	cr.Fill()
-
-	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.borderAlpha))
-	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
-	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
-	cr.ClosePath()
-	cr.Stroke()
+	g.drawLowZone(cr, layout)
 
 	// the graph
 	for i := len(g.graphs) - 1; i >= 0; i-- {
@@ -170,34 +162,25 @@ func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
 		}
 	}
 
-	// the time frame
-	if g.timeFrameIndex >= 0 && valueCount > 1 {
-		startX := float64(g.timeFrameIndex) * layout.binWidth
-		endX := float64(g.timeFrameIndex+1) * layout.binWidth
-		cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
-		cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
-		cr.LineTo(endX, layout.zeroY-layout.maxHeight)
-		cr.LineTo(endX, layout.zeroY+layout.maxHeight)
-		cr.LineTo(startX, layout.zeroY+layout.maxHeight)
-		cr.ClosePath()
-		cr.Stroke()
-	}
-
-	// the zero line
-	cr.SetSourceRGB(g.style.axisColor.ToRGB())
-	cr.MoveTo(0, layout.zeroY)
-	cr.LineTo(layout.width, layout.zeroY)
-	cr.Stroke()
+	g.drawTimeDivisions(cr, layout)
+	g.drawTimeIndicator(cr, layout)
+	g.drawZeroLine(cr, layout)
 }
 
-func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, valueCount int) graphLayout {
+func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, cr *cairo.Context, valueCount int) graphLayout {
 	result := graphLayout{
-		width:   float64(da.GetAllocatedWidth()),
-		height:  float64(da.GetAllocatedHeight()),
-		marginY: 5.0,
+		width:         float64(da.GetAllocatedWidth()),
+		height:        float64(da.GetAllocatedHeight()),
+		marginY:       10.0,
+		axisWidth:     1.0,
+		divisionWidth: .5,
 	}
 
-	result.zeroY = result.height / 2.0
+	cr.SetFontSize(g.style.fontSize)
+	result.leftLegendWidth = cr.TextExtents("00:00").Width + 2.0
+	result.timeIndicatorHeight = cr.TextExtents("Hg").Height + 2.0
+
+	result.zeroY = (result.height - result.timeIndicatorHeight) / 2.0
 	result.maxHeight = result.zeroY - result.marginY
 	result.pointsLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxPoints))*g.pointsBinGoal)
 	result.multisLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxMultis))*g.multisBinGoal)
@@ -205,6 +188,15 @@ func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, valueCount int) graphL
 		result.binWidth = result.width / float64(valueCount)
 	} else {
 		result.binWidth = result.width
+	}
+
+	const divCount = 8
+	if len(result.divX) != divCount {
+		result.divX = make([]float64, divCount-1)
+	}
+	divWidth := result.width / float64(divCount)
+	for i := range result.divX {
+		result.divX[i] = float64(i+1) * divWidth
 	}
 
 	return result
@@ -216,6 +208,87 @@ func (g *scoreGraph) fillBackground(cr *cairo.Context) {
 
 	cr.SetSourceRGB(g.style.backgroundColor.ToRGB())
 	cr.Paint()
+}
+
+func (g *scoreGraph) drawZeroLine(cr *cairo.Context, layout graphLayout) {
+	cr.SetSourceRGB(g.style.axisColor.ToRGB())
+	cr.SetLineWidth(layout.axisWidth)
+	cr.MoveTo(0, layout.zeroY)
+	cr.LineTo(layout.width, layout.zeroY)
+	cr.Stroke()
+}
+
+func (g *scoreGraph) drawTimeDivisions(cr *cairo.Context, layout graphLayout) {
+	cr.SetSourceRGB(g.style.axisColor.ToRGB())
+	cr.SetLineWidth(layout.divisionWidth)
+	for _, x := range layout.divX {
+		cr.MoveTo(x, layout.zeroY-layout.maxHeight)
+		cr.LineTo(x, layout.zeroY+layout.maxHeight)
+		cr.Stroke()
+	}
+}
+
+func (g *scoreGraph) drawTimeIndicator(cr *cairo.Context, layout graphLayout) {
+	if g.timeFrameIndex <= 0 {
+		return
+	}
+	now := g.clock.Now()
+
+	// the time bar
+	elapsedTimePercent := g.graphs[0].ElapsedTimePercent(now)
+	left := 0.0
+	right := left + (layout.width-left)*elapsedTimePercent
+	bottom := layout.height - layout.marginY
+	top := bottom - layout.timeIndicatorHeight
+
+	cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
+	cr.MoveTo(left, top)
+	cr.LineTo(right, top)
+	cr.LineTo(right, bottom)
+	cr.LineTo(left, bottom)
+	cr.ClosePath()
+	cr.Fill()
+
+	// the elapsed time
+	elapsedTime := g.graphs[0].ElapsedTime(now)
+	elapsedTimeText := fmt.Sprintf("%02d:%02d", int(elapsedTime.Hours()), int(elapsedTime.Minutes())%60)
+
+	cr.SetSourceRGB(g.style.axisColor.ToRGB())
+	cr.SetFontSize(g.style.fontSize)
+	cr.MoveTo(1, layout.height-layout.marginY-1)
+	cr.ShowText(elapsedTimeText)
+
+	// the old box
+	startX := float64(g.timeFrameIndex) * layout.binWidth
+	endX := float64(g.timeFrameIndex+1) * layout.binWidth
+
+	cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
+	cr.SetLineWidth(layout.divisionWidth)
+	cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
+	cr.LineTo(endX, layout.zeroY-layout.maxHeight)
+	cr.LineTo(endX, layout.zeroY+layout.maxHeight)
+	cr.LineTo(startX, layout.zeroY+layout.maxHeight)
+	cr.ClosePath()
+	cr.Stroke()
+}
+
+func (g *scoreGraph) drawLowZone(cr *cairo.Context, layout graphLayout) {
+	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.areaAlpha))
+	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
+	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
+	cr.ClosePath()
+	cr.Fill()
+
+	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.borderAlpha))
+	cr.SetLineWidth(layout.divisionWidth)
+	cr.MoveTo(0, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
+	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
+	cr.LineTo(0, layout.zeroY+layout.multisLowZoneHeight)
+	cr.ClosePath()
+	cr.Stroke()
 }
 
 func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {

@@ -339,7 +339,7 @@ func (g *scoreGraph) drawLowZone(cr *cairo.Context, layout graphLayout) {
 func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
 	valueCount := len(datapoints)
 
-	cr.MoveTo(0, layout.zeroY)
+	cr.MoveTo(layout.leftLegendWidth, layout.zeroY)
 
 	var valueScaling float64
 	if g.pointsBinGoal > 0 {
@@ -385,7 +385,7 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
 	valueCount := len(datapoints)
 
-	cr.MoveTo(0, layout.zeroY)
+	cr.MoveTo(layout.leftLegendWidth, layout.zeroY)
 
 	var valueScaling float64
 	if g.pointsBinGoal > 0 {

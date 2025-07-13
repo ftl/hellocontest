@@ -406,7 +406,7 @@ func (c *Controller) selectCallsign(callsign string) {
 	c.activeField = core.CallsignField
 	c.Enter(callsign)
 	c.view.SetCallsign(c.input.callsign)
-	c.GotoNextField()
+	c.view.SetActiveField(c.activeField)
 }
 
 func (c *Controller) Enter(text string) {

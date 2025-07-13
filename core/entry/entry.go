@@ -71,6 +71,7 @@ type QSOList interface {
 // Keyer functionality used for QSO entry.
 type Keyer interface {
 	SendQuestion(q string)
+	Repeat()
 	Stop()
 }
 
@@ -578,6 +579,14 @@ func (c *Controller) SendQuestion() {
 	default:
 		c.keyer.SendQuestion(c.input.callsign)
 	}
+}
+
+func (c *Controller) RepeatLastTransmission() {
+	if c.keyer == nil {
+		return
+	}
+
+	c.keyer.Repeat()
 }
 
 func (c *Controller) enterCallsign(s string) {

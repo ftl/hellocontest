@@ -121,6 +121,7 @@ type Keyer struct {
 	labels                *map[int]string
 	patterns              *map[int]string
 	templates             *map[int]*template.Template
+	lastTransmission      string
 }
 
 func (k *Keyer) setWorkmode(workmode core.Workmode) {
@@ -531,7 +532,12 @@ func (k *Keyer) SendQuestion(q string) {
 
 func (k *Keyer) send(s string) {
 	log.Printf("sending %s", s)
+	k.lastTransmission = s
 	k.client.Send(s)
+}
+
+func (k *Keyer) Repeat() {
+	k.send(k.lastTransmission)
 }
 
 func (k *Keyer) Stop() {

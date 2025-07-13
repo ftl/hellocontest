@@ -23,6 +23,7 @@ type EntryController interface {
 	SelectMatch(int)
 	SelectBestMatchOnFrequency()
 	SendQuestion()
+	RepeatLastTransmission()
 	StopTX()
 	SetXITActive(bool)
 
@@ -147,6 +148,9 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 		return true
 	case gdk.KEY_question:
 		v.controller.SendQuestion()
+		return true
+	case gdk.KEY_equal:
+		v.controller.RepeatLastTransmission()
 		return true
 	default:
 		return false

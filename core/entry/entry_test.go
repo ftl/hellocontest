@@ -247,7 +247,7 @@ func TestEntryController_EnterFrequency(t *testing.T) {
 	view.On("SetCallsign", "").Once()
 
 	controller.Enter("7028")
-	controller.Log()
+	controller.EnterPressed()
 
 	assert.Equal(t, "", controller.input.callsign)
 
@@ -299,7 +299,7 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	controller.GotoNextField()
 	controller.Enter("thx")
 
-	controller.Log()
+	controller.EnterPressed()
 
 	log.AssertExpectations(t)
 	qsoList.AssertExpectations(t)
@@ -315,7 +315,7 @@ func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 	view.On("ShowMessage", mock.Anything).Once()
 
 	controller.Enter("DL")
-	controller.Log()
+	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
@@ -339,7 +339,7 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
-	controller.Log()
+	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
@@ -365,7 +365,7 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	view.On("SetActiveField", core.TheirExchangeField(2)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
-	controller.Log()
+	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
@@ -389,7 +389,7 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	view.On("SetActiveField", core.TheirExchangeField(2)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
-	controller.Log()
+	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
@@ -419,7 +419,7 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	view.On("SetActiveField", core.MyExchangeField(1)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
 
-	controller.Log()
+	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
@@ -512,7 +512,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	controller.GotoNextField()
 	controller.Enter("thx")
 
-	controller.Log()
+	controller.EnterPressed()
 
 	log.AssertExpectations(t)
 	qsoList.AssertExpectations(t)
@@ -588,7 +588,7 @@ func TestEntryController_EditQSO(t *testing.T) {
 	log.On("Log", changedQSO).Once()
 	log.On("LastExchange").Return([]string{"599", "001", ""}).Times(2)
 	log.On("NextNumber").Return(core.QSONumber(35))
-	controller.Log()
+	controller.EnterPressed()
 
 	log.AssertExpectations(t)
 }
@@ -607,6 +607,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
 	controller.SetView(view)
+	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
 
 	return clock, log, qsoList, view, controller, settings
@@ -625,6 +626,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
 	controller.SetView(view)
+	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
 
 	return clock, log, qsoList, view, controller, settings
@@ -647,6 +649,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	controller.SetVFO(vfo)
 	controller.SetLogbook(log)
 	controller.SetView(view)
+	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
 
 	return clock, log, qsoList, view, controller, settings

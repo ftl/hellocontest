@@ -828,7 +828,7 @@ func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *cor
 				return field, err
 			}
 		default:
-			if len(c.currentCallinfoFrame.PredictedExchange) == len(theirExchange) && theirExchange[i] == "" {
+			if len(c.currentCallinfoFrame.PredictedExchange) == len(theirExchange) && len(theirExchange) > i && theirExchange[i] == "" {
 				c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
 				return field, fmt.Errorf("check their exchange")
 			}

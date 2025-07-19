@@ -27,6 +27,7 @@ type EntryController interface {
 	StopTX()
 	SetXITActive(bool)
 
+	EnterPressed()
 	Log()
 	Clear()
 }
@@ -143,7 +144,7 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 		if alt {
 			v.controller.SelectBestMatchOnFrequency()
 		} else {
-			v.controller.Log()
+			v.controller.EnterPressed()
 		}
 		return true
 	case gdk.KEY_question:

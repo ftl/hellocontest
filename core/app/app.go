@@ -174,6 +174,8 @@ func (c *Controller) Startup() {
 		c.Bandmap,
 		c.asyncRunner,
 	)
+	c.Entry.SetESMEnabled(c.session.ESM())
+	c.Entry.Notify(c.session)
 	c.Entry.Notify(c.hamDXMap)
 	c.Bandmap.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
@@ -742,6 +744,14 @@ func (c *Controller) LogQSO() {
 
 func (c *Controller) StartParrot() {
 	c.Parrot.Start()
+}
+
+func (c *Controller) ESMEnabled() bool {
+	return c.Entry.ESMEnabled()
+}
+
+func (c *Controller) SetESMEnabled(enabled bool) {
+	c.Entry.SetESMEnabled(enabled)
 }
 
 func (c *Controller) SwitchToSPWorkmode() {

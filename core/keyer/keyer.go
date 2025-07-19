@@ -138,6 +138,17 @@ func (k *Keyer) setWorkmode(workmode core.Workmode) {
 	}
 }
 
+func (k *Keyer) getTemplatesByWorkmode(workmode core.Workmode) map[int]*template.Template {
+	switch workmode {
+	case core.SearchPounce:
+		return k.spTemplates
+	case core.Run:
+		return k.runTemplates
+	default:
+		return nil
+	}
+}
+
 func (k *Keyer) SetWriter(writer Writer) {
 	if writer == nil {
 		k.writer = new(nullWriter)
@@ -488,9 +499,10 @@ func (k *Keyer) GetPattern(index int) string {
 	return (*k.patterns)[index]
 }
 
-func (k *Keyer) GetText(index int) (string, error) {
+func (k *Keyer) GetText(workmode core.Workmode, index int) (string, error) {
 	buffer := bytes.NewBufferString("")
-	template, ok := (*k.templates)[index]
+	templates := k.getTemplatesByWorkmode(workmode)
+	template, ok := templates[index]
 	if !ok {
 		return "", nil
 	}
@@ -516,18 +528,21 @@ func (k *Keyer) fillins() map[string]any {
 }
 
 func (k *Keyer) Send(index int) {
-	message, err := k.GetText(index)
+	message, err := k.GetText(k.workmode, index)
 	if err != nil {
 		k.buttonView.ShowMessage(err)
 		return
 	}
 	k.send(message)
-	log.Printf("Sending %s", message)
 }
 
 func (k *Keyer) SendQuestion(q string) {
 	s := strings.TrimSpace(q) + "?"
 	k.send(s)
+}
+
+func (k *Keyer) SendText(text string) {
+	k.send(text)
 }
 
 func (k *Keyer) send(s string) {

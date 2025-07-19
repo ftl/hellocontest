@@ -257,6 +257,18 @@ type KeyerValues struct {
 // FilterPlaceholder can be used as placeholder for a missed character in the callsign.
 const FilterPlaceholder = "."
 
+// ESMState represents the current state of the ESM state machine.
+type ESMState int
+
+const (
+	ESMCallsignEmpty ESMState = iota
+	ESMCallsignInvalid
+	ESMCallsignValid
+	ESMExchangeInvalid
+	ESMExchangeValid
+	ESMUnknown
+)
+
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
 type AnnotatedCallsign struct {
 	Callsign          callsign.Callsign

@@ -31,6 +31,7 @@ type MainMenuController interface {
 	RefreshPrediction()
 	LogQSO()
 	StartParrot()
+	SetESMEnabled(enabled bool)
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
 	SetXITActive(active bool)
@@ -68,6 +69,7 @@ type mainMenu struct {
 	editRefreshPrediction *gtk.MenuItem
 	editLogQSO            *gtk.MenuItem
 	editStartParrot       *gtk.MenuItem
+	editESM               *gtk.CheckMenuItem
 	editSP                *gtk.RadioMenuItem
 	editRun               *gtk.RadioMenuItem
 
@@ -112,6 +114,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editRefreshPrediction = getUI(builder, "menuEditRefreshPrediction").(*gtk.MenuItem)
 	result.editLogQSO = getUI(builder, "menuEditLogQSO").(*gtk.MenuItem)
 	result.editStartParrot = getUI(builder, "menuEditStartParrot").(*gtk.MenuItem)
+	result.editESM = getUI(builder, "menuEditESM").(*gtk.CheckMenuItem)
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
 	result.radioXITActive = getUI(builder, "menuRadioXITActive").(*gtk.CheckMenuItem)
@@ -147,6 +150,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editRefreshPrediction.Connect("activate", result.onEditRefreshPrediction)
 	result.editLogQSO.Connect("activate", result.onLogQSO)
 	result.editStartParrot.Connect("activate", result.onStartParrot)
+	result.editESM.Connect("toggled", result.onESM)
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
 	result.radioXITActive.Connect("toggled", result.onXITActive)
@@ -184,6 +188,12 @@ func (m *mainMenu) WorkmodeChanged(workmode core.Workmode) {
 			return
 		}
 		m.editRun.SetActive(true)
+	}
+}
+
+func (m *mainMenu) ESMEnabled(enabled bool) {
+	if m.editESM.GetActive() != enabled {
+		m.editESM.SetActive(enabled)
 	}
 }
 
@@ -280,6 +290,10 @@ func (m *mainMenu) onLogQSO() {
 
 func (m *mainMenu) onStartParrot() {
 	m.controller.StartParrot()
+}
+
+func (m *mainMenu) onESM() {
+	m.controller.SetESMEnabled(m.editESM.GetActive())
 }
 
 func (m *mainMenu) onSP() {

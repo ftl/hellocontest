@@ -91,7 +91,7 @@ var ScreenshotsScript = &Script{
 		{
 			enter: AskForScreenshot("main window CW macros", 0),
 			steps: []Step{
-				Describe("only the CW area, mark (1) workmode, (2) macro button, (3) macros... button, (4) speed setting", 3*time.Second),
+				Describe("only the CW area, mark (1) workmode, (2) ESM, (3) macro button, (4) macros... button, (5) speed setting", 3*time.Second),
 				TriggerScreenshot("main_window_macros"),
 				func(_ context.Context, r *Runtime) time.Duration {
 					r.UI(func() {

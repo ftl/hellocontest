@@ -25,6 +25,7 @@ type mainWindow struct {
 	*statusView
 	*callinfoView
 	*stopKeyHandler
+	*esmView
 }
 
 func setupMainWindow(builder *gtk.Builder, application *gtk.Application, style *style.Style, setAcceptFocus AcceptFocusFunc) *mainWindow {
@@ -44,6 +45,7 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application, style *
 	result.statusView = setupStatusView(builder, style.ForWidget(result.window.ToWidget()))
 	result.callinfoView = setupCallinfoView(builder, style.ForWidget(result.window.ToWidget()))
 	result.stopKeyHandler = setupStopKeyHandler(&result.window.Widget)
+	result.esmView = setupESMView(builder)
 
 	result.window.Connect("style-updated", result.callinfoView.RefreshStyle)
 

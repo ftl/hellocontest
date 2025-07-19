@@ -71,6 +71,8 @@ type QSOList interface {
 // Keyer functionality used for QSO entry.
 type Keyer interface {
 	SendQuestion(q string)
+	GetText(workmode core.Workmode, index int) (string, error)
+	SendText(text string)
 	Repeat()
 	Stop()
 }
@@ -96,6 +98,7 @@ func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, ba
 		asyncRunner: asyncRunner,
 		qsoList:     qsoList,
 		bandmap:     bandmap,
+		esmView:     new(nullESMView),
 
 		stationCallsign: settings.Station().Callsign.String(),
 	}
@@ -113,6 +116,7 @@ type Controller struct {
 	callinfo Callinfo
 	vfo      core.VFO
 	bandmap  Bandmap
+	esmView  ESMView
 
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
@@ -146,6 +150,10 @@ type Controller struct {
 	ptt            bool
 	parrotActive   bool
 	parrotTimeLeft time.Duration
+
+	esmEnabled bool
+	esmState   core.ESMState
+	esmMessage string
 }
 
 func (c *Controller) Notify(listener any) {
@@ -246,13 +254,13 @@ func (c *Controller) GotoNextField() core.EntryField {
 		nextField = core.CallsignField
 	}
 
-	c.activeField = nextField
+	c.SetActiveField(nextField)
 	c.view.SetActiveField(c.activeField)
 	return c.activeField
 }
 
 func (c *Controller) GotoNextPlaceholder() {
-	c.activeField = core.CallsignField
+	c.SetActiveField(core.CallsignField)
 	c.view.SetActiveField(c.activeField)
 	c.view.SelectText(c.activeField, core.FilterPlaceholder)
 }
@@ -390,6 +398,7 @@ func (c *Controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
 
 func (c *Controller) SetActiveField(field core.EntryField) {
 	c.activeField = field
+	c.updateESM()
 }
 
 func (c *Controller) SelectMatch(index int) {
@@ -404,7 +413,7 @@ func (c *Controller) selectCallsign(callsign string) {
 	if callsign == "" {
 		return
 	}
-	c.activeField = core.CallsignField
+	c.SetActiveField(core.CallsignField)
 	c.Enter(callsign)
 	c.view.SetCallsign(c.input.callsign)
 	c.view.SetActiveField(c.activeField)
@@ -431,6 +440,8 @@ func (c *Controller) Enter(text string) {
 		c.input.theirExchange[i] = text
 		c.enterTheirExchange(c.activeField)
 	}
+
+	c.updateESM()
 }
 
 func (c *Controller) frequencyEntered(frequency core.Frequency) {
@@ -462,7 +473,6 @@ func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
 
 	if jump && !c.ignoreFrequencyJump {
 		c.Clear()
-		c.activeField = core.CallsignField
 		c.view.SetActiveField(c.activeField)
 	}
 	c.ignoreFrequencyJump = false
@@ -557,6 +567,9 @@ func (c *Controller) VFOPTTChanged(active bool) {
 func (c *Controller) ParrotActive(active bool) {
 	c.parrotActive = active
 	c.updateTXState()
+	if active {
+		c.Clear()
+	}
 }
 
 func (c *Controller) ParrotTimeLeft(timeLeft time.Duration) {
@@ -630,7 +643,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.notifyCallinfoInputChanged(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
 }
 
-func (c *Controller) Log() {
+func (c *Controller) EnterPressed() {
 	if c.parseCallsignCommand() {
 		c.input.callsign = ""
 		c.enterCallsign(c.input.callsign)
@@ -638,6 +651,14 @@ func (c *Controller) Log() {
 		return
 	}
 
+	if c.esmEnabled && !c.editing {
+		c.NextESMStep()
+	} else {
+		c.Log()
+	}
+}
+
+func (c *Controller) Log() {
 	var err error
 	qso := core.QSO{}
 	if c.editing {
@@ -668,41 +689,10 @@ func (c *Controller) Log() {
 
 	// handle their exchange
 	qso.TheirExchange = make([]string, len(c.theirExchangeFields))
-
-	for i, field := range c.theirExchangeFields {
-		value := c.input.theirExchange[i]
-		if value == "" && !field.EmptyAllowed {
-			c.showErrorOnField(fmt.Errorf("%s is missing", field.Short), field.Field) // TODO use field.Name
-			return
-		}
-
-		// TODO parse the value using the conval validators and show an error on the field
-
-		qso.TheirExchange[i] = value
-
-		switch field.Field {
-		case c.theirReportExchangeField.Field:
-			qso.TheirReport, err = parse.RST(value)
-			if err != nil {
-				c.showErrorOnField(err, field.Field)
-				return
-			}
-		case c.theirNumberExchangeField.Field:
-			theirNumber, err := strconv.Atoi(value)
-			if err == nil {
-				qso.TheirExchange[i] = fmt.Sprintf("%03d", theirNumber)
-				qso.TheirNumber = core.QSONumber(theirNumber)
-			} else if len(field.Properties) == 1 {
-				c.showErrorOnField(err, field.Field)
-				return
-			}
-		default:
-			if qso.TheirExchange[i] == "" && len(c.currentCallinfoFrame.PredictedExchange) == len(qso.TheirExchange) {
-				c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
-				c.showErrorOnField(fmt.Errorf("check their exchange"), field.Field)
-				return
-			}
-		}
+	fieldWithError, err := c.parseTheirExchange(qso.TheirExchange, &qso.TheirReport, &qso.TheirNumber)
+	if err != nil {
+		c.showErrorOnField(err, fieldWithError.Field)
+		return
 	}
 
 	// handle my exchange
@@ -801,8 +791,54 @@ func parseBandmapCallsign(s string) (callsign.Callsign, bool) {
 	return call, true
 }
 
+// parseTheirExchange parses their exchange fields and writes the values into the slice/pointers. Parsing errors are returned.
+// The arguments may be nil, this can be used to just validate the input.
+func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *core.RST, theirNumber *core.QSONumber) (core.ExchangeField, error) {
+	for i, field := range c.theirExchangeFields {
+		value := c.input.theirExchange[i]
+		if value == "" && !field.EmptyAllowed {
+			return field, fmt.Errorf("%s is missing", field.Short) // TODO use field.Name
+		}
+
+		// TODO parse the value using the conval validators and show an error on the field
+
+		if len(theirExchange) > i {
+			theirExchange[i] = value
+		}
+
+		switch field.Field {
+		case c.theirReportExchangeField.Field:
+			rst, err := parse.RST(value)
+			if err != nil {
+				return field, err
+			}
+			if theirReport != nil {
+				*theirReport = rst
+			}
+		case c.theirNumberExchangeField.Field:
+			n, err := strconv.Atoi(value)
+			if err == nil {
+				if len(theirExchange) > i {
+					theirExchange[i] = fmt.Sprintf("%03d", n)
+				}
+				if theirNumber != nil {
+					*theirNumber = core.QSONumber(n)
+				}
+			} else if len(field.Properties) == 1 {
+				return field, err
+			}
+		default:
+			if len(c.currentCallinfoFrame.PredictedExchange) == len(theirExchange) && theirExchange[i] == "" {
+				c.setTheirExchangePrediction(i, c.currentCallinfoFrame.PredictedExchange[i])
+				return field, fmt.Errorf("check their exchange")
+			}
+		}
+	}
+	return core.ExchangeField{}, nil
+}
+
 func (c *Controller) showErrorOnField(err error, field core.EntryField) {
-	c.activeField = field
+	c.SetActiveField(field)
 	c.errorField = field
 	c.view.SetActiveField(c.activeField)
 	c.view.ShowMessage(err)
@@ -862,6 +898,8 @@ func (c *Controller) Clear() {
 		}
 	}
 	c.setMyNumberInput(nextNumber.String())
+
+	c.updateESM()
 
 	c.showInput()
 	c.view.SetMyCall(c.stationCallsign)
@@ -937,6 +975,7 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 
 func (c *Controller) WorkmodeChanged(workmode core.Workmode) {
 	c.workmode = workmode
+	c.updateESM()
 }
 
 func (c *Controller) updateExchangeFields(contest core.Contest) {
@@ -982,59 +1021,8 @@ func (c *Controller) EntrySelected(entry core.BandmapEntry) {
 	c.Clear()
 	c.ignoreFrequencyJump = true
 	c.frequencyEntered(entry.Frequency)
-	c.activeField = core.CallsignField
+	c.SetActiveField(core.CallsignField)
 	c.Enter(entry.Call.String())
 	c.view.SetCallsign(c.input.callsign)
 	c.GotoNextField()
 }
-
-type nullView struct{}
-
-func (n *nullView) SetUTC(string)                                                        {}
-func (n *nullView) SetMyCall(string)                                                     {}
-func (n *nullView) SetFrequency(core.Frequency)                                          {}
-func (n *nullView) SetCallsign(string)                                                   {}
-func (n *nullView) SetBand(text string)                                                  {}
-func (n *nullView) SetMode(text string)                                                  {}
-func (n *nullView) SetXITActive(active bool)                                             {}
-func (n *nullView) SetXIT(active bool, offset core.Frequency)                            {}
-func (n *nullView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {}
-func (n *nullView) SetMyExchange(int, string)                                            {}
-func (n *nullView) SetTheirExchange(int, string)                                         {}
-func (n *nullView) SetMyExchangeFields([]core.ExchangeField)                             {}
-func (n *nullView) SetTheirExchangeFields([]core.ExchangeField)                          {}
-func (n *nullView) SetActiveField(core.EntryField)                                       {}
-func (n *nullView) SelectText(core.EntryField, string)                                   {}
-func (n *nullView) SetDuplicateMarker(bool)                                              {}
-func (n *nullView) SetEditingMarker(bool)                                                {}
-func (n *nullView) ShowMessage(...interface{})                                           {}
-func (n *nullView) ClearMessage()                                                        {}
-
-type nullVFO struct{}
-
-func (n *nullVFO) Notify(any)                  {}
-func (n *nullVFO) Active() bool                { return false }
-func (n *nullVFO) Refresh()                    {}
-func (n *nullVFO) SetFrequency(core.Frequency) {}
-func (n *nullVFO) SetBand(core.Band)           {}
-func (n *nullVFO) SetMode(core.Mode)           {}
-func (n *nullVFO) SetXIT(bool, core.Frequency) {}
-func (n *nullVFO) XITActive() bool             { return false }
-func (n *nullVFO) SetXITActive(bool)           {}
-
-type nullLogbook struct{}
-
-func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
-func (n *nullLogbook) LastBand() core.Band        { return core.NoBand }
-func (n *nullLogbook) LastMode() core.Mode        { return core.NoMode }
-func (n *nullLogbook) LastExchange() []string     { return nil }
-func (n *nullLogbook) Log(core.QSO)               {}
-
-type nullCallinfo struct{}
-
-func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) {}
-
-type nullBandmap struct{}
-
-func (n *nullBandmap) Add(core.Spot)                      {}
-func (n *nullBandmap) SelectByCallsign(callsign.Callsign) {}

@@ -7,4 +7,5 @@ message State {
     bool send_spots_to_tci = 2;
     string radio1 = 3;
     string keyer1 = 4;
+    bool esm = 5;
 }

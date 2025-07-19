@@ -4,6 +4,7 @@ package session
 import (
 	fmt "fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -27,6 +28,7 @@ func NewDefaultSession() *Session {
 		state: &State{
 			LastFilename:   "current.log",
 			SendSpotsToTci: true,
+			Esm:            true,
 		},
 	}
 }
@@ -69,6 +71,22 @@ func (s *Session) Keyer1() string {
 func (s *Session) SetKeyer1(value string) error {
 	s.state.Keyer1 = value
 	return s.Store()
+}
+
+func (s *Session) ESM() bool {
+	return s.state.Esm
+}
+
+func (s *Session) SetESM(enabled bool) error {
+	s.state.Esm = enabled
+	return s.Store()
+}
+
+func (s *Session) ESMEnabled(enabled bool) {
+	err := s.SetESM(enabled)
+	if err != nil {
+		log.Printf("cannot store ESM state in the session: %v", err)
+	}
 }
 
 func (s *Session) Restore() error {

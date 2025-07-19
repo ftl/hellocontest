@@ -123,10 +123,13 @@ func (a *application) activate() {
 	a.mainWindow.SetEntryController(a.controller.Entry)
 	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
 	a.mainWindow.SetKeyerController(a.controller.Keyer)
+	a.mainWindow.SetESMController(a.controller.Entry)
 
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.mainWindow)
 	a.controller.Entry.SetView(a.mainWindow)
+	a.controller.Entry.SetESMView(a.mainWindow.esmView)
+	a.controller.Entry.Notify(a.mainWindow)
 	a.controller.VFO.Notify(a.mainWindow)
 	a.controller.Workmode.SetView(a.mainWindow)
 	a.controller.Workmode.Notify(a.mainWindow)
@@ -146,6 +149,8 @@ func (a *application) activate() {
 	a.controller.ExportCabrilloController.SetView(a.exportCabrilloDialog)
 	a.controller.Clusters.SetView(a.mainWindow)
 	a.controller.Parrot.SetView(a.mainWindow)
+
+	a.mainWindow.mainMenu.editESM.SetActive(a.controller.ESMEnabled())
 
 	a.mainWindow.ConnectToGeometry(a.windowGeometry)
 	err = a.windowGeometry.Restore()

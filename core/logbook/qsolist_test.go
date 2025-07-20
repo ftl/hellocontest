@@ -206,6 +206,34 @@ func TestFindWorkedQSOs(t *testing.T) {
 	assert.True(t, dupeDL2ABC, "dl2abc dupe")
 }
 
+func TestFind(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	n1mm := callsign.MustParse("N1MM")
+	list := NewQSOList(new(testSettings), new(testScorer))
+	list.bandRule = conval.Once
+	list.Put(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	list.Put(core.QSO{Callsign: dl2abc, MyNumber: 3})
+	list.Put(core.QSO{Callsign: n1mm, MyNumber: 5})
+
+	matches, err := list.Find("DL1ABC")
+	require.NoError(t, err)
+	assert.Len(t, matches, 2, "matches for DL1ABC")
+	assert.Equal(t, dl1abc, matches[0].Callsign, "callsign 0 for DL1ABC")
+	assert.Equal(t, dl2abc, matches[1].Callsign, "callsign 1 for DL1ABC")
+
+	matches, err = list.Find("DL0ABC")
+	require.NoError(t, err)
+	assert.Len(t, matches, 2, "matches for DL0ABC")
+	assert.Equal(t, dl1abc, matches[0].Callsign, "callsign 0 for DL0ABC")
+	assert.Equal(t, dl2abc, matches[1].Callsign, "callsign 1 for DL0ABC")
+
+	matches, err = list.Find("N1MM")
+	require.NoError(t, err)
+	assert.Len(t, matches, 1, "matches for N1MM")
+	assert.Equal(t, n1mm, matches[0].Callsign, "callsign 0 for N1MM")
+}
+
 func TestSelectRow(t *testing.T) {
 	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
 	list := NewQSOList(new(testSettings), new(testScorer))

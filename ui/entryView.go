@@ -143,6 +143,8 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 	case gdk.KEY_Return:
 		if alt {
 			v.controller.SelectBestMatchOnFrequency()
+		} else if ctrl {
+			v.controller.Log()
 		} else {
 			v.controller.EnterPressed()
 		}

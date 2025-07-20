@@ -6,6 +6,7 @@ import (
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -72,12 +73,13 @@ type QSOList struct {
 	theirExchangeFields []core.ExchangeField
 	bandRule            conval.BandRule
 
-	dataLock *sync.RWMutex
-	list     []core.QSO
-	scorer   QSOScorer
-	dupes    dupeIndex
-	worked   dupeIndex
-	invalid  bool
+	dataLock  *sync.RWMutex
+	list      []core.QSO
+	scorer    QSOScorer
+	dupes     dupeIndex     // used to find duplicate QSOs for a given callsign, band and mode, according to the contest rules
+	worked    dupeIndex     // used to find worked QSOs for a given callsign
+	callsigns *scp.Database // used to find worked callsigns similar to a given string, e.g. for supercheck
+	invalid   bool
 
 	listeners []any
 }
@@ -92,6 +94,7 @@ func NewQSOList(settings core.Settings, scorer QSOScorer) *QSOList {
 		scorer:              scorer,
 		dupes:               make(dupeIndex),
 		worked:              make(dupeIndex),
+		callsigns:           scp.NewDatabase(),
 	}
 }
 
@@ -127,6 +130,7 @@ func (l *QSOList) clear() {
 	l.list = make([]core.QSO, 0)
 	l.dupes = make(dupeIndex)
 	l.worked = make(dupeIndex)
+	l.callsigns = scp.NewDatabase()
 	l.invalid = false
 }
 
@@ -224,6 +228,7 @@ func (l *QSOList) append(qso core.QSO) func([]core.QSO) {
 	dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
 	l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
 	l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
+	l.callsigns.Add(qso.Callsign.String())
 
 	l.list = append(l.list, qso)
 
@@ -246,6 +251,7 @@ func (l *QSOList) refreshScore() {
 	l.scorer.Clear()
 	l.dupes = make(dupeIndex)
 	l.worked = make(dupeIndex)
+	l.callsigns = scp.NewDatabase()
 	for i, qso := range l.list {
 		score := l.scorer.AddMuted(qso)
 		qso.Points = score.Points
@@ -255,6 +261,7 @@ func (l *QSOList) refreshScore() {
 		dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
 		l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
 		l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
+		l.callsigns.Add(qso.Callsign.String())
 
 		l.list[i] = qso
 	}
@@ -387,6 +394,66 @@ func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mod
 		}
 	}
 	return qsos, duplicate
+}
+
+func (l *QSOList) Find(s string) ([]core.AnnotatedCallsign, error) {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	if l.callsigns == nil {
+		return nil, nil
+	}
+	matches, err := l.callsigns.Find(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return toAnnotatedCallsigns(matches), nil
+}
+
+func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
+	result := make([]core.AnnotatedCallsign, 0, len(matches))
+
+	for _, match := range matches {
+		annotatedCallsign, err := toAnnotatedCallsign(match)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		result = append(result, annotatedCallsign)
+	}
+
+	return result
+}
+
+func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
+	cs, err := callsign.Parse(match.Key())
+	if err != nil {
+		return core.AnnotatedCallsign{}, nil
+	}
+	return core.AnnotatedCallsign{
+		Callsign:   cs,
+		Assembly:   toMatchingAssembly(match),
+		Comparable: match,
+		Compare: func(a any, b any) bool {
+			aMatch, aOk := a.(scp.Match)
+			bMatch, bOk := b.(scp.Match)
+			if !aOk || !bOk {
+				return false
+			}
+			return aMatch.LessThan(bMatch)
+		},
+	}, nil
+}
+
+func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
+	result := make(core.MatchingAssembly, len(match.Assembly))
+
+	for i, part := range match.Assembly {
+		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
+	}
+
+	return result
 }
 
 func (l *QSOList) Notify(listener any) {

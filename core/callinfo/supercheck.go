@@ -64,12 +64,15 @@ func (s *Supercheck) Calculate(input string, band core.Band, mode core.Mode) []c
 }
 
 func (s *Supercheck) findMatchingCallsigns(input string) map[callsign.Callsign]core.AnnotatedCallsign {
-	// TODO: include the worked QSOs in the search?
-	if s.callsigns == nil || s.history == nil {
+	if s.dupes == nil || s.callsigns == nil || s.history == nil {
 		return map[callsign.Callsign]core.AnnotatedCallsign{}
 	}
 
 	normalizedInput := normalizeInput(input)
+	dupeMatches, err := s.dupes.Find(normalizedInput)
+	if err != nil {
+		dupeMatches = []core.AnnotatedCallsign{}
+	}
 	scpMatches, err := s.callsigns.Find(normalizedInput)
 	if err != nil {
 		scpMatches = []core.AnnotatedCallsign{}
@@ -79,9 +82,19 @@ func (s *Supercheck) findMatchingCallsigns(input string) map[callsign.Callsign]c
 		historicMatches = []core.AnnotatedCallsign{}
 	}
 
-	result := make(map[callsign.Callsign]core.AnnotatedCallsign, len(scpMatches)+len(historicMatches))
-	for _, match := range scpMatches {
+	result := make(map[callsign.Callsign]core.AnnotatedCallsign, len(dupeMatches)+len(scpMatches)+len(historicMatches))
+	for _, match := range dupeMatches {
 		result[match.Callsign] = match
+	}
+	for _, match := range scpMatches {
+		var annotatedCallsign core.AnnotatedCallsign
+		storedCallsign, found := result[match.Callsign]
+		if found {
+			annotatedCallsign = storedCallsign
+		} else {
+			annotatedCallsign = match
+		}
+		result[annotatedCallsign.Callsign] = annotatedCallsign
 	}
 	for _, match := range historicMatches {
 		var annotatedCallsign core.AnnotatedCallsign

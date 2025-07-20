@@ -29,8 +29,10 @@ type CallHistoryFinder interface {
 }
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
+// It can also find worked callsigns that are similar to a given string, e.g. for supercheck.
 type DupeChecker interface {
 	FindWorkedQSOs(callsign.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
+	Find(string) ([]core.AnnotatedCallsign, error)
 }
 
 // Valuer provides the points and multis of a QSO based on the given information.

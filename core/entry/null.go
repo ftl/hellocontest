@@ -29,7 +29,7 @@ func (n *nullView) SetActiveField(core.EntryField)                              
 func (n *nullView) SelectText(core.EntryField, string)                                   {}
 func (n *nullView) SetDuplicateMarker(bool)                                              {}
 func (n *nullView) SetEditingMarker(bool)                                                {}
-func (n *nullView) ShowMessage(...interface{})                                           {}
+func (n *nullView) ShowMessage(...any)                                                   {}
 func (n *nullView) ClearMessage()                                                        {}
 
 type nullVFO struct{}

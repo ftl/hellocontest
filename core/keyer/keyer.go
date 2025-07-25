@@ -18,7 +18,7 @@ const PatternCount = 4
 
 // ButtonView represents the visual parts of trigger the transmission of the keyer macros.
 type ButtonView interface {
-	ShowMessage(...interface{})
+	ShowMessage(...any)
 	SetLabel(int, string)
 	SetPattern(int, string)
 	SetSpeed(int)
@@ -78,7 +78,7 @@ func New(settings core.Settings, client CWClient, keyerSettings core.KeyerSettin
 		values:          noValues,
 	}
 	result.setWorkmode(workmode)
-	result.SetSettings(keyerSettings)
+	result.SetSettings(keyerSettings, "")
 	result.presetNames = presetNames(presets)
 	if result.client == nil {
 		result.client = new(nullClient)
@@ -166,7 +166,7 @@ func (k *Keyer) SetParrot(parrot Parrot) {
 	k.parrot.SetInterval(time.Duration(k.parrotIntervalSeconds) * time.Second)
 }
 
-func (k *Keyer) SetSettings(settings core.KeyerSettings) {
+func (k *Keyer) SetSettings(settings core.KeyerSettings, presetName string) {
 	k.savedSettings = settings
 
 	spLabels := settings.SPLabels
@@ -174,12 +174,18 @@ func (k *Keyer) SetSettings(settings core.KeyerSettings) {
 	runLabels := settings.RunLabels
 	runMacros := settings.RunMacros
 
-	preset, ok := k.presetByName(settings.Preset)
+	preset, ok := k.presetByName(presetName)
+	if !ok {
+		preset, ok = k.presetByName(settings.Preset)
+	}
 	if ok {
 		spLabels = applyPreset(settings.SPLabels, preset.SPLabels)
 		spMacros = applyPreset(settings.SPMacros, preset.SPMacros)
 		runLabels = applyPreset(settings.RunLabels, preset.RunLabels)
 		runMacros = applyPreset(settings.RunMacros, preset.RunMacros)
+		k.selectedPreset = &preset
+	} else {
+		k.selectedPreset = nil
 	}
 
 	k.wpm = settings.WPM
@@ -287,6 +293,11 @@ func (k *Keyer) OpenKeyerSettings() {
 func (k *Keyer) showKeyerSettings() {
 	if k.settingsView == nil {
 		return
+	}
+	if k.selectedPreset == nil {
+		k.settingsView.SetPreset("")
+	} else {
+		k.settingsView.SetPreset(k.selectedPreset.Name)
 	}
 	for i, label := range k.spLabels {
 		k.settingsView.SetLabel(core.SearchPounce, i, label)
@@ -399,7 +410,7 @@ func (k *Keyer) SelectPreset(name string) {
 	copy(settings.SPMacros, preset.SPMacros)
 	copy(settings.RunLabels, preset.RunLabels)
 	copy(settings.RunMacros, preset.RunMacros)
-	k.SetSettings(settings)
+	k.SetSettings(settings, "")
 	k.Save()
 }
 

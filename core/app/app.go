@@ -320,7 +320,7 @@ func (c *Controller) openCurrentLog() error {
 		}
 		c.Keyer.SetWriter(store)
 		if keyerSettings != nil {
-			c.Keyer.SetSettings(*keyerSettings)
+			c.Keyer.SetSettings(*keyerSettings, "")
 		}
 		newLogbook = logbook.Load(c.clock, qsos)
 	}
@@ -479,7 +479,7 @@ func (c *Controller) New() {
 	c.Settings.Reset()
 	c.Settings.SelectContestIdentifier(newContest.Identifier)
 	c.Settings.EnterContestName(newContest.Name)
-	c.Keyer.SetSettings(c.configuration.KeyerSettings())
+	c.Keyer.SetSettings(c.configuration.KeyerSettings(), newContest.Identifier)
 
 	err = store.WriteStation(c.Settings.Station())
 	if err != nil {
@@ -531,7 +531,7 @@ func (c *Controller) Open() {
 	}
 	c.Keyer.SetWriter(store)
 	if keyerSettings != nil {
-		c.Keyer.SetSettings(*keyerSettings)
+		c.Keyer.SetSettings(*keyerSettings, "")
 	}
 	log := logbook.Load(c.clock, qsos)
 	c.changeLogbook(filename, store, log)

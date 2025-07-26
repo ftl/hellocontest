@@ -62,6 +62,7 @@ type application struct {
 	rateWindow           *rateWindow
 	spotsWindow          *spotsWindow
 	newContestDialog     *newContestDialog
+	summaryDialog        *summaryDialog
 	exportCabrilloDialog *exportCabrilloDialog
 	settingsDialog       *settingsDialog
 	keyerSettingsDialog  *keyerSettingsDialog
@@ -113,6 +114,7 @@ func (a *application) activate() {
 	a.settingsDialog = setupSettingsDialog(a.mainWindow.window, a.controller.Settings)
 	a.keyerSettingsDialog = setupKeyerSettingsDialog(a.mainWindow.window, a.controller.Keyer)
 	a.newContestDialog = setupNewContestDialog(a.mainWindow.window, a.controller.NewContestController)
+	a.summaryDialog = setupSummaryDialog(a.mainWindow.window, a.controller.SummaryController)
 	a.exportCabrilloDialog = setupExportCabrilloDialog(a.mainWindow.window, a.controller.ExportCabrilloController)
 
 	a.mainWindow.SetMainMenuController(a.controller)
@@ -146,6 +148,7 @@ func (a *application) activate() {
 	a.controller.Settings.SetView(a.settingsDialog)
 	a.controller.Settings.Notify(a.mainWindow)
 	a.controller.NewContestController.SetView(a.newContestDialog)
+	a.controller.SummaryController.SetView(a.summaryDialog)
 	a.controller.ExportCabrilloController.SetView(a.exportCabrilloDialog)
 	a.controller.Clusters.SetView(a.mainWindow)
 	a.controller.Parrot.SetView(a.mainWindow)

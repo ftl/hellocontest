@@ -84,8 +84,8 @@ type Controller struct {
 	Rate                     *rate.Counter
 	ServiceStatus            *ServiceStatus
 	NewContestController     *newcontest.Controller
+	SummaryController        *summary.Controller
 	ExportCabrilloController *cabrillo.Controller
-	ExportSummaryController  *summary.Controller
 	Settings                 *settings.Settings
 	Bandmap                  *bandmap.Bandmap
 	Clusters                 *cluster.Clusters
@@ -158,6 +158,7 @@ func (c *Controller) Startup() {
 	)
 	c.callHistoryFinder.Notify(c.Settings)
 	c.NewContestController = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
+	c.SummaryController = summary.NewController()
 	c.ExportCabrilloController = cabrillo.NewController()
 
 	c.bandplan = bandplan.IARURegion1 // TODO: make the bandplan configurable
@@ -591,9 +592,8 @@ func (c *Controller) SaveAs() {
 }
 
 func (c *Controller) ExportSummary() {
-	result, ok := c.ExportSummaryController.Run()
+	result, ok := c.SummaryController.Run()
 	if !ok {
-		log.Printf("export summary aborted")
 		return
 	}
 

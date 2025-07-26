@@ -117,6 +117,7 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 	c.view.SetSoapBox(c.soapBox)
 	c.view.SetOpenUploadAfterExport(c.openUploadAfterExport)
 	c.view.SetOpenAfterExport(c.openAfterExport)
+
 	accepted := c.view.Show()
 	if !accepted {
 		return Result{nil, false, false}, false

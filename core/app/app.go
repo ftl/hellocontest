@@ -23,6 +23,7 @@ import (
 	"github.com/ftl/hellocontest/core/export/adif"
 	"github.com/ftl/hellocontest/core/export/cabrillo"
 	"github.com/ftl/hellocontest/core/export/csv"
+	"github.com/ftl/hellocontest/core/export/summary"
 	"github.com/ftl/hellocontest/core/hamdxmap"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
@@ -84,6 +85,7 @@ type Controller struct {
 	ServiceStatus            *ServiceStatus
 	NewContestController     *newcontest.Controller
 	ExportCabrilloController *cabrillo.Controller
+	ExportSummaryController  *summary.Controller
 	Settings                 *settings.Settings
 	Bandmap                  *bandmap.Bandmap
 	Clusters                 *cluster.Clusters
@@ -588,8 +590,42 @@ func (c *Controller) SaveAs() {
 	}
 }
 
+func (c *Controller) ExportSummary() {
+	result, ok := c.ExportSummaryController.Run()
+	if !ok {
+		log.Printf("export summary aborted")
+		return
+	}
+
+	proposedName := c.proposeFilename() + "_summary.txt"
+	filename, ok, err := c.view.SelectSaveFile("Export Summary File", c.configuration.LogDirectory(), proposedName, "*.txt")
+	if !ok {
+		return
+	}
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot select a file: %v", err)
+		return
+	}
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot open file %s: %v", filename, err)
+		return
+	}
+	defer file.Close()
+
+	err = summary.Export(file, result.Summary)
+	if err != nil {
+		c.view.ShowErrorDialog("Cannot export summary to %s: %v", filename, err)
+		return
+	}
+
+	if result.OpenAfterExport {
+		c.openWithExternalApplication(filename)
+	}
+}
+
 func (c *Controller) ExportCabrillo() {
-	var err error
 	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All())
 	if !ok {
 		return

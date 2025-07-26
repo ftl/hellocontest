@@ -13,6 +13,7 @@ type MainMenuController interface {
 	New()
 	Open()
 	SaveAs()
+	ExportSummary()
 	ExportCabrillo()
 	ExportADIF()
 	ExportCSV()
@@ -53,6 +54,7 @@ type mainMenu struct {
 	fileNew               *gtk.MenuItem
 	fileOpen              *gtk.MenuItem
 	fileSaveAs            *gtk.MenuItem
+	fileExportSummary     *gtk.MenuItem
 	fileExportCabrillo    *gtk.MenuItem
 	fileExportADIF        *gtk.MenuItem
 	fileExportCSV         *gtk.MenuItem
@@ -99,6 +101,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.fileNew = getUI(builder, "menuFileNew").(*gtk.MenuItem)
 	result.fileOpen = getUI(builder, "menuFileOpen").(*gtk.MenuItem)
 	result.fileSaveAs = getUI(builder, "menuFileSaveAs").(*gtk.MenuItem)
+	result.fileExportSummary = getUI(builder, "menuFileExportSummary").(*gtk.MenuItem)
 	result.fileExportCabrillo = getUI(builder, "menuFileExportCabrillo").(*gtk.MenuItem)
 	result.fileExportADIF = getUI(builder, "menuFileExportADIF").(*gtk.MenuItem)
 	result.fileExportCSV = getUI(builder, "menuFileExportCSV").(*gtk.MenuItem)
@@ -135,6 +138,7 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.fileNew.Connect("activate", result.onNew)
 	result.fileOpen.Connect("activate", result.onOpen)
 	result.fileSaveAs.Connect("activate", result.onSaveAs)
+	result.fileExportSummary.Connect("activate", result.onExportSummary)
 	result.fileExportCabrillo.Connect("activate", result.onExportCabrillo)
 	result.fileExportADIF.Connect("activate", result.onExportADIF)
 	result.fileExportCSV.Connect("activate", result.onExportCSV)
@@ -230,6 +234,10 @@ func (m *mainMenu) onOpen() {
 
 func (m *mainMenu) onSaveAs() {
 	m.controller.SaveAs()
+}
+
+func (m *mainMenu) onExportSummary() {
+	m.controller.ExportSummary()
 }
 
 func (m *mainMenu) onExportCabrillo() {

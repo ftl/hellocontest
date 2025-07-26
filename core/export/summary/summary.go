@@ -1,14 +1,13 @@
 package summary
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/ftl/hellocontest/core"
 )
 
 type View interface {
-	// TODO add view methods
+	Show() bool
+
+	SetOpenAfterExport(bool)
 }
 
 type Result struct {
@@ -18,6 +17,8 @@ type Result struct {
 
 type Controller struct {
 	view View
+
+	openAfterExport bool
 }
 
 func NewController() *Controller {
@@ -38,9 +39,30 @@ func (c *Controller) SetView(view View) {
 }
 
 func (c *Controller) Run() (Result, bool) {
-	return Result{Summary: core.Summary{}}, false
+	// TODO: add parameters for contest definition, contest settings, and the score counter (as interface)
+	summary := createSummary()
+
+	// TODO: move all the data that should be visible into the view
+	c.view.SetOpenAfterExport(c.openAfterExport)
+
+	accepted := c.view.Show()
+	if !accepted {
+		return Result{}, false
+	}
+
+	result := Result{
+		Summary: summary,
+
+		OpenAfterExport: c.openAfterExport,
+	}
+	return result, true
 }
 
-func Export(w io.Writer, summary core.Summary) error {
-	return fmt.Errorf("summary.Export is not yet implemented")
+func createSummary() core.Summary {
+	// TODO: fill in the data from the contest definition, the contest settings, and the score counter
+	return core.Summary{}
+}
+
+func (c *Controller) SetOpenAfterExport(open bool) {
+	c.openAfterExport = open
 }

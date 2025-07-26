@@ -39,6 +39,12 @@ type DXCCEntities interface {
 type convalCounter interface {
 	Add(conval.QSO) conval.QSOScore
 	Probe(conval.QSO) conval.QSOScore
+	ComputeMinBreakDuration() time.Duration
+}
+
+type convalTimeSheet interface {
+	MarkActive(now time.Time)
+	TimeReport(minBreakDuration time.Duration) conval.TimeReport
 }
 
 var toConvalMode = map[core.Mode]conval.Mode{
@@ -47,6 +53,14 @@ var toConvalMode = map[core.Mode]conval.Mode{
 	core.ModeFM:      conval.ModeFM,
 	core.ModeRTTY:    conval.ModeRTTY,
 	core.ModeDigital: conval.ModeDigital,
+}
+
+var fromConvalMode = map[conval.Mode]core.Mode{
+	conval.ModeCW:      core.ModeCW,
+	conval.ModeSSB:     core.ModeSSB,
+	conval.ModeFM:      core.ModeFM,
+	conval.ModeRTTY:    core.ModeRTTY,
+	conval.ModeDigital: core.ModeDigital,
 }
 
 // Counter is thread-safe.
@@ -75,7 +89,7 @@ func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 	result := &Counter{
 		score:          core.NewScore(),
 		scoreLock:      &sync.Mutex{},
-		counter:        newSafeCounter(new(nullCounter)),
+		counter:        newSafeCounter(new(nullCounter), new(nullTimeSheet)),
 		view:           new(nullView),
 		prefixDatabase: prefixDatabase{entities},
 	}
@@ -90,6 +104,14 @@ func NewCounter(settings core.Settings, entities DXCCEntities) *Counter {
 
 func (c *Counter) copyScore() {
 	c.readScore = c.score.Copy() // READ
+}
+
+func (c *Counter) FillSummary(summary *core.Summary) {
+	c.scoreLock.Lock()
+	summary.Score = c.readScore
+	c.scoreLock.Unlock()
+
+	summary.TimeReport, summary.WorkedBands, summary.WorkedModes = c.counter.SummaryContent() // CONVAL READ LOCK
 }
 
 func (c *Counter) Result() int {
@@ -265,27 +287,38 @@ func (c *Counter) toQSOExchange(fields []conval.ExchangeField, values []string) 
 
 func (c *Counter) resetCounter() {
 	var counter convalCounter
+	var timeSheet convalTimeSheet
 	if c.contestDefinition == nil {
 		counter = new(nullCounter)
+		timeSheet = new(nullTimeSheet)
 	} else {
 		counter = conval.NewCounter(*c.contestDefinition, c.contestSetup, c.prefixDatabase)
+		timeSheet = conval.NewTimeSheet(c.contestStartTime, c.contestDefinition.Duration)
 	}
-	c.counter.Reset(counter) // CONVAL WRITE LOCK
+	c.counter.Reset(counter, timeSheet) // CONVAL WRITE LOCK
 }
 
 type safeConvalCounter struct {
-	counter convalCounter
-	lock    *sync.RWMutex
+	counter   convalCounter
+	timeSheet convalTimeSheet
+
+	bands map[conval.ContestBand]bool
+	modes map[conval.Mode]bool
+
+	lock *sync.RWMutex
 }
 
-func newSafeCounter(counter convalCounter) *safeConvalCounter {
+func newSafeCounter(counter convalCounter, timeSheet convalTimeSheet) *safeConvalCounter {
 	return &safeConvalCounter{
-		counter: counter,
-		lock:    &sync.RWMutex{},
+		counter:   counter,
+		timeSheet: timeSheet,
+		bands:     make(map[conval.ContestBand]bool),
+		modes:     make(map[conval.Mode]bool),
+		lock:      &sync.RWMutex{},
 	}
 }
 
-func (c *safeConvalCounter) Reset(counter convalCounter) {
+func (c *safeConvalCounter) Reset(counter convalCounter, timeSheet convalTimeSheet) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -294,11 +327,24 @@ func (c *safeConvalCounter) Reset(counter convalCounter) {
 	} else {
 		c.counter = counter
 	}
+	if timeSheet == nil {
+		c.timeSheet = new(nullTimeSheet)
+	} else {
+		c.timeSheet = timeSheet
+	}
+
+	c.bands = make(map[conval.ContestBand]bool)
+	c.modes = make(map[conval.Mode]bool)
 }
 
 func (c *safeConvalCounter) Add(qso conval.QSO) conval.QSOScore {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	c.timeSheet.MarkActive(qso.Timestamp)
+	c.bands[qso.Band] = true
+	c.modes[qso.Mode] = true
+
 	return c.counter.Add(qso)
 }
 
@@ -306,6 +352,23 @@ func (c *safeConvalCounter) Probe(qso conval.QSO) conval.QSOScore {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	return c.counter.Probe(qso)
+}
+
+func (c *safeConvalCounter) SummaryContent() (core.TimeReport, []core.Band, []core.Mode) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	timeReport := c.timeSheet.TimeReport(c.counter.ComputeMinBreakDuration())
+	bands := make([]core.Band, 0, len(c.bands))
+	for band := range c.bands {
+		bands = append(bands, core.Band(band))
+	}
+	modes := make([]core.Mode, 0, len(c.modes))
+	for mode := range c.modes {
+		modes = append(modes, fromConvalMode[mode])
+	}
+
+	return timeReport, bands, modes
 }
 
 func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField {
@@ -339,8 +402,16 @@ func toConvalDXCCEntity(entity dxcc.Prefix) (conval.Continent, conval.DXCCEntity
 
 type nullCounter struct{}
 
-func (c *nullCounter) Add(conval.QSO) conval.QSOScore   { return conval.QSOScore{} }
-func (c *nullCounter) Probe(conval.QSO) conval.QSOScore { return conval.QSOScore{} }
+func (c *nullCounter) Add(conval.QSO) conval.QSOScore         { return conval.QSOScore{} }
+func (c *nullCounter) Probe(conval.QSO) conval.QSOScore       { return conval.QSOScore{} }
+func (c *nullCounter) ComputeMinBreakDuration() time.Duration { return 0 }
+
+type nullTimeSheet struct{}
+
+func (t *nullTimeSheet) MarkActive(time.Time) {}
+func (t *nullTimeSheet) TimeReport(minBreakDuration time.Duration) conval.TimeReport {
+	return conval.TimeReport{}
+}
 
 type nullView struct{}
 

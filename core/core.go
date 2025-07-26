@@ -500,6 +500,30 @@ type KeyerPreset struct {
 	RunLabels []string `json:"run_labels"`
 }
 
+type Summary struct {
+	// comes from the contest definition
+	ContestName  string
+	CabrilloName string
+
+	// comes from the contest settings
+	Callsign    callsign.Callsign
+	MyExchanges []string
+
+	// has to be selected by the user in a dialog
+	OperatorMode conval.OperatorMode
+	Overlay      conval.Overlay
+	PowerMode    conval.PowerMode
+	Assisted     bool
+
+	// comes from the score counter
+	WorkedModes []Mode
+	WorkedBands []Band
+	Score       Score
+	TimeReport  TimeReport
+}
+
+type TimeReport = conval.TimeReport
+
 type Score struct {
 	ScorePerBand map[Band]BandScore
 	GraphPerBand map[Band]BandGraph

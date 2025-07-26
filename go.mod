@@ -4,26 +4,10 @@ go 1.23.0
 
 toolchain go1.24.1
 
-// replace github.com/ftl/cabrillo => ../cabrillo
-
-// replace github.com/ftl/conval => ../conval
-
-// replace github.com/ftl/gmtry => ../gmtry
-
-// replace github.com/ftl/hamradio => ../hamradio
-
-// replace github.com/ftl/rigproxy => ../rigproxy
-
-// replace github.com/ftl/tci => ../tci
-
-// replace github.com/ftl/clusterix => ../clusterix
-
-// replace github.com/gotk3/gotk3 => ../gotk3
-
 require (
 	github.com/ftl/cabrillo v0.2.4
 	github.com/ftl/clusterix v0.1.0
-	github.com/ftl/conval v0.9.0
+	github.com/ftl/conval v0.10.0
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04
 	github.com/ftl/godxmap v1.0.1
 	github.com/ftl/hamradio v0.2.13

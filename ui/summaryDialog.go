@@ -19,6 +19,7 @@ type summaryDialog struct {
 
 	contestName  string
 	cabrilloName string
+	startTime    time.Time
 	callsign     string
 	myExchanges  string
 
@@ -56,6 +57,7 @@ func (d *summaryDialog) Show() bool {
 
 	d.view.contestNameEntry.SetText(d.contestName)
 	d.view.cabrilloNameEntry.SetText(d.cabrilloName)
+	d.view.startTimeEntry.SetText(core.FormatTimestamp(d.startTime))
 	d.view.callsignEntry.SetText(d.callsign)
 	d.view.myExchangesEntry.SetText(d.myExchanges)
 
@@ -104,6 +106,13 @@ func (d *summaryDialog) SetCabrilloName(cabrilloName string) {
 	d.cabrilloName = cabrilloName
 	if d.view != nil {
 		d.view.cabrilloNameEntry.SetText(cabrilloName)
+	}
+}
+
+func (d *summaryDialog) SetStartTime(startTime time.Time) {
+	d.startTime = startTime
+	if d.view != nil {
+		d.view.startTimeEntry.SetText(core.FormatTimestamp(startTime))
 	}
 }
 
@@ -163,14 +172,14 @@ func (d *summaryDialog) SetWorkedBands(workedBands string) {
 func (d *summaryDialog) SetOperatingTime(operatingTime time.Duration) {
 	d.operatingTime = operatingTime
 	if d.view != nil {
-		d.view.operatingTimeEntry.SetText(operatingTime.String())
+		d.view.operatingTimeEntry.SetText(core.FormatDuration(operatingTime))
 	}
 }
 
 func (d *summaryDialog) SetBreakTime(breakTime time.Duration) {
 	d.breakTime = breakTime
 	if d.view != nil {
-		d.view.breakTimeEntry.SetText(breakTime.String())
+		d.view.breakTimeEntry.SetText(core.FormatDuration(breakTime))
 	}
 }
 

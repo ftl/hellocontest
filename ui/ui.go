@@ -32,6 +32,13 @@ func bandColor(colors colorProvider, band core.Band) style.Color {
 	return colors.ColorByName(bandColorName)
 }
 
+func bandBackgroundColor(colors colorProvider) string {
+	if !colors.HasColor("hellocontest-graph-bg") {
+		return colors.BackgroundColor().ToWeb()
+	}
+	return colors.ColorByName("hellocontest-graph-bg").ToWeb()
+}
+
 type colorProvider interface {
 	HasColor(name string) bool
 	ColorByName(name string) style.Color

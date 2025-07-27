@@ -61,8 +61,8 @@ func (d *summaryDialog) Show() bool {
 
 	d.view.workedModesEntry.SetText(d.workedModes)
 	d.view.workedBandsEntry.SetText(d.workedBands)
-	d.view.operatingTimeEntry.SetText(d.operatingTime.String())
-	d.view.breakTimeEntry.SetText(d.breakTime.String())
+	d.view.operatingTimeEntry.SetText(core.FormatDuration(d.operatingTime))
+	d.view.breakTimeEntry.SetText(core.FormatDuration(d.breakTime))
 	d.view.breaksEntry.SetText(strconv.Itoa(d.breaks))
 
 	d.view.scoreTable.ShowScore(d.score)

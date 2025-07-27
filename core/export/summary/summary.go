@@ -100,16 +100,8 @@ func (c *Controller) showSummary() {
 	c.view.SetPowerMode(string(c.summary.PowerMode))
 	c.view.SetAssisted(c.summary.Assisted)
 
-	workedModes := make([]string, len(c.summary.WorkedModes))
-	for i := range c.summary.WorkedModes {
-		workedModes[i] = string(c.summary.WorkedModes[i])
-	}
-	c.view.SetWorkedModes(strings.Join(workedModes, ", "))
-	workedBands := make([]string, len(c.summary.WorkedBands))
-	for i := range c.summary.WorkedBands {
-		workedBands[i] = string(c.summary.WorkedBands[i])
-	}
-	c.view.SetWorkedBands(strings.Join(workedBands, ", "))
+	c.view.SetWorkedModes(strings.Join(c.summary.WorkedModes, ", "))
+	c.view.SetWorkedBands(strings.Join(c.summary.WorkedBands, ", "))
 	c.view.SetOperatingTime(c.summary.TimeReport.OperationTime())
 	c.view.SetBreakTime(time.Duration(c.summary.TimeReport.BreakMinutes) * time.Minute)
 	c.view.SetBreaks(c.summary.TimeReport.Breaks)
@@ -123,6 +115,7 @@ func (c *Controller) createSummary(settings core.Settings) *core.Summary {
 	result := &core.Summary{
 		ContestName:  settings.Contest().Definition.Name,
 		CabrilloName: string(settings.Contest().Definition.Identifier),
+		StartTime:    settings.Contest().StartTime,
 		Callsign:     settings.Station().Callsign,
 	}
 

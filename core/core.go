@@ -506,6 +506,7 @@ type Summary struct {
 	CabrilloName string
 
 	// comes from the contest settings
+	StartTime   time.Time
 	Callsign    callsign.Callsign
 	MyExchanges string
 
@@ -516,10 +517,27 @@ type Summary struct {
 	Assisted     bool
 
 	// comes from the score counter
-	WorkedModes []Mode
-	WorkedBands []Band
+	WorkedModes []string
+	WorkedBands []string
 	Score       Score
 	TimeReport  TimeReport
+}
+
+func (s Summary) WorkingConditions() string {
+	result := []string{}
+	if s.OperatorMode != "" {
+		result = append(result, fmt.Sprintf("%s operator", string(s.OperatorMode)))
+	}
+	if s.Overlay != "" {
+		result = append(result, fmt.Sprintf("%s overlay", string(s.Overlay)))
+	}
+	if s.PowerMode != "" {
+		result = append(result, fmt.Sprintf("%s power", string(s.PowerMode)))
+	}
+	if s.Assisted {
+		result = append(result, "assisted")
+	}
+	return strings.Join(result, ", ")
 }
 
 type TimeReport = conval.TimeReport
@@ -1345,4 +1363,12 @@ type CallsignEnteredListener interface {
 
 type CallsignLoggedListener interface {
 	CallsignLogged(callsign string, frequency Frequency)
+}
+
+func FormatTimestamp(ts time.Time) string {
+	return ts.UTC().Format("2006-01-02 15:04Z")
+}
+
+func FormatDuration(d time.Duration) string {
+	return fmt.Sprintf("%02dh%02d", int(d.Hours()), int(d.Minutes())-int(d.Hours())*60)
 }

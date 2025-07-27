@@ -361,18 +361,22 @@ func (c *safeConvalCounter) Probe(qso conval.QSO) conval.QSOScore {
 	return c.counter.Probe(qso)
 }
 
-func (c *safeConvalCounter) SummaryContent(definition *conval.Definition, operatorMode conval.OperatorMode, overlay conval.Overlay) (core.TimeReport, []core.Band, []core.Mode) {
+func (c *safeConvalCounter) SummaryContent(definition *conval.Definition, operatorMode conval.OperatorMode, overlay conval.Overlay) (core.TimeReport, []string, []string) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
 	timeReport := c.timeSheet.TimeReport(c.computeMinBreakDuration(definition, operatorMode, overlay))
-	bands := make([]core.Band, 0, len(c.bands))
-	for band := range c.bands {
-		bands = append(bands, core.Band(band))
+	bands := make([]string, 0, len(c.bands))
+	for _, band := range core.Bands {
+		if c.bands[conval.ContestBand(band)] {
+			bands = append(bands, string(band))
+		}
 	}
-	modes := make([]core.Mode, 0, len(c.modes))
-	for mode := range c.modes {
-		modes = append(modes, fromConvalMode[mode])
+	modes := make([]string, 0, len(c.modes))
+	for _, mode := range core.Modes {
+		if c.modes[toConvalMode[mode]] {
+			modes = append(modes, string(mode))
+		}
 	}
 
 	return timeReport, bands, modes

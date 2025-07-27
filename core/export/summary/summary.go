@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -15,10 +16,10 @@ type View interface {
 	SetCallsign(string)
 	SetMyExchanges(string)
 
-	// SetOperatorMode(string)
-	// SetOverlay(string)
-	// SetPowerMode(string)
-	// SetAssisted(bool)
+	SetOperatorMode(string)
+	SetOverlay(string)
+	SetPowerMode(string)
+	SetAssisted(bool)
 
 	SetWorkedModes(string)
 	SetWorkedBands(string)
@@ -41,8 +42,9 @@ type Result struct {
 }
 
 type Controller struct {
-	counter ScoreCounter
-	view    View
+	counter  ScoreCounter
+	settings core.Settings
+	view     View
 
 	summary *core.Summary
 
@@ -69,6 +71,7 @@ func (c *Controller) SetView(view View) {
 }
 
 func (c *Controller) Run(settings core.Settings) (Result, bool) {
+	c.settings = settings
 	c.summary = c.createSummary(settings)
 
 	c.showSummary()
@@ -91,6 +94,11 @@ func (c *Controller) showSummary() {
 	c.view.SetCabrilloName(c.summary.CabrilloName)
 	c.view.SetCallsign(c.summary.Callsign.String())
 	c.view.SetMyExchanges(c.summary.MyExchanges)
+
+	c.view.SetOperatorMode(string(c.summary.OperatorMode))
+	c.view.SetOverlay(string(c.summary.Overlay))
+	c.view.SetPowerMode(string(c.summary.PowerMode))
+	c.view.SetAssisted(c.summary.Assisted)
 
 	workedModes := make([]string, len(c.summary.WorkedModes))
 	for i := range c.summary.WorkedModes {
@@ -133,7 +141,51 @@ func (c *Controller) createSummary(settings core.Settings) *core.Summary {
 }
 
 func (c *Controller) updateSummary() {
-	// TODO: update the
+	c.counter.FillSummary(c.summary)
+	c.showSummary()
+}
+
+func (c *Controller) OperatorModes() []string {
+	return []string{
+		string(conval.SingleOperator),
+		string(conval.MultiOperator),
+	}
+}
+
+func (c *Controller) SetOperatorMode(operatorMode string) {
+	c.summary.OperatorMode = conval.OperatorMode(operatorMode)
+	c.updateSummary()
+}
+
+func (c *Controller) Overlays() []string {
+	result := make([]string, len(c.settings.Contest().Definition.Overlays))
+	for i, overlay := range c.settings.Contest().Definition.Overlays {
+		result[i] = string(overlay)
+	}
+	return result
+}
+
+func (c *Controller) SetOverlay(overlay string) {
+	c.summary.Overlay = conval.Overlay(overlay)
+	c.updateSummary()
+}
+
+func (c *Controller) PowerModes() []string {
+	return []string{
+		string(conval.QRPPower),
+		string(conval.LowPower),
+		string(conval.HighPower),
+	}
+}
+
+func (c *Controller) SetAssisted(assisted bool) {
+	c.summary.Assisted = assisted
+	c.updateSummary()
+}
+
+func (c *Controller) SetPowerMode(powerMode string) {
+	c.summary.PowerMode = conval.PowerMode(powerMode)
+	c.updateSummary()
 }
 
 func (c *Controller) SetOpenAfterExport(open bool) {

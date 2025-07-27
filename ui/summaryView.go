@@ -3,6 +3,15 @@ package ui
 import "github.com/gotk3/gotk3/gtk"
 
 type SummaryController interface {
+	OperatorModes() []string
+	Overlays() []string
+	PowerModes() []string
+
+	SetOperatorMode(string)
+	SetOverlay(string)
+	SetPowerMode(string)
+	SetAssisted(bool)
+
 	SetOpenAfterExport(bool)
 }
 
@@ -15,6 +24,11 @@ type summaryView struct {
 	cabrilloNameEntry *gtk.Entry
 	callsignEntry     *gtk.Entry
 	myExchangesEntry  *gtk.Entry
+
+	operatorModeCombo   *gtk.ComboBoxText
+	overlayCombo        *gtk.ComboBoxText
+	powerModeCombo      *gtk.ComboBoxText
+	assistedCheckButton *gtk.CheckButton
 
 	workedModesEntry   *gtk.Entry
 	workedBandsEntry   *gtk.Entry
@@ -46,16 +60,40 @@ func newSummaryView(controller SummaryController) *summaryView {
 
 	buildSeparator(result.root, 4, 2)
 
-	result.workedModesEntry = buildLabeledEntry(result.root, 5, "Worked Modes", nil)
-	result.workedBandsEntry = buildLabeledEntry(result.root, 6, "Worked Bands", nil)
-	result.operatingTimeEntry = buildLabeledEntry(result.root, 7, "Operating Time", nil)
-	result.breakTimeEntry = buildLabeledEntry(result.root, 8, "Break Time", nil)
-	result.breaksEntry = buildLabeledEntry(result.root, 9, "Breaks", nil)
+	result.operatorModeCombo = buildLabeledCombo(result.root, 5, "Operator Mode", false, result.controller.OperatorModes(), result.onOperatorModeChanged)
+	result.overlayCombo = buildLabeledCombo(result.root, 6, "Overlay", false, result.controller.Overlays(), result.onOverlayChanged)
+	result.powerModeCombo = buildLabeledCombo(result.root, 7, "Power", false, result.controller.PowerModes(), result.onPowerModeChanged)
+	result.assistedCheckButton = buildCheckButtonInColumn(result.root, 8, 1, "Assisted", result.onAssistedToggled)
 
-	buildSeparator(result.root, 10, 2)
-	result.openAfterExportCheckButton = buildCheckButton(result.root, 11, "Open the file after export", result.onOpenAfterExportToggled)
+	buildSeparator(result.root, 9, 2)
+
+	result.workedModesEntry = buildLabeledEntry(result.root, 10, "Worked Modes", nil)
+	result.workedBandsEntry = buildLabeledEntry(result.root, 11, "Worked Bands", nil)
+	result.operatingTimeEntry = buildLabeledEntry(result.root, 12, "Operating Time", nil)
+	result.breakTimeEntry = buildLabeledEntry(result.root, 13, "Break Time", nil)
+	result.breaksEntry = buildLabeledEntry(result.root, 14, "Breaks", nil)
+
+	buildSeparator(result.root, 15, 2)
+
+	result.openAfterExportCheckButton = buildCheckButtonInColumn(result.root, 18, 1, "Open the file after export", result.onOpenAfterExportToggled)
 
 	return result
+}
+
+func (v *summaryView) onOperatorModeChanged() {
+	v.controller.SetOperatorMode(v.operatorModeCombo.GetActiveText())
+}
+
+func (v *summaryView) onOverlayChanged() {
+	v.controller.SetOverlay(v.overlayCombo.GetActiveText())
+}
+
+func (v *summaryView) onPowerModeChanged() {
+	v.controller.SetPowerMode(v.powerModeCombo.GetActiveText())
+}
+
+func (v *summaryView) onAssistedToggled() {
+	v.controller.SetAssisted(v.assistedCheckButton.GetActive())
 }
 
 func (v *summaryView) onOpenAfterExportToggled() {

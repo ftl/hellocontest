@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -13,6 +15,7 @@ type summaryDialog struct {
 
 	controller SummaryController
 	view       *summaryView
+	style      *style.Style
 
 	contestName  string
 	cabrilloName string
@@ -29,6 +32,8 @@ type summaryDialog struct {
 	operatingTime time.Duration
 	breakTime     time.Duration
 	breaks        int
+
+	score core.Score
 
 	openAfterExport bool
 }
@@ -59,6 +64,8 @@ func (d *summaryDialog) Show() bool {
 	d.view.operatingTimeEntry.SetText(d.operatingTime.String())
 	d.view.breakTimeEntry.SetText(d.breakTime.String())
 	d.view.breaksEntry.SetText(strconv.Itoa(d.breaks))
+
+	d.view.scoreTable.ShowScore(d.score)
 
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
 
@@ -174,6 +181,16 @@ func (d *summaryDialog) SetBreaks(breaks int) {
 	}
 }
 
+func (d *summaryDialog) SetScore(score core.Score) {
+	d.score = score
+	if d.view != nil {
+		d.view.scoreTable.ShowScore(score)
+	}
+}
+
 func (d *summaryDialog) SetOpenAfterExport(open bool) {
 	d.openAfterExport = open
+	if d.view != nil {
+		d.view.openAfterExportCheckButton.SetActive(open)
+	}
 }

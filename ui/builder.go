@@ -109,12 +109,12 @@ func buildCheckButton(grid *gtk.Grid, row int, labelText string, handler any) *g
 	return checkButton
 }
 
-func buildCheckButtonInColumn(grid *gtk.Grid, row int, col int, labelText string, handler any) *gtk.CheckButton {
+func buildCheckButtonInColumn(grid *gtk.Grid, row int, col int, width int, labelText string, handler any) *gtk.CheckButton {
 	checkButton, _ := gtk.CheckButtonNewWithLabel(labelText)
 	checkButton.SetHExpand(true)
 	checkButton.SetMarginTop(5)
 	checkButton.SetMarginBottom(5)
-	grid.Attach(checkButton, col, row, 1, 1)
+	grid.Attach(checkButton, col, row, width, 1)
 
 	checkButton.Connect("toggled", handler)
 

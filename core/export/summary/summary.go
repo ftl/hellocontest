@@ -13,6 +13,7 @@ type View interface {
 
 	SetContestName(string)
 	SetCabrilloName(string)
+	SetStartTime(time.Time)
 	SetCallsign(string)
 	SetMyExchanges(string)
 
@@ -92,6 +93,7 @@ func (c *Controller) Run(settings core.Settings) (Result, bool) {
 func (c *Controller) showSummary() {
 	c.view.SetContestName(c.summary.ContestName)
 	c.view.SetCabrilloName(c.summary.CabrilloName)
+	c.view.SetStartTime(c.summary.StartTime)
 	c.view.SetCallsign(c.summary.Callsign.String())
 	c.view.SetMyExchanges(c.summary.MyExchanges)
 
@@ -126,7 +128,7 @@ func (c *Controller) createSummary(settings core.Settings) *core.Summary {
 			myExchanges = append(myExchanges, value)
 		}
 	}
-	result.MyExchanges = strings.Join(myExchanges, ", ")
+	result.MyExchanges = strings.Join(myExchanges, " ")
 
 	c.counter.FillSummary(result)
 

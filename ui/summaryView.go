@@ -22,6 +22,7 @@ type summaryView struct {
 
 	contestNameEntry  *gtk.Entry
 	cabrilloNameEntry *gtk.Entry
+	startTimeEntry    *gtk.Entry
 	callsignEntry     *gtk.Entry
 	myExchangesEntry  *gtk.Entry
 
@@ -57,32 +58,33 @@ func newSummaryView(controller SummaryController) *summaryView {
 
 	result.contestNameEntry = buildLabeledEntry(result.root, 0, "Contest Name", nil)
 	result.cabrilloNameEntry = buildLabeledEntry(result.root, 1, "Cabrillo Name", nil)
-	result.callsignEntry = buildLabeledEntry(result.root, 2, "Callsign", nil)
-	result.myExchangesEntry = buildLabeledEntry(result.root, 3, "My Exchanges", nil)
+	result.startTimeEntry = buildLabeledEntry(result.root, 2, "Start Time", nil)
+	result.callsignEntry = buildLabeledEntry(result.root, 3, "Callsign", nil)
+	result.myExchangesEntry = buildLabeledEntry(result.root, 4, "My Exchanges", nil)
 
-	buildSeparator(result.root, 4, 2)
+	buildSeparator(result.root, 5, 2)
 
-	result.operatorModeCombo = buildLabeledCombo(result.root, 5, "Operator Mode", false, result.controller.OperatorModes(), result.onOperatorModeChanged)
-	result.overlayCombo = buildLabeledCombo(result.root, 6, "Overlay", false, result.controller.Overlays(), result.onOverlayChanged)
-	result.powerModeCombo = buildLabeledCombo(result.root, 7, "Power", false, result.controller.PowerModes(), result.onPowerModeChanged)
-	result.assistedCheckButton = buildCheckButtonInColumn(result.root, 8, 1, 1, "Assisted", result.onAssistedToggled)
+	result.operatorModeCombo = buildLabeledCombo(result.root, 6, "Operator Mode", false, result.controller.OperatorModes(), result.onOperatorModeChanged)
+	result.overlayCombo = buildLabeledCombo(result.root, 7, "Overlay", false, result.controller.Overlays(), result.onOverlayChanged)
+	result.powerModeCombo = buildLabeledCombo(result.root, 8, "Power", false, result.controller.PowerModes(), result.onPowerModeChanged)
+	result.assistedCheckButton = buildCheckButtonInColumn(result.root, 9, 1, 1, "Assisted", result.onAssistedToggled)
 
-	buildSeparator(result.root, 9, 2)
+	buildSeparator(result.root, 10, 2)
 
-	result.workedModesEntry = buildLabeledEntry(result.root, 10, "Worked Modes", nil)
-	result.workedBandsEntry = buildLabeledEntry(result.root, 11, "Worked Bands", nil)
-	result.operatingTimeEntry = buildLabeledEntry(result.root, 12, "Operating Time", nil)
-	result.breakTimeEntry = buildLabeledEntry(result.root, 13, "Break Time", nil)
-	result.breaksEntry = buildLabeledEntry(result.root, 14, "Breaks", nil)
+	result.workedModesEntry = buildLabeledEntry(result.root, 11, "Worked Modes", nil)
+	result.workedBandsEntry = buildLabeledEntry(result.root, 12, "Worked Bands", nil)
+	result.operatingTimeEntry = buildLabeledEntry(result.root, 13, "Operating Time", nil)
+	result.breakTimeEntry = buildLabeledEntry(result.root, 14, "Break Time", nil)
+	result.breaksEntry = buildLabeledEntry(result.root, 15, "Breaks", nil)
 
-	buildSeparator(result.root, 15, 2)
+	buildSeparator(result.root, 16, 2)
 
 	result.scoreTable = newScoreTable(nil)
-	result.root.Attach(result.scoreTable.Table(), 0, 16, 2, 1)
+	result.root.Attach(result.scoreTable.Table(), 0, 17, 2, 1)
 
-	buildSeparator(result.root, 17, 2)
+	buildSeparator(result.root, 18, 2)
 
-	result.openAfterExportCheckButton = buildCheckButtonInColumn(result.root, 18, 0, 2, "Open the file after export", result.onOpenAfterExportToggled)
+	result.openAfterExportCheckButton = buildCheckButtonInColumn(result.root, 19, 0, 2, "Open the file after export", result.onOpenAfterExportToggled)
 
 	return result
 }

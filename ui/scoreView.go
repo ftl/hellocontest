@@ -29,8 +29,9 @@ func setupNewScoreView(colors colorProvider, clock core.Clock) *scoreView {
 
 	result.graph = newScoreGraph(colors, clock)
 	result.graphArea, _ = gtk.DrawingAreaNew()
+	result.graphArea.SetSizeRequest(400, 250)
 	result.graphArea.SetHExpand(true)
-	result.graphArea.SetVExpand(true)
+	result.graphArea.SetVExpand(false)
 	result.graphArea.SetHAlign(gtk.ALIGN_FILL)
 	result.graphArea.SetVAlign(gtk.ALIGN_FILL)
 	result.graphArea.SetCanFocus(false)
@@ -38,6 +39,7 @@ func setupNewScoreView(colors colorProvider, clock core.Clock) *scoreView {
 	result.graphArea.Connect("style-updated", result.graph.RefreshStyle)
 
 	result.table = newScoreTable(colors)
+	result.table.Table().SetVAlign(gtk.ALIGN_START)
 
 	result.rootGrid.Attach(result.graphArea, 0, 0, 1, 1)
 	result.rootGrid.Attach(result.table.Table(), 0, 1, 1, 1)

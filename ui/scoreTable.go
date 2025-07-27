@@ -118,6 +118,7 @@ func (t *scoreTable) Table() *gtk.TreeView {
 
 func (t *scoreTable) ShowScore(score core.Score) {
 	t.score = score
+	t.showScoreInTable(score)
 }
 
 func (t *scoreTable) showScoreInTable(score core.Score) {

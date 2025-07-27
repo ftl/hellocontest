@@ -19,6 +19,11 @@ type summaryDialog struct {
 	callsign     string
 	myExchanges  string
 
+	operatorMode string
+	overlay      string
+	powerMode    string
+	assisted     bool
+
 	workedModes   string
 	workedBands   string
 	operatingTime time.Duration
@@ -106,6 +111,31 @@ func (d *summaryDialog) SetMyExchanges(myExchanges string) {
 	d.myExchanges = myExchanges
 	if d.view != nil {
 		d.view.myExchangesEntry.SetText(myExchanges)
+	}
+}
+
+func (d *summaryDialog) SetOperatorMode(operatorMode string) {
+	d.operatorMode = operatorMode
+	if d.view != nil {
+		d.view.operatorModeCombo.SetActiveID(operatorMode)
+	}
+}
+func (d *summaryDialog) SetOverlay(overlay string) {
+	d.overlay = overlay
+	if d.view != nil {
+		d.view.overlayCombo.SetActiveID(overlay)
+	}
+}
+func (d *summaryDialog) SetPowerMode(powerMode string) {
+	d.powerMode = powerMode
+	if d.view != nil {
+		d.view.powerModeCombo.SetActiveID(powerMode)
+	}
+}
+func (d *summaryDialog) SetAssisted(assisted bool) {
+	d.assisted = assisted
+	if d.view != nil {
+		d.view.assistedCheckButton.SetActive(assisted)
 	}
 }
 

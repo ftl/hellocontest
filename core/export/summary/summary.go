@@ -27,7 +27,7 @@ type View interface {
 	SetBreakTime(time.Duration)
 	SetBreaks(int)
 
-	// SetScore(core.Score)
+	SetScore(core.Score)
 
 	SetOpenAfterExport(bool)
 }
@@ -114,7 +114,7 @@ func (c *Controller) showSummary() {
 	c.view.SetBreakTime(time.Duration(c.summary.TimeReport.BreakMinutes) * time.Minute)
 	c.view.SetBreaks(c.summary.TimeReport.Breaks)
 
-	// TODO: move all the data that should be visible into the view
+	c.view.SetScore(c.summary.Score)
 
 	c.view.SetOpenAfterExport(c.openAfterExport)
 }

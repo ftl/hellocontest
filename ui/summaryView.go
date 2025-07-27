@@ -36,6 +36,8 @@ type summaryView struct {
 	breakTimeEntry     *gtk.Entry
 	breaksEntry        *gtk.Entry
 
+	scoreTable *scoreTable
+
 	openAfterExportCheckButton *gtk.CheckButton
 }
 
@@ -63,7 +65,7 @@ func newSummaryView(controller SummaryController) *summaryView {
 	result.operatorModeCombo = buildLabeledCombo(result.root, 5, "Operator Mode", false, result.controller.OperatorModes(), result.onOperatorModeChanged)
 	result.overlayCombo = buildLabeledCombo(result.root, 6, "Overlay", false, result.controller.Overlays(), result.onOverlayChanged)
 	result.powerModeCombo = buildLabeledCombo(result.root, 7, "Power", false, result.controller.PowerModes(), result.onPowerModeChanged)
-	result.assistedCheckButton = buildCheckButtonInColumn(result.root, 8, 1, "Assisted", result.onAssistedToggled)
+	result.assistedCheckButton = buildCheckButtonInColumn(result.root, 8, 1, 1, "Assisted", result.onAssistedToggled)
 
 	buildSeparator(result.root, 9, 2)
 
@@ -75,7 +77,12 @@ func newSummaryView(controller SummaryController) *summaryView {
 
 	buildSeparator(result.root, 15, 2)
 
-	result.openAfterExportCheckButton = buildCheckButtonInColumn(result.root, 18, 1, "Open the file after export", result.onOpenAfterExportToggled)
+	result.scoreTable = newScoreTable(nil)
+	result.root.Attach(result.scoreTable.Table(), 0, 16, 2, 1)
+
+	buildSeparator(result.root, 17, 2)
+
+	result.openAfterExportCheckButton = buildCheckButtonInColumn(result.root, 18, 0, 2, "Open the file after export", result.onOpenAfterExportToggled)
 
 	return result
 }

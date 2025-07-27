@@ -111,7 +111,14 @@ func (c *Counter) FillSummary(summary *core.Summary) {
 	summary.Score = c.readScore
 	c.scoreLock.Unlock()
 
-	summary.TimeReport, summary.WorkedBands, summary.WorkedModes = c.counter.SummaryContent() // CONVAL READ LOCK
+	summary.TimeReport,
+		summary.WorkedBands,
+		summary.WorkedModes =
+		c.counter.SummaryContent(
+			c.contestDefinition,
+			summary.OperatorMode,
+			summary.Overlay,
+		) // CONVAL READ LOCK
 }
 
 func (c *Counter) Result() int {
@@ -354,11 +361,11 @@ func (c *safeConvalCounter) Probe(qso conval.QSO) conval.QSOScore {
 	return c.counter.Probe(qso)
 }
 
-func (c *safeConvalCounter) SummaryContent() (core.TimeReport, []core.Band, []core.Mode) {
+func (c *safeConvalCounter) SummaryContent(definition *conval.Definition, operatorMode conval.OperatorMode, overlay conval.Overlay) (core.TimeReport, []core.Band, []core.Mode) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	timeReport := c.timeSheet.TimeReport(c.counter.ComputeMinBreakDuration())
+	timeReport := c.timeSheet.TimeReport(c.computeMinBreakDuration(definition, operatorMode, overlay))
 	bands := make([]core.Band, 0, len(c.bands))
 	for band := range c.bands {
 		bands = append(bands, core.Band(band))
@@ -369,6 +376,21 @@ func (c *safeConvalCounter) SummaryContent() (core.TimeReport, []core.Band, []co
 	}
 
 	return timeReport, bands, modes
+}
+
+func (c *safeConvalCounter) computeMinBreakDuration(definition *conval.Definition, operatorMode conval.OperatorMode, overlay conval.Overlay) time.Duration {
+	if len(definition.Breaks) == 1 {
+		return definition.Breaks[0].Duration
+	}
+
+	for _, b := range definition.Breaks {
+		if (b.Constraint.OperatorMode == operatorMode) &&
+			(b.Constraint.Overlay == overlay) {
+			return b.Duration
+		}
+	}
+
+	return conval.DefaultBreakDuration
 }
 
 func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField {

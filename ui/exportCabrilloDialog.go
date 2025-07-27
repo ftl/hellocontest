@@ -252,8 +252,14 @@ func (d *exportCabrilloDialog) SetSoapBox(soapBox string) {
 
 func (d *exportCabrilloDialog) SetOpenUploadAfterExport(open bool) {
 	d.openUploadAfterExport = open
+	if d.view != nil {
+		d.view.openUploadAfterExportCheckButton.SetActive(open)
+	}
 }
 
 func (d *exportCabrilloDialog) SetOpenAfterExport(open bool) {
 	d.openAfterExport = open
+	if d.view != nil {
+		d.view.openAfterExportCheckButton.SetActive(open)
+	}
 }

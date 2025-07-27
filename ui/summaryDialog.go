@@ -1,6 +1,11 @@
 package ui
 
-import "github.com/gotk3/gotk3/gtk"
+import (
+	"strconv"
+	"time"
+
+	"github.com/gotk3/gotk3/gtk"
+)
 
 type summaryDialog struct {
 	dialog *gtk.Dialog
@@ -8,6 +13,17 @@ type summaryDialog struct {
 
 	controller SummaryController
 	view       *summaryView
+
+	contestName  string
+	cabrilloName string
+	callsign     string
+	myExchanges  string
+
+	workedModes   string
+	workedBands   string
+	operatingTime time.Duration
+	breakTime     time.Duration
+	breaks        int
 
 	openAfterExport bool
 }
@@ -27,6 +43,17 @@ func (d *summaryDialog) onDestroy() {
 
 func (d *summaryDialog) Show() bool {
 	d.view = newSummaryView(d.controller)
+
+	d.view.contestNameEntry.SetText(d.contestName)
+	d.view.cabrilloNameEntry.SetText(d.cabrilloName)
+	d.view.callsignEntry.SetText(d.callsign)
+	d.view.myExchangesEntry.SetText(d.myExchanges)
+
+	d.view.workedModesEntry.SetText(d.workedModes)
+	d.view.workedBandsEntry.SetText(d.workedBands)
+	d.view.operatingTimeEntry.SetText(d.operatingTime.String())
+	d.view.breakTimeEntry.SetText(d.breakTime.String())
+	d.view.breaksEntry.SetText(strconv.Itoa(d.breaks))
 
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
 
@@ -52,6 +79,69 @@ func (d *summaryDialog) Show() bool {
 	d.view = nil
 
 	return result
+}
+
+func (d *summaryDialog) SetContestName(contestName string) {
+	d.contestName = contestName
+	if d.view != nil {
+		d.view.contestNameEntry.SetText(contestName)
+	}
+}
+
+func (d *summaryDialog) SetCabrilloName(cabrilloName string) {
+	d.cabrilloName = cabrilloName
+	if d.view != nil {
+		d.view.cabrilloNameEntry.SetText(cabrilloName)
+	}
+}
+
+func (d *summaryDialog) SetCallsign(callsign string) {
+	d.callsign = callsign
+	if d.view != nil {
+		d.view.callsignEntry.SetText(callsign)
+	}
+}
+
+func (d *summaryDialog) SetMyExchanges(myExchanges string) {
+	d.myExchanges = myExchanges
+	if d.view != nil {
+		d.view.myExchangesEntry.SetText(myExchanges)
+	}
+}
+
+func (d *summaryDialog) SetWorkedModes(workedModes string) {
+	d.workedModes = workedModes
+	if d.view != nil {
+		d.view.workedModesEntry.SetText(workedModes)
+	}
+}
+
+func (d *summaryDialog) SetWorkedBands(workedBands string) {
+	d.workedBands = workedBands
+	if d.view != nil {
+		d.view.workedBandsEntry.SetText(workedBands)
+	}
+}
+
+func (d *summaryDialog) SetOperatingTime(operatingTime time.Duration) {
+	d.operatingTime = operatingTime
+	if d.view != nil {
+		d.view.operatingTimeEntry.SetText(operatingTime.String())
+	}
+}
+
+func (d *summaryDialog) SetBreakTime(breakTime time.Duration) {
+	d.breakTime = breakTime
+	if d.view != nil {
+		d.view.breakTimeEntry.SetText(breakTime.String())
+	}
+}
+
+func (d *summaryDialog) SetBreaks(breaks int) {
+	d.breaks = breaks
+	if d.view != nil {
+		d.view.breaksEntry.SetText(strconv.Itoa(breaks))
+	}
 }
 
 func (d *summaryDialog) SetOpenAfterExport(open bool) {

@@ -507,7 +507,7 @@ type Summary struct {
 
 	// comes from the contest settings
 	Callsign    callsign.Callsign
-	MyExchanges []string
+	MyExchanges string
 
 	// has to be selected by the user in a dialog
 	OperatorMode conval.OperatorMode

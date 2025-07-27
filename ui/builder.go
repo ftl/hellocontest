@@ -68,7 +68,11 @@ func buildLabeledEntry(grid *gtk.Grid, row int, labelText string, handler any) *
 	entry.SetSizeRequest(200, 0)
 	grid.Attach(entry, 1, row, 1, 1)
 
-	entry.Connect("changed", handler)
+	if handler != nil {
+		entry.Connect("changed", handler)
+	} else {
+		entry.SetEditable(false)
+	}
 
 	return entry
 }

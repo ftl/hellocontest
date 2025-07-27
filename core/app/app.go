@@ -158,7 +158,6 @@ func (c *Controller) Startup() {
 	)
 	c.callHistoryFinder.Notify(c.Settings)
 	c.NewContestController = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
-	c.SummaryController = summary.NewController()
 	c.ExportCabrilloController = cabrillo.NewController()
 
 	c.bandplan = bandplan.IARURegion1 // TODO: make the bandplan configurable
@@ -183,6 +182,8 @@ func (c *Controller) Startup() {
 	c.Bandmap.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
 	c.Score.Notify(c.Bandmap)
+
+	c.SummaryController = summary.NewController(c.Score)
 
 	c.Workmode = workmode.NewController()
 	c.Workmode.Notify(c.Entry)
@@ -592,7 +593,7 @@ func (c *Controller) SaveAs() {
 }
 
 func (c *Controller) ExportSummary() {
-	result, ok := c.SummaryController.Run()
+	result, ok := c.SummaryController.Run(c.Settings)
 	if !ok {
 		return
 	}

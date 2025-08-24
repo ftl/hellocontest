@@ -2,11 +2,11 @@ package bandmap
 
 import (
 	"math"
+	"slices"
 	"time"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/texttheater/golang-levenshtein/levenshtein"
-	"golang.org/x/exp/slices"
 
 	"github.com/ftl/hellocontest/core"
 )

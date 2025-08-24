@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/exp/constraints"
+
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
@@ -1165,48 +1167,61 @@ func (e BandmapEntry) OnFrequency(frequency Frequency) bool {
 	return math.Abs(e.ProximityFactor(frequency)) >= spotOnFrequencyThreshold
 }
 
-type BandmapOrder func(BandmapEntry, BandmapEntry) bool
+type BandmapOrder func(BandmapEntry, BandmapEntry) int
 
-func Descending(o BandmapOrder) BandmapOrder {
-	return func(a, b BandmapEntry) bool {
-		return o(b, a)
+func Compare[T constraints.Ordered](a, b T) int {
+	switch {
+	case a < b:
+		return -1
+	case a == b:
+		return 0
+	case a > b:
+		return 1
+	default:
+		panic("compare")
 	}
 }
 
-func BandmapByFrequency(a, b BandmapEntry) bool {
-	if a.Frequency == b.Frequency {
-		return a.ID < b.ID
+func Descending(o BandmapOrder) BandmapOrder {
+	return func(a, b BandmapEntry) int {
+		return o(b, a) * -1
 	}
-	return a.Frequency < b.Frequency
+}
+
+func BandmapByFrequency(a, b BandmapEntry) int {
+	if a.Frequency == b.Frequency {
+		return Compare(a.ID, b.ID)
+	}
+	return Compare(a.Frequency, b.Frequency)
 }
 
 func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
-	return func(a, b BandmapEntry) bool {
+	return func(a, b BandmapEntry) int {
 		deltaA := math.Abs(float64(a.Frequency - referenceFrequency))
 		deltaB := math.Abs(float64(b.Frequency - referenceFrequency))
 		if deltaA == deltaB {
-			return a.ID < b.ID
+			return Compare(a.ID, b.ID)
 		}
-		return deltaA < deltaB
+		return Compare(deltaA, deltaB)
 	}
 }
 
 func BandmapByDistanceAndDescendingID(referenceFrequency Frequency) BandmapOrder {
-	return func(a, b BandmapEntry) bool {
+	return func(a, b BandmapEntry) int {
 		deltaA := math.Abs(float64(a.Frequency - referenceFrequency))
 		deltaB := math.Abs(float64(b.Frequency - referenceFrequency))
 		if deltaA == deltaB {
-			return a.ID > b.ID
+			return Compare(a.ID, b.ID) * -1
 		}
-		return deltaA < deltaB
+		return Compare(deltaA, deltaB)
 	}
 }
 
-func BandmapByValue(a, b BandmapEntry) bool {
+func BandmapByValue(a, b BandmapEntry) int {
 	if a.Info.WeightedValue == b.Info.WeightedValue {
-		return a.ID < b.ID
+		return Compare(a.ID, b.ID)
 	}
-	return a.Info.WeightedValue < b.Info.WeightedValue
+	return Compare(a.Info.WeightedValue, b.Info.WeightedValue)
 }
 
 type BandmapFilter func(entry BandmapEntry) bool

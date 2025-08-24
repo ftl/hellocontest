@@ -266,16 +266,16 @@ func (l *Entries) insert(entry *Entry) {
 }
 
 func (l *Entries) findIndexForInsert(entry *Entry) int {
-	less := func(a, b *Entry) bool {
+	less := func(a, b *Entry) int {
 		return l.order(b.BandmapEntry, a.BandmapEntry)
 	}
 	left := 0
 	right := len(l.entries) - 1
 	for left <= right {
 		pivot := (left + right) / 2
-		if less(l.entries[pivot], entry) {
+		if less(l.entries[pivot], entry) < 0 {
 			left = pivot + 1
-		} else if less(entry, l.entries[pivot]) {
+		} else if less(entry, l.entries[pivot]) < 0 {
 			right = pivot - 1
 		} else {
 			return pivot

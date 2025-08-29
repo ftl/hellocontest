@@ -147,6 +147,7 @@ type QTC struct {
 
 	// Basic Information
 	Kind          QTCKind
+	QSONumber     QSONumber // used only for SentQTC, references the QSO in my log
 	TheirCallsign callsign.Callsign
 	Header        QTCHeader
 

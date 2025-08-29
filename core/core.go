@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -133,6 +134,58 @@ func (workmode *Workmode) String() string {
 	default:
 		return ""
 	}
+}
+
+// QTC represents one QTC. If the QTC is not yet logged, it contains no timestamp, frequency,
+// and mode information
+type QTC struct {
+	// Log Information
+	Time      time.Time
+	Frequency Frequency
+	Band      Band
+	Mode      Mode
+
+	// Basic Information
+	Kind          QTCKind
+	TheirCallsign callsign.Callsign
+	Header        QTCHeader
+
+	// QSO Data
+	QTCTime     string // TODO: define a type for QTCTime (hhmm)
+	QTCCallsign callsign.Callsign
+	QTCNumber   QSONumber
+}
+
+type QTCKind int
+
+const (
+	ReceivedQTC QTCKind = iota
+	SentQTC
+)
+
+type QTCHeader struct {
+	SeriesNumber int
+	QTCCount     int
+}
+
+var qtcHeaderFormat = regexp.MustCompile(`([[:digit:]]+)/((1)?[[:digit:]]$)`)
+
+func ParseQTCHeader(s string) (QTCHeader, error) {
+	result := QTCHeader{}
+
+	fields := qtcHeaderFormat.FindStringSubmatch(s)
+	if len(fields) < 3 {
+		return QTCHeader{}, fmt.Errorf("%q is not a valid QTC header", s)
+	}
+
+	result.SeriesNumber, _ = strconv.Atoi(fields[1])
+	result.QTCCount, _ = strconv.Atoi(fields[2])
+
+	return result, nil
+}
+
+func (h QTCHeader) String() string {
+	return fmt.Sprintf("%d/%d", h.SeriesNumber, h.QTCCount)
 }
 
 // EntryField represents an entry field in the visual part.

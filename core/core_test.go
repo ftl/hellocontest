@@ -193,3 +193,43 @@ func TestBandmapEntry_OnFrequency(t *testing.T) {
 		})
 	}
 }
+
+func TestParseQTCHeader(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected QTCHeader
+		invalid  bool
+	}{
+		{
+			input:   "",
+			invalid: true,
+		},
+		{
+			input:   "1/20",
+			invalid: true,
+		},
+		{
+			input:   "1",
+			invalid: true,
+		},
+		{
+			input:    "1/1",
+			expected: QTCHeader{SeriesNumber: 1, QTCCount: 1},
+		},
+		{
+			input:    "1/10",
+			expected: QTCHeader{SeriesNumber: 1, QTCCount: 10},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			actual, err := ParseQTCHeader(test.input)
+			if test.invalid {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expected, actual)
+			}
+		})
+	}
+}

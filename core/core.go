@@ -140,7 +140,7 @@ func (workmode *Workmode) String() string {
 // and mode information
 type QTC struct {
 	// Log Information
-	Time      time.Time
+	Timestamp time.Time // must be set, when actually sending the QTC
 	Frequency Frequency
 	Band      Band
 	Mode      Mode
@@ -187,6 +187,17 @@ func ParseQTCHeader(s string) (QTCHeader, error) {
 
 func (h QTCHeader) String() string {
 	return fmt.Sprintf("%d/%d", h.SeriesNumber, h.QTCCount)
+}
+
+func QTCByTimestamp(a, b QTC) int {
+	switch {
+	case a.Timestamp.Before(b.Timestamp):
+		return -1
+	case a.Timestamp.After(b.Timestamp):
+		return 1
+	default:
+		return 0
+	}
 }
 
 // EntryField represents an entry field in the visual part.

@@ -61,7 +61,7 @@ func (c *Controller) operationModeHint() string {
 	}
 }
 
-func (c *Controller) RowAdded(qso core.QSO) {
+func (c *Controller) QSOAdded(qso core.QSO) {
 	isNew := qso.MyNumber > core.QSONumber(c.lastQSONumber)
 	c.lastQSONumber = int(math.Max(float64(c.lastQSONumber), float64(qso.MyNumber)))
 

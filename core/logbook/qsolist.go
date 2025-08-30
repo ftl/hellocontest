@@ -67,6 +67,9 @@ type QSOScorer interface {
 	Unmute()
 }
 
+// QSOList is the data source for the visible QSO list with all its additional information.
+// It is based on the Logbook data but uses several other data sources to enrich the
+// QSO information.
 // QSOList is thread-safe.
 type QSOList struct {
 	myExchangeFields    []core.ExchangeField

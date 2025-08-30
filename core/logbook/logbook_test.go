@@ -68,9 +68,9 @@ func TestLog_EmitRowAdded(t *testing.T) {
 	clock := clock.Static(now)
 	logbook := New(clock)
 	emitted := false
-	logbook.OnRowAdded(func(core.QSO) {
+	logbook.Notify(QSOAddedListenerFunc(func(core.QSO) {
 		emitted = true
-	})
+	}))
 
 	qso := core.QSO{MyNumber: 1}
 	logbook.Log(qso)

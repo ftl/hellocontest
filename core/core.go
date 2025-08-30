@@ -152,7 +152,7 @@ type QTC struct {
 	Header        QTCHeader
 
 	// QSO Data
-	QTCTime     string // TODO: define a type for QTCTime (hhmm)
+	QTCTime     QTCTime
 	QTCCallsign callsign.Callsign
 	QTCNumber   QSONumber
 }
@@ -198,6 +198,60 @@ func QTCByTimestamp(a, b QTC) int {
 	default:
 		return 0
 	}
+}
+
+type QTCTime struct {
+	Hour   int
+	Minute int
+}
+
+var ZeroQTCTime = QTCTime{0, 0}
+
+// ParseQTCTime parses the given string as QTC time (hhmm). The additional reference time
+// is used, if only the minutes are given in the string. In that case, the hours are taken
+// from the reference.
+func ParseQTCTime(s string, reference QTCTime) (QTCTime, error) {
+	l := len(s)
+	if l < 1 || l > 4 {
+		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %q is invalid", s)
+	}
+
+	result := QTCTime{}
+	var err error
+
+	switch {
+	case l < 3:
+		result.Hour = reference.Hour
+	default:
+		result.Hour, err = strconv.Atoi(string(s[0 : l-2]))
+	}
+	if err != nil {
+		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %w", err)
+	}
+	if result.Hour < 0 || result.Hour > 23 {
+		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %d is not valid for the hour section", result.Hour)
+	}
+
+	result.Minute, err = strconv.Atoi(s[max(l-2, 0):l])
+	if err != nil {
+		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %w", err)
+	}
+	if result.Minute < 0 || result.Minute > 59 {
+		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %d is not valid for the minute section", result.Minute)
+	}
+
+	return result, nil
+}
+
+func QTCTimeFromTimestamp(ts time.Time) QTCTime {
+	return QTCTime{
+		Hour:   ts.Hour(),
+		Minute: ts.Minute(),
+	}
+}
+
+func (t QTCTime) String() string {
+	return fmt.Sprintf("%02d%02d", t.Hour, t.Minute)
 }
 
 // EntryField represents an entry field in the visual part.

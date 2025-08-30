@@ -1,7 +1,6 @@
 package store
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -15,7 +14,7 @@ import (
 
 func TestFileStore_ReadV0File(t *testing.T) {
 	fs := NewFileStore("testdata/v0.testlog")
-	qsos, _, _, _, err := fs.ReadAll()
+	qsos, _, _, _, _, err := fs.ReadAll()
 	require.NoError(t, err)
 
 	assert.IsType(t, new(v0Format), fs.format)
@@ -25,7 +24,7 @@ func TestFileStore_ReadV0File(t *testing.T) {
 }
 
 func TestFileStore_EmptyFileUsesV0Format(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), t.Name())
+	tmpFile, err := os.CreateTemp(os.TempDir(), t.Name())
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
@@ -35,7 +34,7 @@ func TestFileStore_EmptyFileUsesV0Format(t *testing.T) {
 }
 
 func TestFileStore_ClearUsesLatestFormat(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), t.Name())
+	tmpFile, err := os.CreateTemp(os.TempDir(), t.Name())
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
@@ -48,7 +47,7 @@ func TestFileStore_ClearUsesLatestFormat(t *testing.T) {
 }
 
 func TestFileStore_V1QSORoundtrip(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), t.Name())
+	tmpFile, err := os.CreateTemp(os.TempDir(), t.Name())
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
@@ -76,17 +75,18 @@ func TestFileStore_V1QSORoundtrip(t *testing.T) {
 	err = fs.WriteQSO(qso)
 	require.NoError(t, err)
 
-	qsos, station, contest, keyer, err := fs.ReadAll()
+	qsos, station, contest, keyer, qtcs, err := fs.ReadAll()
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(qsos))
 	assert.Equal(t, qso, qsos[0])
 	assert.Nil(t, station)
 	assert.Nil(t, contest)
 	assert.Nil(t, keyer)
+	assert.Empty(t, qtcs)
 }
 
 func TestFileStore_V1StationRoundtrip(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), t.Name())
+	tmpFile, err := os.CreateTemp(os.TempDir(), t.Name())
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
@@ -112,16 +112,17 @@ func TestFileStore_V1StationRoundtrip(t *testing.T) {
 	err = fs.WriteStation(station2)
 	require.NoError(t, err)
 
-	qsos, station, contest, keyer, err := fs.ReadAll()
+	qsos, station, contest, keyer, qtcs, err := fs.ReadAll()
 	require.NoError(t, err)
 	assert.Empty(t, qsos)
 	assert.Equal(t, station2, *station)
 	assert.Nil(t, contest)
 	assert.Nil(t, keyer)
+	assert.Empty(t, qtcs)
 }
 
 func TestFileStore_V1ContestRoundtrip(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), t.Name())
+	tmpFile, err := os.CreateTemp(os.TempDir(), t.Name())
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
@@ -142,16 +143,17 @@ func TestFileStore_V1ContestRoundtrip(t *testing.T) {
 	err = fs.WriteContest(contest2)
 	require.NoError(t, err)
 
-	qsos, station, contest, keyer, err := fs.ReadAll()
+	qsos, station, contest, keyer, qtcs, err := fs.ReadAll()
 	require.NoError(t, err)
 	assert.Empty(t, qsos)
 	assert.Nil(t, station)
 	assert.Equal(t, contest2, *contest)
 	assert.Nil(t, keyer)
+	assert.Empty(t, qtcs)
 }
 
 func TestFileStore_V1KeyerRoundtrip(t *testing.T) {
-	tmpFile, err := ioutil.TempFile(os.TempDir(), t.Name())
+	tmpFile, err := os.CreateTemp(os.TempDir(), t.Name())
 	require.NoError(t, err)
 	defer os.Remove(tmpFile.Name())
 
@@ -172,10 +174,51 @@ func TestFileStore_V1KeyerRoundtrip(t *testing.T) {
 	err = fs.WriteKeyer(keyer2)
 	require.NoError(t, err)
 
-	qsos, station, contest, keyer, err := fs.ReadAll()
+	qsos, station, contest, keyer, qtcs, err := fs.ReadAll()
 	require.NoError(t, err)
 	assert.Empty(t, qsos)
 	assert.Nil(t, station)
 	assert.Nil(t, contest)
 	assert.Equal(t, keyer2, *keyer)
+	assert.Empty(t, qtcs)
+}
+
+func TestFileStore_V1QTCRoundtrip(t *testing.T) {
+	tmpFile, err := os.CreateTemp(os.TempDir(), t.Name())
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	fs := &FileStore{
+		filename: tmpFile.Name(),
+		format:   new(v1Format),
+	}
+	err = fs.format.Clear(&pbReadWriter{writer: tmpFile})
+	require.NoError(t, err)
+
+	qtc := core.QTC{
+		Timestamp: time.Unix(123, 0),
+		Frequency: 3535000,
+		Band:      core.Band80m,
+		Mode:      core.ModeCW,
+
+		Kind:          core.SentQTC,
+		QSONumber:     45,
+		TheirCallsign: callsign.MustParse("DL1ABC"),
+		Header:        core.QTCHeader{SeriesNumber: 7, QTCCount: 10},
+
+		QTCTime:     core.QTCTime{Hour: 12, Minute: 34},
+		QTCCallsign: callsign.MustParse("DL2ABC"),
+		QTCNumber:   56,
+	}
+	err = fs.WriteQTC(qtc)
+	require.NoError(t, err)
+
+	qsos, station, contest, keyer, qtcs, err := fs.ReadAll()
+	require.NoError(t, err)
+	assert.Empty(t, qsos)
+	assert.Nil(t, station)
+	assert.Nil(t, contest)
+	assert.Nil(t, keyer)
+	assert.Equal(t, 1, len(qtcs))
+	assert.Equal(t, qtc, qtcs[0])
 }

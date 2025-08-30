@@ -14,6 +14,7 @@ message Entry {
         Station station = 2;
         Contest contest = 3;
         Keyer keyer = 4;
+        QTC qtc = 5;
     }
 }
 
@@ -92,4 +93,18 @@ message Keyer {
     repeated string sp_labels = 4;
     repeated string run_labels = 5;
     int32 parrot_interval_seconds = 6;
+}
+
+message QTC {
+    int64 timestamp = 1;
+    double frequency = 2;
+    string band = 3;
+    string mode = 4;
+    int32 kind = 5;
+    int32 qso_number = 6;
+    string their_callsign = 7;
+    string header = 8;
+    string qtc_time = 9;
+    string qtc_callsign = 10;
+    int32 qtc_number = 11;
 }

@@ -180,3 +180,65 @@ func KeyerSettingsToPB(settings core.KeyerSettings) *Keyer {
 		ParrotIntervalSeconds: int32(settings.ParrotIntervalSeconds),
 	}
 }
+
+func ToQTC(pbQTC *QTC) (core.QTC, error) {
+	var qtc core.QTC
+	var err error
+
+	qtc.Timestamp = time.Unix(pbQTC.Timestamp, 0)
+	qtc.Frequency = core.Frequency(pbQTC.Frequency)
+	qtc.Band, err = parse.Band(pbQTC.Band)
+	if err != nil {
+		return core.QTC{}, err
+	}
+	qtc.Mode, err = parse.Mode(pbQTC.Mode)
+	if err != nil {
+		return core.QTC{}, err
+	}
+
+	qtc.Kind = core.QTCKind(pbQTC.Kind)
+	qtc.QSONumber = core.QSONumber(pbQTC.QsoNumber)
+	qtc.TheirCallsign, err = callsign.Parse(pbQTC.TheirCallsign)
+	if err != nil {
+		return core.QTC{}, err
+	}
+
+	if pbQTC.Header != "" {
+		qtc.Header, err = core.ParseQTCHeader(pbQTC.Header)
+		if err != nil {
+			return core.QTC{}, err
+		}
+	}
+
+	if pbQTC.QtcTime != "" {
+		qtc.QTCTime, err = core.ParseQTCTime(pbQTC.QtcTime, core.ZeroQTCTime)
+		if err != nil {
+			return core.QTC{}, err
+		}
+	}
+
+	qtc.QTCCallsign, err = callsign.Parse(pbQTC.QtcCallsign)
+	if err != nil {
+		return core.QTC{}, err
+	}
+
+	qtc.QTCNumber = core.QSONumber(pbQTC.QtcNumber)
+
+	return qtc, nil
+}
+
+func QTCToPB(qtc core.QTC) *QTC {
+	return &QTC{
+		Timestamp:     qtc.Timestamp.Unix(),
+		Frequency:     float64(qtc.Frequency),
+		Band:          qtc.Band.String(),
+		Mode:          qtc.Mode.String(),
+		Kind:          int32(qtc.Kind),
+		QsoNumber:     int32(qtc.QSONumber),
+		TheirCallsign: qtc.TheirCallsign.String(),
+		Header:        qtc.Header.String(),
+		QtcTime:       qtc.QTCTime.String(),
+		QtcCallsign:   qtc.QTCCallsign.String(),
+		QtcNumber:     int32(qtc.QTCNumber),
+	}
+}

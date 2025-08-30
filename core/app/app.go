@@ -310,7 +310,7 @@ func (c *Controller) openCurrentLog() error {
 	}
 
 	var newLogbook *logbook.Logbook
-	qsos, station, contest, keyerSettings, err := store.ReadAll()
+	qsos, station, contest, keyerSettings, qtcs, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
 		newLogbook = logbook.New(c.clock)
@@ -327,6 +327,7 @@ func (c *Controller) openCurrentLog() error {
 			c.Keyer.SetSettings(*keyerSettings, "")
 		}
 		newLogbook = logbook.Load(c.clock, qsos)
+		_ = qtcs // TODO: load the qtcs
 	}
 	c.changeLogbook(filename, store, newLogbook)
 	return nil
@@ -520,7 +521,7 @@ func (c *Controller) Open() {
 	}
 
 	store := store.NewFileStore(filename)
-	qsos, station, contest, keyerSettings, err := store.ReadAll()
+	qsos, station, contest, keyerSettings, qtcs, err := store.ReadAll()
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot open %s: %v", filepath.Base(filename), err)
 		return
@@ -538,6 +539,7 @@ func (c *Controller) Open() {
 		c.Keyer.SetSettings(*keyerSettings, "")
 	}
 	log := logbook.Load(c.clock, qsos)
+	_ = qtcs // TODO: load the qtcs
 	c.changeLogbook(filename, store, log)
 	c.Refresh()
 }

@@ -233,3 +233,71 @@ func TestParseQTCHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestParseQTCTime(t *testing.T) {
+	tests := []struct {
+		input      string
+		relativeTo QTCTime
+		expected   string
+		invalid    bool
+	}{
+		{
+			input:   "",
+			invalid: true,
+		},
+		{
+			input:   "12345",
+			invalid: true,
+		},
+		{
+			input:   "2806",
+			invalid: true,
+		},
+		{
+			input:   "1260",
+			invalid: true,
+		},
+		{
+			input:    "1",
+			expected: "0001",
+		},
+		{
+			input:    "12",
+			expected: "0012",
+		},
+		{
+			input:    "123",
+			expected: "0123",
+		},
+		{
+			input:    "1234",
+			expected: "1234",
+		},
+		{
+			input:      "1234",
+			relativeTo: QTCTime{Hour: 13, Minute: 18},
+			expected:   "1234",
+		},
+		{
+			input:      "12",
+			relativeTo: QTCTime{Hour: 13, Minute: 18},
+			expected:   "1312",
+		},
+		{
+			input:      "1",
+			relativeTo: QTCTime{Hour: 13, Minute: 18},
+			expected:   "1301",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			actual, err := ParseQTCTime(test.input, test.relativeTo)
+			if test.invalid {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expected, actual.String())
+			}
+		})
+	}
+}

@@ -332,15 +332,15 @@ func (c *Controller) openCurrentLog() error {
 	return nil
 }
 
-func (c *Controller) changeLogbook(filename string, store *store.FileStore, logbook *logbook.Logbook) {
+func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *logbook.Logbook) {
 	c.QSOList.Clear()
 
 	c.filename = filename
 	c.store = store
-	c.Logbook = logbook
+	c.Logbook = newLogbook
 	c.Logbook.SetWriter(c.store)
-	c.Logbook.OnRowAdded(c.QSOList.Put)
-	c.Logbook.OnRowAdded(c.Workmode.RowAdded)
+	c.Logbook.Notify(logbook.QSOAddedListenerFunc(c.QSOList.Put))
+	c.Logbook.Notify(c.Workmode)
 
 	c.VFO.SetLogbook(c.Logbook)
 	c.Entry.SetLogbook(c.Logbook)

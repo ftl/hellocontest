@@ -12,21 +12,21 @@ import (
 // New creates a new empty logbook.
 func New(clock core.Clock) *Logbook {
 	return &Logbook{
-		clock:             clock,
-		writer:            new(nullWriter),
-		qsos:              make([]core.QSO, 0, 1000),
-		rowAddedListeners: make([]RowAddedListener, 0),
+		clock:     clock,
+		writer:    new(nullWriter),
+		qsos:      make([]core.QSO, 0, 1000),
+		listeners: make([]any, 0),
 	}
 }
 
 // Load creates a new log and loads it with the entries from the given reader.
 func Load(clock core.Clock, qsos []core.QSO) *Logbook {
 	return &Logbook{
-		clock:             clock,
-		writer:            new(nullWriter),
-		qsos:              qsos,
-		myLastNumber:      lastNumber(qsos),
-		rowAddedListeners: make([]RowAddedListener, 0),
+		clock:        clock,
+		writer:       new(nullWriter),
+		qsos:         qsos,
+		myLastNumber: lastNumber(qsos),
+		listeners:    make([]any, 0),
 	}
 }
 
@@ -44,16 +44,13 @@ type Logbook struct {
 	qsos         []core.QSO
 	myLastNumber int
 
-	rowAddedListeners []RowAddedListener
+	listeners []any
 }
 
 // Writer writes log entries.
 type Writer interface {
 	WriteQSO(core.QSO) error
 }
-
-// RowAddedListener is notified when a new row is added to the log.
-type RowAddedListener func(core.QSO)
 
 func (l *Logbook) SetWriter(writer Writer) {
 	if writer == nil {
@@ -62,23 +59,21 @@ func (l *Logbook) SetWriter(writer Writer) {
 	l.writer = writer
 }
 
-func (l *Logbook) OnRowAdded(listener RowAddedListener) {
-	l.rowAddedListeners = append(l.rowAddedListeners, listener)
+func (l *Logbook) Notify(listener any) {
+	l.listeners = append(l.listeners, listener)
 }
 
-func (l *Logbook) ClearRowAddedListeners() {
-	l.rowAddedListeners = make([]RowAddedListener, 0)
-}
-
-func (l *Logbook) emitRowAdded(qso core.QSO) {
-	for _, listener := range l.rowAddedListeners {
-		listener(qso)
+func (l *Logbook) emitQSOAdded(qso core.QSO) {
+	for _, lis := range l.listeners {
+		if listener, ok := lis.(QSOAddedListener); ok {
+			listener.QSOAdded(qso)
+		}
 	}
 }
 
 func (l *Logbook) ReplayAll() {
 	for _, qso := range l.qsos {
-		l.emitRowAdded(qso)
+		l.emitQSOAdded(qso)
 	}
 }
 
@@ -110,7 +105,7 @@ func (l *Logbook) Log(qso core.QSO) {
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
 	l.writer.WriteQSO(qso)
-	l.emitRowAdded(qso)
+	l.emitQSOAdded(qso)
 	log.Printf("QSO added: %s", qso.String())
 }
 

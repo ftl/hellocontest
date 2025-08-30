@@ -11,7 +11,6 @@ require (
 	github.com/ftl/hamradio v0.2.13
 	github.com/ftl/rigproxy v0.2.6
 	github.com/ftl/tci v0.3.2
-	github.com/golang/protobuf v1.5.4
 	github.com/gotk3/gotk3 v0.6.5-0.20240618185848-ff349ae13f56
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.10.0
@@ -23,6 +22,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

@@ -8,8 +8,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/golang/protobuf/proto"
-	"google.golang.org/protobuf/runtime/protoiface"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -39,10 +38,10 @@ func (f *FileStore) Exists() bool {
 	return true
 }
 
-func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, error) {
+func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, []core.QTC, error) {
 	b, err := os.ReadFile(f.filename)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	reader := bytes.NewReader(b)
@@ -91,6 +90,16 @@ func (f *FileStore) WriteKeyer(keyer core.KeyerSettings) error {
 	return f.format.WriteKeyer(&pbReadWriter{writer: file}, keyer)
 }
 
+func (f *FileStore) WriteQTC(qtc core.QTC) error {
+	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return f.format.WriteQTC(&pbReadWriter{writer: file}, qtc)
+}
+
 func (f *FileStore) Clear() error {
 	file, err := os.Create(f.filename)
 	if err != nil {
@@ -103,12 +112,12 @@ func (f *FileStore) Clear() error {
 }
 
 type pbReader interface {
-	Read(pb protoiface.MessageV1) error
+	Read(pb proto.Message) error
 	ReadPreamble() (int32, error)
 }
 
 type pbWriter interface {
-	Write(pb protoiface.MessageV1) error
+	Write(pb proto.Message) error
 	WritePreamble() error
 }
 
@@ -117,7 +126,7 @@ type pbReadWriter struct {
 	writer io.Writer
 }
 
-func (rw *pbReadWriter) Read(pb protoiface.MessageV1) error {
+func (rw *pbReadWriter) Read(pb proto.Message) error {
 	var length int32
 	err := binary.Read(rw.reader, binary.LittleEndian, &length)
 	if err != nil {
@@ -142,7 +151,7 @@ func (rw *pbReadWriter) ReadPreamble() (int32, error) {
 	return preamble, nil
 }
 
-func (rw *pbReadWriter) Write(pb protoiface.MessageV1) error {
+func (rw *pbReadWriter) Write(pb proto.Message) error {
 	b, err := proto.Marshal(pb)
 	if err != nil {
 		return err

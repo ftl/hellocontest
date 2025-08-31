@@ -11,14 +11,14 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-// LogbookController represents the logbook controller.
-type LogbookController interface {
+// QSOListController represents the logbook controller.
+type QSOListController interface {
 	GetExchangeFields() ([]core.ExchangeField, []core.ExchangeField)
 	SelectRow(int)
 }
 
-type logbookView struct {
-	controller LogbookController
+type qsoListView struct {
+	controller QSOListController
 
 	view *gtk.TreeView
 	list *gtk.ListStore
@@ -41,8 +41,8 @@ type logbookView struct {
 	columnLast int
 }
 
-func setupLogbookView(builder *gtk.Builder) *logbookView {
-	result := new(logbookView)
+func setupLogbookView(builder *gtk.Builder) *qsoListView {
+	result := new(qsoListView)
 
 	result.view = getUI(builder, "logView").(*gtk.TreeView)
 
@@ -109,12 +109,12 @@ func createLogListStore(columnCount int) *gtk.ListStore {
 	return result
 }
 
-func (v *logbookView) SetLogbookController(controller LogbookController) {
+func (v *qsoListView) SetQSOListController(controller QSOListController) {
 	v.controller = controller
 	v.ExchangeFieldsChanged(v.controller.GetExchangeFields())
 }
 
-func (v *logbookView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+func (v *qsoListView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
 	columnCount := int(v.view.GetNColumns())
 	for i := v.columnFirstMyExchange; i < columnCount; i++ {
 		column := v.view.GetColumn(v.columnFirstMyExchange)
@@ -161,18 +161,18 @@ func (v *logbookView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeFiel
 	v.view.SetModel(v.list)
 }
 
-func (v *logbookView) QSOsCleared() {
+func (v *qsoListView) QSOsCleared() {
 	v.list.Clear()
 }
 
-func (v *logbookView) QSOAdded(qso core.QSO) {
+func (v *qsoListView) QSOAdded(qso core.QSO) {
 	newRow := v.list.Append()
 	err := v.fillQSOToRow(newRow, qso)
 	if err != nil {
 		log.Printf("Cannot fill new QSO data into row %s: %v", qso.String(), err)
 	}
 }
-func (v *logbookView) fillQSOToRow(row *gtk.TreeIter, qso core.QSO) error {
+func (v *qsoListView) fillQSOToRow(row *gtk.TreeIter, qso core.QSO) error {
 	err := v.list.Set(row,
 		[]int{
 			v.columnUTC,
@@ -229,12 +229,12 @@ func boolToCheckmark(value bool) string {
 	return ""
 }
 
-func (v *logbookView) QSOInserted(index int, qso core.QSO) {
+func (v *qsoListView) QSOInserted(index int, qso core.QSO) {
 	// insertion is currently not supported as it does not happen in practice
 	log.Printf("qso %d inserted at %d", qso.MyNumber, index)
 }
 
-func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
+func (v *qsoListView) QSOUpdated(index int, _, qso core.QSO) {
 	row, err := v.list.GetIterFromString(fmt.Sprintf("%d", index))
 	if err != nil {
 		log.Printf("cannot get iter: %v", err)
@@ -247,7 +247,7 @@ func (v *logbookView) QSOUpdated(index int, _, qso core.QSO) {
 	}
 }
 
-func (v *logbookView) RowSelected(index int) {
+func (v *qsoListView) RowSelected(index int) {
 	row, err := v.list.GetIterFromString(fmt.Sprintf("%d", index))
 	if err != nil {
 		log.Printf("cannot get iter: %v", err)
@@ -262,7 +262,7 @@ func (v *logbookView) RowSelected(index int) {
 	v.view.ScrollToCell(path, v.view.GetColumn(1), false, 0, 0)
 }
 
-func (v *logbookView) onSelectionChanged(selection *gtk.TreeSelection) bool {
+func (v *qsoListView) onSelectionChanged(selection *gtk.TreeSelection) bool {
 	if v.ignoreSelection {
 		return false
 	}

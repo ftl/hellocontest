@@ -1,4 +1,4 @@
-package logbook
+package qso
 
 import (
 	"log"
@@ -19,8 +19,8 @@ func New(clock core.Clock) *Logbook {
 	}
 }
 
-// Load creates a new log and loads it with the entries from the given reader.
-func Load(clock core.Clock, qsos []core.QSO) *Logbook {
+// LoadLogbook creates a new log and loads it with the entries from the given reader.
+func LoadLogbook(clock core.Clock, qsos []core.QSO) *Logbook {
 	return &Logbook{
 		clock:        clock,
 		writer:       new(nullWriter),

@@ -136,6 +136,8 @@ func (workmode *Workmode) String() string {
 	}
 }
 
+const MaxQTCsPerCall = 10 // TODO: this should be configurable through the contest definition
+
 // QTC represents one QTC. If the QTC is not yet logged, it contains no timestamp, frequency,
 // and mode information
 type QTC struct {
@@ -260,9 +262,8 @@ type QTCSeries struct {
 }
 
 func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
-	const maxCount = 10 // TODO: the maximum count should be based on the contest definition
-	if len(qtcs) > 10 {
-		return QTCSeries{}, fmt.Errorf("a QTC series must not have more than %d QTCs", maxCount)
+	if len(qtcs) > MaxQTCsPerCall {
+		return QTCSeries{}, fmt.Errorf("a QTC series must not have more than %d QTCs", MaxQTCsPerCall)
 	}
 	if len(qtcs) < 1 {
 		return QTCSeries{}, fmt.Errorf("a QTC series must have at least one QTC")

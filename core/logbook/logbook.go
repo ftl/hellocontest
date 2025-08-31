@@ -73,7 +73,6 @@ func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 		result.qtcs[qtc.QSONumber] = qtc
 		result.registerQTCSeries(qtc)
 	}
-	// TODO: setup the lookup table with available QTCs, should probably go into the QTCList
 
 	return result
 }

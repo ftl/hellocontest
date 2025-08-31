@@ -75,6 +75,7 @@ type Controller struct {
 	VFO                      *vfo.VFO
 	Logbook                  *logbook.Logbook
 	QSOList                  *logbook.QSOList
+	QTCList                  *logbook.QTCList
 	Entry                    *entry.Controller
 	Workmode                 *workmode.Controller
 	Radio                    *radio.Controller
@@ -167,6 +168,7 @@ func (c *Controller) Startup() {
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
 	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
+	c.QTCList = logbook.NewQTCList()
 	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
 	c.Entry = entry.NewController(
@@ -342,6 +344,7 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, newL
 	c.Logbook = newLogbook
 	c.Logbook.SetWriter(c.store)
 	c.Logbook.Notify(logbook.QSOAddedListenerFunc(c.QSOList.Put))
+	c.Logbook.Notify(c.QTCList)
 	c.Logbook.Notify(c.Workmode)
 
 	c.VFO.SetLogbook(c.Logbook)
@@ -629,6 +632,7 @@ func (c *Controller) ExportSummary() {
 }
 
 func (c *Controller) ExportCabrillo() {
+	// TODO: export QTCs
 	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All())
 	if !ok {
 		return
@@ -757,7 +761,9 @@ func (c *Controller) ShowSpots() {
 
 func (c *Controller) Refresh() {
 	c.QSOList.Clear()
+	c.QTCList.Clear()
 	c.QSOList.Fill(c.Logbook.AllQSOs())
+	c.QTCList.Fill(c.Logbook.AllQTCs())
 	c.Entry.Clear()
 }
 

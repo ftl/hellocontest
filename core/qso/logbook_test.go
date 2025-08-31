@@ -1,4 +1,4 @@
-package logbook
+package qso
 
 import (
 	"testing"
@@ -25,7 +25,7 @@ func TestLoad(t *testing.T) {
 		{MyNumber: 123},
 	}
 
-	logbook := Load(clock.New(), qsos)
+	logbook := LoadLogbook(clock.New(), qsos)
 
 	assert.Equal(t, core.QSONumber(124), logbook.NextNumber())
 }

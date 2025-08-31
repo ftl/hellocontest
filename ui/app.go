@@ -120,7 +120,7 @@ func (a *application) activate() {
 	a.mainWindow.SetRadioMenuController(a.controller)
 	a.mainWindow.SetSpotSourceMenuController(a.controller)
 	a.mainWindow.SetStopKeyController(a.controller)
-	a.mainWindow.SetLogbookController(a.controller.QSOList)
+	a.mainWindow.SetQSOListController(a.controller.QSOList)
 	a.mainWindow.SetEntryController(a.controller.Entry)
 	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
 	a.mainWindow.SetKeyerController(a.controller.Keyer)

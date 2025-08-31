@@ -254,6 +254,29 @@ func (t QTCTime) String() string {
 	return fmt.Sprintf("%02d%02d", t.Hour, t.Minute)
 }
 
+type QTCSeries struct {
+	Header QTCHeader
+	QTCs   []QTC
+}
+
+func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
+	const maxCount = 10 // TODO: the maximum count should be based on the contest definition
+	if len(qtcs) > 10 {
+		return QTCSeries{}, fmt.Errorf("a QTC series must not have more than %d QTCs", maxCount)
+	}
+	if len(qtcs) < 1 {
+		return QTCSeries{}, fmt.Errorf("a QTC series must have at least one QTC")
+	}
+
+	result := QTCSeries{
+		Header: QTCHeader{SeriesNumber: seriesNumber, QTCCount: len(qtcs)},
+	}
+	for i := range qtcs {
+		qtcs[i].Header = result.Header
+	}
+	return result, nil
+}
+
 // EntryField represents an entry field in the visual part.
 type EntryField string
 

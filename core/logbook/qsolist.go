@@ -108,6 +108,8 @@ func (l *QSOList) ContestChanged(contest core.Contest) {
 }
 
 func (l *QSOList) Valid() bool {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
 	return !l.invalid
 }
 

@@ -35,11 +35,12 @@ type Writer interface {
 }
 
 type Logbook struct {
-	clock        core.Clock
-	writer       Writer
-	qsos         []core.QSO
-	myLastNumber int
-	qtcs         map[core.QSONumber]core.QTC
+	clock             core.Clock
+	writer            Writer
+	qsos              []core.QSO
+	myLastNumber      int
+	qtcs              map[core.QSONumber]core.QTC
+	sentQTCsPerSeries []int
 
 	listeners []any
 }
@@ -57,11 +58,12 @@ func New(clock core.Clock) *Logbook {
 // Load creates a new log and loads it with the entries from the given reader.
 func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 	result := &Logbook{
-		clock:        clock,
-		writer:       new(nullWriter),
-		qsos:         qsos,
-		myLastNumber: lastNumber(qsos),
-		qtcs:         make(map[core.QSONumber]core.QTC, len(qtcs)),
+		clock:             clock,
+		writer:            new(nullWriter),
+		qsos:              qsos,
+		myLastNumber:      lastNumber(qsos),
+		qtcs:              make(map[core.QSONumber]core.QTC, len(qtcs)),
+		sentQTCsPerSeries: make([]int, lastSeries(qtcs)),
 	}
 
 	for _, qtc := range qtcs {
@@ -69,6 +71,7 @@ func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 			panic(fmt.Errorf("cannot load qtc because its timestamp is unset: %v", qtc))
 		}
 		result.qtcs[qtc.QSONumber] = qtc
+		result.registerQTCSeries(qtc)
 	}
 	// TODO: setup the lookup table with available QTCs, should probably go into the QTCList
 
@@ -78,9 +81,20 @@ func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 func lastNumber(qsos []core.QSO) int {
 	lastNumber := 0
 	for _, qso := range qsos {
-		lastNumber = int(math.Max(float64(lastNumber), float64(qso.MyNumber)))
+		lastNumber = max(lastNumber, int(qso.MyNumber))
 	}
 	return lastNumber
+}
+
+func lastSeries(qtcs []core.QTC) int {
+	result := 0
+	for _, qtc := range qtcs {
+		if qtc.Kind != core.SentQTC {
+			continue
+		}
+		result = max(result, qtc.Header.SeriesNumber)
+	}
+	return result
 }
 
 func (l *Logbook) SetWriter(writer Writer) {
@@ -112,6 +126,10 @@ func (l *Logbook) emitQTCAdded(qtc core.QTC) {
 
 func (l *Logbook) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
+}
+
+func (l *Logbook) NextSeriesNumber() int {
+	return len(l.sentQTCsPerSeries) + 1
 }
 
 func (l *Logbook) lastQSO() core.QSO {
@@ -156,8 +174,26 @@ func (l *Logbook) LogQTC(qtc core.QTC) {
 
 	l.qtcs[qtc.QSONumber] = qtc
 	l.writer.WriteQTC(qtc)
+	l.registerQTCSeries(qtc)
 	l.emitQTCAdded(qtc)
 	log.Printf("QTC added: %v", qtc)
+}
+
+func (l *Logbook) registerQTCSeries(qtc core.QTC) {
+	if qtc.Kind != core.SentQTC {
+		return
+	}
+
+	index := qtc.Header.SeriesNumber - 1
+	switch {
+	case len(l.sentQTCsPerSeries) == index: // the first of a new series
+		l.sentQTCsPerSeries = append(l.sentQTCsPerSeries, 1)
+	case len(l.sentQTCsPerSeries) > index: // the next of an existing series
+		l.sentQTCsPerSeries[index]++
+		// TODO: check if the series contains more than Header.QTCCount
+	default: // this must never happen, the calculation of the next series number is broken
+		panic(fmt.Errorf("unknown QTC series number %d, should not be greater than %d", qtc.Header.SeriesNumber, len(l.sentQTCsPerSeries)))
+	}
 }
 
 func (l *Logbook) AllQTCs() []core.QTC {

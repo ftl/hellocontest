@@ -2,6 +2,7 @@ package pb
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"time"
 
@@ -186,6 +187,9 @@ func ToQTC(pbQTC *QTC) (core.QTC, error) {
 	var err error
 
 	qtc.Timestamp = time.Unix(pbQTC.Timestamp, 0)
+	if qtc.Timestamp.IsZero() {
+		return core.QTC{}, fmt.Errorf("QTC has no timestamp: %v", pbQTC)
+	}
 	qtc.Frequency = core.Frequency(pbQTC.Frequency)
 	qtc.Band, err = parse.Band(pbQTC.Band)
 	if err != nil {

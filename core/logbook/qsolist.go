@@ -1,4 +1,4 @@
-package qso
+package logbook
 
 import (
 	"log"
@@ -19,16 +19,6 @@ type QSOsClearedListenerFunc func()
 
 func (f QSOsClearedListenerFunc) QSOsCleared() {
 	f()
-}
-
-type QSOAddedListener interface {
-	QSOAdded(core.QSO)
-}
-
-type QSOAddedListenerFunc func(core.QSO)
-
-func (f QSOAddedListenerFunc) QSOAdded(qso core.QSO) {
-	f(qso)
 }
 
 type QSOSelectedListener interface {

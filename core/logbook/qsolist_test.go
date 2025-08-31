@@ -1,4 +1,4 @@
-package qso
+package logbook
 
 import (
 	"fmt"

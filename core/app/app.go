@@ -26,9 +26,9 @@ import (
 	"github.com/ftl/hellocontest/core/export/summary"
 	"github.com/ftl/hellocontest/core/hamdxmap"
 	"github.com/ftl/hellocontest/core/keyer"
+	"github.com/ftl/hellocontest/core/logbook"
 	"github.com/ftl/hellocontest/core/newcontest"
 	"github.com/ftl/hellocontest/core/parrot"
-	"github.com/ftl/hellocontest/core/qso"
 	"github.com/ftl/hellocontest/core/radio"
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
@@ -73,8 +73,8 @@ type Controller struct {
 	hamDXMap          *hamdxmap.HamDXMap
 
 	VFO                      *vfo.VFO
-	QSOLogbook               *qso.Logbook
-	QSOList                  *qso.QSOList
+	Logbook                  *logbook.Logbook
+	QSOList                  *logbook.QSOList
 	Entry                    *entry.Controller
 	Workmode                 *workmode.Controller
 	Radio                    *radio.Controller
@@ -166,7 +166,7 @@ func (c *Controller) Startup() {
 	c.hamDXMap = hamdxmap.NewHamDXMap(c.configuration.HamDXMapPort())
 
 	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
-	c.QSOList = qso.NewQSOList(c.Settings, c.Score)
+	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
 	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
 	c.Entry = entry.NewController(
@@ -210,8 +210,8 @@ func (c *Controller) Startup() {
 	c.Entry.SetKeyer(c.Keyer)
 
 	c.Rate = rate.NewCounter(c.clock, c.asyncRunner)
-	c.QSOList.Notify(qso.QSOsClearedListenerFunc(c.Rate.Clear))
-	c.QSOList.Notify(qso.QSOAddedListenerFunc(c.Rate.Add))
+	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
+	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 
 	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.QSOList, c.Score)
 	c.Entry.SetCallinfo(c.Callinfo)
@@ -309,11 +309,11 @@ func (c *Controller) openCurrentLog() error {
 		}
 	}
 
-	var newLogbook *qso.Logbook
+	var newLogbook *logbook.Logbook
 	qsos, station, contest, keyerSettings, qtcs, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
-		newLogbook = qso.New(c.clock)
+		newLogbook = logbook.New(c.clock)
 	} else {
 		c.Settings.SetWriter(store)
 		if station != nil {
@@ -326,25 +326,26 @@ func (c *Controller) openCurrentLog() error {
 		if keyerSettings != nil {
 			c.Keyer.SetSettings(*keyerSettings, "")
 		}
-		newLogbook = qso.LoadLogbook(c.clock, qsos)
-		_ = qtcs // TODO: load the qtcs
+		newLogbook = logbook.Load(c.clock, qsos, qtcs)
 	}
 	c.changeLogbook(filename, store, newLogbook)
 	return nil
 }
 
-func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *qso.Logbook) {
+func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *logbook.Logbook) {
+	// TODO: handle QTCs
+
 	c.QSOList.Clear()
 
 	c.filename = filename
 	c.store = store
-	c.QSOLogbook = newLogbook
-	c.QSOLogbook.SetWriter(c.store)
-	c.QSOLogbook.Notify(qso.QSOAddedListenerFunc(c.QSOList.Put))
-	c.QSOLogbook.Notify(c.Workmode)
+	c.Logbook = newLogbook
+	c.Logbook.SetWriter(c.store)
+	c.Logbook.Notify(logbook.QSOAddedListenerFunc(c.QSOList.Put))
+	c.Logbook.Notify(c.Workmode)
 
-	c.VFO.SetLogbook(c.QSOLogbook)
-	c.Entry.SetLogbook(c.QSOLogbook)
+	c.VFO.SetLogbook(c.Logbook)
+	c.Entry.SetLogbook(c.Logbook)
 
 	if c.view != nil {
 		c.view.ShowFilename(c.filename)
@@ -504,7 +505,7 @@ func (c *Controller) New() {
 
 	c.Settings.SetWriter(store)
 	c.Keyer.SetWriter(store)
-	c.changeLogbook(filename, store, qso.New(c.clock))
+	c.changeLogbook(filename, store, logbook.New(c.clock))
 	c.Refresh()
 
 	c.OpenSettings()
@@ -538,8 +539,7 @@ func (c *Controller) Open() {
 	if keyerSettings != nil {
 		c.Keyer.SetSettings(*keyerSettings, "")
 	}
-	log := qso.LoadLogbook(c.clock, qsos)
-	_ = qtcs // TODO: load the qtcs
+	log := logbook.Load(c.clock, qsos, qtcs)
 	c.changeLogbook(filename, store, log)
 	c.Refresh()
 }
@@ -576,7 +576,7 @@ func (c *Controller) SaveAs() {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
 		return
 	}
-	err = c.QSOLogbook.WriteAll(store)
+	err = c.Logbook.WriteAll(store)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
 		return
@@ -585,7 +585,7 @@ func (c *Controller) SaveAs() {
 	c.filename = filename
 	c.store = store
 	c.Settings.SetWriter(store)
-	c.QSOLogbook.SetWriter(store)
+	c.Logbook.SetWriter(store)
 	c.view.ShowFilename(c.filename)
 
 	err = c.session.SetLastFilename(c.filename)
@@ -757,7 +757,7 @@ func (c *Controller) ShowSpots() {
 
 func (c *Controller) Refresh() {
 	c.QSOList.Clear()
-	c.QSOList.Fill(c.QSOLogbook.All())
+	c.QSOList.Fill(c.Logbook.AllQSOs())
 	c.Entry.Clear()
 }
 

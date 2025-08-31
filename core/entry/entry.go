@@ -39,7 +39,7 @@ type View interface {
 	SelectText(core.EntryField, string)
 	SetDuplicateMarker(bool)
 	SetEditingMarker(bool)
-	ShowMessage(...interface{})
+	ShowMessage(...any)
 	ClearMessage()
 }
 
@@ -61,7 +61,7 @@ type Logbook interface {
 	LastBand() core.Band
 	LastMode() core.Mode
 	LastExchange() []string
-	Log(core.QSO)
+	LogQSO(core.QSO)
 }
 
 // QSOList functionality used for QSO entry.
@@ -735,7 +735,7 @@ func (c *Controller) Log() {
 		qso.Workmode = c.workmode
 	}
 
-	c.logbook.Log(qso)
+	c.logbook.LogQSO(qso)
 	c.emitCallsignLogged(qso.Callsign.String(), qso.Frequency)
 
 	if c.workmode == core.SearchPounce {

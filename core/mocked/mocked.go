@@ -60,7 +60,7 @@ func (m *Log) LastExchange() []string {
 	return args.Get(0).([]string)
 }
 
-func (m *Log) Log(qso core.QSO) {
+func (m *Log) LogQSO(qso core.QSO) {
 	if !m.active {
 		return
 	}

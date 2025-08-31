@@ -26,8 +26,8 @@ func TestLoad(t *testing.T) {
 	}
 	now := time.Now()
 	qtcs := []core.QTC{
-		{QSONumber: 234, Timestamp: now.Add(-1 * time.Minute)},
-		{QSONumber: 235, Timestamp: now},
+		{Header: core.QTCHeader{SeriesNumber: 1, QTCCount: 1}, Kind: core.SentQTC, QSONumber: 234, Timestamp: now.Add(-1 * time.Minute)},
+		{Header: core.QTCHeader{SeriesNumber: 24, QTCCount: 1}, Kind: core.ReceivedQTC, QSONumber: 235, Timestamp: now},
 	}
 
 	logbook := Load(clock.New(), qsos, qtcs)
@@ -36,6 +36,7 @@ func TestLoad(t *testing.T) {
 
 	actualQTCs := logbook.AllQTCs()
 	assert.Equal(t, qtcs, actualQTCs)
+	assert.Equal(t, 2, logbook.NextSeriesNumber())
 }
 
 func TestLog_Log(t *testing.T) {

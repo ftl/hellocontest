@@ -141,19 +141,19 @@ const MaxQTCsPerCall = 10 // TODO: this should be configurable through the conte
 // QTC represents one QTC. If the QTC is not yet logged, it contains no timestamp, frequency,
 // and mode information
 type QTC struct {
-	// Log Information
-	Timestamp time.Time // must be set, when actually sending the QTC
-	Frequency Frequency
-	Band      Band
-	Mode      Mode
-
 	// Basic Information
 	Kind          QTCKind
 	QSONumber     QSONumber // used only for SentQTC, references the QSO in my log
 	TheirCallsign callsign.Callsign
 	Header        QTCHeader
 
-	// QSO Data
+	// Log Information, must be set, when actually sending the QTC
+	Timestamp time.Time
+	Frequency Frequency
+	Band      Band
+	Mode      Mode
+
+	// Data from referenced QSO, either from my log, or from their log
 	QTCTime     QTCTime
 	QTCCallsign callsign.Callsign
 	QTCNumber   QSONumber

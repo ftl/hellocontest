@@ -1,7 +1,6 @@
 package logbook
 
 import (
-	"fmt"
 	"slices"
 	"sync"
 
@@ -172,6 +171,24 @@ func (l *QTCList) AvailableFor(theirCall callsign.Callsign) int {
 	return min(core.MaxQTCsPerCall-theirQTCCount, len(l.availableQTCs)-theirQSOCount)
 }
 
-func (l *QTCList) PrepareFor(theirCall callsign.Callsign, count int) (core.QTCSeries, error) {
-	return core.QTCSeries{}, fmt.Errorf("not yet implemented")
+func (l *QTCList) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	theirCallStr := theirCall.String()
+	theirQTCCount := l.qtcsByCall[theirCall]
+	maxLen := max(0, min(core.MaxQTCsPerCall-theirQTCCount, count))
+
+	result := make([]core.QTC, 0, maxLen)
+	for _, qtc := range l.availableQTCs {
+		if len(result) >= maxLen {
+			break
+		}
+		if qtc.QTCCallsign.String() != theirCallStr {
+			qtc.TheirCallsign = theirCall
+			result = append(result, qtc)
+		}
+	}
+
+	return result
 }

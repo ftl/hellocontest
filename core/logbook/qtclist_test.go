@@ -59,6 +59,28 @@ func TestQTCList_AvailableFor(t *testing.T) {
 	}
 }
 
+func TestQTCList_PrepareFor(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+
+	l := NewQTCList()
+	for i := range 20 {
+		l.QSOAdded(core.QSO{Callsign: dl2abc, MyNumber: core.QSONumber(i + 1)})
+	}
+
+	qtcs := l.PrepareFor(dl1abc, core.MaxQTCsPerCall)
+	assert.Equal(t, core.MaxQTCsPerCall, len(qtcs))
+	for i := range qtcs {
+		assert.Equal(t, i+1, int(qtcs[i].QSONumber))
+
+		l.QTCAdded(qtcs[i])
+
+		newQTCs := l.PrepareFor(dl1abc, core.MaxQTCsPerCall)
+		assert.Equal(t, core.MaxQTCsPerCall-i-1, len(newQTCs))
+	}
+
+}
+
 // helpers
 
 type qtcListListener struct {

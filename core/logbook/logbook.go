@@ -6,6 +6,7 @@ import (
 	"math"
 	"slices"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -136,6 +137,10 @@ func (l *Logbook) lastQSO() core.QSO {
 		return core.QSO{}
 	}
 	return l.qsos[len(l.qsos)-1]
+}
+
+func (l *Logbook) LastCallsign() callsign.Callsign {
+	return l.lastQSO().Callsign
 }
 
 func (l *Logbook) LastBand() core.Band {

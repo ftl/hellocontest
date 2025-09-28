@@ -278,6 +278,15 @@ func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
 	return result, nil
 }
 
+// QSODataState represents the current state of the entered QSO data
+type QSODataState int
+
+const (
+	QSODataEmpty QSODataState = iota
+	QSODataInvalid
+	QSODataValid
+)
+
 // EntryField represents an entry field in the visual part.
 type EntryField string
 

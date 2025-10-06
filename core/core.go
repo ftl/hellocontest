@@ -159,6 +159,13 @@ type QTC struct {
 	QTCNumber   QSONumber
 }
 
+type QTCMode int
+
+const (
+	ReceiveQTC QTCMode = iota
+	ProvideQTC
+)
+
 type QTCKind int
 
 const (
@@ -278,19 +285,40 @@ func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
 	return result, nil
 }
 
+func (s QTCSeries) IsValidQTCIndex(index int) bool {
+	return index >= 0 && index < s.Header.QTCCount
+}
+
+func (s QTCSeries) IsLastQTCIndex(index int) bool {
+	return index >= 0 && index == s.Header.QTCCount-1
+}
+
 // QTCField represents an entry field in the QTC entry window.
 type QTCField string
 
 const (
-	HeaderSequenceField QTCField = "headerSequence"
-	HeaderCountField    QTCField = "headerCount"
+	qtcHeaderPrefix     string = "header"
+	SendHeaderField            = QTCField(qtcHeaderPrefix + "Send") // the header representation in the ProvideQTC mode
+	HeaderSequenceField        = QTCField(qtcHeaderPrefix + "Sequence")
+	HeaderCountField           = QTCField(qtcHeaderPrefix + "Count")
+	CompleteField              = QTCField("Complete") // complete the QTC series
+	NoQTCField                 = QTCField("")
 
+	qtcSendPrefix     string = "qtcSend_"
 	qtcTimePrefix     string = "qtcTime_"
 	qtcCallsignPrefix string = "qtcCallsign_"
 	qtcNumberPrefix   string = "qtcNumber_"
 
-	NoQTCField int = -1
+	NoQTCIndex int = -1
 )
+
+func (f QTCField) IsHeader() bool {
+	return strings.HasPrefix(string(f), qtcHeaderPrefix)
+}
+
+func (f QTCField) IsSend() bool {
+	return strings.HasPrefix(string(f), qtcSendPrefix)
+}
 
 func (f QTCField) IsTime() bool {
 	return strings.HasPrefix(string(f), qtcTimePrefix)
@@ -310,20 +338,24 @@ func (f QTCField) IsQTC() bool {
 
 func (f QTCField) QTCIndex() int {
 	if !f.IsQTC() {
-		return NoQTCField
+		return NoQTCIndex
 	}
 
 	s := string(f)
 	underscore := strings.Index(s, "_")
 	if underscore >= len(s)-1 {
-		return NoQTCField
+		return NoQTCIndex
 	}
 	index, err := strconv.Atoi(s[underscore+1:])
 	if err != nil {
-		return NoQTCField
+		return NoQTCIndex
 	}
 
 	return index
+}
+
+func QTCSendField(index int) QTCField {
+	return QTCField(qtcSendPrefix + strconv.Itoa(index))
 }
 
 func QTCTimeField(index int) QTCField {

@@ -43,9 +43,10 @@ type View interface {
 	QuestionQTCCount(max int) (int, bool)
 	QuestionConfirmAbort() bool
 	ShowError(error)
-	ShowSendWindow(core.QTCSeries)
+	Show(core.QTCMode, core.QTCSeries)
 	Update(core.QTCSeries)
 	Close()
+	SetActiveField(core.QTCField)
 }
 
 type Controller struct {
@@ -56,6 +57,9 @@ type Controller struct {
 
 	view View
 
+	activeField core.QTCField
+
+	currentMode   core.QTCMode
 	currentSeries core.QTCSeries
 	currentQTC    int
 }
@@ -76,6 +80,88 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
+}
+
+func (c *Controller) GotoNextField() {
+	var (
+		nextField core.QTCField
+		ok        bool
+	)
+	qtcIndex := c.activeField.QTCIndex()
+
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		switch {
+		case c.activeField.IsHeader():
+			nextField = core.QTCSendField(0)
+		case c.activeField.IsQTC():
+			nextField, ok = c.nextQTCField(qtcIndex)
+			if !ok {
+				return
+			}
+		default:
+			return
+		}
+	} else {
+		switch {
+		case c.activeField == core.HeaderSequenceField:
+			nextField = core.HeaderCountField
+		case c.activeField == core.HeaderCountField:
+			nextField = core.QTCTimeField(0)
+		case c.activeField.IsTime():
+			nextField = core.QTCCallsignField(qtcIndex)
+		case c.activeField.IsCallsign():
+			nextField = core.QTCNumberField(qtcIndex)
+		case c.activeField.IsNumber():
+			nextField, ok = c.nextQTCField(qtcIndex)
+			if !ok {
+				return
+			}
+		default:
+			return
+		}
+	}
+
+	c.SetActiveField(nextField)
+	c.view.SetActiveField(nextField)
+}
+
+func (c *Controller) nextQTCField(index int) (core.QTCField, bool) {
+	if c.currentSeries.IsLastQTCIndex(index) {
+		return core.CompleteField, true
+	}
+
+	nextIndex, ok := c.nextQTCIndex(index)
+	if !ok {
+		return core.NoQTCField, false
+	}
+
+	if c.currentMode == core.ProvideQTC {
+		return core.QTCSendField(nextIndex), true
+	} else {
+		return core.QTCTimeField(nextIndex), true
+	}
+
+}
+
+func (c *Controller) nextQTCIndex(index int) (int, bool) {
+	if !c.currentSeries.IsValidQTCIndex(index) {
+		return core.NoQTCIndex, false
+	}
+	nextIndex := index + 1
+	if !c.currentSeries.IsValidQTCIndex(nextIndex) {
+		return core.NoQTCIndex, false
+	}
+	return nextIndex, true
+}
+
+func (c *Controller) SetActiveField(field core.QTCField) {
+	qtcIndex := field.QTCIndex()
+	if !(qtcIndex == core.NoQTCIndex || c.currentSeries.IsValidQTCIndex(qtcIndex)) {
+		return
+	}
+	c.activeField = field
+	c.currentQTC = qtcIndex
 }
 
 // Workflow for providing QTCs
@@ -107,11 +193,13 @@ func (c *Controller) OfferQTC() {
 		c.view.ShowError(err)
 		return
 	}
+	c.currentMode = core.ProvideQTC
 	c.currentSeries = qtcSeries
-	c.currentQTC = 0
+	c.currentQTC = core.NoQTCIndex
 
 	// 5. show QTC window for sending
-	c.view.ShowSendWindow(c.currentSeries)
+	c.view.Show(c.currentMode, c.currentSeries)
+	c.SetActiveField(core.HeaderCountField)
 
 	// 6. send "qtc"
 	c.keyer.SendText(OfferQTCText)
@@ -150,6 +238,10 @@ func (c *Controller) SendHeader() {
 
 // SendQTC sends the current QTC.
 func (c *Controller) SendQTC() {
+	if !c.currentSeries.IsValidQTCIndex(c.currentQTC) {
+		return
+	}
+
 	qtc := c.currentSeries.QTCs[c.currentQTC]
 	time := qtc.QTCTime.String()
 	call := qtc.QTCCallsign.String()
@@ -164,6 +256,8 @@ func (c *Controller) SendQTC() {
 	}
 
 	c.keyer.SendText("%s %s %d", time, call, exchange)
+
+	// TODO: mark QTC as sent
 
 	// TODO: advance UI focus to next QTC?
 }
@@ -207,10 +301,11 @@ var _ View = &nullView{}
 
 type nullView struct{}
 
-func (*nullView) QuestionInvalidQSOData() bool     { return false }
-func (*nullView) QuestionQTCCount(int) (int, bool) { return 0, false }
-func (*nullView) QuestionConfirmAbort() bool       { return false }
-func (*nullView) ShowError(error)                  {}
-func (*nullView) ShowSendWindow(core.QTCSeries)    {}
-func (*nullView) Update(core.QTCSeries)            {}
-func (*nullView) Close()                           {}
+func (*nullView) QuestionInvalidQSOData() bool      { return false }
+func (*nullView) QuestionQTCCount(int) (int, bool)  { return 0, false }
+func (*nullView) QuestionConfirmAbort() bool        { return false }
+func (*nullView) ShowError(error)                   {}
+func (*nullView) Show(core.QTCMode, core.QTCSeries) {}
+func (*nullView) Update(core.QTCSeries)             {}
+func (*nullView) Close()                            {}
+func (*nullView) SetActiveField(core.QTCField)      {}

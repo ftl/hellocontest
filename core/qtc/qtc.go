@@ -4,7 +4,14 @@ import (
 	"fmt"
 
 	"github.com/ftl/hamradio/callsign"
+
 	"github.com/ftl/hellocontest/core"
+)
+
+// text prompts to communicate with the opposite station
+const (
+	OfferQTCText   = "qtc"
+	RequestQTCText = "qtc?"
 )
 
 type Logbook interface {
@@ -66,6 +73,8 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 }
 
+// Workflow for providing QTCs
+
 func (c *Controller) OfferQTC() {
 	// 1. find out their callsign
 	theirCall, ok := c.findOutTheirCallsign()
@@ -84,9 +93,11 @@ func (c *Controller) OfferQTC() {
 	if !ok {
 		return
 	}
+	qtcCount = min(qtcCount, len(qtcs))
+	qtcs = qtcs[:qtcCount]
 
 	// 4. create new QTCSeries
-	qtcSeries, err := core.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs[:qtcCount])
+	qtcSeries, err := core.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs)
 	if err != nil {
 		c.view.ShowError(err)
 		return
@@ -97,7 +108,7 @@ func (c *Controller) OfferQTC() {
 	c.view.ShowSendWindow(c.currentSeries)
 
 	// 6. send "qtc"
-	c.keyer.SendText("qtc")
+	c.keyer.SendText(OfferQTCText)
 }
 
 func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
@@ -117,11 +128,13 @@ func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
 		return theirCall, true
 	}
 
-	// 1d => ask the logbook for the last logged callsign
+	// d) otherwise -> use the last logged callsign
 	theirCall = c.logbook.LastCallsign()
 
 	return theirCall, (theirCall.BaseCall != "")
 }
+
+// Workflow for receiving QTCs
 
 func (c *Controller) RequestQTC() {
 	// TODO implement workflow for receiving QTCs

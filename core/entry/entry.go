@@ -74,7 +74,7 @@ type QSOList interface {
 type Keyer interface {
 	SendQuestion(q string)
 	GetText(workmode core.Workmode, index int) (string, error)
-	SendText(text string)
+	SendText(text string, args ...any)
 	Repeat()
 	Stop()
 }

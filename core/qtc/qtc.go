@@ -10,7 +10,10 @@ import (
 
 // text prompts to communicate with the opposite station
 const (
-	OfferQTCText   = "qtc"
+	OfferQTCText          = "qtc"
+	SendHeaderTemplate    = "qtc %s"
+	CompleteQTCSeriesText = "tu"
+
 	RequestQTCText = "qtc?"
 )
 
@@ -30,7 +33,7 @@ type EntryController interface {
 }
 
 type Keyer interface {
-	SendText(text string)
+	SendText(text string, args ...any)
 	Repeat()
 	Stop()
 }
@@ -38,6 +41,7 @@ type Keyer interface {
 type View interface {
 	QuestionInvalidQSOData() bool
 	QuestionQTCCount(max int) (int, bool)
+	QuestionConfirmAbort() bool
 	ShowError(error)
 	ShowSendWindow(core.QTCSeries)
 	Update(core.QTCSeries)
@@ -53,6 +57,7 @@ type Controller struct {
 	view View
 
 	currentSeries core.QTCSeries
+	currentQTC    int
 }
 
 func NewController(logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
@@ -103,6 +108,7 @@ func (c *Controller) OfferQTC() {
 		return
 	}
 	c.currentSeries = qtcSeries
+	c.currentQTC = 0
 
 	// 5. show QTC window for sending
 	c.view.ShowSendWindow(c.currentSeries)
@@ -134,6 +140,61 @@ func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
 	return theirCall, (theirCall.BaseCall != "")
 }
 
+// SendHeader sends the header of the current QTC series.
+func (c *Controller) SendHeader() {
+	// send the header
+	c.keyer.SendText(SendHeaderTemplate, c.currentSeries.Header)
+
+	// TODO: advance UI focus to the first QTC?
+}
+
+// SendQTC sends the current QTC.
+func (c *Controller) SendQTC() {
+	qtc := c.currentSeries.QTCs[c.currentQTC]
+	time := qtc.QTCTime.String()
+	call := qtc.QTCCallsign.String()
+	exchange := qtc.QTCNumber
+
+	// shorten time if the last QTC qso was in the same hour
+	if c.currentQTC > 0 {
+		lastQTC := c.currentSeries.QTCs[c.currentQTC-1]
+		if lastQTC.QTCTime.Hour == qtc.QTCTime.Hour {
+			// TODO: time = shortened time
+		}
+	}
+
+	c.keyer.SendText("%s %s %d", time, call, exchange)
+
+	// TODO: advance UI focus to next QTC?
+}
+
+// CompleteQTCSeries completes the current QTC series, stores all QTCs to the log, sends "tu",
+// and closes the QTC window.
+// The series can only be completed when all QTCs have been transmitted. Otherwise, an
+// error message is presented to the user, the QTC window stays open.
+func (c *Controller) CompleteQTCSeries() {
+	// TODO: check if all QTCs have been transmitted -> otherwise c.view.ShowError("Not all QTCs have been transmitted. The QTC series cannot be completed")
+	// and focus the first QTC that has not been transmitted yet
+
+	for _, qtc := range c.currentSeries.QTCs {
+		c.logbook.LogQTC(qtc)
+	}
+
+	c.keyer.SendText(CompleteQTCSeriesText)
+
+	c.view.Close()
+}
+
+// AbortQTCSeries aborts the current QTC series: no QTCs are logged, the QTC window is closed.
+// To prevent data loss due to an accidental abort, the user is asked for confirmation first.
+func (c *Controller) AbortQTCSeries() {
+	if !c.view.QuestionConfirmAbort() {
+		return
+	}
+
+	c.view.Close()
+}
+
 // Workflow for receiving QTCs
 
 func (c *Controller) RequestQTC() {
@@ -148,6 +209,7 @@ type nullView struct{}
 
 func (*nullView) QuestionInvalidQSOData() bool     { return false }
 func (*nullView) QuestionQTCCount(int) (int, bool) { return 0, false }
+func (*nullView) QuestionConfirmAbort() bool       { return false }
 func (*nullView) ShowError(error)                  {}
 func (*nullView) ShowSendWindow(core.QTCSeries)    {}
 func (*nullView) Update(core.QTCSeries)            {}

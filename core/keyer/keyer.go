@@ -552,8 +552,8 @@ func (k *Keyer) SendQuestion(q string) {
 	k.send(s)
 }
 
-func (k *Keyer) SendText(text string) {
-	k.send(text)
+func (k *Keyer) SendText(text string, args ...any) {
+	k.send(fmt.Sprintf(text, args...))
 }
 
 func (k *Keyer) send(s string) {

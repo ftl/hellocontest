@@ -278,6 +278,66 @@ func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
 	return result, nil
 }
 
+// QTCField represents an entry field in the QTC entry window.
+type QTCField string
+
+const (
+	HeaderSequenceField QTCField = "headerSequence"
+	HeaderCountField    QTCField = "headerCount"
+
+	qtcTimePrefix     string = "qtcTime_"
+	qtcCallsignPrefix string = "qtcCallsign_"
+	qtcNumberPrefix   string = "qtcNumber_"
+
+	NoQTCField int = -1
+)
+
+func (f QTCField) IsTime() bool {
+	return strings.HasPrefix(string(f), qtcTimePrefix)
+}
+
+func (f QTCField) IsCallsign() bool {
+	return strings.HasPrefix(string(f), qtcCallsignPrefix)
+}
+
+func (f QTCField) IsNumber() bool {
+	return strings.HasPrefix(string(f), qtcNumberPrefix)
+}
+
+func (f QTCField) IsQTC() bool {
+	return f.IsTime() || f.IsCallsign() || f.IsNumber()
+}
+
+func (f QTCField) QTCIndex() int {
+	if !f.IsQTC() {
+		return NoQTCField
+	}
+
+	s := string(f)
+	underscore := strings.Index(s, "_")
+	if underscore >= len(s)-1 {
+		return NoQTCField
+	}
+	index, err := strconv.Atoi(s[underscore+1:])
+	if err != nil {
+		return NoQTCField
+	}
+
+	return index
+}
+
+func QTCTimeField(index int) QTCField {
+	return QTCField(qtcTimePrefix + strconv.Itoa(index))
+}
+
+func QTCCallsignField(index int) QTCField {
+	return QTCField(qtcCallsignPrefix + strconv.Itoa(index))
+}
+
+func QTCNumberField(index int) QTCField {
+	return QTCField(qtcNumberPrefix + strconv.Itoa(index))
+}
+
 // QSODataState represents the current state of the entered QSO data
 type QSODataState int
 

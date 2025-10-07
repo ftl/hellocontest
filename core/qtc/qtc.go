@@ -13,7 +13,6 @@ import (
 const (
 	OfferQTCText          = "qtc"
 	SendHeaderTemplate    = "qtc %s"
-	SendQTCTemplate       = "%s %s %d"
 	CompleteQTCSeriesText = "tu"
 
 	RequestQTCText    = "qtc?"
@@ -290,7 +289,7 @@ func (c *Controller) SendQTC() {
 		}
 	}
 
-	c.keyer.SendText(SendQTCTemplate, time, call, exchange)
+	c.keyer.SendText("%s %s %s", time, call, exchange)
 
 	// TODO: mark QTC as sent
 

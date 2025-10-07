@@ -2,6 +2,7 @@ package qtc
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
 
@@ -12,9 +13,13 @@ import (
 const (
 	OfferQTCText          = "qtc"
 	SendHeaderTemplate    = "qtc %s"
+	SendQTCTemplate       = "%s %s %d"
 	CompleteQTCSeriesText = "tu"
 
-	RequestQTCText = "qtc?"
+	RequestQTCText    = "qtc?"
+	QRVText           = "qrv"
+	ConfirmText       = "r"
+	RequestRepeatText = "agn"
 )
 
 type Logbook interface {
@@ -80,6 +85,36 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
+}
+
+func (c *Controller) Proceed() {
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		switch {
+		case c.activeField.IsHeader():
+			c.SendHeader()
+		case c.activeField.IsQTC():
+			c.SendQTC()
+		case c.activeField == core.CompleteField:
+			c.CompleteQTCSeries()
+		default:
+			return
+		}
+	} else {
+		// TODO: check if all fields of the current QTC are filled with valid data
+		// if not -> focus the first field of the current QTC and request repeat
+		c.keyer.SendText(ConfirmText)
+	}
+	c.GotoNextField()
+}
+
+func (c *Controller) Repeat() {
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		c.keyer.Repeat()
+	} else {
+		c.keyer.SendText(RequestRepeatText)
+	}
 }
 
 func (c *Controller) GotoNextField() {
@@ -245,7 +280,7 @@ func (c *Controller) SendQTC() {
 	qtc := c.currentSeries.QTCs[c.currentQTC]
 	time := qtc.QTCTime.String()
 	call := qtc.QTCCallsign.String()
-	exchange := qtc.QTCNumber
+	exchange := strconv.Itoa(int(qtc.QTCNumber)) // TODO: shorten numbers
 
 	// shorten time if the last QTC qso was in the same hour
 	if c.currentQTC > 0 {
@@ -255,7 +290,7 @@ func (c *Controller) SendQTC() {
 		}
 	}
 
-	c.keyer.SendText("%s %s %d", time, call, exchange)
+	c.keyer.SendText(SendQTCTemplate, time, call, exchange)
 
 	// TODO: mark QTC as sent
 

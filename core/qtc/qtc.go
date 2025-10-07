@@ -297,10 +297,11 @@ func (c *Controller) SendQTC() {
 	exchange := strconv.Itoa(int(qtc.QTCNumber)) // TODO: shorten numbers
 
 	// shorten time if the last QTC qso was in the same hour
+	// TODO: make this optional?
 	if c.currentQTC > 0 {
 		lastQTC := c.currentSeries.QTCs[c.currentQTC-1]
 		if lastQTC.QTCTime.Hour == qtc.QTCTime.Hour {
-			// TODO: time = shortened time
+			time = qtc.QTCTime.ShortString()
 		}
 	}
 

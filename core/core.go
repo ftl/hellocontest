@@ -267,6 +267,10 @@ func (t QTCTime) String() string {
 	return fmt.Sprintf("%02d%02d", t.Hour, t.Minute)
 }
 
+func (t QTCTime) ShortString() string {
+	return fmt.Sprintf("%02d", t.Minute)
+}
+
 type QTCSeries struct {
 	Header QTCHeader
 	QTCs   []QTC

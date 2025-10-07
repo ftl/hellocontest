@@ -228,6 +228,7 @@ func (c *Controller) OfferQTC() {
 	// 2. get available QTCs
 	qtcs := c.qtcList.PrepareFor(theirCall, core.MaxQTCsPerCall)
 	if len(qtcs) == 0 {
+		c.view.ShowError(fmt.Errorf("No QTCs available for %s", theirCall))
 		return
 	}
 

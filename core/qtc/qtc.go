@@ -54,6 +54,7 @@ type View interface {
 }
 
 type Controller struct {
+	clock           core.Clock
 	logbook         Logbook
 	qtcList         QTCList
 	entryController EntryController
@@ -66,10 +67,15 @@ type Controller struct {
 	currentMode   core.QTCMode
 	currentSeries core.QTCSeries
 	currentQTC    int
+
+	vfoFrequency core.Frequency
+	vfoBand      core.Band
+	vfoMode      core.Mode
 }
 
-func NewController(logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
+func NewController(clock core.Clock, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
 	return &Controller{
+		clock:           clock,
 		logbook:         logbook,
 		qtcList:         qtcList,
 		entryController: entryController,
@@ -84,6 +90,18 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
+}
+
+func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
+	c.vfoFrequency = frequency
+}
+
+func (c *Controller) VFOBandChanged(band core.Band) {
+	c.vfoBand = band
+}
+
+func (c *Controller) VFOModeChanged(mode core.Mode) {
+	c.vfoMode = mode
 }
 
 func (c *Controller) Proceed() {
@@ -264,10 +282,7 @@ func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
 
 // SendHeader sends the header of the current QTC series.
 func (c *Controller) SendHeader() {
-	// send the header
 	c.keyer.SendText(SendHeaderTemplate, c.currentSeries.Header)
-
-	// TODO: advance UI focus to the first QTC?
 }
 
 // SendQTC sends the current QTC.
@@ -291,26 +306,46 @@ func (c *Controller) SendQTC() {
 
 	c.keyer.SendText("%s %s %s", time, call, exchange)
 
-	// TODO: mark QTC as sent
-
-	// TODO: advance UI focus to next QTC?
+	// add transmission data and mark the QTC as transmitted
+	qtc.Timestamp = c.clock.Now()
+	qtc.Frequency = c.vfoFrequency
+	qtc.Band = c.vfoBand
+	qtc.Mode = c.vfoMode
+	c.currentSeries.QTCs[c.currentQTC] = qtc
 }
 
-// CompleteQTCSeries completes the current QTC series, stores all QTCs to the log, sends "tu",
-// and closes the QTC window.
+// CompleteQTCSeries completes the current QTC series.
+//
+// mode == ProvideQTC: stores all QTCs to the log, sends "tu", and closes the QTC window.
 // The series can only be completed when all QTCs have been transmitted. Otherwise, an
 // error message is presented to the user, the QTC window stays open.
+//
+// mode == ReceiveQTC: not yet implemented
 func (c *Controller) CompleteQTCSeries() {
-	// TODO: check if all QTCs have been transmitted -> otherwise c.view.ShowError("Not all QTCs have been transmitted. The QTC series cannot be completed")
-	// and focus the first QTC that has not been transmitted yet
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		// check if all QTCs have actually been transmitted
+		for i, qtc := range c.currentSeries.QTCs {
+			if qtc.WasTransmitted() {
+				continue
+			}
 
-	for _, qtc := range c.currentSeries.QTCs {
-		c.logbook.LogQTC(qtc)
+			c.currentQTC = i
+			c.SetActiveField(core.QTCSendField(i))
+			c.view.ShowError(fmt.Errorf("Not all QTCs have been transmitted, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs."))
+			return
+		}
+
+		for _, qtc := range c.currentSeries.QTCs {
+			c.logbook.LogQTC(qtc)
+		}
+
+		c.keyer.SendText(CompleteQTCSeriesText)
+
+		c.view.Close()
+	} else {
+		// TODO: implement c.currentMode == core.ReceiveQTC
 	}
-
-	c.keyer.SendText(CompleteQTCSeriesText)
-
-	c.view.Close()
 }
 
 // AbortQTCSeries aborts the current QTC series: no QTCs are logged, the QTC window is closed.

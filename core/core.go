@@ -159,6 +159,10 @@ type QTC struct {
 	QTCNumber   QSONumber
 }
 
+func (q QTC) WasTransmitted() bool {
+	return !q.Timestamp.IsZero()
+}
+
 type QTCMode int
 
 const (

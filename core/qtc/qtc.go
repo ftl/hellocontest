@@ -252,7 +252,7 @@ func (c *Controller) OfferQTC() {
 
 	// 5. show QTC window for sending
 	c.view.Show(c.currentMode, c.currentSeries)
-	c.SetActiveField(core.HeaderCountField)
+	c.SetActiveField(core.SendHeaderField)
 
 	// 6. send "qtc"
 	c.keyer.SendText(OfferQTCText)

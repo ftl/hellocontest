@@ -807,6 +807,14 @@ func (c *Controller) SwitchToRunWorkmode() {
 	c.Workmode.SetWorkmode(core.Run)
 }
 
+func (c *Controller) OfferQTC() {
+	log.Printf("OFFER QTC")
+}
+
+func (c *Controller) RequestQTC() {
+	log.Printf("REQUEST QTC")
+}
+
 func (c *Controller) XITActive() bool {
 	return c.VFO.XITActive()
 }

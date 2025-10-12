@@ -35,6 +35,8 @@ type MainMenuController interface {
 	SetESMEnabled(enabled bool)
 	SwitchToSPWorkmode()
 	SwitchToRunWorkmode()
+	OfferQTC()
+	RequestQTC()
 	SetXITActive(active bool)
 	MarkInBandmap()
 	GotoHighestValueSpot()
@@ -74,6 +76,8 @@ type mainMenu struct {
 	editESM               *gtk.CheckMenuItem
 	editSP                *gtk.RadioMenuItem
 	editRun               *gtk.RadioMenuItem
+	editOfferQTC          *gtk.MenuItem
+	editRequestQTC        *gtk.MenuItem
 
 	radioXITActive *gtk.CheckMenuItem
 
@@ -120,6 +124,8 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editESM = getUI(builder, "menuEditESM").(*gtk.CheckMenuItem)
 	result.editSP = getUI(builder, "menuEditSP").(*gtk.RadioMenuItem)
 	result.editRun = getUI(builder, "menuEditRun").(*gtk.RadioMenuItem)
+	result.editOfferQTC = getUI(builder, "menuEditOfferQTC").(*gtk.MenuItem)
+	result.editRequestQTC = getUI(builder, "menuEditRequestQTC").(*gtk.MenuItem)
 	result.radioXITActive = getUI(builder, "menuRadioXITActive").(*gtk.CheckMenuItem)
 	result.bandmapMark = getUI(builder, "menuBandmapMark").(*gtk.MenuItem)
 	result.bandmapGotoHighestValueSpot = getUI(builder, "menuBandmapGotoHighestValueSpot").(*gtk.MenuItem)
@@ -157,6 +163,8 @@ func setupMainMenu(builder *gtk.Builder, setAcceptFocus AcceptFocusFunc) *mainMe
 	result.editESM.Connect("toggled", result.onESM)
 	result.editSP.Connect("toggled", result.onSP)
 	result.editRun.Connect("toggled", result.onRun)
+	result.editOfferQTC.Connect("activate", result.onOfferQTC)
+	result.editRequestQTC.Connect("activate", result.onRequestQTC)
 	result.radioXITActive.Connect("toggled", result.onXITActive)
 	result.bandmapMark.Connect("activate", result.onMarkInBandmap)
 	result.bandmapGotoHighestValueSpot.Connect("activate", result.onGotoHighestValueSpot)
@@ -314,6 +322,14 @@ func (m *mainMenu) onRun() {
 	if m.editRun.GetActive() {
 		m.controller.SwitchToRunWorkmode()
 	}
+}
+
+func (m *mainMenu) onOfferQTC() {
+	m.controller.OfferQTC()
+}
+
+func (m *mainMenu) onRequestQTC() {
+	m.controller.RequestQTC()
 }
 
 func (m *mainMenu) onXITActive() {

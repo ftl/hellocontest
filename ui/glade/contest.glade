@@ -1817,6 +1817,30 @@ Interval</property>
                         <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </object>
                     </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuEditOfferQTC">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Offer QTC</property>
+                        <property name="use-underline">True</property>
+                        <accelerator key="F5" signal="activate"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="menuEditRequestQTC">
+                        <property name="visible">True</property>
+                        <property name="can-focus">False</property>
+                        <property name="label" translatable="yes">Request QTC</property>
+                        <property name="use-underline">True</property>
+                        <accelerator key="F6" signal="activate"/>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

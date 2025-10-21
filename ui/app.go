@@ -33,7 +33,6 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 	var err error
 	app := &application{id: AppID, version: version, sponsors: sponsors, startupScript: startupScript}
 
-	gdk.SetAllowedBackends("x11")
 	gtk.WindowSetDefaultIconName("hellocontest")
 
 	app.app, err = gtk.ApplicationNew(app.id, glib.APPLICATION_FLAGS_NONE)

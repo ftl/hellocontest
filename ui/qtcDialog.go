@@ -35,7 +35,7 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 
 func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	// TODO: provide the qtcMode to generate the corresponding UI details
-	d.view = newQTCView(d.controller)
+	d.view = newQTCView(d.controller, qtcMode)
 
 	dialog, _ := gtk.DialogNew()
 	d.dialog = dialog
@@ -46,8 +46,8 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.dialog.SetTitle("QTC")
 	d.dialog.SetDefaultResponse(gtk.RESPONSE_OK)
 	d.dialog.SetModal(true)
-	// contentArea, _ := d.dialog.GetContentArea()
-	// contentArea.Add(d.view.root)
+	contentArea, _ := d.dialog.GetContentArea()
+	contentArea.Add(d.view.root)
 	d.dialog.AddButton("Log", gtk.RESPONSE_OK)
 	// TODO: add a check before closing the dialog
 	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)

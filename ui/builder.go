@@ -6,11 +6,17 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
+const (
+	COLUMN_SPACING = 5
+	ROW_SPACING    = 5
+	MARGIN         = 3
+)
+
 func buildHeaderLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label {
 	label, _ := gtk.LabelNew("")
 	label.SetHAlign(gtk.ALIGN_START)
-	label.SetMarginTop(5)
-	label.SetMarginBottom(5)
+	label.SetMarginTop(MARGIN)
+	label.SetMarginBottom(MARGIN)
 	label.SetMarkup(fmt.Sprintf("<b>%s</b>", labelText))
 	grid.Attach(label, 0, row, 2, 1)
 	return label
@@ -19,8 +25,8 @@ func buildHeaderLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label {
 func buildExplanationLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label {
 	label, _ := gtk.LabelNew(labelText)
 	label.SetHAlign(gtk.ALIGN_START)
-	label.SetMarginTop(5)
-	label.SetMarginBottom(5)
+	label.SetMarginTop(MARGIN)
+	label.SetMarginBottom(MARGIN)
 	grid.Attach(label, 1, row, 1, 1)
 	return label
 }
@@ -28,8 +34,8 @@ func buildExplanationLabel(grid *gtk.Grid, row int, labelText string) *gtk.Label
 func buildSeparator(grid *gtk.Grid, row int, width int) {
 	separator, _ := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
 	separator.SetHExpand(true)
-	separator.SetMarginTop(5)
-	separator.SetMarginBottom(5)
+	separator.SetMarginTop(MARGIN)
+	separator.SetMarginBottom(MARGIN)
 	grid.Attach(separator, 0, row, width, 1)
 }
 
@@ -71,7 +77,7 @@ func buildLabeledEntry(grid *gtk.Grid, row int, labelText string, handler any) *
 	if handler != nil {
 		entry.Connect("changed", handler)
 	} else {
-		entry.SetEditable(false)
+		entry.SetSensitive(false)
 	}
 
 	return entry
@@ -100,8 +106,8 @@ func buildLabeledTextView(grid *gtk.Grid, row int, labelText string, handler any
 func buildCheckButton(grid *gtk.Grid, row int, labelText string, handler any) *gtk.CheckButton {
 	checkButton, _ := gtk.CheckButtonNewWithLabel(labelText)
 	checkButton.SetHExpand(true)
-	checkButton.SetMarginTop(5)
-	checkButton.SetMarginBottom(5)
+	checkButton.SetMarginTop(MARGIN)
+	checkButton.SetMarginBottom(MARGIN)
 	grid.Attach(checkButton, 0, row, 1, 1)
 
 	checkButton.Connect("toggled", handler)
@@ -112,8 +118,8 @@ func buildCheckButton(grid *gtk.Grid, row int, labelText string, handler any) *g
 func buildCheckButtonInColumn(grid *gtk.Grid, row int, col int, width int, labelText string, handler any) *gtk.CheckButton {
 	checkButton, _ := gtk.CheckButtonNewWithLabel(labelText)
 	checkButton.SetHExpand(true)
-	checkButton.SetMarginTop(5)
-	checkButton.SetMarginBottom(5)
+	checkButton.SetMarginTop(MARGIN)
+	checkButton.SetMarginBottom(MARGIN)
 	grid.Attach(checkButton, col, row, width, 1)
 
 	checkButton.Connect("toggled", handler)

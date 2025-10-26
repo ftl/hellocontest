@@ -77,16 +77,24 @@ type Controller struct {
 	vfoMode      core.Mode
 }
 
-func NewController(clock core.Clock, infoDialogs InfoDialogs, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
+func NewController(clock core.Clock, infoDialogs InfoDialogs, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
 	return &Controller{
 		clock:           clock,
-		logbook:         logbook,
+		logbook:         new(nullLogbook),
 		qtcList:         qtcList,
 		entryController: entryController,
 		keyer:           keyer,
 		infoDialogs:     infoDialogs,
 		view:            new(nullView),
 	}
+}
+
+func (c *Controller) SetLogbook(logbook Logbook) {
+	if logbook == nil {
+		c.logbook = new(nullLogbook)
+		return
+	}
+	c.logbook = logbook
 }
 
 func (c *Controller) SetView(view View) {
@@ -382,6 +390,16 @@ func (c *Controller) AbortQTCSeries() {
 func (c *Controller) RequestQTC() {
 	// TODO implement workflow for receiving QTCs
 }
+
+// nullLogbook
+
+var _ Logbook = &nullLogbook{}
+
+type nullLogbook struct{}
+
+func (*nullLogbook) NextSeriesNumber() int           { return 0 }
+func (*nullLogbook) LastCallsign() callsign.Callsign { return callsign.Callsign{} }
+func (*nullLogbook) LogQTC(core.QTC)                 {}
 
 // nullView
 

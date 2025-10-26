@@ -662,6 +662,11 @@ func (c *Controller) EnterPressed() {
 	}
 }
 
+func (c *Controller) CurrentQSOState() (callsign.Callsign, core.QSODataState) {
+	// TODO: implement QSO validation
+	return callsign.Callsign{}, core.QSODataEmpty
+}
+
 func (c *Controller) Log() {
 	var err error
 	qso := core.QSO{}

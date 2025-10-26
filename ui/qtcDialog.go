@@ -30,7 +30,7 @@ func (d *qtcDialog) onDestroy() {
 
 func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 	// TODO: implement modal dialog
-	return 0, false
+	return 10, true
 }
 
 func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) bool {

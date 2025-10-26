@@ -213,6 +213,8 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Keyer)
 	c.Entry.SetKeyer(c.Keyer)
 
+	c.QTCController = qtc.NewController(c.clock, c, c.QTCList, c.Entry, c.Keyer)
+
 	c.Rate = rate.NewCounter(c.clock, c.asyncRunner)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
@@ -351,6 +353,7 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, newL
 
 	c.VFO.SetLogbook(c.Logbook)
 	c.Entry.SetLogbook(c.Logbook)
+	c.QTCController.SetLogbook(c.Logbook)
 
 	if c.view != nil {
 		c.view.ShowFilename(c.filename)
@@ -810,7 +813,7 @@ func (c *Controller) SwitchToRunWorkmode() {
 }
 
 func (c *Controller) OfferQTC() {
-	log.Printf("OFFER QTC")
+	c.QTCController.OfferQTC()
 }
 
 func (c *Controller) RequestQTC() {

@@ -42,11 +42,14 @@ type Keyer interface {
 	Stop()
 }
 
+type InfoDialogs interface {
+	ShowInfo(format string, args ...any)
+	ShowQuestion(format string, args ...any) bool
+	ShowError(format string, args ...any)
+}
+
 type View interface {
-	QuestionInvalidQSOData() bool
 	QuestionQTCCount(max int) (int, bool)
-	QuestionConfirmAbort() bool
-	ShowError(error)
 	Show(core.QTCMode, core.QTCSeries)
 	Update(core.QTCSeries)
 	Close()
@@ -60,7 +63,8 @@ type Controller struct {
 	entryController EntryController
 	keyer           Keyer
 
-	view View
+	infoDialogs InfoDialogs
+	view        View
 
 	activeField core.QTCField
 
@@ -73,13 +77,14 @@ type Controller struct {
 	vfoMode      core.Mode
 }
 
-func NewController(clock core.Clock, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
+func NewController(clock core.Clock, infoDialogs InfoDialogs, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
 	return &Controller{
 		clock:           clock,
 		logbook:         logbook,
 		qtcList:         qtcList,
 		entryController: entryController,
 		keyer:           keyer,
+		infoDialogs:     infoDialogs,
 		view:            new(nullView),
 	}
 }
@@ -90,6 +95,18 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
+}
+
+func (c *Controller) questionInvalidQSOData() bool {
+	return c.infoDialogs.ShowQuestion("The entered callsign is valid, but the QSO data is invalid. Proceed with the entered callsign?")
+}
+
+func (c *Controller) questionConfirmAbort() bool {
+	return c.infoDialogs.ShowQuestion("The QTC exchange is incomplete. Do you want to abort?")
+}
+
+func (c *Controller) showError(format string, args ...any) {
+	c.infoDialogs.ShowError(format, args...)
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
@@ -228,7 +245,7 @@ func (c *Controller) OfferQTC() {
 	// 2. get available QTCs
 	qtcs := c.qtcList.PrepareFor(theirCall, core.MaxQTCsPerCall)
 	if len(qtcs) == 0 {
-		c.view.ShowError(fmt.Errorf("No QTCs available for %s", theirCall))
+		c.showError("No QTCs available for %s", theirCall)
 		return
 	}
 
@@ -243,7 +260,7 @@ func (c *Controller) OfferQTC() {
 	// 4. create new QTCSeries
 	qtcSeries, err := core.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs)
 	if err != nil {
-		c.view.ShowError(err)
+		c.showError("%v", err)
 		return
 	}
 	c.currentMode = core.ProvideQTC
@@ -264,7 +281,7 @@ func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
 	case core.QSODataValid: // a) there is currently a valid QSO in the entry fields that is not yet logged -> log this QSO and take their callsign
 		c.entryController.Log()
 	case core.QSODataInvalid: // b) there is currently a valid callsign and some QSO data (but not valid) in the entry fields -> show info about invalid QSO data, ask if the callsign should be used -> use the callsign
-		if !c.view.QuestionInvalidQSOData() {
+		if !c.questionInvalidQSOData() {
 			return callsign.Callsign{}, false
 		}
 	case core.QSODataEmpty: // c) there is currently a valid callsign in the entry field, but no QSO data at all-> use this callsign
@@ -334,7 +351,7 @@ func (c *Controller) CompleteQTCSeries() {
 
 			c.currentQTC = i
 			c.SetActiveField(core.QTCSendField(i))
-			c.view.ShowError(fmt.Errorf("Not all QTCs have been transmitted, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs."))
+			c.showError("Not all QTCs have been transmitted, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
 			return
 		}
 
@@ -353,7 +370,7 @@ func (c *Controller) CompleteQTCSeries() {
 // AbortQTCSeries aborts the current QTC series: no QTCs are logged, the QTC window is closed.
 // To prevent data loss due to an accidental abort, the user is asked for confirmation first.
 func (c *Controller) AbortQTCSeries() {
-	if !c.view.QuestionConfirmAbort() {
+	if !c.questionConfirmAbort() {
 		return
 	}
 
@@ -372,10 +389,7 @@ var _ View = &nullView{}
 
 type nullView struct{}
 
-func (*nullView) QuestionInvalidQSOData() bool      { return false }
 func (*nullView) QuestionQTCCount(int) (int, bool)  { return 0, false }
-func (*nullView) QuestionConfirmAbort() bool        { return false }
-func (*nullView) ShowError(error)                   {}
 func (*nullView) Show(core.QTCMode, core.QTCSeries) {}
 func (*nullView) Update(core.QTCSeries)             {}
 func (*nullView) Close()                            {}

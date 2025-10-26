@@ -63,6 +63,7 @@ type application struct {
 	newContestDialog     *newContestDialog
 	summaryDialog        *summaryDialog
 	exportCabrilloDialog *exportCabrilloDialog
+	qtcDialog            *qtcDialog
 	settingsDialog       *settingsDialog
 	keyerSettingsDialog  *keyerSettingsDialog
 
@@ -115,6 +116,7 @@ func (a *application) activate() {
 	a.newContestDialog = setupNewContestDialog(a.mainWindow.window, a.controller.NewContestController)
 	a.summaryDialog = setupSummaryDialog(a.mainWindow.window, a.controller.SummaryController)
 	a.exportCabrilloDialog = setupExportCabrilloDialog(a.mainWindow.window, a.controller.ExportCabrilloController)
+	a.qtcDialog = setupQTCDialog(a.mainWindow.window, a.controller.QTCController)
 
 	a.mainWindow.SetMainMenuController(a.controller)
 	a.mainWindow.SetRadioMenuController(a.controller)
@@ -206,13 +208,13 @@ func setupBuilder() *gtk.Builder {
 func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window) {
 	geometry.Add(id, window)
 
-	window.Connect("configure-event", func(_ interface{}, event *gdk.Event) {
+	window.Connect("configure-event", func(_ any, event *gdk.Event) {
 		e := gdk.EventConfigureNewFromEvent(event)
 		w := geometry.Get(id)
 		w.SetPosition(window.GetPosition())
 		w.SetSize(e.Width(), e.Height())
 	})
-	window.Connect("window-state-event", func(_ interface{}, event *gdk.Event) {
+	window.Connect("window-state-event", func(_ any, event *gdk.Event) {
 		e := gdk.EventWindowStateNewFromEvent(event)
 		if e.ChangedMask()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED {
 			geometry.Get(id).SetMaximized(e.NewWindowState()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED)

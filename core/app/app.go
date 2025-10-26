@@ -29,6 +29,7 @@ import (
 	"github.com/ftl/hellocontest/core/logbook"
 	"github.com/ftl/hellocontest/core/newcontest"
 	"github.com/ftl/hellocontest/core/parrot"
+	"github.com/ftl/hellocontest/core/qtc"
 	"github.com/ftl/hellocontest/core/radio"
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
@@ -87,6 +88,7 @@ type Controller struct {
 	NewContestController     *newcontest.Controller
 	SummaryController        *summary.Controller
 	ExportCabrilloController *cabrillo.Controller
+	QTCController            *qtc.Controller
 	Settings                 *settings.Settings
 	Bandmap                  *bandmap.Bandmap
 	Clusters                 *cluster.Clusters

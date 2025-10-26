@@ -151,6 +151,7 @@ func (a *application) activate() {
 	a.controller.NewContestController.SetView(a.newContestDialog)
 	a.controller.SummaryController.SetView(a.summaryDialog)
 	a.controller.ExportCabrilloController.SetView(a.exportCabrilloDialog)
+	a.controller.QTCController.SetView(a.qtcDialog)
 	a.controller.Clusters.SetView(a.mainWindow)
 	a.controller.Parrot.SetView(a.mainWindow)
 

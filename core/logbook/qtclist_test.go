@@ -21,7 +21,7 @@ func TestQTCList_basicSetup(t *testing.T) {
 		{Timestamp: now.Add(-2 * time.Minute), QSONumber: 2},
 		{Timestamp: now.Add(-1 * time.Minute), QSONumber: 3},
 	}
-	l.Fill(initialQTCs)
+	l.Fill(nil, initialQTCs)
 	assert.Equal(t, initialQTCs, l.All())
 	assert.Equal(t, 1, listener.clearEvents)
 	assert.Equal(t, 3, listener.addedEvents)

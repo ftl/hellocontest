@@ -33,7 +33,7 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 	return 10, true
 }
 
-func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) bool {
+func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	// TODO: provide the qtcMode to generate the corresponding UI details
 	d.view = newQTCView(d.controller)
 
@@ -49,18 +49,17 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) bool {
 	// contentArea, _ := d.dialog.GetContentArea()
 	// contentArea.Add(d.view.root)
 	d.dialog.AddButton("Log", gtk.RESPONSE_OK)
+	// TODO: add a check before closing the dialog
 	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)
 
 	// TODO: put the data from qtcSeries into the view
 
 	d.dialog.ShowAll()
-	result := d.dialog.Run() == gtk.RESPONSE_OK
+	d.dialog.Run()
 	d.dialog.Close()
 	d.dialog.Destroy()
 	d.dialog = nil
 	d.view = nil
-
-	return result
 }
 
 func (d *qtcDialog) Update(core.QTCSeries) {

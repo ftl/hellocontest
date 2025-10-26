@@ -65,10 +65,13 @@ func (l *QTCList) clear() {
 	l.qtcsByCall = make(map[callsign.Callsign]int)
 }
 
-func (l *QTCList) Fill(qtcs []core.QTC) {
+func (l *QTCList) Fill(qsos []core.QSO, qtcs []core.QTC) {
 	l.dataLock.Lock()
 	if len(l.data) > 0 {
 		l.clear()
+	}
+	for _, qso := range qsos {
+		l.putQSO(qso)
 	}
 	for _, qtc := range qtcs {
 		l.put(qtc)
@@ -135,11 +138,15 @@ func (l *QTCList) all() []core.QTC {
 }
 
 func (l *QTCList) QSOAdded(qso core.QSO) {
-	qtc := qtcFromQSO(qso)
 
 	l.dataLock.Lock()
-	l.availableQTCs = append(l.availableQTCs, qtc)
+	l.putQSO(qso)
 	l.dataLock.Unlock()
+}
+
+func (l *QTCList) putQSO(qso core.QSO) {
+	qtc := qtcFromQSO(qso)
+	l.availableQTCs = append(l.availableQTCs, qtc)
 }
 
 func qtcFromQSO(qso core.QSO) core.QTC {

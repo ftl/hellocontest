@@ -342,6 +342,7 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, newL
 	// TODO: handle QTCs
 
 	c.QSOList.Clear()
+	c.QTCList.Clear()
 
 	c.filename = filename
 	c.store = store
@@ -767,8 +768,10 @@ func (c *Controller) ShowSpots() {
 func (c *Controller) Refresh() {
 	c.QSOList.Clear()
 	c.QTCList.Clear()
-	c.QSOList.Fill(c.Logbook.AllQSOs())
-	c.QTCList.Fill(c.Logbook.AllQTCs())
+	qsos := c.Logbook.AllQSOs()
+	qtcs := c.Logbook.AllQTCs()
+	c.QSOList.Fill(qsos)
+	c.QTCList.Fill(qsos, qtcs)
 	c.Entry.Clear()
 }
 

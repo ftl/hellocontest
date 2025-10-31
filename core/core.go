@@ -290,7 +290,27 @@ func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
 	for i := range qtcs {
 		qtcs[i].Header = result.Header
 	}
+	result.QTCs = qtcs
 	return result, nil
+}
+
+func (s QTCSeries) TheirCallsign() callsign.Callsign {
+	if len(s.QTCs) == 0 {
+		return callsign.NoCallsign
+	}
+
+	theirCallsign := s.QTCs[0].TheirCallsign
+	theirCallsignString := theirCallsign.String()
+	for _, qtc := range s.QTCs {
+		if qtc.TheirCallsign.String() != theirCallsignString {
+			return callsign.NoCallsign
+		}
+	}
+	return theirCallsign
+}
+
+func (s QTCSeries) IsPrepared() bool {
+	return s.TheirCallsign() != callsign.NoCallsign
 }
 
 func (s QTCSeries) IsValidQTCIndex(index int) bool {

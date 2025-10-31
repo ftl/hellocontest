@@ -34,9 +34,9 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 }
 
 func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
-	// TODO: provide the qtcMode to generate the corresponding UI details
 	d.view = newQTCView(d.controller, qtcMode)
 
+	// setup the dialog
 	dialog, _ := gtk.DialogNew()
 	d.dialog = dialog
 	d.dialog.SetDefaultSize(400, 400)
@@ -51,10 +51,15 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.dialog.AddButton("Log", gtk.RESPONSE_OK)
 	// TODO: add a check before closing the dialog
 	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)
-
-	// TODO: put the data from qtcSeries into the view
-
 	d.dialog.ShowAll()
+
+	// put the QTC series data into the view's widgets
+	// IMPORTANT: This needs to happen after ShowAll, otherwise the
+	// show/hide of the qtcRows does not work (done in setQTCs).
+	d.view.setHeader(qtcSeries.TheirCallsign(), qtcSeries.Header)
+	d.view.setQTCs(qtcSeries.QTCs)
+
+	// run the dialog
 	d.dialog.Run()
 	d.dialog.Close()
 	d.dialog.Destroy()

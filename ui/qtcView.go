@@ -5,6 +5,7 @@ import (
 
 	"github.com/gotk3/gotk3/gtk"
 
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -20,6 +21,7 @@ type qtcView struct {
 	root           *gtk.Box
 	theirCallEntry *gtk.Entry
 	seriesEntry    *gtk.Entry
+	qtcRows        []*qtcRow
 }
 
 func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
@@ -61,9 +63,11 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	buildQTCHeaderLabel(qtcGrid, 3, "Exch.")
 	buildQTCHeaderLabel(qtcGrid, 4, "Action")
 
-	for i := range core.MaxQTCsPerCall {
-		buildQTCLine(qtcGrid, i, true, nil, nil) // TODO: readOnly and the handlers depend on qtcMode
-		// TODO: store the entry widgets
+	result.qtcRows = make([]*qtcRow, core.MaxQTCsPerCall)
+	for i := range result.qtcRows {
+		row := newQTCRow(qtcGrid, i, true)
+		// TODO set input handler callback functions
+		result.qtcRows[i] = row
 	}
 
 	result.root, _ = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 5)
@@ -74,6 +78,43 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	return result
 }
 
+func (v *qtcView) setHeader(theirCall callsign.Callsign, qtcHeader core.QTCHeader) {
+	v.theirCallEntry.SetText(theirCall.String())
+	v.seriesEntry.SetText(qtcHeader.String())
+}
+
+func (v *qtcView) setQTCs(qtcs []core.QTC) {
+	for i, row := range v.qtcRows {
+		if i >= len(qtcs) {
+			row.hide()
+			continue
+		}
+		v.setQTC(i, qtcs[i])
+		row.show()
+	}
+}
+
+func (v *qtcView) setQTC(index int, qtc core.QTC) {
+	if index < 0 || index >= len(v.qtcRows) {
+		return
+	}
+	row := v.qtcRows[index]
+	row.timeEntry.SetText(qtc.QTCTime.String())
+	row.callEntry.SetText(qtc.QTCCallsign.String())
+	row.exchangeEntry.SetText(qtc.QTCNumber.String())
+}
+
+func (v *qtcView) focusHeader() {
+
+}
+
+func (v *qtcView) focusQTC(index int) {
+	if index < 0 || index >= len(v.qtcRows) {
+		return
+	}
+
+}
+
 func buildQTCHeaderLabel(grid *gtk.Grid, column int, text string) {
 	result, _ := gtk.LabelNew(text)
 	result.SetHExpand(false)
@@ -82,7 +123,16 @@ func buildQTCHeaderLabel(grid *gtk.Grid, column int, text string) {
 	grid.Attach(result, column, 1, 1, 1)
 }
 
-func buildQTCLine(grid *gtk.Grid, index int, readOnly bool, okHandler, repeatHandler any) (*gtk.Entry, *gtk.Entry, *gtk.Entry) {
+type qtcRow struct {
+	nrLabel       *gtk.Label
+	timeEntry     *gtk.Entry
+	callEntry     *gtk.Entry
+	exchangeEntry *gtk.Entry
+	okButton      *gtk.Button
+	repeatButton  *gtk.Button
+}
+
+func newQTCRow(grid *gtk.Grid, index int, readOnly bool) *qtcRow {
 	row := index + 2
 
 	nr := strconv.Itoa(index + 1)
@@ -115,18 +165,37 @@ func buildQTCLine(grid *gtk.Grid, index int, readOnly bool, okHandler, repeatHan
 	okButton, _ := gtk.ButtonNewWithLabel("R")
 	okButton.SetHExpand(false)
 	okButton.SetHAlign(gtk.ALIGN_END)
-	if okHandler != nil {
-		okButton.Connect("pressed", okHandler)
-	}
 	grid.Attach(okButton, 4, row, 1, 1)
 
 	repeatButton, _ := gtk.ButtonNewWithLabel("AGN")
 	repeatButton.SetHExpand(false)
 	repeatButton.SetHAlign(gtk.ALIGN_END)
-	if repeatHandler != nil {
-		repeatButton.Connect("pressed", repeatHandler)
-	}
 	grid.Attach(repeatButton, 5, row, 1, 1)
 
-	return timeEntry, callEntry, exchangeEntry
+	return &qtcRow{
+		nrLabel:       nrLabel,
+		timeEntry:     timeEntry,
+		callEntry:     callEntry,
+		exchangeEntry: exchangeEntry,
+		okButton:      okButton,
+		repeatButton:  repeatButton,
+	}
+}
+
+func (r *qtcRow) hide() {
+	r.nrLabel.Hide()
+	r.timeEntry.Hide()
+	r.callEntry.Hide()
+	r.exchangeEntry.Hide()
+	r.okButton.Hide()
+	r.repeatButton.Hide()
+}
+
+func (r *qtcRow) show() {
+	r.nrLabel.Show()
+	r.timeEntry.Show()
+	r.callEntry.Show()
+	r.exchangeEntry.Show()
+	r.okButton.Show()
+	r.repeatButton.Show()
 }

@@ -83,31 +83,34 @@ func buildQTCHeaderLabel(grid *gtk.Grid, column int, text string) {
 }
 
 func buildQTCLine(grid *gtk.Grid, index int, readOnly bool, okHandler, repeatHandler any) (*gtk.Entry, *gtk.Entry, *gtk.Entry) {
-	nrLabel, _ := gtk.LabelNew(strconv.Itoa(index + 1))
+	row := index + 2
+
+	nr := strconv.Itoa(index + 1)
+	nrLabel, _ := gtk.LabelNew(nr)
 	nrLabel.SetHExpand(false)
 	nrLabel.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(nrLabel, 0, index+2, 1, 1)
+	grid.Attach(nrLabel, 0, row, 1, 1)
 
 	timeEntry, _ := gtk.EntryNew()
 	timeEntry.SetHExpand(true)
 	timeEntry.SetHAlign(gtk.ALIGN_FILL)
 	timeEntry.SetPlaceholderText("Time")
 	timeEntry.SetSensitive(!readOnly)
-	grid.Attach(timeEntry, 1, index+2, 1, 1)
+	grid.Attach(timeEntry, 1, row, 1, 1)
 
 	callEntry, _ := gtk.EntryNew()
 	callEntry.SetHExpand(true)
 	callEntry.SetHAlign(gtk.ALIGN_FILL)
 	callEntry.SetPlaceholderText("Call")
 	callEntry.SetSensitive(!readOnly)
-	grid.Attach(callEntry, 2, index+2, 1, 1)
+	grid.Attach(callEntry, 2, row, 1, 1)
 
 	exchangeEntry, _ := gtk.EntryNew()
 	exchangeEntry.SetHExpand(true)
 	exchangeEntry.SetHAlign(gtk.ALIGN_FILL)
 	exchangeEntry.SetPlaceholderText("Exchange")
 	exchangeEntry.SetSensitive(!readOnly)
-	grid.Attach(exchangeEntry, 3, index+2, 1, 1)
+	grid.Attach(exchangeEntry, 3, row, 1, 1)
 
 	okButton, _ := gtk.ButtonNewWithLabel("R")
 	okButton.SetHExpand(false)
@@ -115,7 +118,7 @@ func buildQTCLine(grid *gtk.Grid, index int, readOnly bool, okHandler, repeatHan
 	if okHandler != nil {
 		okButton.Connect("pressed", okHandler)
 	}
-	grid.Attach(okButton, 4, index+2, 1, 1)
+	grid.Attach(okButton, 4, row, 1, 1)
 
 	repeatButton, _ := gtk.ButtonNewWithLabel("AGN")
 	repeatButton.SetHExpand(false)
@@ -123,7 +126,7 @@ func buildQTCLine(grid *gtk.Grid, index int, readOnly bool, okHandler, repeatHan
 	if repeatHandler != nil {
 		repeatButton.Connect("pressed", repeatHandler)
 	}
-	grid.Attach(repeatButton, 5, index+2, 1, 1)
+	grid.Attach(repeatButton, 5, row, 1, 1)
 
 	return timeEntry, callEntry, exchangeEntry
 }

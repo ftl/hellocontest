@@ -1,8 +1,9 @@
 package ui
 
 import (
-	"github.com/ftl/hellocontest/core"
 	"github.com/gotk3/gotk3/gtk"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 type qtcDialog struct {

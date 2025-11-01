@@ -557,7 +557,7 @@ func (k *Keyer) SendText(text string, args ...any) {
 }
 
 func (k *Keyer) send(s string) {
-	log.Printf("sending %s", s)
+	log.Printf("sending %q", s)
 	k.lastTransmission = s
 	k.client.Send(s)
 }

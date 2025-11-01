@@ -3,9 +3,10 @@ package ui
 import (
 	"strconv"
 
+	"github.com/ftl/hamradio/callsign"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -18,10 +19,10 @@ type qtcView struct {
 	mode       core.QTCMode
 
 	// widgets
-	root           *gtk.Box
+	root           *gtk.Grid
 	theirCallEntry *gtk.Entry
 	seriesEntry    *gtk.Entry
-	qtcRows        []*qtcRow
+	qtcTable       *qtcTable
 }
 
 func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
@@ -30,50 +31,63 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 		mode:       mode,
 	}
 
-	headerGrid, _ := gtk.GridNew()
-	headerGrid.SetVExpand(false)
-	headerGrid.SetColumnSpacing(COLUMN_SPACING)
-	headerGrid.SetRowSpacing(ROW_SPACING)
-	headerGrid.SetMarginStart(MARGIN)
-	headerGrid.SetMarginEnd(MARGIN)
+	contentGrid, _ := gtk.GridNew()
+	contentGrid.SetVExpand(true)
+	contentGrid.SetColumnSpacing(COLUMN_SPACING)
+	contentGrid.SetRowSpacing(ROW_SPACING)
+	contentGrid.SetMarginStart(MARGIN)
+	contentGrid.SetMarginEnd(MARGIN)
 
-	buildHeaderLabel(headerGrid, 0, "Header")
-	result.theirCallEntry = buildLabeledEntry(headerGrid, 1, "Their Call", nil) // TODO: handler or not depends on the qtcMode
+	buildHeaderLabel(contentGrid, 0, "Header")
+	theirCallLabel, _ := gtk.LabelNew("Their Call")
+	contentGrid.Attach(theirCallLabel, 0, 1, 1, 1)
+	seriesLabel, _ := gtk.LabelNew("Series/QTC Count")
+	contentGrid.Attach(seriesLabel, 1, 1, 1, 1)
+	actionLabel, _ := gtk.LabelNew("Action")
+	contentGrid.Attach(actionLabel, 2, 1, 2, 1)
+	result.theirCallEntry, _ = gtk.EntryNew()
 	result.theirCallEntry.SetPlaceholderText("Call")
-	result.seriesEntry = buildLabeledEntry(headerGrid, 2, "Series", nil) // TODO: handler or not depends on the qtcMode
+	if mode == core.ProvideQTC {
+		result.theirCallEntry.SetSensitive(false)
+	} else {
+		// TODO: add handler callback
+	}
+	contentGrid.Attach(result.theirCallEntry, 0, 2, 1, 1)
+	result.seriesEntry, _ = gtk.EntryNew()
 	result.seriesEntry.SetPlaceholderText("Series/QTC Count")
-	sendHeaderButton, _ := gtk.ButtonNewWithLabel("Send Header")
+	if mode == core.ProvideQTC {
+		result.seriesEntry.SetSensitive(false)
+	} else {
+		// TODO: add handler callback
+	}
+	contentGrid.Attach(result.seriesEntry, 1, 2, 1, 1)
+	sendHeaderButton, _ := gtk.ButtonNewWithLabel("Send")
 	sendHeaderButton.SetHAlign(gtk.ALIGN_END)
-	headerGrid.Attach(sendHeaderButton, 2, 2, 1, 1)
+	contentGrid.Attach(sendHeaderButton, 2, 2, 1, 1)
+	confirmHeaderButton, _ := gtk.ButtonNewWithLabel("R")
+	confirmHeaderButton.SetHAlign(gtk.ALIGN_END)
+	contentGrid.Attach(confirmHeaderButton, 3, 2, 1, 1)
 
 	separator, _ := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
 	separator.SetVExpand(false)
+	contentGrid.Attach(separator, 0, 3, 4, 1)
 
-	qtcGrid, _ := gtk.GridNew()
-	qtcGrid.SetVExpand(true)
-	qtcGrid.SetColumnSpacing(COLUMN_SPACING)
-	qtcGrid.SetRowSpacing(ROW_SPACING)
-	qtcGrid.SetMarginStart(MARGIN)
-	qtcGrid.SetMarginEnd(MARGIN)
+	buildHeaderLabel(contentGrid, 4, "QTCs")
 
-	buildHeaderLabel(qtcGrid, 0, "QTCs")
-	buildQTCHeaderLabel(qtcGrid, 0, "Nr.")
-	buildQTCHeaderLabel(qtcGrid, 1, "Time")
-	buildQTCHeaderLabel(qtcGrid, 2, "Call")
-	buildQTCHeaderLabel(qtcGrid, 3, "Exch.")
-	buildQTCHeaderLabel(qtcGrid, 4, "Action")
+	result.qtcTable = newQTCTable()
+	contentGrid.Attach(result.qtcTable.Table(), 0, 5, 2, 4)
+	sendQTCButton, _ := gtk.ButtonNewWithLabel("Send")
+	sendQTCButton.SetHAlign(gtk.ALIGN_END)
+	sendQTCButton.SetVAlign(gtk.ALIGN_START)
+	sendQTCButton.SetVExpand(false)
+	contentGrid.Attach(sendQTCButton, 2, 5, 1, 1)
+	confirmQTCButton, _ := gtk.ButtonNewWithLabel("R")
+	confirmQTCButton.SetHAlign(gtk.ALIGN_END)
+	confirmQTCButton.SetVAlign(gtk.ALIGN_START)
+	confirmQTCButton.SetVExpand(false)
+	contentGrid.Attach(confirmQTCButton, 3, 5, 1, 1)
 
-	result.qtcRows = make([]*qtcRow, core.MaxQTCsPerCall)
-	for i := range result.qtcRows {
-		row := newQTCRow(qtcGrid, i, true)
-		// TODO set input handler callback functions
-		result.qtcRows[i] = row
-	}
-
-	result.root, _ = gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 5)
-	result.root.Add(headerGrid)
-	result.root.Add(separator)
-	result.root.Add(qtcGrid)
+	result.root = contentGrid
 
 	return result
 }
@@ -84,118 +98,127 @@ func (v *qtcView) setHeader(theirCall callsign.Callsign, qtcHeader core.QTCHeade
 }
 
 func (v *qtcView) setQTCs(qtcs []core.QTC) {
-	for i, row := range v.qtcRows {
-		if i >= len(qtcs) {
-			row.hide()
-			continue
-		}
-		v.setQTC(i, qtcs[i])
-		row.show()
-	}
+	v.qtcTable.ShowQTCs(qtcs)
 }
 
 func (v *qtcView) setQTC(index int, qtc core.QTC) {
-	if index < 0 || index >= len(v.qtcRows) {
-		return
-	}
-	row := v.qtcRows[index]
-	row.timeEntry.SetText(qtc.QTCTime.String())
-	row.callEntry.SetText(qtc.QTCCallsign.String())
-	row.exchangeEntry.SetText(qtc.QTCNumber.String())
+	v.qtcTable.UpdateQTC(index, qtc)
 }
 
 func (v *qtcView) focusHeader() {
-
+	// TODO: implement
 }
 
 func (v *qtcView) focusQTC(index int) {
-	if index < 0 || index >= len(v.qtcRows) {
-		return
+	// TODO: implement
+}
+
+// qtcTable
+
+const (
+	qtcColumnNumber int = iota
+	qtcColumnTime
+	qtcColumnCall
+	qtcColumnExchange
+	qtcColumnConfirmed
+
+	qtcColumnCount
+)
+
+type qtcTable struct {
+	table        *gtk.TreeView
+	tableContent *gtk.ListStore
+
+	qtcs []core.QTC
+}
+
+func newQTCTable() *qtcTable {
+	result := &qtcTable{
+		tableContent: createQTCListStore(qtcColumnCount),
 	}
 
+	result.table, _ = gtk.TreeViewNew()
+	result.table.SetHExpand(true)
+	result.table.SetVExpand(true)
+	result.table.SetHAlign(gtk.ALIGN_FILL)
+	result.table.SetVAlign(gtk.ALIGN_FILL)
+	result.table.SetCanFocus(false)
+	result.table.SetModel(result.tableContent)
+	result.table.AppendColumn(createQTCColumn("#", qtcColumnNumber))
+	result.table.AppendColumn(createQTCColumn("Time", qtcColumnTime))
+	result.table.AppendColumn(createQTCColumn("Call", qtcColumnCall))
+	result.table.AppendColumn(createQTCColumn("Exch.", qtcColumnExchange))
+	result.table.AppendColumn(createQTCColumn("Cfm.", qtcColumnConfirmed))
+	result.table.Connect("style-updated", result.refreshTableStyle)
+
+	return result
 }
 
-func buildQTCHeaderLabel(grid *gtk.Grid, column int, text string) {
-	result, _ := gtk.LabelNew(text)
-	result.SetHExpand(false)
-	result.SetHAlign(gtk.ALIGN_CENTER)
-
-	grid.Attach(result, column, 1, 1, 1)
+func createQTCListStore(columnCount int) *gtk.ListStore {
+	types := make([]glib.Type, columnCount)
+	for i := range types {
+		types[i] = glib.TYPE_STRING // TODO: use better fitting types?
+	}
+	result, _ := gtk.ListStoreNew(types...)
+	return result
 }
 
-type qtcRow struct {
-	nrLabel       *gtk.Label
-	timeEntry     *gtk.Entry
-	callEntry     *gtk.Entry
-	exchangeEntry *gtk.Entry
-	okButton      *gtk.Button
-	repeatButton  *gtk.Button
+func createQTCColumn(title string, id int) *gtk.TreeViewColumn {
+	cellRenderer, _ := gtk.CellRendererTextNew()
+	column, _ := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "markup", id)
+	return column
 }
 
-func newQTCRow(grid *gtk.Grid, index int, readOnly bool) *qtcRow {
-	row := index + 2
+func (t *qtcTable) Table() *gtk.TreeView {
+	return t.table
+}
 
-	nr := strconv.Itoa(index + 1)
-	nrLabel, _ := gtk.LabelNew(nr)
-	nrLabel.SetHExpand(false)
-	nrLabel.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(nrLabel, 0, row, 1, 1)
+func (t *qtcTable) ShowQTCs(qtcs []core.QTC) {
+	t.qtcs = qtcs
+	t.showInTable(qtcs)
+}
 
-	timeEntry, _ := gtk.EntryNew()
-	timeEntry.SetHExpand(true)
-	timeEntry.SetHAlign(gtk.ALIGN_FILL)
-	timeEntry.SetPlaceholderText("Time")
-	timeEntry.SetSensitive(!readOnly)
-	grid.Attach(timeEntry, 1, row, 1, 1)
+func (t *qtcTable) AppendQTC(qtc core.QTC) {
+	t.qtcs = append(t.qtcs, qtc)
+	row := t.tableContent.Append()
+	t.fillRow(row, len(t.qtcs)-1, qtc)
+}
 
-	callEntry, _ := gtk.EntryNew()
-	callEntry.SetHExpand(true)
-	callEntry.SetHAlign(gtk.ALIGN_FILL)
-	callEntry.SetPlaceholderText("Call")
-	callEntry.SetSensitive(!readOnly)
-	grid.Attach(callEntry, 2, row, 1, 1)
+func (t *qtcTable) UpdateQTC(index int, qtc core.QTC) {
+	if index >= len(t.qtcs) {
+		t.AppendQTC(qtc)
+	}
+	// TODO: update the row #index
+}
 
-	exchangeEntry, _ := gtk.EntryNew()
-	exchangeEntry.SetHExpand(true)
-	exchangeEntry.SetHAlign(gtk.ALIGN_FILL)
-	exchangeEntry.SetPlaceholderText("Exchange")
-	exchangeEntry.SetSensitive(!readOnly)
-	grid.Attach(exchangeEntry, 3, row, 1, 1)
-
-	okButton, _ := gtk.ButtonNewWithLabel("R")
-	okButton.SetHExpand(false)
-	okButton.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(okButton, 4, row, 1, 1)
-
-	repeatButton, _ := gtk.ButtonNewWithLabel("AGN")
-	repeatButton.SetHExpand(false)
-	repeatButton.SetHAlign(gtk.ALIGN_END)
-	grid.Attach(repeatButton, 5, row, 1, 1)
-
-	return &qtcRow{
-		nrLabel:       nrLabel,
-		timeEntry:     timeEntry,
-		callEntry:     callEntry,
-		exchangeEntry: exchangeEntry,
-		okButton:      okButton,
-		repeatButton:  repeatButton,
+func (t *qtcTable) showInTable(qtcs []core.QTC) {
+	t.tableContent.Clear()
+	for i, qtc := range qtcs {
+		row := t.tableContent.Append()
+		t.fillRow(row, i, qtc)
 	}
 }
 
-func (r *qtcRow) hide() {
-	r.nrLabel.Hide()
-	r.timeEntry.Hide()
-	r.callEntry.Hide()
-	r.exchangeEntry.Hide()
-	r.okButton.Hide()
-	r.repeatButton.Hide()
+func (t *qtcTable) fillRow(row *gtk.TreeIter, index int, qtc core.QTC) {
+	columns := []int{
+		qtcColumnNumber,
+		qtcColumnTime,
+		qtcColumnCall,
+		qtcColumnExchange,
+		qtcColumnConfirmed,
+	}
+
+	values := []any{
+		strconv.Itoa(index + 1),
+		qtc.QTCTime.String(),
+		qtc.QTCCallsign.String(),
+		qtc.QTCNumber.String(),
+		"", // TODO: qtc confirmed -> show check mark
+	}
+
+	t.tableContent.Set(row, columns, values)
 }
 
-func (r *qtcRow) show() {
-	r.nrLabel.Show()
-	r.timeEntry.Show()
-	r.callEntry.Show()
-	r.exchangeEntry.Show()
-	r.okButton.Show()
-	r.repeatButton.Show()
+func (t *qtcTable) refreshTableStyle() {
+	t.showInTable(t.qtcs)
 }

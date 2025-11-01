@@ -9,6 +9,11 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui/style"
+)
+
+const (
+	qtcActivePhaseClass style.Class = "active-phase"
 )
 
 type QTCController interface {
@@ -20,10 +25,16 @@ type qtcView struct {
 	mode       core.QTCMode
 
 	// widgets
-	root           *gtk.Grid
-	theirCallLabel *gtk.Label
-	seriesEntry    *gtk.Entry
-	qtcTable       *qtcTable
+	root                *gtk.Grid
+	startHeadingLabel   *gtk.Label
+	theirCallLabel      *gtk.Label
+	qrvButton           *gtk.Button
+	headerHeadingLabel  *gtk.Label
+	seriesEntry         *gtk.Entry
+	confirmHeaderButton *gtk.Button
+	dataHeadingLabel    *gtk.Label
+	qtcTable            *qtcTable
+	confirmQTCButton    *gtk.Button
 }
 
 func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
@@ -43,7 +54,7 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	result.theirCallLabel.SetHAlign(gtk.ALIGN_CENTER)
 	contentGrid.Attach(result.theirCallLabel, 0, 0, 4, 1)
 
-	buildHeaderLabel(contentGrid, 1, "1. Start")
+	result.startHeadingLabel = buildHeaderLabel(contentGrid, 1, "1. Start")
 	var modeText string
 	switch mode {
 	case core.ProvideQTC:
@@ -59,20 +70,20 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	sendStartButton, _ := gtk.ButtonNewWithLabel("Send")
 	sendStartButton.SetHAlign(gtk.ALIGN_FILL)
 	contentGrid.Attach(sendStartButton, 2, 2, 1, 1)
-	qrvButton, _ := gtk.ButtonNewWithLabel("QRV")
-	qrvButton.SetHAlign(gtk.ALIGN_FILL)
-	contentGrid.Attach(qrvButton, 3, 2, 1, 1)
+	result.qrvButton, _ = gtk.ButtonNewWithLabel("QRV")
+	result.qrvButton.SetHAlign(gtk.ALIGN_FILL)
+	contentGrid.Attach(result.qrvButton, 3, 2, 1, 1)
 
-	buildHeaderLabel(contentGrid, 3, "2. Header")
+	result.headerHeadingLabel = buildHeaderLabel(contentGrid, 3, "2. Header")
 	result.seriesEntry = buildLabeledEntry(contentGrid, 4, "Series/QTC Count", nil) // TODO: add callback if needed
 	sendHeaderButton, _ := gtk.ButtonNewWithLabel("Send")
 	sendHeaderButton.SetHAlign(gtk.ALIGN_FILL)
 	contentGrid.Attach(sendHeaderButton, 2, 4, 1, 1)
-	confirmHeaderButton, _ := gtk.ButtonNewWithLabel("R")
-	confirmHeaderButton.SetHAlign(gtk.ALIGN_FILL)
-	contentGrid.Attach(confirmHeaderButton, 3, 4, 1, 1)
+	result.confirmHeaderButton, _ = gtk.ButtonNewWithLabel("R")
+	result.confirmHeaderButton.SetHAlign(gtk.ALIGN_FILL)
+	contentGrid.Attach(result.confirmHeaderButton, 3, 4, 1, 1)
 
-	buildHeaderLabel(contentGrid, 6, "3. QTCs")
+	result.dataHeadingLabel = buildHeaderLabel(contentGrid, 6, "3. QTCs")
 	result.qtcTable = newQTCTable()
 	contentGrid.Attach(result.qtcTable.Table(), 0, 7, 2, 4)
 	sendQTCButton, _ := gtk.ButtonNewWithLabel("Send")
@@ -80,11 +91,11 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	sendQTCButton.SetVAlign(gtk.ALIGN_START)
 	sendQTCButton.SetVExpand(false)
 	contentGrid.Attach(sendQTCButton, 2, 7, 1, 1)
-	confirmQTCButton, _ := gtk.ButtonNewWithLabel("R")
-	confirmQTCButton.SetHAlign(gtk.ALIGN_FILL)
-	confirmQTCButton.SetVAlign(gtk.ALIGN_START)
-	confirmQTCButton.SetVExpand(false)
-	contentGrid.Attach(confirmQTCButton, 3, 7, 1, 1)
+	result.confirmQTCButton, _ = gtk.ButtonNewWithLabel("R")
+	result.confirmQTCButton.SetHAlign(gtk.ALIGN_FILL)
+	result.confirmQTCButton.SetVAlign(gtk.ALIGN_START)
+	result.confirmQTCButton.SetVExpand(false)
+	contentGrid.Attach(result.confirmQTCButton, 3, 7, 1, 1)
 
 	result.root = contentGrid
 
@@ -104,11 +115,33 @@ func (v *qtcView) setQTC(index int, qtc core.QTC) {
 	v.qtcTable.UpdateQTC(index, qtc)
 }
 
+func (v *qtcView) focusStart() {
+	style.AddClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
+	style.RemoveClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
+	style.RemoveClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
+	v.qrvButton.GrabFocus()
+}
+
 func (v *qtcView) focusHeader() {
-	// TODO: implement
+	style.RemoveClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
+	style.AddClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
+	style.RemoveClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
+	v.confirmHeaderButton.GrabFocus()
+}
+
+func (v *qtcView) focusData() {
+	style.RemoveClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
+	style.RemoveClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
+	style.AddClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
+	v.confirmQTCButton.GrabFocus()
 }
 
 func (v *qtcView) focusQTC(index int) {
+	v.qtcTable.SelectRow(index)
+	v.confirmQTCButton.GrabFocus()
+}
+
+func (v *qtcView) focusEntry() {
 	// TODO: implement
 }
 
@@ -170,6 +203,13 @@ func createQTCColumn(title string, id int) *gtk.TreeViewColumn {
 
 func (t *qtcTable) Table() *gtk.TreeView {
 	return t.table
+}
+
+func (t *qtcTable) SelectRow(index int) {
+	row, _ := t.tableContent.GetIterFromString(strconv.Itoa(index))
+	path, _ := t.tableContent.GetPath(row)
+	selection, _ := t.table.GetSelection()
+	selection.SelectPath(path)
 }
 
 func (t *qtcTable) ShowQTCs(qtcs []core.QTC) {

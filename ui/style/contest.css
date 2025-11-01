@@ -147,3 +147,15 @@ label.score_table {
     background-color: @theme_bg_color;
     color: @theme_text_color;
 }
+
+/*
+ * QTC dialog, active phase
+ */
+
+label.active-phase {
+    background-color: @theme_selected_bg_color;
+    color: @theme_selected_fg_color;
+    border: 1px solid @theme_selected_bg_color;
+    border-radius: 3px;
+    font-weight: bold;
+}

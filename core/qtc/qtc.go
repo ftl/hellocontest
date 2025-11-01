@@ -53,7 +53,8 @@ type View interface {
 	Show(core.QTCMode, core.QTCSeries)
 	Update(core.QTCSeries)
 	Close()
-	SetActiveField(core.QTCField)
+	SetActiveField(core.QTCField) // TODO: remove?
+	SetActivePhase(core.QTCWorkflowPhase)
 }
 
 type Controller struct {
@@ -67,6 +68,7 @@ type Controller struct {
 	view        View
 
 	activeField core.QTCField
+	activePhase core.QTCWorkflowPhase
 
 	currentMode   core.QTCMode
 	currentSeries core.QTCSeries
@@ -153,12 +155,56 @@ func (c *Controller) Proceed() {
 func (c *Controller) Repeat() {
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
-		c.keyer.Repeat()
+		switch c.activePhase {
+		case core.QTCStart:
+			c.SendQTCOffer()
+		default:
+			c.keyer.Repeat()
+		}
 	} else {
 		c.keyer.SendText(RequestRepeatText)
 	}
 }
 
+func (c *Controller) Confirm() {
+	switch c.activePhase {
+	case core.QTCStart:
+		c.ConfirmQTCStart()
+	case core.QTCExchangeHeader:
+		c.ConfirmHeader()
+	case core.QTCExchangeData:
+		c.ConfirmQTC()
+	}
+}
+
+func (c *Controller) ConfirmQTCStart() {
+	if c.activePhase != core.QTCStart {
+		return
+	}
+	c.SetActivePhase(core.QTCExchangeHeader)
+}
+
+func (c *Controller) ConfirmHeader() {
+	if c.activePhase != core.QTCExchangeHeader {
+		return
+	}
+	c.SetActivePhase(core.QTCExchangeData)
+}
+
+func (c *Controller) ConfirmQTC() {
+	if c.activePhase != core.QTCExchangeData {
+		return
+	}
+
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		// TODO: confirm the current QTC, go to the next
+	} else {
+		// TODO: log the entered QTC data
+	}
+}
+
+// DEPRECATED: use activePhase + currentMode???
 func (c *Controller) GotoNextField() {
 	var (
 		nextField core.QTCField
@@ -241,6 +287,25 @@ func (c *Controller) SetActiveField(field core.QTCField) {
 	c.currentQTC = qtcIndex
 }
 
+func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
+	c.activePhase = phase
+	c.view.SetActivePhase(phase)
+
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		switch c.activePhase {
+		case core.QTCStart:
+			c.SendQTCOffer()
+		case core.QTCExchangeHeader:
+			c.SendHeader()
+		case core.QTCExchangeData:
+			c.SendQTC()
+		}
+	} else {
+
+	}
+}
+
 // Workflow for providing QTCs
 
 func (c *Controller) OfferQTC() {
@@ -275,12 +340,11 @@ func (c *Controller) OfferQTC() {
 	c.currentSeries = qtcSeries
 	c.currentQTC = core.NoQTCIndex
 
-	// 5. show QTC window for sending
-	c.view.Show(c.currentMode, c.currentSeries)
-	c.SetActiveField(core.SendHeaderField)
+	// 5. enter the first phase: send "qtc"
+	c.SetActivePhase(core.QTCStart)
 
-	// 6. send "qtc"
-	c.keyer.SendText(OfferQTCText)
+	// 6. show and run the QTC dialog
+	c.view.Show(c.currentMode, c.currentSeries)
 }
 
 func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
@@ -304,6 +368,11 @@ func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
 	theirCall = c.logbook.LastCallsign()
 
 	return theirCall, (theirCall.BaseCall != "")
+}
+
+// SendQTCOffer sends the offer for a QTC exchange.
+func (c *Controller) SendQTCOffer() {
+	c.keyer.SendText(OfferQTCText)
 }
 
 // SendHeader sends the header of the current QTC series.
@@ -391,6 +460,11 @@ func (c *Controller) RequestQTC() {
 	// TODO implement workflow for receiving QTCs
 }
 
+// SendQTCRequest sends the request for a QTC exchange.
+func (c *Controller) SendQTCRequest() {
+	c.keyer.SendText(RequestQTCText)
+}
+
 // nullLogbook
 
 var _ Logbook = &nullLogbook{}
@@ -407,8 +481,9 @@ var _ View = &nullView{}
 
 type nullView struct{}
 
-func (*nullView) QuestionQTCCount(int) (int, bool)  { return 0, false }
-func (*nullView) Show(core.QTCMode, core.QTCSeries) {}
-func (*nullView) Update(core.QTCSeries)             {}
-func (*nullView) Close()                            {}
-func (*nullView) SetActiveField(core.QTCField)      {}
+func (*nullView) QuestionQTCCount(int) (int, bool)     { return 0, false }
+func (*nullView) Show(core.QTCMode, core.QTCSeries)    {}
+func (*nullView) Update(core.QTCSeries)                {}
+func (*nullView) Close()                               {}
+func (*nullView) SetActiveField(core.QTCField)         {}
+func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}

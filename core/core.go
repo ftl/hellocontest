@@ -321,7 +321,19 @@ func (s QTCSeries) IsLastQTCIndex(index int) bool {
 	return index >= 0 && index == s.Header.QTCCount-1
 }
 
+// QTCWorkflowPhase represents the phases in the QTC exchange workflow
+type QTCWorkflowPhase int
+
+const (
+	QTCNotStarted QTCWorkflowPhase = iota
+	QTCStart
+	QTCExchangeHeader
+	QTCExchangeData
+	QTCFinish
+)
+
 // QTCField represents an entry field in the QTC entry window.
+// TODO: remove?
 type QTCField string
 
 const (

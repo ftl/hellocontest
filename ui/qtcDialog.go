@@ -14,6 +14,8 @@ type qtcDialog struct {
 	view       *qtcView
 
 	// data fields
+	activePhase core.QTCWorkflowPhase
+	activeQTC   int
 }
 
 func setupQTCDialog(parent gtk.IWidget, controller QTCController) *qtcDialog {
@@ -59,6 +61,7 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	// show/hide of the qtcRows does not work (done in setQTCs).
 	d.view.setHeader(qtcSeries.TheirCallsign(), qtcSeries.Header)
 	d.view.setQTCs(qtcSeries.QTCs)
+	d.focusActivePhase()
 
 	// run the dialog
 	d.dialog.Run()
@@ -77,5 +80,36 @@ func (d *qtcDialog) Close() {
 }
 
 func (d *qtcDialog) SetActiveField(core.QTCField) {
-	// TODO: implement
+	// TODO: remove???
+}
+
+func (d *qtcDialog) SetActivePhase(phase core.QTCWorkflowPhase) {
+	d.activePhase = phase
+	d.focusActivePhase()
+}
+
+func (d *qtcDialog) focusActivePhase() {
+	if d.view == nil {
+		return
+	}
+	switch d.activePhase {
+	case core.QTCStart:
+		d.view.focusStart()
+	case core.QTCExchangeHeader:
+		d.view.focusHeader()
+	case core.QTCExchangeData:
+		d.view.focusData()
+	}
+}
+
+func (d *qtcDialog) SetActiveQTC(index int) {
+	d.activeQTC = index
+	d.focusActiveQTC()
+}
+
+func (d *qtcDialog) focusActiveQTC() {
+	if d.view == nil {
+		return
+	}
+	d.view.focusQTC(d.activeQTC)
 }

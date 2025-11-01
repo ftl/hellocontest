@@ -12,6 +12,7 @@ type qtcDialog struct {
 
 	controller QTCController
 	view       *qtcView
+	logButton  *gtk.Button
 
 	// data fields
 	activePhase core.QTCWorkflowPhase
@@ -51,7 +52,7 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.dialog.SetModal(true)
 	contentArea, _ := d.dialog.GetContentArea()
 	contentArea.Add(d.view.root)
-	d.dialog.AddButton("Log", gtk.RESPONSE_OK)
+	d.logButton, _ = d.dialog.AddButton("Log", gtk.RESPONSE_OK)
 	// TODO: add a check before closing the dialog
 	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)
 	d.dialog.ShowAll()
@@ -64,11 +65,15 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.focusActivePhase()
 
 	// run the dialog
-	d.dialog.Run()
+	response := d.dialog.Run()
 	d.dialog.Close()
 	d.dialog.Destroy()
 	d.dialog = nil
 	d.view = nil
+
+	if response == gtk.RESPONSE_OK {
+		d.controller.CompleteQTCSeries()
+	}
 }
 
 func (d *qtcDialog) Update(core.QTCSeries) {
@@ -99,6 +104,9 @@ func (d *qtcDialog) focusActivePhase() {
 		d.view.focusHeader()
 	case core.QTCExchangeData:
 		d.view.focusData()
+	case core.QTCFinish:
+		d.view.focusNone()
+		d.logButton.GrabFocus()
 	}
 }
 

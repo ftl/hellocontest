@@ -17,7 +17,13 @@ const (
 )
 
 type QTCController interface {
-	// TBD
+	SendStart()
+	SendHeader()
+	SendQTC()
+	ConfirmStart()
+	ConfirmHeader()
+	ConfirmQTC()
+	CompleteQTCSeries()
 }
 
 type qtcView struct {
@@ -69,18 +75,24 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	contentGrid.Attach(startExchangeLabel, 0, 2, 2, 1)
 	sendStartButton, _ := gtk.ButtonNewWithLabel("Send")
 	sendStartButton.SetHAlign(gtk.ALIGN_FILL)
+	sendStartButton.Connect("clicked", controller.SendStart)
 	contentGrid.Attach(sendStartButton, 2, 2, 1, 1)
 	result.qrvButton, _ = gtk.ButtonNewWithLabel("QRV")
 	result.qrvButton.SetHAlign(gtk.ALIGN_FILL)
+	result.qrvButton.Connect("clicked", controller.ConfirmStart)
 	contentGrid.Attach(result.qrvButton, 3, 2, 1, 1)
 
 	result.headerHeadingLabel = buildHeaderLabel(contentGrid, 3, "2. Header")
 	result.seriesEntry = buildLabeledEntry(contentGrid, 4, "Series/QTC Count", nil) // TODO: add callback if needed
+	result.seriesEntry.SetSensitive(true)
+	result.seriesEntry.SetEditable(false)
 	sendHeaderButton, _ := gtk.ButtonNewWithLabel("Send")
 	sendHeaderButton.SetHAlign(gtk.ALIGN_FILL)
+	sendHeaderButton.Connect("clicked", controller.SendHeader)
 	contentGrid.Attach(sendHeaderButton, 2, 4, 1, 1)
 	result.confirmHeaderButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmHeaderButton.SetHAlign(gtk.ALIGN_FILL)
+	result.confirmHeaderButton.Connect("clicked", controller.ConfirmHeader)
 	contentGrid.Attach(result.confirmHeaderButton, 3, 4, 1, 1)
 
 	result.dataHeadingLabel = buildHeaderLabel(contentGrid, 6, "3. QTCs")
@@ -90,11 +102,13 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	sendQTCButton.SetHAlign(gtk.ALIGN_FILL)
 	sendQTCButton.SetVAlign(gtk.ALIGN_START)
 	sendQTCButton.SetVExpand(false)
+	sendQTCButton.Connect("clicked", controller.SendQTC)
 	contentGrid.Attach(sendQTCButton, 2, 7, 1, 1)
 	result.confirmQTCButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmQTCButton.SetHAlign(gtk.ALIGN_FILL)
 	result.confirmQTCButton.SetVAlign(gtk.ALIGN_START)
 	result.confirmQTCButton.SetVExpand(false)
+	result.confirmQTCButton.Connect("clicked", controller.ConfirmQTC)
 	contentGrid.Attach(result.confirmQTCButton, 3, 7, 1, 1)
 
 	result.root = contentGrid
@@ -136,13 +150,20 @@ func (v *qtcView) focusData() {
 	v.confirmQTCButton.GrabFocus()
 }
 
+func (v *qtcView) focusEntry() {
+	// TODO: implement
+}
+
+func (v *qtcView) focusNone() {
+	style.RemoveClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
+	style.RemoveClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
+	style.RemoveClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
+	v.qtcTable.ClearSelection()
+}
+
 func (v *qtcView) focusQTC(index int) {
 	v.qtcTable.SelectRow(index)
 	v.confirmQTCButton.GrabFocus()
-}
-
-func (v *qtcView) focusEntry() {
-	// TODO: implement
 }
 
 // qtcTable
@@ -212,6 +233,11 @@ func (t *qtcTable) SelectRow(index int) {
 	selection.SelectPath(path)
 }
 
+func (t *qtcTable) ClearSelection() {
+	selection, _ := t.table.GetSelection()
+	selection.UnselectAll()
+}
+
 func (t *qtcTable) ShowQTCs(qtcs []core.QTC) {
 	t.qtcs = qtcs
 	t.showInTable(qtcs)
@@ -252,7 +278,7 @@ func (t *qtcTable) fillRow(row *gtk.TreeIter, index int, qtc core.QTC) {
 		qtc.QTCTime.String(),
 		qtc.QTCCallsign.String(),
 		qtc.QTCNumber.String(),
-		"", // TODO: qtc confirmed -> show check mark
+		boolToCheckmark(qtc.WasTransmitted()), // TODO: transmitted != confirmed
 	}
 
 	t.tableContent.Set(row, columns, values)

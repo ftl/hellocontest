@@ -55,6 +55,7 @@ type View interface {
 	Close()
 	SetActiveField(core.QTCField) // TODO: remove?
 	SetActivePhase(core.QTCWorkflowPhase)
+	SetActiveQTC(int)
 }
 
 type Controller struct {
@@ -158,6 +159,10 @@ func (c *Controller) Repeat() {
 		switch c.activePhase {
 		case core.QTCStart:
 			c.SendQTCOffer()
+		case core.QTCExchangeHeader:
+			c.SendHeader()
+		case core.QTCExchangeData:
+			c.SendQTC()
 		default:
 			c.keyer.Repeat()
 		}
@@ -169,7 +174,7 @@ func (c *Controller) Repeat() {
 func (c *Controller) Confirm() {
 	switch c.activePhase {
 	case core.QTCStart:
-		c.ConfirmQTCStart()
+		c.ConfirmStart()
 	case core.QTCExchangeHeader:
 		c.ConfirmHeader()
 	case core.QTCExchangeData:
@@ -177,7 +182,7 @@ func (c *Controller) Confirm() {
 	}
 }
 
-func (c *Controller) ConfirmQTCStart() {
+func (c *Controller) ConfirmStart() {
 	if c.activePhase != core.QTCStart {
 		return
 	}
@@ -198,9 +203,23 @@ func (c *Controller) ConfirmQTC() {
 
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
-		// TODO: confirm the current QTC, go to the next
+		if c.currentSeries.IsValidQTCIndex(c.currentQTC + 1) {
+			// TODO: update the QTC in the view
+			c.SetActiveQTC(c.currentQTC + 1)
+		} else {
+			c.SetActivePhase(core.QTCFinish)
+		}
 	} else {
 		// TODO: log the entered QTC data
+	}
+}
+
+func (c *Controller) SendStart() {
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		c.SendQTCOffer()
+	} else {
+		c.SendQTCRequest()
 	}
 }
 
@@ -288,8 +307,13 @@ func (c *Controller) SetActiveField(field core.QTCField) {
 }
 
 func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
-	c.activePhase = phase
 	c.view.SetActivePhase(phase)
+	if c.activePhase == phase {
+		return
+	}
+
+	// enter the phase
+	c.activePhase = phase
 
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
@@ -299,11 +323,21 @@ func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
 		case core.QTCExchangeHeader:
 			c.SendHeader()
 		case core.QTCExchangeData:
-			c.SendQTC()
+			c.SetActiveQTC(0)
 		}
 	} else {
 
 	}
+}
+
+func (c *Controller) SetActiveQTC(index int) {
+	if !c.currentSeries.IsValidQTCIndex(index) {
+		return
+	}
+	c.currentQTC = index
+	c.view.SetActiveQTC(c.currentQTC)
+
+	c.SendQTC()
 }
 
 // Workflow for providing QTCs
@@ -426,9 +460,8 @@ func (c *Controller) CompleteQTCSeries() {
 				continue
 			}
 
-			c.currentQTC = i
-			c.SetActiveField(core.QTCSendField(i))
 			c.showError("Not all QTCs have been transmitted, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
+			c.SetActiveQTC(i)
 			return
 		}
 
@@ -487,3 +520,4 @@ func (*nullView) Update(core.QTCSeries)                {}
 func (*nullView) Close()                               {}
 func (*nullView) SetActiveField(core.QTCField)         {}
 func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}
+func (*nullView) SetActiveQTC(int)                     {}

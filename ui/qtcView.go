@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
@@ -20,7 +21,7 @@ type qtcView struct {
 
 	// widgets
 	root           *gtk.Grid
-	theirCallEntry *gtk.Entry
+	theirCallLabel *gtk.Label
 	seriesEntry    *gtk.Entry
 	qtcTable       *qtcTable
 }
@@ -38,54 +39,52 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	contentGrid.SetMarginStart(MARGIN)
 	contentGrid.SetMarginEnd(MARGIN)
 
-	buildHeaderLabel(contentGrid, 0, "Header")
-	theirCallLabel, _ := gtk.LabelNew("Their Call")
-	contentGrid.Attach(theirCallLabel, 0, 1, 1, 1)
-	seriesLabel, _ := gtk.LabelNew("Series/QTC Count")
-	contentGrid.Attach(seriesLabel, 1, 1, 1, 1)
-	actionLabel, _ := gtk.LabelNew("Action")
-	contentGrid.Attach(actionLabel, 2, 1, 2, 1)
-	result.theirCallEntry, _ = gtk.EntryNew()
-	result.theirCallEntry.SetPlaceholderText("Call")
-	if mode == core.ProvideQTC {
-		result.theirCallEntry.SetSensitive(false)
-	} else {
-		// TODO: add handler callback
+	result.theirCallLabel, _ = gtk.LabelNew("") // the actual text is set in SetHeader
+	result.theirCallLabel.SetHAlign(gtk.ALIGN_CENTER)
+	contentGrid.Attach(result.theirCallLabel, 0, 0, 4, 1)
+
+	buildHeaderLabel(contentGrid, 1, "1. Start")
+	var modeText string
+	switch mode {
+	case core.ProvideQTC:
+		modeText = "Offer QTC"
+	case core.ReceiveQTC:
+		modeText = "Request QTC"
+	default:
+		modeText = fmt.Sprintf("UNKNOWN MODE %d", mode)
 	}
-	contentGrid.Attach(result.theirCallEntry, 0, 2, 1, 1)
-	result.seriesEntry, _ = gtk.EntryNew()
-	result.seriesEntry.SetPlaceholderText("Series/QTC Count")
-	if mode == core.ProvideQTC {
-		result.seriesEntry.SetSensitive(false)
-	} else {
-		// TODO: add handler callback
-	}
-	contentGrid.Attach(result.seriesEntry, 1, 2, 1, 1)
+	startExchangeLabel, _ := gtk.LabelNew(modeText)
+	startExchangeLabel.SetHAlign(gtk.ALIGN_START)
+	contentGrid.Attach(startExchangeLabel, 0, 2, 2, 1)
+	sendStartButton, _ := gtk.ButtonNewWithLabel("Send")
+	sendStartButton.SetHAlign(gtk.ALIGN_FILL)
+	contentGrid.Attach(sendStartButton, 2, 2, 1, 1)
+	qrvButton, _ := gtk.ButtonNewWithLabel("QRV")
+	qrvButton.SetHAlign(gtk.ALIGN_FILL)
+	contentGrid.Attach(qrvButton, 3, 2, 1, 1)
+
+	buildHeaderLabel(contentGrid, 3, "2. Header")
+	result.seriesEntry = buildLabeledEntry(contentGrid, 4, "Series/QTC Count", nil) // TODO: add callback if needed
 	sendHeaderButton, _ := gtk.ButtonNewWithLabel("Send")
-	sendHeaderButton.SetHAlign(gtk.ALIGN_END)
-	contentGrid.Attach(sendHeaderButton, 2, 2, 1, 1)
+	sendHeaderButton.SetHAlign(gtk.ALIGN_FILL)
+	contentGrid.Attach(sendHeaderButton, 2, 4, 1, 1)
 	confirmHeaderButton, _ := gtk.ButtonNewWithLabel("R")
-	confirmHeaderButton.SetHAlign(gtk.ALIGN_END)
-	contentGrid.Attach(confirmHeaderButton, 3, 2, 1, 1)
+	confirmHeaderButton.SetHAlign(gtk.ALIGN_FILL)
+	contentGrid.Attach(confirmHeaderButton, 3, 4, 1, 1)
 
-	separator, _ := gtk.SeparatorNew(gtk.ORIENTATION_HORIZONTAL)
-	separator.SetVExpand(false)
-	contentGrid.Attach(separator, 0, 3, 4, 1)
-
-	buildHeaderLabel(contentGrid, 4, "QTCs")
-
+	buildHeaderLabel(contentGrid, 6, "3. QTCs")
 	result.qtcTable = newQTCTable()
-	contentGrid.Attach(result.qtcTable.Table(), 0, 5, 2, 4)
+	contentGrid.Attach(result.qtcTable.Table(), 0, 7, 2, 4)
 	sendQTCButton, _ := gtk.ButtonNewWithLabel("Send")
-	sendQTCButton.SetHAlign(gtk.ALIGN_END)
+	sendQTCButton.SetHAlign(gtk.ALIGN_FILL)
 	sendQTCButton.SetVAlign(gtk.ALIGN_START)
 	sendQTCButton.SetVExpand(false)
-	contentGrid.Attach(sendQTCButton, 2, 5, 1, 1)
+	contentGrid.Attach(sendQTCButton, 2, 7, 1, 1)
 	confirmQTCButton, _ := gtk.ButtonNewWithLabel("R")
-	confirmQTCButton.SetHAlign(gtk.ALIGN_END)
+	confirmQTCButton.SetHAlign(gtk.ALIGN_FILL)
 	confirmQTCButton.SetVAlign(gtk.ALIGN_START)
 	confirmQTCButton.SetVExpand(false)
-	contentGrid.Attach(confirmQTCButton, 3, 5, 1, 1)
+	contentGrid.Attach(confirmQTCButton, 3, 7, 1, 1)
 
 	result.root = contentGrid
 
@@ -93,7 +92,7 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 }
 
 func (v *qtcView) setHeader(theirCall callsign.Callsign, qtcHeader core.QTCHeader) {
-	v.theirCallEntry.SetText(theirCall.String())
+	v.theirCallLabel.SetText(fmt.Sprintf("Exchanging QTCs with %s", theirCall.String()))
 	v.seriesEntry.SetText(qtcHeader.String())
 }
 

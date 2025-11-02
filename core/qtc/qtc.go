@@ -108,12 +108,12 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 }
 
-func (c *Controller) questionInvalidQSOData() bool {
-	return c.infoDialogs.ShowQuestion("The entered callsign is valid, but the QSO data is invalid. Proceed with the entered callsign?")
+func (c *Controller) questionInvalidQSOData(call callsign.Callsign) bool {
+	return c.infoDialogs.ShowQuestion("The entered callsign is valid, but the QSO data is invalid. Proceed with the entered callsign of %s?", call.String())
 }
 
 func (c *Controller) questionConfirmAbort() bool {
-	return c.infoDialogs.ShowQuestion("The QTC exchange is incomplete. Do you want to abort?")
+	return c.infoDialogs.ShowQuestion("The QTC exchange is incomplete. Do you want to cancel it?")
 }
 
 func (c *Controller) showError(format string, args ...any) {
@@ -387,7 +387,7 @@ func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
 	case core.QSODataValid: // a) there is currently a valid QSO in the entry fields that is not yet logged -> log this QSO and take their callsign
 		c.entryController.Log()
 	case core.QSODataInvalid: // b) there is currently a valid callsign and some QSO data (but not valid) in the entry fields -> show info about invalid QSO data, ask if the callsign should be used -> use the callsign
-		if !c.questionInvalidQSOData() {
+		if !c.questionInvalidQSOData(theirCall) {
 			return callsign.Callsign{}, false
 		}
 	case core.QSODataEmpty: // c) there is currently a valid callsign in the entry field, but no QSO data at all-> use this callsign

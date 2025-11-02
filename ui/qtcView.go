@@ -23,7 +23,9 @@ type QTCController interface {
 	ConfirmStart()
 	ConfirmHeader()
 	ConfirmQTC()
+
 	CompleteQTCSeries()
+	AbortQTCSeries()
 }
 
 type qtcView struct {

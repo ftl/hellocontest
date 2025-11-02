@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"log"
+
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
@@ -64,15 +66,20 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.view.setQTCs(qtcSeries.QTCs)
 	d.focusActivePhase()
 
-	// run the dialog
-	response := d.dialog.Run()
-	d.dialog.Close()
-	d.dialog.Destroy()
-	d.dialog = nil
-	d.view = nil
+	defer log.Println("QTC Dialog closed")
 
-	if response == gtk.RESPONSE_OK {
-		d.controller.CompleteQTCSeries()
+	// run the dialog until it is closed by the controller (d.dialog == nil)
+	for {
+		response := d.dialog.Run()
+		switch response {
+		case gtk.RESPONSE_OK:
+			d.controller.CompleteQTCSeries()
+		default:
+			d.controller.AbortQTCSeries()
+		}
+		if d.dialog == nil {
+			return
+		}
 	}
 }
 
@@ -81,7 +88,14 @@ func (d *qtcDialog) Update(core.QTCSeries) {
 }
 
 func (d *qtcDialog) Close() {
-	// TODO: implement
+	if d.dialog == nil {
+		return
+	}
+
+	d.dialog.Close()
+	d.dialog.Destroy()
+	d.dialog = nil
+	d.view = nil
 }
 
 func (d *qtcDialog) SetActiveField(core.QTCField) {

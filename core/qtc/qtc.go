@@ -51,7 +51,7 @@ type InfoDialogs interface {
 type View interface {
 	QuestionQTCCount(max int) (int, bool)
 	Show(core.QTCMode, core.QTCSeries)
-	Update(core.QTCSeries)
+	UpdateQTC(int, core.QTC)
 	Close()
 	SetActivePhase(core.QTCWorkflowPhase)
 	SetActiveQTC(int)
@@ -180,8 +180,13 @@ func (c *Controller) ConfirmQTC() {
 
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
+		if c.currentSeries.IsValidQTCIndex(c.currentQTC) {
+			qtc := c.currentSeries.QTCs[c.currentQTC]
+			qtc.Confirmed = true
+			c.currentSeries.QTCs[c.currentQTC] = qtc
+			c.view.UpdateQTC(c.currentQTC, qtc)
+		}
 		if c.currentSeries.IsValidQTCIndex(c.currentQTC + 1) {
-			// TODO: update the QTC in the view
 			c.SetActiveQTC(c.currentQTC + 1)
 		} else {
 			c.SetActivePhase(core.QTCFinish)
@@ -198,17 +203,6 @@ func (c *Controller) SendStart() {
 	} else {
 		c.SendQTCRequest()
 	}
-}
-
-func (c *Controller) nextQTCIndex(index int) (int, bool) {
-	if !c.currentSeries.IsValidQTCIndex(index) {
-		return core.NoQTCIndex, false
-	}
-	nextIndex := index + 1
-	if !c.currentSeries.IsValidQTCIndex(nextIndex) {
-		return core.NoQTCIndex, false
-	}
-	return nextIndex, true
 }
 
 func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
@@ -352,7 +346,6 @@ func (c *Controller) SendQTC() {
 	qtc.Band = c.vfoBand
 	qtc.Mode = c.vfoMode
 	c.currentSeries.QTCs[c.currentQTC] = qtc
-	// TODO: update QTC in the ui
 }
 
 // CompleteQTCSeries completes the current QTC series.
@@ -427,7 +420,7 @@ type nullView struct{}
 
 func (*nullView) QuestionQTCCount(int) (int, bool)     { return 0, false }
 func (*nullView) Show(core.QTCMode, core.QTCSeries)    {}
-func (*nullView) Update(core.QTCSeries)                {}
+func (*nullView) UpdateQTC(int, core.QTC)              {}
 func (*nullView) Close()                               {}
 func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}
 func (*nullView) SetActiveQTC(int)                     {}

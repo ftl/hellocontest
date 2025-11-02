@@ -152,6 +152,7 @@ type QTC struct {
 	Frequency Frequency
 	Band      Band
 	Mode      Mode
+	Confirmed bool // this field is not persistent, it is only used during the QTC workflow to track which QTCs have been confirmed
 
 	// Data from referenced QSO, either from my log, or from their log
 	QTCTime     QTCTime

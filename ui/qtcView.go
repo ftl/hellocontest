@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
@@ -251,10 +252,16 @@ func (t *qtcTable) AppendQTC(qtc core.QTC) {
 }
 
 func (t *qtcTable) UpdateQTC(index int, qtc core.QTC) {
+	if index < 0 {
+		return
+	}
 	if index >= len(t.qtcs) {
 		t.AppendQTC(qtc)
 	}
-	// TODO: update the row #index
+
+	log.Printf("updating QTC %d: %v", index, qtc)
+	row, _ := t.tableContent.GetIterFromString(strconv.Itoa(index))
+	t.fillRow(row, index, qtc)
 }
 
 func (t *qtcTable) showInTable(qtcs []core.QTC) {
@@ -279,7 +286,7 @@ func (t *qtcTable) fillRow(row *gtk.TreeIter, index int, qtc core.QTC) {
 		qtc.QTCTime.String(),
 		qtc.QTCCallsign.String(),
 		qtc.QTCNumber.String(),
-		boolToCheckmark(qtc.WasTransmitted()), // TODO: transmitted != confirmed
+		boolToCheckmark(qtc.Confirmed),
 	}
 
 	t.tableContent.Set(row, columns, values)

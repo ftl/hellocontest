@@ -81,8 +81,11 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	}
 }
 
-func (d *qtcDialog) Update(core.QTCSeries) {
-	// TODO: implement
+func (d *qtcDialog) UpdateQTC(index int, qtc core.QTC) {
+	if d.view == nil {
+		return
+	}
+	d.view.setQTC(index, qtc)
 }
 
 func (d *qtcDialog) Close() {

@@ -360,7 +360,7 @@ func (c *Controller) CompleteQTCSeries() {
 	if c.currentMode == core.ProvideQTC {
 		// check if all QTCs have actually been transmitted
 		for i, qtc := range c.currentSeries.QTCs {
-			if qtc.WasTransmitted() {
+			if qtc.Confirmed {
 				continue
 			}
 

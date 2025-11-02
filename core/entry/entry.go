@@ -663,8 +663,26 @@ func (c *Controller) EnterPressed() {
 }
 
 func (c *Controller) CurrentQSOState() (callsign.Callsign, core.QSODataState) {
-	// TODO: implement QSO validation
-	return callsign.Callsign{}, core.QSODataEmpty
+	callEmpty := (c.input.callsign == "")
+
+	call, err := callsign.Parse(c.input.callsign)
+	callOK := (err == nil)
+
+	theirExchange := make([]string, len(c.theirExchangeFields))
+	_, err = c.parseTheirExchange(theirExchange, nil, nil)
+	exchangeOK := (err == nil)
+
+	switch {
+	case callEmpty, !callOK:
+		return callsign.NoCallsign, core.QSODataEmpty
+	case callOK && !exchangeOK:
+		return call, core.QSODataInvalid
+	case callOK && exchangeOK:
+		return call, core.QSODataValid
+	default:
+		log.Printf("invalid QSO state: %s, %+v", c.input.callsign, c.input.theirExchange)
+		return callsign.NoCallsign, core.QSODataEmpty
+	}
 }
 
 func (c *Controller) Log() {

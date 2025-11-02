@@ -2,7 +2,6 @@ package qtc
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
 
@@ -37,9 +36,10 @@ type EntryController interface {
 }
 
 type Keyer interface {
-	SendText(text string, args ...any)
+	SendText(string, ...any)
 	Repeat()
 	Stop()
+	Cut(string) string
 }
 
 type InfoDialogs interface {
@@ -327,7 +327,7 @@ func (c *Controller) SendQTC() {
 	qtc := c.currentSeries.QTCs[c.currentQTC]
 	time := qtc.QTCTime.String()
 	call := qtc.QTCCallsign.String()
-	exchange := strconv.Itoa(int(qtc.QTCNumber)) // TODO: cut numbers, fill with leading zeros
+	exchange := c.keyer.Cut(qtc.QTCNumber.String())
 
 	// shorten time if the last QTC qso was in the same hour
 	// TODO: make this optional?

@@ -573,6 +573,10 @@ func (k *Keyer) Stop() {
 	k.emitKeyerStopped()
 }
 
+func (k *Keyer) Cut(s string) string {
+	return cutDefault(s) // TODO: global config for how to cut numbers
+}
+
 func (k *Keyer) Notify(listener any) {
 	k.listeners = append(k.listeners, listener)
 }
@@ -623,7 +627,7 @@ func cut(value string, numbers ...int) string {
 	cuts := cutsFor(numbers...)
 	result := value
 	for digit, cut := range cuts {
-		result = strings.Replace(result, digit, cut, -1)
+		result = strings.ReplaceAll(result, digit, cut)
 	}
 	return result
 }

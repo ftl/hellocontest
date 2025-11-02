@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
@@ -259,7 +258,6 @@ func (t *qtcTable) UpdateQTC(index int, qtc core.QTC) {
 		t.AppendQTC(qtc)
 	}
 
-	log.Printf("updating QTC %d: %v", index, qtc)
 	row, _ := t.tableContent.GetIterFromString(strconv.Itoa(index))
 	t.fillRow(row, index, qtc)
 }

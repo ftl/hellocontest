@@ -286,6 +286,8 @@ func (t QTCTime) ShortString() string {
 	return fmt.Sprintf("%02d", t.Minute)
 }
 
+const NoQTCIndex int = -1
+
 type QTCSeries struct {
 	Header QTCHeader
 	QTCs   []QTC
@@ -346,84 +348,6 @@ const (
 	QTCExchangeData
 	QTCFinish
 )
-
-// QTCField represents an entry field in the QTC entry window.
-// TODO: remove?
-type QTCField string
-
-const (
-	qtcHeaderPrefix     string = "header"
-	SendHeaderField            = QTCField(qtcHeaderPrefix + "Send") // the header representation in the ProvideQTC mode
-	HeaderSequenceField        = QTCField(qtcHeaderPrefix + "Sequence")
-	HeaderCountField           = QTCField(qtcHeaderPrefix + "Count")
-	CompleteField              = QTCField("Complete") // complete the QTC series
-	NoQTCField                 = QTCField("")
-
-	qtcSendPrefix     string = "qtcSend_"
-	qtcTimePrefix     string = "qtcTime_"
-	qtcCallsignPrefix string = "qtcCallsign_"
-	qtcNumberPrefix   string = "qtcNumber_"
-
-	NoQTCIndex int = -1
-)
-
-func (f QTCField) IsHeader() bool {
-	return strings.HasPrefix(string(f), qtcHeaderPrefix)
-}
-
-func (f QTCField) IsSend() bool {
-	return strings.HasPrefix(string(f), qtcSendPrefix)
-}
-
-func (f QTCField) IsTime() bool {
-	return strings.HasPrefix(string(f), qtcTimePrefix)
-}
-
-func (f QTCField) IsCallsign() bool {
-	return strings.HasPrefix(string(f), qtcCallsignPrefix)
-}
-
-func (f QTCField) IsNumber() bool {
-	return strings.HasPrefix(string(f), qtcNumberPrefix)
-}
-
-func (f QTCField) IsQTC() bool {
-	return f.IsTime() || f.IsCallsign() || f.IsNumber()
-}
-
-func (f QTCField) QTCIndex() int {
-	if !f.IsQTC() {
-		return NoQTCIndex
-	}
-
-	s := string(f)
-	underscore := strings.Index(s, "_")
-	if underscore >= len(s)-1 {
-		return NoQTCIndex
-	}
-	index, err := strconv.Atoi(s[underscore+1:])
-	if err != nil {
-		return NoQTCIndex
-	}
-
-	return index
-}
-
-func QTCSendField(index int) QTCField {
-	return QTCField(qtcSendPrefix + strconv.Itoa(index))
-}
-
-func QTCTimeField(index int) QTCField {
-	return QTCField(qtcTimePrefix + strconv.Itoa(index))
-}
-
-func QTCCallsignField(index int) QTCField {
-	return QTCField(qtcCallsignPrefix + strconv.Itoa(index))
-}
-
-func QTCNumberField(index int) QTCField {
-	return QTCField(qtcNumberPrefix + strconv.Itoa(index))
-}
 
 // QSODataState represents the current state of the entered QSO data
 type QSODataState int

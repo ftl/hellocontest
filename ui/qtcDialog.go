@@ -96,10 +96,6 @@ func (d *qtcDialog) Close() {
 	d.view = nil
 }
 
-func (d *qtcDialog) SetActiveField(core.QTCField) {
-	// TODO: remove???
-}
-
 func (d *qtcDialog) SetActivePhase(phase core.QTCWorkflowPhase) {
 	d.activePhase = phase
 	d.focusActivePhase()
@@ -129,7 +125,6 @@ func (d *qtcDialog) SetActiveQTC(index int) {
 
 func (d *qtcDialog) focusActiveQTC() {
 	if d.view == nil {
-		log.Print("NO QTC VIEW")
 		return
 	}
 	d.view.focusQTC(d.activeQTC)

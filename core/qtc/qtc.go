@@ -53,7 +53,6 @@ type View interface {
 	Show(core.QTCMode, core.QTCSeries)
 	Update(core.QTCSeries)
 	Close()
-	SetActiveField(core.QTCField) // TODO: remove?
 	SetActivePhase(core.QTCWorkflowPhase)
 	SetActiveQTC(int)
 }
@@ -68,7 +67,6 @@ type Controller struct {
 	infoDialogs InfoDialogs
 	view        View
 
-	activeField core.QTCField
 	activePhase core.QTCWorkflowPhase
 
 	currentMode   core.QTCMode
@@ -130,27 +128,6 @@ func (c *Controller) VFOBandChanged(band core.Band) {
 
 func (c *Controller) VFOModeChanged(mode core.Mode) {
 	c.vfoMode = mode
-}
-
-func (c *Controller) Proceed() {
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		switch {
-		case c.activeField.IsHeader():
-			c.SendHeader()
-		case c.activeField.IsQTC():
-			c.SendQTC()
-		case c.activeField == core.CompleteField:
-			c.CompleteQTCSeries()
-		default:
-			return
-		}
-	} else {
-		// TODO: check if all fields of the current QTC are filled with valid data
-		// if not -> focus the first field of the current QTC and request repeat
-		c.keyer.SendText(ConfirmText)
-	}
-	c.GotoNextField()
 }
 
 func (c *Controller) Repeat() {
@@ -223,69 +200,6 @@ func (c *Controller) SendStart() {
 	}
 }
 
-// DEPRECATED: use activePhase + currentMode???
-func (c *Controller) GotoNextField() {
-	var (
-		nextField core.QTCField
-		ok        bool
-	)
-	qtcIndex := c.activeField.QTCIndex()
-
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		switch {
-		case c.activeField.IsHeader():
-			nextField = core.QTCSendField(0)
-		case c.activeField.IsQTC():
-			nextField, ok = c.nextQTCField(qtcIndex)
-			if !ok {
-				return
-			}
-		default:
-			return
-		}
-	} else {
-		switch {
-		case c.activeField == core.HeaderSequenceField:
-			nextField = core.HeaderCountField
-		case c.activeField == core.HeaderCountField:
-			nextField = core.QTCTimeField(0)
-		case c.activeField.IsTime():
-			nextField = core.QTCCallsignField(qtcIndex)
-		case c.activeField.IsCallsign():
-			nextField = core.QTCNumberField(qtcIndex)
-		case c.activeField.IsNumber():
-			nextField, ok = c.nextQTCField(qtcIndex)
-			if !ok {
-				return
-			}
-		default:
-			return
-		}
-	}
-
-	c.SetActiveField(nextField)
-	c.view.SetActiveField(nextField)
-}
-
-func (c *Controller) nextQTCField(index int) (core.QTCField, bool) {
-	if c.currentSeries.IsLastQTCIndex(index) {
-		return core.CompleteField, true
-	}
-
-	nextIndex, ok := c.nextQTCIndex(index)
-	if !ok {
-		return core.NoQTCField, false
-	}
-
-	if c.currentMode == core.ProvideQTC {
-		return core.QTCSendField(nextIndex), true
-	} else {
-		return core.QTCTimeField(nextIndex), true
-	}
-
-}
-
 func (c *Controller) nextQTCIndex(index int) (int, bool) {
 	if !c.currentSeries.IsValidQTCIndex(index) {
 		return core.NoQTCIndex, false
@@ -295,15 +209,6 @@ func (c *Controller) nextQTCIndex(index int) (int, bool) {
 		return core.NoQTCIndex, false
 	}
 	return nextIndex, true
-}
-
-func (c *Controller) SetActiveField(field core.QTCField) {
-	qtcIndex := field.QTCIndex()
-	if !(qtcIndex == core.NoQTCIndex || c.currentSeries.IsValidQTCIndex(qtcIndex)) {
-		return
-	}
-	c.activeField = field
-	c.currentQTC = qtcIndex
 }
 
 func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
@@ -466,7 +371,7 @@ func (c *Controller) CompleteQTCSeries() {
 				continue
 			}
 
-			c.showError("Not all QTCs have been transmitted, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
+			c.showError("Not all QTCs have been confirmed, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
 			c.SetActiveQTC(i)
 			return
 		}
@@ -524,6 +429,5 @@ func (*nullView) QuestionQTCCount(int) (int, bool)     { return 0, false }
 func (*nullView) Show(core.QTCMode, core.QTCSeries)    {}
 func (*nullView) Update(core.QTCSeries)                {}
 func (*nullView) Close()                               {}
-func (*nullView) SetActiveField(core.QTCField)         {}
 func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}
 func (*nullView) SetActiveQTC(int)                     {}

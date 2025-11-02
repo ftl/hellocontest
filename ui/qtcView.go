@@ -204,7 +204,6 @@ func newQTCTable() *qtcTable {
 	result.table.AppendColumn(createQTCColumn("Call", qtcColumnCall))
 	result.table.AppendColumn(createQTCColumn("Exch.", qtcColumnExchange))
 	result.table.AppendColumn(createQTCColumn("Cfm.", qtcColumnConfirmed))
-	result.table.Connect("style-updated", result.refreshTableStyle)
 
 	return result
 }
@@ -284,8 +283,4 @@ func (t *qtcTable) fillRow(row *gtk.TreeIter, index int, qtc core.QTC) {
 	}
 
 	t.tableContent.Set(row, columns, values)
-}
-
-func (t *qtcTable) refreshTableStyle() {
-	t.showInTable(t.qtcs)
 }

@@ -334,6 +334,11 @@ func (c *Controller) SetActiveQTC(index int) {
 	if !c.currentSeries.IsValidQTCIndex(index) {
 		return
 	}
+	if c.activePhase != core.QTCExchangeData {
+		c.activePhase = core.QTCExchangeData
+		c.view.SetActivePhase(core.QTCExchangeData)
+	}
+
 	c.currentQTC = index
 	c.view.SetActiveQTC(c.currentQTC)
 

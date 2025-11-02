@@ -60,8 +60,6 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.dialog.ShowAll()
 
 	// put the QTC series data into the view's widgets
-	// IMPORTANT: This needs to happen after ShowAll, otherwise the
-	// show/hide of the qtcRows does not work (done in setQTCs).
 	d.view.setHeader(qtcSeries.TheirCallsign(), qtcSeries.Header)
 	d.view.setQTCs(qtcSeries.QTCs)
 	d.focusActivePhase()
@@ -131,6 +129,7 @@ func (d *qtcDialog) SetActiveQTC(index int) {
 
 func (d *qtcDialog) focusActiveQTC() {
 	if d.view == nil {
+		log.Print("NO QTC VIEW")
 		return
 	}
 	d.view.focusQTC(d.activeQTC)

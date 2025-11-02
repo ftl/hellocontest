@@ -163,6 +163,21 @@ func (q QTC) WasTransmitted() bool {
 	return !q.Timestamp.IsZero()
 }
 
+func (q QTC) VerifyComplete() error {
+	switch {
+	case q.Timestamp.IsZero():
+		return fmt.Errorf("the timestamp must not be zero")
+	case q.Band == NoBand:
+		return fmt.Errorf("the band must not be empty")
+	case q.Mode == NoMode:
+		return fmt.Errorf("the mode must not be empty")
+	case q.Frequency == 0:
+		return fmt.Errorf("the frequency must not be zero")
+	default:
+		return nil
+	}
+}
+
 type QTCMode int
 
 const (

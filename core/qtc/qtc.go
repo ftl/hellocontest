@@ -423,7 +423,7 @@ func (c *Controller) SendQTC() {
 	qtc := c.currentSeries.QTCs[c.currentQTC]
 	time := qtc.QTCTime.String()
 	call := qtc.QTCCallsign.String()
-	exchange := strconv.Itoa(int(qtc.QTCNumber)) // TODO: shorten numbers
+	exchange := strconv.Itoa(int(qtc.QTCNumber)) // TODO: cut numbers, fill with leading zeros
 
 	// shorten time if the last QTC qso was in the same hour
 	// TODO: make this optional?
@@ -442,6 +442,7 @@ func (c *Controller) SendQTC() {
 	qtc.Band = c.vfoBand
 	qtc.Mode = c.vfoMode
 	c.currentSeries.QTCs[c.currentQTC] = qtc
+	// TODO: update QTC in the ui
 }
 
 // CompleteQTCSeries completes the current QTC series.

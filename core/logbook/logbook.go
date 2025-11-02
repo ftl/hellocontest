@@ -169,8 +169,8 @@ func (l *Logbook) AllQSOs() []core.QSO {
 }
 
 func (l *Logbook) LogQTC(qtc core.QTC) {
-	if qtc.Timestamp.IsZero() {
-		panic("cannot log the given QTC, its timestamp must not be zero")
+	if err := qtc.VerifyComplete(); err != nil {
+		panic(fmt.Errorf("cannot log the given QTC: %v", err))
 	}
 	if existing, ok := l.qtcs[qtc.QSONumber]; ok {
 		panic(fmt.Errorf("QTC for QSO #%d already exists, cannot log another QTC for the same QSO: %v", qtc.QSONumber, existing))

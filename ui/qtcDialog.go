@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"log"
-
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
@@ -63,8 +61,6 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.view.setHeader(qtcSeries.TheirCallsign(), qtcSeries.Header)
 	d.view.setQTCs(qtcSeries.QTCs)
 	d.focusActivePhase()
-
-	defer log.Println("QTC Dialog closed")
 
 	// run the dialog until it is closed by the controller (d.dialog == nil)
 	for {

@@ -151,9 +151,6 @@ func (l *QTCList) putQSO(qso core.QSO) {
 
 func qtcFromQSO(qso core.QSO) core.QTC {
 	return core.QTC{
-		Frequency:   qso.Frequency,
-		Band:        qso.Band,
-		Mode:        qso.Mode,
 		Kind:        core.SentQTC,
 		QSONumber:   qso.MyNumber,
 		QTCTime:     core.QTCTimeFromTimestamp(qso.Time),

@@ -115,7 +115,7 @@ func (v *entryView) addEntryEventHandlers(w *gtk.Widget) {
 	w.Connect("changed", v.onEntryChanged)
 }
 
-func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
+func (v *entryView) onEntryKeyPress(_ any, event *gdk.Event) bool {
 	keyEvent := gdk.EventKeyNewFromEvent(event)
 	ctrl := keyEvent.State()&gdk.CONTROL_MASK != 0
 	alt := keyEvent.State()&gdk.MOD1_MASK != 0 // MOD1 = ALT right
@@ -160,7 +160,7 @@ func (v *entryView) onEntryKeyPress(_ interface{}, event *gdk.Event) bool {
 	}
 }
 
-func (v *entryView) onEntryFocusIn(widget interface{}, _ *gdk.Event) bool {
+func (v *entryView) onEntryFocusIn(widget any, _ *gdk.Event) bool {
 	var field core.EntryField
 	switch w := widget.(type) {
 	case *gtk.Entry:
@@ -174,14 +174,14 @@ func (v *entryView) onEntryFocusIn(widget interface{}, _ *gdk.Event) bool {
 	return false
 }
 
-func (v *entryView) onEntryFocusOut(widget interface{}, _ *gdk.Event) bool {
+func (v *entryView) onEntryFocusOut(widget any, _ *gdk.Event) bool {
 	if entry, ok := widget.(*gtk.Entry); ok {
 		entry.SelectRegion(0, 0)
 	}
 	return false
 }
 
-func (v *entryView) onEntryChanged(widget interface{}) bool {
+func (v *entryView) onEntryChanged(widget any) bool {
 	if v.controller == nil {
 		return false
 	}
@@ -446,7 +446,7 @@ func (v *entryView) SetEditingMarker(editing bool) {
 	}
 }
 
-func (v *entryView) ShowMessage(args ...interface{}) {
+func (v *entryView) ShowMessage(args ...any) {
 	v.messageLabel.SetText(fmt.Sprint(args...))
 }
 

@@ -53,12 +53,11 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	contentArea, _ := d.dialog.GetContentArea()
 	contentArea.Add(d.view.root)
 	d.logButton, _ = d.dialog.AddButton("Log", gtk.RESPONSE_OK)
-	// TODO: add a check before closing the dialog
 	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)
 	d.dialog.ShowAll()
 
 	// put the QTC series data into the view's widgets
-	d.view.setHeader(qtcSeries.TheirCallsign(), qtcSeries.Header)
+	d.view.setHeader(qtcSeries.TheirCallsign, qtcSeries.Header)
 	d.view.setQTCs(qtcSeries.QTCs)
 	d.focusActivePhase()
 

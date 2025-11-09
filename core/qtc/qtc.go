@@ -394,7 +394,25 @@ func (c *Controller) AbortQTCSeries() {
 // Workflow for receiving QTCs
 
 func (c *Controller) RequestQTC() {
-	// TODO implement workflow for receiving QTCs
+	// find out their callsign
+	theirCall, ok := c.findOutTheirCallsign()
+	if !ok {
+		return
+	}
+
+	// TODO: find out how many QTCs may be received from theirCall (is this relevant, maybe we should just take what we get)
+
+	// create a new and empty QTCSeries
+	qtcSeries := core.NewReceivingQTCSeries(theirCall)
+	c.currentMode = core.ReceiveQTC
+	c.currentSeries = qtcSeries
+	c.currentQTC = core.NoQTCIndex
+
+	// enter the first phase: send "qtc?"
+	c.SetActivePhase(core.QTCStart)
+
+	// show and run the QTC dialog
+	c.view.Show(c.currentMode, c.currentSeries)
 }
 
 // SendQTCRequest sends the request for a QTC exchange.

@@ -821,7 +821,7 @@ func (c *Controller) OfferQTC() {
 }
 
 func (c *Controller) RequestQTC() {
-	log.Printf("REQUEST QTC")
+	c.QTCController.RequestQTC()
 }
 
 func (c *Controller) XITActive() bool {

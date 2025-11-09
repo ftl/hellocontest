@@ -290,8 +290,9 @@ func (t QTCTime) ShortString() string {
 const NoQTCIndex int = -1
 
 type QTCSeries struct {
-	Header QTCHeader
-	QTCs   []QTC
+	TheirCallsign callsign.Callsign
+	Header        QTCHeader
+	QTCs          []QTC
 }
 
 func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
@@ -309,10 +310,21 @@ func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
 		qtcs[i].Header = result.Header
 	}
 	result.QTCs = qtcs
+	result.TheirCallsign = result.theirCallsign()
+	if result.TheirCallsign == callsign.NoCallsign {
+		return QTCSeries{}, fmt.Errorf("a QTC series must have a consistent value for 'their callsign'")
+	}
 	return result, nil
 }
 
-func (s QTCSeries) TheirCallsign() callsign.Callsign {
+func NewReceivingQTCSeries(theirCallsign callsign.Callsign) QTCSeries {
+	result := QTCSeries{
+		TheirCallsign: theirCallsign,
+	}
+	return result
+}
+
+func (s QTCSeries) theirCallsign() callsign.Callsign {
 	if len(s.QTCs) == 0 {
 		return callsign.NoCallsign
 	}
@@ -328,7 +340,7 @@ func (s QTCSeries) TheirCallsign() callsign.Callsign {
 }
 
 func (s QTCSeries) IsPrepared() bool {
-	return s.TheirCallsign() != callsign.NoCallsign
+	return s.TheirCallsign != callsign.NoCallsign && len(s.QTCs) > 0
 }
 
 func (s QTCSeries) IsValidQTCIndex(index int) bool {

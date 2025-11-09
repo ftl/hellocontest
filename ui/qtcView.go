@@ -46,6 +46,18 @@ type qtcView struct {
 }
 
 func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
+	var (
+		modeText string
+		sendText string
+	)
+	if mode == core.ProvideQTC {
+		modeText = "Offer QTC"
+		sendText = "Send"
+	} else {
+		modeText = "Request QTC"
+		sendText = "AGN"
+	}
+
 	result := &qtcView{
 		controller: controller,
 		mode:       mode,
@@ -60,58 +72,76 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 
 	result.theirCallLabel, _ = gtk.LabelNew("") // the actual text is set in SetHeader
 	result.theirCallLabel.SetHAlign(gtk.ALIGN_CENTER)
-	contentGrid.Attach(result.theirCallLabel, 0, 0, 4, 1)
+	contentGrid.Attach(result.theirCallLabel, 0, 0, 5, 1)
 
 	result.startHeadingLabel = buildHeaderLabel(contentGrid, 1, "1. Start")
-	var modeText string
-	switch mode {
-	case core.ProvideQTC:
-		modeText = "Offer QTC"
-	case core.ReceiveQTC:
-		modeText = "Request QTC"
-	default:
-		modeText = fmt.Sprintf("UNKNOWN MODE %d", mode)
-	}
 	startExchangeLabel, _ := gtk.LabelNew(modeText)
 	startExchangeLabel.SetHAlign(gtk.ALIGN_START)
-	contentGrid.Attach(startExchangeLabel, 0, 2, 2, 1)
+	contentGrid.Attach(startExchangeLabel, 0, 2, 3, 1)
 	sendStartButton, _ := gtk.ButtonNewWithLabel("Send")
 	sendStartButton.SetHAlign(gtk.ALIGN_FILL)
 	sendStartButton.Connect("clicked", controller.SendStart)
-	contentGrid.Attach(sendStartButton, 2, 2, 1, 1)
+	contentGrid.Attach(sendStartButton, 3, 2, 1, 1)
 	result.qrvButton, _ = gtk.ButtonNewWithLabel("QRV")
 	result.qrvButton.SetHAlign(gtk.ALIGN_FILL)
 	result.qrvButton.Connect("clicked", controller.ConfirmStart)
-	contentGrid.Attach(result.qrvButton, 3, 2, 1, 1)
+	contentGrid.Attach(result.qrvButton, 4, 2, 1, 1)
 
 	result.headerHeadingLabel = buildHeaderLabel(contentGrid, 3, "2. Header")
-	result.seriesEntry = buildLabeledEntry(contentGrid, 4, "Series/QTC Count", nil) // TODO: add callback if needed
+	seriesLabel, _ := gtk.LabelNew("Series/QTC Count")
+	seriesLabel.SetHAlign(gtk.ALIGN_START)
+	contentGrid.Attach(seriesLabel, 0, 4, 1, 1)
+	result.seriesEntry, _ = gtk.EntryNew() // TODO: add "changed" callback for receiving QTCs
+	result.seriesEntry.SetHExpand(true)
+	result.seriesEntry.SetSizeRequest(200, 0)
 	result.seriesEntry.SetSensitive(true)
-	result.seriesEntry.SetEditable(false)
-	sendHeaderButton, _ := gtk.ButtonNewWithLabel("Send")
+	result.seriesEntry.SetEditable(mode == core.ReceiveQTC)
+	contentGrid.Attach(result.seriesEntry, 1, 4, 2, 1)
+
+	sendHeaderButton, _ := gtk.ButtonNewWithLabel(sendText)
 	sendHeaderButton.SetHAlign(gtk.ALIGN_FILL)
 	sendHeaderButton.Connect("clicked", controller.SendHeader)
-	contentGrid.Attach(sendHeaderButton, 2, 4, 1, 1)
+	contentGrid.Attach(sendHeaderButton, 3, 4, 1, 1)
 	result.confirmHeaderButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmHeaderButton.SetHAlign(gtk.ALIGN_FILL)
 	result.confirmHeaderButton.Connect("clicked", controller.ConfirmHeader)
-	contentGrid.Attach(result.confirmHeaderButton, 3, 4, 1, 1)
+	contentGrid.Attach(result.confirmHeaderButton, 4, 4, 1, 1)
 
 	result.dataHeadingLabel = buildHeaderLabel(contentGrid, 6, "3. QTCs")
 	result.qtcTable = newQTCTable()
-	contentGrid.Attach(result.qtcTable.Table(), 0, 7, 2, 4)
-	sendQTCButton, _ := gtk.ButtonNewWithLabel("Send")
+	contentGrid.Attach(result.qtcTable.Table(), 0, 7, 3, 4)
+	sendQTCButton, _ := gtk.ButtonNewWithLabel(sendText)
 	sendQTCButton.SetHAlign(gtk.ALIGN_FILL)
 	sendQTCButton.SetVAlign(gtk.ALIGN_START)
 	sendQTCButton.SetVExpand(false)
 	sendQTCButton.Connect("clicked", controller.SendQTC)
-	contentGrid.Attach(sendQTCButton, 2, 7, 1, 1)
 	result.confirmQTCButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmQTCButton.SetHAlign(gtk.ALIGN_FILL)
 	result.confirmQTCButton.SetVAlign(gtk.ALIGN_START)
 	result.confirmQTCButton.SetVExpand(false)
 	result.confirmQTCButton.Connect("clicked", controller.ConfirmQTC)
-	contentGrid.Attach(result.confirmQTCButton, 3, 7, 1, 1)
+
+	if mode == core.ProvideQTC {
+		contentGrid.Attach(sendQTCButton, 3, 7, 1, 1)
+		contentGrid.Attach(result.confirmQTCButton, 4, 7, 1, 1)
+	} else {
+		// TODO: add "changed" callbacks
+		qtcTimeEntry, _ := gtk.EntryNew()
+		qtcTimeEntry.SetSizeRequest(75, 0)
+		qtcTimeEntry.SetPlaceholderText("Time")
+		contentGrid.Attach(qtcTimeEntry, 0, 11, 1, 1)
+		qtcCallEntry, _ := gtk.EntryNew()
+		qtcCallEntry.SetSizeRequest(150, 0)
+		qtcCallEntry.SetPlaceholderText("Call")
+		contentGrid.Attach(qtcCallEntry, 1, 11, 1, 1)
+		qtcExchangeEntry, _ := gtk.EntryNew()
+		qtcExchangeEntry.SetSizeRequest(75, 0)
+		qtcExchangeEntry.SetPlaceholderText("Exch.")
+		contentGrid.Attach(qtcExchangeEntry, 2, 11, 1, 1)
+
+		contentGrid.Attach(sendQTCButton, 3, 11, 1, 1)
+		contentGrid.Attach(result.confirmQTCButton, 4, 11, 1, 1)
+	}
 
 	result.root = contentGrid
 

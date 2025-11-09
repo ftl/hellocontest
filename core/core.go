@@ -21,7 +21,7 @@ import (
 
 // QSO contains the details about one radio contact.
 type QSO struct {
-	Callsign      callsign.Callsign
+	Callsign      Callsign
 	Time          time.Time
 	Frequency     Frequency
 	Band          Band
@@ -43,6 +43,10 @@ type QSO struct {
 func (qso *QSO) String() string {
 	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%s|%s|%2d|%2d|%t|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), strings.Join(qso.MyExchange, " "), qso.TheirReport, qso.TheirNumber.String(), strings.Join(qso.TheirExchange, " "), qso.Points, qso.Multis, qso.Duplicate, qso.Workmode.String())
 }
+
+type Callsign = callsign.Callsign
+
+var NoCallsign = callsign.NoCallsign
 
 // Frequency in Hz.
 type Frequency float64
@@ -144,7 +148,7 @@ type QTC struct {
 	// Basic Information
 	Kind          QTCKind
 	QSONumber     QSONumber // used only for SentQTC, references the QSO in my log
-	TheirCallsign callsign.Callsign
+	TheirCallsign Callsign
 	Header        QTCHeader
 
 	// Log Information, must be set, when actually sending the QTC
@@ -156,7 +160,7 @@ type QTC struct {
 
 	// Data from referenced QSO, either from my log, or from their log
 	QTCTime     QTCTime
-	QTCCallsign callsign.Callsign
+	QTCCallsign Callsign
 	QTCNumber   QSONumber
 }
 
@@ -290,7 +294,7 @@ func (t QTCTime) ShortString() string {
 const NoQTCIndex int = -1
 
 type QTCSeries struct {
-	TheirCallsign callsign.Callsign
+	TheirCallsign Callsign
 	Header        QTCHeader
 	QTCs          []QTC
 }
@@ -311,36 +315,36 @@ func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
 	}
 	result.QTCs = qtcs
 	result.TheirCallsign = result.theirCallsign()
-	if result.TheirCallsign == callsign.NoCallsign {
+	if result.TheirCallsign == NoCallsign {
 		return QTCSeries{}, fmt.Errorf("a QTC series must have a consistent value for 'their callsign'")
 	}
 	return result, nil
 }
 
-func NewReceivingQTCSeries(theirCallsign callsign.Callsign) QTCSeries {
+func NewReceivingQTCSeries(theirCallsign Callsign) QTCSeries {
 	result := QTCSeries{
 		TheirCallsign: theirCallsign,
 	}
 	return result
 }
 
-func (s QTCSeries) theirCallsign() callsign.Callsign {
+func (s QTCSeries) theirCallsign() Callsign {
 	if len(s.QTCs) == 0 {
-		return callsign.NoCallsign
+		return NoCallsign
 	}
 
 	theirCallsign := s.QTCs[0].TheirCallsign
 	theirCallsignString := theirCallsign.String()
 	for _, qtc := range s.QTCs {
 		if qtc.TheirCallsign.String() != theirCallsignString {
-			return callsign.NoCallsign
+			return NoCallsign
 		}
 	}
 	return theirCallsign
 }
 
 func (s QTCSeries) IsPrepared() bool {
-	return s.TheirCallsign != callsign.NoCallsign && len(s.QTCs) > 0
+	return s.TheirCallsign != NoCallsign && len(s.QTCs) > 0
 }
 
 func (s QTCSeries) IsValidQTCIndex(index int) bool {
@@ -509,7 +513,7 @@ const (
 
 // AnnotatedCallsign contains a callsign with additional information retrieved from databases and the logbook.
 type AnnotatedCallsign struct {
-	Callsign          callsign.Callsign
+	Callsign          Callsign
 	Assembly          MatchingAssembly
 	Duplicate         bool
 	Worked            bool
@@ -573,8 +577,8 @@ type Settings interface {
 }
 
 type Station struct {
-	Callsign callsign.Callsign
-	Operator callsign.Callsign
+	Callsign Callsign
+	Operator Callsign
 	Locator  locator.Locator
 }
 
@@ -745,7 +749,7 @@ type Summary struct {
 
 	// comes from the contest settings
 	StartTime   time.Time
-	Callsign    callsign.Callsign
+	Callsign    Callsign
 	MyExchanges string
 
 	// has to be selected by the user in a dialog
@@ -1214,7 +1218,7 @@ type SpotSource struct {
 }
 
 type Spot struct {
-	Call      callsign.Callsign
+	Call      Callsign
 	Frequency Frequency
 	Band      Band
 	Mode      Mode
@@ -1297,7 +1301,7 @@ func (s *BandSummary) Multis() int {
 
 type Callinfo struct {
 	Input     string
-	Call      callsign.Callsign
+	Call      Callsign
 	CallValid bool
 
 	DXCCEntity dxcc.Prefix
@@ -1369,7 +1373,7 @@ const NoEntryID BandmapEntryID = 0
 type BandmapEntry struct {
 	ID        BandmapEntryID
 	Label     string
-	Call      callsign.Callsign
+	Call      Callsign
 	Frequency Frequency
 	Band      Band
 	Mode      Mode

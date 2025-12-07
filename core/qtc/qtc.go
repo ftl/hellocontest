@@ -2,6 +2,7 @@ package qtc
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/ftl/hamradio/callsign"
 
@@ -54,6 +55,7 @@ type View interface {
 	UpdateQTC(int, core.QTC)
 	Close()
 	SetActivePhase(core.QTCWorkflowPhase)
+	SetActiveField(core.QTCField)
 	SetActiveQTC(int)
 }
 
@@ -68,6 +70,7 @@ type Controller struct {
 	view        View
 
 	activePhase core.QTCWorkflowPhase
+	activeField core.QTCField
 
 	currentMode   core.QTCMode
 	currentSeries core.QTCSeries
@@ -130,32 +133,49 @@ func (c *Controller) VFOModeChanged(mode core.Mode) {
 	c.vfoMode = mode
 }
 
-func (c *Controller) Repeat() {
+// *****************************************************
+// NEW WORKFLOW METHODS
+// *****************************************************
+
+// func OfferQTC stays in the ProvideQTC section for now
+// func RequestQTC stays in the ReceiveQTC section for now
+
+func (c *Controller) StartAction() {
+	if c.activePhase != core.QTCStart {
+		return
+	}
+
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
-		switch c.activePhase {
-		case core.QTCStart:
-			c.SendQTCOffer()
-		case core.QTCExchangeHeader:
-			c.SendHeader()
-		case core.QTCExchangeData:
-			c.SendQTC()
-		default:
-			c.keyer.Repeat()
-		}
+		c.SendQTCOffer()
 	} else {
-		c.keyer.SendText(RequestRepeatText)
+		c.SendQTCRequest()
 	}
 }
 
-func (c *Controller) Confirm() {
-	switch c.activePhase {
-	case core.QTCStart:
-		c.ConfirmStart()
-	case core.QTCExchangeHeader:
-		c.ConfirmHeader()
-	case core.QTCExchangeData:
-		c.ConfirmQTC()
+func (c *Controller) HeaderAction() {
+	if c.activePhase != core.QTCExchangeHeader {
+		return
+	}
+
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		c.SendHeader()
+	} else {
+		c.RequestRepeat()
+	}
+}
+
+func (c *Controller) DataAction() {
+	if c.activePhase != core.QTCExchangeData {
+		return
+	}
+
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		c.SendCurrentQTC()
+	} else {
+		c.RequestRepeat()
 	}
 }
 
@@ -163,7 +183,14 @@ func (c *Controller) ConfirmStart() {
 	if c.activePhase != core.QTCStart {
 		return
 	}
+	// TODO: use polymorphism for the two modes
+	// if c.currentMode == core.ProvideQTC {
+	// }
+	if c.currentMode == core.ReceiveQTC {
+		c.SendQRV()
+	}
 	c.SetActivePhase(core.QTCExchangeHeader)
+	c.SetActiveField(core.QTCHeaderField)
 }
 
 func (c *Controller) ConfirmHeader() {
@@ -173,7 +200,7 @@ func (c *Controller) ConfirmHeader() {
 	c.SetActivePhase(core.QTCExchangeData)
 }
 
-func (c *Controller) ConfirmQTC() {
+func (c *Controller) ConfirmData() {
 	if c.activePhase != core.QTCExchangeData {
 		return
 	}
@@ -196,13 +223,32 @@ func (c *Controller) ConfirmQTC() {
 	}
 }
 
-func (c *Controller) SendStart() {
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		c.SendQTCOffer()
-	} else {
-		c.SendQTCRequest()
-	}
+func (c *Controller) Enter(s string) {
+	// TODO: implement
+}
+
+func (c *Controller) GotoNextField() {
+	// TODO: implement
+}
+
+func (c *Controller) SetActiveField(field core.QTCField) {
+	// TODO: make sure the active phase matches the field's phase
+
+	// set the active field
+	c.activeField = field
+	// update the view
+	c.view.SetActiveField(field)
+}
+
+// func CompleteQTCSeries() stays below for now
+// func AbortQTCSeries() stays below for now
+
+// *****************************************************
+// OLD WORKFLOW METHODS
+// *****************************************************
+
+func (c *Controller) RequestRepeat() {
+	c.keyer.SendText(RequestRepeatText)
 }
 
 func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
@@ -224,8 +270,8 @@ func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
 		case core.QTCExchangeData:
 			c.SetActiveQTC(0)
 		}
-	} else {
-
+	} else if c.currentMode == core.ReceiveQTC {
+		log.Printf("set active phase to %v", c.activePhase)
 	}
 }
 
@@ -241,7 +287,31 @@ func (c *Controller) SetActiveQTC(index int) {
 	c.currentQTC = index
 	c.view.SetActiveQTC(c.currentQTC)
 
-	c.SendQTC()
+	c.SendCurrentQTC()
+}
+
+func (c *Controller) SendCurrentQTC() {
+	if !c.currentSeries.IsValidQTCIndex(c.currentQTC) {
+		return
+	}
+	currentQTC := c.currentSeries.QTCs[c.currentQTC]
+
+	// shorten time if the last QTC qso was in the same hour
+	// TODO: make this optional?
+	shortenTime := false
+	if c.currentQTC > 0 {
+		lastQTC := c.currentSeries.QTCs[c.currentQTC-1]
+		shortenTime = lastQTC.QTCTime.Hour == currentQTC.QTCTime.Hour
+	}
+
+	c.SendQTC(currentQTC, shortenTime)
+
+	// add transmission data and mark the QTC as transmitted
+	currentQTC.Timestamp = c.clock.Now()
+	currentQTC.Frequency = c.vfoFrequency
+	currentQTC.Band = c.vfoBand
+	currentQTC.Mode = c.vfoMode
+	c.currentSeries.QTCs[c.currentQTC] = currentQTC
 }
 
 // Workflow for providing QTCs
@@ -306,46 +376,6 @@ func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
 	theirCall = c.logbook.LastCallsign()
 
 	return theirCall, (theirCall.BaseCall != "")
-}
-
-// SendQTCOffer sends the offer for a QTC exchange.
-func (c *Controller) SendQTCOffer() {
-	c.keyer.SendText(OfferQTCText)
-}
-
-// SendHeader sends the header of the current QTC series.
-func (c *Controller) SendHeader() {
-	c.keyer.SendText(SendHeaderTemplate, c.currentSeries.Header)
-}
-
-// SendQTC sends the current QTC.
-func (c *Controller) SendQTC() {
-	if !c.currentSeries.IsValidQTCIndex(c.currentQTC) {
-		return
-	}
-
-	qtc := c.currentSeries.QTCs[c.currentQTC]
-	time := qtc.QTCTime.String()
-	call := qtc.QTCCallsign.String()
-	exchange := c.keyer.Cut(qtc.QTCNumber.String())
-
-	// shorten time if the last QTC qso was in the same hour
-	// TODO: make this optional?
-	if c.currentQTC > 0 {
-		lastQTC := c.currentSeries.QTCs[c.currentQTC-1]
-		if lastQTC.QTCTime.Hour == qtc.QTCTime.Hour {
-			time = qtc.QTCTime.ShortString()
-		}
-	}
-
-	c.keyer.SendText("%s %s %s", time, call, exchange)
-
-	// add transmission data and mark the QTC as transmitted
-	qtc.Timestamp = c.clock.Now()
-	qtc.Frequency = c.vfoFrequency
-	qtc.Band = c.vfoBand
-	qtc.Mode = c.vfoMode
-	c.currentSeries.QTCs[c.currentQTC] = qtc
 }
 
 // CompleteQTCSeries completes the current QTC series.
@@ -415,9 +445,43 @@ func (c *Controller) RequestQTC() {
 	c.view.Show(c.currentMode, c.currentSeries)
 }
 
+// *****************************************************
+// SENDING METHODS - NO WORKFLOW BELOW HERE
+// *****************************************************
+
+// SendQTCOffer sends the offer for a QTC exchange.
+func (c *Controller) SendQTCOffer() {
+	c.keyer.SendText(OfferQTCText)
+}
+
 // SendQTCRequest sends the request for a QTC exchange.
 func (c *Controller) SendQTCRequest() {
 	c.keyer.SendText(RequestQTCText)
+}
+
+func (c *Controller) SendQRV() {
+	c.keyer.SendText(QRVText)
+}
+
+func (c *Controller) SendConfirm() {
+	c.keyer.SendText(ConfirmText)
+}
+
+// SendHeader sends the header of the current QTC series.
+func (c *Controller) SendHeader() {
+	c.keyer.SendText(SendHeaderTemplate, c.currentSeries.Header)
+}
+
+// SendQTC sends the given QTC.
+func (c *Controller) SendQTC(qtc core.QTC, shortenTime bool) {
+	time := qtc.QTCTime.String()
+	if shortenTime {
+		time = qtc.QTCTime.ShortString()
+	}
+	call := qtc.QTCCallsign.String()
+	exchange := c.keyer.Cut(qtc.QTCNumber.String())
+
+	c.keyer.SendText("%s %s %s", time, call, exchange)
 }
 
 // nullLogbook
@@ -441,4 +505,5 @@ func (*nullView) Show(core.QTCMode, core.QTCSeries)    {}
 func (*nullView) UpdateQTC(int, core.QTC)              {}
 func (*nullView) Close()                               {}
 func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}
+func (*nullView) SetActiveField(core.QTCField)         {}
 func (*nullView) SetActiveQTC(int)                     {}

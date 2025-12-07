@@ -16,6 +16,7 @@ type qtcDialog struct {
 
 	// data fields
 	activePhase core.QTCWorkflowPhase
+	activeField core.QTCField
 	activeQTC   int
 }
 
@@ -114,6 +115,18 @@ func (d *qtcDialog) focusActivePhase() {
 		d.view.focusNone()
 		d.logButton.GrabFocus()
 	}
+}
+
+func (d *qtcDialog) SetActiveField(field core.QTCField) {
+	d.activeField = field
+	d.focusActiveField()
+}
+
+func (d *qtcDialog) focusActiveField() {
+	if d.view == nil {
+		return
+	}
+	// TODO: implement
 }
 
 func (d *qtcDialog) SetActiveQTC(index int) {

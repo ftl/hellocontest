@@ -366,6 +366,17 @@ const (
 	QTCFinish
 )
 
+// QTCField represents the currently active entry field in the QTC exchange workflow
+type QTCField string
+
+const (
+	QTCNoneField      QTCField = ""
+	QTCHeaderField    QTCField = "header"
+	QTCTimestampField QTCField = "timestamp"
+	QTCCallsignField  QTCField = "callsign"
+	QTCExchangeField  QTCField = "exchange"
+)
+
 // QSODataState represents the current state of the entered QSO data
 type QSODataState int
 

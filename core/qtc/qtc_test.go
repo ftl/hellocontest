@@ -44,19 +44,19 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 	assert.False(t, view.series.QTCs[0].Confirmed)
 	assert.False(t, view.series.QTCs[1].Confirmed)
 
-	c.Confirm()
+	c.ConfirmStart()
 	assert.Equal(t, "qtc 4/2", keyer.lastTransmission)
 	assert.Equal(t, core.QTCExchangeHeader, c.activePhase)
 	assert.True(t, view.visible)
 
-	c.Confirm()
+	c.ConfirmHeader()
 	assert.Equal(t, "0123 DK1AB 001", keyer.lastTransmission)
 	assert.Equal(t, core.QTCExchangeData, c.activePhase)
 	assert.True(t, view.visible)
 	assert.False(t, view.series.QTCs[0].Confirmed)
 	assert.False(t, view.series.QTCs[1].Confirmed)
 
-	c.Confirm()
+	c.ConfirmData()
 	assert.Equal(t, "24 DK2AB 002", keyer.lastTransmission)
 	assert.Equal(t, core.QTCExchangeData, c.activePhase)
 	assert.True(t, view.visible)
@@ -66,7 +66,7 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 	assert.Equal(t, core.Band40m, c.currentSeries.QTCs[0].Band)
 	assert.Equal(t, core.ModeCW, c.currentSeries.QTCs[0].Mode)
 
-	c.Confirm()
+	c.ConfirmData()
 	assert.Equal(t, "24 DK2AB 002", keyer.lastTransmission)
 	assert.Equal(t, core.QTCFinish, c.activePhase)
 	assert.True(t, view.visible)
@@ -79,4 +79,82 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 	c.CompleteQTCSeries()
 	assert.Equal(t, "tu", keyer.lastTransmission)
 	assert.False(t, view.visible)
+}
+
+func TestRequestQTC_HappyPath(t *testing.T) {
+	view := new(fakeView)
+	keyer := new(fakeKeyer)
+	theirCallsign := callsign.MustParse("DL1ABC")
+	c := newController().
+		WithKeyer(keyer).
+		WithLastCallsign(theirCallsign).
+		Build()
+	c.SetView(view)
+	c.VFOFrequencyChanged(7020000)
+	c.VFOBandChanged(core.Band40m)
+	c.VFOModeChanged(core.ModeCW)
+
+	c.RequestQTC()
+	assert.Equal(t, core.QTCStart, c.activePhase)
+	assert.True(t, view.visible)
+	assert.Equal(t, core.ReceiveQTC, view.mode)
+	assert.Equal(t, theirCallsign, view.series.TheirCallsign)
+	assert.Equal(t, "", keyer.lastTransmission)
+
+	c.StartAction()
+	assert.Equal(t, core.QTCStart, c.activePhase)
+	assert.Equal(t, "qtc?", keyer.lastTransmission)
+
+	c.ConfirmStart() // qrv
+	assert.Equal(t, "qrv", keyer.lastTransmission)
+	assert.Equal(t, core.QTCExchangeHeader, c.activePhase)
+	// assert.Equal(t, ) // currentField = Header
+
+	c.Enter("4/2") // header
+	// header = 4/2
+
+	c.ConfirmHeader() // r
+	// assert.Equal(t, "r", keyer.lastTransmission)
+	// assert.Equal(t, 0, c.currentQTC)
+	// currentField = QTCTimestamp
+
+	c.Enter("0123")
+	// qtcTimestamp = 0123
+
+	c.GotoNextField()
+	// currentField = QTCCallsign
+
+	c.Enter("DK1AB")
+	// qtcCallsign = "DK1AB"
+
+	c.GotoNextField()
+	// currentField = QTCExchange
+
+	c.Enter("1")
+	// qtcExchange = 1
+
+	c.ConfirmData() // r
+	// assert.Equal(t, "r", keyer.lastTransmission)
+	// currentField = QTCTimestamp
+
+	c.Enter("24")
+	// qtcTimestamp = 0124
+
+	c.GotoNextField()
+	// currentField = QTCCallsign
+
+	c.Enter("DK2AB")
+	// qtcCallsign = DK2AB
+
+	c.GotoNextField()
+	// currentField = QTCExchange
+
+	c.Enter("2")
+	// qtcExchange = 2
+
+	c.ConfirmData() // r
+	// assert.Equal(t, "r", keyer.lastTransmission)
+	// currentField = QTCTimestamp
+
+	c.CompleteQTCSeries()
 }

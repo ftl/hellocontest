@@ -3,6 +3,7 @@ package qtc
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
 
@@ -75,6 +76,7 @@ type Controller struct {
 	currentMode   core.QTCMode
 	currentSeries core.QTCSeries
 	currentQTC    int
+	currentInput  map[core.QTCField]string
 
 	vfoFrequency core.Frequency
 	vfoBand      core.Band
@@ -90,6 +92,7 @@ func NewController(clock core.Clock, infoDialogs InfoDialogs, qtcList QTCList, e
 		keyer:           keyer,
 		infoDialogs:     infoDialogs,
 		view:            new(nullView),
+		currentInput:    make(map[core.QTCField]string),
 	}
 }
 
@@ -183,21 +186,41 @@ func (c *Controller) ConfirmStart() {
 	if c.activePhase != core.QTCStart {
 		return
 	}
+	c.SetActivePhase(core.QTCExchangeHeader)
 	// TODO: use polymorphism for the two modes
-	// if c.currentMode == core.ProvideQTC {
-	// }
 	if c.currentMode == core.ReceiveQTC {
+		c.SetActiveField(core.QTCHeaderField)
 		c.SendQRV()
 	}
-	c.SetActivePhase(core.QTCExchangeHeader)
-	c.SetActiveField(core.QTCHeaderField)
 }
 
 func (c *Controller) ConfirmHeader() {
 	if c.activePhase != core.QTCExchangeHeader {
 		return
 	}
-	c.SetActivePhase(core.QTCExchangeData)
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		c.SetActivePhase(core.QTCExchangeData)
+	} else {
+		// parse and validate the header
+		headerStr, ok := c.currentInput[core.QTCHeaderField]
+		if !ok {
+			// TODO: handle errors properly
+			return
+		}
+		header, err := core.ParseQTCHeader(headerStr)
+		if err != nil {
+			// TODO: handle errors properly
+			return
+		}
+		c.currentSeries.Header = header
+
+		// progress in the workflow
+		c.currentQTC = 0
+		c.SetActivePhase(core.QTCExchangeData)
+		c.SetActiveField(core.QTCTimestampField)
+		c.SendConfirm()
+	}
 }
 
 func (c *Controller) ConfirmData() {
@@ -219,16 +242,118 @@ func (c *Controller) ConfirmData() {
 			c.SetActivePhase(core.QTCFinish)
 		}
 	} else {
-		// TODO: log the entered QTC data
+		// parse the entered QTC Data
+		qtc := core.QTC{
+			Kind:      core.ReceivedQTC,
+			Timestamp: c.clock.Now(),
+		}
+
+		qtcTime, err := c.currentQTCTimestamp()
+		if err != nil {
+			// TODO: handle errors properly
+			c.SetActiveField(core.QTCTimestampField)
+			return
+		}
+		qtc.QTCTime = qtcTime
+
+		qtcCallsign, err := c.currentQTCCallsign()
+		if err != nil {
+			// TODO: handle errors properly
+			c.SetActiveField(core.QTCCallsignField)
+			return
+		}
+		qtc.QTCCallsign = qtcCallsign
+
+		qtcNumber, err := c.currentQTCNumber()
+		if err != nil {
+			// TODO: handle errors properly
+			c.SetActiveField(core.QTCExchangeField)
+			return
+		}
+		qtc.QTCNumber = qtcNumber
+
+		// log the entered QTC data in the current series
+		c.currentSeries.SetData(c.currentQTC, qtc)
+
+		// clear the current input
+		delete(c.currentInput, core.QTCTimestampField)
+		delete(c.currentInput, core.QTCCallsignField)
+		delete(c.currentInput, core.QTCExchangeField)
+		// TODO: clear the input fields also in the view
+
+		// progress in the workflow
+		c.currentQTC += 1
+		c.SetActiveField(core.QTCTimestampField)
+		c.SendConfirm()
 	}
 }
 
+func (c *Controller) currentQTCTimestamp() (core.QTCTime, error) {
+	qtcTimeStr, ok := c.currentInput[core.QTCTimestampField]
+	if !ok {
+		return core.ZeroQTCTime, fmt.Errorf("the QTC timestamp field is empty")
+	}
+	return core.ParseQTCTime(qtcTimeStr, c.currentReferenceTime())
+}
+
+func (c *Controller) currentReferenceTime() core.QTCTime {
+	previousQTC := c.currentQTC - 1
+	if previousQTC >= len(c.currentSeries.QTCs) {
+		previousQTC = len(c.currentSeries.QTCs) - 1
+	}
+	if previousQTC < 0 {
+		return core.ZeroQTCTime
+	}
+	return c.currentSeries.QTCs[previousQTC].QTCTime
+}
+
+func (c *Controller) currentQTCCallsign() (callsign.Callsign, error) {
+	qtcCallsignStr, ok := c.currentInput[core.QTCCallsignField]
+	if !ok {
+		return callsign.Callsign{}, fmt.Errorf("the QTC callsign field is empty")
+	}
+	qtcCallsign, err := callsign.Parse(qtcCallsignStr)
+	if err != nil {
+		return callsign.Callsign{}, err
+	}
+	return qtcCallsign, nil
+}
+
+func (c *Controller) currentQTCNumber() (core.QSONumber, error) {
+	qtcExchangeStr, ok := c.currentInput[core.QTCExchangeField]
+	if !ok {
+		return 0, fmt.Errorf("the QTC exchange field is empty")
+	}
+	qtcExchange, err := strconv.Atoi(qtcExchangeStr)
+	if err != nil {
+		return 0, err
+	}
+	return core.QSONumber(qtcExchange), nil
+}
+
 func (c *Controller) Enter(s string) {
-	// TODO: implement
+	c.currentInput[c.activeField] = s
 }
 
 func (c *Controller) GotoNextField() {
-	// TODO: implement
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		// TODO: implement
+	} else {
+		nextField := c.activeField
+		switch c.activeField {
+		case core.QTCHeaderField:
+		// ignore, use ConfirmHeader to progress
+		case core.QTCTimestampField:
+			nextField = core.QTCCallsignField
+		case core.QTCCallsignField:
+			nextField = core.QTCExchangeField
+		case core.QTCExchangeField:
+			nextField = core.QTCTimestampField
+		}
+		c.activeField = nextField
+		c.view.SetActiveField(c.activeField)
+	}
 }
 
 func (c *Controller) SetActiveField(field core.QTCField) {
@@ -270,7 +395,7 @@ func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
 		case core.QTCExchangeData:
 			c.SetActiveQTC(0)
 		}
-	} else if c.currentMode == core.ReceiveQTC {
+	} else {
 		log.Printf("set active phase to %v", c.activePhase)
 	}
 }
@@ -407,7 +532,18 @@ func (c *Controller) CompleteQTCSeries() {
 
 		c.view.Close()
 	} else {
-		// TODO: implement c.currentMode == core.ReceiveQTC
+		// fill common data from the series and log the QTC
+		for i, qtc := range c.currentSeries.QTCs {
+			qtc.TheirCallsign = c.currentSeries.TheirCallsign
+			qtc.Header = c.currentSeries.Header
+			qtc.Frequency = c.vfoFrequency
+			qtc.Band = c.vfoBand
+			qtc.Mode = c.vfoMode
+			c.currentSeries.QTCs[i] = qtc
+			c.logbook.LogQTC(qtc)
+		}
+
+		c.view.Close()
 	}
 }
 

@@ -328,7 +328,7 @@ func NewReceivingQTCSeries(theirCallsign Callsign) QTCSeries {
 	return result
 }
 
-func (s QTCSeries) theirCallsign() Callsign {
+func (s *QTCSeries) theirCallsign() Callsign {
 	if len(s.QTCs) == 0 {
 		return NoCallsign
 	}
@@ -343,16 +343,24 @@ func (s QTCSeries) theirCallsign() Callsign {
 	return theirCallsign
 }
 
-func (s QTCSeries) IsPrepared() bool {
+func (s *QTCSeries) IsPrepared() bool {
 	return s.TheirCallsign != NoCallsign && len(s.QTCs) > 0
 }
 
-func (s QTCSeries) IsValidQTCIndex(index int) bool {
+func (s *QTCSeries) IsValidQTCIndex(index int) bool {
 	return index >= 0 && index < s.Header.QTCCount
 }
 
-func (s QTCSeries) IsLastQTCIndex(index int) bool {
+func (s *QTCSeries) IsLastQTCIndex(index int) bool {
 	return index >= 0 && index == s.Header.QTCCount-1
+}
+
+func (s *QTCSeries) SetData(index int, qtc QTC) {
+	if index > 0 && index < len(s.QTCs) {
+		s.QTCs[index] = qtc
+	} else {
+		s.QTCs = append(s.QTCs, qtc)
+	}
 }
 
 // QTCWorkflowPhase represents the phases in the QTC exchange workflow

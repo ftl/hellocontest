@@ -48,17 +48,21 @@ func (*fakeKeyer) Cut(s string) string { return s }
 type fakeLogbook struct {
 	nextSeriesNumber int
 	lastCallsign     core.Callsign
+	loggedQTCs       []core.QTC
 }
 
 func (l *fakeLogbook) NextSeriesNumber() int       { return l.nextSeriesNumber }
 func (l *fakeLogbook) LastCallsign() core.Callsign { return l.lastCallsign }
-func (*fakeLogbook) LogQTC(core.QTC)               {}
+func (l *fakeLogbook) LogQTC(qtc core.QTC) {
+	l.loggedQTCs = append(l.loggedQTCs, qtc)
+}
 
 type fakeView struct {
 	visible        bool
 	mode           core.QTCMode
 	series         core.QTCSeries
 	phase          core.QTCWorkflowPhase
+	field          core.QTCField
 	activeQTCIndex int
 }
 
@@ -78,6 +82,9 @@ func (v *fakeView) Close() {
 }
 func (v *fakeView) SetActivePhase(phase core.QTCWorkflowPhase) {
 	v.phase = phase
+}
+func (v *fakeView) SetActiveField(field core.QTCField) {
+	v.field = field
 }
 func (v *fakeView) SetActiveQTC(index int) {
 	v.activeQTCIndex = index

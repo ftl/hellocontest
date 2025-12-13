@@ -2,9 +2,11 @@ package qtc
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/clock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,12 +16,15 @@ func TestSetup(t *testing.T) {
 }
 
 func TestOfferQTC_HappyPath(t *testing.T) {
+	now := time.Now()
 	view := new(fakeView)
 	keyer := new(fakeKeyer)
 	theirCallsign := callsign.MustParse("DL1ABC")
+	logbook := &fakeLogbook{nextSeriesNumber: 4, lastCallsign: theirCallsign}
 	c := newController().
+		WithClock(clock.Static(now)).
 		WithKeyer(keyer).
-		WithLogbook(&fakeLogbook{nextSeriesNumber: 4, lastCallsign: theirCallsign}).
+		WithLogbook(logbook).
 		WithQTCs(qtcsFor(core.SentQTC, theirCallsign).
 			Add("0123", "DK1AB", 1).
 			Add("24", "DK2AB", 2).
@@ -79,15 +84,45 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 	c.CompleteQTCSeries()
 	assert.Equal(t, "tu", keyer.lastTransmission)
 	assert.False(t, view.visible)
+	assert.Equal(t, 2, len(logbook.loggedQTCs))
+	assert.Equal(t, core.QTC{
+		Kind:          core.SentQTC,
+		TheirCallsign: theirCallsign,
+		Header:        core.QTCHeader{SeriesNumber: 4, QTCCount: 2},
+		Timestamp:     now,
+		Confirmed:     true,
+		Frequency:     core.Frequency(7020000),
+		Band:          core.Band40m,
+		Mode:          core.ModeCW,
+		QTCTime:       core.QTCTime{Hour: 1, Minute: 23},
+		QTCCallsign:   callsign.MustParse("DK1AB"),
+		QTCNumber:     core.QSONumber(1),
+	}, logbook.loggedQTCs[0])
+	assert.Equal(t, core.QTC{
+		Kind:          core.SentQTC,
+		TheirCallsign: theirCallsign,
+		Header:        core.QTCHeader{SeriesNumber: 4, QTCCount: 2},
+		Timestamp:     now,
+		Confirmed:     true,
+		Frequency:     core.Frequency(7020000),
+		Band:          core.Band40m,
+		Mode:          core.ModeCW,
+		QTCTime:       core.QTCTime{Hour: 1, Minute: 24},
+		QTCCallsign:   callsign.MustParse("DK2AB"),
+		QTCNumber:     core.QSONumber(2),
+	}, logbook.loggedQTCs[1])
 }
 
 func TestRequestQTC_HappyPath(t *testing.T) {
+	now := time.Now()
 	view := new(fakeView)
 	keyer := new(fakeKeyer)
 	theirCallsign := callsign.MustParse("DL1ABC")
+	logbook := &fakeLogbook{lastCallsign: theirCallsign}
 	c := newController().
+		WithClock(clock.Static(now)).
 		WithKeyer(keyer).
-		WithLastCallsign(theirCallsign).
+		WithLogbook(logbook).
 		Build()
 	c.SetView(view)
 	c.VFOFrequencyChanged(7020000)
@@ -108,53 +143,115 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 	c.ConfirmStart() // qrv
 	assert.Equal(t, "qrv", keyer.lastTransmission)
 	assert.Equal(t, core.QTCExchangeHeader, c.activePhase)
-	// assert.Equal(t, ) // currentField = Header
+	assert.Equal(t, core.QTCHeaderField, c.activeField)
+	assert.Equal(t, core.QTCHeaderField, view.field)
 
 	c.Enter("4/2") // header
-	// header = 4/2
+	assert.Equal(t, "4/2", c.currentInput[core.QTCHeaderField])
 
 	c.ConfirmHeader() // r
-	// assert.Equal(t, "r", keyer.lastTransmission)
-	// assert.Equal(t, 0, c.currentQTC)
-	// currentField = QTCTimestamp
+	assert.Equal(t, "r", keyer.lastTransmission)
+	assert.Equal(t, core.QTCExchangeData, c.activePhase)
+	assert.Equal(t, core.QTCTimestampField, c.activeField)
+	assert.Equal(t, core.QTCTimestampField, view.field)
+	assert.Equal(t, 0, c.currentQTC)
+	assert.Equal(t, core.QTCHeader{SeriesNumber: 4, QTCCount: 2}, c.currentSeries.Header)
 
 	c.Enter("0123")
-	// qtcTimestamp = 0123
+	assert.Equal(t, "0123", c.currentInput[core.QTCTimestampField])
 
 	c.GotoNextField()
-	// currentField = QTCCallsign
+	assert.Equal(t, core.QTCCallsignField, c.activeField)
+	assert.Equal(t, core.QTCCallsignField, view.field)
 
 	c.Enter("DK1AB")
-	// qtcCallsign = "DK1AB"
+	assert.Equal(t, "DK1AB", c.currentInput[core.QTCCallsignField])
 
 	c.GotoNextField()
-	// currentField = QTCExchange
+	assert.Equal(t, core.QTCExchangeField, c.activeField)
+	assert.Equal(t, core.QTCExchangeField, view.field)
 
 	c.Enter("1")
-	// qtcExchange = 1
+	assert.Equal(t, "1", c.currentInput[core.QTCExchangeField])
 
 	c.ConfirmData() // r
-	// assert.Equal(t, "r", keyer.lastTransmission)
-	// currentField = QTCTimestamp
+	assert.Equal(t, "r", keyer.lastTransmission)
+	assert.Equal(t, core.QTCTimestampField, c.activeField)
+	assert.Equal(t, core.QTCTimestampField, view.field)
+	assert.Equal(t, 1, c.currentQTC)
+	assert.Equal(t, core.QTC{
+		Kind:        core.ReceivedQTC,
+		Timestamp:   now,
+		QTCTime:     core.QTCTime{Hour: 1, Minute: 23},
+		QTCCallsign: callsign.MustParse("DK1AB"),
+		QTCNumber:   core.QSONumber(1),
+	}, c.currentSeries.QTCs[0])
+	assert.Equal(t, "", c.currentInput[core.QTCTimestampField])
+	assert.Equal(t, "", c.currentInput[core.QTCCallsignField])
+	assert.Equal(t, "", c.currentInput[core.QTCExchangeField])
 
 	c.Enter("24")
-	// qtcTimestamp = 0124
+	assert.Equal(t, "24", c.currentInput[core.QTCTimestampField])
 
 	c.GotoNextField()
-	// currentField = QTCCallsign
+	assert.Equal(t, core.QTCCallsignField, c.activeField)
+	assert.Equal(t, core.QTCCallsignField, view.field)
 
 	c.Enter("DK2AB")
-	// qtcCallsign = DK2AB
+	assert.Equal(t, "DK2AB", c.currentInput[core.QTCCallsignField])
 
 	c.GotoNextField()
-	// currentField = QTCExchange
+	assert.Equal(t, core.QTCExchangeField, c.activeField)
+	assert.Equal(t, core.QTCExchangeField, view.field)
 
 	c.Enter("2")
-	// qtcExchange = 2
+	assert.Equal(t, "2", c.currentInput[core.QTCExchangeField])
 
 	c.ConfirmData() // r
-	// assert.Equal(t, "r", keyer.lastTransmission)
-	// currentField = QTCTimestamp
+	assert.Equal(t, "r", keyer.lastTransmission)
+	assert.Equal(t, core.QTCTimestampField, c.activeField)
+	assert.Equal(t, core.QTCTimestampField, view.field)
+	assert.Equal(t, 2, c.currentQTC)
+	assert.Equal(t, core.QTC{
+		Kind:        core.ReceivedQTC,
+		Timestamp:   now,
+		QTCTime:     core.QTCTime{Hour: 1, Minute: 24},
+		QTCCallsign: callsign.MustParse("DK2AB"),
+		QTCNumber:   core.QSONumber(2),
+	}, c.currentSeries.QTCs[1])
+	assert.Equal(t, "", c.currentInput[core.QTCTimestampField])
+	assert.Equal(t, "", c.currentInput[core.QTCCallsignField])
+	assert.Equal(t, "", c.currentInput[core.QTCExchangeField])
 
+	keyer.lastTransmission = ""
 	c.CompleteQTCSeries()
+	assert.Equal(t, "", keyer.lastTransmission)
+	assert.False(t, view.visible)
+	assert.Equal(t, 2, len(logbook.loggedQTCs))
+	assert.Equal(t, core.QTC{
+		Kind:          core.ReceivedQTC,
+		TheirCallsign: theirCallsign,
+		Header:        core.QTCHeader{SeriesNumber: 4, QTCCount: 2},
+		Timestamp:     now,
+		// Confirmed:     true, // TODO
+		Frequency:   core.Frequency(7020000),
+		Band:        core.Band40m,
+		Mode:        core.ModeCW,
+		QTCTime:     core.QTCTime{Hour: 1, Minute: 23},
+		QTCCallsign: callsign.MustParse("DK1AB"),
+		QTCNumber:   core.QSONumber(1),
+	}, logbook.loggedQTCs[0])
+	assert.Equal(t, core.QTC{
+		Kind:          core.ReceivedQTC,
+		TheirCallsign: theirCallsign,
+		Header:        core.QTCHeader{SeriesNumber: 4, QTCCount: 2},
+		Timestamp:     now,
+		// Confirmed:     true, // TODO
+		Frequency:   core.Frequency(7020000),
+		Band:        core.Band40m,
+		Mode:        core.ModeCW,
+		QTCTime:     core.QTCTime{Hour: 1, Minute: 24},
+		QTCCallsign: callsign.MustParse("DK2AB"),
+		QTCNumber:   core.QSONumber(2),
+	}, logbook.loggedQTCs[1])
 }

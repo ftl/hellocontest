@@ -71,7 +71,6 @@ type qtcWorkflow interface {
 	ConfirmData()
 	GotoNextField()
 	CompleteQTCSeries()
-	SetActivePhase(core.QTCWorkflowPhase)
 }
 
 type Controller struct {
@@ -197,6 +196,7 @@ func (c *Controller) OfferQTC() {
 
 	// 5. enter the first phase: send "qtc"
 	c.setActivePhase(core.QTCStart)
+	c.sendQTCOffer()
 
 	// 6. show and run the QTC dialog
 	c.view.Show(c.currentMode, c.currentSeries)
@@ -242,7 +242,7 @@ func (c *Controller) RequestQTC() {
 	c.currentSeries = qtcSeries
 	c.currentQTC = core.NoQTCIndex
 
-	// enter the first phase: send "qtc?"
+	// enter the first phase
 	c.setActivePhase(core.QTCStart)
 
 	// show and run the QTC dialog
@@ -403,24 +403,6 @@ func (c *Controller) setActivePhase(phase core.QTCWorkflowPhase) {
 
 	// enter the phase
 	c.activePhase = phase
-
-	// workflow
-	c.workflow.SetActivePhase(phase)
-}
-
-func (c *Controller) setActiveQTC(index int) {
-	if !c.currentSeries.IsValidQTCIndex(index) {
-		return
-	}
-	if c.activePhase != core.QTCExchangeData {
-		c.activePhase = core.QTCExchangeData
-		c.view.SetActivePhase(core.QTCExchangeData)
-	}
-
-	c.currentQTC = index
-	c.view.SetActiveQTC(c.currentQTC)
-
-	c.sendCurrentQTC()
 }
 
 func (c *Controller) sendCurrentQTC() {

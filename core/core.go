@@ -347,6 +347,10 @@ func (s *QTCSeries) IsPrepared() bool {
 	return s.TheirCallsign != NoCallsign && len(s.QTCs) > 0
 }
 
+func (s *QTCSeries) IsComplete() bool {
+	return s.IsPrepared() && s.Header.QTCCount > 0 && len(s.QTCs) == s.Header.QTCCount
+}
+
 func (s *QTCSeries) IsValidQTCIndex(index int) bool {
 	return index >= 0 && index < s.Header.QTCCount
 }

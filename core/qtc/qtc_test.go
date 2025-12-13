@@ -176,6 +176,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 
 	c.ConfirmData() // r
 	assert.Equal(t, "r", keyer.lastTransmission)
+	assert.Equal(t, core.QTCExchangeData, c.activePhase)
 	assert.Equal(t, core.QTCTimestampField, c.activeField)
 	assert.Equal(t, core.QTCTimestampField, view.field)
 	assert.Equal(t, 1, c.currentQTC)
@@ -209,8 +210,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 
 	c.ConfirmData() // r
 	assert.Equal(t, "r", keyer.lastTransmission)
-	assert.Equal(t, core.QTCTimestampField, c.activeField)
-	assert.Equal(t, core.QTCTimestampField, view.field)
+	assert.Equal(t, core.QTCFinish, c.activePhase)
 	assert.Equal(t, 2, c.currentQTC)
 	assert.Equal(t, core.QTC{
 		Kind:        core.ReceivedQTC,

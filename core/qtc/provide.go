@@ -13,7 +13,7 @@ func (c *provide) StartAction() {
 }
 
 func (c *provide) ConfirmStart() {
-	// no-op
+	c.sendHeader()
 }
 
 func (c *provide) HeaderAction() {
@@ -22,6 +22,7 @@ func (c *provide) HeaderAction() {
 
 func (c *provide) ConfirmHeader() {
 	c.setActivePhase(core.QTCExchangeData)
+	c.setActiveQTC(0)
 }
 
 func (c *provide) DataAction() {
@@ -40,6 +41,18 @@ func (c *provide) ConfirmData() {
 	} else {
 		c.setActivePhase(core.QTCFinish)
 	}
+}
+
+func (c *provide) setActiveQTC(index int) {
+	if !c.currentSeries.IsValidQTCIndex(index) {
+		return
+	}
+	c.setActivePhase(core.QTCExchangeData)
+
+	c.currentQTC = index
+	c.view.SetActiveQTC(c.currentQTC)
+
+	c.sendCurrentQTC()
 }
 
 func (c *provide) GotoNextField() {
@@ -65,15 +78,4 @@ func (c *provide) CompleteQTCSeries() {
 	c.keyer.SendText(CompleteQTCSeriesText)
 
 	c.view.Close()
-}
-
-func (c *provide) SetActivePhase(core.QTCWorkflowPhase) {
-	switch c.activePhase {
-	case core.QTCStart:
-		c.sendQTCOffer()
-	case core.QTCExchangeHeader:
-		c.sendHeader()
-	case core.QTCExchangeData:
-		c.setActiveQTC(0)
-	}
 }

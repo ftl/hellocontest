@@ -86,7 +86,11 @@ func (c *receive) ConfirmData() {
 
 	// progress in the workflow
 	c.currentQTC += 1
-	c.SetActiveField(core.QTCTimestampField)
+	if c.currentSeries.IsComplete() {
+		c.setActivePhase(core.QTCFinish)
+	} else {
+		c.SetActiveField(core.QTCTimestampField)
+	}
 	c.sendConfirm()
 }
 
@@ -119,8 +123,4 @@ func (c *receive) CompleteQTCSeries() {
 	}
 
 	c.view.Close()
-}
-
-func (c *receive) SetActivePhase(core.QTCWorkflowPhase) {
-	// no-op???
 }

@@ -147,12 +147,95 @@ func (c *Controller) VFOModeChanged(mode core.Mode) {
 	c.vfoMode = mode
 }
 
-// *****************************************************
-// NEW WORKFLOW METHODS
-// *****************************************************
+// OfferQTC initiates the QTC dialog with mode core.ProvideQTC.
+func (c *Controller) OfferQTC() {
+	// 1. find out their callsign
+	theirCall, ok := c.findOutTheirCallsign()
+	if !ok {
+		return
+	}
 
-// func OfferQTC stays in the ProvideQTC section for now
-// func RequestQTC stays in the ReceiveQTC section for now
+	// 2. get available QTCs
+	qtcs := c.qtcList.PrepareFor(theirCall, core.MaxQTCsPerCall)
+	if len(qtcs) == 0 {
+		c.showErrorDialog("No QTCs available for %s", theirCall)
+		return
+	}
+
+	// 3. enter the number of QTCs to send and reduce the qtcs slice accordingly
+	qtcCount, ok := c.view.QuestionQTCCount(len(qtcs))
+	if !ok {
+		return
+	}
+	qtcCount = min(qtcCount, len(qtcs))
+	qtcs = qtcs[:qtcCount]
+
+	// 4. create new QTCSeries
+	qtcSeries, err := core.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs)
+	if err != nil {
+		c.showErrorDialog("%v", err)
+		return
+	}
+	c.currentMode = core.ProvideQTC
+	c.currentSeries = qtcSeries
+	c.currentQTC = core.NoQTCIndex
+
+	// 5. enter the first phase: send "qtc"
+	c.setActivePhase(core.QTCStart)
+
+	// 6. show and run the QTC dialog
+	c.view.Show(c.currentMode, c.currentSeries)
+}
+
+func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
+	theirCall, currentQSOState := c.entryController.CurrentQSOState()
+	switch currentQSOState {
+	case core.QSODataValid: // a) there is currently a valid QSO in the entry fields that is not yet logged -> log this QSO and take their callsign
+		c.entryController.Log()
+	case core.QSODataInvalid: // b) there is currently a valid callsign and some QSO data (but not valid) in the entry fields -> show info about invalid QSO data, ask if the callsign should be used -> use the callsign
+		if !c.questionInvalidQSOData(theirCall) {
+			return callsign.Callsign{}, false
+		}
+	case core.QSODataEmpty: // c) there is currently a valid callsign in the entry field, but no QSO data at all-> use this callsign
+	default:
+		panic(fmt.Errorf("unknown QSODataState: %d", currentQSOState))
+	}
+	if theirCall.BaseCall != "" {
+		return theirCall, true
+	}
+
+	// d) otherwise -> use the last logged callsign
+	theirCall = c.logbook.LastCallsign()
+
+	return theirCall, (theirCall.BaseCall != "")
+}
+
+// OfferQTC initiates the QTC dialog with mode core.ReceiveQTC.
+func (c *Controller) RequestQTC() {
+	// find out their callsign
+	theirCall, ok := c.findOutTheirCallsign()
+	if !ok {
+		return
+	}
+
+	// TODO: find out how many QTCs may be received from theirCall (is this relevant, maybe we should just take what we get)
+
+	// create a new and empty QTCSeries
+	qtcSeries := core.NewReceivingQTCSeries(theirCall)
+	c.currentMode = core.ReceiveQTC
+	c.currentSeries = qtcSeries
+	c.currentQTC = core.NoQTCIndex
+
+	// enter the first phase: send "qtc?"
+	c.setActivePhase(core.QTCStart)
+
+	// show and run the QTC dialog
+	c.view.Show(c.currentMode, c.currentSeries)
+}
+
+// *****************************************************
+// COMMON WORKFLOW METHODS
+// *****************************************************
 
 func (c *Controller) StartAction() {
 	if c.activePhase != core.QTCStart {
@@ -161,9 +244,21 @@ func (c *Controller) StartAction() {
 
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
-		c.SendQTCOffer()
+		c.sendQTCOffer()
 	} else {
-		c.SendQTCRequest()
+		c.sendQTCRequest()
+	}
+}
+
+func (c *Controller) ConfirmStart() {
+	if c.activePhase != core.QTCStart {
+		return
+	}
+	c.setActivePhase(core.QTCExchangeHeader)
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ReceiveQTC {
+		c.SetActiveField(core.QTCHeaderField)
+		c.sendQRV()
 	}
 }
 
@@ -174,34 +269,9 @@ func (c *Controller) HeaderAction() {
 
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
-		c.SendHeader()
+		c.sendHeader()
 	} else {
-		c.RequestRepeat()
-	}
-}
-
-func (c *Controller) DataAction() {
-	if c.activePhase != core.QTCExchangeData {
-		return
-	}
-
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		c.SendCurrentQTC()
-	} else {
-		c.RequestRepeat()
-	}
-}
-
-func (c *Controller) ConfirmStart() {
-	if c.activePhase != core.QTCStart {
-		return
-	}
-	c.SetActivePhase(core.QTCExchangeHeader)
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ReceiveQTC {
-		c.SetActiveField(core.QTCHeaderField)
-		c.SendQRV()
+		c.sendRequestRepeat()
 	}
 }
 
@@ -211,7 +281,7 @@ func (c *Controller) ConfirmHeader() {
 	}
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
-		c.SetActivePhase(core.QTCExchangeData)
+		c.setActivePhase(core.QTCExchangeData)
 	} else {
 		// parse and validate the header
 		header, err := c.currentHeader()
@@ -225,9 +295,22 @@ func (c *Controller) ConfirmHeader() {
 
 		// progress in the workflow
 		c.currentQTC = 0
-		c.SetActivePhase(core.QTCExchangeData)
+		c.setActivePhase(core.QTCExchangeData)
 		c.SetActiveField(core.QTCTimestampField)
-		c.SendConfirm()
+		c.sendConfirm()
+	}
+}
+
+func (c *Controller) DataAction() {
+	if c.activePhase != core.QTCExchangeData {
+		return
+	}
+
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		c.sendCurrentQTC()
+	} else {
+		c.sendRequestRepeat()
 	}
 }
 
@@ -245,9 +328,9 @@ func (c *Controller) ConfirmData() {
 			c.view.UpdateQTC(c.currentQTC, qtc)
 		}
 		if c.currentSeries.IsValidQTCIndex(c.currentQTC + 1) {
-			c.SetActiveQTC(c.currentQTC + 1)
+			c.setActiveQTC(c.currentQTC + 1)
 		} else {
-			c.SetActivePhase(core.QTCFinish)
+			c.setActivePhase(core.QTCFinish)
 		}
 	} else {
 		// parse the entered QTC Data
@@ -288,12 +371,12 @@ func (c *Controller) ConfirmData() {
 		delete(c.currentInput, core.QTCTimestampField)
 		delete(c.currentInput, core.QTCCallsignField)
 		delete(c.currentInput, core.QTCExchangeField)
-		// TODO: clear the input fields also in the view
+		c.view.ClearDataInputs()
 
 		// progress in the workflow
 		c.currentQTC += 1
 		c.SetActiveField(core.QTCTimestampField)
-		c.SendConfirm()
+		c.sendConfirm()
 	}
 }
 
@@ -382,151 +465,13 @@ func (c *Controller) SetActiveField(field core.QTCField) {
 	c.view.SetActiveField(field)
 }
 
-// func CompleteQTCSeries() stays below for now
-// func AbortQTCSeries() stays below for now
-
-// *****************************************************
-// OLD WORKFLOW METHODS
-// *****************************************************
-
-func (c *Controller) RequestRepeat() {
-	c.keyer.SendText(RequestRepeatText)
-}
-
-func (c *Controller) SetActivePhase(phase core.QTCWorkflowPhase) {
-	c.view.SetActivePhase(phase)
-	if c.activePhase == phase {
-		return
-	}
-
-	// enter the phase
-	c.activePhase = phase
-
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		switch c.activePhase {
-		case core.QTCStart:
-			c.SendQTCOffer()
-		case core.QTCExchangeHeader:
-			c.SendHeader()
-		case core.QTCExchangeData:
-			c.SetActiveQTC(0)
-		}
-	} else {
-		log.Printf("set active phase to %v", c.activePhase)
-	}
-}
-
-func (c *Controller) SetActiveQTC(index int) {
-	if !c.currentSeries.IsValidQTCIndex(index) {
-		return
-	}
-	if c.activePhase != core.QTCExchangeData {
-		c.activePhase = core.QTCExchangeData
-		c.view.SetActivePhase(core.QTCExchangeData)
-	}
-
-	c.currentQTC = index
-	c.view.SetActiveQTC(c.currentQTC)
-
-	c.SendCurrentQTC()
-}
-
-func (c *Controller) SendCurrentQTC() {
-	if !c.currentSeries.IsValidQTCIndex(c.currentQTC) {
-		return
-	}
-	currentQTC := c.currentSeries.QTCs[c.currentQTC]
-
-	// shorten time if the last QTC qso was in the same hour
-	// TODO: make this optional?
-	shortenTime := false
-	if c.currentQTC > 0 {
-		lastQTC := c.currentSeries.QTCs[c.currentQTC-1]
-		shortenTime = lastQTC.QTCTime.Hour == currentQTC.QTCTime.Hour
-	}
-
-	c.SendQTC(currentQTC, shortenTime)
-
-	// add transmission data and mark the QTC as transmitted
-	currentQTC.Timestamp = c.clock.Now()
-	currentQTC.Frequency = c.vfoFrequency
-	currentQTC.Band = c.vfoBand
-	currentQTC.Mode = c.vfoMode
-	c.currentSeries.QTCs[c.currentQTC] = currentQTC
-}
-
-// Workflow for providing QTCs
-
-func (c *Controller) OfferQTC() {
-	// 1. find out their callsign
-	theirCall, ok := c.findOutTheirCallsign()
-	if !ok {
-		return
-	}
-
-	// 2. get available QTCs
-	qtcs := c.qtcList.PrepareFor(theirCall, core.MaxQTCsPerCall)
-	if len(qtcs) == 0 {
-		c.showErrorDialog("No QTCs available for %s", theirCall)
-		return
-	}
-
-	// 3. enter the number of QTCs to send and reduce the qtcs slice accordingly
-	qtcCount, ok := c.view.QuestionQTCCount(len(qtcs))
-	if !ok {
-		return
-	}
-	qtcCount = min(qtcCount, len(qtcs))
-	qtcs = qtcs[:qtcCount]
-
-	// 4. create new QTCSeries
-	qtcSeries, err := core.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs)
-	if err != nil {
-		c.showErrorDialog("%v", err)
-		return
-	}
-	c.currentMode = core.ProvideQTC
-	c.currentSeries = qtcSeries
-	c.currentQTC = core.NoQTCIndex
-
-	// 5. enter the first phase: send "qtc"
-	c.SetActivePhase(core.QTCStart)
-
-	// 6. show and run the QTC dialog
-	c.view.Show(c.currentMode, c.currentSeries)
-}
-
-func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
-	theirCall, currentQSOState := c.entryController.CurrentQSOState()
-	switch currentQSOState {
-	case core.QSODataValid: // a) there is currently a valid QSO in the entry fields that is not yet logged -> log this QSO and take their callsign
-		c.entryController.Log()
-	case core.QSODataInvalid: // b) there is currently a valid callsign and some QSO data (but not valid) in the entry fields -> show info about invalid QSO data, ask if the callsign should be used -> use the callsign
-		if !c.questionInvalidQSOData(theirCall) {
-			return callsign.Callsign{}, false
-		}
-	case core.QSODataEmpty: // c) there is currently a valid callsign in the entry field, but no QSO data at all-> use this callsign
-	default:
-		panic(fmt.Errorf("unknown QSODataState: %d", currentQSOState))
-	}
-	if theirCall.BaseCall != "" {
-		return theirCall, true
-	}
-
-	// d) otherwise -> use the last logged callsign
-	theirCall = c.logbook.LastCallsign()
-
-	return theirCall, (theirCall.BaseCall != "")
-}
-
 // CompleteQTCSeries completes the current QTC series.
 //
 // mode == ProvideQTC: stores all QTCs to the log, sends "tu", and closes the QTC window.
 // The series can only be completed when all QTCs have been transmitted. Otherwise, an
 // error message is presented to the user, the QTC window stays open.
 //
-// mode == ReceiveQTC: not yet implemented
+// mode == ReceiveQTC: stores all received QTCs to the log and closes the QTC window.
 func (c *Controller) CompleteQTCSeries() {
 	// TODO: use polymorphism for the two modes
 	if c.currentMode == core.ProvideQTC {
@@ -537,7 +482,7 @@ func (c *Controller) CompleteQTCSeries() {
 			}
 
 			c.showErrorDialog("Not all QTCs have been confirmed, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
-			c.SetActiveQTC(i)
+			c.setActiveQTC(i)
 			return
 		}
 
@@ -574,59 +519,104 @@ func (c *Controller) AbortQTCSeries() {
 	c.view.Close()
 }
 
-// Workflow for receiving QTCs
+// *****************************************************
+// WORKFLOW HELPER METHODS
+// *****************************************************
 
-func (c *Controller) RequestQTC() {
-	// find out their callsign
-	theirCall, ok := c.findOutTheirCallsign()
-	if !ok {
+func (c *Controller) setActivePhase(phase core.QTCWorkflowPhase) {
+	c.view.SetActivePhase(phase)
+	if c.activePhase == phase {
 		return
 	}
 
-	// TODO: find out how many QTCs may be received from theirCall (is this relevant, maybe we should just take what we get)
+	// enter the phase
+	c.activePhase = phase
 
-	// create a new and empty QTCSeries
-	qtcSeries := core.NewReceivingQTCSeries(theirCall)
-	c.currentMode = core.ReceiveQTC
-	c.currentSeries = qtcSeries
-	c.currentQTC = core.NoQTCIndex
+	// TODO: use polymorphism for the two modes
+	if c.currentMode == core.ProvideQTC {
+		switch c.activePhase {
+		case core.QTCStart:
+			c.sendQTCOffer()
+		case core.QTCExchangeHeader:
+			c.sendHeader()
+		case core.QTCExchangeData:
+			c.setActiveQTC(0)
+		}
+	} else {
+		log.Printf("set active phase to %v", c.activePhase)
+	}
+}
 
-	// enter the first phase: send "qtc?"
-	c.SetActivePhase(core.QTCStart)
+func (c *Controller) setActiveQTC(index int) {
+	if !c.currentSeries.IsValidQTCIndex(index) {
+		return
+	}
+	if c.activePhase != core.QTCExchangeData {
+		c.activePhase = core.QTCExchangeData
+		c.view.SetActivePhase(core.QTCExchangeData)
+	}
 
-	// show and run the QTC dialog
-	c.view.Show(c.currentMode, c.currentSeries)
+	c.currentQTC = index
+	c.view.SetActiveQTC(c.currentQTC)
+
+	c.sendCurrentQTC()
+}
+
+func (c *Controller) sendCurrentQTC() {
+	if !c.currentSeries.IsValidQTCIndex(c.currentQTC) {
+		return
+	}
+	currentQTC := c.currentSeries.QTCs[c.currentQTC]
+
+	// shorten time if the last QTC qso was in the same hour
+	// TODO: make this optional?
+	shortenTime := false
+	if c.currentQTC > 0 {
+		lastQTC := c.currentSeries.QTCs[c.currentQTC-1]
+		shortenTime = lastQTC.QTCTime.Hour == currentQTC.QTCTime.Hour
+	}
+
+	c.sendQTC(currentQTC, shortenTime)
+
+	// add transmission data and mark the QTC as transmitted
+	currentQTC.Timestamp = c.clock.Now()
+	currentQTC.Frequency = c.vfoFrequency
+	currentQTC.Band = c.vfoBand
+	currentQTC.Mode = c.vfoMode
+	c.currentSeries.QTCs[c.currentQTC] = currentQTC
 }
 
 // *****************************************************
 // SENDING METHODS - NO WORKFLOW BELOW HERE
 // *****************************************************
 
-// SendQTCOffer sends the offer for a QTC exchange.
-func (c *Controller) SendQTCOffer() {
+func (c *Controller) sendQTCOffer() {
 	c.keyer.SendText(OfferQTCText)
 }
 
-// SendQTCRequest sends the request for a QTC exchange.
-func (c *Controller) SendQTCRequest() {
+func (c *Controller) sendQTCRequest() {
 	c.keyer.SendText(RequestQTCText)
 }
 
-func (c *Controller) SendQRV() {
+func (c *Controller) sendRequestRepeat() {
+	c.keyer.SendText(RequestRepeatText)
+}
+
+func (c *Controller) sendQRV() {
 	c.keyer.SendText(QRVText)
 }
 
-func (c *Controller) SendConfirm() {
+func (c *Controller) sendConfirm() {
 	c.keyer.SendText(ConfirmText)
 }
 
-// SendHeader sends the header of the current QTC series.
-func (c *Controller) SendHeader() {
+// sendHeader sends the header of the current QTC series.
+func (c *Controller) sendHeader() {
 	c.keyer.SendText(SendHeaderTemplate, c.currentSeries.Header)
 }
 
-// SendQTC sends the given QTC.
-func (c *Controller) SendQTC(qtc core.QTC, shortenTime bool) {
+// sendQTC sends the given QTC.
+func (c *Controller) sendQTC(qtc core.QTC, shortenTime bool) {
 	time := qtc.QTCTime.String()
 	if shortenTime {
 		time = qtc.QTCTime.ShortString()

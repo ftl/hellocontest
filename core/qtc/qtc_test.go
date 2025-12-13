@@ -183,6 +183,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 	assert.Equal(t, core.QTC{
 		Kind:        core.ReceivedQTC,
 		Timestamp:   now,
+		Confirmed:   true,
 		QTCTime:     core.QTCTime{Hour: 1, Minute: 23},
 		QTCCallsign: callsign.MustParse("DK1AB"),
 		QTCNumber:   core.QSONumber(1),
@@ -215,6 +216,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 	assert.Equal(t, core.QTC{
 		Kind:        core.ReceivedQTC,
 		Timestamp:   now,
+		Confirmed:   true,
 		QTCTime:     core.QTCTime{Hour: 1, Minute: 24},
 		QTCCallsign: callsign.MustParse("DK2AB"),
 		QTCNumber:   core.QSONumber(2),
@@ -233,26 +235,26 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		TheirCallsign: theirCallsign,
 		Header:        core.QTCHeader{SeriesNumber: 4, QTCCount: 2},
 		Timestamp:     now,
-		// Confirmed:     true, // TODO
-		Frequency:   core.Frequency(7020000),
-		Band:        core.Band40m,
-		Mode:        core.ModeCW,
-		QTCTime:     core.QTCTime{Hour: 1, Minute: 23},
-		QTCCallsign: callsign.MustParse("DK1AB"),
-		QTCNumber:   core.QSONumber(1),
+		Confirmed:     true,
+		Frequency:     core.Frequency(7020000),
+		Band:          core.Band40m,
+		Mode:          core.ModeCW,
+		QTCTime:       core.QTCTime{Hour: 1, Minute: 23},
+		QTCCallsign:   callsign.MustParse("DK1AB"),
+		QTCNumber:     core.QSONumber(1),
 	}, logbook.loggedQTCs[0])
 	assert.Equal(t, core.QTC{
 		Kind:          core.ReceivedQTC,
 		TheirCallsign: theirCallsign,
 		Header:        core.QTCHeader{SeriesNumber: 4, QTCCount: 2},
 		Timestamp:     now,
-		// Confirmed:     true, // TODO
-		Frequency:   core.Frequency(7020000),
-		Band:        core.Band40m,
-		Mode:        core.ModeCW,
-		QTCTime:     core.QTCTime{Hour: 1, Minute: 24},
-		QTCCallsign: callsign.MustParse("DK2AB"),
-		QTCNumber:   core.QSONumber(2),
+		Confirmed:     true,
+		Frequency:     core.Frequency(7020000),
+		Band:          core.Band40m,
+		Mode:          core.ModeCW,
+		QTCTime:       core.QTCTime{Hour: 1, Minute: 24},
+		QTCCallsign:   callsign.MustParse("DK2AB"),
+		QTCNumber:     core.QSONumber(2),
 	}, logbook.loggedQTCs[1])
 }
 

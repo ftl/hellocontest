@@ -48,6 +48,7 @@ func (c *receive) ConfirmData() {
 	qtc := core.QTC{
 		Kind:      core.ReceivedQTC,
 		Timestamp: c.clock.Now(),
+		Confirmed: true,
 	}
 
 	qtcTime, err := c.currentQTCTimestamp()

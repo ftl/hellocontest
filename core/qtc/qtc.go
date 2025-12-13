@@ -2,7 +2,6 @@ package qtc
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
@@ -63,7 +62,21 @@ type View interface {
 	SetActiveQTC(int)
 }
 
+type qtcWorkflow interface {
+	StartAction()
+	ConfirmStart()
+	HeaderAction()
+	ConfirmHeader()
+	DataAction()
+	ConfirmData()
+	GotoNextField()
+	CompleteQTCSeries()
+	SetActivePhase(core.QTCWorkflowPhase)
+}
+
 type Controller struct {
+	workflow qtcWorkflow
+
 	clock           core.Clock
 	logbook         Logbook
 	qtcList         QTCList
@@ -88,6 +101,7 @@ type Controller struct {
 
 func NewController(clock core.Clock, infoDialogs InfoDialogs, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
 	return &Controller{
+		workflow:        new(nullWorkflow),
 		clock:           clock,
 		logbook:         new(nullLogbook),
 		qtcList:         qtcList,
@@ -176,6 +190,7 @@ func (c *Controller) OfferQTC() {
 		c.showErrorDialog("%v", err)
 		return
 	}
+	c.workflow = &provide{Controller: c}
 	c.currentMode = core.ProvideQTC
 	c.currentSeries = qtcSeries
 	c.currentQTC = core.NoQTCIndex
@@ -222,6 +237,7 @@ func (c *Controller) RequestQTC() {
 
 	// create a new and empty QTCSeries
 	qtcSeries := core.NewReceivingQTCSeries(theirCall)
+	c.workflow = &receive{Controller: c}
 	c.currentMode = core.ReceiveQTC
 	c.currentSeries = qtcSeries
 	c.currentQTC = core.NoQTCIndex
@@ -242,12 +258,7 @@ func (c *Controller) StartAction() {
 		return
 	}
 
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		c.sendQTCOffer()
-	} else {
-		c.sendQTCRequest()
-	}
+	c.workflow.StartAction()
 }
 
 func (c *Controller) ConfirmStart() {
@@ -255,11 +266,8 @@ func (c *Controller) ConfirmStart() {
 		return
 	}
 	c.setActivePhase(core.QTCExchangeHeader)
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ReceiveQTC {
-		c.SetActiveField(core.QTCHeaderField)
-		c.sendQRV()
-	}
+
+	c.workflow.ConfirmStart()
 }
 
 func (c *Controller) HeaderAction() {
@@ -267,38 +275,15 @@ func (c *Controller) HeaderAction() {
 		return
 	}
 
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		c.sendHeader()
-	} else {
-		c.sendRequestRepeat()
-	}
+	c.workflow.HeaderAction()
 }
 
 func (c *Controller) ConfirmHeader() {
 	if c.activePhase != core.QTCExchangeHeader {
 		return
 	}
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		c.setActivePhase(core.QTCExchangeData)
-	} else {
-		// parse and validate the header
-		header, err := c.currentHeader()
-		if err != nil {
-			c.showErrorMessage("%v", err)
-			c.SetActiveField(core.QTCHeaderField)
-			return
-		}
-		c.currentSeries.Header = header
-		c.clearErrorMessage()
 
-		// progress in the workflow
-		c.currentQTC = 0
-		c.setActivePhase(core.QTCExchangeData)
-		c.SetActiveField(core.QTCTimestampField)
-		c.sendConfirm()
-	}
+	c.workflow.ConfirmHeader()
 }
 
 func (c *Controller) DataAction() {
@@ -306,12 +291,7 @@ func (c *Controller) DataAction() {
 		return
 	}
 
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		c.sendCurrentQTC()
-	} else {
-		c.sendRequestRepeat()
-	}
+	c.workflow.DataAction()
 }
 
 func (c *Controller) ConfirmData() {
@@ -319,65 +299,7 @@ func (c *Controller) ConfirmData() {
 		return
 	}
 
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		if c.currentSeries.IsValidQTCIndex(c.currentQTC) {
-			qtc := c.currentSeries.QTCs[c.currentQTC]
-			qtc.Confirmed = true
-			c.currentSeries.QTCs[c.currentQTC] = qtc
-			c.view.UpdateQTC(c.currentQTC, qtc)
-		}
-		if c.currentSeries.IsValidQTCIndex(c.currentQTC + 1) {
-			c.setActiveQTC(c.currentQTC + 1)
-		} else {
-			c.setActivePhase(core.QTCFinish)
-		}
-	} else {
-		// parse the entered QTC Data
-		qtc := core.QTC{
-			Kind:      core.ReceivedQTC,
-			Timestamp: c.clock.Now(),
-		}
-
-		qtcTime, err := c.currentQTCTimestamp()
-		if err != nil {
-			c.showErrorMessage("%v", err)
-			c.SetActiveField(core.QTCTimestampField)
-			return
-		}
-		qtc.QTCTime = qtcTime
-
-		qtcCallsign, err := c.currentQTCCallsign()
-		if err != nil {
-			c.showErrorMessage("%v", err)
-			c.SetActiveField(core.QTCCallsignField)
-			return
-		}
-		qtc.QTCCallsign = qtcCallsign
-
-		qtcNumber, err := c.currentQTCNumber()
-		if err != nil {
-			c.showErrorMessage("%v", err)
-			c.SetActiveField(core.QTCExchangeField)
-			return
-		}
-		qtc.QTCNumber = qtcNumber
-		c.clearErrorMessage()
-
-		// log the entered QTC data in the current series
-		c.currentSeries.SetData(c.currentQTC, qtc)
-
-		// clear the current input
-		delete(c.currentInput, core.QTCTimestampField)
-		delete(c.currentInput, core.QTCCallsignField)
-		delete(c.currentInput, core.QTCExchangeField)
-		c.view.ClearDataInputs()
-
-		// progress in the workflow
-		c.currentQTC += 1
-		c.SetActiveField(core.QTCTimestampField)
-		c.sendConfirm()
-	}
+	c.workflow.ConfirmData()
 }
 
 func (c *Controller) currentHeader() (core.QTCHeader, error) {
@@ -436,24 +358,7 @@ func (c *Controller) Enter(s string) {
 }
 
 func (c *Controller) GotoNextField() {
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		// TODO: implement
-	} else {
-		nextField := c.activeField
-		switch c.activeField {
-		case core.QTCHeaderField:
-		// ignore, use ConfirmHeader to progress
-		case core.QTCTimestampField:
-			nextField = core.QTCCallsignField
-		case core.QTCCallsignField:
-			nextField = core.QTCExchangeField
-		case core.QTCExchangeField:
-			nextField = core.QTCTimestampField
-		}
-		c.activeField = nextField
-		c.view.SetActiveField(c.activeField)
-	}
+	c.workflow.GotoNextField()
 }
 
 func (c *Controller) SetActiveField(field core.QTCField) {
@@ -473,40 +378,7 @@ func (c *Controller) SetActiveField(field core.QTCField) {
 //
 // mode == ReceiveQTC: stores all received QTCs to the log and closes the QTC window.
 func (c *Controller) CompleteQTCSeries() {
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		// check if all QTCs have actually been transmitted
-		for i, qtc := range c.currentSeries.QTCs {
-			if qtc.Confirmed {
-				continue
-			}
-
-			c.showErrorDialog("Not all QTCs have been confirmed, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
-			c.setActiveQTC(i)
-			return
-		}
-
-		for _, qtc := range c.currentSeries.QTCs {
-			c.logbook.LogQTC(qtc)
-		}
-
-		c.keyer.SendText(CompleteQTCSeriesText)
-
-		c.view.Close()
-	} else {
-		// fill common data from the series and log the QTC
-		for i, qtc := range c.currentSeries.QTCs {
-			qtc.TheirCallsign = c.currentSeries.TheirCallsign
-			qtc.Header = c.currentSeries.Header
-			qtc.Frequency = c.vfoFrequency
-			qtc.Band = c.vfoBand
-			qtc.Mode = c.vfoMode
-			c.currentSeries.QTCs[i] = qtc
-			c.logbook.LogQTC(qtc)
-		}
-
-		c.view.Close()
-	}
+	c.workflow.CompleteQTCSeries()
 }
 
 // AbortQTCSeries aborts the current QTC series: no QTCs are logged, the QTC window is closed.
@@ -532,19 +404,8 @@ func (c *Controller) setActivePhase(phase core.QTCWorkflowPhase) {
 	// enter the phase
 	c.activePhase = phase
 
-	// TODO: use polymorphism for the two modes
-	if c.currentMode == core.ProvideQTC {
-		switch c.activePhase {
-		case core.QTCStart:
-			c.sendQTCOffer()
-		case core.QTCExchangeHeader:
-			c.sendHeader()
-		case core.QTCExchangeData:
-			c.setActiveQTC(0)
-		}
-	} else {
-		log.Printf("set active phase to %v", c.activePhase)
-	}
+	// workflow
+	c.workflow.SetActivePhase(phase)
 }
 
 func (c *Controller) setActiveQTC(index int) {
@@ -653,3 +514,19 @@ func (*nullView) ClearDataInputs()                     {}
 func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}
 func (*nullView) SetActiveField(core.QTCField)         {}
 func (*nullView) SetActiveQTC(int)                     {}
+
+// nullWorkflow
+
+var _ qtcWorkflow = &nullWorkflow{}
+
+type nullWorkflow struct{}
+
+func (*nullWorkflow) StartAction()                         {}
+func (*nullWorkflow) ConfirmStart()                        {}
+func (*nullWorkflow) HeaderAction()                        {}
+func (*nullWorkflow) ConfirmHeader()                       {}
+func (*nullWorkflow) DataAction()                          {}
+func (*nullWorkflow) ConfirmData()                         {}
+func (*nullWorkflow) GotoNextField()                       {}
+func (*nullWorkflow) CompleteQTCSeries()                   {}
+func (*nullWorkflow) SetActivePhase(core.QTCWorkflowPhase) {}

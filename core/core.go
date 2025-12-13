@@ -259,7 +259,7 @@ func ParseQTCTime(s string, reference QTCTime) (QTCTime, error) {
 		result.Hour, err = strconv.Atoi(string(s[0 : l-2]))
 	}
 	if err != nil {
-		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %w", err)
+		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %q is not a number", s)
 	}
 	if result.Hour < 0 || result.Hour > 23 {
 		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %d is not valid for the hour section", result.Hour)
@@ -267,7 +267,7 @@ func ParseQTCTime(s string, reference QTCTime) (QTCTime, error) {
 
 	result.Minute, err = strconv.Atoi(s[max(l-2, 0):l])
 	if err != nil {
-		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %w", err)
+		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %q is not a number", s)
 	}
 	if result.Minute < 0 || result.Minute > 59 {
 		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %d is not valid for the minute section", result.Minute)

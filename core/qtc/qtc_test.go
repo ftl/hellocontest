@@ -255,3 +255,149 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		QTCNumber:   core.QSONumber(2),
 	}, logbook.loggedQTCs[1])
 }
+
+func TestRequestQTC_HeaderErrors(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty",
+			input:    "",
+			expected: "the header field is empty",
+		},
+		{
+			name:     "only one number",
+			input:    "4",
+			expected: "\"4\" is not a valid QTC header",
+		},
+		{
+			name:     "some letter",
+			input:    "a",
+			expected: "\"a\" is not a valid QTC header",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			now := time.Now()
+			view := new(fakeView)
+			keyer := new(fakeKeyer)
+			theirCallsign := callsign.MustParse("DL1ABC")
+			logbook := &fakeLogbook{lastCallsign: theirCallsign}
+			c := newController().
+				WithClock(clock.Static(now)).
+				WithKeyer(keyer).
+				WithLogbook(logbook).
+				Build()
+			c.SetView(view)
+			c.VFOFrequencyChanged(7020000)
+			c.VFOBandChanged(core.Band40m)
+			c.VFOModeChanged(core.ModeCW)
+			c.RequestQTC()
+			c.StartAction()
+			c.ConfirmStart()
+
+			c.Enter(test.input)
+			c.ConfirmHeader()
+			assert.Equal(t, test.expected, view.errorMessage)
+		})
+	}
+}
+
+func TestRequestQTC_DataErrors(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         [3]string
+		expectedError string
+		expectedField core.QTCField
+	}{
+		{
+			name:          "empty timestamp",
+			input:         [...]string{"", "", ""},
+			expectedError: "the QTC timestamp field is empty",
+			expectedField: core.QTCTimestampField,
+		},
+		{
+			name:          "too long timestamp",
+			input:         [...]string{"12345", "", ""},
+			expectedError: "cannot parse QTC time: \"12345\" is invalid",
+			expectedField: core.QTCTimestampField,
+		},
+		{
+			name:          "timestamp with letter",
+			input:         [...]string{"ab", "", ""},
+			expectedError: "cannot parse QTC time: \"ab\" is not a number",
+			expectedField: core.QTCTimestampField,
+		},
+		{
+			name:          "timestamp with invalid hour",
+			input:         [...]string{"2400", "", ""},
+			expectedError: "cannot parse QTC time: 24 is not valid for the hour section",
+			expectedField: core.QTCTimestampField,
+		},
+		{
+			name:          "timestamp with invalid minutes",
+			input:         [...]string{"99", "", ""},
+			expectedError: "cannot parse QTC time: 99 is not valid for the minute section",
+			expectedField: core.QTCTimestampField,
+		},
+		{
+			name:          "empty callsign",
+			input:         [...]string{"0123", "", ""},
+			expectedError: "the QTC callsign field is empty",
+			expectedField: core.QTCCallsignField,
+		},
+		{
+			name:          "invalid callsign",
+			input:         [...]string{"0123", "12345", ""},
+			expectedError: "\"12345\" is not a valid callsign",
+			expectedField: core.QTCCallsignField,
+		},
+		{
+			name:          "empty exchange",
+			input:         [...]string{"0123", "DK1AB", ""},
+			expectedError: "the QTC exchange field is empty",
+			expectedField: core.QTCExchangeField,
+		},
+		{
+			name:          "a letter as exchange",
+			input:         [...]string{"0123", "DK1AB", "a"},
+			expectedError: "\"a\" is not a valid QTC exchange",
+			expectedField: core.QTCExchangeField,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			now := time.Now()
+			view := new(fakeView)
+			keyer := new(fakeKeyer)
+			theirCallsign := callsign.MustParse("DL1ABC")
+			logbook := &fakeLogbook{lastCallsign: theirCallsign}
+			c := newController().
+				WithClock(clock.Static(now)).
+				WithKeyer(keyer).
+				WithLogbook(logbook).
+				Build()
+			c.SetView(view)
+			c.VFOFrequencyChanged(7020000)
+			c.VFOBandChanged(core.Band40m)
+			c.VFOModeChanged(core.ModeCW)
+			c.RequestQTC()
+			c.StartAction()
+			c.ConfirmStart()
+			c.Enter("4/2")
+			c.ConfirmHeader()
+
+			c.Enter(test.input[0])
+			c.GotoNextField()
+			c.Enter(test.input[1])
+			c.GotoNextField()
+			c.Enter(test.input[2])
+			c.ConfirmData()
+			assert.Equal(t, test.expectedError, view.errorMessage)
+			assert.Equal(t, test.expectedField, c.activeField)
+			assert.Equal(t, test.expectedField, view.field)
+		})
+	}
+}

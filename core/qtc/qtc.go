@@ -52,9 +52,12 @@ type InfoDialogs interface {
 
 type View interface {
 	QuestionQTCCount(max int) (int, bool)
+	ShowError(string)
+	ClearError()
 	Show(core.QTCMode, core.QTCSeries)
 	UpdateQTC(int, core.QTC)
 	Close()
+	ClearDataInputs()
 	SetActivePhase(core.QTCWorkflowPhase)
 	SetActiveField(core.QTCField)
 	SetActiveQTC(int)
@@ -120,8 +123,16 @@ func (c *Controller) questionConfirmAbort() bool {
 	return c.infoDialogs.ShowQuestion("The QTC exchange is incomplete. Do you want to cancel it?")
 }
 
-func (c *Controller) showError(format string, args ...any) {
+func (c *Controller) showErrorDialog(format string, args ...any) {
 	c.infoDialogs.ShowError(format, args...)
+}
+
+func (c *Controller) showErrorMessage(format string, args ...any) {
+	c.view.ShowError(fmt.Sprintf(format, args...))
+}
+
+func (c *Controller) clearErrorMessage() {
+	c.view.ClearError()
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
@@ -203,17 +214,14 @@ func (c *Controller) ConfirmHeader() {
 		c.SetActivePhase(core.QTCExchangeData)
 	} else {
 		// parse and validate the header
-		headerStr, ok := c.currentInput[core.QTCHeaderField]
-		if !ok {
-			// TODO: handle errors properly
-			return
-		}
-		header, err := core.ParseQTCHeader(headerStr)
+		header, err := c.currentHeader()
 		if err != nil {
-			// TODO: handle errors properly
+			c.showErrorMessage("%v", err)
+			c.SetActiveField(core.QTCHeaderField)
 			return
 		}
 		c.currentSeries.Header = header
+		c.clearErrorMessage()
 
 		// progress in the workflow
 		c.currentQTC = 0
@@ -250,7 +258,7 @@ func (c *Controller) ConfirmData() {
 
 		qtcTime, err := c.currentQTCTimestamp()
 		if err != nil {
-			// TODO: handle errors properly
+			c.showErrorMessage("%v", err)
 			c.SetActiveField(core.QTCTimestampField)
 			return
 		}
@@ -258,7 +266,7 @@ func (c *Controller) ConfirmData() {
 
 		qtcCallsign, err := c.currentQTCCallsign()
 		if err != nil {
-			// TODO: handle errors properly
+			c.showErrorMessage("%v", err)
 			c.SetActiveField(core.QTCCallsignField)
 			return
 		}
@@ -266,11 +274,12 @@ func (c *Controller) ConfirmData() {
 
 		qtcNumber, err := c.currentQTCNumber()
 		if err != nil {
-			// TODO: handle errors properly
+			c.showErrorMessage("%v", err)
 			c.SetActiveField(core.QTCExchangeField)
 			return
 		}
 		qtc.QTCNumber = qtcNumber
+		c.clearErrorMessage()
 
 		// log the entered QTC data in the current series
 		c.currentSeries.SetData(c.currentQTC, qtc)
@@ -288,9 +297,17 @@ func (c *Controller) ConfirmData() {
 	}
 }
 
+func (c *Controller) currentHeader() (core.QTCHeader, error) {
+	headerStr, ok := c.currentInput[core.QTCHeaderField]
+	if !ok || (headerStr == "") {
+		return core.QTCHeader{}, fmt.Errorf("the header field is empty")
+	}
+	return core.ParseQTCHeader(headerStr)
+}
+
 func (c *Controller) currentQTCTimestamp() (core.QTCTime, error) {
 	qtcTimeStr, ok := c.currentInput[core.QTCTimestampField]
-	if !ok {
+	if !ok || (qtcTimeStr == "") {
 		return core.ZeroQTCTime, fmt.Errorf("the QTC timestamp field is empty")
 	}
 	return core.ParseQTCTime(qtcTimeStr, c.currentReferenceTime())
@@ -309,7 +326,7 @@ func (c *Controller) currentReferenceTime() core.QTCTime {
 
 func (c *Controller) currentQTCCallsign() (callsign.Callsign, error) {
 	qtcCallsignStr, ok := c.currentInput[core.QTCCallsignField]
-	if !ok {
+	if !ok || (qtcCallsignStr == "") {
 		return callsign.Callsign{}, fmt.Errorf("the QTC callsign field is empty")
 	}
 	qtcCallsign, err := callsign.Parse(qtcCallsignStr)
@@ -321,12 +338,12 @@ func (c *Controller) currentQTCCallsign() (callsign.Callsign, error) {
 
 func (c *Controller) currentQTCNumber() (core.QSONumber, error) {
 	qtcExchangeStr, ok := c.currentInput[core.QTCExchangeField]
-	if !ok {
+	if !ok || (qtcExchangeStr == "") {
 		return 0, fmt.Errorf("the QTC exchange field is empty")
 	}
 	qtcExchange, err := strconv.Atoi(qtcExchangeStr)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%q is not a valid QTC exchange", qtcExchangeStr)
 	}
 	return core.QSONumber(qtcExchange), nil
 }
@@ -451,7 +468,7 @@ func (c *Controller) OfferQTC() {
 	// 2. get available QTCs
 	qtcs := c.qtcList.PrepareFor(theirCall, core.MaxQTCsPerCall)
 	if len(qtcs) == 0 {
-		c.showError("No QTCs available for %s", theirCall)
+		c.showErrorDialog("No QTCs available for %s", theirCall)
 		return
 	}
 
@@ -466,7 +483,7 @@ func (c *Controller) OfferQTC() {
 	// 4. create new QTCSeries
 	qtcSeries, err := core.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs)
 	if err != nil {
-		c.showError("%v", err)
+		c.showErrorDialog("%v", err)
 		return
 	}
 	c.currentMode = core.ProvideQTC
@@ -519,7 +536,7 @@ func (c *Controller) CompleteQTCSeries() {
 				continue
 			}
 
-			c.showError("Not all QTCs have been confirmed, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
+			c.showErrorDialog("Not all QTCs have been confirmed, the QTC series cannot be completed. Abort the series to close the window or transmit the remaining QTCs.")
 			c.SetActiveQTC(i)
 			return
 		}
@@ -637,9 +654,12 @@ var _ View = &nullView{}
 type nullView struct{}
 
 func (*nullView) QuestionQTCCount(int) (int, bool)     { return 0, false }
+func (*nullView) ShowError(string)                     {}
+func (*nullView) ClearError()                          {}
 func (*nullView) Show(core.QTCMode, core.QTCSeries)    {}
 func (*nullView) UpdateQTC(int, core.QTC)              {}
 func (*nullView) Close()                               {}
+func (*nullView) ClearDataInputs()                     {}
 func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}
 func (*nullView) SetActiveField(core.QTCField)         {}
 func (*nullView) SetActiveQTC(int)                     {}

@@ -38,6 +38,14 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 	return 10, true
 }
 
+func (d *qtcDialog) ShowError(s string) {
+	// TODO: implement
+}
+
+func (d *qtcDialog) ClearError() {
+	// TODO: implement
+}
+
 func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	d.view = newQTCView(d.controller, qtcMode)
 
@@ -93,6 +101,14 @@ func (d *qtcDialog) Close() {
 	d.dialog.Destroy()
 	d.dialog = nil
 	d.view = nil
+}
+
+func (d *qtcDialog) ClearDataInputs() {
+	if d.dialog == nil {
+		return
+	}
+
+	// TODO: implement
 }
 
 func (d *qtcDialog) SetActivePhase(phase core.QTCWorkflowPhase) {

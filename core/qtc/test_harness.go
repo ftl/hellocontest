@@ -64,10 +64,17 @@ type fakeView struct {
 	phase          core.QTCWorkflowPhase
 	field          core.QTCField
 	activeQTCIndex int
+	errorMessage   string
 }
 
 func (v *fakeView) QuestionQTCCount(max int) (int, bool) {
 	return max, true
+}
+func (v *fakeView) ShowError(s string) {
+	v.errorMessage = s
+}
+func (v *fakeView) ClearError() {
+	v.errorMessage = ""
 }
 func (v *fakeView) Show(mode core.QTCMode, series core.QTCSeries) {
 	v.visible = true
@@ -79,6 +86,9 @@ func (v *fakeView) UpdateQTC(index int, qtc core.QTC) {
 }
 func (v *fakeView) Close() {
 	v.visible = false
+}
+func (v *fakeView) ClearDataInputs() {
+	// no-op
 }
 func (v *fakeView) SetActivePhase(phase core.QTCWorkflowPhase) {
 	v.phase = phase

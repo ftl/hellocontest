@@ -65,15 +65,18 @@ type fakeView struct {
 	field          core.QTCField
 	activeQTCIndex int
 	errorMessage   string
+	errorField     core.QTCField
 }
 
 func (v *fakeView) QuestionQTCCount(max int) (int, bool) {
 	return max, true
 }
-func (v *fakeView) ShowError(s string) {
+func (v *fakeView) ShowFieldError(field core.QTCField, s string) {
+	v.errorField = field
 	v.errorMessage = s
 }
-func (v *fakeView) ClearError() {
+func (v *fakeView) ClearFieldError() {
+	v.errorField = core.QTCNoneField
 	v.errorMessage = ""
 }
 func (v *fakeView) Show(mode core.QTCMode, series core.QTCSeries) {

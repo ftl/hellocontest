@@ -51,8 +51,8 @@ type InfoDialogs interface {
 
 type View interface {
 	QuestionQTCCount(max int) (int, bool)
-	ShowError(string)
-	ClearError()
+	ShowFieldError(core.QTCField, string)
+	ClearFieldError()
 	Show(core.QTCMode, core.QTCSeries)
 	UpdateQTC(int, core.QTC)
 	Close()
@@ -140,12 +140,12 @@ func (c *Controller) showErrorDialog(format string, args ...any) {
 	c.infoDialogs.ShowError(format, args...)
 }
 
-func (c *Controller) showErrorMessage(format string, args ...any) {
-	c.view.ShowError(fmt.Sprintf(format, args...))
+func (c *Controller) showFieldError(field core.QTCField, err error) {
+	c.view.ShowFieldError(field, err.Error())
 }
 
 func (c *Controller) clearErrorMessage() {
-	c.view.ClearError()
+	c.view.ClearFieldError()
 }
 
 func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
@@ -515,8 +515,8 @@ var _ View = &nullView{}
 type nullView struct{}
 
 func (*nullView) QuestionQTCCount(int) (int, bool)     { return 0, false }
-func (*nullView) ShowError(string)                     {}
-func (*nullView) ClearError()                          {}
+func (*nullView) ShowFieldError(core.QTCField, string) {}
+func (*nullView) ClearFieldError()                     {}
 func (*nullView) Show(core.QTCMode, core.QTCSeries)    {}
 func (*nullView) UpdateQTC(int, core.QTC)              {}
 func (*nullView) Close()                               {}

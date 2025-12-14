@@ -1,5 +1,6 @@
 /*
  * Colors
+ * see https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-24/gtk/theme/Adwaita/_colors-public.scss
  */
 
 @define-color hellocontest-duplicate-bg red;
@@ -157,5 +158,10 @@ label.active-phase {
     color: @theme_selected_fg_color;
     border: 1px solid @theme_selected_bg_color;
     border-radius: 3px;
+    font-weight: bold;
+}
+
+label.qtc-field-error-message {
+    color: @error_color;
     font-weight: bold;
 }

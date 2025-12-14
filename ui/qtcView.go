@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	qtcActivePhaseClass style.Class = "active-phase"
+	qtcActivePhaseClass  style.Class = "active-phase"
+	qtcFieldErrorMessage style.Class = "qtc-field-error-message"
 
 	seriesName    = "series"
 	timestampName = "timestamp"
@@ -43,13 +44,14 @@ type QTCController interface {
 }
 
 type qtcView struct {
-	controller QTCController
-	mode       core.QTCMode
+	controller       QTCController
+	mode             core.QTCMode
+	theirCallMessage string
 
 	// widgets
 	root                *gtk.Grid
-	startHeadingLabel   *gtk.Label
 	theirCallLabel      *gtk.Label
+	startHeadingLabel   *gtk.Label
 	startActionButton   *gtk.Button
 	confirmStartButton  *gtk.Button
 	headerHeadingLabel  *gtk.Label
@@ -182,8 +184,25 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 }
 
 func (v *qtcView) setHeader(theirCall callsign.Callsign, qtcHeader core.QTCHeader) {
-	v.theirCallLabel.SetText(fmt.Sprintf("Exchanging QTCs with %s", theirCall.String()))
+	var format string
+	if v.mode == core.ProvideQTC {
+		format = "Sending QTCs to %s"
+	} else {
+		format = "Receiving QTCs from %s"
+	}
+	v.theirCallMessage = fmt.Sprintf(format, theirCall.String())
+	v.theirCallLabel.SetText(v.theirCallMessage)
 	v.seriesEntry.SetText(qtcHeader.String())
+}
+
+func (v *qtcView) setFieldError(_ core.QTCField, message string) {
+	style.AddClass(&v.theirCallLabel.Widget, qtcFieldErrorMessage)
+	v.theirCallLabel.SetText(message)
+}
+
+func (v *qtcView) clearFieldError() {
+	style.RemoveClass(&v.theirCallLabel.Widget, qtcFieldErrorMessage)
+	v.theirCallLabel.SetText(v.theirCallMessage)
 }
 
 func (v *qtcView) setQTCs(qtcs []core.QTC) {

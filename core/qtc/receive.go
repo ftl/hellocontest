@@ -27,7 +27,7 @@ func (c *receive) ConfirmHeader() {
 	// parse and validate the header
 	header, err := c.currentHeader()
 	if err != nil {
-		c.showErrorMessage("%v", err)
+		c.showFieldError(core.QTCHeaderField, err)
 		c.SetActiveField(core.QTCHeaderField)
 		return
 	}
@@ -55,7 +55,7 @@ func (c *receive) ConfirmData() {
 
 	qtcTime, err := c.currentQTCTimestamp()
 	if err != nil {
-		c.showErrorMessage("%v", err)
+		c.showFieldError(core.QTCTimestampField, err)
 		c.SetActiveField(core.QTCTimestampField)
 		return
 	}
@@ -63,7 +63,7 @@ func (c *receive) ConfirmData() {
 
 	qtcCallsign, err := c.currentQTCCallsign()
 	if err != nil {
-		c.showErrorMessage("%v", err)
+		c.showFieldError(core.QTCCallsignField, err)
 		c.SetActiveField(core.QTCCallsignField)
 		return
 	}
@@ -71,7 +71,7 @@ func (c *receive) ConfirmData() {
 
 	qtcNumber, err := c.currentQTCNumber()
 	if err != nil {
-		c.showErrorMessage("%v", err)
+		c.showFieldError(core.QTCExchangeField, err)
 		c.SetActiveField(core.QTCExchangeField)
 		return
 	}

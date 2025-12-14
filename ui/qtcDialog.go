@@ -40,13 +40,19 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 	return 10, true
 }
 
-func (d *qtcDialog) ShowError(s string) {
-	// TODO: implement
-	log.Printf("ERROR: %v", s)
+func (d *qtcDialog) ShowFieldError(field core.QTCField, message string) {
+	if d.view == nil {
+		log.Printf("field error on %s: %s", field, message)
+		return
+	}
+	d.view.setFieldError(field, message)
 }
 
-func (d *qtcDialog) ClearError() {
-	// TODO: implement
+func (d *qtcDialog) ClearFieldError() {
+	if d.view == nil {
+		return
+	}
+	d.view.clearFieldError()
 }
 
 func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {

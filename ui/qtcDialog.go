@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"log"
+
 	"github.com/gotk3/gotk3/gtk"
 
 	"github.com/ftl/hellocontest/core"
@@ -40,6 +42,7 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 
 func (d *qtcDialog) ShowError(s string) {
 	// TODO: implement
+	log.Printf("ERROR: %v", s)
 }
 
 func (d *qtcDialog) ClearError() {
@@ -104,11 +107,11 @@ func (d *qtcDialog) Close() {
 }
 
 func (d *qtcDialog) ClearDataInputs() {
-	if d.dialog == nil {
+	if d.view == nil {
 		return
 	}
 
-	// TODO: implement
+	d.view.clearExchangeEntry()
 }
 
 func (d *qtcDialog) SetActivePhase(phase core.QTCWorkflowPhase) {
@@ -142,7 +145,7 @@ func (d *qtcDialog) focusActiveField() {
 	if d.view == nil {
 		return
 	}
-	// TODO: implement
+	d.view.focusEntry(d.activeField)
 }
 
 func (d *qtcDialog) SetActiveQTC(index int) {

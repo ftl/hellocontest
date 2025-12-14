@@ -353,6 +353,30 @@ func (c *Controller) currentQTCNumber() (core.QSONumber, error) {
 	return core.QSONumber(qtcExchange), nil
 }
 
+func (c *Controller) DoAction() {
+	switch c.activePhase {
+	case core.QTCStart:
+		c.StartAction()
+	case core.QTCExchangeHeader:
+		c.HeaderAction()
+	case core.QTCExchangeData:
+		c.DataAction()
+	}
+}
+
+func (c *Controller) DoConfirm() {
+	switch c.activePhase {
+	case core.QTCStart:
+		c.ConfirmStart()
+	case core.QTCExchangeHeader:
+		c.ConfirmHeader()
+	case core.QTCExchangeData:
+		c.ConfirmData()
+	case core.QTCFinish:
+		c.CompleteQTCSeries()
+	}
+}
+
 func (c *Controller) Enter(s string) {
 	c.currentInput[c.activeField] = s
 }
@@ -432,6 +456,10 @@ func (c *Controller) sendCurrentQTC() {
 // *****************************************************
 // SENDING METHODS - NO WORKFLOW BELOW HERE
 // *****************************************************
+
+func (c *Controller) RepeatLastTransmission() {
+	c.keyer.Repeat()
+}
 
 func (c *Controller) sendQTCOffer() {
 	c.keyer.SendText(OfferQTCText)

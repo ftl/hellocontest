@@ -1,6 +1,8 @@
 package qtc
 
-import "github.com/ftl/hellocontest/core"
+import (
+	"github.com/ftl/hellocontest/core"
+)
 
 var _ qtcWorkflow = &receive{}
 

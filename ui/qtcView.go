@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/ftl/hamradio/callsign"
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 
@@ -14,6 +15,11 @@ import (
 
 const (
 	qtcActivePhaseClass style.Class = "active-phase"
+
+	seriesName    = "series"
+	timestampName = "timestamp"
+	callsignName  = "callsign"
+	exchangeName  = "exchange"
 )
 
 type QTCController interface {
@@ -23,6 +29,10 @@ type QTCController interface {
 	ConfirmHeader()
 	DataAction()
 	ConfirmData()
+
+	DoAction()
+	DoConfirm()
+	RepeatLastTransmission()
 
 	Enter(string)
 	GotoNextField()
@@ -46,6 +56,9 @@ type qtcView struct {
 	confirmHeaderButton *gtk.Button
 	dataHeadingLabel    *gtk.Label
 	qtcTable            *qtcTable
+	qtcTimeEntry        *gtk.Entry
+	qtcCallEntry        *gtk.Entry
+	qtcExchangeEntry    *gtk.Entry
 	confirmDataButton   *gtk.Button
 }
 
@@ -85,30 +98,36 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	startActionButton, _ := gtk.ButtonNewWithLabel("Send")
 	startActionButton.SetHAlign(gtk.ALIGN_FILL)
 	startActionButton.Connect("clicked", controller.StartAction)
+	startActionButton.Connect("key_press_event", result.onButtonKeyPress)
 	contentGrid.Attach(startActionButton, 3, 2, 1, 1)
 	result.qrvButton, _ = gtk.ButtonNewWithLabel("QRV")
 	result.qrvButton.SetHAlign(gtk.ALIGN_FILL)
 	result.qrvButton.Connect("clicked", controller.ConfirmStart)
+	result.qrvButton.Connect("key_press_event", result.onButtonKeyPress)
 	contentGrid.Attach(result.qrvButton, 4, 2, 1, 1)
 
 	result.headerHeadingLabel = buildHeaderLabel(contentGrid, 3, "2. Header")
 	seriesLabel, _ := gtk.LabelNew("Series/QTC Count")
 	seriesLabel.SetHAlign(gtk.ALIGN_START)
 	contentGrid.Attach(seriesLabel, 0, 4, 1, 1)
-	result.seriesEntry, _ = gtk.EntryNew() // TODO: add "changed" callback for receiving QTCs
+	result.seriesEntry, _ = gtk.EntryNew()
+	result.seriesEntry.SetName(seriesName)
 	result.seriesEntry.SetHExpand(true)
 	result.seriesEntry.SetSizeRequest(200, 0)
 	result.seriesEntry.SetSensitive(true)
 	result.seriesEntry.SetEditable(mode == core.ReceiveQTC)
+	result.addEntryEventHandlers(&result.seriesEntry.Widget)
 	contentGrid.Attach(result.seriesEntry, 1, 4, 2, 1)
 
 	headerActionButton, _ := gtk.ButtonNewWithLabel(sendText)
 	headerActionButton.SetHAlign(gtk.ALIGN_FILL)
 	headerActionButton.Connect("clicked", controller.HeaderAction)
+	headerActionButton.Connect("key_press_event", result.onButtonKeyPress)
 	contentGrid.Attach(headerActionButton, 3, 4, 1, 1)
 	result.confirmHeaderButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmHeaderButton.SetHAlign(gtk.ALIGN_FILL)
 	result.confirmHeaderButton.Connect("clicked", controller.ConfirmHeader)
+	result.confirmHeaderButton.Connect("key_press_event", result.onButtonKeyPress)
 	contentGrid.Attach(result.confirmHeaderButton, 4, 4, 1, 1)
 
 	result.dataHeadingLabel = buildHeaderLabel(contentGrid, 6, "3. QTCs")
@@ -119,29 +138,36 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	qtcActionButton.SetVAlign(gtk.ALIGN_START)
 	qtcActionButton.SetVExpand(false)
 	qtcActionButton.Connect("clicked", controller.DataAction)
+	qtcActionButton.Connect("key_press_event", result.onButtonKeyPress)
 	result.confirmDataButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmDataButton.SetHAlign(gtk.ALIGN_FILL)
 	result.confirmDataButton.SetVAlign(gtk.ALIGN_START)
 	result.confirmDataButton.SetVExpand(false)
 	result.confirmDataButton.Connect("clicked", controller.ConfirmData)
+	result.confirmDataButton.Connect("key_press_event", result.onButtonKeyPress)
 
 	if mode == core.ProvideQTC {
 		contentGrid.Attach(qtcActionButton, 3, 7, 1, 1)
 		contentGrid.Attach(result.confirmDataButton, 4, 7, 1, 1)
 	} else {
-		// TODO: add "changed" callbacks
-		qtcTimeEntry, _ := gtk.EntryNew()
-		qtcTimeEntry.SetSizeRequest(75, 0)
-		qtcTimeEntry.SetPlaceholderText("Time")
-		contentGrid.Attach(qtcTimeEntry, 0, 11, 1, 1)
-		qtcCallEntry, _ := gtk.EntryNew()
-		qtcCallEntry.SetSizeRequest(150, 0)
-		qtcCallEntry.SetPlaceholderText("Call")
-		contentGrid.Attach(qtcCallEntry, 1, 11, 1, 1)
-		qtcExchangeEntry, _ := gtk.EntryNew()
-		qtcExchangeEntry.SetSizeRequest(75, 0)
-		qtcExchangeEntry.SetPlaceholderText("Exch.")
-		contentGrid.Attach(qtcExchangeEntry, 2, 11, 1, 1)
+		result.qtcTimeEntry, _ = gtk.EntryNew()
+		result.qtcTimeEntry.SetName(timestampName)
+		result.qtcTimeEntry.SetSizeRequest(75, 0)
+		result.qtcTimeEntry.SetPlaceholderText("Time")
+		result.addEntryEventHandlers(&result.qtcTimeEntry.Widget)
+		contentGrid.Attach(result.qtcTimeEntry, 0, 11, 1, 1)
+		result.qtcCallEntry, _ = gtk.EntryNew()
+		result.qtcCallEntry.SetName(callsignName)
+		result.qtcCallEntry.SetSizeRequest(150, 0)
+		result.qtcCallEntry.SetPlaceholderText("Call")
+		result.addEntryEventHandlers(&result.qtcCallEntry.Widget)
+		contentGrid.Attach(result.qtcCallEntry, 1, 11, 1, 1)
+		result.qtcExchangeEntry, _ = gtk.EntryNew()
+		result.qtcExchangeEntry.SetName(exchangeName)
+		result.qtcExchangeEntry.SetSizeRequest(75, 0)
+		result.qtcExchangeEntry.SetPlaceholderText("Exch.")
+		result.addEntryEventHandlers(&result.qtcExchangeEntry.Widget)
+		contentGrid.Attach(result.qtcExchangeEntry, 2, 11, 1, 1)
 
 		contentGrid.Attach(qtcActionButton, 3, 11, 1, 1)
 		contentGrid.Attach(result.confirmDataButton, 4, 11, 1, 1)
@@ -186,8 +212,23 @@ func (v *qtcView) focusData() {
 	v.confirmDataButton.GrabFocus()
 }
 
-func (v *qtcView) focusEntry() {
-	// TODO: implement
+func (v *qtcView) focusEntry(field core.QTCField) {
+	switch field {
+	case core.QTCHeaderField:
+		v.seriesEntry.GrabFocus()
+	case core.QTCTimestampField:
+		v.qtcTimeEntry.GrabFocus()
+	case core.QTCCallsignField:
+		v.qtcCallEntry.GrabFocus()
+	case core.QTCExchangeField:
+		v.qtcExchangeEntry.GrabFocus()
+	}
+}
+
+func (v *qtcView) clearExchangeEntry() {
+	v.qtcTimeEntry.SetText("")
+	v.qtcCallEntry.SetText("")
+	v.qtcExchangeEntry.SetText("")
 }
 
 func (v *qtcView) focusNone() {
@@ -200,6 +241,144 @@ func (v *qtcView) focusNone() {
 func (v *qtcView) focusQTC(index int) {
 	v.qtcTable.SelectRow(index)
 	v.confirmDataButton.GrabFocus()
+}
+
+func (v *qtcView) addEntryEventHandlers(w *gtk.Widget) {
+	w.Connect("key_press_event", v.onEntryKeyPress)
+	w.Connect("focus_in_event", v.onEntryFocusIn)
+	w.Connect("focus_out_event", v.onEntryFocusOut)
+	w.Connect("changed", v.onEntryChanged)
+}
+
+func (v *qtcView) onButtonKeyPress(_ any, event *gdk.Event) bool {
+	keyEvent := gdk.EventKeyNewFromEvent(event)
+	state := gdk.ModifierType(keyEvent.State())
+	shift := state&gdk.SHIFT_MASK != 0
+	key := keyEvent.KeyVal()
+
+	switch key {
+	case gdk.KEY_Tab, gdk.KEY_ISO_Left_Tab:
+		if shift {
+			// goto previous field
+		} else {
+			v.controller.GotoNextField()
+		}
+		return true
+	case gdk.KEY_Return:
+		v.controller.DoConfirm()
+		return true
+	case gdk.KEY_question:
+		v.controller.DoAction()
+		return true
+	case gdk.KEY_equal:
+		v.controller.RepeatLastTransmission()
+		return true
+	default:
+		return false
+	}
+}
+
+func (v *qtcView) onEntryKeyPress(_ any, event *gdk.Event) bool {
+	keyEvent := gdk.EventKeyNewFromEvent(event)
+	state := gdk.ModifierType(keyEvent.State())
+	ctrl := state&gdk.CONTROL_MASK != 0
+	alt := state&gdk.MOD1_MASK != 0 // MOD1 = ALT right
+	shift := state&gdk.SHIFT_MASK != 0
+	key := keyEvent.KeyVal()
+
+	_ = ctrl
+	_ = alt
+	_ = shift
+
+	switch key {
+	// TODO: select a certain QTC?
+	case gdk.KEY_0, gdk.KEY_1, gdk.KEY_2, gdk.KEY_3, gdk.KEY_4, gdk.KEY_5, gdk.KEY_6, gdk.KEY_7, gdk.KEY_8, gdk.KEY_9:
+		if alt {
+			var index int
+			if key == gdk.KEY_0 {
+				index = 9
+			} else {
+				index = int(key - gdk.KEY_1)
+			}
+			_ = index
+			// v.controller.SetActiveQTC(index)
+			return true
+		} else {
+			return false
+		}
+	case gdk.KEY_Tab, gdk.KEY_ISO_Left_Tab:
+		if shift {
+			// goto previous field
+		} else {
+			v.controller.GotoNextField()
+		}
+		return true
+	case gdk.KEY_space:
+		if shift {
+			// goto previous field
+		} else {
+			v.controller.GotoNextField()
+		}
+		return true
+	case gdk.KEY_Return:
+		v.controller.DoConfirm()
+		return true
+	case gdk.KEY_question:
+		v.controller.DoAction()
+		return true
+	case gdk.KEY_equal:
+		v.controller.RepeatLastTransmission()
+		return true
+	default:
+		return false
+	}
+}
+
+func (v *qtcView) onEntryFocusIn(widget any, _ *gdk.Event) bool {
+	entry, ok := widget.(*gtk.Entry)
+	if !ok {
+		return false
+	}
+
+	field := v.widgetToField(&entry.Widget)
+	v.controller.SetActiveField(field)
+
+	return false
+}
+
+func (v *qtcView) onEntryFocusOut(widget any, _ *gdk.Event) bool {
+	if entry, ok := widget.(*gtk.Entry); ok {
+		entry.SelectRegion(0, 0)
+	}
+	return false
+}
+
+func (v *qtcView) onEntryChanged(widget any) bool {
+	entry, ok := widget.(*gtk.Entry)
+	if !ok {
+		return false
+	}
+
+	text, _ := entry.GetText()
+	v.controller.Enter(text)
+
+	return false
+}
+
+func (v *qtcView) widgetToField(widget *gtk.Widget) core.QTCField {
+	name, _ := widget.GetName()
+	switch name {
+	case seriesName:
+		return core.QTCHeaderField
+	case timestampName:
+		return core.QTCTimestampField
+	case callsignName:
+		return core.QTCCallsignField
+	case exchangeName:
+		return core.QTCExchangeField
+	default:
+		return core.QTCNoneField
+	}
 }
 
 // qtcTable

@@ -360,7 +360,7 @@ func (s *QTCSeries) IsLastQTCIndex(index int) bool {
 }
 
 func (s *QTCSeries) SetData(index int, qtc QTC) {
-	if index > 0 && index < len(s.QTCs) {
+	if index >= 0 && index < len(s.QTCs) {
 		s.QTCs[index] = qtc
 	} else {
 		s.QTCs = append(s.QTCs, qtc)

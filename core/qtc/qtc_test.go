@@ -188,6 +188,14 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		QTCCallsign: callsign.MustParse("DK1AB"),
 		QTCNumber:   core.QSONumber(1),
 	}, c.currentSeries.QTCs[0])
+	assert.Equal(t, core.QTC{
+		Kind:        core.ReceivedQTC,
+		Timestamp:   now,
+		Confirmed:   true,
+		QTCTime:     core.QTCTime{Hour: 1, Minute: 23},
+		QTCCallsign: callsign.MustParse("DK1AB"),
+		QTCNumber:   core.QSONumber(1),
+	}, view.series.QTCs[0])
 	assert.Equal(t, "", c.currentInput[core.QTCTimestampField])
 	assert.Equal(t, "", c.currentInput[core.QTCCallsignField])
 	assert.Equal(t, "", c.currentInput[core.QTCExchangeField])
@@ -221,6 +229,14 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		QTCCallsign: callsign.MustParse("DK2AB"),
 		QTCNumber:   core.QSONumber(2),
 	}, c.currentSeries.QTCs[1])
+	assert.Equal(t, core.QTC{
+		Kind:        core.ReceivedQTC,
+		Timestamp:   now,
+		Confirmed:   true,
+		QTCTime:     core.QTCTime{Hour: 1, Minute: 24},
+		QTCCallsign: callsign.MustParse("DK2AB"),
+		QTCNumber:   core.QSONumber(2),
+	}, view.series.QTCs[1])
 	assert.Equal(t, "", c.currentInput[core.QTCTimestampField])
 	assert.Equal(t, "", c.currentInput[core.QTCCallsignField])
 	assert.Equal(t, "", c.currentInput[core.QTCExchangeField])

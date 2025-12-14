@@ -33,7 +33,7 @@ func (c *provide) ConfirmData() {
 	if c.currentSeries.IsValidQTCIndex(c.currentQTC) {
 		qtc := c.currentSeries.QTCs[c.currentQTC]
 		qtc.Confirmed = true
-		c.currentSeries.QTCs[c.currentQTC] = qtc
+		c.currentSeries.SetData(c.currentQTC, qtc)
 		c.view.UpdateQTC(c.currentQTC, qtc)
 	}
 	if c.currentSeries.IsValidQTCIndex(c.currentQTC + 1) {

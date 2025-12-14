@@ -78,6 +78,7 @@ func (c *receive) ConfirmData() {
 
 	// log the entered QTC data in the current series
 	c.currentSeries.SetData(c.currentQTC, qtc)
+	c.view.UpdateQTC(c.currentQTC, qtc)
 
 	// clear the current input
 	delete(c.currentInput, core.QTCTimestampField)

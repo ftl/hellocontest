@@ -82,7 +82,7 @@ func (v *fakeView) Show(mode core.QTCMode, series core.QTCSeries) {
 	v.series = series
 }
 func (v *fakeView) UpdateQTC(index int, qtc core.QTC) {
-	// TODO implement
+	v.series.SetData(index, qtc)
 }
 func (v *fakeView) Close() {
 	v.visible = false

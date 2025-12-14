@@ -371,7 +371,7 @@ func (s *QTCSeries) SetData(index int, qtc QTC) {
 type QTCWorkflowPhase int
 
 const (
-	QTCNotStarted QTCWorkflowPhase = iota
+	QTCNone QTCWorkflowPhase = iota
 	QTCStart
 	QTCExchangeHeader
 	QTCExchangeData

@@ -50,15 +50,18 @@ type qtcView struct {
 	root                *gtk.Grid
 	startHeadingLabel   *gtk.Label
 	theirCallLabel      *gtk.Label
-	qrvButton           *gtk.Button
+	startActionButton   *gtk.Button
+	confirmStartButton  *gtk.Button
 	headerHeadingLabel  *gtk.Label
 	seriesEntry         *gtk.Entry
+	headerActionButton  *gtk.Button
 	confirmHeaderButton *gtk.Button
 	dataHeadingLabel    *gtk.Label
 	qtcTable            *qtcTable
 	qtcTimeEntry        *gtk.Entry
 	qtcCallEntry        *gtk.Entry
 	qtcExchangeEntry    *gtk.Entry
+	dataActionButton    *gtk.Button
 	confirmDataButton   *gtk.Button
 }
 
@@ -95,16 +98,16 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	startExchangeLabel, _ := gtk.LabelNew(modeText)
 	startExchangeLabel.SetHAlign(gtk.ALIGN_START)
 	contentGrid.Attach(startExchangeLabel, 0, 2, 3, 1)
-	startActionButton, _ := gtk.ButtonNewWithLabel("Send")
-	startActionButton.SetHAlign(gtk.ALIGN_FILL)
-	startActionButton.Connect("clicked", controller.StartAction)
-	startActionButton.Connect("key_press_event", result.onButtonKeyPress)
-	contentGrid.Attach(startActionButton, 3, 2, 1, 1)
-	result.qrvButton, _ = gtk.ButtonNewWithLabel("QRV")
-	result.qrvButton.SetHAlign(gtk.ALIGN_FILL)
-	result.qrvButton.Connect("clicked", controller.ConfirmStart)
-	result.qrvButton.Connect("key_press_event", result.onButtonKeyPress)
-	contentGrid.Attach(result.qrvButton, 4, 2, 1, 1)
+	result.startActionButton, _ = gtk.ButtonNewWithLabel("Send")
+	result.startActionButton.SetHAlign(gtk.ALIGN_FILL)
+	result.startActionButton.Connect("clicked", controller.StartAction)
+	result.startActionButton.Connect("key_press_event", result.onButtonKeyPress)
+	contentGrid.Attach(result.startActionButton, 3, 2, 1, 1)
+	result.confirmStartButton, _ = gtk.ButtonNewWithLabel("QRV")
+	result.confirmStartButton.SetHAlign(gtk.ALIGN_FILL)
+	result.confirmStartButton.Connect("clicked", controller.ConfirmStart)
+	result.confirmStartButton.Connect("key_press_event", result.onButtonKeyPress)
+	contentGrid.Attach(result.confirmStartButton, 4, 2, 1, 1)
 
 	result.headerHeadingLabel = buildHeaderLabel(contentGrid, 3, "2. Header")
 	seriesLabel, _ := gtk.LabelNew("Series/QTC Count")
@@ -119,11 +122,11 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	result.addEntryEventHandlers(&result.seriesEntry.Widget)
 	contentGrid.Attach(result.seriesEntry, 1, 4, 2, 1)
 
-	headerActionButton, _ := gtk.ButtonNewWithLabel(sendText)
-	headerActionButton.SetHAlign(gtk.ALIGN_FILL)
-	headerActionButton.Connect("clicked", controller.HeaderAction)
-	headerActionButton.Connect("key_press_event", result.onButtonKeyPress)
-	contentGrid.Attach(headerActionButton, 3, 4, 1, 1)
+	result.headerActionButton, _ = gtk.ButtonNewWithLabel(sendText)
+	result.headerActionButton.SetHAlign(gtk.ALIGN_FILL)
+	result.headerActionButton.Connect("clicked", controller.HeaderAction)
+	result.headerActionButton.Connect("key_press_event", result.onButtonKeyPress)
+	contentGrid.Attach(result.headerActionButton, 3, 4, 1, 1)
 	result.confirmHeaderButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmHeaderButton.SetHAlign(gtk.ALIGN_FILL)
 	result.confirmHeaderButton.Connect("clicked", controller.ConfirmHeader)
@@ -133,12 +136,12 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	result.dataHeadingLabel = buildHeaderLabel(contentGrid, 6, "3. QTCs")
 	result.qtcTable = newQTCTable()
 	contentGrid.Attach(result.qtcTable.Table(), 0, 7, 3, 4)
-	qtcActionButton, _ := gtk.ButtonNewWithLabel(sendText)
-	qtcActionButton.SetHAlign(gtk.ALIGN_FILL)
-	qtcActionButton.SetVAlign(gtk.ALIGN_START)
-	qtcActionButton.SetVExpand(false)
-	qtcActionButton.Connect("clicked", controller.DataAction)
-	qtcActionButton.Connect("key_press_event", result.onButtonKeyPress)
+	result.dataActionButton, _ = gtk.ButtonNewWithLabel(sendText)
+	result.dataActionButton.SetHAlign(gtk.ALIGN_FILL)
+	result.dataActionButton.SetVAlign(gtk.ALIGN_START)
+	result.dataActionButton.SetVExpand(false)
+	result.dataActionButton.Connect("clicked", controller.DataAction)
+	result.dataActionButton.Connect("key_press_event", result.onButtonKeyPress)
 	result.confirmDataButton, _ = gtk.ButtonNewWithLabel("R")
 	result.confirmDataButton.SetHAlign(gtk.ALIGN_FILL)
 	result.confirmDataButton.SetVAlign(gtk.ALIGN_START)
@@ -147,7 +150,7 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 	result.confirmDataButton.Connect("key_press_event", result.onButtonKeyPress)
 
 	if mode == core.ProvideQTC {
-		contentGrid.Attach(qtcActionButton, 3, 7, 1, 1)
+		contentGrid.Attach(result.dataActionButton, 3, 7, 1, 1)
 		contentGrid.Attach(result.confirmDataButton, 4, 7, 1, 1)
 	} else {
 		result.qtcTimeEntry, _ = gtk.EntryNew()
@@ -169,7 +172,7 @@ func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
 		result.addEntryEventHandlers(&result.qtcExchangeEntry.Widget)
 		contentGrid.Attach(result.qtcExchangeEntry, 2, 11, 1, 1)
 
-		contentGrid.Attach(qtcActionButton, 3, 11, 1, 1)
+		contentGrid.Attach(result.dataActionButton, 3, 11, 1, 1)
 		contentGrid.Attach(result.confirmDataButton, 4, 11, 1, 1)
 	}
 
@@ -191,17 +194,41 @@ func (v *qtcView) setQTC(index int, qtc core.QTC) {
 	v.qtcTable.UpdateQTC(index, qtc)
 }
 
+func (v *qtcView) enableWidgets(phase core.QTCWorkflowPhase) {
+	v.startActionButton.SetSensitive(phase == core.QTCStart)
+	v.confirmStartButton.SetSensitive(phase == core.QTCStart)
+
+	v.seriesEntry.SetSensitive(phase == core.QTCExchangeHeader)
+	v.headerActionButton.SetSensitive(phase == core.QTCExchangeHeader)
+	v.confirmHeaderButton.SetSensitive(phase == core.QTCExchangeHeader)
+
+	v.qtcTable.Table().SetSensitive(phase == core.QTCExchangeData)
+	if v.qtcTimeEntry != nil {
+		v.qtcTimeEntry.SetSensitive(phase == core.QTCExchangeData)
+	}
+	if v.qtcCallEntry != nil {
+		v.qtcCallEntry.SetSensitive(phase == core.QTCExchangeData)
+	}
+	if v.qtcExchangeEntry != nil {
+		v.qtcExchangeEntry.SetSensitive(phase == core.QTCExchangeData)
+	}
+	v.dataActionButton.SetSensitive(phase == core.QTCExchangeData)
+	v.confirmDataButton.SetSensitive(phase == core.QTCExchangeData)
+}
+
 func (v *qtcView) focusStart() {
 	style.AddClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
 	style.RemoveClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
 	style.RemoveClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
-	v.qrvButton.GrabFocus()
+	v.enableWidgets(core.QTCStart)
+	v.confirmStartButton.GrabFocus()
 }
 
 func (v *qtcView) focusHeader() {
 	style.RemoveClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
 	style.AddClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
 	style.RemoveClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
+	v.enableWidgets(core.QTCExchangeHeader)
 	v.confirmHeaderButton.GrabFocus()
 }
 
@@ -209,6 +236,7 @@ func (v *qtcView) focusData() {
 	style.RemoveClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
 	style.RemoveClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
 	style.AddClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
+	v.enableWidgets(core.QTCExchangeData)
 	v.confirmDataButton.GrabFocus()
 }
 
@@ -235,6 +263,7 @@ func (v *qtcView) focusNone() {
 	style.RemoveClass(&v.startHeadingLabel.Widget, qtcActivePhaseClass)
 	style.RemoveClass(&v.headerHeadingLabel.Widget, qtcActivePhaseClass)
 	style.RemoveClass(&v.dataHeadingLabel.Widget, qtcActivePhaseClass)
+	v.enableWidgets(core.QTCNone)
 	v.qtcTable.ClearSelection()
 }
 

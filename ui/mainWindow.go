@@ -19,6 +19,7 @@ type mainWindow struct {
 	*radioMenu
 	*spotSourceMenu
 	*qsoListView
+	*qtcListView
 	*entryView
 	*workmodeView
 	*keyerView
@@ -38,7 +39,8 @@ func setupMainWindow(builder *gtk.Builder, application *gtk.Application, style *
 	result.mainMenu = setupMainMenu(builder, setAcceptFocus)
 	result.radioMenu = setupRadioMenu(builder)
 	result.spotSourceMenu = setupSpotSourceMenu(builder)
-	result.qsoListView = setupLogbookView(builder)
+	result.qsoListView = setupQSOListView(builder)
+	result.qtcListView = setupQTCListView(builder)
 	result.entryView = setupEntryView(builder)
 	result.workmodeView = setupWorkmodeView(builder)
 	result.keyerView = setupKeyerView(builder)

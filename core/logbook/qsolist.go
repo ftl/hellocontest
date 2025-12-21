@@ -31,13 +31,13 @@ func (f QSOSelectedListenerFunc) QSOSelected(qso core.QSO) {
 	f(qso)
 }
 
-type RowSelectedListener interface {
-	RowSelected(int)
+type QSORowSelectedListener interface {
+	QSORowSelected(int)
 }
 
-type RowSelectedListenerFunc func(int)
+type QSORowSelectedListenerFunc func(int)
 
-func (f RowSelectedListenerFunc) RowSelected(index int) {
+func (f QSORowSelectedListenerFunc) QSORowSelected(index int) {
 	f(index)
 }
 
@@ -301,7 +301,7 @@ func (l *QSOList) SelectRow(index int) {
 	l.dataLock.RUnlock()
 
 	l.emitQSOSelected(qso)
-	l.emitRowSelected(index)
+	l.emitQSORowSelected(index)
 }
 
 func (l *QSOList) SelectLastQSO() {
@@ -318,7 +318,7 @@ func (l *QSOList) SelectLastQSO() {
 	l.dataLock.RUnlock()
 
 	l.emitQSOSelected(qso)
-	l.emitRowSelected(index)
+	l.emitQSORowSelected(index)
 }
 
 func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
@@ -479,10 +479,10 @@ func (l *QSOList) emitQSOSelected(qso core.QSO) {
 	}
 }
 
-func (l *QSOList) emitRowSelected(index int) {
+func (l *QSOList) emitQSORowSelected(index int) {
 	for _, listener := range l.listeners {
-		if rowSelectedListener, ok := listener.(RowSelectedListener); ok {
-			rowSelectedListener.RowSelected(index)
+		if rowSelectedListener, ok := listener.(QSORowSelectedListener); ok {
+			rowSelectedListener.QSORowSelected(index)
 		}
 	}
 }

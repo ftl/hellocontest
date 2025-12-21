@@ -245,7 +245,7 @@ func TestSelectRow(t *testing.T) {
 		qsoNotified = true
 		assert.Equal(t, qso, selectedQSO)
 	}))
-	list.Notify(RowSelectedListenerFunc(func(index int) {
+	list.Notify(QSORowSelectedListenerFunc(func(index int) {
 		indexNotified = true
 		assert.Equal(t, 0, index)
 	}))
@@ -268,7 +268,7 @@ func TestSelectLastQSO(t *testing.T) {
 		qsoNotified = true
 		assert.Equal(t, lastQSO, selectedQSO)
 	}))
-	list.Notify(RowSelectedListenerFunc(func(index int) {
+	list.Notify(QSORowSelectedListenerFunc(func(index int) {
 		indexNotified = true
 		assert.Equal(t, 1, index)
 	}))

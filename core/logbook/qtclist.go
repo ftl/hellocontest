@@ -1,6 +1,7 @@
 package logbook
 
 import (
+	"log"
 	"slices"
 	"sync"
 
@@ -9,13 +10,33 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+type QTCSelectedListener interface {
+	QTCSelected(core.QTC)
+}
+
+type QTCSelectedListenerFunc func(core.QTC)
+
+func (f QTCSelectedListenerFunc) QTCSelected(qtc core.QTC) {
+	f(qtc)
+}
+
+type QTCRowSelectedListener interface {
+	QTCRowSelected(int)
+}
+
+type QTCRowSelectedListenerFunc func(int)
+
+func (f QTCRowSelectedListenerFunc) QTCRowSelected(index int) {
+	f(index)
+}
+
 type QTCsClearedListener interface {
 	QTCsCleared()
 }
 
 type QTCList struct {
 	dataLock      *sync.RWMutex
-	data          map[core.QSONumber]core.QTC
+	data          []core.QTC
 	availableQTCs []core.QTC
 	qtcsByCall    map[callsign.Callsign]int
 
@@ -25,8 +46,8 @@ type QTCList struct {
 func NewQTCList() *QTCList {
 	return &QTCList{
 		dataLock:      new(sync.RWMutex),
-		data:          make(map[core.QSONumber]core.QTC),
-		availableQTCs: []core.QTC{},
+		data:          make([]core.QTC, 0),
+		availableQTCs: make([]core.QTC, 0),
 		qtcsByCall:    make(map[callsign.Callsign]int),
 	}
 }
@@ -51,6 +72,22 @@ func (l *QTCList) emitQTCAdded(qtc core.QTC) {
 	}
 }
 
+func (l *QTCList) emitQTCSelected(qtc core.QTC) {
+	for _, listener := range l.listeners {
+		if qsoSelectedListener, ok := listener.(QTCSelectedListener); ok {
+			qsoSelectedListener.QTCSelected(qtc)
+		}
+	}
+}
+
+func (l *QTCList) emitQTCRowSelected(index int) {
+	for _, listener := range l.listeners {
+		if rowSelectedListener, ok := listener.(QTCRowSelectedListener); ok {
+			rowSelectedListener.QTCRowSelected(index)
+		}
+	}
+}
+
 func (l *QTCList) Clear() {
 	l.dataLock.Lock()
 	l.clear()
@@ -60,16 +97,15 @@ func (l *QTCList) Clear() {
 }
 
 func (l *QTCList) clear() {
-	l.data = make(map[core.QSONumber]core.QTC)
-	l.availableQTCs = []core.QTC{}
+	l.data = make([]core.QTC, 0)
+	l.availableQTCs = make([]core.QTC, 0)
 	l.qtcsByCall = make(map[callsign.Callsign]int)
 }
 
 func (l *QTCList) Fill(qsos []core.QSO, qtcs []core.QTC) {
 	l.dataLock.Lock()
-	if len(l.data) > 0 {
-		l.clear()
-	}
+	l.data = make([]core.QTC, 0, len(qtcs))
+
 	for _, qso := range qsos {
 		l.putQSO(qso)
 	}
@@ -93,7 +129,7 @@ func (l *QTCList) QTCAdded(qtc core.QTC) {
 }
 
 func (l *QTCList) put(qtc core.QTC) {
-	l.data[qtc.QSONumber] = qtc
+	l.data = append(l.data, qtc)
 	l.removeAvailable(qtc)
 	count := l.qtcsByCall[qtc.TheirCallsign]
 	count++
@@ -128,17 +164,47 @@ func (l *QTCList) All() []core.QTC {
 }
 
 func (l *QTCList) all() []core.QTC {
-	result := make([]core.QTC, 0, len(l.data))
-	for _, qtc := range l.data {
-		result = append(result, qtc)
-	}
+	result := make([]core.QTC, len(l.data))
+	copy(result, l.data)
 
 	slices.SortStableFunc(result, core.QTCByTimestamp)
 	return result
 }
 
-func (l *QTCList) QSOAdded(qso core.QSO) {
+func (l *QTCList) SelectRow(index int) {
+	l.dataLock.RLock()
 
+	if index < 0 || index >= len(l.data) {
+		log.Printf("invalid QSO index %d", index)
+		l.dataLock.RUnlock()
+		return
+	}
+	qtc := l.data[index]
+
+	l.dataLock.RUnlock()
+
+	l.emitQTCSelected(qtc)
+	l.emitQTCRowSelected(index)
+}
+
+func (l *QTCList) SelectLastQTC() {
+	l.dataLock.RLock()
+
+	if len(l.data) == 0 {
+		l.dataLock.RUnlock()
+		return
+	}
+
+	index := len(l.data) - 1
+	qtc := l.data[index]
+
+	l.dataLock.RUnlock()
+
+	l.emitQTCSelected(qtc)
+	l.emitQTCRowSelected(index)
+}
+
+func (l *QTCList) QSOAdded(qso core.QSO) {
 	l.dataLock.Lock()
 	l.putQSO(qso)
 	l.dataLock.Unlock()

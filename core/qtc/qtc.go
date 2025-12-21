@@ -29,6 +29,7 @@ type Logbook interface {
 
 type QTCList interface {
 	PrepareFor(callsign.Callsign, int) []core.QTC
+	SelectLastQTC()
 }
 
 type EntryController interface {
@@ -403,6 +404,7 @@ func (c *Controller) SetActiveField(field core.QTCField) {
 // mode == ReceiveQTC: stores all received QTCs to the log and closes the QTC window.
 func (c *Controller) CompleteQTCSeries() {
 	c.workflow.CompleteQTCSeries()
+	c.qtcList.SelectLastQTC()
 }
 
 // AbortQTCSeries aborts the current QTC series: no QTCs are logged, the QTC window is closed.

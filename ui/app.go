@@ -130,6 +130,7 @@ func (a *application) activate() {
 
 	a.controller.SetView(a.mainWindow)
 	a.controller.QSOList.Notify(a.mainWindow)
+	a.controller.QTCList.Notify(a.mainWindow)
 	a.controller.Entry.SetView(a.mainWindow)
 	a.controller.Entry.SetESMView(a.mainWindow.esmView)
 	a.controller.Entry.Notify(a.mainWindow)

@@ -40,7 +40,8 @@ type Logbook struct {
 	writer            Writer
 	qsos              []core.QSO
 	myLastNumber      int
-	qtcs              map[core.QSONumber]core.QTC
+	sentQTCs          map[core.QSONumber]core.QTC
+	receivedQTCs      []core.QTC
 	sentQTCsPerSeries []int
 
 	listeners []any
@@ -49,10 +50,11 @@ type Logbook struct {
 // New creates a new empty logbook.
 func New(clock core.Clock) *Logbook {
 	return &Logbook{
-		clock:  clock,
-		writer: new(nullWriter),
-		qsos:   make([]core.QSO, 0, 1000),
-		qtcs:   make(map[core.QSONumber]core.QTC),
+		clock:        clock,
+		writer:       new(nullWriter),
+		qsos:         make([]core.QSO, 0, 1000),
+		sentQTCs:     make(map[core.QSONumber]core.QTC),
+		receivedQTCs: make([]core.QTC, 0),
 	}
 }
 
@@ -63,16 +65,21 @@ func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 		writer:            new(nullWriter),
 		qsos:              qsos,
 		myLastNumber:      lastNumber(qsos),
-		qtcs:              make(map[core.QSONumber]core.QTC, len(qtcs)),
+		sentQTCs:          make(map[core.QSONumber]core.QTC, len(qtcs)),
 		sentQTCsPerSeries: make([]int, lastSeries(qtcs)),
+		receivedQTCs:      make([]core.QTC, 0),
 	}
 
 	for _, qtc := range qtcs {
 		if qtc.Timestamp.IsZero() {
 			panic(fmt.Errorf("cannot load qtc because its timestamp is unset: %v", qtc))
 		}
-		result.qtcs[qtc.QSONumber] = qtc
-		result.registerQTCSeries(qtc)
+		if qtc.Kind == core.SentQTC {
+			result.sentQTCs[qtc.QSONumber] = qtc
+			result.registerQTCSeries(qtc)
+		} else {
+			result.receivedQTCs = append(result.receivedQTCs, qtc)
+		}
 	}
 
 	return result
@@ -172,13 +179,17 @@ func (l *Logbook) LogQTC(qtc core.QTC) {
 	if err := qtc.VerifyComplete(); err != nil {
 		panic(fmt.Errorf("cannot log the given QTC: %v", err))
 	}
-	if existing, ok := l.qtcs[qtc.QSONumber]; ok {
-		panic(fmt.Errorf("QTC for QSO #%d already exists, cannot log another QTC for the same QSO: %v", qtc.QSONumber, existing))
-	}
 
-	l.qtcs[qtc.QSONumber] = qtc
+	if qtc.Kind == core.SentQTC {
+		if existing, ok := l.sentQTCs[qtc.QSONumber]; ok {
+			panic(fmt.Errorf("QTC for QSO #%d already exists, cannot log another QTC for the same QSO: %v", qtc.QSONumber, existing))
+		}
+		l.sentQTCs[qtc.QSONumber] = qtc
+		l.registerQTCSeries(qtc)
+	} else {
+		l.receivedQTCs = append(l.receivedQTCs, qtc)
+	}
 	l.writer.WriteQTC(qtc)
-	l.registerQTCSeries(qtc)
 	l.emitQTCAdded(qtc)
 	log.Printf("QTC added: %v", qtc)
 }
@@ -201,10 +212,11 @@ func (l *Logbook) registerQTCSeries(qtc core.QTC) {
 }
 
 func (l *Logbook) AllQTCs() []core.QTC {
-	result := make([]core.QTC, 0, len(l.qtcs))
-	for _, qtc := range l.qtcs {
+	result := make([]core.QTC, 0, len(l.sentQTCs)+len(l.receivedQTCs))
+	for _, qtc := range l.sentQTCs {
 		result = append(result, qtc)
 	}
+	result = append(result, l.receivedQTCs...)
 	slices.SortStableFunc(result, core.QTCByTimestamp)
 	return result
 }

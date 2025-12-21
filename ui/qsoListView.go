@@ -23,8 +23,6 @@ type qsoListView struct {
 	view *gtk.TreeView
 	list *gtk.ListStore
 
-	ignoreSelection bool
-
 	columnUTC                int
 	columnCallsign           int
 	columnBand               int
@@ -41,10 +39,10 @@ type qsoListView struct {
 	columnLast int
 }
 
-func setupLogbookView(builder *gtk.Builder) *qsoListView {
+func setupQSOListView(builder *gtk.Builder) *qsoListView {
 	result := new(qsoListView)
 
-	result.view = getUI(builder, "logView").(*gtk.TreeView)
+	result.view = getUI(builder, "qsoList").(*gtk.TreeView)
 
 	result.columnUTC = 0
 	result.columnCallsign = 1
@@ -102,10 +100,7 @@ func createLogListStore(columnCount int) *gtk.ListStore {
 	for i := range types {
 		types[i] = glib.TYPE_STRING
 	}
-	result, err := gtk.ListStoreNew(types...)
-	if err != nil {
-		log.Fatalf("Cannot create list store: %v", err)
-	}
+	result, _ := gtk.ListStoreNew(types...)
 	return result
 }
 
@@ -247,7 +242,7 @@ func (v *qsoListView) QSOUpdated(index int, _, qso core.QSO) {
 	}
 }
 
-func (v *qsoListView) RowSelected(index int) {
+func (v *qsoListView) QSORowSelected(index int) {
 	row, err := v.list.GetIterFromString(fmt.Sprintf("%d", index))
 	if err != nil {
 		log.Printf("cannot get iter: %v", err)
@@ -263,19 +258,16 @@ func (v *qsoListView) RowSelected(index int) {
 }
 
 func (v *qsoListView) onSelectionChanged(selection *gtk.TreeSelection) bool {
-	if v.ignoreSelection {
-		return false
-	}
-	log.Print("selection changed")
-
 	model, _ := v.view.GetModel()
 	rows := selection.GetSelectedRows(model)
-	if rows.Length() == 1 {
-		row := rows.NthData(0).(*gtk.TreePath)
-		index := row.GetIndices()[0]
-		if v.controller != nil {
-			v.controller.SelectRow(index)
-		}
+	if rows.Length() != 1 {
+		return false
+	}
+
+	row := rows.NthData(0).(*gtk.TreePath)
+	index := row.GetIndices()[0]
+	if v.controller != nil {
+		v.controller.SelectRow(index)
 	}
 	return true
 }

@@ -27,142 +27,6 @@ THE SOFTWARE.
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <!-- interface-license-type mit -->
-  <object class="GtkWindow" id="callinfoWindow">
-    <property name="can-focus">False</property>
-    <property name="accept-focus">False</property>
-    <child>
-      <!-- n-columns=2 n-rows=5 -->
-      <object class="GtkGrid" id="callinfoGrid">
-        <property name="visible">True</property>
-        <property name="can-focus">False</property>
-        <property name="row-spacing">2</property>
-        <child>
-          <object class="GtkLabel" id="callsignLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="margin-start">2</property>
-            <property name="margin-end">2</property>
-            <property name="hexpand">True</property>
-            <property name="label" translatable="yes">DL1ABC</property>
-            <property name="wrap">True</property>
-            <attributes>
-              <attribute name="scale" value="4"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">0</property>
-            <property name="height">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="dxccLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="margin-start">2</property>
-            <property name="margin-end">2</property>
-            <property name="hexpand">True</property>
-            <property name="label" translatable="yes">Fed. Rep. of Germany (DL), EU, ITU 28, CQ 14</property>
-            <property name="use-markup">True</property>
-            <property name="wrap">True</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">2</property>
-            <property name="width">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScrolledWindow" id="supercheckContainer">
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
-            <property name="shadow-type">in</property>
-            <child>
-              <object class="GtkViewport">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <property name="halign">start</property>
-                <property name="valign">start</property>
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-                <child>
-                  <object class="GtkLabel" id="supercheckLabel">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="halign">start</property>
-                    <property name="valign">start</property>
-                    <property name="hexpand">True</property>
-                    <property name="vexpand">True</property>
-                    <property name="use-markup">True</property>
-                    <property name="wrap">True</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">4</property>
-            <property name="width">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="xchangeLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">end</property>
-            <property name="hexpand">True</property>
-            <property name="label" translatable="yes">1234</property>
-            <property name="justify">right</property>
-            <attributes>
-              <attribute name="scale" value="2"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="valueLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">end</property>
-            <property name="margin-start">2</property>
-            <property name="margin-end">2</property>
-            <property name="hexpand">True</property>
-            <property name="label" translatable="yes">1P 1M</property>
-            <property name="wrap">True</property>
-            <attributes>
-              <attribute name="scale" value="2"/>
-            </attributes>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">1</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="userInfoLabel">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="halign">start</property>
-            <property name="hexpand">True</property>
-            <property name="label" translatable="yes">Hans, Salzgitter</property>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">3</property>
-            <property name="width">2</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
   <object class="GtkDialog" id="newContestDialog">
     <property name="can-focus">False</property>
     <property name="title" translatable="yes">New Contest</property>
@@ -2063,13 +1927,13 @@ Interval</property>
           </packing>
         </child>
         <child>
-          <object class="GtkScrolledWindow" id="logViewContainer">
+          <object class="GtkScrolledWindow" id="qsoListContainer">
             <property name="width-request">555</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
             <property name="shadow-type">in</property>
             <child>
-              <object class="GtkTreeView" id="logView">
+              <object class="GtkTreeView" id="qsoList">
                 <property name="height-request">100</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -2083,7 +1947,7 @@ Interval</property>
                 <property name="enable-grid-lines">vertical</property>
                 <property name="enable-tree-lines">True</property>
                 <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="logSelection"/>
+                  <object class="GtkTreeSelection" id="qsoSelection"/>
                 </child>
               </object>
             </child>
@@ -2092,6 +1956,37 @@ Interval</property>
             <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="qtcListContainer">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="shadow-type">in</property>
+            <child>
+              <object class="GtkTreeView" id="qtcList">
+                <property name="height-request">50</property>
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="hscroll-policy">natural</property>
+                <property name="vscroll-policy">natural</property>
+                <property name="headers-clickable">False</property>
+                <property name="enable-search">False</property>
+                <property name="show-expanders">False</property>
+                <property name="enable-grid-lines">vertical</property>
+                <property name="enable-tree-lines">True</property>
+                <child internal-child="selection">
+                  <object class="GtkTreeSelection" id="qtcSelection"/>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -2455,7 +2350,7 @@ Interval</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -2530,12 +2425,12 @@ Interval</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
           <!-- n-columns=2 n-rows=1 -->
-          <object class="GtkGrid">
+          <object class="GtkGrid" id="esmGrid">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <child>
@@ -2566,7 +2461,7 @@ Interval</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
         <child>
@@ -2734,7 +2629,7 @@ Interval</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">5</property>
+            <property name="position">6</property>
           </packing>
         </child>
         <child>
@@ -2817,7 +2712,7 @@ Interval</property>
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">6</property>
+            <property name="position">7</property>
           </packing>
         </child>
       </object>

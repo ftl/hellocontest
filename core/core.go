@@ -164,6 +164,10 @@ type QTC struct {
 	QTCNumber   QSONumber
 }
 
+func (q QTC) String() string {
+	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%d|%s|%s|%d", q.Timestamp.Format("15:04"), q.TheirCallsign.String(), q.Frequency/1000.0, q.Band, q.Mode, q.Kind, q.QTCTime.String(), q.QTCCallsign, q.QTCNumber)
+}
+
 func (q QTC) WasTransmitted() bool {
 	return !q.Timestamp.IsZero()
 }

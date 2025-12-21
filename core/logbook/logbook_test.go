@@ -26,8 +26,10 @@ func TestLoad(t *testing.T) {
 	}
 	now := time.Now()
 	qtcs := []core.QTC{
-		{Header: core.QTCHeader{SeriesNumber: 1, QTCCount: 1}, Kind: core.SentQTC, QSONumber: 234, Timestamp: now.Add(-1 * time.Minute)},
-		{Header: core.QTCHeader{SeriesNumber: 24, QTCCount: 1}, Kind: core.ReceivedQTC, QSONumber: 235, Timestamp: now},
+		{TheirCallsign: callsign.MustParse("DL1ABC"), Header: core.QTCHeader{SeriesNumber: 1, QTCCount: 1}, Kind: core.SentQTC, QSONumber: 234, Timestamp: now.Add(-3 * time.Minute)},
+		{TheirCallsign: callsign.MustParse("DL2ABC"), Header: core.QTCHeader{SeriesNumber: 24, QTCCount: 2}, Kind: core.ReceivedQTC, QSONumber: 0, Timestamp: now.Add(-2 * time.Minute)},
+		{TheirCallsign: callsign.MustParse("DL3ABC"), Header: core.QTCHeader{SeriesNumber: 24, QTCCount: 2}, Kind: core.ReceivedQTC, QSONumber: 0, Timestamp: now.Add(-1 * time.Minute)},
+		{TheirCallsign: callsign.MustParse("DL4ABC"), Header: core.QTCHeader{SeriesNumber: 2, QTCCount: 1}, Kind: core.SentQTC, QSONumber: 235, Timestamp: now},
 	}
 
 	logbook := Load(clock.New(), qsos, qtcs)
@@ -36,10 +38,11 @@ func TestLoad(t *testing.T) {
 
 	actualQTCs := logbook.AllQTCs()
 	assert.Equal(t, qtcs, actualQTCs)
-	assert.Equal(t, 2, logbook.NextSeriesNumber())
+	assert.Equal(t, 4, len(actualQTCs))
+	assert.Equal(t, 3, logbook.NextSeriesNumber())
 }
 
-func TestLog_Log(t *testing.T) {
+func TestLog_LogQSO(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	logbook := New(clock)
@@ -52,7 +55,7 @@ func TestLog_Log(t *testing.T) {
 	assert.Equal(t, now, loggedQso.LogTimestamp, "LogTimestamp is wrong")
 }
 
-func TestLog_LogAgain(t *testing.T) {
+func TestLog_LogQSOAgain(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	then := time.Date(2006, time.January, 2, 15, 5, 0, 0, time.UTC)
 	clock := new(mocked.Clock)
@@ -72,7 +75,7 @@ func TestLog_LogAgain(t *testing.T) {
 	assert.Equal(t, core.QSONumber(2), lastQso.TheirNumber, "last item should have latest data")
 }
 
-func TestLog_EmitRowAdded(t *testing.T) {
+func TestLog_EmitQSOAdded(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	logbook := New(clock)

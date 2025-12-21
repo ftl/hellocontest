@@ -10,6 +10,10 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+type QTCsEnabledListener interface {
+	SetQTCsEnabled(bool)
+}
+
 type QTCSelectedListener interface {
 	QTCSelected(core.QTC)
 }
@@ -36,6 +40,7 @@ type QTCsClearedListener interface {
 
 type QTCList struct {
 	dataLock      *sync.RWMutex
+	enabled       bool
 	data          []core.QTC
 	availableQTCs []core.QTC
 	qtcsByCall    map[callsign.Callsign]int
@@ -54,6 +59,14 @@ func NewQTCList() *QTCList {
 
 func (l *QTCList) Notify(listener any) {
 	l.listeners = append(l.listeners, listener)
+}
+
+func (l *QTCList) emitQTCsEnabled(value bool) {
+	for _, lis := range l.listeners {
+		if listener, ok := lis.(QTCsEnabledListener); ok {
+			listener.SetQTCsEnabled(value)
+		}
+	}
 }
 
 func (l *QTCList) emitQTCsCleared() {
@@ -86,6 +99,20 @@ func (l *QTCList) emitQTCRowSelected(index int) {
 			rowSelectedListener.QTCRowSelected(index)
 		}
 	}
+}
+
+func (l *QTCList) SetQTCsEnabled(enabled bool) {
+	l.dataLock.Lock()
+	l.enabled = enabled
+	l.dataLock.Unlock()
+
+	l.emitQTCsEnabled(enabled)
+}
+
+func (l *QTCList) QTCsEnabled() bool {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+	return l.enabled
 }
 
 func (l *QTCList) Clear() {

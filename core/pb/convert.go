@@ -112,6 +112,7 @@ func ToContest(pbContest *Contest) (core.Contest, error) {
 	contest.ExchangeValues = pbContest.ExchangeValues
 	contest.GenerateSerialExchange = pbContest.GenerateSerialExchange
 	contest.GenerateReport = pbContest.GenerateReport
+	contest.EnableQTCs = pbContest.EnableQtcs
 	contest.QSOsGoal = int(pbContest.QsosGoal)
 	contest.PointsGoal = int(pbContest.PointsGoal)
 	contest.MultisGoal = int(pbContest.MultisGoal)
@@ -148,6 +149,7 @@ func ContestToPB(contest core.Contest) *Contest {
 		ExchangeValues:         contest.ExchangeValues,
 		GenerateSerialExchange: contest.GenerateSerialExchange,
 		GenerateReport:         contest.GenerateReport,
+		EnableQtcs:             contest.EnableQTCs,
 
 		Name:                  contest.Name,
 		StartTime:             timestamppb.New(contest.StartTime),

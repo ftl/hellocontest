@@ -24,6 +24,7 @@ type fakeQTCList struct {
 
 func (l *fakeQTCList) PrepareFor(core.Callsign, int) []core.QTC { return l.qtcs }
 func (l *fakeQTCList) SelectLastQTC()                           {}
+func (l *fakeQTCList) SetQTCsEnabled(bool)                      {}
 
 type fakeEntryController struct {
 	currentCallsign core.Callsign

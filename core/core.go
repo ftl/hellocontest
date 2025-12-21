@@ -616,6 +616,7 @@ type Contest struct {
 	GenerateSerialExchange bool
 	GenerateReport         bool
 	StartTime              time.Time
+	EnableQTCs             bool
 
 	MyExchangeFields         []ExchangeField
 	MyReportExchangeField    ExchangeField

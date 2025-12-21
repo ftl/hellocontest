@@ -32,6 +32,7 @@ type SettingsController interface {
 	SetContestStartTimeToday()
 	SetContestStartTimeNow()
 	SetOperationModeSprint(bool)
+	SetContestEnableQTCs(bool)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
 	EnterQSOsGoal(string)
@@ -47,6 +48,7 @@ const (
 	contestName            fieldID = "contestName"
 	contestStartTime       fieldID = "contestStartTime"
 	operationModeSprint    fieldID = "operationModeSprint"
+	contestEnableQTCs      fieldID = "contestEnableQTCs"
 	contestCallHistoryFile fieldID = "contestCallHistoryFile"
 	qsosGoal               fieldID = "qsosGoal"
 	pointsGoal             fieldID = "pointsGoal"
@@ -63,7 +65,7 @@ type settingsView struct {
 	reset   *gtk.Button
 	close   *gtk.Button
 
-	fields map[fieldID]interface{}
+	fields map[fieldID]any
 
 	exchangeFieldsParent             *gtk.Grid
 	exchangeFieldCount               int
@@ -83,7 +85,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result := new(settingsView)
 	result.parent = parent
 	result.controller = controller
-	result.fields = make(map[fieldID]interface{})
+	result.fields = make(map[fieldID]any)
 
 	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
 	result.exchangeFieldsParent = getUI(builder, "contestExchangeFieldsGrid").(*gtk.Grid)
@@ -111,6 +113,7 @@ func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller Sett
 	result.addEntry(builder, contestName)
 	result.addEntry(builder, contestStartTime)
 	result.addCheckButton(builder, operationModeSprint)
+	result.addCheckButton(builder, contestEnableQTCs)
 	result.addFileChooser(builder, contestCallHistoryFile)
 	result.addEntry(builder, qsosGoal)
 	result.addEntry(builder, pointsGoal)
@@ -179,7 +182,7 @@ func (v *settingsView) onFieldChanged(w any) bool {
 	}
 
 	var field string
-	var value interface{}
+	var value any
 	switch widget := w.(type) {
 	case *gtk.Entry:
 		field, _ = widget.GetName()
@@ -212,6 +215,8 @@ func (v *settingsView) onFieldChanged(w any) bool {
 		v.controller.EnterContestStartTime(value.(string))
 	case operationModeSprint:
 		v.controller.SetOperationModeSprint(value.(bool))
+	case contestEnableQTCs:
+		v.controller.SetContestEnableQTCs(value.(bool))
 	case contestCallHistoryFile:
 		v.controller.EnterContestCallHistoryFile(value.(string))
 	case qsosGoal:
@@ -535,6 +540,10 @@ func (v *settingsView) SetContestStartTime(value string) {
 
 func (v *settingsView) SetOperationModeSprint(value bool) {
 	v.setCheckboxField(operationModeSprint, value)
+}
+
+func (v *settingsView) SetContestEnableQTCs(value bool) {
+	v.setCheckboxField(contestEnableQTCs, value)
 }
 
 func (v *settingsView) SetContestCallHistoryFile(value string) {

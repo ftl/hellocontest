@@ -23,21 +23,17 @@ const (
 	columnLast
 )
 
-type QTCListController interface {
-	SelectRow(int)
-}
-
 type qtcListView struct {
-	controller QTCListController
-
-	view *gtk.TreeView
-	list *gtk.ListStore
+	container *gtk.ScrolledWindow
+	view      *gtk.TreeView
+	list      *gtk.ListStore
 }
 
 func setupQTCListView(builder *gtk.Builder) *qtcListView {
 	result := new(qtcListView)
 
 	result.view = getUI(builder, "qtcList").(*gtk.TreeView)
+	result.container = getUI(builder, "qtcListContainer").(*gtk.ScrolledWindow)
 
 	result.view.AppendColumn(createLogColumn("UTC", columnUTC))
 	result.view.AppendColumn(createLogColumn("Callsign", columnCallsign))
@@ -52,22 +48,21 @@ func setupQTCListView(builder *gtk.Builder) *qtcListView {
 	result.list = createQTCListStore(int(result.view.GetNColumns()))
 	result.view.SetModel(result.list)
 
-	selection, err := result.view.GetSelection()
-	if err != nil {
-		log.Printf("no tree selection: %v", err)
-		return result
-	}
-	selection.Connect("changed", result.onSelectionChanged)
-
 	return result
 }
 
-func (v *qtcListView) SetQTCListController(controller QTCListController) {
-	v.controller = controller
+func (v *qtcListView) SetVisible(visible bool) {
+	v.container.SetVisible(visible)
+	if visible {
+		v.view.SetSizeRequest(-1, 50)
+	} else {
+		v.view.SetSizeRequest(-1, -1)
+	}
 }
 
-func (v *qtcListView) SetVisible(visible bool) {
-	v.view.SetVisible(visible)
+func (v *qtcListView) SetQTCsEnabled(enabled bool) {
+	log.Printf("VIEW QTCs ENABLED: %t", enabled)
+	v.SetVisible(enabled)
 }
 
 func (v *qtcListView) QTCsCleared() {
@@ -145,19 +140,4 @@ func (v *qtcListView) QTCRowSelected(index int) {
 	}
 	v.view.SetCursorOnCell(path, v.view.GetColumn(1), nil, false)
 	v.view.ScrollToCell(path, v.view.GetColumn(1), false, 0, 0)
-}
-
-func (v *qtcListView) onSelectionChanged(selection *gtk.TreeSelection) bool {
-	model, _ := v.view.GetModel()
-	rows := selection.GetSelectedRows(model)
-	if rows.Length() != 1 {
-		return false
-	}
-
-	row := rows.NthData(0).(*gtk.TreePath)
-	index := row.GetIndices()[0]
-	if v.controller != nil {
-		v.controller.SelectRow(index)
-	}
-	return true
 }

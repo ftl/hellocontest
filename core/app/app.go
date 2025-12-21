@@ -237,6 +237,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Workmode)
 	c.Settings.Notify(c.Keyer)
 	c.Settings.Notify(c.QSOList)
+	c.Settings.Notify(c.QTCController)
 	c.Settings.Notify(c.Score)
 	c.Settings.Notify(c.Rate)
 	c.Settings.Notify(c.Callinfo)

@@ -75,6 +75,11 @@ func (w *mainWindow) BringToFront() {
 	w.window.Present()
 }
 
+func (w *mainWindow) SetQTCsEnabled(enabled bool) {
+	w.mainMenu.SetQTCsEnabled(enabled)
+	w.qtcListView.SetQTCsEnabled(enabled)
+}
+
 func (w *mainWindow) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {
 	dlg, err := gtk.FileChooserDialogNewWith1Button(title, &w.window.Window, gtk.FILE_CHOOSER_ACTION_OPEN, "Open", gtk.RESPONSE_ACCEPT)
 	if err != nil {

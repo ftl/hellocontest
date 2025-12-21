@@ -94,6 +94,7 @@ type View interface {
 	SetContestExchangeValue(index int, value string)
 	SetContestGenerateSerialExchange(active bool, sensitive bool)
 	SetContestGenerateReport(active bool, sensitive bool)
+	SetContestEnableQTCs(bool)
 
 	SetContestName(string)
 	SetContestStartTime(string)
@@ -292,6 +293,7 @@ func (s *Settings) showSettings() {
 	s.view.SetContestName(s.contest.Name)
 	s.view.SetContestStartTime(s.formattedContestStartTime())
 	s.view.SetOperationModeSprint(s.contest.OperationModeSprint)
+	s.view.SetContestEnableQTCs(s.contest.EnableQTCs)
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
 	s.view.SetQSOsGoal(strconv.Itoa(s.contest.QSOsGoal))
 	s.view.SetPointsGoal(strconv.Itoa(s.contest.PointsGoal))
@@ -651,6 +653,10 @@ func (s *Settings) SetOperationModeSprint(value bool) {
 	s.contest.OperationModeSprint = value
 }
 
+func (s *Settings) SetContestEnableQTCs(value bool) {
+	s.contest.EnableQTCs = value
+}
+
 func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
 	s.callHistory.Activate(s.contest.CallHistoryFilename)
@@ -715,6 +721,8 @@ type nullWriter struct{}
 func (w *nullWriter) WriteStation(core.Station) error { return nil }
 func (w *nullWriter) WriteContest(core.Contest) error { return nil }
 
+var _ View = new(nullView)
+
 type nullView struct{}
 
 func (v *nullView) Show()                                              {}
@@ -731,6 +739,7 @@ func (v *nullView) SetContestExchangeFields([]core.ExchangeField)      {}
 func (v *nullView) SetContestExchangeValue(index int, value string)    {}
 func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
 func (v *nullView) SetContestGenerateReport(bool, bool)                {}
+func (v *nullView) SetContestEnableQTCs(bool)                          {}
 func (v *nullView) SetContestName(string)                              {}
 func (v *nullView) SetContestStartTime(string)                         {}
 func (v *nullView) SetOperationModeSprint(bool)                        {}

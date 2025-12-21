@@ -1,110 +1,112 @@
 syntax = "proto3";
 package pb;
-option go_package = "core/pb";
 
 import "google/protobuf/timestamp.proto";
 
+option go_package = "core/pb";
+
 message FileInfo {
-    int32 format_version = 1;
+  int32 format_version = 1;
 }
 
 message Entry {
-    oneof entry {
-        QSO qso = 1;
-        Station station = 2;
-        Contest contest = 3;
-        Keyer keyer = 4;
-        QTC qtc = 5;
-    }
+  oneof entry {
+    QSO qso = 1;
+    Station station = 2;
+    Contest contest = 3;
+    Keyer keyer = 4;
+    QTC qtc = 5;
+  }
 }
 
 enum Workmode {
-    WORKMODE_UNKNOWN = 0;
-    WORKMODE_SEARCH_POUNCE = 1;
-    WORKMODE_RUN = 2;
+  WORKMODE_UNKNOWN = 0;
+  WORKMODE_SEARCH_POUNCE = 1;
+  WORKMODE_RUN = 2;
 }
 
 message QSO {
-    string callsign = 1;
-    int64 timestamp = 2;
-    string band = 3;
-    string mode = 4;
-    string my_report = 5;
-    int32 my_number = 6;
-    string their_report = 7;
-    int32 their_number = 8;
-    int64 log_timestamp = 9;
-    string my_xchange = 10; // deprecated
-    string their_xchange = 11; // deprecated
-    double frequency = 12;
-    reserved 13;
-    repeated string my_exchange = 14;
-    repeated string their_exchange = 15;
-    Workmode workmode = 16;
+  string callsign = 1;
+  int64 timestamp = 2;
+  string band = 3;
+  string mode = 4;
+  string my_report = 5;
+  int32 my_number = 6;
+  string their_report = 7;
+  int32 their_number = 8;
+  int64 log_timestamp = 9;
+  string my_xchange = 10; // deprecated
+  string their_xchange = 11; // deprecated
+  double frequency = 12;
+  reserved 13;
+  repeated string my_exchange = 14;
+  repeated string their_exchange = 15;
+  Workmode workmode = 16;
 }
 
 message Station {
-    string callsign = 1;
-    string operator = 2;
-    string locator = 3;
+  string callsign = 1;
+  string operator = 2;
+  string locator = 3;
 }
 
 message Contest {
-    string name = 1;
-    bool enter_their_number = 2; // deprecated
-    bool enter_their_xchange = 3; // deprecated
-    bool require_their_xchange = 4; // deprecated
-    bool allow_multi_band = 5; // deprecated
-    bool allow_multi_mode = 6; // deprecated
-    int32 same_country_points = 7; // deprecated
-    int32 same_continent_points = 8; // deprecated
-    int32 specific_country_points = 9; // deprecated
-    repeated string specific_country_prefixes = 10; // deprecated
-    int32 other_points = 11; // deprecated
-    Multis multis = 12; // deprecated
-    string xchange_multi_pattern = 13; // deprecated
-    bool count_per_band = 14; // deprecated
-    string cabrillo_qso_template = 15; // deprecated
-    string call_history_filename = 16;
-    reserved 17;
+  string name = 1;
+  bool enter_their_number = 2; // deprecated
+  bool enter_their_xchange = 3; // deprecated
+  bool require_their_xchange = 4; // deprecated
+  bool allow_multi_band = 5; // deprecated
+  bool allow_multi_mode = 6; // deprecated
+  int32 same_country_points = 7; // deprecated
+  int32 same_continent_points = 8; // deprecated
+  int32 specific_country_points = 9; // deprecated
+  repeated string specific_country_prefixes = 10; // deprecated
+  int32 other_points = 11; // deprecated
+  Multis multis = 12; // deprecated
+  string xchange_multi_pattern = 13; // deprecated
+  bool count_per_band = 14; // deprecated
+  string cabrillo_qso_template = 15; // deprecated
+  string call_history_filename = 16;
+  reserved 17;
 
-    string definition_yaml = 18;
-    repeated string exchange_values = 19;
-    bool generate_serial_exchange = 20;
-    repeated string call_history_field_names = 21;
-    int32 qsos_goal = 22;
-    int32 points_goal = 23;
-    int32 multis_goal = 24;
-    bool sprint_operation = 25;
-    google.protobuf.Timestamp start_time = 26;
-    bool generate_report = 27;
+  string definition_yaml = 18;
+  repeated string exchange_values = 19;
+  bool generate_serial_exchange = 20;
+  repeated string call_history_field_names = 21;
+  int32 qsos_goal = 22;
+  int32 points_goal = 23;
+  int32 multis_goal = 24;
+  bool sprint_operation = 25;
+  google.protobuf.Timestamp start_time = 26;
+  bool generate_report = 27;
+  bool enable_qtcs = 28;
 }
 
 message Multis { // deprecated
-    bool dxcc = 1;  // deprecated
-    bool wpx = 2;  // deprecated
-    bool xchange = 3;  // deprecated
+  bool dxcc = 1; // deprecated
+  bool wpx = 2; // deprecated
+  bool xchange = 3; // deprecated
 }
 
 message Keyer {
-    int32 wpm = 1;
-    repeated string sp_macros = 2;
-    repeated string run_macros = 3;
-    repeated string sp_labels = 4;
-    repeated string run_labels = 5;
-    int32 parrot_interval_seconds = 6;
+  int32 wpm = 1;
+  repeated string sp_macros = 2;
+  repeated string run_macros = 3;
+  repeated string sp_labels = 4;
+  repeated string run_labels = 5;
+  int32 parrot_interval_seconds = 6;
 }
 
 message QTC {
-    int64 timestamp = 1;
-    double frequency = 2;
-    string band = 3;
-    string mode = 4;
-    int32 kind = 5;
-    int32 qso_number = 6;
-    string their_callsign = 7;
-    string header = 8;
-    string qtc_time = 9;
-    string qtc_callsign = 10;
-    int32 qtc_number = 11;
+  int64 timestamp = 1;
+  double frequency = 2;
+  string band = 3;
+  string mode = 4;
+  int32 kind = 5;
+  int32 qso_number = 6;
+  string their_callsign = 7;
+  string header = 8;
+  string qtc_time = 9;
+  string qtc_callsign = 10;
+  int32 qtc_number = 11;
 }

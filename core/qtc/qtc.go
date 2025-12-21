@@ -30,6 +30,7 @@ type Logbook interface {
 type QTCList interface {
 	PrepareFor(callsign.Callsign, int) []core.QTC
 	SelectLastQTC()
+	SetQTCsEnabled(bool)
 }
 
 type EntryController interface {
@@ -76,6 +77,7 @@ type qtcWorkflow interface {
 
 type Controller struct {
 	workflow qtcWorkflow
+	enabled  bool
 
 	clock           core.Clock
 	logbook         Logbook
@@ -127,6 +129,12 @@ func (c *Controller) SetView(view View) {
 		return
 	}
 	c.view = view
+	c.qtcList.SetQTCsEnabled(c.enabled)
+}
+
+func (c *Controller) ContestChanged(contest core.Contest) {
+	c.enabled = contest.EnableQTCs
+	c.qtcList.SetQTCsEnabled(contest.EnableQTCs)
 }
 
 func (c *Controller) questionInvalidQSOData(call callsign.Callsign) bool {

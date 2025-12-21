@@ -188,6 +188,11 @@ func (m *mainMenu) SetMainMenuController(controller MainMenuController) {
 	m.controller = controller
 }
 
+func (m *mainMenu) SetQTCsEnabled(enabled bool) {
+	m.editOfferQTC.SetSensitive(enabled)
+	m.editRequestQTC.SetSensitive(enabled)
+}
+
 func (m *mainMenu) WorkmodeChanged(workmode core.Workmode) {
 	switch workmode {
 	case core.SearchPounce:

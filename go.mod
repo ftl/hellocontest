@@ -3,7 +3,7 @@ module github.com/ftl/hellocontest
 go 1.24.3
 
 require (
-	github.com/ftl/cabrillo v0.2.4
+	github.com/ftl/cabrillo v0.3.0
 	github.com/ftl/clusterix v0.1.0
 	github.com/ftl/conval v0.10.2
 	github.com/ftl/gmtry v0.0.0-20201120192810-fa4a1b99fc04

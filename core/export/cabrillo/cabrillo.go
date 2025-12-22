@@ -96,7 +96,7 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 }
 
-func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO) (Result, bool) {
+func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO, qtcs []core.QTC) (Result, bool) {
 	c.definition = settings.Contest().Definition
 	c.qsoBand, c.qsoMode = findBandAndMode(qsos)
 	c.category.Band = c.qsoBand
@@ -123,7 +123,7 @@ func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.Q
 		return Result{nil, false, false}, false
 	}
 
-	export := createCabrilloLog(settings, claimedScore, qsos)
+	export := createCabrilloLog(settings, claimedScore, qsos, qtcs)
 	export.Category = c.category
 	export.Name = c.name
 	export.Email = c.email
@@ -421,7 +421,7 @@ func (c *Controller) SetOpenAfterExport(open bool) {
 	c.openAfterExport = open
 }
 
-func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO) *cabrillo.Log {
+func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO, qtcs []core.QTC) *cabrillo.Log {
 	export := cabrillo.NewLog()
 	export.Callsign = settings.Station().Callsign
 	export.CreatedBy = "Hello Contest"
@@ -442,6 +442,13 @@ func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO
 	}
 	export.QSOData = qsoData
 	export.IgnoredQSOs = ignoredQSOs
+
+	qtcData := make([]cabrillo.QTC, 0, len(qtcs))
+	for _, qtc := range qtcs {
+		exportedQTC := toQTC(qtc, settings.Station().Callsign)
+		qtcData = append(qtcData, exportedQTC)
+	}
+	export.QTCData = qtcData
 
 	return export
 }
@@ -510,15 +517,8 @@ func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso c
 }
 
 func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
-	var frequency string
-	if qso.Frequency == 0 {
-		frequency = qrg[qso.Band]
-	} else {
-		frequency = fmt.Sprintf("%5.0f", qso.Frequency/1000.0)
-	}
-
 	return cabrillo.QSO{
-		Frequency: cabrillo.QSOFrequency(frequency),
+		Frequency: toQSOFrequency(qso.Frequency, qso.Band),
 		Mode:      mode[qso.Mode],
 		Timestamp: qso.Time,
 		Sent: cabrillo.QSOInfo{
@@ -531,6 +531,35 @@ func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
 		},
 		Transmitter: 0,
 	}
+}
+
+func toQTC(qtc core.QTC, mycall callsign.Callsign) cabrillo.QTC {
+	result := cabrillo.QTC{
+		Frequency: toQSOFrequency(qtc.Frequency, qtc.Band),
+		Mode:      mode[qtc.Mode],
+		Timestamp: qtc.Timestamp,
+		QTCHeader: cabrillo.QTCHeader(qtc.Header.String()),
+		QTCTime:   cabrillo.QTCTime(qtc.QTCTime.String()),
+		QTCCall:   qtc.QTCCallsign,
+		QTCNumber: cabrillo.QTCNumber(qtc.QTCNumber),
+	}
+
+	if qtc.Kind == core.SentQTC {
+		result.RxCall = qtc.TheirCallsign
+		result.TxCall = mycall
+	} else {
+		result.RxCall = mycall
+		result.TxCall = qtc.TheirCallsign
+	}
+
+	return result
+}
+
+func toQSOFrequency(frequency core.Frequency, band core.Band) cabrillo.QSOFrequency {
+	if frequency == 0 {
+		return cabrillo.QSOFrequency(qrg[band])
+	}
+	return cabrillo.QSOFrequency(fmt.Sprintf("%5.0f", frequency/1000.0))
 }
 
 func findBandAndMode(qsos []core.QSO) (band cabrillo.CategoryBand, mode cabrillo.CategoryMode) {

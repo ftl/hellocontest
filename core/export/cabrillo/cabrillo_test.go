@@ -74,7 +74,7 @@ func TestExport(t *testing.T) {
 		stationLocator:    "AA00AA",
 		contestIdentifier: "HELLO-CONTEST-CABRILLO-TEST",
 	}
-	theirCall, _ := callsign.Parse("S50A")
+	theirCall := callsign.MustParse("S50A")
 	qso := core.QSO{
 		Callsign:      theirCall,
 		Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
@@ -87,6 +87,19 @@ func TestExport(t *testing.T) {
 		TheirNumber:   core.QSONumber(4),
 		TheirExchange: []string{"589", "004", "DEF"},
 	}
+	qtc := core.QTC{
+		Kind:          core.SentQTC,
+		QSONumber:     1,
+		TheirCallsign: theirCall,
+		Header:        core.QTCHeader{SeriesNumber: 321, QTCCount: 1},
+		Timestamp:     time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
+		Frequency:     7020000,
+		Band:          core.Band40m,
+		Mode:          core.ModeCW,
+		QTCTime:       core.QTCTime{Hour: 12, Minute: 34},
+		QTCCallsign:   callsign.MustParse("DL1ABC"),
+		QTCNumber:     5,
+	}
 
 	expected := `START-OF-LOG: 3.0
 CREATED-BY: Hello Contest
@@ -97,10 +110,11 @@ GRID-LOCATOR: AA00aa
 CLAIMED-SCORE: 123
 CERTIFICATE: NO
 QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 ABC S50A 589 004 DEF
+QTC:  7020 CW 2009-05-30 0002 S50A 321/1 AA1ZZZ 1234 DL1ABC 005
 END-OF-LOG:
 `
 
-	export := createCabrilloLog(settings, 123, []core.QSO{qso})
+	export := createCabrilloLog(settings, 123, []core.QSO{qso}, []core.QTC{qtc})
 	Export(buffer, export)
 
 	assert.Equal(t, expected, buffer.String())

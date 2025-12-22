@@ -641,7 +641,7 @@ func (c *Controller) ExportSummary() {
 
 func (c *Controller) ExportCabrillo() {
 	// TODO: export QTCs
-	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All())
+	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All(), c.QTCList.All())
 	if !ok {
 		return
 	}

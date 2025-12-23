@@ -78,11 +78,11 @@ type Controller struct {
 	QSOList                  *logbook.QSOList
 	QTCList                  *logbook.QTCList
 	Entry                    *entry.Controller
+	Score                    *score.Counter
 	Workmode                 *workmode.Controller
 	Radio                    *radio.Controller
 	Keyer                    *keyer.Keyer
 	Callinfo                 *callinfo.Callinfo
-	Score                    *score.Counter
 	Rate                     *rate.Counter
 	ServiceStatus            *ServiceStatus
 	NewContestController     *newcontest.Controller
@@ -341,8 +341,6 @@ func (c *Controller) openCurrentLog() error {
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *logbook.Logbook) {
-	// TODO: handle QTCs
-
 	c.QSOList.Clear()
 	c.QTCList.Clear()
 
@@ -640,7 +638,6 @@ func (c *Controller) ExportSummary() {
 }
 
 func (c *Controller) ExportCabrillo() {
-	// TODO: export QTCs
 	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All(), c.QTCList.All())
 	if !ok {
 		return
@@ -768,8 +765,6 @@ func (c *Controller) ShowSpots() {
 }
 
 func (c *Controller) Refresh() {
-	c.QSOList.Clear()
-	c.QTCList.Clear()
 	qsos := c.Logbook.AllQSOs()
 	qtcs := c.Logbook.AllQTCs()
 	c.QSOList.Fill(qsos)

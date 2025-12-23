@@ -151,7 +151,7 @@ func (l *QSOList) Fill(qsos []core.QSO) {
 	}
 }
 
-func (l *QSOList) Put(qso core.QSO) {
+func (l *QSOList) QSOAdded(qso core.QSO) {
 	l.dataLock.Lock()
 
 	emitNotifications := l.put(qso)

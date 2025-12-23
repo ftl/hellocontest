@@ -348,7 +348,7 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, newL
 	c.store = store
 	c.Logbook = newLogbook
 	c.Logbook.SetWriter(c.store)
-	c.Logbook.Notify(logbook.QSOAddedListenerFunc(c.QSOList.Put))
+	c.Logbook.Notify(c.QSOList)
 	c.Logbook.Notify(c.QTCList)
 	c.Logbook.Notify(c.Workmode)
 

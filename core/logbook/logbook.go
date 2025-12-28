@@ -155,9 +155,13 @@ func (l *Logbook) LogQSO(qso core.QSO) {
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = max(l.myLastNumber, qso.MyNumber)
 	l.writer.WriteQSO(qso)
-	l.qsoList.Put(qso)
+	updated := l.qsoList.Put(qso)
+	if updated {
+		log.Printf("QSO updated: %s", qso.String())
+	} else {
+		log.Printf("QSO added: %s", qso.String())
+	}
 	l.qtcList.PutQSO(qso)
-	log.Printf("QSO added: %s", qso.String())
 }
 
 func (l *Logbook) LogQTC(qtc core.QTC) {

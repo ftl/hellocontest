@@ -158,26 +158,28 @@ func (l *QSOList) Fill(qsos []core.QSO) {
 	}
 }
 
-func (l *QSOList) Put(qso core.QSO) {
+func (l *QSOList) Put(qso core.QSO) bool {
 	l.dataLock.Lock()
 
-	emitNotifications := l.put(qso)
+	emitNotifications, updated := l.put(qso)
 
 	l.refreshScore()
 	allQSOs := l.all()
 	l.dataLock.Unlock()
 
 	emitNotifications(allQSOs)
+
+	return updated
 }
 
-func (l *QSOList) put(qso core.QSO) func([]core.QSO) {
+func (l *QSOList) put(qso core.QSO) (func([]core.QSO), bool) {
 	if len(l.list) == 0 {
-		return l.append(qso)
+		return l.append(qso), false
 	}
 
 	lastNumber := l.list[len(l.list)-1].MyNumber
 	if qso.MyNumber > lastNumber {
-		return l.append(qso)
+		return l.append(qso), false
 	}
 
 	index, found := l.findIndex(qso.MyNumber)
@@ -193,7 +195,7 @@ func (l *QSOList) put(qso core.QSO) func([]core.QSO) {
 		for _, qso := range qsos {
 			l.emitQSOAdded(qso)
 		}
-	}
+	}, true
 }
 
 func (l *QSOList) findIndex(number core.QSONumber) (int, bool) {

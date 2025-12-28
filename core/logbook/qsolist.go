@@ -224,16 +224,6 @@ func findIndex(list []core.QSO, number core.QSONumber) (int, bool) {
 }
 
 func (l *QSOList) append(qso core.QSO) func([]core.QSO) {
-	score := l.scorer.AddMuted(qso)
-	qso.Points = score.Points
-	qso.Multis = score.Multis
-	qso.Duplicate = score.Duplicate
-
-	dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
-	l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
-	l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
-	l.callsigns.Add(qso.Callsign.String())
-
 	l.list = append(l.list, qso)
 
 	return func([]core.QSO) {

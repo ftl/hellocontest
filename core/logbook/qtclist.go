@@ -142,7 +142,7 @@ func (l *QTCList) clear() {
 func (l *QTCList) Fill(qsos []core.QSO, qtcs []core.QTC) {
 	l.dataLock.Lock()
 	l.data = make([]core.QTC, 0, len(qtcs))
-	l.availableQTCs = make([]core.QTC, len(qsos))
+	l.availableQTCs = make([]core.QTC, 0, len(qsos))
 	l.qtcsByCall = make(map[callsign.Callsign]int)
 
 	for _, qso := range qsos {

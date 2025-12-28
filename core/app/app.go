@@ -760,10 +760,7 @@ func (c *Controller) ShowSpots() {
 }
 
 func (c *Controller) Refresh() {
-	qsos := c.Logbook.AllQSOs()
-	qtcs := c.Logbook.AllQTCs()
-	c.QSOList.Fill(qsos)
-	c.QTCList.Fill(qsos, qtcs)
+	c.Logbook.Refresh()
 	c.Entry.Clear()
 }
 

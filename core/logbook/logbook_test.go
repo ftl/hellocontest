@@ -17,7 +17,8 @@ func TestNew(t *testing.T) {
 	logbook := New(clock.New(), NewQSOList(new(testSettings), new(testScorer)), NewQTCList())
 
 	assert.Equal(t, core.QSONumber(1), logbook.NextNumber(), "next number of empty log should be 1")
-	assert.Empty(t, logbook.AllQSOs(), "empty log should not contain any QSO")
+	assert.Empty(t, logbook.qsos, "empty log should not contain any QSO")
+	assert.Empty(t, logbook.allQTCs(), "empty log should not contain any QTC")
 }
 
 func TestLoad(t *testing.T) {
@@ -36,7 +37,7 @@ func TestLoad(t *testing.T) {
 
 	assert.Equal(t, core.QSONumber(124), logbook.NextNumber())
 
-	actualQTCs := logbook.AllQTCs()
+	actualQTCs := logbook.allQTCs()
 	assert.Equal(t, qtcs, actualQTCs)
 	assert.Equal(t, 4, len(actualQTCs))
 	assert.Equal(t, 3, logbook.NextSeriesNumber())
@@ -50,8 +51,8 @@ func TestLog_LogQSO(t *testing.T) {
 	qso := core.QSO{MyNumber: 1}
 	logbook.LogQSO(qso)
 
-	require.Equal(t, 1, len(logbook.AllQSOs()), "after logging one QSO, the log should have one item")
-	loggedQso := logbook.AllQSOs()[0]
+	require.Equal(t, 1, len(logbook.qsos), "after logging one QSO, the log should have one item")
+	loggedQso := logbook.qsos[0]
 	assert.Equal(t, now, loggedQso.LogTimestamp, "LogTimestamp is wrong")
 }
 
@@ -69,8 +70,8 @@ func TestLog_LogQSOAgain(t *testing.T) {
 	qso.TheirNumber = 2
 	logbook.LogQSO(qso)
 
-	require.Equal(t, 2, len(logbook.AllQSOs()), "log should have two items")
-	lastQso := logbook.AllQSOs()[1]
+	require.Equal(t, 2, len(logbook.qsos), "log should have two items")
+	lastQso := logbook.qsos[1]
 	assert.Equal(t, then, lastQso.LogTimestamp, "last item should have last timestamp")
 	assert.Equal(t, core.QSONumber(2), lastQso.TheirNumber, "last item should have latest data")
 }

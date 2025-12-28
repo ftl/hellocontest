@@ -135,6 +135,21 @@ func (l *Logbook) LastExchange() []string {
 	return l.lastQSO().MyExchange
 }
 
+func (l *Logbook) Refresh() {
+	l.qsoList.Fill(l.qsos)
+	l.qtcList.Fill(l.qsoList.All(), l.allQTCs())
+}
+
+func (l *Logbook) allQTCs() []core.QTC {
+	result := make([]core.QTC, 0, len(l.sentQTCs)+len(l.receivedQTCs))
+	for _, qtc := range l.sentQTCs {
+		result = append(result, qtc)
+	}
+	result = append(result, l.receivedQTCs...)
+	slices.SortStableFunc(result, core.QTCByTimestamp)
+	return result
+}
+
 func (l *Logbook) LogQSO(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)
@@ -142,10 +157,6 @@ func (l *Logbook) LogQSO(qso core.QSO) {
 	l.writer.WriteQSO(qso)
 	l.qsoList.QSOAdded(qso)
 	log.Printf("QSO added: %s", qso.String())
-}
-
-func (l *Logbook) AllQSOs() []core.QSO {
-	return l.qsos
 }
 
 func (l *Logbook) LogQTC(qtc core.QTC) {
@@ -184,16 +195,6 @@ func (l *Logbook) registerQTCSeries(qtc core.QTC) {
 	}
 }
 
-func (l *Logbook) AllQTCs() []core.QTC {
-	result := make([]core.QTC, 0, len(l.sentQTCs)+len(l.receivedQTCs))
-	for _, qtc := range l.sentQTCs {
-		result = append(result, qtc)
-	}
-	result = append(result, l.receivedQTCs...)
-	slices.SortStableFunc(result, core.QTCByTimestamp)
-	return result
-}
-
 func (l *Logbook) WriteAll(writer Writer) error {
 	err := l.writeAllQSOs(writer)
 	if err != nil {
@@ -213,7 +214,7 @@ func (l *Logbook) writeAllQSOs(writer Writer) error {
 }
 
 func (l *Logbook) writeAllQTCs(writer Writer) error {
-	for _, qtc := range l.AllQTCs() {
+	for _, qtc := range l.allQTCs() {
 		err := writer.WriteQTC(qtc)
 		if err != nil {
 			return fmt.Errorf("cannot write QTC %v: %w", qtc, err)

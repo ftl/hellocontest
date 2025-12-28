@@ -322,7 +322,7 @@ func (c *Controller) openCurrentLog() error {
 	qsos, station, contest, keyerSettings, qtcs, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
-		newLogbook = logbook.New(c.clock)
+		newLogbook = logbook.New(c.clock, c.QSOList, c.QTCList)
 	} else {
 		c.Settings.SetWriter(store)
 		if station != nil {
@@ -335,22 +335,17 @@ func (c *Controller) openCurrentLog() error {
 		if keyerSettings != nil {
 			c.Keyer.SetSettings(*keyerSettings, "")
 		}
-		newLogbook = logbook.Load(c.clock, qsos, qtcs)
+		newLogbook = logbook.Load(c.clock, c.QSOList, c.QTCList, qsos, qtcs)
 	}
 	c.changeLogbook(filename, store, newLogbook)
 	return nil
 }
 
 func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *logbook.Logbook) {
-	c.QSOList.Clear()
-	c.QTCList.Clear()
-
 	c.filename = filename
 	c.store = store
 	c.Logbook = newLogbook
 	c.Logbook.SetWriter(c.store)
-	c.Logbook.Notify(c.QSOList)
-	c.Logbook.Notify(c.QTCList)
 
 	c.VFO.SetLogbook(c.Logbook)
 	c.Entry.SetLogbook(c.Logbook)
@@ -514,7 +509,7 @@ func (c *Controller) New() {
 
 	c.Settings.SetWriter(store)
 	c.Keyer.SetWriter(store)
-	c.changeLogbook(filename, store, logbook.New(c.clock))
+	c.changeLogbook(filename, store, logbook.New(c.clock, c.QSOList, c.QTCList))
 	c.Refresh()
 
 	c.OpenSettings()
@@ -548,7 +543,7 @@ func (c *Controller) Open() {
 	if keyerSettings != nil {
 		c.Keyer.SetSettings(*keyerSettings, "")
 	}
-	log := logbook.Load(c.clock, qsos, qtcs)
+	log := logbook.Load(c.clock, c.QSOList, c.QTCList, qsos, qtcs)
 	c.changeLogbook(filename, store, log)
 	c.Refresh()
 }

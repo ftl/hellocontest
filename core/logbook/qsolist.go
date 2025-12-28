@@ -21,6 +21,16 @@ func (f QSOsClearedListenerFunc) QSOsCleared() {
 	f()
 }
 
+type QSOAddedListener interface {
+	QSOAdded(core.QSO)
+}
+
+type QSOAddedListenerFunc func(core.QSO)
+
+func (f QSOAddedListenerFunc) QSOAdded(qso core.QSO) {
+	f(qso)
+}
+
 type QSOSelectedListener interface {
 	QSOSelected(core.QSO)
 }
@@ -126,16 +136,13 @@ func (l *QSOList) clear() {
 	l.dupes = make(dupeIndex)
 	l.worked = make(dupeIndex)
 	l.callsigns = scp.NewDatabase()
+	l.scorer.Clear()
 	l.invalid = false
 }
 
 func (l *QSOList) Fill(qsos []core.QSO) {
 	l.dataLock.Lock()
-
-	l.scorer.Clear()
-	if len(l.list) > 0 {
-		l.clear()
-	}
+	l.clear()
 
 	for _, qso := range qsos {
 		l.put(qso)

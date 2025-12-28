@@ -10,6 +10,16 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+type QTCAddedListener interface {
+	QTCAdded(core.QTC)
+}
+
+type QTCAddedListenerFunc func(core.QTC)
+
+func (f QTCAddedListenerFunc) QTCAdded(qtc core.QTC) {
+	f(qtc)
+}
+
 type QTCsEnabledListener interface {
 	SetQTCsEnabled(bool)
 }
@@ -132,6 +142,8 @@ func (l *QTCList) clear() {
 func (l *QTCList) Fill(qsos []core.QSO, qtcs []core.QTC) {
 	l.dataLock.Lock()
 	l.data = make([]core.QTC, 0, len(qtcs))
+	l.availableQTCs = make([]core.QTC, len(qsos))
+	l.qtcsByCall = make(map[callsign.Callsign]int)
 
 	for _, qso := range qsos {
 		l.putQSO(qso)

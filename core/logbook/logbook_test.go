@@ -14,7 +14,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	logbook := New(clock.New())
+	logbook := New(clock.New(), NewQSOList(new(testSettings), new(testScorer)), NewQTCList())
 
 	assert.Equal(t, core.QSONumber(1), logbook.NextNumber(), "next number of empty log should be 1")
 	assert.Empty(t, logbook.AllQSOs(), "empty log should not contain any QSO")
@@ -32,7 +32,7 @@ func TestLoad(t *testing.T) {
 		{TheirCallsign: callsign.MustParse("DL4ABC"), Header: core.QTCHeader{SeriesNumber: 2, QTCCount: 1}, Kind: core.SentQTC, QSONumber: 235, Timestamp: now},
 	}
 
-	logbook := Load(clock.New(), qsos, qtcs)
+	logbook := Load(clock.New(), NewQSOList(new(testSettings), new(testScorer)), NewQTCList(), qsos, qtcs)
 
 	assert.Equal(t, core.QSONumber(124), logbook.NextNumber())
 
@@ -45,7 +45,7 @@ func TestLoad(t *testing.T) {
 func TestLog_LogQSO(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
-	logbook := New(clock)
+	logbook := New(clock, NewQSOList(new(testSettings), new(testScorer)), NewQTCList())
 
 	qso := core.QSO{MyNumber: 1}
 	logbook.LogQSO(qso)
@@ -59,7 +59,7 @@ func TestLog_LogQSOAgain(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	then := time.Date(2006, time.January, 2, 15, 5, 0, 0, time.UTC)
 	clock := new(mocked.Clock)
-	logbook := New(clock)
+	logbook := New(clock, NewQSOList(new(testSettings), new(testScorer)), NewQTCList())
 
 	clock.On("Now").Once().Return(now)
 	qso := core.QSO{MyNumber: 1, TheirNumber: 1}
@@ -75,23 +75,23 @@ func TestLog_LogQSOAgain(t *testing.T) {
 	assert.Equal(t, core.QSONumber(2), lastQso.TheirNumber, "last item should have latest data")
 }
 
-func TestLog_EmitQSOAdded(t *testing.T) {
+func TestLog_CallQSOAdded(t *testing.T) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
-	logbook := New(clock)
-	emitted := false
-	logbook.Notify(QSOAddedListenerFunc(func(core.QSO) {
-		emitted = true
-	}))
+	qsoList := NewQSOList(new(testSettings), new(testScorer))
+	logbook := New(clock, qsoList, NewQTCList())
 
 	qso := core.QSO{MyNumber: 1}
 	logbook.LogQSO(qso)
 
-	assert.True(t, emitted)
+	qsos := qsoList.All()
+
+	assert.Equal(t, 1, len(qsos))
+	assert.Equal(t, core.QSONumber(1), qsos[0].MyNumber)
 }
 
 func TestLog_NextNumber(t *testing.T) {
-	logbook := New(clock.New())
+	logbook := New(clock.New(), NewQSOList(new(testSettings), new(testScorer)), NewQTCList())
 
 	qso := core.QSO{MyNumber: 123}
 	logbook.LogQSO(qso)
@@ -100,7 +100,7 @@ func TestLog_NextNumber(t *testing.T) {
 }
 
 func TestLastBand(t *testing.T) {
-	logbook := New(clock.New())
+	logbook := New(clock.New(), NewQSOList(new(testSettings), new(testScorer)), NewQTCList())
 	assert.Equal(t, core.NoBand, logbook.LastBand())
 
 	logbook.LogQSO(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Band: core.Band80m})
@@ -108,7 +108,7 @@ func TestLastBand(t *testing.T) {
 }
 
 func TestLastMode(t *testing.T) {
-	logbook := New(clock.New())
+	logbook := New(clock.New(), NewQSOList(new(testSettings), new(testScorer)), NewQTCList())
 	assert.Equal(t, core.NoMode, logbook.LastMode())
 
 	logbook.LogQSO(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1, Mode: core.ModeDigital})

@@ -6,28 +6,9 @@ import (
 	"slices"
 
 	"github.com/ftl/hamradio/callsign"
+
 	"github.com/ftl/hellocontest/core"
 )
-
-type QSOAddedListener interface {
-	QSOAdded(core.QSO)
-}
-
-type QSOAddedListenerFunc func(core.QSO)
-
-func (f QSOAddedListenerFunc) QSOAdded(qso core.QSO) {
-	f(qso)
-}
-
-type QTCAddedListener interface {
-	QTCAdded(core.QTC)
-}
-
-type QTCAddedListenerFunc func(core.QTC)
-
-func (f QTCAddedListenerFunc) QTCAdded(qtc core.QTC) {
-	f(qtc)
-}
 
 type Writer interface {
 	WriteQSO(core.QSO) error
@@ -35,8 +16,11 @@ type Writer interface {
 }
 
 type Logbook struct {
-	clock             core.Clock
-	writer            Writer
+	clock   core.Clock
+	writer  Writer
+	qsoList *QSOList
+	qtcList *QTCList
+
 	qsos              []core.QSO
 	myLastNumber      core.QSONumber
 	sentQTCs          map[core.QSONumber]core.QTC
@@ -47,10 +31,15 @@ type Logbook struct {
 }
 
 // New creates a new empty logbook.
-func New(clock core.Clock) *Logbook {
+func New(clock core.Clock, qsoList *QSOList, qtcList *QTCList) *Logbook {
+	qsoList.Clear()
+	qtcList.Clear()
+
 	return &Logbook{
 		clock:        clock,
 		writer:       new(nullWriter),
+		qsoList:      qsoList,
+		qtcList:      qtcList,
 		qsos:         make([]core.QSO, 0, 1000),
 		sentQTCs:     make(map[core.QSONumber]core.QTC),
 		receivedQTCs: make([]core.QTC, 0),
@@ -58,10 +47,12 @@ func New(clock core.Clock) *Logbook {
 }
 
 // Load creates a new log and loads it with the entries from the given reader.
-func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
+func Load(clock core.Clock, qsoList *QSOList, qtcList *QTCList, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 	result := &Logbook{
 		clock:             clock,
 		writer:            new(nullWriter),
+		qsoList:           qsoList,
+		qtcList:           qtcList,
 		qsos:              qsos,
 		myLastNumber:      lastNumber(qsos),
 		sentQTCs:          make(map[core.QSONumber]core.QTC, len(qtcs)),
@@ -80,6 +71,9 @@ func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 			result.receivedQTCs = append(result.receivedQTCs, qtc)
 		}
 	}
+
+	qsoList.Fill(qsos)
+	qtcList.Fill(qsos, qtcs)
 
 	return result
 }
@@ -108,26 +102,6 @@ func (l *Logbook) SetWriter(writer Writer) {
 		l.writer = new(nullWriter)
 	}
 	l.writer = writer
-}
-
-func (l *Logbook) Notify(listener any) {
-	l.listeners = append(l.listeners, listener)
-}
-
-func (l *Logbook) emitQSOAdded(qso core.QSO) {
-	for _, lis := range l.listeners {
-		if listener, ok := lis.(QSOAddedListener); ok {
-			listener.QSOAdded(qso)
-		}
-	}
-}
-
-func (l *Logbook) emitQTCAdded(qtc core.QTC) {
-	for _, lis := range l.listeners {
-		if listener, ok := lis.(QTCAddedListener); ok {
-			listener.QTCAdded(qtc)
-		}
-	}
 }
 
 func (l *Logbook) NextNumber() core.QSONumber {
@@ -166,7 +140,7 @@ func (l *Logbook) LogQSO(qso core.QSO) {
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = max(l.myLastNumber, qso.MyNumber)
 	l.writer.WriteQSO(qso)
-	l.emitQSOAdded(qso)
+	l.qsoList.QSOAdded(qso)
 	log.Printf("QSO added: %s", qso.String())
 }
 
@@ -189,7 +163,7 @@ func (l *Logbook) LogQTC(qtc core.QTC) {
 		l.receivedQTCs = append(l.receivedQTCs, qtc)
 	}
 	l.writer.WriteQTC(qtc)
-	l.emitQTCAdded(qtc)
+	l.qtcList.QTCAdded(qtc)
 	log.Printf("QTC added: %v", qtc)
 }
 
@@ -246,15 +220,6 @@ func (l *Logbook) writeAllQTCs(writer Writer) error {
 		}
 	}
 	return nil
-}
-
-func (l *Logbook) ReplayAll() {
-	for _, qso := range l.qsos {
-		l.emitQSOAdded(qso)
-	}
-	for _, qtc := range l.AllQTCs() {
-		l.emitQTCAdded(qtc)
-	}
 }
 
 type nullWriter struct{}

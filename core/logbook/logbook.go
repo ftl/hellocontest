@@ -3,7 +3,6 @@ package logbook
 import (
 	"fmt"
 	"log"
-	"math"
 	"slices"
 
 	"github.com/ftl/hamradio/callsign"
@@ -39,7 +38,7 @@ type Logbook struct {
 	clock             core.Clock
 	writer            Writer
 	qsos              []core.QSO
-	myLastNumber      int
+	myLastNumber      core.QSONumber
 	sentQTCs          map[core.QSONumber]core.QTC
 	receivedQTCs      []core.QTC
 	sentQTCsPerSeries []int
@@ -85,10 +84,10 @@ func Load(clock core.Clock, qsos []core.QSO, qtcs []core.QTC) *Logbook {
 	return result
 }
 
-func lastNumber(qsos []core.QSO) int {
-	lastNumber := 0
+func lastNumber(qsos []core.QSO) core.QSONumber {
+	var lastNumber core.QSONumber = 0
 	for _, qso := range qsos {
-		lastNumber = max(lastNumber, int(qso.MyNumber))
+		lastNumber = max(lastNumber, qso.MyNumber)
 	}
 	return lastNumber
 }
@@ -165,7 +164,7 @@ func (l *Logbook) LastExchange() []string {
 func (l *Logbook) LogQSO(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)
-	l.myLastNumber = int(math.Max(float64(l.myLastNumber), float64(qso.MyNumber)))
+	l.myLastNumber = max(l.myLastNumber, qso.MyNumber)
 	l.writer.WriteQSO(qso)
 	l.emitQSOAdded(qso)
 	log.Printf("QSO added: %s", qso.String())

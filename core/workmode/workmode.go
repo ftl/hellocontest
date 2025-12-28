@@ -1,8 +1,6 @@
 package workmode
 
 import (
-	"math"
-
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -18,8 +16,6 @@ type Controller struct {
 
 	workmode            core.Workmode
 	operationModeSprint bool
-
-	lastQSONumber int
 }
 
 // View represents the visual part of the workmode handling.
@@ -62,10 +58,7 @@ func (c *Controller) operationModeHint() string {
 }
 
 func (c *Controller) QSOAdded(qso core.QSO) {
-	isNew := qso.MyNumber > core.QSONumber(c.lastQSONumber)
-	c.lastQSONumber = int(math.Max(float64(c.lastQSONumber), float64(qso.MyNumber)))
-
-	if !c.operationModeSprint || !isNew {
+	if !c.operationModeSprint {
 		return
 	}
 

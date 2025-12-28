@@ -191,6 +191,7 @@ func (c *Controller) Startup() {
 
 	c.Workmode = workmode.NewController()
 	c.Workmode.Notify(c.Entry)
+	c.QSOList.Notify(c.Workmode)
 
 	c.VFO = vfo.NewVFO("VFO 1", c.bandplan, c.asyncRunner)
 	c.Entry.SetVFO(c.VFO)
@@ -350,7 +351,6 @@ func (c *Controller) changeLogbook(filename string, store *store.FileStore, newL
 	c.Logbook.SetWriter(c.store)
 	c.Logbook.Notify(c.QSOList)
 	c.Logbook.Notify(c.QTCList)
-	c.Logbook.Notify(c.Workmode)
 
 	c.VFO.SetLogbook(c.Logbook)
 	c.Entry.SetLogbook(c.Logbook)

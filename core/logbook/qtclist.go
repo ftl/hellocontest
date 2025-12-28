@@ -149,7 +149,7 @@ func (l *QTCList) Fill(qsos []core.QSO, qtcs []core.QTC) {
 		l.putQSO(qso)
 	}
 	for _, qtc := range qtcs {
-		l.put(qtc)
+		l.putQTC(qtc)
 	}
 	allQTCs := l.all()
 	l.dataLock.Unlock()
@@ -160,14 +160,14 @@ func (l *QTCList) Fill(qsos []core.QSO, qtcs []core.QTC) {
 	}
 }
 
-func (l *QTCList) QTCAdded(qtc core.QTC) {
+func (l *QTCList) PutQTC(qtc core.QTC) {
 	l.dataLock.Lock()
-	l.put(qtc)
+	l.putQTC(qtc)
 	l.dataLock.Unlock()
 	l.emitQTCAdded(qtc)
 }
 
-func (l *QTCList) put(qtc core.QTC) {
+func (l *QTCList) putQTC(qtc core.QTC) {
 	l.data = append(l.data, qtc)
 	l.removeAvailable(qtc)
 	count := l.qtcsByCall[qtc.TheirCallsign]
@@ -243,7 +243,7 @@ func (l *QTCList) SelectLastQTC() {
 	l.emitQTCRowSelected(index)
 }
 
-func (l *QTCList) QSOAdded(qso core.QSO) {
+func (l *QTCList) PutQSO(qso core.QSO) {
 	l.dataLock.Lock()
 	l.putQSO(qso)
 	l.dataLock.Unlock()
@@ -251,6 +251,12 @@ func (l *QTCList) QSOAdded(qso core.QSO) {
 
 func (l *QTCList) putQSO(qso core.QSO) {
 	qtc := qtcFromQSO(qso)
+	for i, availableQTC := range l.availableQTCs {
+		if availableQTC.QSONumber == qso.MyNumber {
+			l.availableQTCs[i] = qtc
+			return
+		}
+	}
 	l.availableQTCs = append(l.availableQTCs, qtc)
 }
 

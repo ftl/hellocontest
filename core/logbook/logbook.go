@@ -137,7 +137,7 @@ func (l *Logbook) LastExchange() []string {
 
 func (l *Logbook) Refresh() {
 	l.qsoList.Fill(l.qsos)
-	l.qtcList.Fill(l.qsoList.All(), l.allQTCs())
+	l.qtcList.Fill(l.qsos, l.allQTCs())
 }
 
 func (l *Logbook) allQTCs() []core.QTC {
@@ -155,7 +155,8 @@ func (l *Logbook) LogQSO(qso core.QSO) {
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = max(l.myLastNumber, qso.MyNumber)
 	l.writer.WriteQSO(qso)
-	l.qsoList.QSOAdded(qso)
+	l.qsoList.Put(qso)
+	l.qtcList.PutQSO(qso)
 	log.Printf("QSO added: %s", qso.String())
 }
 
@@ -174,7 +175,7 @@ func (l *Logbook) LogQTC(qtc core.QTC) {
 		l.receivedQTCs = append(l.receivedQTCs, qtc)
 	}
 	l.writer.WriteQTC(qtc)
-	l.qtcList.QTCAdded(qtc)
+	l.qtcList.PutQTC(qtc)
 	log.Printf("QTC added: %v", qtc)
 }
 

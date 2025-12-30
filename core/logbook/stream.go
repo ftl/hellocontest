@@ -15,7 +15,7 @@ type Writer interface {
 	WriteQTC(core.QTC) error
 }
 
-type Logbook struct {
+type LogStream struct {
 	clock   core.Clock
 	writer  Writer
 	qsoList *QSOList
@@ -31,11 +31,11 @@ type Logbook struct {
 }
 
 // New creates a new empty logbook.
-func New(clock core.Clock, qsoList *QSOList, qtcList *QTCList) *Logbook {
+func New(clock core.Clock, qsoList *QSOList, qtcList *QTCList) *LogStream {
 	qsoList.Clear()
 	qtcList.Clear()
 
-	return &Logbook{
+	return &LogStream{
 		clock:        clock,
 		writer:       new(nullWriter),
 		qsoList:      qsoList,
@@ -47,8 +47,8 @@ func New(clock core.Clock, qsoList *QSOList, qtcList *QTCList) *Logbook {
 }
 
 // Load creates a new log and loads it with the entries from the given reader.
-func Load(clock core.Clock, qsoList *QSOList, qtcList *QTCList, qsos []core.QSO, qtcs []core.QTC) *Logbook {
-	result := &Logbook{
+func Load(clock core.Clock, qsoList *QSOList, qtcList *QTCList, qsos []core.QSO, qtcs []core.QTC) *LogStream {
+	result := &LogStream{
 		clock:             clock,
 		writer:            new(nullWriter),
 		qsoList:           qsoList,
@@ -97,50 +97,50 @@ func lastSeries(qtcs []core.QTC) int {
 	return result
 }
 
-func (l *Logbook) SetWriter(writer Writer) {
+func (l *LogStream) SetWriter(writer Writer) {
 	if writer == nil {
 		l.writer = new(nullWriter)
 	}
 	l.writer = writer
 }
 
-func (l *Logbook) NextNumber() core.QSONumber {
+func (l *LogStream) NextNumber() core.QSONumber {
 	return core.QSONumber(l.myLastNumber + 1)
 }
 
-func (l *Logbook) NextSeriesNumber() int {
+func (l *LogStream) NextSeriesNumber() int {
 	return len(l.sentQTCsPerSeries) + 1
 }
 
-func (l *Logbook) lastQSO() core.QSO {
+func (l *LogStream) lastQSO() core.QSO {
 	if len(l.qsos) == 0 {
 		return core.QSO{}
 	}
 	return l.qsos[len(l.qsos)-1]
 }
 
-func (l *Logbook) LastCallsign() callsign.Callsign {
+func (l *LogStream) LastCallsign() callsign.Callsign {
 	return l.lastQSO().Callsign
 }
 
-func (l *Logbook) LastBand() core.Band {
+func (l *LogStream) LastBand() core.Band {
 	return l.lastQSO().Band
 }
 
-func (l *Logbook) LastMode() core.Mode {
+func (l *LogStream) LastMode() core.Mode {
 	return l.lastQSO().Mode
 }
 
-func (l *Logbook) LastExchange() []string {
+func (l *LogStream) LastExchange() []string {
 	return l.lastQSO().MyExchange
 }
 
-func (l *Logbook) Refresh() {
+func (l *LogStream) Refresh() {
 	l.qsoList.Fill(l.qsos)
 	l.qtcList.Fill(l.qsos, l.allQTCs())
 }
 
-func (l *Logbook) allQTCs() []core.QTC {
+func (l *LogStream) allQTCs() []core.QTC {
 	result := make([]core.QTC, 0, len(l.sentQTCs)+len(l.receivedQTCs))
 	for _, qtc := range l.sentQTCs {
 		result = append(result, qtc)
@@ -150,7 +150,7 @@ func (l *Logbook) allQTCs() []core.QTC {
 	return result
 }
 
-func (l *Logbook) LogQSO(qso core.QSO) {
+func (l *LogStream) LogQSO(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	l.qsos = append(l.qsos, qso)
 	l.myLastNumber = max(l.myLastNumber, qso.MyNumber)
@@ -164,7 +164,7 @@ func (l *Logbook) LogQSO(qso core.QSO) {
 	l.qtcList.PutQSO(qso)
 }
 
-func (l *Logbook) LogQTC(qtc core.QTC) {
+func (l *LogStream) LogQTC(qtc core.QTC) {
 	if err := qtc.VerifyComplete(); err != nil {
 		panic(fmt.Errorf("cannot log the given QTC: %v", err))
 	}
@@ -183,7 +183,7 @@ func (l *Logbook) LogQTC(qtc core.QTC) {
 	log.Printf("QTC added: %v", qtc)
 }
 
-func (l *Logbook) registerQTCSeries(qtc core.QTC) {
+func (l *LogStream) registerQTCSeries(qtc core.QTC) {
 	if qtc.Kind != core.SentQTC {
 		return
 	}
@@ -200,7 +200,7 @@ func (l *Logbook) registerQTCSeries(qtc core.QTC) {
 	}
 }
 
-func (l *Logbook) WriteAll(writer Writer) error {
+func (l *LogStream) WriteAll(writer Writer) error {
 	err := l.writeAllQSOs(writer)
 	if err != nil {
 		return err
@@ -208,7 +208,7 @@ func (l *Logbook) WriteAll(writer Writer) error {
 	return l.writeAllQTCs(writer)
 }
 
-func (l *Logbook) writeAllQSOs(writer Writer) error {
+func (l *LogStream) writeAllQSOs(writer Writer) error {
 	for _, qso := range l.qsos {
 		err := writer.WriteQSO(qso)
 		if err != nil {
@@ -218,7 +218,7 @@ func (l *Logbook) writeAllQSOs(writer Writer) error {
 	return nil
 }
 
-func (l *Logbook) writeAllQTCs(writer Writer) error {
+func (l *LogStream) writeAllQTCs(writer Writer) error {
 	for _, qtc := range l.allQTCs() {
 		err := writer.WriteQTC(qtc)
 		if err != nil {

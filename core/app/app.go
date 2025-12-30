@@ -74,7 +74,7 @@ type Controller struct {
 	hamDXMap          *hamdxmap.HamDXMap
 
 	VFO                      *vfo.VFO
-	Logbook                  *logbook.Logbook
+	Logbook                  *logbook.LogStream
 	QSOList                  *logbook.QSOList
 	QTCList                  *logbook.QTCList
 	Entry                    *entry.Controller
@@ -318,7 +318,7 @@ func (c *Controller) openCurrentLog() error {
 		}
 	}
 
-	var newLogbook *logbook.Logbook
+	var newLogbook *logbook.LogStream
 	qsos, station, contest, keyerSettings, qtcs, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
@@ -341,7 +341,7 @@ func (c *Controller) openCurrentLog() error {
 	return nil
 }
 
-func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *logbook.Logbook) {
+func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *logbook.LogStream) {
 	c.filename = filename
 	c.store = store
 	c.Logbook = newLogbook

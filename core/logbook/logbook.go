@@ -29,12 +29,13 @@ func (l *Logbook) Load(qsos []core.QSO, qtcs []core.QTC) error {
 }
 
 func (l *Logbook) AddQSO(qso core.QSO) {
+	qso.LogTimestamp = l.clock.Now()
 	err := l.addQSOLocked(qso)
 	if err != nil {
 		// TODO: handle otherwise?
 		panic(err)
 	}
-	// TODO: emitQSOAdded(qso)
+	// TODO: l.emitQSOAdded(qso)
 }
 
 func (l *Logbook) addQSOLocked(qso core.QSO) error {
@@ -55,7 +56,6 @@ func (l *Logbook) addQSOLocked(qso core.QSO) error {
 	if found {
 		return fmt.Errorf("Logbook.addQSO: a QSO with number %d already exists, cannot be added again, use Logbook.UpdateQSO instead", qso.MyNumber)
 	}
-
 	l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
 	l.qsos[index] = qso
 
@@ -92,12 +92,33 @@ func (l *Logbook) findQSOIndex(number core.QSONumber) (int, bool) {
 }
 
 func (l *Logbook) UpdateQSO(qso core.QSO) {
+	qso.LogTimestamp = l.clock.Now()
+	err := l.updateQSOLocked(qso)
+	if err != nil {
+		// TODO: handle otherwise?
+		panic(err)
+	}
+	// TODO: l.emitQSOUpdated(qso)
+}
 
+func (l *Logbook) updateQSOLocked(qso core.QSO) error {
+	l.dataLock.Lock()
+	defer l.dataLock.Unlock()
+
+	index, found := l.findQSOIndex(qso.MyNumber)
+	if !found {
+		return fmt.Errorf("Logbook.updateQSO: the QSO with number %d cannot be for update, use Logbook.UpdateQSO instead", qso.MyNumber)
+	}
+	l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
+	l.qsos[index] = qso
+
+	return nil
 }
 
 func (l *Logbook) AllQSOs() []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
+
 	result := make([]core.QSO, len(l.qsos))
 	copy(result, l.qsos)
 	return result

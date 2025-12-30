@@ -10,6 +10,8 @@ import (
 type Logbook struct {
 	clock core.Clock
 
+	listeners []any
+
 	dataLock          *sync.RWMutex
 	qsos              []core.QSO
 	sentQTCs          map[core.QSONumber]core.QTC // TODO: better store the QTC series?
@@ -28,24 +30,36 @@ func NewLogbook(clock core.Clock) *Logbook {
 	return result
 }
 
+// Loading
+
 func (l *Logbook) Load(qsos []core.QSO, qtcs []core.QTC) error {
+	loadedQSOs, loadedQTCs, err := l.loadLocked(qsos, qtcs)
+	if err != nil {
+		return err
+	}
+
+	l.emitNotificationsAfterRefresh(loadedQSOs, loadedQTCs)
+
+	return nil
+}
+
+func (l *Logbook) loadLocked(qsos []core.QSO, qtcs []core.QTC) ([]core.QSO, []core.QTC, error) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 
 	l.clear(len(qsos)*2, len(qtcs)*2)
 	err := l.putQSOs(qsos)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// TODO:
 	// load qtcs
 	// update derived data
-	// l.emitLogbookCleared()
-	// for each QSO: l.emitQSOAdded(qso)
-	// for each QTC: l.emitQTCAdded(qtc)
 
-	return nil
+	loadedQSOs := l.allQSOs()
+
+	return loadedQSOs, nil, nil
 }
 
 func (l *Logbook) clear(capQSOs int, capQTCs int) {
@@ -84,6 +98,8 @@ func (l *Logbook) putQSO(qso core.QSO) error {
 	return nil
 }
 
+// QSOs
+
 func (l *Logbook) AddQSO(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
 	err := l.addQSOLocked(qso)
@@ -91,7 +107,7 @@ func (l *Logbook) AddQSO(qso core.QSO) {
 		// TODO: handle otherwise?
 		panic(err)
 	}
-	// TODO: l.emitQSOAdded(qso)
+	l.emitQSOAdded(qso)
 }
 
 func (l *Logbook) addQSOLocked(qso core.QSO) error {
@@ -104,6 +120,9 @@ func (l *Logbook) addQSOLocked(qso core.QSO) error {
 	lastNumber := l.lastQSONumber()
 	if (lastNumber <= 0) || (qso.MyNumber > lastNumber) {
 		l.qsos = append(l.qsos, qso)
+
+		// TODO: update derived data
+
 		return nil
 	}
 
@@ -114,6 +133,8 @@ func (l *Logbook) addQSOLocked(qso core.QSO) error {
 	}
 	l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
 	l.qsos[index] = qso
+
+	// TODO: update derived data
 
 	return nil
 }
@@ -149,44 +170,103 @@ func (l *Logbook) findQSOIndex(number core.QSONumber) (int, bool) {
 
 func (l *Logbook) UpdateQSO(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
-	err := l.updateQSOLocked(qso)
+	updatedQSOs, updatedQTCs, err := l.updateQSOLocked(qso)
 	if err != nil {
 		// TODO: handle otherwise?
 		panic(err)
 	}
-	// TODO: update derived data and emit corresponding events
+
+	l.emitNotificationsAfterRefresh(updatedQSOs, updatedQTCs)
 }
 
-func (l *Logbook) updateQSOLocked(qso core.QSO) error {
+func (l *Logbook) updateQSOLocked(qso core.QSO) ([]core.QSO, []core.QTC, error) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 	if qso.MyNumber <= 0 {
-		return fmt.Errorf("Logbook.updateQSO: invalid QSO number %d", qso.MyNumber)
+		return nil, nil, fmt.Errorf("Logbook.updateQSO: invalid QSO number %d", qso.MyNumber)
 	}
 
 	index, found := l.findQSOIndex(qso.MyNumber)
 	if !found {
-		return fmt.Errorf("Logbook.updateQSO: the QSO with number %d cannot be for update, use Logbook.UpdateQSO instead", qso.MyNumber)
+		return nil, nil, fmt.Errorf("Logbook.updateQSO: the QSO with number %d cannot be found for update, use Logbook.UpdateQSO instead", qso.MyNumber)
 	}
-	l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
 	l.qsos[index] = qso
 
-	return nil
+	// TODO: update derived data
+
+	updatedQSOs := l.allQSOs()
+	updatedQTCs := l.allQTCs()
+
+	return updatedQSOs, updatedQTCs, nil
 }
 
 func (l *Logbook) AllQSOs() []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
+	return l.allQSOs()
+}
+
+func (l *Logbook) allQSOs() []core.QSO {
 	result := make([]core.QSO, len(l.qsos))
 	copy(result, l.qsos)
 	return result
 }
 
-func (l *Logbook) AddQTCSeries(series core.QTCSeries) {
+// QTCs
 
+func (l *Logbook) AddQTCSeries(series core.QTCSeries) {
+	panic("not yet implemented")
 }
 
 func (l *Logbook) AllQTCs() []core.QTC {
-	panic("not yet implemented")
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	return l.allQTCs()
+}
+
+func (l *Logbook) allQTCs() []core.QTC {
+	// TODO: implement
+	return nil
+}
+
+// Notifications
+
+func (l *Logbook) Notify(listener any) {
+	l.listeners = append(l.listeners, listener)
+}
+
+func (l *Logbook) emitNotificationsAfterRefresh(qsos []core.QSO, qtcs []core.QTC) {
+	l.emitLogbookCleared()
+	for _, qso := range qsos {
+		l.emitQSOAdded(qso)
+	}
+	for _, qtc := range qtcs {
+		l.emitQTCAdded(qtc)
+	}
+}
+
+func (l *Logbook) emitLogbookCleared() {
+	for _, rawListener := range l.listeners {
+		if listener, ok := rawListener.(LogbookClearedListener); ok {
+			listener.LogbookCleared()
+		}
+	}
+}
+
+func (l *Logbook) emitQSOAdded(qso core.QSO) {
+	for _, rawListener := range l.listeners {
+		if listener, ok := rawListener.(QSOAddedListener); ok {
+			listener.QSOAdded(qso)
+		}
+	}
+}
+
+func (l *Logbook) emitQTCAdded(qtc core.QTC) {
+	for _, rawListener := range l.listeners {
+		if listener, ok := rawListener.(QTCAddedListener); ok {
+			listener.QTCAdded(qtc)
+		}
+	}
 }

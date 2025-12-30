@@ -5,7 +5,12 @@ import (
 	"sync"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/dxcc"
 )
+
+type DXCCEntities interface {
+	Find(string) (dxcc.Prefix, bool)
+}
 
 type Logbook struct {
 	clock core.Clock
@@ -17,12 +22,15 @@ type Logbook struct {
 	sentQTCs          map[core.QSONumber]core.QTC // TODO: better store the QTC series?
 	receivedQTCs      []core.QTC                  // TODO: better store QTC series?
 	sentQTCsPerSeries []int
+
+	scoreCounter *scoreCounter
 }
 
-func NewLogbook(clock core.Clock) *Logbook {
+func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities) *Logbook {
 	result := &Logbook{
-		clock:    clock,
-		dataLock: new(sync.RWMutex),
+		clock:        clock,
+		dataLock:     new(sync.RWMutex),
+		scoreCounter: newScoreCounter(settings, entities),
 	}
 
 	result.clear(1000, 0)
@@ -30,36 +38,57 @@ func NewLogbook(clock core.Clock) *Logbook {
 	return result
 }
 
+// Settings
+
+func (l *Logbook) StationChanged(station core.Station) {
+	l.scoreCounter.StationChanged(station)
+	if !l.scoreCounter.Valid() {
+		return
+	}
+	// TODO: refresh derived data if l.scoreCounter.Valid()
+}
+
+func (l *Logbook) ContestChanged(contest core.Contest) {
+	l.scoreCounter.ContestChanged(contest)
+	if !l.scoreCounter.Valid() {
+		return
+	}
+	// TODO: refresh derived data if l.scoreCounter.Valid()
+}
+
 // Loading
 
 func (l *Logbook) Load(qsos []core.QSO, qtcs []core.QTC) error {
-	loadedQSOs, loadedQTCs, err := l.loadLocked(qsos, qtcs)
+	loadedQSOs, loadedQTCs, score, err := l.loadLocked(qsos, qtcs)
 	if err != nil {
 		return err
 	}
 
-	l.emitNotificationsAfterRefresh(loadedQSOs, loadedQTCs)
+	l.emitNotificationsAfterRefresh(loadedQSOs, loadedQTCs, score)
 
 	return nil
 }
 
-func (l *Logbook) loadLocked(qsos []core.QSO, qtcs []core.QTC) ([]core.QSO, []core.QTC, error) {
+func (l *Logbook) loadLocked(qsos []core.QSO, qtcs []core.QTC) ([]core.QSO, []core.QTC, core.Score, error) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 
 	l.clear(len(qsos)*2, len(qtcs)*2)
 	err := l.putQSOs(qsos)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, core.Score{}, err
 	}
 
-	// TODO:
-	// load qtcs
-	// update derived data
+	// TODO: load qtcs
 
+	// update first, because the QSO score might change during the update
+	score := l.refreshDerivedData()
+
+	// copy QSOs and QTCs for further processing outside the dataLock
 	loadedQSOs := l.allQSOs()
+	loadedQTCs := l.allQTCs()
 
-	return loadedQSOs, nil, nil
+	return loadedQSOs, loadedQTCs, score, nil
 }
 
 func (l *Logbook) clear(capQSOs int, capQTCs int) {
@@ -102,41 +131,42 @@ func (l *Logbook) putQSO(qso core.QSO) error {
 
 func (l *Logbook) AddQSO(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
-	err := l.addQSOLocked(qso)
+	qso, score, err := l.addQSOLocked(qso)
 	if err != nil {
-		// TODO: handle otherwise?
+		// this must never happen
 		panic(err)
 	}
 	l.emitQSOAdded(qso)
+	l.emitScoreChanged(score)
 }
 
-func (l *Logbook) addQSOLocked(qso core.QSO) error {
+func (l *Logbook) addQSOLocked(qso core.QSO) (core.QSO, core.Score, error) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 	if qso.MyNumber <= 0 {
-		return fmt.Errorf("Logbook.addQSO: invalid QSO number %d", qso.MyNumber)
+		return core.QSO{}, core.Score{}, fmt.Errorf("Logbook.addQSO: invalid QSO number %d", qso.MyNumber)
 	}
 
 	lastNumber := l.lastQSONumber()
 	if (lastNumber <= 0) || (qso.MyNumber > lastNumber) {
+		qso = l.scoreCounter.AddQSO(qso)
 		l.qsos = append(l.qsos, qso)
+		score := l.scoreCounter.Score()
 
-		// TODO: update derived data
-
-		return nil
+		return qso, score, nil
 	}
 
 	// find the right index and insert the QSO
 	index, found := l.findQSOIndex(qso.MyNumber)
 	if found {
-		return fmt.Errorf("Logbook.addQSO: a QSO with number %d already exists, cannot be added again, use Logbook.UpdateQSO instead", qso.MyNumber)
+		return core.QSO{}, core.Score{}, fmt.Errorf("Logbook.addQSO: a QSO with number %d already exists, cannot be added again, use Logbook.UpdateQSO instead", qso.MyNumber)
 	}
+	qso = l.scoreCounter.AddQSO(qso)
 	l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
 	l.qsos[index] = qso
+	score := l.scoreCounter.Score()
 
-	// TODO: update derived data
-
-	return nil
+	return qso, score, nil
 }
 
 func (l *Logbook) lastQSONumber() core.QSONumber {
@@ -170,34 +200,36 @@ func (l *Logbook) findQSOIndex(number core.QSONumber) (int, bool) {
 
 func (l *Logbook) UpdateQSO(qso core.QSO) {
 	qso.LogTimestamp = l.clock.Now()
-	updatedQSOs, updatedQTCs, err := l.updateQSOLocked(qso)
+	updatedQSOs, updatedQTCs, score, err := l.updateQSOLocked(qso)
 	if err != nil {
-		// TODO: handle otherwise?
+		// this must never happen
 		panic(err)
 	}
 
-	l.emitNotificationsAfterRefresh(updatedQSOs, updatedQTCs)
+	l.emitNotificationsAfterRefresh(updatedQSOs, updatedQTCs, score)
 }
 
-func (l *Logbook) updateQSOLocked(qso core.QSO) ([]core.QSO, []core.QTC, error) {
+func (l *Logbook) updateQSOLocked(qso core.QSO) ([]core.QSO, []core.QTC, core.Score, error) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 	if qso.MyNumber <= 0 {
-		return nil, nil, fmt.Errorf("Logbook.updateQSO: invalid QSO number %d", qso.MyNumber)
+		return nil, nil, core.Score{}, fmt.Errorf("Logbook.updateQSO: invalid QSO number %d", qso.MyNumber)
 	}
 
 	index, found := l.findQSOIndex(qso.MyNumber)
 	if !found {
-		return nil, nil, fmt.Errorf("Logbook.updateQSO: the QSO with number %d cannot be found for update, use Logbook.UpdateQSO instead", qso.MyNumber)
+		return nil, nil, core.Score{}, fmt.Errorf("Logbook.updateQSO: the QSO with number %d cannot be found for update, use Logbook.UpdateQSO instead", qso.MyNumber)
 	}
 	l.qsos[index] = qso
 
-	// TODO: update derived data
+	// update derived data first, because the QSO score might change during the update
+	score := l.refreshDerivedData()
 
+	// copy QSOs and QTCs for further processing outside the dataLock
 	updatedQSOs := l.allQSOs()
 	updatedQTCs := l.allQTCs()
 
-	return updatedQSOs, updatedQTCs, nil
+	return updatedQSOs, updatedQTCs, score, nil
 }
 
 func (l *Logbook) AllQSOs() []core.QSO {
@@ -231,13 +263,34 @@ func (l *Logbook) allQTCs() []core.QTC {
 	return nil
 }
 
+// Derived Data
+
+func (l *Logbook) Score() core.Score {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	return l.scoreCounter.Score()
+}
+
+func (l *Logbook) refreshDerivedData() core.Score {
+	l.scoreCounter.Clear()
+	for i, qso := range l.qsos {
+		l.qsos[i] = l.scoreCounter.AddQSO(qso)
+	}
+	score := l.scoreCounter.Score()
+
+	// TODO: update dupes, worked, callsigns
+
+	return score
+}
+
 // Notifications
 
 func (l *Logbook) Notify(listener any) {
 	l.listeners = append(l.listeners, listener)
 }
 
-func (l *Logbook) emitNotificationsAfterRefresh(qsos []core.QSO, qtcs []core.QTC) {
+func (l *Logbook) emitNotificationsAfterRefresh(qsos []core.QSO, qtcs []core.QTC, score core.Score) {
 	l.emitLogbookCleared()
 	for _, qso := range qsos {
 		l.emitQSOAdded(qso)
@@ -245,6 +298,7 @@ func (l *Logbook) emitNotificationsAfterRefresh(qsos []core.QSO, qtcs []core.QTC
 	for _, qtc := range qtcs {
 		l.emitQTCAdded(qtc)
 	}
+	l.emitScoreChanged(score)
 }
 
 func (l *Logbook) emitLogbookCleared() {
@@ -267,6 +321,14 @@ func (l *Logbook) emitQTCAdded(qtc core.QTC) {
 	for _, rawListener := range l.listeners {
 		if listener, ok := rawListener.(QTCAddedListener); ok {
 			listener.QTCAdded(qtc)
+		}
+	}
+}
+
+func (l *Logbook) emitScoreChanged(score core.Score) {
+	for _, rawListener := range l.listeners {
+		if listener, ok := rawListener.(ScoreChangedListener); ok {
+			listener.ScoreChanged(score)
 		}
 	}
 }

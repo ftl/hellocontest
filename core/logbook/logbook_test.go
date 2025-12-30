@@ -7,12 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ftl/conval"
+	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 )
 
 func TestLogbook_AddQSO(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso1 := core.QSO{MyNumber: 1}
 	qso2 := core.QSO{MyNumber: 2}
 	qso3 := core.QSO{MyNumber: 3}
@@ -30,20 +32,20 @@ func TestLogbook_AddQSO(t *testing.T) {
 }
 
 func TestLogbook_addQSOLocked_cannotAddAgain(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso := core.QSO{MyNumber: 1}
 
-	err := logbook.addQSOLocked(qso)
+	_, _, err := logbook.addQSOLocked(qso)
 	require.NoError(t, err)
 
-	err = logbook.addQSOLocked(qso)
+	_, _, err = logbook.addQSOLocked(qso)
 	assert.Error(t, err)
 }
 
 func TestLogbook_AddQSO_addsLogTimestamp(t *testing.T) {
 	now := time.Now()
 	c := clock.Static(now)
-	logbook := NewLogbook(c)
+	logbook := NewLogbook(c, new(testSettings), testEntity)
 	qso := core.QSO{MyNumber: 1}
 
 	logbook.AddQSO(qso)
@@ -53,7 +55,7 @@ func TestLogbook_AddQSO_addsLogTimestamp(t *testing.T) {
 }
 
 func TestLogbook_AddQSO_emitsQSOAdded(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso := core.QSO{MyNumber: 1}
 	addedQSO := core.QSO{}
 	notificationReceived := false
@@ -69,8 +71,46 @@ func TestLogbook_AddQSO_emitsQSOAdded(t *testing.T) {
 	assert.Equal(t, qso, addedQSO)
 }
 
+func TestLogbook_AddQSO_updatesTheScore(t *testing.T) {
+	logbook := withTestConvalCounter(
+		NewLogbook(clock.Zero(), new(testSettings), testEntity),
+		&testConvalCounter{
+			scores: map[string]conval.QSOScore{
+				"DL1ABC": {Points: 1, Multis: 2, Duplicate: false},
+			},
+		},
+	)
+	qso := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")}
+	require.Equal(t, 0, logbook.Score().Result().Result())
+
+	logbook.AddQSO(qso)
+
+	assert.Equal(t, 2, logbook.Score().Result().Result())
+}
+
+func TestLogbook_AddQSO_emitsScoreChanged(t *testing.T) {
+	logbook := withTestConvalCounter(
+		NewLogbook(clock.Zero(), new(testSettings), testEntity),
+		&testConvalCounter{
+			scores: map[string]conval.QSOScore{
+				"DL1ABC": {Points: 1, Multis: 2, Duplicate: false},
+			},
+		},
+	)
+	qso := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")}
+	var changedScore core.Score
+	listener := ScoreChangedFunc(func(score core.Score) {
+		changedScore = score
+	})
+	logbook.Notify(listener)
+
+	logbook.AddQSO(qso)
+
+	assert.Equal(t, 2, changedScore.Result().Result())
+}
+
 func TestLogbook_UpdateQSO(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qsoOld := core.QSO{MyNumber: 1, TheirNumber: 1}
 	qsoNew := core.QSO{MyNumber: 1, TheirNumber: 2}
 
@@ -81,15 +121,15 @@ func TestLogbook_UpdateQSO(t *testing.T) {
 }
 
 func TestLogbook_updateQSOLocked_cannotUpdateNewQSO(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso := core.QSO{MyNumber: 1}
 
-	_, _, err := logbook.updateQSOLocked(qso)
+	_, _, _, err := logbook.updateQSOLocked(qso)
 	assert.Error(t, err)
 }
 
 func TestLogbook_UpdateQSO_updatesLogTimestamp(t *testing.T) {
-	logbook := NewLogbook(clock.New())
+	logbook := NewLogbook(clock.New(), new(testSettings), testEntity)
 
 	logbook.AddQSO(core.QSO{MyNumber: 1, TheirNumber: 1})
 	qsoOld := logbook.AllQSOs()[0]
@@ -103,7 +143,7 @@ func TestLogbook_UpdateQSO_updatesLogTimestamp(t *testing.T) {
 }
 
 func TestLogbook_UpdateQSO_emitsLogbookCleared(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso := core.QSO{MyNumber: 1}
 	notificationReceived := false
 	listener := LogbookClearedFunc(func() {
@@ -118,7 +158,7 @@ func TestLogbook_UpdateQSO_emitsLogbookCleared(t *testing.T) {
 }
 
 func TestLogbook_UpdateQSO_emitsQSOAddedForAllQSOs(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso1 := core.QSO{MyNumber: 1}
 	qso2 := core.QSO{MyNumber: 2}
 	qso3 := core.QSO{MyNumber: 3}
@@ -136,8 +176,48 @@ func TestLogbook_UpdateQSO_emitsQSOAddedForAllQSOs(t *testing.T) {
 	assert.Equal(t, []core.QSO{qso1, qso2, qso3}, updatedQSOs)
 }
 
+func TestLogbook_UpdateQSO_updatesTheScore(t *testing.T) {
+	logbook := withTestConvalCounter(
+		NewLogbook(clock.Zero(), new(testSettings), testEntity),
+		&testConvalCounter{
+			scores: map[string]conval.QSOScore{
+				"DL1ABC": {Points: 1, Multis: 2, Duplicate: false},
+				"DL2ABC": {Points: 3, Multis: 4, Duplicate: false},
+			},
+		},
+	)
+	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")})
+	require.Equal(t, 2, logbook.Score().Result().Result())
+
+	logbook.UpdateQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")})
+
+	assert.Equal(t, 12, logbook.Score().Result().Result())
+}
+
+func TestLogbook_UpdateQSO_emitsScoreChanged(t *testing.T) {
+	logbook := withTestConvalCounter(
+		NewLogbook(clock.Zero(), new(testSettings), testEntity),
+		&testConvalCounter{
+			scores: map[string]conval.QSOScore{
+				"DL1ABC": {Points: 1, Multis: 2, Duplicate: false},
+				"DL2ABC": {Points: 3, Multis: 4, Duplicate: false},
+			},
+		},
+	)
+	var changedScore core.Score
+	listener := ScoreChangedFunc(func(score core.Score) {
+		changedScore = score
+	})
+	logbook.Notify(listener)
+
+	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")})
+	logbook.UpdateQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")})
+
+	assert.Equal(t, 12, changedScore.Result().Result())
+}
+
 func TestLogbook_Load_QSOsOutOfOrder(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso1 := core.QSO{MyNumber: 1}
 	qso2 := core.QSO{MyNumber: 2}
 	qso3 := core.QSO{MyNumber: 3}
@@ -149,7 +229,7 @@ func TestLogbook_Load_QSOsOutOfOrder(t *testing.T) {
 }
 
 func TestLogbook_Load_UpdatedQSOs(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qsoOld := core.QSO{MyNumber: 1, TheirNumber: 1}
 	qsoNew := core.QSO{MyNumber: 1, TheirNumber: 2}
 
@@ -160,7 +240,7 @@ func TestLogbook_Load_UpdatedQSOs(t *testing.T) {
 }
 
 func TestLogbook_Load_emitsLogbookCleared(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso := core.QSO{MyNumber: 1}
 	notificationReceived := false
 	listener := LogbookClearedFunc(func() {
@@ -174,7 +254,7 @@ func TestLogbook_Load_emitsLogbookCleared(t *testing.T) {
 }
 
 func TestLogbook_Load_emitsQSOAddedForAllQSOs(t *testing.T) {
-	logbook := NewLogbook(clock.Zero())
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso1 := core.QSO{MyNumber: 1}
 	qso2 := core.QSO{MyNumber: 2}
 	qso3 := core.QSO{MyNumber: 3}
@@ -182,9 +262,52 @@ func TestLogbook_Load_emitsQSOAddedForAllQSOs(t *testing.T) {
 	listener := QSOAddedListenerFunc(func(qso core.QSO) {
 		loadedQSOs = append(loadedQSOs, qso)
 	})
-
 	logbook.Notify(listener)
+
 	logbook.Load([]core.QSO{qso1, qso3, qso2}, nil)
 
 	assert.Equal(t, []core.QSO{qso1, qso2, qso3}, loadedQSOs)
+}
+
+func TestLogbook_Load_updatesTheScore(t *testing.T) {
+	logbook := withTestConvalCounter(
+		NewLogbook(clock.Zero(), new(testSettings), testEntity),
+		&testConvalCounter{
+			scores: map[string]conval.QSOScore{
+				"DL1ABC": {Points: 1, Multis: 2, Duplicate: false},
+				"DL2ABC": {Points: 3, Multis: 4, Duplicate: false},
+			},
+		},
+	)
+
+	logbook.Load([]core.QSO{
+		{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")},
+		{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")},
+	}, nil)
+
+	assert.Equal(t, 12, logbook.Score().Result().Result())
+}
+
+func TestLogbook_Load_emitsScoreChanged(t *testing.T) {
+	logbook := withTestConvalCounter(
+		NewLogbook(clock.Zero(), new(testSettings), testEntity),
+		&testConvalCounter{
+			scores: map[string]conval.QSOScore{
+				"DL1ABC": {Points: 1, Multis: 2, Duplicate: false},
+				"DL2ABC": {Points: 3, Multis: 4, Duplicate: false},
+			},
+		},
+	)
+	var changedScore core.Score
+	listener := ScoreChangedFunc(func(score core.Score) {
+		changedScore = score
+	})
+	logbook.Notify(listener)
+
+	logbook.Load([]core.QSO{
+		{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")},
+		{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")},
+	}, nil)
+
+	assert.Equal(t, 12, changedScore.Result().Result())
 }

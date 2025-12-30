@@ -102,3 +102,13 @@ func (f QTCRowSelectedListenerFunc) QTCRowSelected(index int) {
 type QTCsClearedListener interface {
 	QTCsCleared()
 }
+
+type ScoreChangedListener interface {
+	ScoreChanged(core.Score)
+}
+
+type ScoreChangedFunc func(core.Score)
+
+func (f ScoreChangedFunc) ScoreChanged(score core.Score) {
+	f(score)
+}

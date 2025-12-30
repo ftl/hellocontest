@@ -11,56 +11,6 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-type QSOsClearedListener interface {
-	QSOsCleared()
-}
-
-type QSOsClearedListenerFunc func()
-
-func (f QSOsClearedListenerFunc) QSOsCleared() {
-	f()
-}
-
-type QSOAddedListener interface {
-	QSOAdded(core.QSO)
-}
-
-type QSOAddedListenerFunc func(core.QSO)
-
-func (f QSOAddedListenerFunc) QSOAdded(qso core.QSO) {
-	f(qso)
-}
-
-type QSOSelectedListener interface {
-	QSOSelected(core.QSO)
-}
-
-type QSOSelectedListenerFunc func(core.QSO)
-
-func (f QSOSelectedListenerFunc) QSOSelected(qso core.QSO) {
-	f(qso)
-}
-
-type QSORowSelectedListener interface {
-	QSORowSelected(int)
-}
-
-type QSORowSelectedListenerFunc func(int)
-
-func (f QSORowSelectedListenerFunc) QSORowSelected(index int) {
-	f(index)
-}
-
-type ExchangeFieldsChangedListener interface {
-	ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField)
-}
-
-type ExchangeFieldsChangedListenerFunc func(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField)
-
-func (f ExchangeFieldsChangedListenerFunc) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
-	f(myExchangeFields, theirExchangeFields)
-}
-
 type QSOScorer interface {
 	Clear()
 	AddMuted(qso core.QSO) core.QSOScore

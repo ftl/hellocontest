@@ -10,44 +10,6 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-type QTCAddedListener interface {
-	QTCAdded(core.QTC)
-}
-
-type QTCAddedListenerFunc func(core.QTC)
-
-func (f QTCAddedListenerFunc) QTCAdded(qtc core.QTC) {
-	f(qtc)
-}
-
-type QTCsEnabledListener interface {
-	SetQTCsEnabled(bool)
-}
-
-type QTCSelectedListener interface {
-	QTCSelected(core.QTC)
-}
-
-type QTCSelectedListenerFunc func(core.QTC)
-
-func (f QTCSelectedListenerFunc) QTCSelected(qtc core.QTC) {
-	f(qtc)
-}
-
-type QTCRowSelectedListener interface {
-	QTCRowSelected(int)
-}
-
-type QTCRowSelectedListenerFunc func(int)
-
-func (f QTCRowSelectedListenerFunc) QTCRowSelected(index int) {
-	f(index)
-}
-
-type QTCsClearedListener interface {
-	QTCsCleared()
-}
-
 type QTCList struct {
 	dataLock      *sync.RWMutex
 	enabled       bool

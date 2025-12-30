@@ -84,3 +84,26 @@ func TestLogbook_UpdateQSO_updatesLogTimestamp(t *testing.T) {
 	assert.False(t, qsoNew.LogTimestamp.IsZero())
 	assert.NotEqual(t, qsoOld.LogTimestamp, qsoNew.LogTimestamp)
 }
+
+func TestLogbook_Load_QSOsOutOfOrder(t *testing.T) {
+	logbook := NewLogbook(clock.Zero())
+	qso1 := core.QSO{MyNumber: 1}
+	qso2 := core.QSO{MyNumber: 2}
+	qso3 := core.QSO{MyNumber: 3}
+
+	err := logbook.Load([]core.QSO{qso1, qso3, qso2}, nil)
+	assert.NoError(t, err)
+
+	assert.Equal(t, []core.QSO{qso1, qso2, qso3}, logbook.AllQSOs())
+}
+
+func TestLogbook_Load_QSOsUpdated(t *testing.T) {
+	logbook := NewLogbook(clock.Zero())
+	qsoOld := core.QSO{MyNumber: 1, TheirNumber: 1}
+	qsoNew := core.QSO{MyNumber: 1, TheirNumber: 2}
+
+	err := logbook.Load([]core.QSO{qsoOld, qsoNew}, nil)
+	assert.NoError(t, err)
+
+	assert.Equal(t, []core.QSO{qsoNew}, logbook.AllQSOs())
+}

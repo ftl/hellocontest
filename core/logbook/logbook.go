@@ -18,14 +18,70 @@ type Logbook struct {
 }
 
 func NewLogbook(clock core.Clock) *Logbook {
-	return &Logbook{
+	result := &Logbook{
 		clock:    clock,
 		dataLock: new(sync.RWMutex),
 	}
+
+	result.clear(1000, 0)
+
+	return result
 }
 
 func (l *Logbook) Load(qsos []core.QSO, qtcs []core.QTC) error {
-	return fmt.Errorf("not yet implemented")
+	l.dataLock.Lock()
+	defer l.dataLock.Unlock()
+
+	l.clear(len(qsos)*2, len(qtcs)*2)
+	err := l.putQSOs(qsos)
+	if err != nil {
+		return err
+	}
+
+	// TODO:
+	// load qtcs
+	// update derived data
+	// l.emitLogbookCleared()
+	// for each QSO: l.emitQSOAdded(qso)
+	// for each QTC: l.emitQTCAdded(qtc)
+
+	return nil
+}
+
+func (l *Logbook) clear(capQSOs int, capQTCs int) {
+	l.qsos = make([]core.QSO, 0, capQSOs)
+	l.sentQTCs = make(map[core.QSONumber]core.QTC, capQTCs)
+	l.receivedQTCs = make([]core.QTC, 0, capQTCs)
+	l.sentQTCsPerSeries = make([]int, 0, capQTCs)
+}
+
+func (l *Logbook) putQSOs(qsos []core.QSO) error {
+	for _, qso := range qsos {
+		err := l.putQSO(qso)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (l *Logbook) putQSO(qso core.QSO) error {
+	if qso.MyNumber <= 0 {
+		return fmt.Errorf("Logbook.putQSO: invalid QSO number %d", qso.MyNumber)
+	}
+
+	lastNumber := l.lastQSONumber()
+	if (lastNumber <= 0) || (qso.MyNumber > lastNumber) {
+		l.qsos = append(l.qsos, qso)
+		return nil
+	}
+
+	index, found := l.findQSOIndex(qso.MyNumber)
+	if !found {
+		l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
+	}
+	l.qsos[index] = qso
+	return nil
 }
 
 func (l *Logbook) AddQSO(qso core.QSO) {
@@ -98,12 +154,15 @@ func (l *Logbook) UpdateQSO(qso core.QSO) {
 		// TODO: handle otherwise?
 		panic(err)
 	}
-	// TODO: l.emitQSOUpdated(qso)
+	// TODO: update derived data and emit corresponding events
 }
 
 func (l *Logbook) updateQSOLocked(qso core.QSO) error {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
+	if qso.MyNumber <= 0 {
+		return fmt.Errorf("Logbook.updateQSO: invalid QSO number %d", qso.MyNumber)
+	}
 
 	index, found := l.findQSOIndex(qso.MyNumber)
 	if !found {

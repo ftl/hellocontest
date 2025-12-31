@@ -256,6 +256,7 @@ func (c *Counter) emitScoreUpdated(score core.Score) {
 	}
 }
 
+// deprecated
 func (c *Counter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
 	continent, country, _, _ := toConvalDXCCEntity(entity)
 	convalQSO := conval.QSO{
@@ -305,6 +306,7 @@ func (c *Counter) resetCounter() {
 	c.counter.Reset(counter, timeSheet) // CONVAL WRITE LOCK
 }
 
+// deprecated
 type safeConvalCounter struct {
 	counter   convalCounter
 	timeSheet convalTimeSheet

@@ -156,7 +156,6 @@ func (c *scoreCounter) addQSO(qso core.QSO) core.QSOScore {
 	return result
 }
 
-// deprecated
 func (c *scoreCounter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
 	continent, country, _, _ := toConvalDXCCEntity(entity)
 	convalQSO := conval.QSO{
@@ -176,7 +175,6 @@ func (c *scoreCounter) Score() core.Score {
 	return c.score
 }
 
-// deprecated
 func (c *scoreCounter) FillSummary(summary *core.Summary) {
 	breakDuration := c.computeMinBreakDuration(c.contestDefinition, summary.OperatorMode, summary.Overlay)
 	timeReport := c.timeSheet.TimeReport(breakDuration)

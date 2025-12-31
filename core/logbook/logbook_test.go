@@ -271,6 +271,17 @@ func TestLogbook_Load_emitsQSOAddedForAllQSOs(t *testing.T) {
 }
 
 func TestLogbook_Load_updatesTheScore(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	sentHeader := core.QTCHeader{SeriesNumber: 1, QTCCount: 3}
+	dl2abc := callsign.MustParse("DL2ABC")
+	receivedHeader := core.QTCHeader{SeriesNumber: 12, QTCCount: 3}
+	now := time.Now()
+	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-5 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc2 := core.QTC{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-4 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc3 := core.QTC{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-3 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc4 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 1, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc5 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 2, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc6 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 3, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
 	logbook := withTestConvalCounter(
 		NewLogbook(clock.Zero(), new(testSettings), testEntity),
 		&testConvalCounter{
@@ -281,12 +292,16 @@ func TestLogbook_Load_updatesTheScore(t *testing.T) {
 		},
 	)
 
-	logbook.Load([]core.QSO{
-		{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")},
-		{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")},
-	}, nil)
+	logbook.Load(
+		[]core.QSO{
+			{MyNumber: 1, Callsign: dl1abc, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+			// update the callsign of the first QSO
+			{MyNumber: 1, Callsign: dl2abc, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+		},
+		[]core.QTC{qtc1, qtc2, qtc3, qtc4, qtc5, qtc6},
+	)
 
-	assert.Equal(t, 12, logbook.Score().Result().Result())
+	assert.Equal(t, 36, logbook.Score().Result().Result())
 }
 
 func TestLogbook_Load_emitsScoreChanged(t *testing.T) {
@@ -637,6 +652,71 @@ func TestLogbook_AddQTCSeries_emitsQTCAddedForAllQTCs(t *testing.T) {
 	logbook.AddQTCSeries(series)
 
 	assert.Equal(t, []core.QTC{qtc1, qtc2, qtc3}, addedQTCs)
+}
+
+func TestLogbook_AddQTCSeries_updatesTheScore(t *testing.T) {
+	now := time.Now()
+	dl1abc := callsign.MustParse("DL1ABC")
+	sentHeader := core.QTCHeader{SeriesNumber: 1, QTCCount: 3}
+	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-5 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc2 := core.QTC{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-4 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc3 := core.QTC{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-3 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	sentSeries := core.QTCSeries{
+		TheirCallsign: dl1abc,
+		Header:        sentHeader,
+		QTCs:          []core.QTC{qtc1, qtc2, qtc3},
+	}
+	dl2abc := callsign.MustParse("DL2ABC")
+	receivedHeader := core.QTCHeader{SeriesNumber: 12, QTCCount: 3}
+	qtc4 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 1, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc5 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 2, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc6 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 3, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	receivedSeries := core.QTCSeries{
+		TheirCallsign: dl2abc,
+		Header:        receivedHeader,
+		QTCs:          []core.QTC{qtc4, qtc5, qtc6},
+	}
+	logbook := withTestConvalCounter(NewLogbook(clock.Zero(), new(testSettings), testEntity), &testConvalCounter{})
+	logbook.AddQTCSeries(sentSeries)
+	logbook.AddQTCSeries(receivedSeries)
+
+	assert.Equal(t, 6, logbook.Score().Result().Result())
+}
+
+func TestLogbook_AddQTCSeries_emitsScoreChanged(t *testing.T) {
+	now := time.Now()
+	dl1abc := callsign.MustParse("DL1ABC")
+	sentHeader := core.QTCHeader{SeriesNumber: 1, QTCCount: 3}
+	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-5 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc2 := core.QTC{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-4 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc3 := core.QTC{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-3 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	sentSeries := core.QTCSeries{
+		TheirCallsign: dl1abc,
+		Header:        sentHeader,
+		QTCs:          []core.QTC{qtc1, qtc2, qtc3},
+	}
+	dl2abc := callsign.MustParse("DL2ABC")
+	receivedHeader := core.QTCHeader{SeriesNumber: 12, QTCCount: 3}
+	qtc4 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 1, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc5 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 2, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc6 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 3, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	receivedSeries := core.QTCSeries{
+		TheirCallsign: dl2abc,
+		Header:        receivedHeader,
+		QTCs:          []core.QTC{qtc4, qtc5, qtc6},
+	}
+	updatedScoreCount := 0
+	updatedScore := core.Score{}
+	logbook := withTestConvalCounter(NewLogbook(clock.Zero(), new(testSettings), testEntity), &testConvalCounter{})
+	logbook.Notify(ScoreChangedFunc(func(score core.Score) {
+		updatedScoreCount++
+		updatedScore = score
+	}))
+	logbook.AddQTCSeries(sentSeries)
+	logbook.AddQTCSeries(receivedSeries)
+
+	assert.Equal(t, 2, updatedScoreCount, "count")
+	assert.Equal(t, 6, updatedScore.Result().Result(), "result")
 }
 
 func TestLogbook_AvailableFor(t *testing.T) {

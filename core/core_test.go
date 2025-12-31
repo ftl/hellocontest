@@ -71,15 +71,15 @@ func TestScore_StackedGraphPerBand(t *testing.T) {
 	score := NewScore()
 	score.GraphPerBand[Band160m] = BandGraph{
 		Band:       Band160m,
-		DataPoints: []BandScore{{16, 16, 16, 16}, {15, 15, 15, 15}, {14, 14, 14, 14}},
+		DataPoints: []BandScore{{16, 16, 16, 16, 16}, {15, 15, 15, 15, 15}, {14, 14, 14, 14, 14}},
 	}
 	score.GraphPerBand[Band80m] = BandGraph{
 		Band:       Band80m,
-		DataPoints: []BandScore{{8, 8, 8, 8}, {7, 7, 7, 7}, {6, 6, 6, 6}},
+		DataPoints: []BandScore{{8, 8, 8, 8, 8}, {7, 7, 7, 7, 7}, {6, 6, 6, 6, 6}},
 	}
 	score.GraphPerBand[Band40m] = BandGraph{
 		Band:       Band40m,
-		DataPoints: []BandScore{{4, 4, 4, 4}, {3, 3, 3, 3}, {2, 2, 2, 2}},
+		DataPoints: []BandScore{{4, 4, 4, 4, 4}, {3, 3, 3, 3, 3}, {2, 2, 2, 2, 2}},
 	}
 
 	stackedGraphs := score.StackedGraphPerBand()

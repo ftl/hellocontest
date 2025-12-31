@@ -168,6 +168,10 @@ func (q QTC) String() string {
 	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%d|%s|%s|%d", q.Timestamp.Format("15:04"), q.TheirCallsign.String(), q.Frequency/1000.0, q.Band, q.Mode, q.Kind, q.QTCTime.String(), q.QTCCallsign, q.QTCNumber)
 }
 
+func (q QTC) SeriesKey() string {
+	return fmt.Sprintf("%s|%d|%d", q.TheirCallsign, q.Header.SeriesNumber, q.Header.QTCCount)
+}
+
 func (q QTC) WasTransmitted() bool {
 	return !q.Timestamp.IsZero()
 }
@@ -347,6 +351,10 @@ func (s *QTCSeries) theirCallsign() Callsign {
 		}
 	}
 	return theirCallsign
+}
+
+func (s *QTCSeries) Key() string {
+	return fmt.Sprintf("%s|%d|%d", s.theirCallsign(), s.Header.SeriesNumber, s.Header.QTCCount)
 }
 
 func (s *QTCSeries) IsPrepared() bool {
@@ -842,14 +850,14 @@ func (s Score) Copy() Score {
 
 func (s Score) String() string {
 	buf := bytes.NewBufferString("")
-	fmt.Fprintf(buf, "Band QSOs  Dupe Pts     P/Q  Mult Q/M  Result \n")
-	fmt.Fprintf(buf, "----------------------------------------------\n")
+	fmt.Fprintf(buf, "Band QSOs  QTCs  Dupe Pts     P/Q  Mult Q/M  Result \n")
+	fmt.Fprintf(buf, "----------------------------------------------------\n")
 	for _, band := range Bands {
 		if score, ok := s.ScorePerBand[band]; ok {
 			fmt.Fprintf(buf, "%4s %s\n", band, score)
 		}
 	}
-	fmt.Fprintf(buf, "----------------------------------------------\n")
+	fmt.Fprintf(buf, "----------------------------------------------------\n")
 	fmt.Fprintf(buf, "Tot  %s\n", s.Result())
 	return buf.String()
 }
@@ -883,6 +891,7 @@ func (s Score) StackedGraphPerBand() []BandGraph {
 			stackedGraph.DataPoints[i] = dataPoint
 			if lastDataPoints != nil {
 				stackedGraph.DataPoints[i].QSOs += lastDataPoints[i].QSOs
+				stackedGraph.DataPoints[i].QTCs += lastDataPoints[i].QTCs
 				stackedGraph.DataPoints[i].Duplicates += lastDataPoints[i].Duplicates
 				stackedGraph.DataPoints[i].Points += lastDataPoints[i].Points
 				stackedGraph.DataPoints[i].Multis += lastDataPoints[i].Multis
@@ -983,6 +992,19 @@ func (g *BandGraph) Add(timestamp time.Time, score QSOScore) {
 	g.Max = g.Max.Max(bandScore)
 }
 
+func (g *BandGraph) AddQTC(timestamp time.Time, score QTCScore) {
+	bindex := g.Bindex(timestamp)
+	if bindex == -1 {
+		return
+	}
+
+	bandScore := g.DataPoints[bindex]
+	bandScore.AddQTC(score)
+	g.DataPoints[bindex] = bandScore
+
+	g.Max = g.Max.Max(bandScore)
+}
+
 // Bindex returns the index of the bin corresponding to the given timestamp.
 func (g *BandGraph) Bindex(timestamp time.Time) int {
 	if g.startTime.IsZero() {
@@ -1057,17 +1079,19 @@ func (g BandGraph) PercentAsDuration(percent float64) time.Duration {
 
 type BandScore struct {
 	QSOs       int
+	QTCs       int
 	Duplicates int
 	Points     int
 	Multis     int
 }
 
 func (s BandScore) String() string {
-	return fmt.Sprintf("%5d %4d %7d %4.1f %4d %4.1f %7d", s.QSOs, s.Duplicates, s.Points, s.PointsPerQSO(), s.Multis, s.QSOsPerMulti(), s.Result())
+	return fmt.Sprintf("%5d %5d %4d %7d %4.1f %4d %4.1f %7d", s.QSOs, s.QTCs, s.Duplicates, s.Points, s.PointsPerQSO(), s.Multis, s.QSOsPerMulti(), s.Result())
 }
 
 func (s *BandScore) Add(other BandScore) {
 	s.QSOs += other.QSOs
+	s.QTCs += other.QTCs
 	s.Duplicates += other.Duplicates
 	s.Points += other.Points
 	s.Multis += other.Multis
@@ -1083,11 +1107,18 @@ func (s *BandScore) AddQSO(qso QSOScore) {
 	}
 }
 
+func (s *BandScore) AddQTC(qtc QTCScore) {
+	s.QTCs += qtc.Value
+}
+
 func (s BandScore) Max(other BandScore) BandScore {
 	result := s
 
 	if result.QSOs < other.QSOs {
 		result.QSOs = other.QSOs
+	}
+	if result.QTCs < other.QTCs {
+		result.QTCs = other.QTCs
 	}
 	if result.Duplicates < other.Duplicates {
 		result.Duplicates = other.Duplicates
@@ -1117,16 +1148,21 @@ func (s BandScore) QSOsPerMulti() float64 {
 }
 
 func (s BandScore) Result() int {
+	points := s.Points + s.QTCs
 	if s.Multis == 0 {
-		return s.Points
+		return points
 	}
-	return s.Points * s.Multis
+	return points * s.Multis
 }
 
 type QSOScore struct {
 	Points    int
 	Multis    int
 	Duplicate bool
+}
+
+type QTCScore struct {
+	Value int
 }
 
 // Hour is used as reference to calculate the number of QSOs per hour.

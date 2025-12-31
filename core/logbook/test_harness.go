@@ -20,6 +20,12 @@ func (t *testConvalCounter) Probe(qso conval.QSO) conval.QSOScore {
 	return t.scores[qso.TheirCall.String()]
 }
 
+func (t *testConvalCounter) AddQTC(qtc conval.QTC) conval.QTCScore {
+	return conval.QTCScore{
+		Value: qtc.Count,
+	}
+}
+
 func withTestConvalCounter(logbook *Logbook, counter *testConvalCounter) *Logbook {
 	logbook.scoreCounter.counterFactory = func() convalCounter {
 		return counter

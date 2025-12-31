@@ -2,6 +2,7 @@ package logbook
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
@@ -31,4 +32,25 @@ func TestAddQSO_ScoreQSO(t *testing.T) {
 	scoredQSO = scoreCounter.AddQSO(core.QSO{Callsign: callsign.MustParse("DK9ZZ"), MyNumber: 2})
 	assert.Equal(t, 3, scoredQSO.Points)
 	assert.Equal(t, 4, scoredQSO.Multis)
+}
+
+func TestAddQTC_ScoreQTC(t *testing.T) {
+	scoreCounter := newScoreCounter(new(testSettings), testEntity)
+	scoreCounter.counter = &testConvalCounter{}
+	dl1abc := callsign.MustParse("DL1ABC")
+	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
+	now := time.Now()
+
+	scoreCounter.AddQTCSeries(core.QTCSeries{
+		TheirCallsign: dl1abc,
+		Header:        header,
+		QTCs: []core.QTC{
+			{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+			{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+			{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: header, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+		},
+	})
+
+	assert.Equal(t, 3, scoreCounter.Score().Result().QTCs, "total")
+	assert.Equal(t, 3, scoreCounter.Score().ScorePerBand[core.Band80m].QTCs, "score per band")
 }

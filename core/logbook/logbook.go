@@ -27,7 +27,8 @@ type Logbook struct {
 	qsos              []core.QSO
 	sentQTCs          map[core.QSONumber]core.QTC // TODO: better store the QTC series?
 	receivedQTCs      []core.QTC                  // TODO: better store QTC series?
-	sentQTCsPerSeries []int
+	sentQTCSeries     []core.QTCSeries
+	receivedQTCSeries map[string]core.QTCSeries
 	availableQTCs     []core.QTC
 	qtcsByCall        map[callsign.Callsign]int
 
@@ -148,7 +149,8 @@ func (l *Logbook) clear(capQSOs int, capQTCs int) {
 	l.qsos = make([]core.QSO, 0, capQSOs)
 	l.sentQTCs = make(map[core.QSONumber]core.QTC, capQTCs)
 	l.receivedQTCs = make([]core.QTC, 0, capQTCs)
-	l.sentQTCsPerSeries = make([]int, 0, capQTCs)
+	l.sentQTCSeries = make([]core.QTCSeries, 0, capQTCs)
+	l.receivedQTCSeries = make(map[string]core.QTCSeries, capQTCs)
 	l.availableQTCs = make([]core.QTC, 0, capQSOs)
 	l.qtcsByCall = make(map[callsign.Callsign]int)
 }
@@ -351,7 +353,7 @@ func (l *Logbook) LastExchange() []string {
 // QTCs
 
 func (l *Logbook) AddQTCSeries(series core.QTCSeries) {
-	addedQTCs, err := l.addQTCSeriesLocked(series)
+	addedQTCs, score, err := l.addQTCSeriesLocked(series)
 	if err != nil {
 		// this must never happen, otherwise we have made a mistake
 		panic(err)
@@ -360,9 +362,10 @@ func (l *Logbook) AddQTCSeries(series core.QTCSeries) {
 	for _, qtc := range addedQTCs {
 		l.emitQTCAdded(qtc)
 	}
+	l.emitScoreChanged(score)
 }
 
-func (l *Logbook) addQTCSeriesLocked(series core.QTCSeries) ([]core.QTC, error) {
+func (l *Logbook) addQTCSeriesLocked(series core.QTCSeries) ([]core.QTC, core.Score, error) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 
@@ -372,15 +375,15 @@ func (l *Logbook) addQTCSeriesLocked(series core.QTCSeries) ([]core.QTC, error) 
 		qtc.Header = series.Header
 		err := l.addQTC(qtc)
 		if err != nil {
-			return nil, err
+			return nil, core.Score{}, err
 		}
-
-		// TODO: update score
 
 		addedQTCs = append(addedQTCs, qtc)
 	}
+	l.scoreCounter.AddQTCSeries(series)
+	score := l.scoreCounter.Score()
 
-	return addedQTCs, nil
+	return addedQTCs, score, nil
 }
 
 func (l *Logbook) addQTC(qtc core.QTC) error {
@@ -393,7 +396,7 @@ func (l *Logbook) addQTC(qtc core.QTC) error {
 			return fmt.Errorf("Logbook.addQTC: QTC for QSO #%d already exists, cannot log another QTC for the same QSO: %v", qtc.QSONumber, existing)
 		}
 		l.sentQTCs[qtc.QSONumber] = qtc
-		err := l.registerSentQTCSeries(qtc)
+		err := l.registerQTCSeries(qtc)
 		if err != nil {
 			return err
 		}
@@ -401,6 +404,10 @@ func (l *Logbook) addQTC(qtc core.QTC) error {
 		l.removeAvailableQTC(qtc)
 	} else {
 		l.receivedQTCs = append(l.receivedQTCs, qtc)
+		err := l.registerQTCSeries(qtc)
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO: mabye we need to count sent and received qtcs separateley if the contest allows both directions
@@ -412,24 +419,45 @@ func (l *Logbook) addQTC(qtc core.QTC) error {
 	return nil
 }
 
-func (l *Logbook) registerSentQTCSeries(qtc core.QTC) error {
-	if qtc.Kind != core.SentQTC {
+func (l *Logbook) registerQTCSeries(qtc core.QTC) error {
+	switch qtc.Kind {
+	case core.SentQTC:
+		index := qtc.Header.SeriesNumber - 1
+		switch {
+		case index < 0: // this must never happen
+			return fmt.Errorf("Logbook.registerQTCSeries: invalid QTC series number %d, must be greater than 0", qtc.Header.SeriesNumber)
+		case len(l.sentQTCSeries) == index: // the first of a new series
+			series := core.QTCSeries{
+				TheirCallsign: qtc.TheirCallsign,
+				Header:        qtc.Header,
+				QTCs:          []core.QTC{qtc},
+			}
+			l.sentQTCSeries = append(l.sentQTCSeries, series)
+		case len(l.sentQTCSeries) > index: // the next of an existing series
+			series := l.sentQTCSeries[index]
+			series.QTCs = append(series.QTCs, qtc)
+			l.sentQTCSeries[index] = series
+			// TODO: check if the series contains more than Header.QTCCount
+		default: // this must never happen, the calculation of the next series number is broken
+			return fmt.Errorf("Logbook.registerQTCSeries: unknown QTC series number %d, should not be greater than %d", qtc.Header.SeriesNumber, len(l.sentQTCSeries))
+		}
+		return nil
+	case core.ReceivedQTC:
+		key := qtc.SeriesKey()
+		series, ok := l.receivedQTCSeries[key]
+		if !ok {
+			series = core.QTCSeries{
+				TheirCallsign: qtc.TheirCallsign,
+				Header:        qtc.Header,
+				QTCs:          []core.QTC{},
+			}
+		}
+		series.QTCs = append(series.QTCs, qtc)
+		l.receivedQTCSeries[key] = series
+		return nil
+	default:
 		return nil
 	}
-
-	index := qtc.Header.SeriesNumber - 1
-	switch {
-	case index < 0: // this must never happen
-		return fmt.Errorf("Logbook.registerQTCSeries: invalid QTC series number %d, must be greater than 0", qtc.Header.SeriesNumber)
-	case len(l.sentQTCsPerSeries) == index: // the first of a new series
-		l.sentQTCsPerSeries = append(l.sentQTCsPerSeries, 1)
-	case len(l.sentQTCsPerSeries) > index: // the next of an existing series
-		l.sentQTCsPerSeries[index]++
-		// TODO: check if the series contains more than Header.QTCCount
-	default: // this must never happen, the calculation of the next series number is broken
-		return fmt.Errorf("Logbook.registerQTCSeries: unknown QTC series number %d, should not be greater than %d", qtc.Header.SeriesNumber, len(l.sentQTCsPerSeries))
-	}
-	return nil
 }
 
 func (l *Logbook) addAvailableQTCForQSO(qso core.QSO) {
@@ -528,7 +556,7 @@ func (l *Logbook) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC 
 }
 
 func (l *Logbook) NextSeriesNumber() int {
-	return len(l.sentQTCsPerSeries) + 1
+	return len(l.sentQTCSeries) + 1
 }
 
 // Derived Data
@@ -551,9 +579,15 @@ func (l *Logbook) refreshDerivedData() core.Score {
 		l.qsos[i] = qso
 		l.addDerivedDataForQSO(qso)
 	}
-	score := l.scoreCounter.Score()
 
-	return score
+	for _, series := range l.sentQTCSeries {
+		l.scoreCounter.AddQTCSeries(series)
+	}
+	for _, series := range l.receivedQTCSeries {
+		l.scoreCounter.AddQTCSeries(series)
+	}
+
+	return l.scoreCounter.Score()
 }
 
 func (l *Logbook) addDerivedDataForQSO(qso core.QSO) {

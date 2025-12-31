@@ -11,6 +11,7 @@ import (
 type convalCounter interface {
 	Add(conval.QSO) conval.QSOScore
 	Probe(conval.QSO) conval.QSOScore
+	AddQTC(conval.QTC) conval.QTCScore
 }
 
 type convalTimeSheet interface {
@@ -38,8 +39,9 @@ var _ convalCounter = new(nullCounter)
 
 type nullCounter struct{}
 
-func (c *nullCounter) Add(conval.QSO) conval.QSOScore   { return conval.QSOScore{} }
-func (c *nullCounter) Probe(conval.QSO) conval.QSOScore { return conval.QSOScore{} }
+func (c *nullCounter) Add(conval.QSO) conval.QSOScore    { return conval.QSOScore{} }
+func (c *nullCounter) Probe(conval.QSO) conval.QSOScore  { return conval.QSOScore{} }
+func (c *nullCounter) AddQTC(conval.QTC) conval.QTCScore { return conval.QTCScore{} }
 
 var _ convalTimeSheet = new(nullTimeSheet)
 

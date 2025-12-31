@@ -113,28 +113,22 @@ func (c *scoreCounter) Clear() {
 
 // Add the given QSO and return the QSO with updated fields for points, multis, and duplicate.
 func (c *scoreCounter) AddQSO(qso core.QSO) core.QSO {
-	qsoScore := c.addQSO(qso)
+	convalScore := c.counter.Add(c.toConvalQSO(qso))
+	qsoScore := core.QSOScore{
+		Points:    convalScore.Points,
+		Multis:    convalScore.Multis,
+		Duplicate: convalScore.Duplicate,
+	}
 	qso.Points = qsoScore.Points
 	qso.Multis = qsoScore.Multis
 	qso.Duplicate = qsoScore.Duplicate
-
-	return qso
-}
-
-func (c *scoreCounter) addQSO(qso core.QSO) core.QSOScore {
-	qsoScore := c.counter.Add(c.toConvalQSO(qso))
-	result := core.QSOScore{
-		Points:    qsoScore.Points,
-		Multis:    qsoScore.Multis,
-		Duplicate: qsoScore.Duplicate,
-	}
 
 	c.timeSheet.MarkActive(qso.Time)
 	c.activeBands[qso.Band] = true
 	c.activeModes[qso.Mode] = true
 
 	bandScore := c.score.ScorePerBand[qso.Band]
-	bandScore.AddQSO(result)
+	bandScore.AddQSO(qsoScore)
 	c.score.ScorePerBand[qso.Band] = bandScore
 
 	if c.contestDefinition != nil {
@@ -142,18 +136,55 @@ func (c *scoreCounter) addQSO(qso core.QSO) core.QSOScore {
 		if !ok {
 			graph = core.NewBandGraph(qso.Band, c.contestStartTime, c.contestDefinition.Duration)
 		}
-		graph.Add(qso.Time, result)
+		graph.Add(qso.Time, qsoScore)
 		c.score.GraphPerBand[graph.Band] = graph
 
 		sumGraph, ok := c.score.GraphPerBand[core.NoBand]
 		if !ok {
 			sumGraph = core.NewBandGraph(core.NoBand, c.contestStartTime, c.contestDefinition.Duration)
 		}
-		sumGraph.Add(qso.Time, result)
+		sumGraph.Add(qso.Time, qsoScore)
 		c.score.GraphPerBand[core.NoBand] = sumGraph
 	}
 
-	return result
+	return qso
+}
+
+func (c *scoreCounter) AddQTCSeries(series core.QTCSeries) {
+	if len(series.QTCs) == 0 {
+		return
+	}
+	firstQTC := series.QTCs[0]
+
+	convalQTC := c.toConvalQTC(series)
+	convalScore := c.counter.AddQTC(convalQTC)
+	qtcScore := core.QTCScore{
+		Value: convalScore.Value,
+	}
+
+	c.timeSheet.MarkActive(firstQTC.Timestamp)
+	c.activeBands[firstQTC.Band] = true
+	c.activeModes[firstQTC.Mode] = true
+
+	bandScore := c.score.ScorePerBand[firstQTC.Band]
+	bandScore.AddQTC(qtcScore)
+	c.score.ScorePerBand[firstQTC.Band] = bandScore
+
+	if c.contestDefinition != nil {
+		graph, ok := c.score.GraphPerBand[firstQTC.Band]
+		if !ok {
+			graph = core.NewBandGraph(firstQTC.Band, c.contestStartTime, c.contestDefinition.Duration)
+		}
+		graph.AddQTC(firstQTC.Timestamp, qtcScore)
+		c.score.GraphPerBand[graph.Band] = graph
+
+		sumGraph, ok := c.score.GraphPerBand[core.NoBand]
+		if !ok {
+			sumGraph = core.NewBandGraph(core.NoBand, c.contestStartTime, c.contestDefinition.Duration)
+		}
+		sumGraph.AddQTC(firstQTC.Timestamp, qtcScore)
+		c.score.GraphPerBand[core.NoBand] = sumGraph
+	}
 }
 
 func (c *scoreCounter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
@@ -237,6 +268,28 @@ func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField 
 	result := make([]conval.ExchangeField, len(fields))
 	for i, field := range fields {
 		result[i] = field.Properties
+	}
+	return result
+}
+
+func (c *scoreCounter) toConvalQTC(series core.QTCSeries) conval.QTC {
+	if len(series.QTCs) == 0 {
+		return conval.QTC{}
+	}
+	band := series.QTCs[0].Band
+	mode := series.QTCs[0].Mode
+	result := conval.QTC{
+		Kind:      "",
+		Header:    series.Header.String(),
+		TheirCall: series.TheirCallsign,
+		Band:      conval.ContestBand(band),
+		Mode:      toConvalMode[mode],
+		Count:     len(series.QTCs),
+	}
+	continent, country, _, _, ok := c.prefixDatabase.Find(series.TheirCallsign.String())
+	if ok {
+		result.TheirContinent = continent
+		result.TheirCountry = country
 	}
 	return result
 }

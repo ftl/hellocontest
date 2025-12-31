@@ -182,6 +182,8 @@ func (q QTC) VerifyComplete() error {
 		return fmt.Errorf("the mode must not be empty")
 	case q.Frequency == 0:
 		return fmt.Errorf("the frequency must not be zero")
+	case (q.Kind == SentQTC) && (q.QSONumber <= 0):
+		return fmt.Errorf("the QSO number must be greater than zero")
 	default:
 		return nil
 	}

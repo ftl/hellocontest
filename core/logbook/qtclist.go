@@ -233,6 +233,7 @@ func qtcFromQSO(qso core.QSO) core.QTC {
 }
 
 // AvailableFor returns the number of QTCs available for the given callsign.
+// deprecated
 func (l *QTCList) AvailableFor(theirCall callsign.Callsign) int {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
@@ -248,6 +249,7 @@ func (l *QTCList) AvailableFor(theirCall callsign.Callsign) int {
 	return min(core.MaxQTCsPerCall-theirQTCCount, len(l.availableQTCs)-theirQSOCount)
 }
 
+// deprecated
 func (l *QTCList) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()

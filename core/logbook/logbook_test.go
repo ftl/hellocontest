@@ -312,6 +312,40 @@ func TestLogbook_Load_emitsScoreChanged(t *testing.T) {
 	assert.Equal(t, 12, changedScore.Result().Result())
 }
 
+func TestLogbook_Load_loadsQTCs(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
+	now := time.Now()
+	qtcs := []core.QTC{
+		{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+		{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+		{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: header, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+	}
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+
+	logbook.Load(nil, qtcs)
+
+	assert.Equal(t, qtcs, logbook.AllQTCs())
+}
+
+func TestLogbook_Load_emitsQTCAddedForAllQTCs(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
+	now := time.Now()
+	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc2 := core.QTC{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc3 := core.QTC{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: header, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	loadedQTCs := []core.QTC{}
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+	logbook.Notify(QTCAddedListenerFunc(func(qtc core.QTC) {
+		loadedQTCs = append(loadedQTCs, qtc)
+	}))
+
+	logbook.Load(nil, []core.QTC{qtc1, qtc2, qtc3})
+
+	assert.Equal(t, []core.QTC{qtc1, qtc2, qtc3}, loadedQTCs)
+}
+
 func TestLogbook_FindDuplicateQSOs_bandRules(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -559,4 +593,47 @@ func TestLogbook_Find(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, matches, 1, "matches for N1MM")
 	assert.Equal(t, n1mm, matches[0].Callsign, "callsign 0 for N1MM")
+}
+
+func TestLogbook_AddQTCSeries(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
+	now := time.Now()
+	series := core.QTCSeries{
+		TheirCallsign: dl1abc,
+		Header:        header,
+		QTCs: []core.QTC{
+			{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+			{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+			{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: header, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+		},
+	}
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+
+	logbook.AddQTCSeries(series)
+
+	assert.Equal(t, series.QTCs, logbook.AllQTCs())
+}
+
+func TestLogbook_AddQTCSeries_emitsQTCAddedForAllQTCs(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
+	now := time.Now()
+	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc2 := core.QTC{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	qtc3 := core.QTC{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: header, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
+	series := core.QTCSeries{
+		TheirCallsign: dl1abc,
+		Header:        header,
+		QTCs:          []core.QTC{qtc1, qtc2, qtc3},
+	}
+	addedQTCs := []core.QTC{}
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+	logbook.Notify(QTCAddedListenerFunc(func(qtc core.QTC) {
+		addedQTCs = append(addedQTCs, qtc)
+	}))
+
+	logbook.AddQTCSeries(series)
+
+	assert.Equal(t, []core.QTC{qtc1, qtc2, qtc3}, addedQTCs)
 }

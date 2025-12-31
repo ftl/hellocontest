@@ -3,6 +3,7 @@ package logbook
 import (
 	"fmt"
 	"log"
+	"slices"
 	"sync"
 
 	"github.com/ftl/conval"
@@ -116,13 +117,20 @@ func (l *Logbook) loadLocked(qsos []core.QSO, qtcs []core.QTC) ([]core.QSO, []co
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 
+	// clear
 	l.clear(len(qsos)*2, len(qtcs)*2)
+
+	// load the QSOs
 	err := l.putQSOs(qsos)
 	if err != nil {
 		return nil, nil, core.Score{}, err
 	}
 
-	// TODO: load qtcs
+	// load the QTCs
+	err = l.putQTCs(qtcs)
+	if err != nil {
+		return nil, nil, core.Score{}, err
+	}
 
 	// update first, because the QSO score might change during the update
 	score := l.refreshDerivedData()
@@ -167,6 +175,16 @@ func (l *Logbook) putQSO(qso core.QSO) error {
 		l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
 	}
 	l.qsos[index] = qso
+	return nil
+}
+
+func (l *Logbook) putQTCs(qtcs []core.QTC) error {
+	for _, qtc := range qtcs {
+		err := l.addQTC(qtc)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -325,8 +343,87 @@ func (l *Logbook) LastExchange() []string {
 
 // QTCs
 
+func (l *Logbook) SetQTCsEnabled(enabled bool) {
+	// TODO: implement
+}
+
+func (l *Logbook) QTCsEnabled() bool {
+	// TODO: implement
+	return true
+}
+
 func (l *Logbook) AddQTCSeries(series core.QTCSeries) {
-	panic("not yet implemented")
+	addedQTCs, err := l.addQTCSeriesLocked(series)
+	if err != nil {
+		// this must never happen, otherwise we have made a mistake
+		panic(err)
+	}
+
+	for _, qtc := range addedQTCs {
+		l.emitQTCAdded(qtc)
+	}
+}
+
+func (l *Logbook) addQTCSeriesLocked(series core.QTCSeries) ([]core.QTC, error) {
+	l.dataLock.Lock()
+	defer l.dataLock.Unlock()
+
+	addedQTCs := make([]core.QTC, 0, len(series.QTCs))
+	for _, qtc := range series.QTCs {
+		qtc.TheirCallsign = series.TheirCallsign
+		qtc.Header = series.Header
+		err := l.addQTC(qtc)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO: update score
+
+		addedQTCs = append(addedQTCs, qtc)
+	}
+
+	return addedQTCs, nil
+}
+
+func (l *Logbook) addQTC(qtc core.QTC) error {
+	if err := qtc.VerifyComplete(); err != nil {
+		return fmt.Errorf("Logbook.addQTC: cannot log QTC %v: %w", qtc, err)
+	}
+
+	if qtc.Kind == core.SentQTC {
+		if existing, ok := l.sentQTCs[qtc.QSONumber]; ok {
+			return fmt.Errorf("Logbook.addQTC: QTC for QSO #%d already exists, cannot log another QTC for the same QSO: %v", qtc.QSONumber, existing)
+		}
+		l.sentQTCs[qtc.QSONumber] = qtc
+		err := l.registerSentQTCSeries(qtc)
+		if err != nil {
+			return err
+		}
+	} else {
+		l.receivedQTCs = append(l.receivedQTCs, qtc)
+	}
+	log.Printf("QTC added: %v", qtc)
+	return nil
+}
+
+func (l *Logbook) registerSentQTCSeries(qtc core.QTC) error {
+	if qtc.Kind != core.SentQTC {
+		return nil
+	}
+
+	index := qtc.Header.SeriesNumber - 1
+	switch {
+	case index < 0: // this must never happen
+		return fmt.Errorf("Logbook.registerQTCSeries: invalid QTC series number %d, must be greater than 0", qtc.Header.SeriesNumber)
+	case len(l.sentQTCsPerSeries) == index: // the first of a new series
+		l.sentQTCsPerSeries = append(l.sentQTCsPerSeries, 1)
+	case len(l.sentQTCsPerSeries) > index: // the next of an existing series
+		l.sentQTCsPerSeries[index]++
+		// TODO: check if the series contains more than Header.QTCCount
+	default: // this must never happen, the calculation of the next series number is broken
+		return fmt.Errorf("Logbook.registerQTCSeries: unknown QTC series number %d, should not be greater than %d", qtc.Header.SeriesNumber, len(l.sentQTCsPerSeries))
+	}
+	return nil
 }
 
 func (l *Logbook) AllQTCs() []core.QTC {
@@ -337,8 +434,27 @@ func (l *Logbook) AllQTCs() []core.QTC {
 }
 
 func (l *Logbook) allQTCs() []core.QTC {
+	result := make([]core.QTC, 0, len(l.sentQTCs)+len(l.receivedQTCs))
+	for _, qtc := range l.sentQTCs {
+		result = append(result, qtc)
+	}
+	result = append(result, l.receivedQTCs...)
+	slices.SortStableFunc(result, core.QTCByTimestamp)
+	return result
+}
+
+func (l *Logbook) AvailableFor(theirCall callsign.Callsign) int {
+	// TODO: implement
+	return 0
+}
+
+func (l *Logbook) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC {
 	// TODO: implement
 	return nil
+}
+
+func (l *Logbook) NextSeriesNumber() int {
+	return len(l.sentQTCsPerSeries) + 1
 }
 
 // Derived Data

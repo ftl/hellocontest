@@ -1,6 +1,7 @@
 package logbook
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -636,4 +637,53 @@ func TestLogbook_AddQTCSeries_emitsQTCAddedForAllQTCs(t *testing.T) {
 	logbook.AddQTCSeries(series)
 
 	assert.Equal(t, []core.QTC{qtc1, qtc2, qtc3}, addedQTCs)
+}
+
+func TestLogbook_AvailableFor(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+
+	available := logbook.AvailableFor(dl1abc)
+	assert.Equal(t, 0, available, "fresh log")
+
+	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: dl1abc})
+	available = logbook.AvailableFor(dl1abc)
+	assert.Equal(t, 0, available, "own")
+
+	for i := range core.MaxQTCsPerCall {
+		theirCall := callsign.MustParse(fmt.Sprintf("K%dAB", i+1))
+		logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(i + 2), Callsign: theirCall})
+		available = logbook.AvailableFor(dl1abc)
+		assert.Equal(t, i+1, available, theirCall.String())
+	}
+
+	logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(core.MaxQTCsPerCall + 2), Callsign: callsign.MustParse("K1MORE")})
+	available = logbook.AvailableFor(dl1abc)
+	assert.Equal(t, core.MaxQTCsPerCall, available, "one more")
+}
+
+func TestLogbook_PrepareFor(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+
+	qtcs := logbook.PrepareFor(dl1abc, core.MaxQTCsPerCall)
+	assert.Equal(t, 0, len(qtcs), "fresh log")
+
+	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: dl1abc})
+	qtcs = logbook.PrepareFor(dl1abc, core.MaxQTCsPerCall)
+	assert.Equal(t, 0, len(qtcs), "own")
+
+	for i := range core.MaxQTCsPerCall {
+		theirCall := callsign.MustParse(fmt.Sprintf("K%dAB", i+1))
+		logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(i + 2), Callsign: theirCall})
+		qtcs = logbook.PrepareFor(dl1abc, core.MaxQTCsPerCall)
+		assert.Equal(t, i+1, len(qtcs), theirCall.String())
+	}
+
+	logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(core.MaxQTCsPerCall + 2), Callsign: callsign.MustParse("K1MORE")})
+	qtcs = logbook.PrepareFor(dl1abc, core.MaxQTCsPerCall)
+	assert.Equal(t, core.MaxQTCsPerCall, len(qtcs), "one more")
+
+	qtcs = logbook.PrepareFor(dl1abc, 1)
+	assert.Equal(t, 1, len(qtcs), "only one")
 }

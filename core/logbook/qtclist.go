@@ -212,7 +212,7 @@ func (l *QTCList) PutQSO(qso core.QSO) {
 }
 
 func (l *QTCList) putQSO(qso core.QSO) {
-	qtc := qtcFromQSO(qso)
+	qtc := sentQTCFromQSO(qso)
 	for i, availableQTC := range l.availableQTCs {
 		if availableQTC.QSONumber == qso.MyNumber {
 			l.availableQTCs[i] = qtc
@@ -220,16 +220,6 @@ func (l *QTCList) putQSO(qso core.QSO) {
 		}
 	}
 	l.availableQTCs = append(l.availableQTCs, qtc)
-}
-
-func qtcFromQSO(qso core.QSO) core.QTC {
-	return core.QTC{
-		Kind:        core.SentQTC,
-		QSONumber:   qso.MyNumber,
-		QTCTime:     core.QTCTimeFromTimestamp(qso.Time),
-		QTCCallsign: qso.Callsign,
-		QTCNumber:   qso.TheirNumber,
-	}
 }
 
 // AvailableFor returns the number of QTCs available for the given callsign.

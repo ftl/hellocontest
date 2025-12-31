@@ -28,6 +28,8 @@ type Logbook struct {
 	sentQTCs          map[core.QSONumber]core.QTC // TODO: better store the QTC series?
 	receivedQTCs      []core.QTC                  // TODO: better store QTC series?
 	sentQTCsPerSeries []int
+	availableQTCs     []core.QTC
+	qtcsByCall        map[callsign.Callsign]int
 
 	scoreCounter *scoreCounter
 	dupes        dupeIndex     // used to find duplicate QSOs for a given callsign, band and mode, according to the contest rules
@@ -147,6 +149,8 @@ func (l *Logbook) clear(capQSOs int, capQTCs int) {
 	l.sentQTCs = make(map[core.QSONumber]core.QTC, capQTCs)
 	l.receivedQTCs = make([]core.QTC, 0, capQTCs)
 	l.sentQTCsPerSeries = make([]int, 0, capQTCs)
+	l.availableQTCs = make([]core.QTC, 0, capQSOs)
+	l.qtcsByCall = make(map[callsign.Callsign]int)
 }
 
 func (l *Logbook) putQSOs(qsos []core.QSO) error {
@@ -155,6 +159,7 @@ func (l *Logbook) putQSOs(qsos []core.QSO) error {
 		if err != nil {
 			return err
 		}
+		l.addAvailableQTCForQSO(qso)
 	}
 	return nil
 }
@@ -214,6 +219,7 @@ func (l *Logbook) addQSOLocked(qso core.QSO) (core.QSO, core.Score, error) {
 		l.qsos = append(l.qsos, qso)
 		l.addDerivedDataForQSO(qso)
 		score := l.scoreCounter.Score()
+		l.addAvailableQTCForQSO(qso)
 
 		return qso, score, nil
 	}
@@ -228,6 +234,7 @@ func (l *Logbook) addQSOLocked(qso core.QSO) (core.QSO, core.Score, error) {
 	l.qsos[index] = qso
 	l.addDerivedDataForQSO(qso)
 	score := l.scoreCounter.Score()
+	l.addAvailableQTCForQSO(qso)
 
 	return qso, score, nil
 }
@@ -399,9 +406,17 @@ func (l *Logbook) addQTC(qtc core.QTC) error {
 		if err != nil {
 			return err
 		}
+
+		l.removeAvailableQTC(qtc)
 	} else {
 		l.receivedQTCs = append(l.receivedQTCs, qtc)
 	}
+
+	// TODO: mabye we need to count sent and received qtcs separateley if the contest allows both directions
+	count := l.qtcsByCall[qtc.TheirCallsign]
+	count++
+	l.qtcsByCall[qtc.TheirCallsign] = count
+
 	log.Printf("QTC added: %v", qtc)
 	return nil
 }
@@ -426,6 +441,47 @@ func (l *Logbook) registerSentQTCSeries(qtc core.QTC) error {
 	return nil
 }
 
+func (l *Logbook) addAvailableQTCForQSO(qso core.QSO) {
+	qtc := sentQTCFromQSO(qso)
+	for i, availableQTC := range l.availableQTCs {
+		if availableQTC.QSONumber == qso.MyNumber {
+			l.availableQTCs[i] = qtc
+			return
+		}
+	}
+	l.availableQTCs = append(l.availableQTCs, qtc)
+}
+
+func (l *Logbook) removeAvailableQTC(qtc core.QTC) {
+	if qtc.Kind != core.SentQTC {
+		return
+	}
+	index := -1
+	for i := range l.availableQTCs {
+		if qtc.QSONumber == l.availableQTCs[i].QSONumber {
+			index = i
+			break
+		}
+	}
+	switch {
+	case index < 0:
+	case index < len(l.availableQTCs)-1:
+		l.availableQTCs = append(l.availableQTCs[:index], l.availableQTCs[index+1:]...)
+	case index == len(l.availableQTCs)-1:
+		l.availableQTCs = l.availableQTCs[:index]
+	}
+}
+
+func sentQTCFromQSO(qso core.QSO) core.QTC {
+	return core.QTC{
+		Kind:        core.SentQTC,
+		QSONumber:   qso.MyNumber,
+		QTCTime:     core.QTCTimeFromTimestamp(qso.Time),
+		QTCCallsign: qso.Callsign,
+		QTCNumber:   qso.TheirNumber,
+	}
+}
+
 func (l *Logbook) AllQTCs() []core.QTC {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
@@ -444,13 +500,40 @@ func (l *Logbook) allQTCs() []core.QTC {
 }
 
 func (l *Logbook) AvailableFor(theirCall callsign.Callsign) int {
-	// TODO: implement
-	return 0
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	theirCallStr := theirCall.String()
+	theirQTCCount := l.qtcsByCall[theirCall]
+	theirQSOCount := 0
+	for _, qtc := range l.availableQTCs {
+		if qtc.QTCCallsign.String() == theirCallStr {
+			theirQSOCount++
+		}
+	}
+	return min(core.MaxQTCsPerCall-theirQTCCount, len(l.availableQTCs)-theirQSOCount)
 }
 
 func (l *Logbook) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC {
-	// TODO: implement
-	return nil
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	theirCallStr := theirCall.String()
+	theirQTCCount := l.qtcsByCall[theirCall]
+	maxLen := max(0, min(core.MaxQTCsPerCall-theirQTCCount, count))
+
+	result := make([]core.QTC, 0, maxLen)
+	for _, qtc := range l.availableQTCs {
+		if len(result) >= maxLen {
+			break
+		}
+		if qtc.QTCCallsign.String() != theirCallStr {
+			qtc.TheirCallsign = theirCall
+			result = append(result, qtc)
+		}
+	}
+
+	return result
 }
 
 func (l *Logbook) NextSeriesNumber() int {

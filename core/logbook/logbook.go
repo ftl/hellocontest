@@ -2,7 +2,12 @@ package logbook
 
 import (
 	"fmt"
+	"log"
 	"sync"
+
+	"github.com/ftl/conval"
+	"github.com/ftl/hamradio/callsign"
+	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
@@ -24,6 +29,10 @@ type Logbook struct {
 	sentQTCsPerSeries []int
 
 	scoreCounter *scoreCounter
+	dupes        dupeIndex     // used to find duplicate QSOs for a given callsign, band and mode, according to the contest rules
+	worked       dupeIndex     // used to find worked QSOs for a given callsign
+	callsigns    *scp.Database // used to find worked callsigns similar to a given string, e.g. for supercheck
+	bandRule     conval.BandRule
 }
 
 func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities) *Logbook {
@@ -31,6 +40,9 @@ func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities)
 		clock:        clock,
 		dataLock:     new(sync.RWMutex),
 		scoreCounter: newScoreCounter(settings, entities),
+		dupes:        make(dupeIndex),
+		worked:       make(dupeIndex),
+		callsigns:    scp.NewDatabase(),
 	}
 
 	result.clear(1000, 0)
@@ -41,19 +53,50 @@ func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities)
 // Settings
 
 func (l *Logbook) StationChanged(station core.Station) {
-	l.scoreCounter.StationChanged(station)
-	if !l.scoreCounter.Valid() {
-		return
+	score, updated := l.stationChangedLocked(station)
+	if updated {
+		l.emitScoreChanged(score)
 	}
-	// TODO: refresh derived data if l.scoreCounter.Valid()
+}
+
+func (l *Logbook) stationChangedLocked(station core.Station) (core.Score, bool) {
+	l.dataLock.Lock()
+	defer l.dataLock.Unlock()
+
+	l.scoreCounter.StationChanged(station)
+
+	if !l.scoreCounter.Valid() {
+		return core.Score{}, false
+	}
+
+	score := l.refreshDerivedData()
+	return score, true
 }
 
 func (l *Logbook) ContestChanged(contest core.Contest) {
-	l.scoreCounter.ContestChanged(contest)
-	if !l.scoreCounter.Valid() {
-		return
+	score, updated := l.contestChangedLocked(contest)
+
+	if updated {
+		l.emitScoreChanged(score)
 	}
-	// TODO: refresh derived data if l.scoreCounter.Valid()
+}
+
+func (l *Logbook) contestChangedLocked(contest core.Contest) (core.Score, bool) {
+	l.dataLock.Lock()
+	defer l.dataLock.Unlock()
+
+	l.scoreCounter.ContestChanged(contest)
+
+	if contest.Definition != nil {
+		l.bandRule = contest.Definition.Scoring.QSOBandRule
+	}
+
+	if !l.scoreCounter.Valid() {
+		return core.Score{}, false
+	}
+
+	score := l.refreshDerivedData()
+	return score, true
 }
 
 // Loading
@@ -151,6 +194,7 @@ func (l *Logbook) addQSOLocked(qso core.QSO) (core.QSO, core.Score, error) {
 	if (lastNumber <= 0) || (qso.MyNumber > lastNumber) {
 		qso = l.scoreCounter.AddQSO(qso)
 		l.qsos = append(l.qsos, qso)
+		l.addDerivedDataForQSO(qso)
 		score := l.scoreCounter.Score()
 
 		return qso, score, nil
@@ -164,6 +208,7 @@ func (l *Logbook) addQSOLocked(qso core.QSO) (core.QSO, core.Score, error) {
 	qso = l.scoreCounter.AddQSO(qso)
 	l.qsos = append(l.qsos[:index+1], l.qsos[index:]...)
 	l.qsos[index] = qso
+	l.addDerivedDataForQSO(qso)
 	score := l.scoreCounter.Score()
 
 	return qso, score, nil
@@ -245,6 +290,39 @@ func (l *Logbook) allQSOs() []core.QSO {
 	return result
 }
 
+func (l *Logbook) NextQSONumber() core.QSONumber {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	return l.lastQSONumber() + 1
+}
+
+func (l *Logbook) lastQSOLocked() core.QSO {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	if len(l.qsos) == 0 {
+		return core.QSO{}
+	}
+	return l.qsos[len(l.qsos)-1]
+}
+
+func (l *Logbook) LastCallsign() callsign.Callsign {
+	return l.lastQSOLocked().Callsign
+}
+
+func (l *Logbook) LastBand() core.Band {
+	return l.lastQSOLocked().Band
+}
+
+func (l *Logbook) LastMode() core.Mode {
+	return l.lastQSOLocked().Mode
+}
+
+func (l *Logbook) LastExchange() []string {
+	return l.lastQSOLocked().MyExchange
+}
+
 // QTCs
 
 func (l *Logbook) AddQTCSeries(series core.QTCSeries) {
@@ -274,14 +352,184 @@ func (l *Logbook) Score() core.Score {
 
 func (l *Logbook) refreshDerivedData() core.Score {
 	l.scoreCounter.Clear()
+	l.dupes = make(dupeIndex)
+	l.worked = make(dupeIndex)
+	l.callsigns = scp.NewDatabase()
+
 	for i, qso := range l.qsos {
-		l.qsos[i] = l.scoreCounter.AddQSO(qso)
+		qso = l.scoreCounter.AddQSO(qso)
+		l.qsos[i] = qso
+		l.addDerivedDataForQSO(qso)
 	}
 	score := l.scoreCounter.Score()
 
-	// TODO: update dupes, worked, callsigns
-
 	return score
+}
+
+func (l *Logbook) addDerivedDataForQSO(qso core.QSO) {
+	dupeBand, dupeMode := l.dupeBandAndMode(qso.Band, qso.Mode)
+	l.dupes.Add(qso.Callsign, dupeBand, dupeMode, qso.MyNumber)
+	l.worked.Add(qso.Callsign, core.NoBand, core.NoMode, qso.MyNumber)
+	l.callsigns.Add(qso.Callsign.String())
+}
+
+func (l *Logbook) dupeBandAndMode(band core.Band, mode core.Mode) (core.Band, core.Mode) {
+	switch l.bandRule {
+	case conval.Once:
+		return core.NoBand, core.NoMode
+	case conval.OncePerBand:
+		return band, core.NoMode
+	case conval.OncePerBandAndMode:
+		return band, mode
+	default:
+		return core.NoBand, core.NoMode
+	}
+}
+
+func (l *Logbook) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	band, mode = l.dupeBandAndMode(band, mode)
+	numbers := l.dupes.Get(callsign, band, mode)
+
+	return l.getQSOs(numbers)
+}
+
+func (l *Logbook) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
+	qsos := l.findWorkedQSOsLocked(callsign)
+	if len(qsos) == 0 {
+		return qsos, false
+	}
+
+	duplicate := false
+	for _, qso := range qsos {
+		switch l.bandRule {
+		case conval.Once:
+			duplicate = true
+		case conval.OncePerBand:
+			duplicate = (qso.Band == band)
+		case conval.OncePerBandAndMode:
+			duplicate = (qso.Band == band) && (qso.Mode == mode)
+		default:
+			duplicate = false
+		}
+		if duplicate {
+			break
+		}
+	}
+	return qsos, duplicate
+}
+
+func (l *Logbook) findWorkedQSOsLocked(callsign callsign.Callsign) []core.QSO {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	numbers := l.worked.Get(callsign, core.NoBand, core.NoMode)
+	return l.getQSOs(numbers)
+}
+
+func (l *Logbook) getQSOs(numbers []core.QSONumber) []core.QSO {
+	result := make([]core.QSO, 0, len(numbers))
+	for _, n := range numbers {
+		listIndex, found := l.findQSOIndex(n)
+		if !found {
+			log.Printf("QSO number %d not found", n)
+			continue
+		}
+		qso := l.qsos[listIndex]
+		if len(result) > 0 && n > result[len(result)-1].MyNumber {
+			result = append(result, qso)
+		} else {
+			resultIndex, found := findIndex(result, n)
+			if !found {
+				result = append(result[:resultIndex+1], result[resultIndex:]...)
+			}
+			result[resultIndex] = qso
+		}
+	}
+	return result
+}
+
+func findIndex(list []core.QSO, number core.QSONumber) (int, bool) {
+	low := 0
+	high := len(list) - 1
+
+	for low <= high {
+		median := (low + high) / 2
+
+		if list[median].MyNumber < number {
+			low = median + 1
+		} else {
+			high = median - 1
+		}
+	}
+
+	if low == len(list) || list[low].MyNumber != number {
+		return low, false
+	}
+
+	return low, true
+}
+
+func (l *Logbook) Find(s string) ([]core.AnnotatedCallsign, error) {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	if l.callsigns == nil {
+		return nil, nil
+	}
+	matches, err := l.callsigns.Find(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return toAnnotatedCallsigns(matches), nil
+}
+
+func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
+	result := make([]core.AnnotatedCallsign, 0, len(matches))
+
+	for _, match := range matches {
+		annotatedCallsign, err := toAnnotatedCallsign(match)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		result = append(result, annotatedCallsign)
+	}
+
+	return result
+}
+
+func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
+	cs, err := callsign.Parse(match.Key())
+	if err != nil {
+		return core.AnnotatedCallsign{}, nil
+	}
+	return core.AnnotatedCallsign{
+		Callsign:   cs,
+		Assembly:   toMatchingAssembly(match),
+		Comparable: match,
+		Compare: func(a any, b any) bool {
+			aMatch, aOk := a.(scp.Match)
+			bMatch, bOk := b.(scp.Match)
+			if !aOk || !bOk {
+				return false
+			}
+			return aMatch.LessThan(bMatch)
+		},
+	}, nil
+}
+
+func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
+	result := make(core.MatchingAssembly, len(match.Assembly))
+
+	for i, part := range match.Assembly {
+		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
+	}
+
+	return result
 }
 
 // Notifications

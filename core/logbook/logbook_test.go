@@ -311,3 +311,252 @@ func TestLogbook_Load_emitsScoreChanged(t *testing.T) {
 
 	assert.Equal(t, 12, changedScore.Result().Result())
 }
+
+func TestLogbook_FindDuplicateQSOs_bandRules(t *testing.T) {
+	tests := []struct {
+		name      string
+		bandRule  conval.BandRule
+		band      core.Band
+		mode      core.Mode
+		duplicate bool
+	}{
+		{
+			name:      "once, same band, same mode",
+			bandRule:  conval.Once,
+			band:      core.Band80m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once, same band, different mode",
+			bandRule:  conval.Once,
+			band:      core.Band80m,
+			mode:      core.ModeSSB,
+			duplicate: true,
+		},
+		{
+			name:      "once, different band, same mode",
+			bandRule:  conval.Once,
+			band:      core.Band40m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once, different band, different mode",
+			bandRule:  conval.Once,
+			band:      core.Band40m,
+			mode:      core.ModeSSB,
+			duplicate: true,
+		},
+		{
+			name:      "once per band, same band, same mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band80m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once per band, same band, different mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band80m,
+			mode:      core.ModeSSB,
+			duplicate: true,
+		},
+		{
+			name:      "once per band, different band, same mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band40m,
+			mode:      core.ModeCW,
+			duplicate: false,
+		},
+		{
+			name:      "once per band, different band, different mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band40m,
+			mode:      core.ModeSSB,
+			duplicate: false,
+		},
+		{
+			name:      "once per band and mode, same band, same mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band80m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once per band and mode, same band, different mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band80m,
+			mode:      core.ModeSSB,
+			duplicate: false,
+		},
+		{
+			name:      "once per band and mode, different band, same mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band40m,
+			mode:      core.ModeCW,
+			duplicate: false,
+		},
+		{
+			name:      "once per band and mode, different band, different mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band40m,
+			mode:      core.ModeSSB,
+			duplicate: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			dl1abc := callsign.MustParse("DL1ABC")
+			qso := core.QSO{MyNumber: 1, Callsign: dl1abc, Band: core.Band80m, Mode: core.ModeCW}
+			logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+			logbook.bandRule = test.bandRule
+			logbook.AddQSO(qso)
+
+			duplicateQSOs := logbook.FindDuplicateQSOs(dl1abc, test.band, test.mode)
+
+			if test.duplicate {
+				assert.Equal(t, []core.QSO{qso}, duplicateQSOs)
+			} else {
+				assert.Empty(t, duplicateQSOs)
+			}
+		})
+	}
+}
+
+func TestLogbook_FindWorkedQSOs_bandRules(t *testing.T) {
+	tests := []struct {
+		name      string
+		bandRule  conval.BandRule
+		band      core.Band
+		mode      core.Mode
+		duplicate bool
+	}{
+		{
+			name:      "once, same band, same mode",
+			bandRule:  conval.Once,
+			band:      core.Band80m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once, same band, different mode",
+			bandRule:  conval.Once,
+			band:      core.Band80m,
+			mode:      core.ModeSSB,
+			duplicate: true,
+		},
+		{
+			name:      "once, different band, same mode",
+			bandRule:  conval.Once,
+			band:      core.Band40m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once, different band, different mode",
+			bandRule:  conval.Once,
+			band:      core.Band40m,
+			mode:      core.ModeSSB,
+			duplicate: true,
+		},
+		{
+			name:      "once per band, same band, same mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band80m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once per band, same band, different mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band80m,
+			mode:      core.ModeSSB,
+			duplicate: true,
+		},
+		{
+			name:      "once per band, different band, same mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band40m,
+			mode:      core.ModeCW,
+			duplicate: false,
+		},
+		{
+			name:      "once per band, different band, different mode",
+			bandRule:  conval.OncePerBand,
+			band:      core.Band40m,
+			mode:      core.ModeSSB,
+			duplicate: false,
+		},
+		{
+			name:      "once per band and mode, same band, same mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band80m,
+			mode:      core.ModeCW,
+			duplicate: true,
+		},
+		{
+			name:      "once per band and mode, same band, different mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band80m,
+			mode:      core.ModeSSB,
+			duplicate: false,
+		},
+		{
+			name:      "once per band and mode, different band, same mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band40m,
+			mode:      core.ModeCW,
+			duplicate: false,
+		},
+		{
+			name:      "once per band and mode, different band, different mode",
+			bandRule:  conval.OncePerBandAndMode,
+			band:      core.Band40m,
+			mode:      core.ModeSSB,
+			duplicate: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			dl1abc := callsign.MustParse("DL1ABC")
+			qso := core.QSO{MyNumber: 1, Callsign: dl1abc, Band: core.Band80m, Mode: core.ModeCW}
+			logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+			logbook.bandRule = test.bandRule
+			logbook.AddQSO(qso)
+
+			duplicateQSOs, duplicate := logbook.FindWorkedQSOs(dl1abc, test.band, test.mode)
+
+			assert.Equal(t, []core.QSO{qso}, duplicateQSOs)
+			assert.Equal(t, test.duplicate, duplicate)
+		})
+	}
+}
+
+func TestLogbook_Find(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	n1mm := callsign.MustParse("N1MM")
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+	logbook.bandRule = conval.Once
+	logbook.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	logbook.AddQSO(core.QSO{Callsign: dl2abc, MyNumber: 3})
+	logbook.AddQSO(core.QSO{Callsign: n1mm, MyNumber: 5})
+
+	matches, err := logbook.Find("DL1ABC")
+	require.NoError(t, err)
+	assert.Len(t, matches, 2, "matches for DL1ABC")
+	assert.Equal(t, dl1abc, matches[0].Callsign, "callsign 0 for DL1ABC")
+	assert.Equal(t, dl2abc, matches[1].Callsign, "callsign 1 for DL1ABC")
+
+	matches, err = logbook.Find("DL0ABC")
+	require.NoError(t, err)
+	assert.Len(t, matches, 2, "matches for DL0ABC")
+	assert.Equal(t, dl1abc, matches[0].Callsign, "callsign 0 for DL0ABC")
+	assert.Equal(t, dl2abc, matches[1].Callsign, "callsign 1 for DL0ABC")
+
+	matches, err = logbook.Find("N1MM")
+	require.NoError(t, err)
+	assert.Len(t, matches, 1, "matches for N1MM")
+	assert.Equal(t, n1mm, matches[0].Callsign, "callsign 0 for N1MM")
+}

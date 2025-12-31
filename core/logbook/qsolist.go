@@ -152,27 +152,6 @@ func (l *QSOList) findIndex(number core.QSONumber) (int, bool) {
 	return findIndex(l.list, number)
 }
 
-func findIndex(list []core.QSO, number core.QSONumber) (int, bool) {
-	low := 0
-	high := len(list) - 1
-
-	for low <= high {
-		median := (low + high) / 2
-
-		if list[median].MyNumber < number {
-			low = median + 1
-		} else {
-			high = median - 1
-		}
-	}
-
-	if low == len(list) || list[low].MyNumber != number {
-		return low, false
-	}
-
-	return low, true
-}
-
 func (l *QSOList) append(qso core.QSO) func([]core.QSO) {
 	l.list = append(l.list, qso)
 
@@ -353,51 +332,6 @@ func (l *QSOList) Find(s string) ([]core.AnnotatedCallsign, error) {
 	}
 
 	return toAnnotatedCallsigns(matches), nil
-}
-
-func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
-	result := make([]core.AnnotatedCallsign, 0, len(matches))
-
-	for _, match := range matches {
-		annotatedCallsign, err := toAnnotatedCallsign(match)
-		if err != nil {
-			log.Print(err)
-			continue
-		}
-		result = append(result, annotatedCallsign)
-	}
-
-	return result
-}
-
-func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
-	cs, err := callsign.Parse(match.Key())
-	if err != nil {
-		return core.AnnotatedCallsign{}, nil
-	}
-	return core.AnnotatedCallsign{
-		Callsign:   cs,
-		Assembly:   toMatchingAssembly(match),
-		Comparable: match,
-		Compare: func(a any, b any) bool {
-			aMatch, aOk := a.(scp.Match)
-			bMatch, bOk := b.(scp.Match)
-			if !aOk || !bOk {
-				return false
-			}
-			return aMatch.LessThan(bMatch)
-		},
-	}, nil
-}
-
-func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
-	result := make(core.MatchingAssembly, len(match.Assembly))
-
-	for i, part := range match.Assembly {
-		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
-	}
-
-	return result
 }
 
 func (l *QSOList) Notify(listener any) {

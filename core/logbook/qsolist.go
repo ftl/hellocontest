@@ -249,6 +249,7 @@ func (l *QSOList) SelectLastQSO() {
 	l.emitQSORowSelected(index)
 }
 
+// deprecated
 func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
@@ -259,6 +260,7 @@ func (l *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, 
 	return l.getQSOs(numbers)
 }
 
+// deprecated
 func (l *QSOList) GetQSOs(numbers []core.QSONumber) []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
@@ -288,6 +290,7 @@ func (l *QSOList) getQSOs(numbers []core.QSONumber) []core.QSO {
 	return result
 }
 
+// deprecated
 func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
 	l.dataLock.RLock()
 
@@ -319,6 +322,7 @@ func (l *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mod
 	return qsos, duplicate
 }
 
+// deprecated
 func (l *QSOList) Find(s string) ([]core.AnnotatedCallsign, error) {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()

@@ -532,6 +532,20 @@ func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
 	return result
 }
 
+func (l *Logbook) FillSummary(summary *core.Summary) {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	l.scoreCounter.FillSummary(summary)
+}
+
+func (l *Logbook) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	return l.scoreCounter.Value(callsign, entity, band, mode, exchange)
+}
+
 // Notifications
 
 func (l *Logbook) Notify(listener any) {

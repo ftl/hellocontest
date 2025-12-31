@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
+	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
@@ -14,6 +15,9 @@ import (
 type scoreCounter struct {
 	score          core.Score
 	counter        convalCounter
+	timeSheet      convalTimeSheet
+	activeBands    map[core.Band]bool
+	activeModes    map[core.Mode]bool
 	prefixDatabase prefixDatabase
 	invalid        bool
 
@@ -30,7 +34,10 @@ type scoreCounter struct {
 func newScoreCounter(settings core.Settings, entities DXCCEntities) *scoreCounter {
 	result := &scoreCounter{
 		score:          core.NewScore(),
-		counter:        newSafeConvalCounter(new(nullCounter), new(nullTimeSheet)),
+		counter:        new(nullCounter),
+		timeSheet:      new(nullTimeSheet),
+		activeBands:    make(map[core.Band]bool),
+		activeModes:    make(map[core.Mode]bool),
 		prefixDatabase: prefixDatabase{entities},
 	}
 	result.counterFactory = result.newConvalCounter
@@ -74,10 +81,11 @@ func (c *scoreCounter) ContestChanged(contest core.Contest) {
 }
 
 func (c *scoreCounter) clear() {
-	counter := c.counterFactory()
-	timeSheet := c.timeSheetFactory()
-	c.counter = newSafeConvalCounter(counter, timeSheet)
 	c.score = core.NewScore()
+	c.counter = c.counterFactory()
+	c.timeSheet = c.timeSheetFactory()
+	c.activeBands = make(map[core.Band]bool)
+	c.activeModes = make(map[core.Mode]bool)
 }
 
 func (c *scoreCounter) newConvalTimeSheet() convalTimeSheet {
@@ -103,22 +111,6 @@ func (c *scoreCounter) Clear() {
 	c.invalid = (c.contestSetup.MyCountry == "")
 }
 
-// Fill the score counter with the given QSOs and QTCs, update the QSOs fields for points, multis and duplicate.
-func (c *scoreCounter) Fill(qsos []core.QSO, qtcs []core.QTC) []core.QSO {
-	c.clear()
-	for i, qso := range qsos {
-		qsoScore := c.addQSO(qso)
-		qso.Points = qsoScore.Points
-		qso.Multis = qsoScore.Multis
-		qso.Duplicate = qsoScore.Duplicate
-		qsos[i] = qso
-	}
-
-	// TODO: fill score counter with qtcs
-
-	return qsos
-}
-
 // Add the given QSO and return the QSO with updated fields for points, multis, and duplicate.
 func (c *scoreCounter) AddQSO(qso core.QSO) core.QSO {
 	qsoScore := c.addQSO(qso)
@@ -136,6 +128,10 @@ func (c *scoreCounter) addQSO(qso core.QSO) core.QSOScore {
 		Multis:    qsoScore.Multis,
 		Duplicate: qsoScore.Duplicate,
 	}
+
+	c.timeSheet.MarkActive(qso.Time)
+	c.activeBands[qso.Band] = true
+	c.activeModes[qso.Mode] = true
 
 	bandScore := c.score.ScorePerBand[qso.Band]
 	bandScore.AddQSO(result)
@@ -160,8 +156,62 @@ func (c *scoreCounter) addQSO(qso core.QSO) core.QSOScore {
 	return result
 }
 
+// deprecated
+func (c *scoreCounter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
+	continent, country, _, _ := toConvalDXCCEntity(entity)
+	convalQSO := conval.QSO{
+		TheirCall:      callsign,
+		TheirContinent: continent,
+		TheirCountry:   country,
+		Band:           conval.ContestBand(band),
+		Mode:           toConvalMode[mode],
+		TheirExchange:  c.toQSOExchange(c.theirExchangeFields, exchange),
+	}
+	qsoScore := c.counter.Probe(convalQSO)
+
+	return qsoScore.Points, qsoScore.Multis, qsoScore.MultiValues
+}
+
 func (c *scoreCounter) Score() core.Score {
 	return c.score
+}
+
+// deprecated
+func (c *scoreCounter) FillSummary(summary *core.Summary) {
+	breakDuration := c.computeMinBreakDuration(c.contestDefinition, summary.OperatorMode, summary.Overlay)
+	timeReport := c.timeSheet.TimeReport(breakDuration)
+	bands := make([]string, 0, len(c.activeBands))
+	for _, band := range core.Bands {
+		if c.activeBands[band] {
+			bands = append(bands, string(band))
+		}
+	}
+	modes := make([]string, 0, len(c.activeModes))
+	for _, mode := range core.Modes {
+		if c.activeModes[mode] {
+			modes = append(modes, string(mode))
+		}
+	}
+
+	summary.Score = c.score
+	summary.TimeReport = timeReport
+	summary.WorkedBands = bands
+	summary.WorkedModes = modes
+}
+
+func (c *scoreCounter) computeMinBreakDuration(definition *conval.Definition, operatorMode conval.OperatorMode, overlay conval.Overlay) time.Duration {
+	if len(definition.Breaks) == 1 {
+		return definition.Breaks[0].Duration
+	}
+
+	for _, b := range definition.Breaks {
+		if (b.Constraint.OperatorMode == operatorMode) &&
+			(b.Constraint.Overlay == overlay) {
+			return b.Duration
+		}
+	}
+
+	return conval.DefaultBreakDuration
 }
 
 func (c *scoreCounter) toConvalQSO(qso core.QSO) conval.QSO {

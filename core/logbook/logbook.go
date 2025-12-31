@@ -350,15 +350,6 @@ func (l *Logbook) LastExchange() []string {
 
 // QTCs
 
-func (l *Logbook) SetQTCsEnabled(enabled bool) {
-	// TODO: implement
-}
-
-func (l *Logbook) QTCsEnabled() bool {
-	// TODO: implement
-	return true
-}
-
 func (l *Logbook) AddQTCSeries(series core.QTCSeries) {
 	addedQTCs, err := l.addQTCSeriesLocked(series)
 	if err != nil {

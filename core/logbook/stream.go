@@ -164,7 +164,13 @@ func (l *LogStream) LogQSO(qso core.QSO) {
 	l.qtcList.PutQSO(qso)
 }
 
-func (l *LogStream) LogQTC(qtc core.QTC) {
+func (l *LogStream) LogQTCSeries(series core.QTCSeries) {
+	for _, qtc := range series.QTCs {
+		l.logQTC(qtc)
+	}
+}
+
+func (l *LogStream) logQTC(qtc core.QTC) {
 	if err := qtc.VerifyComplete(); err != nil {
 		panic(fmt.Errorf("cannot log the given QTC: %v", err))
 	}

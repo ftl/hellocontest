@@ -55,8 +55,10 @@ type fakeLogbook struct {
 
 func (l *fakeLogbook) NextSeriesNumber() int       { return l.nextSeriesNumber }
 func (l *fakeLogbook) LastCallsign() core.Callsign { return l.lastCallsign }
-func (l *fakeLogbook) LogQTC(qtc core.QTC) {
-	l.loggedQTCs = append(l.loggedQTCs, qtc)
+func (l *fakeLogbook) LogQTCSeries(series core.QTCSeries) {
+	for _, qtc := range series.QTCs {
+		l.loggedQTCs = append(l.loggedQTCs, qtc)
+	}
 }
 
 type fakeView struct {

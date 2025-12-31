@@ -24,7 +24,7 @@ const (
 type Logbook interface {
 	NextSeriesNumber() int
 	LastCallsign() callsign.Callsign
-	LogQTC(core.QTC)
+	LogQTCSeries(core.QTCSeries)
 }
 
 type QTCList interface {
@@ -516,7 +516,7 @@ type nullLogbook struct{}
 
 func (*nullLogbook) NextSeriesNumber() int           { return 0 }
 func (*nullLogbook) LastCallsign() callsign.Callsign { return callsign.Callsign{} }
-func (*nullLogbook) LogQTC(core.QTC)                 {}
+func (*nullLogbook) LogQTCSeries(core.QTCSeries)     {}
 
 // nullView
 

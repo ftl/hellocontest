@@ -71,9 +71,7 @@ func (c *provide) CompleteQTCSeries() {
 		return
 	}
 
-	for _, qtc := range c.currentSeries.QTCs {
-		c.logbook.LogQTC(qtc)
-	}
+	c.logbook.LogQTCSeries(c.currentSeries)
 
 	c.keyer.SendText(CompleteQTCSeriesText)
 

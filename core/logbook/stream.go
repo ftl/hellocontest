@@ -206,6 +206,7 @@ func (l *LogStream) registerQTCSeries(qtc core.QTC) {
 	}
 }
 
+// deprecated
 func (l *LogStream) WriteAll(writer Writer) error {
 	err := l.writeAllQSOs(writer)
 	if err != nil {

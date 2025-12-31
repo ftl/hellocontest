@@ -546,6 +546,39 @@ func (l *Logbook) Value(callsign callsign.Callsign, entity dxcc.Prefix, band cor
 	return l.scoreCounter.Value(callsign, entity, band, mode, exchange)
 }
 
+// Save as
+
+func (l *Logbook) WriteAll(writer Writer) error {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	err := l.writeAllQSOs(writer)
+	if err != nil {
+		return err
+	}
+	return l.writeAllQTCs(writer)
+}
+
+func (l *Logbook) writeAllQSOs(writer Writer) error {
+	for _, qso := range l.qsos {
+		err := writer.WriteQSO(qso)
+		if err != nil {
+			return fmt.Errorf("cannot write QSO %v: %w", qso, err)
+		}
+	}
+	return nil
+}
+
+func (l *Logbook) writeAllQTCs(writer Writer) error {
+	for _, qtc := range l.allQTCs() {
+		err := writer.WriteQTC(qtc)
+		if err != nil {
+			return fmt.Errorf("cannot write QTC %v: %w", qtc, err)
+		}
+	}
+	return nil
+}
+
 // Notifications
 
 func (l *Logbook) Notify(listener any) {

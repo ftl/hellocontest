@@ -50,7 +50,8 @@ func (n *nullLogbook) NextNumber() core.QSONumber { return 0 }
 func (n *nullLogbook) LastBand() core.Band        { return core.NoBand }
 func (n *nullLogbook) LastMode() core.Mode        { return core.NoMode }
 func (n *nullLogbook) LastExchange() []string     { return nil }
-func (n *nullLogbook) LogQSO(core.QSO)               {}
+func (n *nullLogbook) AddQSO(core.QSO)            {}
+func (n *nullLogbook) UpdateQSO(core.QSO)         {}
 
 type nullCallinfo struct{}
 

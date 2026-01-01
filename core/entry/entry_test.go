@@ -18,7 +18,7 @@ import (
 func TestEntryController_Clear(t *testing.T) {
 	_, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
-	log.On("NextNumber").Return(core.QSONumber(1)).Once()
+	log.On("NextQSONumber").Return(core.QSONumber(1)).Once()
 	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
@@ -39,7 +39,7 @@ func TestEntryController_Clear(t *testing.T) {
 func TestEntryController_ClearView(t *testing.T) {
 	_, log, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
-	log.On("NextNumber").Once().Return(core.QSONumber(1))
+	log.On("NextQSONumber").Once().Return(core.QSONumber(1))
 	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
@@ -188,9 +188,9 @@ func TestEntryController_GotoNextField(t *testing.T) {
 }
 
 func TestEntryController_EnterNewCallsign(t *testing.T) {
-	_, _, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
-	qsoList.Activate()
-	qsoList.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
+	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
+	log.Activate()
+	log.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
 
 	view.Activate()
 	view.On("SetDuplicateMarker", false).Once()
@@ -202,12 +202,12 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 
 	assert.Equal(t, "DL1ABC", controller.input.callsign)
 
-	qsoList.AssertExpectations(t)
+	log.AssertExpectations(t)
 	view.AssertExpectations(t)
 }
 
 func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
-	_, _, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
+	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
 	dl1abc, _ := callsign.Parse("DL1ABC")
 	qso := core.QSO{
@@ -222,8 +222,8 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 		MyExchange:    []string{"599", "001", ""},
 	}
 
-	qsoList.Activate()
-	qsoList.On("FindDuplicateQSOs", dl1abc, core.Band160m, core.ModeCW).Return([]core.QSO{qso}).Twice()
+	log.Activate()
+	log.On("FindDuplicateQSOs", dl1abc, core.Band160m, core.ModeCW).Return([]core.QSO{qso}).Twice()
 
 	view.Activate()
 	view.On("SetDuplicateMarker", true).Once()
@@ -236,7 +236,7 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	controller.GotoNextField()
 
 	assert.False(t, controller.editing)
-	qsoList.AssertExpectations(t)
+	log.AssertExpectations(t)
 	view.AssertExpectations(t)
 }
 
@@ -273,11 +273,11 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 	}
 
 	log.Activate()
-	log.On("NextNumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	log.On("LastExchange").Return([]string{"599", "001", ""})
-	log.On("LogQSO", qso).Once()
+	log.On("AddQSO", qso).Once()
+	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
 	qsoList.Activate()
-	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()
@@ -427,8 +427,8 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 }
 
 func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing.T) {
-	clock, _, qsoList, view, controller, _ := setupEntryTest()
-	qsoList.Activate()
+	clock, log, _, view, controller, _ := setupEntryTest()
+	log.Activate()
 	view.Activate()
 
 	dl1ab, _ := callsign.Parse("DL1AB")
@@ -442,13 +442,13 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 		MyNumber:    12,
 	}
 
-	qsoList.On("FindDuplicateQSOs", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
+	log.On("FindDuplicateQSOs", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
 	view.On("ShowMessage", mock.Anything).Once()
 	view.On("SetActiveField", mock.Anything).Once()
 	controller.Enter("DL1AB")
 	view.AssertExpectations(t)
 
-	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
+	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
 	view.On("ClearMessage").Once()
 	controller.Enter("DL1ABC")
 	view.AssertExpectations(t)
@@ -486,11 +486,11 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	}
 
 	log.Activate()
-	log.On("NextNumber").Return(core.QSONumber(2))
+	log.On("NextQSONumber").Return(core.QSONumber(2))
 	log.On("LastExchange").Return([]string{"599", "001", ""})
-	log.On("LogQSO", dupe).Once()
+	log.On("AddQSO", dupe).Once()
+	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
 	qsoList.Activate()
-	qsoList.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()
@@ -585,9 +585,9 @@ func TestEntryController_EditQSO(t *testing.T) {
 	controller.Enter("B02")
 
 	log.Activate()
-	log.On("LogQSO", changedQSO).Once()
+	log.On("UpdateQSO", changedQSO).Once()
 	log.On("LastExchange").Return([]string{"599", "001", ""}).Times(2)
-	log.On("NextNumber").Return(core.QSONumber(35))
+	log.On("NextQSONumber").Return(core.QSONumber(35))
 	controller.EnterPressed()
 
 	log.AssertExpectations(t)
@@ -602,10 +602,9 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
 	settings := &testSettings{myCall: "DL0ABC"}
-	controller := NewController(settings, clock, qsoList, new(nullBandmap), testRunSync)
+	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
 	controller.SetVFO(vfo)
-	controller.SetLogbook(log)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -621,10 +620,9 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	view := new(mocked.EntryView)
 	exchangeFields := []conval.ExchangeField{{conval.RSTProperty}, {conval.SerialNumberProperty}, {conval.GenericTextProperty}}
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
-	controller := NewController(settings, clock, qsoList, new(nullBandmap), testRunSync)
+	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
 	controller.SetVFO(vfo)
-	controller.SetLogbook(log)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -644,10 +642,9 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 		exchangeFields[i] = conval.ExchangeField{conval.GenericTextProperty}
 	}
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: exchangeValues}
-	controller := NewController(settings, clock, qsoList, new(nullBandmap), testRunSync)
+	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
 	controller.SetVFO(vfo)
-	controller.SetLogbook(log)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())

@@ -74,7 +74,7 @@ type Controller struct {
 	hamDXMap          *hamdxmap.HamDXMap
 
 	VFO                      *vfo.VFO
-	Logbook                  *logbook.LogStream
+	Logbook                  *logbook.Logbook
 	QSOList                  *logbook.QSOList
 	QTCList                  *logbook.QTCList
 	Entry                    *entry.Controller
@@ -168,14 +168,21 @@ func (c *Controller) Startup() {
 	c.scpFinder = scp.New()
 	c.hamDXMap = hamdxmap.NewHamDXMap(c.configuration.HamDXMapPort())
 
-	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
-	c.QSOList = logbook.NewQSOList(c.Settings, c.Score)
+	c.QSOList = logbook.NewQSOList(c.Settings)
 	c.QTCList = logbook.NewQTCList()
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.QSOList, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
+	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
+
+	c.Logbook = logbook.NewLogbook(c.clock, c.Settings, c.dxccFinder)
+	c.Logbook.Notify(c.QSOList)
+	c.Logbook.Notify(c.QTCList)
+	c.Logbook.Notify(c.Score)
+
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
 	c.Entry = entry.NewController(
 		c.Settings,
 		c.clock,
+		c.Logbook,
 		c.QSOList,
 		c.Bandmap,
 		c.asyncRunner,
@@ -184,6 +191,7 @@ func (c *Controller) Startup() {
 	c.Entry.Notify(c.session)
 	c.Entry.Notify(c.hamDXMap)
 	c.Bandmap.Notify(c.Entry)
+	c.Logbook.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
 	c.Score.Notify(c.Bandmap)
 
@@ -193,10 +201,11 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Entry)
 	c.QSOList.Notify(c.Workmode)
 
-	c.VFO = vfo.NewVFO("VFO 1", c.bandplan, c.asyncRunner)
+	c.VFO = vfo.NewVFO("VFO 1", c.bandplan, c.Logbook, c.asyncRunner)
 	c.Entry.SetVFO(c.VFO)
 	c.VFO.Notify(c.Bandmap)
 	c.Bandmap.SetVFO(c.VFO)
+	c.Logbook.Notify(c.VFO)
 	c.Workmode.Notify(c.VFO)
 
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
@@ -214,14 +223,14 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Keyer)
 	c.Entry.SetKeyer(c.Keyer)
 
-	c.QTCController = qtc.NewController(c.clock, c, c.QTCList, c.Entry, c.Keyer)
+	c.QTCController = qtc.NewController(c.clock, c, c.Logbook, c.QTCList, c.Entry, c.Keyer)
 	c.VFO.Notify(c.QTCController)
 
 	c.Rate = rate.NewCounter(c.clock, c.asyncRunner)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 
-	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.QSOList, c.Score)
+	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.Logbook, c.Logbook)
 	c.Entry.SetCallinfo(c.Callinfo)
 	c.Callinfo.Notify(c.Entry)
 	c.Bandmap.SetCallinfo(c.Callinfo)
@@ -318,11 +327,11 @@ func (c *Controller) openCurrentLog() error {
 		}
 	}
 
-	var newLogbook *logbook.LogStream
 	qsos, station, contest, keyerSettings, qtcs, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
-		newLogbook = logbook.New(c.clock, c.QSOList, c.QTCList)
+		qsos = []core.QSO{}
+		qtcs = []core.QTC{}
 	} else {
 		c.Settings.SetWriter(store)
 		if station != nil {
@@ -335,21 +344,15 @@ func (c *Controller) openCurrentLog() error {
 		if keyerSettings != nil {
 			c.Keyer.SetSettings(*keyerSettings, "")
 		}
-		newLogbook = logbook.Load(c.clock, c.QSOList, c.QTCList, qsos, qtcs)
 	}
-	c.changeLogbook(filename, store, newLogbook)
+	c.loadLogbook(filename, store, qsos, qtcs)
 	return nil
 }
 
-func (c *Controller) changeLogbook(filename string, store *store.FileStore, newLogbook *logbook.LogStream) {
+func (c *Controller) loadLogbook(filename string, store *store.FileStore, qsos []core.QSO, qtcs []core.QTC) {
 	c.filename = filename
 	c.store = store
-	c.Logbook = newLogbook
-	c.Logbook.SetWriter(c.store)
-
-	c.VFO.SetLogbook(c.Logbook)
-	c.Entry.SetLogbook(c.Logbook)
-	c.QTCController.SetLogbook(c.Logbook)
+	c.Logbook.Load(store, qsos, qtcs)
 
 	if c.view != nil {
 		c.view.ShowFilename(c.filename)
@@ -509,7 +512,7 @@ func (c *Controller) New() {
 
 	c.Settings.SetWriter(store)
 	c.Keyer.SetWriter(store)
-	c.changeLogbook(filename, store, logbook.New(c.clock, c.QSOList, c.QTCList))
+	c.loadLogbook(filename, store, nil, nil)
 	c.Refresh()
 
 	c.OpenSettings()
@@ -543,8 +546,7 @@ func (c *Controller) Open() {
 	if keyerSettings != nil {
 		c.Keyer.SetSettings(*keyerSettings, "")
 	}
-	log := logbook.Load(c.clock, c.QSOList, c.QTCList, qsos, qtcs)
-	c.changeLogbook(filename, store, log)
+	c.loadLogbook(filename, store, qsos, qtcs)
 	c.Refresh()
 }
 
@@ -580,6 +582,7 @@ func (c *Controller) SaveAs() {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
 		return
 	}
+
 	err = c.Logbook.WriteAll(store)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot save as %s: %v", filepath.Base(filename), err)
@@ -633,7 +636,7 @@ func (c *Controller) ExportSummary() {
 }
 
 func (c *Controller) ExportCabrillo() {
-	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Score.Result(), c.QSOList.All(), c.QTCList.All())
+	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Logbook.Score().Result().Result(), c.Logbook.AllQSOs(), c.Logbook.AllQTCs())
 	if !ok {
 		return
 	}
@@ -686,7 +689,7 @@ func (c *Controller) ExportADIF() {
 		return
 	}
 	defer file.Close()
-	err = adif.Export(file, c.QSOList.All()...)
+	err = adif.Export(file, c.Logbook.AllQSOs()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export ADIF to %s: %v", filename, err)
 		return
@@ -713,7 +716,7 @@ func (c *Controller) ExportCSV() {
 	err = csv.Export(
 		file,
 		c.Settings.Station().Callsign,
-		c.QSOList.All()...)
+		c.Logbook.AllQSOs()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export Cabrillo to %s: %v", filename, err)
 		return
@@ -736,7 +739,7 @@ func (c *Controller) ExportCallhistory() {
 	}
 	defer file.Close()
 
-	err = callhistory.Export(file, c.Settings.Contest().CallHistoryFieldNames, c.QSOList.All()...)
+	err = callhistory.Export(file, c.Settings.Contest().CallHistoryFieldNames, c.Logbook.AllQSOs()...)
 	if err != nil {
 		c.view.ShowErrorDialog("Cannot export call history to %s: %v", filename, err)
 		return
@@ -761,7 +764,6 @@ func (c *Controller) ShowSpots() {
 
 func (c *Controller) Refresh() {
 	c.Logbook.Refresh()
-	c.Entry.Clear()
 }
 
 func (c *Controller) ClearEntryFields() {

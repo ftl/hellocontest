@@ -18,13 +18,10 @@ func (*fakeInfoDialogs) ShowInfo(string, ...any)            {}
 func (d *fakeInfoDialogs) ShowQuestion(string, ...any) bool { return d.answer }
 func (*fakeInfoDialogs) ShowError(string, ...any)           {}
 
-type fakeQTCList struct {
-	qtcs []core.QTC
-}
+type fakeQTCList struct{}
 
-func (l *fakeQTCList) PrepareFor(core.Callsign, int) []core.QTC { return l.qtcs }
-func (l *fakeQTCList) SelectLastQTC()                           {}
-func (l *fakeQTCList) SetQTCsEnabled(bool)                      {}
+func (l *fakeQTCList) SelectLastQTC()      {}
+func (l *fakeQTCList) SetQTCsEnabled(bool) {}
 
 type fakeEntryController struct {
 	currentCallsign core.Callsign
@@ -51,15 +48,17 @@ type fakeLogbook struct {
 	nextSeriesNumber int
 	lastCallsign     core.Callsign
 	loggedQTCs       []core.QTC
+	availableQTCs    []core.QTC
 }
 
 func (l *fakeLogbook) NextSeriesNumber() int       { return l.nextSeriesNumber }
 func (l *fakeLogbook) LastCallsign() core.Callsign { return l.lastCallsign }
-func (l *fakeLogbook) LogQTCSeries(series core.QTCSeries) {
+func (l *fakeLogbook) AddQTCSeries(series core.QTCSeries) {
 	for _, qtc := range series.QTCs {
 		l.loggedQTCs = append(l.loggedQTCs, qtc)
 	}
 }
+func (l *fakeLogbook) PrepareFor(core.Callsign, int) []core.QTC { return l.availableQTCs }
 
 type fakeView struct {
 	visible        bool
@@ -151,8 +150,8 @@ func (b *controllerBuilder) WithQTCList(qtcList QTCList) *controllerBuilder {
 }
 
 func (b *controllerBuilder) WithQTCs(qtcs []core.QTC) *controllerBuilder {
-	b.qtcList = &fakeQTCList{
-		qtcs: qtcs,
+	b.logbook = &fakeLogbook{
+		availableQTCs: qtcs,
 	}
 	return b
 }
@@ -195,10 +194,11 @@ func (b *controllerBuilder) WithLastCallsign(lastCallsign core.Callsign) *contro
 }
 
 func (b *controllerBuilder) Build() *Controller {
-	result := NewController(b.clock, b.infoDialogs, b.qtcList, b.entryController, b.keyer)
-	if b.logbook != nil {
-		result.SetLogbook(b.logbook)
+	logbook := b.logbook
+	if logbook == nil {
+		logbook = new(fakeLogbook)
 	}
+	result := NewController(b.clock, b.infoDialogs, logbook, b.qtcList, b.entryController, b.keyer)
 	return result
 }
 

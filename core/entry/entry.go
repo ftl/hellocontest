@@ -57,16 +57,17 @@ type input struct {
 
 // Logbook functionality used for QSO entry.
 type Logbook interface {
-	NextNumber() core.QSONumber
+	NextQSONumber() core.QSONumber
 	LastBand() core.Band
 	LastMode() core.Mode
 	LastExchange() []string
-	LogQSO(core.QSO)
+	AddQSO(core.QSO)
+	UpdateQSO(core.QSO)
+	FindDuplicateQSOs(callsign.Callsign, core.Band, core.Mode) []core.QSO
 }
 
 // QSOList functionality used for QSO entry.
 type QSOList interface {
-	FindDuplicateQSOs(callsign.Callsign, core.Band, core.Mode) []core.QSO
 	SelectLastQSO()
 }
 
@@ -90,15 +91,15 @@ type Bandmap interface {
 }
 
 // NewController returns a new entry controller.
-func NewController(settings core.Settings, clock core.Clock, qsoList QSOList, bandmap Bandmap, asyncRunner core.AsyncRunner) *Controller {
+func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qsoList QSOList, bandmap Bandmap, asyncRunner core.AsyncRunner) *Controller {
 	result := &Controller{
 		clock:       clock,
 		view:        new(nullView),
-		logbook:     new(nullLogbook),
+		logbook:     logbook,
+		qsoList:     qsoList,
 		callinfo:    new(nullCallinfo),
 		vfo:         new(nullVFO),
 		asyncRunner: asyncRunner,
-		qsoList:     qsoList,
 		bandmap:     bandmap,
 		esmView:     new(nullESMView),
 
@@ -192,10 +193,9 @@ func (c *Controller) SetView(view View) {
 	c.updateViewExchangeFields()
 }
 
-func (c *Controller) SetLogbook(logbook Logbook) {
-	c.logbook = logbook
-	c.selectedBand = logbook.LastBand()
-	c.selectedMode = logbook.LastMode()
+func (c *Controller) LogbookLoaded() {
+	c.selectedBand = c.logbook.LastBand()
+	c.selectedMode = c.logbook.LastMode()
 	c.Clear()
 	c.showInput()
 }
@@ -393,7 +393,7 @@ func (c *Controller) setTheirExchangePrediction(i int, value string) {
 }
 
 func (c *Controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
-	qsos := c.qsoList.FindDuplicateQSOs(callsign, c.selectedBand, c.selectedMode)
+	qsos := c.logbook.FindDuplicateQSOs(callsign, c.selectedBand, c.selectedMode)
 	if len(qsos) == 0 {
 		return core.QSO{}, false
 	}
@@ -754,11 +754,12 @@ func (c *Controller) Log() {
 	}
 	if c.editing {
 		qso.Workmode = c.editQSO.Workmode
+		c.logbook.UpdateQSO(qso)
 	} else {
 		qso.Workmode = c.workmode
+		c.logbook.AddQSO(qso)
 	}
 
-	c.logbook.LogQSO(qso)
 	c.emitCallsignLogged(qso.Callsign.String(), qso.Frequency)
 
 	if c.workmode == core.SearchPounce {
@@ -886,7 +887,7 @@ func (c *Controller) Clear() {
 
 	c.vfo.Refresh()
 
-	nextNumber := c.logbook.NextNumber()
+	nextNumber := c.logbook.NextQSONumber()
 	c.activeField = core.CallsignField
 	c.input.callsign = ""
 	if c.selectedBand != core.NoBand {

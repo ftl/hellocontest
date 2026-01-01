@@ -11,7 +11,7 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-func TestAddQSO_ScoreQSO(t *testing.T) {
+func TestScoreCounter_AddQSO_ScoreQSO(t *testing.T) {
 	scoreCounter := newScoreCounter(new(testSettings), testEntity)
 	scoreCounter.counter = &testConvalCounter{
 		scores: map[string]conval.QSOScore{
@@ -34,7 +34,7 @@ func TestAddQSO_ScoreQSO(t *testing.T) {
 	assert.Equal(t, 4, scoredQSO.Multis)
 }
 
-func TestAddQTC_ScoreQTC(t *testing.T) {
+func TestScoreCounter_AddQTC_ScoreQTC(t *testing.T) {
 	scoreCounter := newScoreCounter(new(testSettings), testEntity)
 	scoreCounter.counter = &testConvalCounter{}
 	dl1abc := callsign.MustParse("DL1ABC")
@@ -53,4 +53,23 @@ func TestAddQTC_ScoreQTC(t *testing.T) {
 
 	assert.Equal(t, 3, scoreCounter.Score().Result().QTCs, "total")
 	assert.Equal(t, 3, scoreCounter.Score().ScorePerBand[core.Band80m].QTCs, "score per band")
+}
+
+func TestScoreCounter_AddQSO_MarksDuplicates(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	scoreCounter := newScoreCounter(new(testSettings), testEntity)
+	scoreCounter.counter = &testConvalCounter{}
+
+	qso := scoreCounter.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	assert.False(t, qso.Duplicate, "first qso")
+
+	qso = scoreCounter.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 3})
+	assert.True(t, qso.Duplicate, "duplicate of first qso")
+
+	qso = scoreCounter.AddQSO(core.QSO{Callsign: dl2abc, MyNumber: 1})
+	assert.False(t, qso.Duplicate, "second qso, after edit")
+
+	qso = scoreCounter.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 2})
+	assert.True(t, qso.Duplicate, "second qso, after insert")
 }

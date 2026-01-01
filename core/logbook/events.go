@@ -12,6 +12,16 @@ func (f LogbookClearedFunc) LogbookCleared() {
 	f()
 }
 
+type LogbookLoadedListener interface {
+	LogbookLoaded()
+}
+
+type LogbookLoadedFunc func()
+
+func (f LogbookLoadedFunc) LogbookLoaded() {
+	f()
+}
+
 // deprecated
 type QSOsClearedListener interface {
 	QSOsCleared()

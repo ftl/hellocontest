@@ -36,10 +36,10 @@ func TestLogbook_addQSOLocked_cannotAddAgain(t *testing.T) {
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	qso := core.QSO{MyNumber: 1}
 
-	_, _, err := logbook.addQSOLocked(qso)
+	_, _, _, _, err := logbook.addQSOLocked(qso)
 	require.NoError(t, err)
 
-	_, _, err = logbook.addQSOLocked(qso)
+	_, _, _, _, err = logbook.addQSOLocked(qso)
 	assert.Error(t, err)
 }
 
@@ -223,7 +223,7 @@ func TestLogbook_Load_QSOsOutOfOrder(t *testing.T) {
 	qso2 := core.QSO{MyNumber: 2}
 	qso3 := core.QSO{MyNumber: 3}
 
-	err := logbook.Load([]core.QSO{qso1, qso3, qso2}, nil)
+	err := logbook.Load(new(nullWriter), []core.QSO{qso1, qso3, qso2}, nil)
 	assert.NoError(t, err)
 
 	assert.Equal(t, []core.QSO{qso1, qso2, qso3}, logbook.AllQSOs())
@@ -234,7 +234,7 @@ func TestLogbook_Load_UpdatedQSOs(t *testing.T) {
 	qsoOld := core.QSO{MyNumber: 1, TheirNumber: 1}
 	qsoNew := core.QSO{MyNumber: 1, TheirNumber: 2}
 
-	err := logbook.Load([]core.QSO{qsoOld, qsoNew}, nil)
+	err := logbook.Load(new(nullWriter), []core.QSO{qsoOld, qsoNew}, nil)
 	assert.NoError(t, err)
 
 	assert.Equal(t, []core.QSO{qsoNew}, logbook.AllQSOs())
@@ -249,7 +249,7 @@ func TestLogbook_Load_emitsLogbookCleared(t *testing.T) {
 	})
 
 	logbook.Notify(listener)
-	logbook.Load([]core.QSO{qso}, nil)
+	logbook.Load(new(nullWriter), []core.QSO{qso}, nil)
 
 	assert.True(t, notificationReceived)
 }
@@ -265,7 +265,7 @@ func TestLogbook_Load_emitsQSOAddedForAllQSOs(t *testing.T) {
 	})
 	logbook.Notify(listener)
 
-	logbook.Load([]core.QSO{qso1, qso3, qso2}, nil)
+	logbook.Load(new(nullWriter), []core.QSO{qso1, qso3, qso2}, nil)
 
 	assert.Equal(t, []core.QSO{qso1, qso2, qso3}, loadedQSOs)
 }
@@ -292,7 +292,7 @@ func TestLogbook_Load_updatesTheScore(t *testing.T) {
 		},
 	)
 
-	logbook.Load(
+	logbook.Load(new(nullWriter),
 		[]core.QSO{
 			{MyNumber: 1, Callsign: dl1abc, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
 			// update the callsign of the first QSO
@@ -320,7 +320,7 @@ func TestLogbook_Load_emitsScoreChanged(t *testing.T) {
 	})
 	logbook.Notify(listener)
 
-	logbook.Load([]core.QSO{
+	logbook.Load(new(nullWriter), []core.QSO{
 		{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")},
 		{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")},
 	}, nil)
@@ -339,7 +339,7 @@ func TestLogbook_Load_loadsQTCs(t *testing.T) {
 	}
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 
-	logbook.Load(nil, qtcs)
+	logbook.Load(new(nullWriter), nil, qtcs)
 
 	assert.Equal(t, qtcs, logbook.AllQTCs())
 }
@@ -357,7 +357,7 @@ func TestLogbook_Load_emitsQTCAddedForAllQTCs(t *testing.T) {
 		loadedQTCs = append(loadedQTCs, qtc)
 	}))
 
-	logbook.Load(nil, []core.QTC{qtc1, qtc2, qtc3})
+	logbook.Load(new(nullWriter), nil, []core.QTC{qtc1, qtc2, qtc3})
 
 	assert.Equal(t, []core.QTC{qtc1, qtc2, qtc3}, loadedQTCs)
 }
@@ -766,4 +766,30 @@ func TestLogbook_PrepareFor(t *testing.T) {
 
 	qtcs = logbook.PrepareFor(dl1abc, 1)
 	assert.Equal(t, 1, len(qtcs), "only one")
+}
+
+func TestLogbook_MarksDuplicates(t *testing.T) {
+	dl1abc := callsign.MustParse("DL1ABC")
+	dl2abc := callsign.MustParse("DL2ABC")
+	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+	logbook.scoreCounter.counter = &testConvalCounter{}
+	logbook.scoreCounter.counterFactory = func() convalCounter {
+		return &testConvalCounter{}
+	}
+
+	logbook.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	assert.False(t, logbook.qsos[0].Duplicate, "first qso")
+
+	logbook.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 3})
+	assert.False(t, logbook.qsos[0].Duplicate, "first qso, duplicate")
+	assert.True(t, logbook.qsos[1].Duplicate, "duplicate of first qso")
+
+	logbook.UpdateQSO(core.QSO{Callsign: dl2abc, MyNumber: 1})
+	assert.False(t, logbook.qsos[0].Duplicate, "first qso, edited")
+	assert.False(t, logbook.qsos[1].Duplicate, "second qso, after edit")
+
+	logbook.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 2})
+	assert.False(t, logbook.qsos[0].Duplicate, "first qso, after insert")
+	assert.False(t, logbook.qsos[1].Duplicate, "inserted qso")
+	assert.True(t, logbook.qsos[2].Duplicate, "second qso, after insert")
 }

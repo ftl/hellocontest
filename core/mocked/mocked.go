@@ -28,7 +28,7 @@ func (m *Log) ClearRowAddedListeners() {
 	m.Called()
 }
 
-func (m *Log) NextNumber() core.QSONumber {
+func (m *Log) NextQSONumber() core.QSONumber {
 	if !m.active {
 		return core.QSONumber(0)
 	}
@@ -60,26 +60,25 @@ func (m *Log) LastExchange() []string {
 	return args.Get(0).([]string)
 }
 
-func (m *Log) LogQSO(qso core.QSO) {
+func (m *Log) AddQSO(qso core.QSO) {
 	if !m.active {
 		return
 	}
 	m.Called(qso)
 }
 
-func (m *Log) QsosOrderedByMyNumber() []core.QSO {
+func (m *Log) UpdateQSO(qso core.QSO) {
 	if !m.active {
-		return []core.QSO{}
+		return
 	}
-	args := m.Called()
-	return args.Get(0).([]core.QSO)
+	m.Called(qso)
 }
 
-func (m *Log) UniqueQsosOrderedByMyNumber() []core.QSO {
+func (m *Log) FindDuplicateQSOs(call callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	if !m.active {
 		return []core.QSO{}
 	}
-	args := m.Called()
+	args := m.Called(call, band, mode)
 	return args.Get(0).([]core.QSO)
 }
 
@@ -93,14 +92,6 @@ func (m *QSOList) Activate() {
 }
 
 func (m *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
-	if !m.active {
-		return []core.QSO{}
-	}
-	args := m.Called(callsign, band, mode)
-	return args.Get(0).([]core.QSO)
-}
-
-func (m *QSOList) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	if !m.active {
 		return []core.QSO{}
 	}

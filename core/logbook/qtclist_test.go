@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ftl/hellocontest/core"
@@ -21,91 +20,25 @@ func TestQTCList_basicSetup(t *testing.T) {
 		{Timestamp: now.Add(-2 * time.Minute), QSONumber: 2},
 		{Timestamp: now.Add(-1 * time.Minute), QSONumber: 3},
 	}
-	l.Fill(nil, initialQTCs)
-	assert.Equal(t, initialQTCs, l.All())
+	l.LogbookCleared()
+	for _, qtc := range initialQTCs {
+		l.QTCAdded(qtc)
+	}
+	assert.Equal(t, initialQTCs, l.qtcs)
 	assert.Equal(t, 1, listener.clearEvents)
 	assert.Equal(t, 3, listener.addedEvents)
 
 	newQTC := core.QTC{Timestamp: now, QSONumber: 4}
-	l.PutQTC(newQTC)
-	assert.Equal(t, 4, len(l.All()))
-	assert.Equal(t, newQTC, l.All()[3])
+	l.QTCAdded(newQTC)
+	assert.Equal(t, 4, len(l.qtcs))
+	assert.Equal(t, newQTC, l.qtcs[3])
 	assert.Equal(t, 1, listener.clearEvents)
 	assert.Equal(t, 4, listener.addedEvents)
 
-	l.Clear()
-	assert.Equal(t, 0, len(l.All()))
+	l.LogbookCleared()
+	assert.Equal(t, 0, len(l.qtcs))
 	assert.Equal(t, 2, listener.clearEvents)
 	assert.Equal(t, 4, listener.addedEvents)
-}
-
-func TestQTCList_FillUpdatedQSO(t *testing.T) {
-	l := NewQTCList()
-	now := time.Now()
-
-	qsoOld := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC"), Time: now.Add(-4 * time.Minute), LogTimestamp: now.Add(-4 * time.Minute)}
-	qsoNew := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC"), Time: now.Add(-4 * time.Minute), LogTimestamp: now.Add(time.Minute)}
-
-	l.Fill([]core.QSO{qsoOld, qsoNew}, nil)
-
-	assert.Equal(t, 1, len(l.availableQTCs))
-	assert.Equal(t, qsoNew.Callsign, l.availableQTCs[0].QTCCallsign)
-}
-
-func TestQTCList_PutUpdatedQSO(t *testing.T) {
-	l := NewQTCList()
-	now := time.Now()
-
-	qsoOld := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC"), Time: now.Add(-4 * time.Minute), LogTimestamp: now.Add(-4 * time.Minute)}
-	qsoNew := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC"), Time: now.Add(-4 * time.Minute), LogTimestamp: now.Add(time.Minute)}
-
-	l.PutQSO(qsoOld)
-	l.PutQSO(qsoNew)
-
-	assert.Equal(t, 1, len(l.availableQTCs))
-	assert.Equal(t, qsoNew.Callsign, l.availableQTCs[0].QTCCallsign)
-}
-
-func TestQTCList_AvailableFor(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
-	dl2abc := callsign.MustParse("DL2ABC")
-
-	l := NewQTCList()
-	assert.Equal(t, 0, l.AvailableFor(dl1abc))
-	l.PutQSO(core.QSO{Callsign: dl1abc, MyNumber: 1})
-	assert.Equal(t, 0, l.AvailableFor(dl1abc))
-
-	for i := range 20 {
-		l.PutQSO(core.QSO{Callsign: dl2abc, MyNumber: core.QSONumber(i + 2)})
-		assert.Equal(t, min(i+1, core.MaxQTCsPerCall), l.AvailableFor(dl1abc))
-	}
-
-	for i := range core.MaxQTCsPerCall {
-		l.PutQTC(core.QTC{TheirCallsign: dl1abc, QSONumber: core.QSONumber(i + 2), Kind: core.SentQTC})
-		assert.Equal(t, core.MaxQTCsPerCall-i-1, l.AvailableFor(dl1abc))
-	}
-}
-
-func TestQTCList_PrepareFor(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
-	dl2abc := callsign.MustParse("DL2ABC")
-
-	l := NewQTCList()
-	for i := range 20 {
-		l.PutQSO(core.QSO{Callsign: dl2abc, MyNumber: core.QSONumber(i + 1)})
-	}
-
-	qtcs := l.PrepareFor(dl1abc, core.MaxQTCsPerCall)
-	assert.Equal(t, core.MaxQTCsPerCall, len(qtcs))
-	for i := range qtcs {
-		assert.Equal(t, i+1, int(qtcs[i].QSONumber))
-
-		l.PutQTC(qtcs[i])
-
-		newQTCs := l.PrepareFor(dl1abc, core.MaxQTCsPerCall)
-		assert.Equal(t, core.MaxQTCsPerCall-i-1, len(newQTCs))
-	}
-
 }
 
 // helpers

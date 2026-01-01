@@ -71,7 +71,7 @@ func (c *provide) CompleteQTCSeries() {
 		return
 	}
 
-	c.logbook.LogQTCSeries(c.currentSeries)
+	c.logbook.AddQTCSeries(c.currentSeries)
 
 	c.keyer.SendText(CompleteQTCSeriesText)
 

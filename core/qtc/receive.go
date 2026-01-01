@@ -125,7 +125,7 @@ func (c *receive) CompleteQTCSeries() {
 		c.currentSeries.QTCs[i] = qtc
 	}
 
-	c.logbook.LogQTCSeries(c.currentSeries)
+	c.logbook.AddQTCSeries(c.currentSeries)
 
 	c.view.Close()
 }

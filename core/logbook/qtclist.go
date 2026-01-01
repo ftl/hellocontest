@@ -2,30 +2,20 @@ package logbook
 
 import (
 	"log"
-	"slices"
-	"sync"
-
-	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
 )
 
 type QTCList struct {
-	dataLock      *sync.RWMutex
-	enabled       bool
-	data          []core.QTC
-	availableQTCs []core.QTC
-	qtcsByCall    map[callsign.Callsign]int
+	enabled bool
+	qtcs    []core.QTC
 
 	listeners []any
 }
 
 func NewQTCList() *QTCList {
 	return &QTCList{
-		dataLock:      new(sync.RWMutex),
-		data:          make([]core.QTC, 0),
-		availableQTCs: make([]core.QTC, 0),
-		qtcsByCall:    make(map[callsign.Callsign]int),
+		qtcs: make([]core.QTC, 0),
 	}
 }
 
@@ -74,190 +64,43 @@ func (l *QTCList) emitQTCRowSelected(index int) {
 }
 
 func (l *QTCList) SetQTCsEnabled(enabled bool) {
-	l.dataLock.Lock()
 	l.enabled = enabled
-	l.dataLock.Unlock()
-
 	l.emitQTCsEnabled(enabled)
 }
 
 func (l *QTCList) QTCsEnabled() bool {
-	l.dataLock.RLock()
-	defer l.dataLock.RUnlock()
 	return l.enabled
 }
 
-func (l *QTCList) Clear() {
-	l.dataLock.Lock()
-	l.clear()
-	l.dataLock.Unlock()
-
+func (l *QTCList) LogbookCleared() {
+	l.qtcs = make([]core.QTC, 0)
 	l.emitQTCsCleared()
 }
 
-func (l *QTCList) clear() {
-	l.data = make([]core.QTC, 0)
-	l.availableQTCs = make([]core.QTC, 0)
-	l.qtcsByCall = make(map[callsign.Callsign]int)
-}
-
-func (l *QTCList) Fill(qsos []core.QSO, qtcs []core.QTC) {
-	l.dataLock.Lock()
-	l.data = make([]core.QTC, 0, len(qtcs))
-	l.availableQTCs = make([]core.QTC, 0, len(qsos))
-	l.qtcsByCall = make(map[callsign.Callsign]int)
-
-	for _, qso := range qsos {
-		l.putQSO(qso)
-	}
-	for _, qtc := range qtcs {
-		l.putQTC(qtc)
-	}
-	allQTCs := l.all()
-	l.dataLock.Unlock()
-
-	l.emitQTCsCleared()
-	for _, qtc := range allQTCs {
-		l.emitQTCAdded(qtc)
-	}
-}
-
-func (l *QTCList) PutQTC(qtc core.QTC) {
-	l.dataLock.Lock()
-	l.putQTC(qtc)
-	l.dataLock.Unlock()
+func (l *QTCList) QTCAdded(qtc core.QTC) {
+	l.qtcs = append(l.qtcs, qtc)
 	l.emitQTCAdded(qtc)
 }
 
-func (l *QTCList) putQTC(qtc core.QTC) {
-	l.data = append(l.data, qtc)
-	l.removeAvailable(qtc)
-	count := l.qtcsByCall[qtc.TheirCallsign]
-	count++
-	l.qtcsByCall[qtc.TheirCallsign] = count
-}
-
-func (l *QTCList) removeAvailable(qtc core.QTC) {
-	if qtc.Kind != core.SentQTC {
-		return
-	}
-	index := -1
-	for i := range l.availableQTCs {
-		if qtc.QSONumber == l.availableQTCs[i].QSONumber {
-			index = i
-			break
-		}
-	}
-	switch {
-	case index < 0:
-	case index < len(l.availableQTCs)-1:
-		l.availableQTCs = append(l.availableQTCs[:index], l.availableQTCs[index+1:]...)
-	case index == len(l.availableQTCs)-1:
-		l.availableQTCs = l.availableQTCs[:index]
-	}
-}
-
-func (l *QTCList) All() []core.QTC {
-	l.dataLock.RLock()
-	defer l.dataLock.RUnlock()
-
-	return l.all()
-}
-
-func (l *QTCList) all() []core.QTC {
-	result := make([]core.QTC, len(l.data))
-	copy(result, l.data)
-
-	slices.SortStableFunc(result, core.QTCByTimestamp)
-	return result
-}
-
 func (l *QTCList) SelectRow(index int) {
-	l.dataLock.RLock()
-
-	if index < 0 || index >= len(l.data) {
+	if index < 0 || index >= len(l.qtcs) {
 		log.Printf("invalid QSO index %d", index)
-		l.dataLock.RUnlock()
 		return
 	}
-	qtc := l.data[index]
-
-	l.dataLock.RUnlock()
+	qtc := l.qtcs[index]
 
 	l.emitQTCSelected(qtc)
 	l.emitQTCRowSelected(index)
 }
 
 func (l *QTCList) SelectLastQTC() {
-	l.dataLock.RLock()
-
-	if len(l.data) == 0 {
-		l.dataLock.RUnlock()
+	if len(l.qtcs) == 0 {
 		return
 	}
 
-	index := len(l.data) - 1
-	qtc := l.data[index]
-
-	l.dataLock.RUnlock()
+	index := len(l.qtcs) - 1
+	qtc := l.qtcs[index]
 
 	l.emitQTCSelected(qtc)
 	l.emitQTCRowSelected(index)
-}
-
-func (l *QTCList) PutQSO(qso core.QSO) {
-	l.dataLock.Lock()
-	l.putQSO(qso)
-	l.dataLock.Unlock()
-}
-
-func (l *QTCList) putQSO(qso core.QSO) {
-	qtc := sentQTCFromQSO(qso)
-	for i, availableQTC := range l.availableQTCs {
-		if availableQTC.QSONumber == qso.MyNumber {
-			l.availableQTCs[i] = qtc
-			return
-		}
-	}
-	l.availableQTCs = append(l.availableQTCs, qtc)
-}
-
-// AvailableFor returns the number of QTCs available for the given callsign.
-// deprecated
-func (l *QTCList) AvailableFor(theirCall callsign.Callsign) int {
-	l.dataLock.RLock()
-	defer l.dataLock.RUnlock()
-
-	theirCallStr := theirCall.String()
-	theirQTCCount := l.qtcsByCall[theirCall]
-	theirQSOCount := 0
-	for _, qtc := range l.availableQTCs {
-		if qtc.QTCCallsign.String() == theirCallStr {
-			theirQSOCount++
-		}
-	}
-	return min(core.MaxQTCsPerCall-theirQTCCount, len(l.availableQTCs)-theirQSOCount)
-}
-
-// deprecated
-func (l *QTCList) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC {
-	l.dataLock.RLock()
-	defer l.dataLock.RUnlock()
-
-	theirCallStr := theirCall.String()
-	theirQTCCount := l.qtcsByCall[theirCall]
-	maxLen := max(0, min(core.MaxQTCsPerCall-theirQTCCount, count))
-
-	result := make([]core.QTC, 0, maxLen)
-	for _, qtc := range l.availableQTCs {
-		if len(result) >= maxLen {
-			break
-		}
-		if qtc.QTCCallsign.String() != theirCallStr {
-			qtc.TheirCallsign = theirCall
-			result = append(result, qtc)
-		}
-	}
-
-	return result
 }

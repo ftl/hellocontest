@@ -30,6 +30,7 @@ type VFO struct {
 	Name string
 
 	bandplan      bandplan.Bandplan
+	logbook       Logbook
 	client        Client
 	offlineClient *offlineClient
 	refreshing    bool
@@ -38,10 +39,11 @@ type VFO struct {
 	listeners []any
 }
 
-func NewVFO(name string, bandplan bandplan.Bandplan, asyncRunner core.AsyncRunner) *VFO {
+func NewVFO(name string, bandplan bandplan.Bandplan, logbook Logbook, asyncRunner core.AsyncRunner) *VFO {
 	result := &VFO{
 		Name:        name,
 		bandplan:    bandplan,
+		logbook:     logbook,
 		asyncRunner: asyncRunner,
 	}
 	result.XITControl = XITControl{
@@ -110,19 +112,19 @@ func (v *VFO) SetXIT(active bool, offset core.Frequency) {
 	}
 }
 
-func (v *VFO) SetLogbook(logbook Logbook) {
+func (v *VFO) LogbookLoaded() {
 	log.Printf("VFO logbook changed")
 
 	if v.online() {
 		return
 	}
 
-	lastBand := logbook.LastBand()
+	lastBand := v.logbook.LastBand()
 	if lastBand != core.NoBand {
 		v.offlineClient.SetBand(lastBand)
 	}
 
-	lastMode := logbook.LastMode()
+	lastMode := v.logbook.LastMode()
 	if lastMode != core.NoMode {
 		v.offlineClient.SetMode(lastMode)
 	}

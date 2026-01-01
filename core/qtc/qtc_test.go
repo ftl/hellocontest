@@ -20,16 +20,18 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 	view := new(fakeView)
 	keyer := new(fakeKeyer)
 	theirCallsign := callsign.MustParse("DL1ABC")
-	logbook := &fakeLogbook{nextSeriesNumber: 4, lastCallsign: theirCallsign}
+	logbook := &fakeLogbook{
+		nextSeriesNumber: 4,
+		lastCallsign:     theirCallsign,
+		availableQTCs: qtcsFor(core.SentQTC, theirCallsign).
+			Add("0123", "DK1AB", 1).
+			Add("24", "DK2AB", 2).
+			Build(),
+	}
 	c := newController().
 		WithClock(clock.Static(now)).
 		WithKeyer(keyer).
 		WithLogbook(logbook).
-		WithQTCs(qtcsFor(core.SentQTC, theirCallsign).
-			Add("0123", "DK1AB", 1).
-			Add("24", "DK2AB", 2).
-			Build(),
-		).
 		Build()
 	c.SetView(view)
 	c.VFOFrequencyChanged(7020000)

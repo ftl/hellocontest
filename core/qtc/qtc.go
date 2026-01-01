@@ -24,11 +24,11 @@ const (
 type Logbook interface {
 	NextSeriesNumber() int
 	LastCallsign() callsign.Callsign
-	LogQTCSeries(core.QTCSeries)
+	AddQTCSeries(core.QTCSeries)
+	PrepareFor(callsign.Callsign, int) []core.QTC
 }
 
 type QTCList interface {
-	PrepareFor(callsign.Callsign, int) []core.QTC
 	SelectLastQTC()
 	SetQTCsEnabled(bool)
 }
@@ -101,11 +101,11 @@ type Controller struct {
 	vfoMode      core.Mode
 }
 
-func NewController(clock core.Clock, infoDialogs InfoDialogs, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
+func NewController(clock core.Clock, infoDialogs InfoDialogs, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
 	return &Controller{
 		workflow:        new(nullWorkflow),
 		clock:           clock,
-		logbook:         new(nullLogbook),
+		logbook:         logbook,
 		qtcList:         qtcList,
 		entryController: entryController,
 		keyer:           keyer,
@@ -113,14 +113,6 @@ func NewController(clock core.Clock, infoDialogs InfoDialogs, qtcList QTCList, e
 		view:            new(nullView),
 		currentInput:    make(map[core.QTCField]string),
 	}
-}
-
-func (c *Controller) SetLogbook(logbook Logbook) {
-	if logbook == nil {
-		c.logbook = new(nullLogbook)
-		return
-	}
-	c.logbook = logbook
 }
 
 func (c *Controller) SetView(view View) {
@@ -178,7 +170,7 @@ func (c *Controller) OfferQTC() {
 	}
 
 	// 2. get available QTCs
-	qtcs := c.qtcList.PrepareFor(theirCall, core.MaxQTCsPerCall)
+	qtcs := c.logbook.PrepareFor(theirCall, core.MaxQTCsPerCall)
 	if len(qtcs) == 0 {
 		c.showErrorDialog("No QTCs available for %s", theirCall)
 		return
@@ -507,16 +499,6 @@ func (c *Controller) sendQTC(qtc core.QTC, shortenTime bool) {
 
 	c.keyer.SendText("%s %s %s", time, call, exchange)
 }
-
-// nullLogbook
-
-var _ Logbook = &nullLogbook{}
-
-type nullLogbook struct{}
-
-func (*nullLogbook) NextSeriesNumber() int           { return 0 }
-func (*nullLogbook) LastCallsign() callsign.Callsign { return callsign.Callsign{} }
-func (*nullLogbook) LogQTCSeries(core.QTCSeries)     {}
 
 // nullView
 

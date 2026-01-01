@@ -98,8 +98,8 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
-func (c *Callinfo) ScoreUpdated(score core.Score) {
-	c.collector.ScoreUpdated(score)
+func (c *Callinfo) ScoreChanged(score core.Score) {
+	c.collector.ScoreChanged(score)
 }
 
 func (c *Callinfo) Notify(listener any) {

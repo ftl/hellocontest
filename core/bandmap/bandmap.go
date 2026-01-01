@@ -225,7 +225,7 @@ func (m *Bandmap) ContestChanged(contest core.Contest) {
 	}
 }
 
-func (m *Bandmap) ScoreUpdated(_ core.Score) {
+func (m *Bandmap) ScoreChanged(_ core.Score) {
 	m.do <- func() {
 		m.update()
 	}

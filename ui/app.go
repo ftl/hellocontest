@@ -142,7 +142,7 @@ func (a *application) activate() {
 	a.controller.Keyer.SetSettingsView(a.keyerSettingsDialog)
 	a.controller.ServiceStatus.Notify(a.mainWindow)
 	a.controller.Callinfo.SetView(a.mainWindow)
-	a.controller.Score.SetView(a.scoreWindow)
+	a.controller.ScoreController.SetView(a.scoreWindow)
 	a.controller.Rate.SetView(a.rateWindow)
 	a.controller.Rate.Notify(a.scoreWindow)
 	// TODO: use a listener model for the bandmap to allow multiple views on the bandmap (scope, spots list, mini-scope)

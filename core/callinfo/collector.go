@@ -56,7 +56,7 @@ func (c *Collector) SetTheirExchangeFields(fields []core.ExchangeField, theirRep
 	c.theirNumberExchangeField = theirNumberExchangeField
 }
 
-func (c *Collector) ScoreUpdated(score core.Score) {
+func (c *Collector) ScoreChanged(score core.Score) {
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 

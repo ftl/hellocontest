@@ -105,6 +105,10 @@ func (l *Logbook) contestChangedLocked(contest core.Contest) (core.Score, bool) 
 	return score, true
 }
 
+func (l *Logbook) Valid() bool {
+	return l.scoreCounter.Valid()
+}
+
 // Loading
 
 func (l *Logbook) Load(writer Writer, qsos []core.QSO, qtcs []core.QTC) error {
@@ -634,6 +638,10 @@ func (l *Logbook) Score() core.Score {
 	defer l.dataLock.RUnlock()
 
 	return l.scoreCounter.Score()
+}
+
+func (l *Logbook) Total() int {
+	return l.Score().Result().Result()
 }
 
 func (l *Logbook) refreshDerivedData() core.Score {

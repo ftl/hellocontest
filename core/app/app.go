@@ -78,7 +78,7 @@ type Controller struct {
 	QSOList                  *logbook.QSOList
 	QTCList                  *logbook.QTCList
 	Entry                    *entry.Controller
-	Score                    *score.Counter
+	ScoreController          *score.Controller
 	Workmode                 *workmode.Controller
 	Radio                    *radio.Controller
 	Keyer                    *keyer.Keyer
@@ -170,14 +170,15 @@ func (c *Controller) Startup() {
 
 	c.QSOList = logbook.NewQSOList(c.Settings)
 	c.QTCList = logbook.NewQTCList()
-	c.Score = score.NewCounter(c.Settings, c.dxccFinder)
+	c.ScoreController = score.NewController(c.Settings)
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 
 	c.Logbook = logbook.NewLogbook(c.clock, c.Settings, c.dxccFinder)
 	c.Logbook.Notify(c.QSOList)
 	c.Logbook.Notify(c.QTCList)
-	c.Logbook.Notify(c.Score)
+	c.Logbook.Notify(c.ScoreController)
+	c.Logbook.Notify(c.Bandmap)
 
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
 	c.Entry = entry.NewController(
 		c.Settings,
@@ -193,9 +194,8 @@ func (c *Controller) Startup() {
 	c.Bandmap.Notify(c.Entry)
 	c.Logbook.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
-	c.Score.Notify(c.Bandmap)
 
-	c.SummaryController = summary.NewController(c.Score)
+	c.SummaryController = summary.NewController(c.Logbook)
 
 	c.Workmode = workmode.NewController()
 	c.Workmode.Notify(c.Entry)
@@ -235,7 +235,7 @@ func (c *Controller) Startup() {
 	c.Callinfo.Notify(c.Entry)
 	c.Bandmap.SetCallinfo(c.Callinfo)
 	c.Bandmap.Notify(c.Callinfo)
-	c.Score.Notify(c.Callinfo)
+	c.Logbook.Notify(c.Callinfo)
 
 	c.Parrot = parrot.New(c.Workmode, c.Keyer, c.asyncRunner)
 	c.Keyer.SetParrot(c.Parrot)
@@ -248,7 +248,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Keyer)
 	c.Settings.Notify(c.QSOList)
 	c.Settings.Notify(c.QTCController)
-	c.Settings.Notify(c.Score)
+	c.Settings.Notify(c.ScoreController)
 	c.Settings.Notify(c.Rate)
 	c.Settings.Notify(c.Callinfo)
 	c.Settings.Notify(c.Clusters)
@@ -259,16 +259,17 @@ func (c *Controller) Startup() {
 		if !c.dxccFinder.Available() {
 			return
 		}
-		if !c.QSOList.Valid() || !c.Score.Valid() {
+		if !c.Logbook.Valid() {
 			c.Refresh()
 		}
 	}))
 
 	c.dxccFinder.WhenAvailable(func() {
 		c.asyncRunner(func() {
-			if !c.Score.Valid() {
-				c.Score.StationChanged(c.Settings.Station())
-				c.Score.ContestChanged(c.Settings.Contest())
+			// TODO: check this
+			if !c.Logbook.Valid() {
+				c.Logbook.StationChanged(c.Settings.Station())
+				c.Logbook.ContestChanged(c.Settings.Contest())
 			}
 			if !c.QSOList.Valid() {
 				c.QSOList.ContestChanged(c.Settings.Contest())
@@ -636,7 +637,7 @@ func (c *Controller) ExportSummary() {
 }
 
 func (c *Controller) ExportCabrillo() {
-	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Logbook.Score().Result().Result(), c.Logbook.AllQSOs(), c.Logbook.AllQTCs())
+	result, ok := c.ExportCabrilloController.Run(c.Settings, c.Logbook.Total(), c.Logbook.AllQSOs(), c.Logbook.AllQTCs())
 	if !ok {
 		return
 	}
@@ -748,7 +749,7 @@ func (c *Controller) ExportCallhistory() {
 }
 
 func (c *Controller) ShowScore() {
-	c.Score.Show()
+	c.ScoreController.Show()
 	c.view.BringToFront()
 }
 

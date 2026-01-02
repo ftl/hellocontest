@@ -38,8 +38,11 @@ type Logbook struct {
 	dupes        dupeIndex     // used to find duplicate QSOs for a given callsign, band and mode, according to the contest rules
 	worked       dupeIndex     // used to find worked QSOs for a given callsign
 	callsigns    *scp.Database // used to find worked callsigns similar to a given string, e.g. for supercheck
-	bandRule     conval.BandRule
-	entities     DXCCEntities
+
+	defaultBand core.Band
+	defaultMode core.Mode
+	bandRule    conval.BandRule
+	entities    DXCCEntities
 }
 
 func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities) *Logbook {
@@ -90,6 +93,16 @@ func (l *Logbook) ContestChanged(contest core.Contest) {
 	l.scoreCounter.ContestChanged(contest)
 
 	if contest.Definition != nil {
+		if len(contest.Definition.Bands) > 0 {
+			l.defaultBand = core.Band(contest.Definition.Bands[0])
+		} else {
+			l.defaultBand = core.NoBand
+		}
+		if len(contest.Definition.Modes) > 0 {
+			l.defaultMode = fromConvalMode[contest.Definition.Modes[0]]
+		} else {
+			l.defaultMode = core.NoMode
+		}
 		l.bandRule = contest.Definition.Scoring.QSOBandRule
 	}
 }
@@ -419,7 +432,10 @@ func (l *Logbook) lastQSOLocked() core.QSO {
 	defer l.dataLock.RUnlock()
 
 	if len(l.qsos) == 0 {
-		return core.QSO{}
+		return core.QSO{
+			Band: l.defaultBand,
+			Mode: l.defaultMode,
+		}
 	}
 	return l.qsos[len(l.qsos)-1]
 }

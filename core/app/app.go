@@ -171,12 +171,13 @@ func (c *Controller) Startup() {
 	c.QSOList = logbook.NewQSOList(c.Settings)
 	c.QTCList = logbook.NewQTCList()
 	c.ScoreController = score.NewController(c.Settings)
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 
 	c.Logbook = logbook.NewLogbook(c.clock, c.Settings, c.dxccFinder)
 	c.Logbook.Notify(c.QSOList)
 	c.Logbook.Notify(c.QTCList)
 	c.Logbook.Notify(c.ScoreController)
+
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Logbook.Notify(c.Bandmap)
 
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)

@@ -34,7 +34,7 @@ Worked Bands:       {{join .WorkedBands ", "}}
 Operating Time:     {{duration .TimeReport.OperationTime}}
 
 Claimed Score:
-{{.Score}}
+{{.ScoreTable}}
 
 created with Hello Contest - https://github.com/ftl/hellocontest
 `))

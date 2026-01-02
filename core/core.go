@@ -821,6 +821,37 @@ func (s Summary) WorkingConditions() string {
 	return strings.Join(result, ", ")
 }
 
+func (s Summary) ScoreTable() string {
+	var header, separator string
+	if s.QTCsEnabled {
+		header = "Band QSOs  QTCs  Dupe Pts     P/Q  Mult Q/M  Result \n"
+		separator = "----------------------------------------------------\n"
+	} else {
+		header = "Band QSOs  Dupe Pts     P/Q  Mult Q/M  Result \n"
+		separator = "----------------------------------------------\n"
+	}
+
+	buf := bytes.NewBufferString("")
+	fmt.Fprint(buf, header)
+	fmt.Fprint(buf, separator)
+	for _, band := range Bands {
+		if score, ok := s.Score.ScorePerBand[band]; ok {
+			fmt.Fprintf(buf, "%4s %s\n", band, s.bandScoreToString(score))
+		}
+	}
+	fmt.Fprint(buf, separator)
+	fmt.Fprintf(buf, "Tot  %s\n", s.bandScoreToString(s.Score.Result()))
+	return buf.String()
+}
+
+func (s Summary) bandScoreToString(score BandScore) string {
+	if s.QTCsEnabled {
+		return fmt.Sprintf("%5d %5d %4d %7d %4.1f %4d %4.1f %7d", score.QSOs, score.QTCs, score.Duplicates, score.Points, score.PointsPerQSO(), score.Multis, score.QSOsPerMulti(), score.Result())
+	} else {
+		return fmt.Sprintf("%5d %4d %7d %4.1f %4d %4.1f %7d", score.QSOs, score.Duplicates, score.Points, score.PointsPerQSO(), score.Multis, score.QSOsPerMulti(), score.Result())
+	}
+}
+
 type TimeReport = conval.TimeReport
 
 type Score struct {

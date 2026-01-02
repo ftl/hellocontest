@@ -396,7 +396,9 @@ func (s *Settings) SelectContestIdentifier(contestIdentifier string) {
 
 	if s.contest.Definition != nil {
 		s.contest.Name = s.ProposeContestName(string(s.contest.Definition.Identifier))
+		s.contest.EnableQTCs = s.contest.Definition.Scoring.HasQTCs()
 		s.view.SetContestName(s.contest.Name)
+		s.view.SetContestEnableQTCs(s.contest.EnableQTCs)
 	}
 }
 

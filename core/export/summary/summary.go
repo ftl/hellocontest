@@ -28,6 +28,7 @@ type View interface {
 	SetBreakTime(time.Duration)
 	SetBreaks(int)
 
+	SetQTCsEnabled(bool)
 	SetScore(core.Score)
 
 	SetOpenAfterExport(bool)
@@ -108,6 +109,7 @@ func (c *Controller) showSummary() {
 	c.view.SetBreakTime(time.Duration(c.summary.TimeReport.BreakMinutes) * time.Minute)
 	c.view.SetBreaks(c.summary.TimeReport.Breaks)
 
+	c.view.SetQTCsEnabled(c.summary.QTCsEnabled)
 	c.view.SetScore(c.summary.Score)
 
 	c.view.SetOpenAfterExport(c.openAfterExport)
@@ -119,6 +121,7 @@ func (c *Controller) createSummary(settings core.Settings) *core.Summary {
 		CabrilloName: string(settings.Contest().Definition.Identifier),
 		StartTime:    settings.Contest().StartTime,
 		Callsign:     settings.Station().Callsign,
+		QTCsEnabled:  settings.Contest().EnableQTCs,
 	}
 
 	// calculate MyExchanges

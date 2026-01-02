@@ -34,7 +34,8 @@ type summaryDialog struct {
 	breakTime     time.Duration
 	breaks        int
 
-	score core.Score
+	qtcsEnabled bool
+	score       core.Score
 
 	openAfterExport bool
 }
@@ -67,6 +68,7 @@ func (d *summaryDialog) Show() bool {
 	d.view.breakTimeEntry.SetText(core.FormatDuration(d.breakTime))
 	d.view.breaksEntry.SetText(strconv.Itoa(d.breaks))
 
+	d.view.scoreTable.SetQTCsEnabled(d.qtcsEnabled)
 	d.view.scoreTable.ShowScore(d.score)
 
 	d.view.openAfterExportCheckButton.SetActive(d.openAfterExport)
@@ -187,6 +189,13 @@ func (d *summaryDialog) SetBreaks(breaks int) {
 	d.breaks = breaks
 	if d.view != nil {
 		d.view.breaksEntry.SetText(strconv.Itoa(breaks))
+	}
+}
+
+func (d *summaryDialog) SetQTCsEnabled(enabled bool) {
+	d.qtcsEnabled = enabled
+	if d.view != nil {
+		d.view.scoreTable.SetQTCsEnabled(enabled)
 	}
 }
 

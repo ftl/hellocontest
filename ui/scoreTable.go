@@ -12,6 +12,7 @@ import (
 const (
 	scoreColumnBand int = iota
 	scoreColumnQSOs
+	scoreColumnQTCs
 	scoreColumnDupes
 	scoreColumnPoints
 	scoreColumnPointsPerQSOs
@@ -32,8 +33,10 @@ type scoreTable struct {
 
 	table        *gtk.TreeView
 	tableContent *gtk.ListStore
+	tableColumns []*gtk.TreeViewColumn
 
-	score core.Score
+	score       core.Score
+	qtcsEnabled bool
 }
 
 func newScoreTable(colors colorProvider) *scoreTable {
@@ -43,6 +46,18 @@ func newScoreTable(colors colorProvider) *scoreTable {
 
 	result.tableContent = createScoreListStore(scoreColumnCount)
 
+	result.tableColumns = []*gtk.TreeViewColumn{
+		createScoreBandColumn("Band", scoreColumnBand, colors),
+		createScoreColumn("QSOs", scoreColumnQSOs),
+		createScoreColumn("QTCs", scoreColumnQTCs),
+		createScoreColumn("Dupes", scoreColumnDupes),
+		createScoreColumn("Points", scoreColumnPoints),
+		createScoreColumn("P/Q", scoreColumnPointsPerQSOs),
+		createScoreColumn("Mult", scoreColumnMultis),
+		createScoreColumn("Q/M", scoreColumnQSOsPerMulti),
+		createScoreColumn("Result", scoreColumnResult),
+	}
+
 	result.table, _ = gtk.TreeViewNew()
 	result.table.SetHExpand(true)
 	result.table.SetVExpand(false)
@@ -50,14 +65,14 @@ func newScoreTable(colors colorProvider) *scoreTable {
 	result.table.SetVAlign(gtk.ALIGN_FILL)
 	result.table.SetCanFocus(false)
 	result.table.SetModel(result.tableContent)
-	result.table.AppendColumn(createScoreBandColumn("Band", scoreColumnBand, colors))
-	result.table.AppendColumn(createScoreColumn("QSOs", scoreColumnQSOs))
-	result.table.AppendColumn(createScoreColumn("Dupes", scoreColumnDupes))
-	result.table.AppendColumn(createScoreColumn("Points", scoreColumnPoints))
-	result.table.AppendColumn(createScoreColumn("P/Q", scoreColumnPointsPerQSOs))
-	result.table.AppendColumn(createScoreColumn("Mult", scoreColumnMultis))
-	result.table.AppendColumn(createScoreColumn("Q/M", scoreColumnQSOsPerMulti))
-	result.table.AppendColumn(createScoreColumn("Result", scoreColumnResult))
+	result.table.AppendColumn(result.tableColumns[scoreColumnBand])
+	result.table.AppendColumn(result.tableColumns[scoreColumnQSOs])
+	result.table.AppendColumn(result.tableColumns[scoreColumnDupes])
+	result.table.AppendColumn(result.tableColumns[scoreColumnPoints])
+	result.table.AppendColumn(result.tableColumns[scoreColumnPointsPerQSOs])
+	result.table.AppendColumn(result.tableColumns[scoreColumnMultis])
+	result.table.AppendColumn(result.tableColumns[scoreColumnQSOsPerMulti])
+	result.table.AppendColumn(result.tableColumns[scoreColumnResult])
 	result.table.Connect("style-updated", result.refreshTableStyle)
 
 	return result
@@ -116,6 +131,19 @@ func (t *scoreTable) Table() *gtk.TreeView {
 	return t.table
 }
 
+func (t *scoreTable) SetQTCsEnabled(enabled bool) {
+	if t.qtcsEnabled == enabled {
+		return
+	}
+	t.qtcsEnabled = enabled
+
+	if enabled {
+		t.table.InsertColumn(t.tableColumns[scoreColumnQTCs], scoreColumnQTCs)
+	} else {
+		t.table.RemoveColumn(t.tableColumns[scoreColumnQTCs])
+	}
+}
+
 func (t *scoreTable) ShowScore(score core.Score) {
 	t.score = score
 	t.showScoreInTable(score)
@@ -152,6 +180,7 @@ func (t *scoreTable) fillBandScoreToTableRow(row *gtk.TreeIter, band core.Band, 
 	columns := []int{
 		scoreColumnBand,
 		scoreColumnQSOs,
+		scoreColumnQTCs,
 		scoreColumnDupes,
 		scoreColumnPoints,
 		scoreColumnPointsPerQSOs,
@@ -163,6 +192,7 @@ func (t *scoreTable) fillBandScoreToTableRow(row *gtk.TreeIter, band core.Band, 
 	values := []any{
 		styler(string(band)),
 		fmt.Sprintf(styler("%d"), score.QSOs),
+		fmt.Sprintf(styler("%d"), score.QTCs),
 		fmt.Sprintf(styler("%d"), score.Duplicates),
 		fmt.Sprintf(styler("%d"), score.Points),
 		fmt.Sprintf(styler("%4.1f"), score.PointsPerQSO()),

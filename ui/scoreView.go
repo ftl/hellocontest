@@ -13,7 +13,8 @@ type scoreView struct {
 
 	graph *scoreGraph
 
-	score core.Score
+	score       core.Score
+	qtcsEnabled bool
 }
 
 func setupNewScoreView(colors colorProvider, clock core.Clock) *scoreView {
@@ -58,6 +59,10 @@ func (v *scoreView) ShowScore(score core.Score) {
 
 func (v *scoreView) SetGoals(points int, multis int) {
 	v.graph.SetGoals(points, multis)
+}
+
+func (v *scoreView) SetQTCsEnabled(enabled bool) {
+	v.table.SetQTCsEnabled(enabled)
 }
 
 func (v *scoreView) RateUpdated(rate core.QSORate) {

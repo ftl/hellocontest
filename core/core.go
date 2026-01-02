@@ -789,6 +789,7 @@ type Summary struct {
 	StartTime   time.Time
 	Callsign    Callsign
 	MyExchanges string
+	QTCsEnabled bool
 
 	// has to be selected by the user in a dialog
 	OperatorMode conval.OperatorMode

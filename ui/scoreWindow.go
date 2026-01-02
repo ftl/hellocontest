@@ -19,10 +19,11 @@ type scoreWindow struct {
 	style       *style.Style
 	acceptFocus bool
 
-	score      core.Score
-	rate       core.QSORate
-	pointsGoal int
-	multisGoal int
+	score       core.Score
+	rate        core.QSORate
+	pointsGoal  int
+	multisGoal  int
+	qtcsEnabled bool
 }
 
 func setupScoreWindow(geometry *gmtry.Geometry, style *style.Style, clock core.Clock) *scoreWindow {
@@ -54,6 +55,7 @@ func (w *scoreWindow) Show() {
 		w.window.Connect("destroy", w.onDestroy)
 		w.scoreView = setupNewScoreView(w.style.ForWidget(w.window.ToWidget()), w.clock)
 		w.scoreView.SetGoals(w.pointsGoal, w.multisGoal)
+		w.scoreView.SetQTCsEnabled(w.qtcsEnabled)
 		w.scoreView.ShowScore(w.score)
 		w.scoreView.RateUpdated(w.rate)
 
@@ -97,6 +99,13 @@ func (w *scoreWindow) SetAcceptFocus(acceptFocus bool) {
 		return
 	}
 	w.window.SetAcceptFocus(w.acceptFocus)
+}
+
+func (w *scoreWindow) SetQTCsEnabled(enabled bool) {
+	w.qtcsEnabled = enabled
+	if w.scoreView != nil {
+		w.scoreView.SetQTCsEnabled(enabled)
+	}
 }
 
 func (w *scoreWindow) ShowScore(score core.Score) {

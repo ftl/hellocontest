@@ -13,6 +13,7 @@ type View interface {
 
 	ShowScore(score core.Score)
 	SetGoals(points int, multis int)
+	SetQTCsEnabled(enabled bool)
 }
 
 type Controller struct {
@@ -23,6 +24,7 @@ type Controller struct {
 	contestStartTime  time.Time
 	contestPointsGoal int
 	contestMultisGoal int
+	qtcsEnabled       bool
 
 	listeners []any
 }
@@ -48,18 +50,21 @@ func (c *Controller) SetView(view View) {
 
 	c.view = view
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
+	c.view.SetQTCsEnabled(c.qtcsEnabled)
 	c.view.ShowScore(c.score)
 }
 
 func (c *Controller) ContestChanged(contest core.Contest) {
 	c.setContest(contest)
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
+	c.view.SetQTCsEnabled(c.qtcsEnabled)
 }
 
 func (c *Controller) setContest(contest core.Contest) {
 	c.contestStartTime = contest.StartTime
 	c.contestPointsGoal = contest.PointsGoal
 	c.contestMultisGoal = contest.MultisGoal
+	c.qtcsEnabled = contest.EnableQTCs
 }
 
 func (c *Controller) ScoreChanged(score core.Score) {
@@ -70,6 +75,7 @@ func (c *Controller) ScoreChanged(score core.Score) {
 func (c *Controller) Show() {
 	c.view.Show()
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
+	c.view.SetQTCsEnabled(c.qtcsEnabled)
 	c.view.ShowScore(c.score)
 }
 
@@ -85,3 +91,4 @@ func (v *nullView) Show()                {}
 func (v *nullView) Hide()                {}
 func (v *nullView) ShowScore(core.Score) {}
 func (v *nullView) SetGoals(int, int)    {}
+func (v *nullView) SetQTCsEnabled(bool)  {}

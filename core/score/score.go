@@ -64,7 +64,7 @@ func (c *Controller) setContest(contest core.Contest) {
 
 func (c *Controller) ScoreChanged(score core.Score) {
 	c.score = score
-	c.view.ShowScore(c.score) // READ
+	c.view.ShowScore(c.score)
 }
 
 func (c *Controller) Show() {

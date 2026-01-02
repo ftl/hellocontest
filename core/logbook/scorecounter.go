@@ -19,7 +19,7 @@ type scoreCounter struct {
 	activeBands    map[core.Band]bool
 	activeModes    map[core.Mode]bool
 	prefixDatabase prefixDatabase
-	invalid        bool
+	valid          bool
 
 	contestSetup        conval.Setup
 	contestDefinition   *conval.Definition
@@ -66,8 +66,10 @@ func (c *scoreCounter) StationChanged(station core.Station) {
 	}
 	log.Printf("Using %+v as station setup", c.contestSetup)
 
-	c.invalid = (oldSetup.MyCountry != c.contestSetup.MyCountry)
-	c.clear()
+	c.valid = (oldSetup.MyCountry == c.contestSetup.MyCountry)
+	if !c.valid {
+		c.clear()
+	}
 }
 
 func (c *scoreCounter) ContestChanged(contest core.Contest) {
@@ -76,8 +78,17 @@ func (c *scoreCounter) ContestChanged(contest core.Contest) {
 	c.myExchangeFields = toConvalExchangeFields(contest.MyExchangeFields)
 	c.theirExchangeFields = toConvalExchangeFields(contest.TheirExchangeFields)
 
-	c.invalid = true
+	c.valid = false
 	c.clear()
+}
+
+func (c *scoreCounter) Valid() bool {
+	return c.valid && (c.contestSetup.MyCountry != "") && (c.contestSetup.MyContinent != "")
+}
+
+func (c *scoreCounter) Clear() {
+	c.clear()
+	c.valid = (c.contestSetup.MyCountry != "") // RESET the valid flag
 }
 
 func (c *scoreCounter) clear() {
@@ -100,15 +111,6 @@ func (c *scoreCounter) newConvalCounter() convalCounter {
 		return new(nullCounter)
 	}
 	return conval.NewCounter(*c.contestDefinition, c.contestSetup, c.prefixDatabase)
-}
-
-func (c *scoreCounter) Valid() bool {
-	return !c.invalid && (c.contestSetup.MyCountry != "") && (c.contestSetup.MyContinent != "")
-}
-
-func (c *scoreCounter) Clear() {
-	c.clear()
-	c.invalid = (c.contestSetup.MyCountry == "")
 }
 
 // Add the given QSO and return the QSO with updated fields for points, multis, and duplicate.

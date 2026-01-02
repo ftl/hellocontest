@@ -63,6 +63,10 @@ type testEntities struct {
 	entity dxcc.Prefix
 }
 
+func (e *testEntities) Available() bool {
+	return true
+}
+
 func (e *testEntities) Find(string) (dxcc.Prefix, bool) {
 	return e.entity, (e.entity.PrimaryPrefix != "")
 }

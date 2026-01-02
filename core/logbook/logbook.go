@@ -15,6 +15,7 @@ import (
 )
 
 type DXCCEntities interface {
+	Available() bool
 	Find(string) (dxcc.Prefix, bool)
 }
 
@@ -38,6 +39,7 @@ type Logbook struct {
 	worked       dupeIndex     // used to find worked QSOs for a given callsign
 	callsigns    *scp.Database // used to find worked callsigns similar to a given string, e.g. for supercheck
 	bandRule     conval.BandRule
+	entities     DXCCEntities
 }
 
 func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities) *Logbook {
@@ -49,6 +51,7 @@ func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities)
 		dupes:        make(dupeIndex),
 		worked:       make(dupeIndex),
 		callsigns:    scp.NewDatabase(),
+		entities:     entities,
 	}
 
 	result.clear(1000, 0)
@@ -58,36 +61,29 @@ func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities)
 
 // Settings
 
-func (l *Logbook) StationChanged(station core.Station) {
-	score, updated := l.stationChangedLocked(station)
-	if updated {
-		l.emitScoreChanged(score)
-	}
-}
+/*
+The three settings related events arrive in this order:
+1. StationChanged
+2. ContestChanged
+3. SettingsChanged
 
-func (l *Logbook) stationChangedLocked(station core.Station) (core.Score, bool) {
+A refresh needs only be done, if either the station or contest change led to a change in
+the scoreCounter. To make sure, the refresh is done only once even if both the station and
+the contest have changed, it is done in SettingsChanged, checking scoreCounter.Valid() to
+find out, if the refresh actually needs to be done.
+
+ATTENTION: The SettingsChanged event is not emitted when the contest is loaded or created!
+In this case, the refresh of the derived data is done explicitly in Logbook.Load.
+*/
+
+func (l *Logbook) StationChanged(station core.Station) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 
 	l.scoreCounter.StationChanged(station)
-
-	if !l.scoreCounter.Valid() {
-		return core.Score{}, false
-	}
-
-	score := l.refreshDerivedData()
-	return score, true
 }
 
 func (l *Logbook) ContestChanged(contest core.Contest) {
-	score, updated := l.contestChangedLocked(contest)
-
-	if updated {
-		l.emitScoreChanged(score)
-	}
-}
-
-func (l *Logbook) contestChangedLocked(contest core.Contest) (core.Score, bool) {
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 
@@ -96,17 +92,55 @@ func (l *Logbook) contestChangedLocked(contest core.Contest) (core.Score, bool) 
 	if contest.Definition != nil {
 		l.bandRule = contest.Definition.Scoring.QSOBandRule
 	}
+}
 
-	if !l.scoreCounter.Valid() {
-		return core.Score{}, false
+func (l *Logbook) SettingsChanged(_ core.Settings) {
+	if !l.entities.Available() {
+		return
+	}
+
+	qsos, qtcs, score, refreshed := l.settingsChangedLocked()
+
+	if refreshed {
+		l.emitNotificationsAfterRefresh(qsos, qtcs, score)
+		l.emitLogbookLoaded()
+	}
+}
+
+func (l *Logbook) settingsChangedLocked() ([]core.QSO, []core.QTC, core.Score, bool) {
+	l.dataLock.Lock()
+	defer l.dataLock.Unlock()
+
+	if l.scoreCounter.Valid() {
+		return nil, nil, core.Score{}, false
 	}
 
 	score := l.refreshDerivedData()
-	return score, true
+
+	return l.allQSOs(), l.allQTCs(), score, true
 }
 
 func (l *Logbook) Valid() bool {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
 	return l.scoreCounter.Valid()
+}
+
+func (l *Logbook) Refresh() {
+	qsos, qtcs, score := l.refreshLocked()
+
+	l.emitNotificationsAfterRefresh(qsos, qtcs, score)
+	l.emitLogbookLoaded()
+}
+
+func (l *Logbook) refreshLocked() ([]core.QSO, []core.QTC, core.Score) {
+	l.dataLock.Lock()
+	defer l.dataLock.Unlock()
+
+	score := l.refreshDerivedData()
+
+	return l.allQSOs(), l.allQTCs(), score
 }
 
 // Loading
@@ -127,6 +161,7 @@ func (l *Logbook) loadLocked(writer Writer, qsos []core.QSO, qtcs []core.QTC) ([
 	l.dataLock.Lock()
 	defer l.dataLock.Unlock()
 
+	// assign the writer
 	l.writer = writer
 
 	// clear
@@ -144,7 +179,7 @@ func (l *Logbook) loadLocked(writer Writer, qsos []core.QSO, qtcs []core.QTC) ([
 		return nil, nil, core.Score{}, err
 	}
 
-	// update first, because the QSO score might change during the update
+	// update derived data first, because the QSO scores and duplicate flags might change during the update
 	score := l.refreshDerivedData()
 
 	// copy QSOs and QTCs for further processing outside the dataLock
@@ -202,17 +237,6 @@ func (l *Logbook) putQTCs(qtcs []core.QTC) error {
 		}
 	}
 	return nil
-}
-
-func (l *Logbook) Refresh() {
-	l.emitNotificationsAfterRefresh(l.getCurrentStateLocked())
-	l.emitLogbookLoaded()
-}
-
-func (l Logbook) getCurrentStateLocked() ([]core.QSO, []core.QTC, core.Score) {
-	l.dataLock.RLock()
-	defer l.dataLock.RUnlock()
-	return l.allQSOs(), l.allQTCs(), l.scoreCounter.Score()
 }
 
 // Writing

@@ -246,6 +246,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Entry)
 	c.Settings.Notify(c.Workmode)
 	c.Settings.Notify(c.Keyer)
+	c.Settings.Notify(c.Logbook)
 	c.Settings.Notify(c.QSOList)
 	c.Settings.Notify(c.QTCController)
 	c.Settings.Notify(c.ScoreController)
@@ -260,7 +261,7 @@ func (c *Controller) Startup() {
 			return
 		}
 		if !c.Logbook.Valid() {
-			c.Refresh()
+			c.Logbook.Refresh()
 		}
 	}))
 
@@ -514,7 +515,6 @@ func (c *Controller) New() {
 	c.Settings.SetWriter(store)
 	c.Keyer.SetWriter(store)
 	c.loadLogbook(filename, store, nil, nil)
-	c.Refresh()
 
 	c.OpenSettings()
 }
@@ -548,7 +548,6 @@ func (c *Controller) Open() {
 		c.Keyer.SetSettings(*keyerSettings, "")
 	}
 	c.loadLogbook(filename, store, qsos, qtcs)
-	c.Refresh()
 }
 
 func (c *Controller) SaveAs() {

@@ -22,6 +22,7 @@ const (
 	spotColumnPredictedExchange
 	spotColumnPoints
 	spotColumnMultis
+	spotColumnQTCCount
 	spotColumnSpotCount
 	spotColumnAge
 	spotColumnWeightedValue
@@ -33,21 +34,36 @@ const (
 	spotColumnCount
 )
 
-func setupSpotsTableView(v *spotsView, builder *gtk.Builder, controller SpotsController) {
+func setupSpotsTableView(v *spotsView, builder *gtk.Builder) {
+	v.tableColumns = []*gtk.TreeViewColumn{
+		createSpotMarkupColumn("", spotColumnMark),
+		createSpotMarkupColumn("Frequency", spotColumnFrequency),
+		createSpotMarkupColumn("Callsign", spotColumnCallsign),
+		createSpotTextColumn("T", spotColumnQualityTag),
+		createSpotTextColumn("Exchange", spotColumnPredictedExchange),
+		createSpotMarkupColumn("Pts", spotColumnPoints),
+		createSpotMarkupColumn("Mult", spotColumnMultis),
+		createSpotMarkupColumn("QTCs", spotColumnQTCCount),
+		createSpotTextColumn("Spots", spotColumnSpotCount),
+		createSpotMarkupColumn("Age", spotColumnAge),
+		createSpotMarkupColumn("Value", spotColumnWeightedValue),
+		createSpotTextColumn("DXCC", spotColumnDXCC),
+	}
+
 	v.table = getUI(builder, "entryTable").(*gtk.TreeView)
 	v.table.Connect("button-press-event", v.activateTableSelection)
 
-	v.table.AppendColumn(createSpotMarkupColumn("", spotColumnMark))
-	v.table.AppendColumn(createSpotMarkupColumn("Frequency", spotColumnFrequency))
-	v.table.AppendColumn(createSpotMarkupColumn("Callsign", spotColumnCallsign))
-	v.table.AppendColumn(createSpotTextColumn("T", spotColumnQualityTag))
-	v.table.AppendColumn(createSpotTextColumn("Exchange", spotColumnPredictedExchange))
-	v.table.AppendColumn(createSpotMarkupColumn("Pts", spotColumnPoints))
-	v.table.AppendColumn(createSpotMarkupColumn("Mult", spotColumnMultis))
-	v.table.AppendColumn(createSpotTextColumn("Spots", spotColumnSpotCount))
-	v.table.AppendColumn(createSpotMarkupColumn("Age", spotColumnAge))
-	v.table.AppendColumn(createSpotMarkupColumn("Value", spotColumnWeightedValue))
-	v.table.AppendColumn(createSpotTextColumn("DXCC", spotColumnDXCC))
+	v.table.AppendColumn(v.tableColumns[spotColumnMark])
+	v.table.AppendColumn(v.tableColumns[spotColumnFrequency])
+	v.table.AppendColumn(v.tableColumns[spotColumnCallsign])
+	v.table.AppendColumn(v.tableColumns[spotColumnQualityTag])
+	v.table.AppendColumn(v.tableColumns[spotColumnPredictedExchange])
+	v.table.AppendColumn(v.tableColumns[spotColumnPoints])
+	v.table.AppendColumn(v.tableColumns[spotColumnMultis])
+	v.table.AppendColumn(v.tableColumns[spotColumnSpotCount])
+	v.table.AppendColumn(v.tableColumns[spotColumnAge])
+	v.table.AppendColumn(v.tableColumns[spotColumnWeightedValue])
+	v.table.AppendColumn(v.tableColumns[spotColumnDXCC])
 
 	v.tableContent = createSpotListStore(spotColumnCount)
 	v.table.SetModel(v.tableContent)
@@ -133,6 +149,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			spotColumnPredictedExchange,
 			spotColumnPoints,
 			spotColumnMultis,
+			spotColumnQTCCount,
 			spotColumnSpotCount,
 			spotColumnAge,
 			spotColumnWeightedValue,
@@ -148,6 +165,7 @@ func (v *spotsView) fillEntryToTableRow(row *gtk.TreeIter, entry core.BandmapEnt
 			formatSpotExchangeText(entry.Info.PredictedExchange),
 			formatPoints(entry.Info.Points, entry.Info.Duplicate, 1),
 			formatPoints(entry.Info.Multis, entry.Info.Duplicate, 0),
+			formatQTCCount(entry.Info.SentQTCs, entry.Info.ReceivedQTCs),
 			fmt.Sprintf("%d", entry.SpotCount),
 			formatSpotAge(entry.LastHeard),
 			fmt.Sprintf("%.1f", entry.Info.WeightedValue),
@@ -192,6 +210,19 @@ func formatPoints(value int, duplicate bool, threshold int) string {
 		return fmt.Sprintf("<b>%s</b>", result)
 	}
 	return result
+}
+
+func formatQTCCount(sentQTCs int, receivedQTCs int) string {
+	switch {
+	case sentQTCs > 0 && receivedQTCs > 0:
+		return fmt.Sprintf("%dS %dR", sentQTCs, receivedQTCs)
+	case sentQTCs > 0:
+		return fmt.Sprintf("%dS", sentQTCs)
+	case receivedQTCs > 0:
+		return fmt.Sprintf("%dR", receivedQTCs)
+	default:
+		return "0"
+	}
 }
 
 func formatSpotAge(lastHeard time.Time) string {

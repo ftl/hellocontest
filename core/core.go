@@ -1339,6 +1339,7 @@ type BandmapFrame struct {
 	SelectedEntry     BandmapEntry
 	NearestEntry      BandmapEntry
 	HighestValueEntry BandmapEntry
+	QTCsEnabled       bool
 }
 
 func (f BandmapFrame) IndexOf(id BandmapEntryID) (int, bool) {
@@ -1417,6 +1418,9 @@ type Callinfo struct {
 	MultiValues   map[conval.Property]string
 	Value         int
 	WeightedValue float64
+
+	SentQTCs     int
+	ReceivedQTCs int
 }
 
 type CallinfoFrame struct {

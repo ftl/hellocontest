@@ -32,8 +32,8 @@ type Logbook struct {
 	sentQTCSeries     []core.QTCSeries
 	receivedQTCSeries map[string]core.QTCSeries
 	availableQTCs     []core.QTC
-	qtcsSentTo        map[callsign.Callsign]int
-	qtcsReceivedFrom  map[callsign.Callsign]int
+	qtcsSentTo        map[string]int
+	qtcsReceivedFrom  map[string]int
 
 	scoreCounter *scoreCounter
 	dupes        dupeIndex     // used to find duplicate QSOs for a given callsign, band and mode, according to the contest rules
@@ -206,14 +206,15 @@ func (l *Logbook) loadLocked(writer Writer, qsos []core.QSO, qtcs []core.QTC) ([
 }
 
 func (l *Logbook) clear(capQSOs int, capQTCs int) {
+	log.Printf("Logbook.clear")
 	l.qsos = make([]core.QSO, 0, capQSOs)
 	l.sentQTCs = make(map[core.QSONumber]core.QTC, capQTCs)
 	l.receivedQTCs = make([]core.QTC, 0, capQTCs)
 	l.sentQTCSeries = make([]core.QTCSeries, 0, capQTCs)
 	l.receivedQTCSeries = make(map[string]core.QTCSeries, capQTCs)
 	l.availableQTCs = make([]core.QTC, 0, capQSOs)
-	l.qtcsSentTo = make(map[callsign.Callsign]int)
-	l.qtcsReceivedFrom = make(map[callsign.Callsign]int)
+	l.qtcsSentTo = make(map[string]int)
+	l.qtcsReceivedFrom = make(map[string]int)
 }
 
 func (l *Logbook) putQSOs(qsos []core.QSO) error {
@@ -508,6 +509,7 @@ func (l *Logbook) addQTC(qtc core.QTC, write bool) error {
 		}
 	}
 
+	theirCallsign := qtc.TheirCallsign.String()
 	if qtc.Kind == core.SentQTC {
 		if existing, ok := l.sentQTCs[qtc.QSONumber]; ok {
 			return fmt.Errorf("Logbook.addQTC: QTC for QSO #%d already exists, cannot log another QTC for the same QSO: %v", qtc.QSONumber, existing)
@@ -519,18 +521,19 @@ func (l *Logbook) addQTC(qtc core.QTC, write bool) error {
 		}
 		l.removeAvailableQTC(qtc)
 
-		count := l.qtcsSentTo[qtc.TheirCallsign]
+		count := l.qtcsSentTo[theirCallsign]
 		count++
-		l.qtcsSentTo[qtc.TheirCallsign] = count
+		l.qtcsSentTo[theirCallsign] = count
 	} else {
 		l.receivedQTCs = append(l.receivedQTCs, qtc)
 		err := l.registerQTCSeries(qtc)
 		if err != nil {
 			return err
 		}
-		count := l.qtcsReceivedFrom[qtc.TheirCallsign]
+		count := l.qtcsReceivedFrom[theirCallsign]
 		count++
-		l.qtcsReceivedFrom[qtc.TheirCallsign] = count
+		l.qtcsReceivedFrom[theirCallsign] = count
+		log.Printf("QTCs received from %s: %d", qtc.TheirCallsign, count)
 	}
 
 	return nil
@@ -643,8 +646,9 @@ func (l *Logbook) QTCsInLog(theirCall callsign.Callsign) (sent, received int) {
 		return 0, 0
 	}
 
-	sent = l.qtcsSentTo[theirCall]
-	received = l.qtcsReceivedFrom[theirCall]
+	theirCallStr := theirCall.String()
+	sent = l.qtcsSentTo[theirCallStr]
+	received = l.qtcsReceivedFrom[theirCallStr]
 
 	return sent, received
 }
@@ -658,7 +662,7 @@ func (l *Logbook) AvailableFor(theirCall callsign.Callsign) int {
 	}
 
 	theirCallStr := theirCall.String()
-	theirQTCCount := l.qtcsSentTo[theirCall]
+	theirQTCCount := l.qtcsSentTo[theirCallStr]
 	theirQSOCount := 0
 	for _, qtc := range l.availableQTCs {
 		if qtc.QTCCallsign.String() == theirCallStr {
@@ -677,7 +681,7 @@ func (l *Logbook) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC 
 	}
 
 	theirCallStr := theirCall.String()
-	theirQTCCount := l.qtcsSentTo[theirCall]
+	theirQTCCount := l.qtcsSentTo[theirCallStr]
 	maxLen := max(0, min(core.MaxQTCsPerCall-theirQTCCount, count))
 
 	result := make([]core.QTC, 0, maxLen)

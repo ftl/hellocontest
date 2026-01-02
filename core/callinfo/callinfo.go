@@ -70,7 +70,7 @@ type Callinfo struct {
 func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, qtcProvider QTCProvider) *Callinfo {
 	result := &Callinfo{
 		view:        new(nullView),
-		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer),
+		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer, qtcProvider),
 		supercheck:  NewSupercheck(entities, callsigns, callHistory, dupeChecker, valuer),
 		qtcProvider: qtcProvider,
 	}
@@ -133,8 +133,6 @@ func (c *Callinfo) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mo
 
 func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) {
 	normalizedCall := normalizeInput(call)
-	parsedCall, err := callsign.Parse(normalizedCall)
-	validCall := (err == nil)
 
 	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
 	supercheck := c.supercheck.Calculate(normalizedCall, band, mode)
@@ -148,12 +146,8 @@ func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, cur
 	c.frame.Points = callinfo.Points
 	c.frame.Multis = callinfo.Multis
 	c.frame.Value = callinfo.Value
-	if validCall && c.qtcsEnabled {
-		c.frame.SentQTCs, c.frame.ReceivedQTCs = c.qtcProvider.QTCsInLog(parsedCall)
-	} else {
-		c.frame.SentQTCs = 0
-		c.frame.ReceivedQTCs = 0
-	}
+	c.frame.SentQTCs = callinfo.SentQTCs
+	c.frame.ReceivedQTCs = callinfo.ReceivedQTCs
 
 	c.frame.PredictedExchange = callinfo.PredictedExchange
 	c.frame.Supercheck = supercheck

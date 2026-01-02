@@ -251,6 +251,14 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 	l.notifier.emitEntryAdded(newEntry.BandmapEntry)
 }
 
+func (l *Entries) RefreshCallinfo(call callsign.Callsign, now time.Time, weights core.BandmapWeights) {
+	for _, e := range l.entries {
+		if e.Call.String() == call.String() {
+			l.complementCallinfo(e, now, weights)
+		}
+	}
+}
+
 func (l *Entries) insert(entry *Entry) {
 	entry.ID = l.nextID()
 

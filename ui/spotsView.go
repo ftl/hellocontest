@@ -44,12 +44,14 @@ type spotsView struct {
 
 	table        *gtk.TreeView
 	tableContent *gtk.ListStore
+	tableColumns []*gtk.TreeViewColumn
 
 	bands                []core.BandSummary
 	bandsID              string
 	currentFrame         core.BandmapFrame
 	initialFrameShown    bool
 	tableSelectionActive bool
+	qtcsEnabled          bool
 }
 
 func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller SpotsController) *spotsView {
@@ -61,7 +63,7 @@ func setupSpotsView(builder *gtk.Builder, colors colorProvider, controller Spots
 
 	result.bandGrid = getUI(builder, "bandGrid").(*gtk.Grid)
 
-	setupSpotsTableView(result, builder, controller)
+	setupSpotsTableView(result, builder)
 
 	return result
 }
@@ -76,6 +78,7 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	v.currentFrame = frame
 	v.setupBands(frame.Bands)
 	v.updateBands(frame.Bands)
+	v.setQTCsEnabled(frame.QTCsEnabled)
 
 	if bandChanged {
 		v.showFrameInTable(frame)
@@ -256,5 +259,18 @@ func (v *spotsView) selectBand(band core.Band) func(*gtk.Button, *gdk.Event) {
 		case gdk.EVENT_DOUBLE_BUTTON_PRESS:
 			v.controller.SetActiveBand(band)
 		}
+	}
+}
+
+func (v *spotsView) setQTCsEnabled(enabled bool) {
+	if v.qtcsEnabled == enabled {
+		return
+	}
+	v.qtcsEnabled = enabled
+
+	if enabled {
+		v.table.InsertColumn(v.tableColumns[spotColumnQTCCount], spotColumnQTCCount)
+	} else {
+		v.table.RemoveColumn(v.tableColumns[spotColumnQTCCount])
 	}
 }

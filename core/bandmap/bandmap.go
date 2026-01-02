@@ -61,6 +61,7 @@ type Bandmap struct {
 	maximumAge   time.Duration
 	weights      core.BandmapWeights
 	bandRule     conval.BandRule
+	qtcsEnabled  bool
 
 	do     chan func()
 	closed chan struct{}
@@ -128,6 +129,7 @@ func (m *Bandmap) update() {
 		Bands:       bands,
 		Entries:     entries,
 		Index:       index,
+		QTCsEnabled: m.qtcsEnabled,
 	}
 
 	selectedEntry, selected := m.selection.SelectedEntry()
@@ -220,6 +222,7 @@ func (m *Bandmap) ContestChanged(contest core.Contest) {
 		if contest.Definition != nil {
 			m.bandRule = contest.Definition.Scoring.QSOBandRule
 		}
+		m.qtcsEnabled = contest.EnableQTCs
 		m.entries.SetBands(contest.Bands())
 		m.update()
 	}
@@ -310,14 +313,20 @@ func (m *Bandmap) Add(spot core.Spot) {
 			case conval.Once:
 				band, mode = core.NoBand, core.NoMode
 			case conval.OncePerBand:
-				band, mode = band, core.NoMode
+				mode = core.NoMode
 			case conval.OncePerBandAndMode:
-				band, mode = band, mode
+				// band, mode = band, mode
 			default:
 				band, mode = core.NoBand, core.NoMode
 			}
 			m.entries.MarkAsWorked(spot.Call, band, mode)
 		}
+	}
+}
+
+func (m *Bandmap) QTCAdded(qtc core.QTC) {
+	m.do <- func() {
+		m.entries.RefreshCallinfo(qtc.TheirCallsign, m.clock.Now(), m.weights)
 	}
 }
 

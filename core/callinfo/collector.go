@@ -10,11 +10,12 @@ import (
 )
 
 type Collector struct {
-	dxcc      DXCCFinder
-	callsigns CallsignFinder
-	history   CallHistoryFinder
-	dupes     DupeChecker
-	valuer    Valuer
+	dxcc        DXCCFinder
+	callsigns   CallsignFinder
+	history     CallHistoryFinder
+	dupes       DupeChecker
+	valuer      Valuer
+	qtcProvider QTCProvider
 
 	dataLock *sync.RWMutex
 
@@ -27,16 +28,17 @@ type Collector struct {
 }
 
 func NewCollector(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistoryFinder,
-	dupes DupeChecker, valuer Valuer) *Collector {
+	dupes DupeChecker, valuer Valuer, qtcProvider QTCProvider) *Collector {
 
 	return &Collector{
-		dxcc:       dxcc,
-		callsigns:  callsigns,
-		history:    history,
-		dupes:      dupes,
-		valuer:     valuer,
-		dataLock:   &sync.RWMutex{},
-		totalScore: core.BandScore{Points: 1, Multis: 1},
+		dxcc:        dxcc,
+		callsigns:   callsigns,
+		history:     history,
+		dupes:       dupes,
+		valuer:      valuer,
+		qtcProvider: qtcProvider,
+		dataLock:    &sync.RWMutex{},
+		totalScore:  core.BandScore{Points: 1, Multis: 1},
 	}
 }
 
@@ -122,8 +124,13 @@ func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode
 	if c.dupes == nil {
 		return
 	}
+
 	workedQSOs, duplicate := c.dupes.FindWorkedQSOs(info.Call, band, mode)
 	c.addWorkedState(info, workedQSOs, duplicate)
+
+	sentQTCs, receivedQTCs := c.qtcProvider.QTCsInLog(info.Call)
+	c.addQTCCount(info, sentQTCs, receivedQTCs)
+
 	// ATTENTION: temporal coupling! addPredictedExchange relies on addHistoryData putting
 	// the historic exchange into the Callinfo.PredictedExchange field.
 	c.dataLock.RLock()
@@ -167,6 +174,11 @@ func (c *Collector) addHistoryData(info *core.Callinfo) bool {
 	info.PredictedExchange = entry.PredictedExchange
 
 	return true
+}
+
+func (c *Collector) addQTCCount(info *core.Callinfo, sentQTCs int, receivedQTCs int) {
+	info.SentQTCs = sentQTCs
+	info.ReceivedQTCs = receivedQTCs
 }
 
 func (c *Collector) addWorkedState(info *core.Callinfo, workedQSOs []core.QSO, duplicate bool) {

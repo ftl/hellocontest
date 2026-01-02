@@ -100,7 +100,7 @@ func (f *Finder) findInDatabase(s string) ([]scp.Match, error) {
 	defer f.dataLock.Unlock()
 
 	if f.database == nil {
-		return nil, fmt.Errorf("the call history is currently not available")
+		return nil, nil
 	}
 
 	cached, hit := f.cache[s]

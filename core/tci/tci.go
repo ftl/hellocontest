@@ -3,6 +3,7 @@ package tci
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/ftl/hamradio"
@@ -218,10 +219,9 @@ func (c *Client) EntryAdded(entry core.BandmapEntry) {
 		return
 	}
 
-	// log.Printf("TCI: adding spot %s", entry.Call)
 	c.lastHeardSpots[entry.Call.String()] = entry.LastHeard
 	err := c.client.AddSpot(entry.Call.String(), toClientMode(entry.Mode), int(entry.Frequency), spotColors[entry.Source], "hellocontest")
-	if err != nil {
+	if err != nil && !isNotConnectedError(err) {
 		log.Printf("TCI: cannot add spot: %v", err)
 	}
 }
@@ -236,9 +236,13 @@ func (c *Client) EntryRemoved(entry core.BandmapEntry) {
 	}
 
 	err := c.client.DeleteSpot(entry.Call.String())
-	if err != nil {
+	if err != nil && !isNotConnectedError(err) {
 		log.Printf("TCI: cannot delete spot: %v", err)
 	}
+}
+
+func isNotConnectedError(err error) bool {
+	return strings.HasSuffix(err.Error(), "not connected")
 }
 
 type trxListener struct {

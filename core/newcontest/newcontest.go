@@ -52,7 +52,11 @@ func (c *Controller) SetView(view View) {
 }
 
 func (c *Controller) Run() (Result, bool) {
+	c.selectedIdentifier = ""
+	c.selectedName = ""
+	c.selectedFilename = ""
 	c.view.SetContestIdentifiers(c.contestProvider.ContestIdentifiers())
+	c.view.SetContestName(c.selectedName)
 
 	accepted := c.view.Show()
 
@@ -68,7 +72,7 @@ func (c *Controller) Run() (Result, bool) {
 
 func (c *Controller) SelectContestIdentifier(identifier string) {
 	oldDefaultName := c.contestProvider.ProposeContestName(c.selectedIdentifier)
-	proposeNewName := c.selectedName == oldDefaultName || c.selectedName == ""
+	proposeNewName := (c.selectedName == oldDefaultName) || (c.selectedName == "")
 
 	c.selectedIdentifier = identifier
 

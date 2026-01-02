@@ -2089,6 +2089,7 @@ Interval</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="column-spacing">5</property>
+                <property name="column-homogeneous">True</property>
                 <child>
                   <placeholder/>
                 </child>
@@ -2148,6 +2149,7 @@ Interval</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="column-spacing">5</property>
+                <property name="column-homogeneous">True</property>
                 <child>
                   <placeholder/>
                 </child>
@@ -2230,6 +2232,8 @@ Interval</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
+                <property name="margin-start">7</property>
+                <property name="margin-end">7</property>
                 <property name="label" translatable="yes">DL1ABC</property>
               </object>
               <packing>
@@ -2255,11 +2259,14 @@ Interval</property>
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
                 <property name="halign">start</property>
+                <property name="margin-start">7</property>
+                <property name="margin-end">7</property>
                 <property name="label" translatable="yes">1P 1M</property>
               </object>
               <packing>
                 <property name="left-attach">4</property>
                 <property name="top-attach">3</property>
+                <property name="width">2</property>
               </packing>
             </child>
             <child>
@@ -2348,9 +2355,6 @@ Interval</property>
                 <property name="left-attach">5</property>
                 <property name="top-attach">2</property>
               </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
             <child>
               <placeholder/>

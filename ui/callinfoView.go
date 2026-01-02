@@ -275,9 +275,11 @@ func (v *callinfoView) setExchangeFields(fields []core.ExchangeField, parent *gt
 		label.SetHExpand(true)
 		label.SetHAlign(gtk.ALIGN_FILL)
 		label.SetXAlign(0)
+		label.SetMarginStart(7)
+		label.SetMarginEnd(7)
 
 		(*labels)[i] = label
-		parent.Add(label)
+		parent.Attach(label, i+1, 1, 1, 1)
 	}
 	parent.ShowAll()
 }

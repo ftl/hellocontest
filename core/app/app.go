@@ -231,7 +231,7 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 
-	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.Logbook, c.Logbook)
+	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.Logbook, c.Logbook, c.Logbook)
 	c.Entry.SetCallinfo(c.Callinfo)
 	c.Callinfo.Notify(c.Entry)
 	c.Bandmap.SetCallinfo(c.Callinfo)

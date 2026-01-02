@@ -40,6 +40,10 @@ type Valuer interface {
 	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string)
 }
 
+type QTCProvider interface {
+	QTCsInLog(callsign.Callsign) (sent, received int)
+}
+
 // View defines the visual part of the call information window.
 type View interface {
 	SetPredictedExchangeFields(fields []core.ExchangeField)
@@ -51,21 +55,24 @@ type CallinfoFrameListener interface {
 }
 
 type Callinfo struct {
-	view       View
-	collector  *Collector
-	supercheck *Supercheck
-	listeners  []any
+	view        View
+	collector   *Collector
+	supercheck  *Supercheck
+	qtcProvider QTCProvider
+	listeners   []any
 
 	theirExchangeFields []core.ExchangeField
+	qtcsEnabled         bool
 
 	frame core.CallinfoFrame
 }
 
-func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer) *Callinfo {
+func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, qtcProvider QTCProvider) *Callinfo {
 	result := &Callinfo{
-		view:       new(nullView),
-		collector:  NewCollector(entities, callsigns, callHistory, dupeChecker, valuer),
-		supercheck: NewSupercheck(entities, callsigns, callHistory, dupeChecker, valuer),
+		view:        new(nullView),
+		collector:   NewCollector(entities, callsigns, callHistory, dupeChecker, valuer),
+		supercheck:  NewSupercheck(entities, callsigns, callHistory, dupeChecker, valuer),
+		qtcProvider: qtcProvider,
 	}
 
 	return result
@@ -93,6 +100,7 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 		return
 	}
 	c.theirExchangeFields = contest.TheirExchangeFields
+	c.qtcsEnabled = contest.EnableQTCs
 	c.collector.SetTheirExchangeFields(c.theirExchangeFields, contest.TheirReportExchangeField, contest.TheirNumberExchangeField)
 	c.supercheck.SetTheirExchangeFields(c.theirExchangeFields)
 	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
@@ -125,6 +133,8 @@ func (c *Callinfo) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mo
 
 func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) {
 	normalizedCall := normalizeInput(call)
+	parsedCall, err := callsign.Parse(normalizedCall)
+	validCall := (err == nil)
 
 	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
 	supercheck := c.supercheck.Calculate(normalizedCall, band, mode)
@@ -138,6 +148,12 @@ func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, cur
 	c.frame.Points = callinfo.Points
 	c.frame.Multis = callinfo.Multis
 	c.frame.Value = callinfo.Value
+	if validCall && c.qtcsEnabled {
+		c.frame.SentQTCs, c.frame.ReceivedQTCs = c.qtcProvider.QTCsInLog(parsedCall)
+	} else {
+		c.frame.SentQTCs = 0
+		c.frame.ReceivedQTCs = 0
+	}
 
 	c.frame.PredictedExchange = callinfo.PredictedExchange
 	c.frame.Supercheck = supercheck

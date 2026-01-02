@@ -722,6 +722,7 @@ func TestLogbook_AddQTCSeries_emitsScoreChanged(t *testing.T) {
 func TestLogbook_AvailableFor(t *testing.T) {
 	dl1abc := callsign.MustParse("DL1ABC")
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+	logbook.qtcsEnabled = true
 
 	available := logbook.AvailableFor(dl1abc)
 	assert.Equal(t, 0, available, "fresh log")
@@ -745,6 +746,7 @@ func TestLogbook_AvailableFor(t *testing.T) {
 func TestLogbook_PrepareFor(t *testing.T) {
 	dl1abc := callsign.MustParse("DL1ABC")
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
+	logbook.qtcsEnabled = true
 
 	qtcs := logbook.PrepareFor(dl1abc, core.MaxQTCsPerCall)
 	assert.Equal(t, 0, len(qtcs), "fresh log")

@@ -32,7 +32,8 @@ type Logbook struct {
 	sentQTCSeries     []core.QTCSeries
 	receivedQTCSeries map[string]core.QTCSeries
 	availableQTCs     []core.QTC
-	qtcsByCall        map[callsign.Callsign]int
+	qtcsSentTo        map[callsign.Callsign]int
+	qtcsReceivedFrom  map[callsign.Callsign]int
 
 	scoreCounter *scoreCounter
 	dupes        dupeIndex     // used to find duplicate QSOs for a given callsign, band and mode, according to the contest rules
@@ -43,6 +44,7 @@ type Logbook struct {
 	defaultMode core.Mode
 	bandRule    conval.BandRule
 	entities    DXCCEntities
+	qtcsEnabled bool
 }
 
 func NewLogbook(clock core.Clock, settings core.Settings, entities DXCCEntities) *Logbook {
@@ -92,6 +94,7 @@ func (l *Logbook) ContestChanged(contest core.Contest) {
 
 	l.scoreCounter.ContestChanged(contest)
 
+	l.qtcsEnabled = contest.EnableQTCs
 	if contest.Definition != nil {
 		if len(contest.Definition.Bands) > 0 {
 			l.defaultBand = core.Band(contest.Definition.Bands[0])
@@ -209,7 +212,8 @@ func (l *Logbook) clear(capQSOs int, capQTCs int) {
 	l.sentQTCSeries = make([]core.QTCSeries, 0, capQTCs)
 	l.receivedQTCSeries = make(map[string]core.QTCSeries, capQTCs)
 	l.availableQTCs = make([]core.QTC, 0, capQSOs)
-	l.qtcsByCall = make(map[callsign.Callsign]int)
+	l.qtcsSentTo = make(map[callsign.Callsign]int)
+	l.qtcsReceivedFrom = make(map[callsign.Callsign]int)
 }
 
 func (l *Logbook) putQSOs(qsos []core.QSO) error {
@@ -513,20 +517,21 @@ func (l *Logbook) addQTC(qtc core.QTC, write bool) error {
 		if err != nil {
 			return err
 		}
-
 		l.removeAvailableQTC(qtc)
+
+		count := l.qtcsSentTo[qtc.TheirCallsign]
+		count++
+		l.qtcsSentTo[qtc.TheirCallsign] = count
 	} else {
 		l.receivedQTCs = append(l.receivedQTCs, qtc)
 		err := l.registerQTCSeries(qtc)
 		if err != nil {
 			return err
 		}
+		count := l.qtcsReceivedFrom[qtc.TheirCallsign]
+		count++
+		l.qtcsReceivedFrom[qtc.TheirCallsign] = count
 	}
-
-	// TODO: mabye we need to count sent and received qtcs separateley if the contest allows both directions
-	count := l.qtcsByCall[qtc.TheirCallsign]
-	count++
-	l.qtcsByCall[qtc.TheirCallsign] = count
 
 	return nil
 }
@@ -630,12 +635,30 @@ func (l *Logbook) allQTCs() []core.QTC {
 	return result
 }
 
+func (l *Logbook) QTCsInLog(theirCall callsign.Callsign) (sent, received int) {
+	l.dataLock.RLock()
+	defer l.dataLock.RUnlock()
+
+	if !l.qtcsEnabled {
+		return 0, 0
+	}
+
+	sent = l.qtcsSentTo[theirCall]
+	received = l.qtcsReceivedFrom[theirCall]
+
+	return sent, received
+}
+
 func (l *Logbook) AvailableFor(theirCall callsign.Callsign) int {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
+	if !l.qtcsEnabled {
+		return 0
+	}
+
 	theirCallStr := theirCall.String()
-	theirQTCCount := l.qtcsByCall[theirCall]
+	theirQTCCount := l.qtcsSentTo[theirCall]
 	theirQSOCount := 0
 	for _, qtc := range l.availableQTCs {
 		if qtc.QTCCallsign.String() == theirCallStr {
@@ -649,8 +672,12 @@ func (l *Logbook) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC 
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
+	if !l.qtcsEnabled {
+		return nil
+	}
+
 	theirCallStr := theirCall.String()
-	theirQTCCount := l.qtcsByCall[theirCall]
+	theirQTCCount := l.qtcsSentTo[theirCall]
 	maxLen := max(0, min(core.MaxQTCsPerCall-theirQTCCount, count))
 
 	result := make([]core.QTC, 0, maxLen)

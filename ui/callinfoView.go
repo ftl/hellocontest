@@ -46,6 +46,7 @@ const (
 
 type callinfoView struct {
 	currentFrame core.CallinfoFrame
+	qtcsEnabled  bool
 
 	callsignLabel            *gtk.Label
 	dxccLabel                *gtk.Label
@@ -91,7 +92,7 @@ func (v *callinfoView) ShowFrame(frame core.CallinfoFrame) {
 func (v *callinfoView) showCurrentFrame() {
 	v.setBestMatchingCallsign(v.currentFrame.BestMatchOnFrequency())
 	v.setDXCC(v.currentFrame.DXCCEntity, v.currentFrame.Azimuth, v.currentFrame.Distance)
-	v.setValue(v.currentFrame.Points, v.currentFrame.Multis, v.currentFrame.Value)
+	v.setValue(v.currentFrame.Points, v.currentFrame.Multis, v.currentFrame.Value, v.currentFrame.SentQTCs, v.currentFrame.ReceivedQTCs)
 	v.setUserInfo(v.currentFrame.UserInfo)
 	v.setSupercheck(v.currentFrame.Supercheck)
 	v.setPredictedExchanges(v.currentFrame.PredictedExchange)
@@ -125,7 +126,7 @@ func (v *callinfoView) setDXCC(entity dxcc.Prefix, azimuth latlon.Degrees, dista
 	v.dxccLabel.SetMarkup(text)
 }
 
-func (v *callinfoView) setValue(points int, multis int, value int) {
+func (v *callinfoView) setValue(points int, multis int, value int, sentQTCs int, receivedQTCs int) {
 	style.RemoveClass(&v.valueLabel.Widget, callinfoWorthlessClass)
 	style.RemoveClass(&v.valueLabel.Widget, callinfoMultiClass)
 
@@ -136,7 +137,22 @@ func (v *callinfoView) setValue(points int, multis int, value int) {
 		style.AddClass(&v.valueLabel.Widget, callinfoMultiClass)
 	}
 
-	v.valueLabel.SetText(fmt.Sprintf("%dP x %dM = %d", points, multis, value))
+	if v.qtcsEnabled {
+		var qtcText string
+		switch {
+		case sentQTCs > 0 && receivedQTCs > 0:
+			qtcText = fmt.Sprintf("QTCs: %dS %dR", sentQTCs, receivedQTCs)
+		case sentQTCs > 0:
+			qtcText = fmt.Sprintf("QTCs: %dS", sentQTCs)
+		case receivedQTCs > 0:
+			qtcText = fmt.Sprintf("QTCs: %dR", receivedQTCs)
+		default:
+			qtcText = "QTCs: 0"
+		}
+		v.valueLabel.SetText(fmt.Sprintf("%dP x %dM = %d | %s", points, multis, value, qtcText))
+	} else {
+		v.valueLabel.SetText(fmt.Sprintf("%dP x %dM = %d", points, multis, value))
+	}
 }
 
 func (v *callinfoView) setUserInfo(value string) {
@@ -282,4 +298,8 @@ func (v *callinfoView) setExchangeFields(fields []core.ExchangeField, parent *gt
 		parent.Attach(label, i+1, 1, 1, 1)
 	}
 	parent.ShowAll()
+}
+
+func (v *callinfoView) SetQTCsEnabled(enabled bool) {
+	v.qtcsEnabled = enabled
 }

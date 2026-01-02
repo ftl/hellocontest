@@ -1433,6 +1433,9 @@ type CallinfoFrame struct {
 	Multis int
 	Value  int
 
+	SentQTCs     int
+	ReceivedQTCs int
+
 	UserInfo string
 
 	Supercheck []AnnotatedCallsign

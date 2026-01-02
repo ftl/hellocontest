@@ -78,6 +78,7 @@ func (w *mainWindow) BringToFront() {
 func (w *mainWindow) SetQTCsEnabled(enabled bool) {
 	w.mainMenu.SetQTCsEnabled(enabled)
 	w.qtcListView.SetQTCsEnabled(enabled)
+	w.callinfoView.SetQTCsEnabled(enabled)
 }
 
 func (w *mainWindow) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {

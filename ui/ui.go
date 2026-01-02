@@ -13,6 +13,7 @@ const (
 	axisColorName    = "hellocontest-graph-axis"
 	lowZoneColorName = "hellocontest-lowzone"
 	defaultBandColor = "hellocontest-band-default"
+	bandBGColorName  = "hellocontest-band-bg"
 
 	duplicateFGColorName = "hellocontest-duplicate-fg"
 	duplicateBGColorName = "hellocontest-duplicate-bg"
@@ -32,11 +33,12 @@ func bandColor(colors colorProvider, band core.Band) style.Color {
 	return colors.ColorByName(bandColorName)
 }
 
-func bandBackgroundColor(colors colorProvider) string {
-	if !colors.HasColor("hellocontest-graph-bg") {
-		return colors.BackgroundColor().ToWeb()
+func bandBackgroundColor(colors colorProvider) style.Color {
+	if !colors.HasColor(bandBGColorName) {
+		return colors.BackgroundColor()
 	}
-	return colors.ColorByName("hellocontest-graph-bg").ToWeb()
+
+	return colors.ColorByName(bandBGColorName)
 }
 
 type colorProvider interface {

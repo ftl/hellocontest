@@ -20,6 +20,7 @@
 @define-color hellocontest-band15m #FF7F00;
 @define-color hellocontest-band10m #FF0000;
 @define-color hellocontest-band-default @theme_text_color;
+@define-color hellocontest-band-bg #888888;
 
 @define-color hellocontest-graph-bg @theme_bg_color;
 @define-color hellocontest-graph-axis @theme_text_color;

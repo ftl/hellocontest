@@ -173,7 +173,7 @@ func (t *scoreTable) fillBandScoreToTableRow(row *gtk.TreeIter, band core.Band, 
 
 	if t.colors != nil {
 		columns = append(columns, scoreColumnForeground, scoreColumnBackground)
-		values = append(values, bandColor(t.colors, band).ToWeb(), bandBackgroundColor(t.colors))
+		values = append(values, bandColor(t.colors, band).ToWeb(), bandBackgroundColor(t.colors).ToWeb())
 	}
 
 	return t.tableContent.Set(row, columns, values)

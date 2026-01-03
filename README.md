@@ -11,6 +11,7 @@ Here are some highlights:
 * Use the popular ["enter sends message"](https://github.com/ftl/hellocontest/wiki/Main-Window#enter-sends-message-aka-esm) method to enter your contacts.
 * Show the current rate of QSOs, points, and multis in a [comprehensive graphic](https://github.com/ftl/hellocontest/wiki/QSO-Rate).
 * Calculate your points, multis, and [score](https://github.com/ftl/hellocontest/wiki/Score) both per band and overall. The calculation is done using the [conval](https://github.com/ftl/conval) library. You can select the contest definition in the [settings dialog](https://github.com/ftl/hellocontest/wiki/Contest-Settings) (File > Settings).
+* Send and receive QTCs (for example in the Worked All Europe DX Contest).
 * Export the logbook as [Cabrillo](https://wwrof.org/cabrillo/), [ADIF](http://adif.org), CSV, or call history file.
 * Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases, or a call history file.
 * Use a call history file from a former contest to predict the exchange for the currently entered callsign.

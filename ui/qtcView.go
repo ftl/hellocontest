@@ -41,6 +41,9 @@ type QTCController interface {
 
 	CompleteQTCSeries()
 	AbortQTCSeries()
+
+	Stop()
+	DoubleStop()
 }
 
 type qtcView struct {

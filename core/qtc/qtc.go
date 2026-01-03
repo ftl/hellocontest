@@ -417,6 +417,14 @@ func (c *Controller) AbortQTCSeries() {
 	c.view.Close()
 }
 
+func (c *Controller) Stop() {
+	c.keyer.Stop()
+}
+
+func (c *Controller) DoubleStop() {
+	c.view.Close()
+}
+
 // *****************************************************
 // WORKFLOW HELPER METHODS
 // *****************************************************

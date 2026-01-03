@@ -12,9 +12,10 @@ type qtcDialog struct {
 	dialog *gtk.Dialog
 	parent gtk.IWidget
 
-	controller QTCController
-	view       *qtcView
-	logButton  *gtk.Button
+	controller     QTCController
+	view           *qtcView
+	stopKeyHandler *stopKeyHandler
+	logButton      *gtk.Button
 
 	// data fields
 	activePhase core.QTCWorkflowPhase
@@ -72,6 +73,8 @@ func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
 	contentArea.Add(d.view.root)
 	d.logButton, _ = d.dialog.AddButton("Log", gtk.RESPONSE_OK)
 	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)
+	d.stopKeyHandler = setupStopKeyHandler(&d.dialog.Widget)
+	d.stopKeyHandler.SetStopKeyController(d.controller)
 	d.dialog.ShowAll()
 
 	// put the QTC series data into the view's widgets

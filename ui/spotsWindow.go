@@ -44,7 +44,7 @@ func (w *spotsWindow) Show() {
 	if w.window == nil {
 		builder := setupBuilder()
 		w.window = getUI(builder, "spotsWindow").(*gtk.Window)
-		w.window.SetDefaultSize(400, 900)
+		w.window.SetDefaultSize(600, 600)
 		w.window.SetTitle("Spots")
 		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)

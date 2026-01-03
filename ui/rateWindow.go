@@ -46,7 +46,7 @@ func (w *rateWindow) Show() {
 	if w.window == nil {
 		builder := setupBuilder()
 		w.window = getUI(builder, "rateWindow").(*gtk.Window)
-		w.window.SetDefaultSize(300, 500)
+		w.window.SetDefaultSize(500, 300)
 		w.window.SetTitle("QSO Rate")
 		w.window.SetAcceptFocus(w.acceptFocus)
 		w.window.Connect("destroy", w.onDestroy)

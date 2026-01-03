@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ftl/gmtry"
@@ -208,7 +209,13 @@ func setupBuilder() *gtk.Builder {
 }
 
 func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window) {
-	geometry.Add(id, window)
+	var connectable gmtry.Connectable
+	if isWayland() {
+		connectable = &waylandWrapper{window}
+	} else {
+		connectable = window
+	}
+	geometry.Add(id, connectable)
 
 	window.Connect("configure-event", func(_ any, event *gdk.Event) {
 		e := gdk.EventConfigureNewFromEvent(event)
@@ -230,4 +237,44 @@ func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window
 		w := geometry.Get(id)
 		w.SetVisible(false)
 	})
+}
+
+func isWayland() bool {
+	display, err := gdk.DisplayGetDefault()
+	if err != nil {
+		return true // better safe than sorry
+	}
+	displayName, err := display.GetName()
+	if err != nil {
+		return true // better safe than sorry
+	}
+	return strings.Contains(strings.ToLower(displayName), "wayland")
+}
+
+type waylandWrapper struct {
+	wrapped gmtry.Connectable
+}
+
+func (w *waylandWrapper) Move(x, y int) {
+	// ignore
+}
+
+func (w *waylandWrapper) Resize(width, height int) {
+	// ignore
+}
+
+func (w *waylandWrapper) Maximize() {
+	w.wrapped.Maximize()
+}
+
+func (w *waylandWrapper) GetPosition() (x, y int) {
+	return w.wrapped.GetPosition()
+}
+
+func (w *waylandWrapper) GetSize() (width, height int) {
+	return w.wrapped.GetSize()
+}
+
+func (w *waylandWrapper) IsMaximized() bool {
+	return w.wrapped.IsMaximized()
 }

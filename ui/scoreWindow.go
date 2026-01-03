@@ -48,7 +48,7 @@ func (w *scoreWindow) RestoreVisibility() {
 func (w *scoreWindow) Show() {
 	if w.window == nil {
 		w.window, _ = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
-		w.window.SetDefaultSize(300, 500)
+		w.window.SetDefaultSize(500, 500)
 		w.window.SetTitle("Score")
 		w.window.SetCanFocus(false)
 		w.window.SetAcceptFocus(w.acceptFocus)

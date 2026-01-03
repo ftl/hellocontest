@@ -533,7 +533,6 @@ func (l *Logbook) addQTC(qtc core.QTC, write bool) error {
 		count := l.qtcsReceivedFrom[theirCallsign]
 		count++
 		l.qtcsReceivedFrom[theirCallsign] = count
-		log.Printf("QTCs received from %s: %d", qtc.TheirCallsign, count)
 	}
 
 	return nil

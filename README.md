@@ -55,12 +55,6 @@ make generate
 
 This will generate the Go code to access the binary data in the logbook files into the `core/pb` package.
 
-### Glade
-The UI is defined using a Glade file. This file is automatically integrated into the executable by the Go compiler, using Go's `embed` package (new in 1.16).
-
-## Known Issues
-In combination with wayland, the "new contest" dialog does not work properly *sometimes*: you cannot select anything and the entry field for the contest name does not respond to any input. I found no hint so far, what the causes this behavior. If you have problems running *Hello Contest* in combination with wayland, please switch to X11. If you have any hints, what could be the cause of this behavior, please don't hesitate to contact me.
-
 ## License
 This software is published under the [MIT License](https://www.tldrlegal.com/l/mit).
 

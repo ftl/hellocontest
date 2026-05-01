@@ -1054,5 +1054,4 @@ func (c *Controller) EntrySelected(entry core.BandmapEntry) {
 	c.SetActiveField(core.CallsignField)
 	c.Enter(entry.Call.String())
 	c.view.SetCallsign(c.input.callsign)
-	c.GotoNextField()
 }

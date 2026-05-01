@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
@@ -844,14 +845,21 @@ func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *cor
 			}
 		case c.theirNumberExchangeField.Field:
 			n, err := strconv.Atoi(value)
+			onlySerial := true
+			for _, p := range field.Properties {
+				if p != conval.SerialNumberProperty && p != conval.EmptyProperty {
+					onlySerial = false
+					break
+				}
+			}
 			if err == nil {
-				if len(theirExchange) > i {
+				if onlySerial && len(theirExchange) > i {
 					theirExchange[i] = fmt.Sprintf("%03d", n)
 				}
 				if theirNumber != nil {
 					*theirNumber = core.QSONumber(n)
 				}
-			} else if len(field.Properties) == 1 {
+			} else if onlySerial {
 				return field, err
 			}
 		default:

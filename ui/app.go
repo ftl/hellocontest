@@ -95,7 +95,10 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 
 	if startupScript == nil {
 		a.restoreWindowState()
-		qApp.OnAboutToQuit(a.storeWindowState)
+		a.window.OnCloseEvent(func(super func(event *qtlib.QCloseEvent), event *qtlib.QCloseEvent) {
+			a.storeWindowState()
+			event.Accept()
+		})
 	}
 
 	a.controller.Settings.Notify(settings.ContestListenerFunc(func(c core.Contest) {

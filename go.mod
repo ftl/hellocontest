@@ -7,7 +7,7 @@ require (
 	github.com/ftl/clusterix v0.1.0
 	github.com/ftl/conval v0.11.1
 	github.com/ftl/godxmap v1.0.1
-	github.com/ftl/hamradio v0.2.13
+	github.com/ftl/hamradio v0.3.0
 	github.com/ftl/rigproxy v0.2.6
 	github.com/ftl/tci v0.3.2
 	github.com/mappu/miqt v0.13.1-0.20260426030313-65d643625640

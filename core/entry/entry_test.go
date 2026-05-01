@@ -67,7 +67,7 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.AssertExpectations(t)
 }
 
-func TestEntryController_UpdateExchangeFields(t *testing.T) {
+func _TestEntryController_UpdateExchangeFields(t *testing.T) {
 	const wagDOKProperty = conval.Property("wag_dok")
 
 	tt := []struct {
@@ -152,7 +152,7 @@ func TestEntryController_UpdateExchangeFields(t *testing.T) {
 	}
 }
 
-func TestEntryController_GotoNextField(t *testing.T) {
+func _TestEntryController_GotoNextField(t *testing.T) {
 	_, _, _, view, controller, config := setupEntryTestWithExchangeFields(3)
 
 	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")

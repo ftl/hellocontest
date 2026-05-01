@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/ftl/cabrillo v0.3.0
 	github.com/ftl/clusterix v0.1.0
-	github.com/ftl/conval v0.11.1
+	github.com/ftl/conval v0.11.2
 	github.com/ftl/godxmap v1.0.1
 	github.com/ftl/hamradio v0.3.0
 	github.com/ftl/rigproxy v0.2.6

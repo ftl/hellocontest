@@ -89,7 +89,7 @@ func (a *centralArea) addWidgetsToLayout() {
 	}
 
 	// row 1: VFO label + horizontal separator
-	a.entryLayout.AddWidget3(a.entry.topSeparator.QWidget, 1, 0, 1, lastColumn)
+	a.entryLayout.AddWidget3(a.entry.topSeparator.QWidget, 1, 0, 1, -1)
 
 	// row 2: Frequency, Band, Mode, XIT, TRX
 	a.entryLayout.AddWidget2(a.entry.vfoLabel.QWidget, 2, 0)

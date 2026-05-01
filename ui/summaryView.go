@@ -1,7 +1,10 @@
 package ui
 
-import "github.com/gotk3/gotk3/gtk"
+import (
+	qtlib "github.com/mappu/miqt/qt6"
+)
 
+// SummaryController is the callback surface for the summary dialog.
 type SummaryController interface {
 	OperatorModes() []string
 	Overlays() []string
@@ -18,116 +21,170 @@ type SummaryController interface {
 type summaryView struct {
 	controller SummaryController
 
-	root *gtk.Grid
+	root *qtlib.QWidget
 
-	contestNameEntry  *gtk.Entry
-	cabrilloNameEntry *gtk.Entry
-	startTimeEntry    *gtk.Entry
-	callsignEntry     *gtk.Entry
-	myExchangesEntry  *gtk.Entry
+	contestName  *qtlib.QLineEdit
+	cabrilloName *qtlib.QLineEdit
+	startTime    *qtlib.QLineEdit
+	callsign     *qtlib.QLineEdit
+	myExchanges  *qtlib.QLineEdit
 
-	operatorModeCombo   *gtk.ComboBoxText
-	overlayCombo        *gtk.ComboBoxText
-	powerModeCombo      *gtk.ComboBoxText
-	assistedCheckButton *gtk.CheckButton
+	operatorModeCombo *qtlib.QComboBox
+	overlayCombo      *qtlib.QComboBox
+	powerModeCombo    *qtlib.QComboBox
+	assisted          *qtlib.QCheckBox
 
-	workedModesEntry   *gtk.Entry
-	workedBandsEntry   *gtk.Entry
-	operatingTimeEntry *gtk.Entry
-	breakTimeEntry     *gtk.Entry
-	breaksEntry        *gtk.Entry
+	workedModes   *qtlib.QLineEdit
+	workedBands   *qtlib.QLineEdit
+	operatingTime *qtlib.QLineEdit
+	breakTime     *qtlib.QLineEdit
+	breaks        *qtlib.QLineEdit
 
 	scoreTable *scoreTable
 
-	openAfterExportCheckButton *gtk.CheckButton
+	openAfterExport *qtlib.QCheckBox
+
+	ignoreChangedEvent bool
+}
+
+func (v *summaryView) doIgnore(f func()) {
+	v.ignoreChangedEvent = true
+	defer func() { v.ignoreChangedEvent = false }()
+	f()
 }
 
 func newSummaryView(controller SummaryController) *summaryView {
-	result := &summaryView{
-		controller: controller,
+	v := &summaryView{controller: controller}
+
+	v.root = qtlib.NewQWidget2()
+	root := qtlib.NewQVBoxLayout(v.root)
+
+	columns := qtlib.NewQWidget2()
+	columnsLayout := qtlib.NewQHBoxLayout(columns)
+	columnsLayout.SetContentsMargins(0, 0, 0, 0)
+	columnsLayout.SetSpacing(20)
+
+	columnsLayout.AddWidget(v.buildLeftColumn())
+	columnsLayout.AddWidget(v.buildRightColumn())
+
+	root.AddWidget(columns)
+
+	v.openAfterExport = qtlib.NewQCheckBox3("Open the file after export")
+	v.openAfterExport.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetOpenAfterExport(checked)
+	})
+	root.AddWidget(v.openAfterExport.QWidget)
+
+	return v
+}
+
+func (v *summaryView) buildLeftColumn() *qtlib.QWidget {
+	column := qtlib.NewQWidget2()
+	col := qtlib.NewQVBoxLayout(column)
+	col.SetContentsMargins(0, 0, 0, 0)
+
+	form := qtlib.NewQFormLayout2()
+	v.contestName = newReadOnlyLineEdit()
+	form.AddRow3("Contest Name:", v.contestName.QWidget)
+	v.cabrilloName = newReadOnlyLineEdit()
+	form.AddRow3("Cabrillo Name:", v.cabrilloName.QWidget)
+	v.startTime = newReadOnlyLineEdit()
+	form.AddRow3("Start Time:", v.startTime.QWidget)
+	v.callsign = newReadOnlyLineEdit()
+	form.AddRow3("Callsign:", v.callsign.QWidget)
+	v.myExchanges = newReadOnlyLineEdit()
+	form.AddRow3("My Exchanges:", v.myExchanges.QWidget)
+	col.AddLayout(form.QLayout)
+
+	header := qtlib.NewQLabel3("Working Condition")
+	header.SetStyleSheet(BoldSectionStyle)
+	col.AddWidget(header.QWidget)
+
+	form2 := qtlib.NewQFormLayout2()
+	v.operatorModeCombo = qtlib.NewQComboBox2()
+	for _, item := range v.controller.OperatorModes() {
+		v.operatorModeCombo.AddItem(item)
 	}
+	v.operatorModeCombo.OnCurrentTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetOperatorMode(text)
+	})
+	form2.AddRow3("Operator Mode:", v.operatorModeCombo.QWidget)
 
-	result.root, _ = gtk.GridNew()
-	result.root.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	result.root.SetHExpand(true)
-	result.root.SetVExpand(true)
-	result.root.SetColumnSpacing(5)
-	result.root.SetRowSpacing(5)
-	result.root.SetMarginStart(5)
-	result.root.SetMarginEnd(5)
+	v.overlayCombo = qtlib.NewQComboBox2()
+	for _, item := range v.controller.Overlays() {
+		v.overlayCombo.AddItem(item)
+	}
+	v.overlayCombo.OnCurrentTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetOverlay(text)
+	})
+	form2.AddRow3("Overlay:", v.overlayCombo.QWidget)
 
-	columns, _ := gtk.GridNew()
-	columns.SetOrientation(gtk.ORIENTATION_HORIZONTAL)
-	columns.SetHExpand(true)
-	columns.SetVExpand(false)
-	columns.SetColumnSpacing(20)
-	result.root.Attach(columns, 0, 1, 1, 1)
+	v.powerModeCombo = qtlib.NewQComboBox2()
+	for _, item := range v.controller.PowerModes() {
+		v.powerModeCombo.AddItem(item)
+	}
+	v.powerModeCombo.OnCurrentTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetPowerMode(text)
+	})
+	form2.AddRow3("Power:", v.powerModeCombo.QWidget)
 
-	leftColumn, _ := gtk.GridNew()
-	leftColumn.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	leftColumn.SetHExpand(true)
-	leftColumn.SetVExpand(false)
-	leftColumn.SetColumnSpacing(5)
-	leftColumn.SetRowSpacing(5)
-	columns.Attach(leftColumn, 0, 0, 1, 1)
+	v.assisted = qtlib.NewQCheckBox3("Assisted")
+	v.assisted.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetAssisted(checked)
+	})
+	form2.AddRowWithWidget(v.assisted.QWidget)
+	col.AddLayout(form2.QLayout)
 
-	rightColumn, _ := gtk.GridNew()
-	rightColumn.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	rightColumn.SetHExpand(true)
-	rightColumn.SetVExpand(false)
-	rightColumn.SetColumnSpacing(5)
-	rightColumn.SetRowSpacing(5)
-	columns.Attach(rightColumn, 1, 0, 1, 1)
-
-	// left
-
-	result.contestNameEntry = buildLabeledEntry(leftColumn, 0, "Contest Name", nil)
-	result.cabrilloNameEntry = buildLabeledEntry(leftColumn, 1, "Cabrillo Name", nil)
-	result.startTimeEntry = buildLabeledEntry(leftColumn, 2, "Start Time", nil)
-	result.callsignEntry = buildLabeledEntry(leftColumn, 3, "Callsign", nil)
-	result.myExchangesEntry = buildLabeledEntry(leftColumn, 4, "My Exchanges", nil)
-
-	buildHeaderLabel(leftColumn, 5, "Working Condition")
-	result.operatorModeCombo = buildLabeledCombo(leftColumn, 6, "Operator Mode", false, result.controller.OperatorModes(), result.onOperatorModeChanged)
-	result.overlayCombo = buildLabeledCombo(leftColumn, 7, "Overlay", false, result.controller.Overlays(), result.onOverlayChanged)
-	result.powerModeCombo = buildLabeledCombo(leftColumn, 8, "Power", false, result.controller.PowerModes(), result.onPowerModeChanged)
-	result.assistedCheckButton = buildCheckButtonInColumn(leftColumn, 9, 1, 1, "Assisted", result.onAssistedToggled)
-
-	//right
-
-	result.workedModesEntry = buildLabeledEntry(rightColumn, 0, "Worked Modes", nil)
-	result.workedBandsEntry = buildLabeledEntry(rightColumn, 1, "Worked Bands", nil)
-	result.operatingTimeEntry = buildLabeledEntry(rightColumn, 2, "Operating Time", nil)
-	result.breakTimeEntry = buildLabeledEntry(rightColumn, 3, "Break Time", nil)
-	result.breaksEntry = buildLabeledEntry(rightColumn, 4, "Breaks", nil)
-
-	buildHeaderLabel(rightColumn, 5, "Claimed Score")
-	result.scoreTable = newScoreTable(nil)
-	rightColumn.Attach(result.scoreTable.Table(), 0, 6, 2, 1)
-
-	buildSeparator(result.root, 2, 1)
-
-	result.openAfterExportCheckButton = buildCheckButton(result.root, 3, "Open the file after export", result.onOpenAfterExportToggled)
-
-	return result
+	col.AddStretch()
+	return column
 }
 
-func (v *summaryView) onOperatorModeChanged() {
-	v.controller.SetOperatorMode(v.operatorModeCombo.GetActiveText())
+func (v *summaryView) buildRightColumn() *qtlib.QWidget {
+	column := qtlib.NewQWidget2()
+	col := qtlib.NewQVBoxLayout(column)
+	col.SetContentsMargins(0, 0, 0, 0)
+
+	form := qtlib.NewQFormLayout2()
+	v.workedModes = newReadOnlyLineEdit()
+	form.AddRow3("Worked Modes:", v.workedModes.QWidget)
+	v.workedBands = newReadOnlyLineEdit()
+	form.AddRow3("Worked Bands:", v.workedBands.QWidget)
+	v.operatingTime = newReadOnlyLineEdit()
+	form.AddRow3("Operating Time:", v.operatingTime.QWidget)
+	v.breakTime = newReadOnlyLineEdit()
+	form.AddRow3("Break Time:", v.breakTime.QWidget)
+	v.breaks = newReadOnlyLineEdit()
+	form.AddRow3("Breaks:", v.breaks.QWidget)
+	col.AddLayout(form.QLayout)
+
+	header := qtlib.NewQLabel3("Claimed Score")
+	header.SetStyleSheet(BoldSectionStyle)
+	col.AddWidget(header.QWidget)
+
+	v.scoreTable = newScoreTable()
+	col.AddWidget(v.scoreTable.widget.QWidget)
+
+	col.AddStretch()
+	return column
 }
 
-func (v *summaryView) onOverlayChanged() {
-	v.controller.SetOverlay(v.overlayCombo.GetActiveText())
-}
-
-func (v *summaryView) onPowerModeChanged() {
-	v.controller.SetPowerMode(v.powerModeCombo.GetActiveText())
-}
-
-func (v *summaryView) onAssistedToggled() {
-	v.controller.SetAssisted(v.assistedCheckButton.GetActive())
-}
-
-func (v *summaryView) onOpenAfterExportToggled() {
-	v.controller.SetOpenAfterExport(v.openAfterExportCheckButton.GetActive())
+func newReadOnlyLineEdit() *qtlib.QLineEdit {
+	edit := qtlib.NewQLineEdit2()
+	edit.SetReadOnly(true)
+	return edit
 }

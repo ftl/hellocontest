@@ -748,8 +748,23 @@ func (c *Controller) ExportCallhistory() {
 	c.openWithExternalApplication(filename)
 }
 
-func (c *Controller) ShowScore() {
-	c.ScoreController.Show()
+func (c *Controller) ShowQSOs() {
+	c.QSOList.Show()
+	c.view.BringToFront()
+}
+
+func (c *Controller) ShowQTCs() {
+	c.QTCList.Show()
+	c.view.BringToFront()
+}
+
+func (c *Controller) ShowScoreGraph() {
+	c.ScoreController.ShowGraph()
+	c.view.BringToFront()
+}
+
+func (c *Controller) ShowScoreTable() {
+	c.ScoreController.ShowTable()
 	c.view.BringToFront()
 }
 

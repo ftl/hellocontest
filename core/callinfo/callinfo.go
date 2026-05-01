@@ -46,7 +46,6 @@ type QTCProvider interface {
 
 // View defines the visual part of the call information window.
 type View interface {
-	SetPredictedExchangeFields(fields []core.ExchangeField)
 	ShowFrame(core.CallinfoFrame)
 }
 
@@ -87,7 +86,6 @@ func (c *Callinfo) SetView(view View) {
 	}
 
 	c.view = view
-	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
 func (c *Callinfo) StationChanged(station core.Station) {
@@ -103,7 +101,6 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 	c.qtcsEnabled = contest.EnableQTCs
 	c.collector.SetTheirExchangeFields(c.theirExchangeFields, contest.TheirReportExchangeField, contest.TheirNumberExchangeField)
 	c.supercheck.SetTheirExchangeFields(c.theirExchangeFields)
-	c.view.SetPredictedExchangeFields(c.theirExchangeFields)
 }
 
 func (c *Callinfo) ScoreChanged(score core.Score) {

@@ -27,7 +27,8 @@ test:
 	go test -v -timeout=30s ./...
 
 build:
-	go build -trimpath -buildmode=pie -mod=readonly -modcacherw -v -ldflags "-linkmode external -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
+	# go build -trimpath -buildmode=pie -mod=readonly -modcacherw -v -ldflags "-linkmode external -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
+	go build -trimpath -buildmode=pie -ldflags "-s -w -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
 
 run: build
 	./${BINARY_NAME}
@@ -35,16 +36,11 @@ run: build
 screenshots: build
 	./${BINARY_NAME} screenshots
 
-cache_deps:
-	go install github.com/gotk3/gotk3/glib
-	go install github.com/gotk3/gotk3/cairo
-	go install github.com/gotk3/gotk3/pango
-	go install github.com/gotk3/gotk3/gdk
-	go install github.com/gotk3/gotk3/gtk
+copy_screenshots_config:
+	cp -f ~/.config/com.thecodingflow/hellocontest.conf ./script/screenshots_config.conf
 
-cache_cgo:
-	go list -e -json=Name,ImportPath,Error,Dir,GoFiles,IgnoredGoFiles,IgnoredOtherFiles,CFiles,CgoFiles,CXXFiles,MFiles,HFiles,FFiles,SFiles,SwigFiles,SwigCXXFiles,SysoFiles,TestGoFiles,XTestGoFiles,CompiledGoFiles,Export,DepOnly,Imports,ImportMap,TestImports,XTestImports,ForTest,DepsErrors,Module,EmbedFiles -compiled=true -test=true -export=false -deps=true -find=false -pgo=off -- ../cabrillo/... ../clusterix/... ../conval/... ../ctt/... ../digimodes/... ../godxmap/... ../hamdeck/... ../hamradio/... ./... ../midi2tci/... ../patrix/... ../rigproxy/... ../sdrainer/... ../sdrainoscope/... ../tci/... ../tciadapter/... ../../gmtry/... ../../gotk3/... builtin
-
+install_deps:
+	go install github.com/mappu/miqt
 
 config:
 	xdg-open ~/.config/hamradio/hellocontest.json
@@ -59,6 +55,7 @@ config_restore:
 
 config_clear:
 	rm -f ~/.config/hamradio/hellocontest.*
+	rm -f ~/.config/com.thecodingflow/hellocontest.conf
 
 install:
 	mkdir -p ${DESTDIR}${BINDIR}

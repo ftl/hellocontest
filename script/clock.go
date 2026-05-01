@@ -14,7 +14,7 @@ func (c *Clock) Now() time.Time {
 }
 
 func (c *Clock) Set(now time.Time) {
-	c.offset = now.Sub(time.Now())
+	c.offset = time.Until(now)
 }
 
 func (c *Clock) SetFromRFC3339(s string) {

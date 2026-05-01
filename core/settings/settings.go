@@ -143,7 +143,7 @@ type Settings struct {
 	serialExchangeFieldIndex       int
 	availableCallHistoryFieldNames []string
 
-	listeners []interface{}
+	listeners []any
 
 	station core.Station
 	contest core.Contest
@@ -663,6 +663,7 @@ func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
 	s.callHistory.Activate(s.contest.CallHistoryFilename)
 	s.callHistory.SelectFieldNames(s.contest.CallHistoryFieldNames)
+	s.view.SetContestCallHistoryFile(value)
 }
 
 func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value string) {

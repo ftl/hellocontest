@@ -3,16 +3,15 @@ package script
 import (
 	"context"
 	_ "embed"
-	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/ui"
 )
 
 const ScreenshotsFolder = "./docs/screenshots"
@@ -20,7 +19,11 @@ const ScreenshotsFolder = "./docs/screenshots"
 //go:embed screenshots_qsos.csv
 var qsoDataCSV string
 
+//go:embed screenshots_config.conf
+var screenshotsWindowState string
+
 var ScreenshotsScript = &Script{
+	windowState: screenshotsWindowState,
 	sections: []*Section{
 		{
 			steps: []Step{
@@ -40,17 +43,18 @@ var ScreenshotsScript = &Script{
 			},
 		},
 		{
-			enter: AskForScreenshot("file menu, hightlight OPEN CONFIGURATION FILE", 10*time.Second),
+			enter: AskForScreenshot("file menu", 1*time.Second),
 			steps: []Step{
-				TriggerScreenshot("menu_file_open_configuration"),
-				Wait(5 * time.Second),
-			},
-		},
-		{
-			enter: AskForScreenshot("file menu, hightlight NEW", 10*time.Second),
-			steps: []Step{
-				TriggerScreenshot("menu_file_new"),
-				Wait(5 * time.Second),
+				OpenMenu("fileMenu"),
+				Wait(1 * time.Second),
+				HighlightMenuAction("fileMenu", "New..."),
+				Wait(1 * time.Second),
+				TriggerScreenshot("menu_file_new", WithCapturePopup(), WithDelay(150*time.Millisecond)),
+				HighlightMenuAction("fileMenu", "Configuration File..."),
+				Wait(1 * time.Second),
+				TriggerScreenshot("menu_file_open_configuration", WithCapturePopup(), WithDelay(150*time.Millisecond)),
+				CloseMenu("fileMenu"),
+				Wait(1 * time.Second),
 			},
 		},
 		{
@@ -66,7 +70,7 @@ var ScreenshotsScript = &Script{
 					return 0
 				},
 				TriggerScreenshot("new_cwt"),
-				Describe("close the dialog with 'NEW', save the contest with the proposed filename\nthe settings dialog will show up, just wait for the next set of instructions", 10*time.Second),
+				Describe("close the dialog with 'NEW', save the contest with the proposed filename", 10*time.Second),
 				func(_ context.Context, r *Runtime) time.Duration {
 					r.UI(func() {
 						r.App.Settings.EnterStationCallsign("DL0ABC")
@@ -80,10 +84,8 @@ var ScreenshotsScript = &Script{
 					return 0
 				},
 				Describe("select a current call history file", 20*time.Second),
-				Describe("contest settings dialog, complete", 1*time.Second),
-				TriggerScreenshot("contest_settings_complete"),
-				Describe("contest settings dialog, section 'My Exchange'", 1*time.Second),
-				TriggerScreenshot("contest_settings_myexchange_cwt"),
+				TriggerScreenshot("contest_settings_complete", WithCaptureWidget("settingsDialog")),
+				TriggerScreenshot("contest_settings_myexchange_cwt", WithCaptureWidget("myExchangeGroup")),
 				Describe("close the contest settings dialog, screenshot of empty main window", 10*time.Second),
 				TriggerScreenshot("main_window_empty"),
 			},
@@ -91,8 +93,13 @@ var ScreenshotsScript = &Script{
 		{
 			enter: AskForScreenshot("main window CW macros", 0),
 			steps: []Step{
-				Describe("only the CW area, mark (1) workmode, (2) ESM, (3) macro button, (4) macros... button, (5) speed setting", 3*time.Second),
-				TriggerScreenshot("main_window_macros"),
+				TriggerScreenshot("main_window_macros", WithCaptureUnion("", "keyerButtons", "esmWorkmode"),
+					WithMarkerAtWidget(1, "workmode", -20, 20),
+					WithMarkerAtWidget(2, "esm", 110, 20),
+					WithMarkerAtWidget(3, "keyerButtons", 300, 20),
+					WithMarkerAtWidget(4, "keyerSettingsButton", 20, 10),
+					WithMarkerAtWidget(5, "keyerSpeed", -80, 10),
+				),
 				func(_ context.Context, r *Runtime) time.Duration {
 					r.UI(func() {
 						r.App.Keyer.OpenKeyerSettings()
@@ -100,7 +107,7 @@ var ScreenshotsScript = &Script{
 					return 0
 				},
 				Describe("the macros dialog complete, select a preset", 10*time.Second),
-				TriggerScreenshot("macros_dialog"),
+				TriggerScreenshot("macros_dialog", WithCaptureWidget("keyerSettingsDialog")),
 				Describe("close the macros dialog", 10*time.Second),
 			},
 		},
@@ -108,10 +115,11 @@ var ScreenshotsScript = &Script{
 			enter: AskForScreenshot("main window with QSO data", 0),
 			steps: []Step{
 				FillQSOList(0, 14),
-				Describe("score window complete, mark (1) the score graph and (2) the score table", 1*time.Second),
-				TriggerScreenshot("score_window_filled"),
+				TriggerScreenshot("score_table_filled", WithCaptureWidget("scoreTable")),
+				TriggerScreenshot("score_graph_filled", WithCaptureWidget("scoreGraph")),
+				Wait(7 * time.Second),
+				TriggerScreenshot("rate_filled", WithCaptureWidget("rate")),
 				FillQSOList(14, -1),
-				Describe("main window complete", 1*time.Second),
 				TriggerScreenshot("main_window_filled"),
 			},
 		},
@@ -126,14 +134,16 @@ var ScreenshotsScript = &Script{
 					})
 					return 0
 				},
-				Describe("only the entry area, mark (1) best matching callsign, (2) predicted exchange, (3) qso value, (4) callsign infos", 1*time.Second),
-				TriggerScreenshot("main_window_entry"),
-				Describe("only the supercheck area", 1*time.Second),
-				TriggerScreenshot("main_window_supercheck"),
-				Describe("only the vfo area", 1*time.Second),
-				TriggerScreenshot("main_window_vfo"),
-				Describe("only the status bar", 1*time.Second),
-				TriggerScreenshot("main_window_status_bar"),
+				TriggerScreenshot("main_window_entry",
+					WithCaptureWidget("entryWidget"),
+					WithMarkerAtWidget(1, "predictedBestMatch", 65, 10),
+					WithMarkerAtWidget(2, "predictedExchange", 50, 10),
+					WithMarkerAtWidget(3, "predictedValue", -30, 10),
+					WithMarkerAtWidget(4, "dxccLabel", 20, 10),
+				),
+				TriggerScreenshot("main_window_supercheck", WithCaptureWidget("supercheckLabel")),
+				TriggerScreenshot("main_window_vfo", WithCaptureUnion("", "frequencyLabel", "bandCombo", "modeCombo", "xit")),
+				TriggerScreenshot("main_window_status_bar", WithCaptureWidget("statusBar")),
 			},
 		},
 		{
@@ -193,44 +203,179 @@ func DeleteScreenshot(name string) Step {
 	}
 }
 
-func TriggerScreenshot(filename string) Step {
-	return TriggerScreenshotWithDelay(filename, 0)
+type screenshotConfig struct {
+	mode        ui.CaptureMode
+	widgetName  string
+	widgetNames []string
+	parentName  string
+	rect        ui.Rect
+	padding     int
+	markers     []ui.Marker
+	delay       time.Duration
+}
+
+type ScreenshotOption func(*screenshotConfig)
+
+func WithDelay(d time.Duration) ScreenshotOption {
+	return func(c *screenshotConfig) { c.delay = d }
+}
+
+func WithMainWindow() ScreenshotOption {
+	return func(c *screenshotConfig) { c.mode = ui.CaptureMainWindow }
+}
+
+func WithActiveWindow() ScreenshotOption {
+	return func(c *screenshotConfig) { c.mode = ui.CaptureActiveWindow }
+}
+
+func WithCaptureWidget(objectName string) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.mode = ui.CaptureWidget
+		c.widgetName = objectName
+	}
+}
+
+func WithCaptureRect(x, y, w, h int) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.mode = ui.CaptureRect
+		c.rect = ui.Rect{X: x, Y: y, W: w, H: h}
+	}
+}
+
+func WithCaptureRectIn(parentObjectName string, x, y, w, h int) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.mode = ui.CaptureRect
+		c.parentName = parentObjectName
+		c.rect = ui.Rect{X: x, Y: y, W: w, H: h}
+	}
+}
+
+func WithCaptureUnion(parentObjectName string, widgetObjectNames ...string) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.mode = ui.CaptureWidgetUnion
+		c.parentName = parentObjectName
+		c.widgetNames = append([]string(nil), widgetObjectNames...)
+	}
+}
+
+func WithCapturePopup() ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.mode = ui.CaptureActivePopup
+	}
+}
+
+func WithPadding(px int) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.padding = px
+	}
+}
+
+func WithMarker(n, x, y int) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.markers = append(c.markers, ui.Marker{Number: n, X: x, Y: y})
+	}
+}
+
+func WithMarkerAtWidget(n int, widgetObjectName string, dx, dy int) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.markers = append(c.markers, ui.Marker{
+			Number:     n,
+			WidgetName: widgetObjectName,
+			DX:         dx,
+			DY:         dy,
+		})
+	}
+}
+
+func TriggerScreenshot(name string, opts ...ScreenshotOption) Step {
+	cfg := &screenshotConfig{mode: ui.CaptureAuto}
+	for _, o := range opts {
+		o(cfg)
+	}
+	return func(ctx context.Context, r *Runtime) time.Duration {
+		if cfg.delay > 0 {
+			select {
+			case <-time.After(cfg.delay):
+			case <-ctx.Done():
+				return 0
+			}
+		}
+		filename, _ := screenshotFilenames(name)
+		if err := backupScreenshot(name); err != nil {
+			log.Printf("Cannot backup screenshot %s: %v", filename, err)
+		}
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; skipping %s", name)
+			_ = restoreScreenshot(name)
+			return 0
+		}
+		pm, err := r.Screenshotter.Capture(ui.ScreenshotRequest{
+			Name:        name,
+			Mode:        cfg.mode,
+			WidgetName:  cfg.widgetName,
+			WidgetNames: cfg.widgetNames,
+			ParentName:  cfg.parentName,
+			Rect:        cfg.rect,
+			Padding:     cfg.padding,
+		})
+		if err != nil {
+			log.Printf("Screenshot %s capture failed: %v", name, err)
+			_ = restoreScreenshot(name)
+			return 0
+		}
+		if len(cfg.markers) > 0 {
+			if err := r.Screenshotter.Annotate(pm, cfg.markers); err != nil {
+				log.Printf("Screenshot %s annotate failed: %v", name, err)
+			}
+		}
+		if err := r.Screenshotter.Save(pm, filename); err != nil {
+			log.Printf("Screenshot %s save failed: %v", name, err)
+			_ = restoreScreenshot(name)
+			return 0
+		}
+		_ = removeBackup(name)
+		log.Printf("Screenshot %s successful", name)
+		return 0
+	}
 }
 
 func TriggerScreenshotWithDelay(name string, delay time.Duration) Step {
-	return func(_ context.Context, _ *Runtime) time.Duration {
-		filename, _ := screenshotFilenames(name)
+	return TriggerScreenshot(name, WithDelay(delay))
+}
 
-		err := backupScreenshot(name)
-		if err != nil {
-			log.Printf("Cannot backup screenshot %s: %v", filename, err)
+func OpenMenu(menuObjectName string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot open menu %s", menuObjectName)
+			return 0
 		}
+		if err := r.Screenshotter.ShowMenu(menuObjectName); err != nil {
+			log.Printf("OpenMenu %s failed: %v", menuObjectName, err)
+		}
+		return 0
+	}
+}
 
-		// TODO: evaluate ctx.Done() and stop the flameshot process
-		cmd := exec.Command("flameshot", "gui")
-		cmd.Args = append(cmd.Args, "--path", filename)
-		if delay > 0 {
-			cmd.Args = append(cmd.Args, "--delay", fmt.Sprintf("%d", delay.Milliseconds()))
+func HighlightMenuAction(menuObjectName, actionTitle string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			return 0
 		}
+		if err := r.Screenshotter.HighlightMenuAction(menuObjectName, actionTitle); err != nil {
+			log.Printf("HighlightMenuAction %s/%s failed: %v", menuObjectName, actionTitle, err)
+		}
+		return 0
+	}
+}
 
-		err = cmd.Run()
-		if err != nil {
-			log.Printf("Screenshot %s failed: %v", name, err)
-		} else {
-			log.Printf("Screenshot %s successful", name)
+func CloseMenu(menuObjectName string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			return 0
 		}
-
-		if !fileExists(filename) {
-			log.Printf("restoring screenhot %s", name)
-			err = restoreScreenshot(name)
-		} else {
-			log.Printf("removing screenshot backup %s", name)
-			err = removeBackup(name)
+		if err := r.Screenshotter.HideMenu(menuObjectName); err != nil {
+			log.Printf("CloseMenu %s failed: %v", menuObjectName, err)
 		}
-		if err != nil {
-			log.Printf("Screenshot %s backup handling failed: %v", name, err)
-		}
-
 		return 0
 	}
 }

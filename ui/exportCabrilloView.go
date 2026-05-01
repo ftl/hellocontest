@@ -1,9 +1,10 @@
 package ui
 
 import (
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 )
 
+// ExportCabrilloController is the callback surface for the export-cabrillo dialog.
 type ExportCabrilloController interface {
 	Categories() []string
 	CategoryBands() []string
@@ -45,221 +46,225 @@ type ExportCabrilloController interface {
 type exportCabrilloView struct {
 	controller ExportCabrilloController
 
-	root *gtk.Grid
+	root *qtlib.QWidget
 
-	categoriesCombo          *gtk.ComboBoxText
-	categoryBandCombo        *gtk.ComboBoxText
-	categoryModeCombo        *gtk.ComboBoxText
-	categoryOperatorCombo    *gtk.ComboBoxText
-	categoryPowerCombo       *gtk.ComboBoxText
-	categoryAssistedCombo    *gtk.ComboBoxText
-	categoryStationCombo     *gtk.ComboBoxText
-	categoryTransmitterCombo *gtk.ComboBoxText
-	categoryOverlayCombo     *gtk.ComboBoxText
-	categoryTimeCombo        *gtk.ComboBoxText
+	categoriesCombo          *qtlib.QComboBox
+	categoryBandCombo        *qtlib.QComboBox
+	categoryModeCombo        *qtlib.QComboBox
+	categoryOperatorCombo    *qtlib.QComboBox
+	categoryPowerCombo       *qtlib.QComboBox
+	categoryAssistedCombo    *qtlib.QComboBox
+	categoryStationCombo     *qtlib.QComboBox
+	categoryTransmitterCombo *qtlib.QComboBox
+	categoryOverlayCombo     *qtlib.QComboBox
+	categoryTimeCombo        *qtlib.QComboBox
 
-	nameEntry                 *gtk.Entry
-	emailEntry                *gtk.Entry
-	locationEntry             *gtk.Entry
-	addressTextEntry          *gtk.Entry
-	addressCityEntry          *gtk.Entry
-	addressPostalCodeEntry    *gtk.Entry
-	addressStateProvinceEntry *gtk.Entry
-	addressCountryEntry       *gtk.Entry
-	clubEntry                 *gtk.Entry
-	specificEntry             *gtk.Entry
+	nameEntry                 *qtlib.QLineEdit
+	emailEntry                *qtlib.QLineEdit
+	locationEntry             *qtlib.QLineEdit
+	addressTextEntry          *qtlib.QLineEdit
+	addressCityEntry          *qtlib.QLineEdit
+	addressPostalCodeEntry    *qtlib.QLineEdit
+	addressStateProvinceEntry *qtlib.QLineEdit
+	addressCountryEntry       *qtlib.QLineEdit
+	clubEntry                 *qtlib.QLineEdit
+	specificEntry             *qtlib.QLineEdit
 
-	certificateCheckButton *gtk.CheckButton
-	soapBoxEntry           *gtk.TextView
+	certificateChk        *qtlib.QCheckBox
+	soapBoxEdit           *qtlib.QTextEdit
+	openUploadAfterExport *qtlib.QCheckBox
+	openAfterExport       *qtlib.QCheckBox
 
-	openUploadAfterExportCheckButton *gtk.CheckButton
-	openAfterExportCheckButton       *gtk.CheckButton
+	ignoreChangedEvent bool
+}
+
+func (v *exportCabrilloView) doIgnore(f func()) {
+	v.ignoreChangedEvent = true
+	defer func() { v.ignoreChangedEvent = false }()
+	f()
 }
 
 func newExportCabrilloView(controller ExportCabrilloController) *exportCabrilloView {
-	result := &exportCabrilloView{
-		controller: controller,
+	v := &exportCabrilloView{controller: controller}
+
+	v.root = qtlib.NewQWidget2()
+	root := qtlib.NewQVBoxLayout(v.root)
+
+	columns := qtlib.NewQWidget2()
+	columnsLayout := qtlib.NewQHBoxLayout(columns)
+	columnsLayout.SetContentsMargins(0, 0, 0, 0)
+	columnsLayout.SetSpacing(20)
+
+	columnsLayout.AddWidget(v.buildLeftColumn())
+	columnsLayout.AddWidget(v.buildRightColumn())
+
+	root.AddWidget(columns)
+
+	// Soap box section
+	soapBoxLabel := qtlib.NewQLabel3("Soap Box:")
+	root.AddWidget(soapBoxLabel.QWidget)
+	v.soapBoxEdit = qtlib.NewQTextEdit2()
+	v.soapBoxEdit.OnTextChanged(func() {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetSoapBox(v.soapBoxEdit.ToPlainText())
+	})
+	root.AddWidget(v.soapBoxEdit.QWidget)
+
+	v.certificateChk = qtlib.NewQCheckBox3("Request a certificate")
+	v.certificateChk.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetCertificate(checked)
+	})
+	root.AddWidget(v.certificateChk.QWidget)
+
+	v.openUploadAfterExport = qtlib.NewQCheckBox3("Open the upload URL after export")
+	v.openUploadAfterExport.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetOpenUploadAfterExport(checked)
+	})
+	root.AddWidget(v.openUploadAfterExport.QWidget)
+
+	v.openAfterExport = qtlib.NewQCheckBox3("Open the file after export")
+	v.openAfterExport.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetOpenAfterExport(checked)
+	})
+	root.AddWidget(v.openAfterExport.QWidget)
+
+	return v
+}
+
+func (v *exportCabrilloView) buildLeftColumn() *qtlib.QWidget {
+	column := qtlib.NewQWidget2()
+	col := qtlib.NewQVBoxLayout(column)
+	col.SetContentsMargins(0, 0, 0, 0)
+
+	header := qtlib.NewQLabel3("Category")
+	header.SetStyleSheet(BoldSectionStyle)
+	col.AddWidget(header.QWidget)
+
+	form := qtlib.NewQFormLayout2()
+
+	v.categoriesCombo = v.makeComboNoCallback("")
+	for _, item := range v.controller.Categories() {
+		v.categoriesCombo.AddItem(item)
 	}
+	v.categoriesCombo.OnCurrentTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetCategory(text)
+	})
+	form.AddRow3("Category:", v.categoriesCombo.QWidget)
+	categoryHint := qtlib.NewQLabel3("Choose one of the categories defined in the contest rules to fill out the Cabrillo category fields.")
+	categoryHint.SetWordWrap(true)
+	form.AddRow3("", categoryHint.QWidget)
 
-	result.root, _ = gtk.GridNew()
-	result.root.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	result.root.SetHExpand(true)
-	result.root.SetVExpand(true)
-	result.root.SetColumnSpacing(COLUMN_SPACING)
-	result.root.SetRowSpacing(ROW_SPACING)
-	result.root.SetMarginStart(MARGIN)
-	result.root.SetMarginEnd(MARGIN)
+	v.categoryBandCombo = v.buildCategoryCombo(v.controller.CategoryBands(), v.controller.SetCategoryBand)
+	form.AddRow3("Band:", v.categoryBandCombo.QWidget)
 
-	columns, _ := gtk.GridNew()
-	columns.SetOrientation(gtk.ORIENTATION_HORIZONTAL)
-	columns.SetHExpand(true)
-	columns.SetVExpand(false)
-	columns.SetColumnSpacing(20)
-	result.root.Attach(columns, 0, 1, 1, 1)
+	v.categoryModeCombo = v.buildCategoryCombo(v.controller.CategoryModes(), v.controller.SetCategoryMode)
+	form.AddRow3("Mode:", v.categoryModeCombo.QWidget)
 
-	leftColumn, _ := gtk.GridNew()
-	leftColumn.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	leftColumn.SetHExpand(true)
-	leftColumn.SetVExpand(false)
-	leftColumn.SetColumnSpacing(COLUMN_SPACING)
-	leftColumn.SetRowSpacing(ROW_SPACING)
-	columns.Attach(leftColumn, 0, 0, 1, 1)
+	v.categoryOperatorCombo = v.buildCategoryCombo(v.controller.CategoryOperators(), v.controller.SetCategoryOperator)
+	form.AddRow3("Operator:", v.categoryOperatorCombo.QWidget)
 
-	rightColumn, _ := gtk.GridNew()
-	rightColumn.SetOrientation(gtk.ORIENTATION_VERTICAL)
-	rightColumn.SetHExpand(true)
-	rightColumn.SetVExpand(false)
-	rightColumn.SetColumnSpacing(COLUMN_SPACING)
-	rightColumn.SetRowSpacing(ROW_SPACING)
-	columns.Attach(rightColumn, 1, 0, 1, 1)
+	v.categoryPowerCombo = v.buildCategoryCombo(v.controller.CategoryPowers(), v.controller.SetCategoryPower)
+	form.AddRow3("Power:", v.categoryPowerCombo.QWidget)
 
-	buildHeaderLabel(leftColumn, 0, "Category")
-	result.categoriesCombo = buildLabeledCombo(leftColumn, 1, "Category", false, result.controller.Categories(), result.onCategoryChanged)
-	categoryExplanation := buildExplanationLabel(leftColumn, 2, "Choose one of the categories defined in the contest rules to fill out the Cabrillo category fields.")
-	categoryExplanation.SetHExpand(false)
-	categoryExplanation.SetLineWrap(true)
-	result.categoryBandCombo = buildLabeledCombo(leftColumn, 3, "Band", false, result.controller.CategoryBands(), result.onCategoryBandChanged)
-	result.categoryModeCombo = buildLabeledCombo(leftColumn, 4, "Mode", false, result.controller.CategoryModes(), result.onCategoryModeChanged)
-	result.categoryOperatorCombo = buildLabeledCombo(leftColumn, 5, "Operator", false, result.controller.CategoryOperators(), result.onCategoryOperatorChanged)
-	result.categoryPowerCombo = buildLabeledCombo(leftColumn, 6, "Power", false, result.controller.CategoryPowers(), result.onCategoryPowerChanged)
-	result.categoryAssistedCombo = buildLabeledCombo(leftColumn, 7, "Assisted", false, result.controller.CategoryAssisted(), result.onCategoryAssistedChanged)
-	buildSeparator(leftColumn, 8, 2)
-	result.categoryStationCombo = buildLabeledCombo(leftColumn, 9, "Station", false, result.controller.CategoryStations(), result.onCategoryStationChanged)
-	result.categoryTransmitterCombo = buildLabeledCombo(leftColumn, 10, "Transmitter", false, result.controller.CategoryTransmitters(), result.onCategoryTransmitterChanged)
-	result.categoryOverlayCombo = buildLabeledCombo(leftColumn, 11, "Overlay", true, result.controller.CategoryOverlays(), result.onCategoryOverlayChanged)
-	result.categoryTimeCombo = buildLabeledCombo(leftColumn, 12, "Time", true, result.controller.CategoryTimes(), result.onCategoryTimeChanged)
+	v.categoryAssistedCombo = v.buildCategoryCombo(v.controller.CategoryAssisted(), v.controller.SetCategoryAssisted)
+	form.AddRow3("Assisted:", v.categoryAssistedCombo.QWidget)
 
-	buildHeaderLabel(rightColumn, 0, "Personal Information")
-	result.nameEntry = buildLabeledEntry(rightColumn, 1, "Name", result.onNameChanged)
-	result.emailEntry = buildLabeledEntry(rightColumn, 2, "Email", result.onEmailChanged)
-	result.locationEntry = buildLabeledEntry(rightColumn, 3, "Location", result.onLocationChanged)
-	buildSeparator(rightColumn, 4, 2)
-	result.addressTextEntry = buildLabeledEntry(rightColumn, 5, "Address", result.onAddressTextChanged)
-	result.addressCityEntry = buildLabeledEntry(rightColumn, 6, "City", result.onAddressCityChanged)
-	result.addressPostalCodeEntry = buildLabeledEntry(rightColumn, 7, "Postal Code", result.onAddressPostalCodeChanged)
-	result.addressStateProvinceEntry = buildLabeledEntry(rightColumn, 8, "State/Province", result.onAddressStateProvinceChanged)
-	result.addressCountryEntry = buildLabeledEntry(rightColumn, 9, "Country", result.onAddressCountryChanged)
-	buildSeparator(rightColumn, 10, 2)
-	result.clubEntry = buildLabeledEntry(rightColumn, 11, "Club", result.onClubChanged)
-	result.specificEntry = buildLabeledEntry(rightColumn, 12, "Specific", result.onSpecificChanged)
+	v.categoryStationCombo = v.buildCategoryCombo(v.controller.CategoryStations(), v.controller.SetCategoryStation)
+	form.AddRow3("Station:", v.categoryStationCombo.QWidget)
 
-	buildSeparator(result.root, 2, 1)
+	v.categoryTransmitterCombo = v.buildCategoryCombo(v.controller.CategoryTransmitters(), v.controller.SetCategoryTransmitter)
+	form.AddRow3("Transmitter:", v.categoryTransmitterCombo.QWidget)
 
-	result.certificateCheckButton = buildCheckButton(result.root, 3, "Request a certificate", result.onCertificateToggled)
-	result.soapBoxEntry = buildLabeledTextView(result.root, 4, "Soap Box", result.onSoapBoxChanged)
+	v.categoryOverlayCombo = v.buildCategoryCombo(v.controller.CategoryOverlays(), v.controller.SetCategoryOverlay)
+	form.AddRow3("Overlay:", v.categoryOverlayCombo.QWidget)
 
-	buildSeparator(result.root, 6, 1)
+	v.categoryTimeCombo = v.buildCategoryCombo(v.controller.CategoryTimes(), v.controller.SetCategoryTime)
+	form.AddRow3("Time:", v.categoryTimeCombo.QWidget)
 
-	result.openUploadAfterExportCheckButton = buildCheckButton(result.root, 7, "Open the upload URL after export", result.onOpenUploadAfterExportToggled)
-	result.openAfterExportCheckButton = buildCheckButton(result.root, 8, "Open the file after export", result.onOpenAfterExportToggled)
-
-	return result
+	col.AddLayout(form.QLayout)
+	col.AddStretch()
+	return column
 }
 
-func (v *exportCabrilloView) onCategoryChanged() {
-	v.controller.SetCategory(v.categoriesCombo.GetActiveText())
+func (v *exportCabrilloView) buildRightColumn() *qtlib.QWidget {
+	column := qtlib.NewQWidget2()
+	col := qtlib.NewQVBoxLayout(column)
+	col.SetContentsMargins(0, 0, 0, 0)
+
+	header := qtlib.NewQLabel3("Personal Information")
+	header.SetStyleSheet(BoldSectionStyle)
+	col.AddWidget(header.QWidget)
+
+	form := qtlib.NewQFormLayout2()
+
+	v.nameEntry = v.buildEntry(v.controller.SetName)
+	form.AddRow3("Name:", v.nameEntry.QWidget)
+	v.emailEntry = v.buildEntry(v.controller.SetEmail)
+	form.AddRow3("Email:", v.emailEntry.QWidget)
+	v.locationEntry = v.buildEntry(v.controller.SetLocation)
+	form.AddRow3("Location:", v.locationEntry.QWidget)
+
+	v.addressTextEntry = v.buildEntry(v.controller.SetAddressText)
+	form.AddRow3("Address:", v.addressTextEntry.QWidget)
+	v.addressCityEntry = v.buildEntry(v.controller.SetAddressCity)
+	form.AddRow3("City:", v.addressCityEntry.QWidget)
+	v.addressPostalCodeEntry = v.buildEntry(v.controller.SetAddressPostalCode)
+	form.AddRow3("Postal Code:", v.addressPostalCodeEntry.QWidget)
+	v.addressStateProvinceEntry = v.buildEntry(v.controller.SetAddressStateProvince)
+	form.AddRow3("State/Province:", v.addressStateProvinceEntry.QWidget)
+	v.addressCountryEntry = v.buildEntry(v.controller.SetAddressCountry)
+	form.AddRow3("Country:", v.addressCountryEntry.QWidget)
+
+	v.clubEntry = v.buildEntry(v.controller.SetClub)
+	form.AddRow3("Club:", v.clubEntry.QWidget)
+	v.specificEntry = v.buildEntry(v.controller.SetSpecific)
+	form.AddRow3("Specific:", v.specificEntry.QWidget)
+
+	col.AddLayout(form.QLayout)
+	col.AddStretch()
+	return column
 }
 
-func (v *exportCabrilloView) onCategoryBandChanged() {
-	v.controller.SetCategoryBand(v.categoryBandCombo.GetActiveText())
+func (v *exportCabrilloView) makeComboNoCallback(_ string) *qtlib.QComboBox {
+	return qtlib.NewQComboBox2()
 }
 
-func (v *exportCabrilloView) onCategoryModeChanged() {
-	v.controller.SetCategoryMode(v.categoryModeCombo.GetActiveText())
+func (v *exportCabrilloView) buildCategoryCombo(items []string, setter func(string)) *qtlib.QComboBox {
+	combo := qtlib.NewQComboBox2()
+	combo.AddItem("")
+	for _, item := range items {
+		combo.AddItem(item)
+	}
+	combo.OnCurrentTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		setter(text)
+	})
+	return combo
 }
 
-func (v *exportCabrilloView) onCategoryOperatorChanged() {
-	v.controller.SetCategoryOperator(v.categoryOperatorCombo.GetActiveText())
-}
-
-func (v *exportCabrilloView) onCategoryPowerChanged() {
-	v.controller.SetCategoryPower(v.categoryPowerCombo.GetActiveText())
-}
-
-func (v *exportCabrilloView) onCategoryAssistedChanged() {
-	v.controller.SetCategoryAssisted(v.categoryAssistedCombo.GetActiveText())
-}
-
-func (v *exportCabrilloView) onCategoryStationChanged() {
-	v.controller.SetCategoryStation(v.categoryStationCombo.GetActiveText())
-}
-
-func (v *exportCabrilloView) onCategoryTransmitterChanged() {
-	v.controller.SetCategoryTransmitter(v.categoryTransmitterCombo.GetActiveText())
-}
-
-func (v *exportCabrilloView) onCategoryOverlayChanged() {
-	v.controller.SetCategoryOverlay(v.categoryOverlayCombo.GetActiveText())
-}
-
-func (v *exportCabrilloView) onCategoryTimeChanged() {
-	v.controller.SetCategoryTime(v.categoryTimeCombo.GetActiveText())
-}
-
-func (v *exportCabrilloView) onNameChanged() {
-	text, _ := v.nameEntry.GetText()
-	v.controller.SetName(text)
-}
-
-func (v *exportCabrilloView) onEmailChanged() {
-	text, _ := v.emailEntry.GetText()
-	v.controller.SetEmail(text)
-}
-
-func (v *exportCabrilloView) onLocationChanged() {
-	text, _ := v.locationEntry.GetText()
-	v.controller.SetLocation(text)
-}
-
-func (v *exportCabrilloView) onAddressTextChanged() {
-	text, _ := v.addressTextEntry.GetText()
-	v.controller.SetAddressText(text)
-}
-
-func (v *exportCabrilloView) onAddressCityChanged() {
-	text, _ := v.addressCityEntry.GetText()
-	v.controller.SetAddressCity(text)
-}
-
-func (v *exportCabrilloView) onAddressPostalCodeChanged() {
-	text, _ := v.addressPostalCodeEntry.GetText()
-	v.controller.SetAddressPostalCode(text)
-}
-
-func (v *exportCabrilloView) onAddressStateProvinceChanged() {
-	text, _ := v.addressStateProvinceEntry.GetText()
-	v.controller.SetAddressStateProvince(text)
-}
-
-func (v *exportCabrilloView) onAddressCountryChanged() {
-	text, _ := v.addressCountryEntry.GetText()
-	v.controller.SetAddressCountry(text)
-}
-
-func (v *exportCabrilloView) onClubChanged() {
-	text, _ := v.clubEntry.GetText()
-	v.controller.SetClub(text)
-}
-
-func (v *exportCabrilloView) onSpecificChanged() {
-	text, _ := v.specificEntry.GetText()
-	v.controller.SetSpecific(text)
-}
-
-func (v *exportCabrilloView) onCertificateToggled() {
-	v.controller.SetCertificate(v.certificateCheckButton.GetActive())
-}
-
-func (v *exportCabrilloView) onSoapBoxChanged() {
-	buffer, _ := v.soapBoxEntry.GetBuffer()
-	text, _ := buffer.GetText(buffer.GetStartIter(), buffer.GetEndIter(), true)
-	v.controller.SetSoapBox(text)
-}
-
-func (v *exportCabrilloView) onOpenUploadAfterExportToggled() {
-	v.controller.SetOpenUploadAfterExport(v.openUploadAfterExportCheckButton.GetActive())
-}
-
-func (v *exportCabrilloView) onOpenAfterExportToggled() {
-	v.controller.SetOpenAfterExport(v.openAfterExportCheckButton.GetActive())
+func (v *exportCabrilloView) buildEntry(setter func(string)) *qtlib.QLineEdit {
+	edit := qtlib.NewQLineEdit2()
+	edit.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		setter(text)
+	})
+	return edit
 }

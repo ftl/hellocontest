@@ -2,16 +2,15 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
-	"github.com/ftl/hellocontest/ui/style"
 )
+
+const parrot = "🦜"
 
 // EntryController controls the entry of QSO data.
 type EntryController interface {
@@ -33,114 +32,210 @@ type EntryController interface {
 }
 
 type entryView struct {
-	controller EntryController
+	root *qtlib.QWidget // root widget containing the grid layout
 
-	// style       *style
+	utcLabel    *qtlib.QLabel
+	myCallLabel *qtlib.QLabel
+
+	vfoLabel       *qtlib.QLabel
+	topSeparator   *qtlib.QFrame
+	frequencyLabel *qtlib.QLabel
+	txIndicator    *qtlib.QLabel
+	messageLabel   *qtlib.QLabel
+
+	theirLabel        *qtlib.QLabel
+	callsign          *qtlib.QLineEdit
+	bandModeContainer *qtlib.QWidget
+	band              *qtlib.QComboBox
+	mode              *qtlib.QComboBox
+	xit               *qtlib.QCheckBox
+
+	myExchangeFields    []*qtlib.QLineEdit
+	theirExchangeFields []*qtlib.QLineEdit
+
+	logButton   *qtlib.QPushButton
+	clearButton *qtlib.QPushButton
+
+	theirEntryStyle string
+
 	ignoreInput bool
-
-	entryRoot            *gtk.Grid
-	utc                  *gtk.Label
-	myCall               *gtk.Label
-	frequency            *gtk.Label
-	callsign             *gtk.Entry
-	theirExchangesParent *gtk.Grid
-	theirExchanges       []*gtk.Entry
-	band                 *gtk.ComboBoxText
-	mode                 *gtk.ComboBoxText
-	xit                  *gtk.CheckButton
-	txIndicator          *gtk.Label
-	myExchangesParent    *gtk.Grid
-	myExchanges          []*gtk.Entry
-	logButton            *gtk.Button
-	clearButton          *gtk.Button
-	messageLabel         *gtk.Label
+	isDuplicate bool
+	isEditing   bool
+	controller  EntryController
 }
 
-func setupEntryView(builder *gtk.Builder) *entryView {
-	result := new(entryView)
+func newEntryView() *entryView {
+	v := &entryView{}
 
-	result.entryRoot = getUI(builder, "entryGrid").(*gtk.Grid)
-	result.utc = getUI(builder, "utcLabel").(*gtk.Label)
-	result.myCall = getUI(builder, "myCallLabel").(*gtk.Label)
-	result.frequency = getUI(builder, "frequencyLabel").(*gtk.Label)
-	result.callsign = getUI(builder, "callsignEntry").(*gtk.Entry)
-	result.theirExchangesParent = getUI(builder, "theirExchangesGrid").(*gtk.Grid)
-	result.band = getUI(builder, "bandCombo").(*gtk.ComboBoxText)
-	result.mode = getUI(builder, "modeCombo").(*gtk.ComboBoxText)
-	result.xit = getUI(builder, "xitCheckbox").(*gtk.CheckButton)
-	result.txIndicator = getUI(builder, "txIndicatorLabel").(*gtk.Label)
-	result.myExchangesParent = getUI(builder, "myExchangesGrid").(*gtk.Grid)
-	result.logButton = getUI(builder, "logButton").(*gtk.Button)
-	result.clearButton = getUI(builder, "clearButton").(*gtk.Button)
-	result.messageLabel = getUI(builder, "messageLabel").(*gtk.Label)
+	// Row 0: UTC label, myCall label, myExchanges container (cols 2-3, span 2)
+	v.utcLabel = qtlib.NewQLabel3("00:00")
 
-	result.addEntryEventHandlers(&result.callsign.Widget)
-	result.addEntryEventHandlers(&result.band.Widget)
-	result.addEntryEventHandlers(&result.mode.Widget)
+	v.myCallLabel = qtlib.NewQLabel3("DL0ABC")
 
-	result.xit.Connect("clicked", result.onXITClicked)
-	result.logButton.Connect("clicked", result.onLogButtonClicked)
-	result.clearButton.Connect("clicked", result.onClearButtonClicked)
+	// Row 1: Horizontal separator (span all 6 columns)
+	v.topSeparator = qtlib.NewQFrame2()
+	v.topSeparator.SetFrameShape(qtlib.QFrame__HLine)
+	v.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
-	setupBandCombo(result.band)
-	setupModeCombo(result.mode)
+	// Row 2: "VFO:" label, frequency label, band combo, mode combo, XIT checkbox, TX indicator
+	v.vfoLabel = qtlib.NewQLabel3("VFO:")
 
-	return result
-}
+	v.frequencyLabel = qtlib.NewQLabel3("- kHz")
+	v.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("frequencyLabel"))
+	v.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
 
-func setupBandCombo(combo *gtk.ComboBoxText) {
-	combo.RemoveAll()
-	for _, value := range core.Bands {
-		combo.Append(value.String(), value.String())
+	v.bandModeContainer = qtlib.NewQWidget2()
+	bandModeLayout := qtlib.NewQHBoxLayout(v.bandModeContainer)
+
+	v.band = qtlib.NewQComboBox2()
+	v.band.SetObjectName(*qtlib.NewQAnyStringView3("bandCombo"))
+	bandModeLayout.AddWidget2(v.band.QWidget, 1)
+	v.mode = qtlib.NewQComboBox2()
+	v.mode.SetObjectName(*qtlib.NewQAnyStringView3("modeCombo"))
+	bandModeLayout.AddWidget2(v.mode.QWidget, 2)
+
+	v.xit = qtlib.NewQCheckBox3("XIT")
+	v.xit.SetObjectName(*qtlib.NewQAnyStringView3("xit"))
+
+	v.txIndicator = qtlib.NewQLabel3("")
+
+	// Row 3: Reserved for callinfo (later step)
+
+	// Row 4: "Their:" label, callsign QLineEdit, theirExchanges container, Log button, Clear button
+	v.theirLabel = qtlib.NewQLabel3("Their:")
+
+	v.callsign = qtlib.NewQLineEdit2()
+	v.callsign.SetObjectName(*qtlib.NewQAnyStringView3("callsignEntry"))
+	v.callsign.SetPlaceholderText("Call")
+
+	fi := qtlib.NewQFontInfo(v.callsign.Font())
+	if pt := fi.PointSizeF(); pt > 0 {
+		v.theirEntryStyle = fmt.Sprintf("QLineEdit { font-size: %.1fpt; }", pt*2)
+	} else if px := fi.PixelSize(); px > 0 {
+		v.theirEntryStyle = fmt.Sprintf("QLineEdit { font-size: %dpx; }", px*2)
 	}
-	combo.SetActive(0)
-}
+	v.callsign.SetStyleSheet(v.theirEntryStyle)
 
-func setupModeCombo(combo *gtk.ComboBoxText) {
-	combo.RemoveAll()
-	for _, value := range core.Modes {
-		combo.Append(value.String(), value.String())
-	}
-	combo.SetActive(0)
-}
+	v.logButton = qtlib.NewQPushButton3("Log")
+	v.logButton.SetFocusPolicy(qtlib.NoFocus)
 
-func (v *entryView) SetEntryController(controller EntryController) {
-	v.controller = controller
-}
+	v.clearButton = qtlib.NewQPushButton3("Clear")
+	v.clearButton.SetFocusPolicy(qtlib.NoFocus)
 
-func (v *entryView) addEntryEventHandlers(w *gtk.Widget) {
-	w.Connect("key_press_event", v.onEntryKeyPress)
-	w.Connect("focus_in_event", v.onEntryFocusIn)
-	w.Connect("focus_out_event", v.onEntryFocusOut)
-	w.Connect("changed", v.onEntryChanged)
-}
+	// Row 7: Message label (span all 6 columns)
+	v.messageLabel = qtlib.NewQLabel3("")
 
-func (v *entryView) onEntryKeyPress(_ any, event *gdk.Event) bool {
-	keyEvent := gdk.EventKeyNewFromEvent(event)
-	ctrl := keyEvent.State()&gdk.CONTROL_MASK != 0
-	alt := keyEvent.State()&gdk.MOD1_MASK != 0 // MOD1 = ALT right
-	key := keyEvent.KeyVal()
+	// Initialize combos
+	SetupBandCombo(v.band)
+	SetupModeCombo(v.mode)
 
-	switch key {
-	case gdk.KEY_1, gdk.KEY_2, gdk.KEY_3, gdk.KEY_4, gdk.KEY_5, gdk.KEY_6, gdk.KEY_7, gdk.KEY_8, gdk.KEY_9:
-		if alt {
-			index := int(key - gdk.KEY_1)
-			v.controller.SelectMatch(index)
-			return true
-		} else {
-			return false
+	// Connect signals for static widgets
+	v.connectEditSignals(v.callsign, core.CallsignField, true)
+	v.connectComboSignals(v.band, core.BandField)
+	v.connectComboSignals(v.mode, core.ModeField)
+
+	// Connect button/checkbox signals
+	v.logButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.Log()
 		}
-	case gdk.KEY_Tab:
-		v.controller.GotoNextField()
-		return true
-	case gdk.KEY_space:
-		if ctrl {
-			v.controller.GotoNextPlaceholder()
-		} else {
+	})
+	v.clearButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.Clear()
+		}
+	})
+	v.xit.OnStateChanged(func(state int) {
+		if v.controller != nil {
+			v.controller.SetXITActive(state != 0)
+		}
+	})
+
+	return v
+}
+
+// setRootWidgets sets the widget that is used to show the duplicate and editing marks
+func (v *entryView) setRootWidget(root *qtlib.QWidget) {
+	v.root = root
+	v.root.SetObjectName(*qtlib.NewQAnyStringView3("entryWidget"))
+}
+
+func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, field core.EntryField) {
+	combo.OnCurrentTextChanged(func(text string) {
+		if v.controller == nil || v.ignoreInput {
+			return
+		}
+		v.controller.SetActiveField(field)
+		v.controller.Enter(text)
+	})
+	combo.OnFocusInEvent(func(super func(ev *qtlib.QFocusEvent), ev *qtlib.QFocusEvent) {
+		super(ev)
+		if v.controller != nil {
+			v.controller.SetActiveField(field)
+		}
+	})
+	combo.OnKeyPressEvent(func(super func(ev *qtlib.QKeyEvent), ev *qtlib.QKeyEvent) {
+		v.handleKeyPress(super, ev, false)
+	})
+}
+
+func (v *entryView) connectEditSignals(edit *qtlib.QLineEdit, field core.EntryField, isTheirRow bool) {
+	edit.OnTextChanged(func(text string) {
+		if v.controller == nil || v.ignoreInput {
+			return
+		}
+		v.controller.Enter(text)
+	})
+	edit.OnFocusInEvent(func(super func(ev *qtlib.QFocusEvent), ev *qtlib.QFocusEvent) {
+		super(ev)
+		edit.SelectAll()
+		if v.controller != nil {
+			v.controller.SetActiveField(field)
+		}
+	})
+	edit.OnFocusOutEvent(func(super func(ev *qtlib.QFocusEvent), ev *qtlib.QFocusEvent) {
+		super(ev)
+		edit.Deselect()
+	})
+	edit.OnKeyPressEvent(func(super func(ev *qtlib.QKeyEvent), ev *qtlib.QKeyEvent) {
+		v.handleKeyPress(super, ev, isTheirRow)
+	})
+	if isTheirRow {
+		edit.OnFocusNextPrevChild(func(super func(next bool) bool, next bool) bool {
+			if v.controller == nil {
+				return super(next)
+			}
 			v.controller.GotoNextField()
+			return true
+		})
+	}
+}
+
+func (v *entryView) handleKeyPress(super func(ev *qtlib.QKeyEvent), ev *qtlib.QKeyEvent, isTheirRow bool) {
+	if v.controller == nil {
+		super(ev)
+		return
+	}
+
+	key := ev.Key()
+	ctrl := ev.Modifiers()&qtlib.ControlModifier != 0
+	alt := ev.Modifiers()&qtlib.AltModifier != 0
+
+	switch {
+	case alt && key >= int(qtlib.Key_1) && key <= int(qtlib.Key_9):
+		index := key - int(qtlib.Key_1)
+		v.controller.SelectMatch(index)
+	case key == int(qtlib.Key_Tab) || key == int(qtlib.Key_Backtab):
+		if !isTheirRow {
+			super(ev)
+			return
 		}
-		return true
-	case gdk.KEY_Return:
+		v.controller.GotoNextField()
+	case key == int(qtlib.Key_Space) && ctrl:
+		v.controller.GotoNextPlaceholder()
+	case key == int(qtlib.Key_Space):
+		v.controller.GotoNextField()
+	case key == int(qtlib.Key_Return) || key == int(qtlib.Key_Enter):
 		if alt {
 			v.controller.SelectBestMatchOnFrequency()
 		} else if ctrl {
@@ -148,132 +243,69 @@ func (v *entryView) onEntryKeyPress(_ any, event *gdk.Event) bool {
 		} else {
 			v.controller.EnterPressed()
 		}
-		return true
-	case gdk.KEY_question:
+	case key == int(qtlib.Key_Question):
 		v.controller.SendQuestion()
-		return true
-	case gdk.KEY_equal:
+	case key == int(qtlib.Key_Equal):
 		v.controller.RepeatLastTransmission()
-		return true
 	default:
-		return false
+		super(ev)
+		return
 	}
+	// All handled cases consume the event (don't call super)
 }
 
-func (v *entryView) onEntryFocusIn(widget any, _ *gdk.Event) bool {
-	var field core.EntryField
-	switch w := widget.(type) {
-	case *gtk.Entry:
-		field = v.widgetToField(&w.Widget)
-	case *gtk.ComboBoxText:
-		field = v.widgetToField(&w.Widget)
-	default:
-		field = core.OtherField
-	}
-	v.controller.SetActiveField(field)
-	return false
-}
-
-func (v *entryView) onEntryFocusOut(widget any, _ *gdk.Event) bool {
-	if entry, ok := widget.(*gtk.Entry); ok {
-		entry.SelectRegion(0, 0)
-	}
-	return false
-}
-
-func (v *entryView) onEntryChanged(widget any) bool {
-	if v.controller == nil {
-		return false
-	}
-	if v.ignoreInput {
-		return false
-	}
-
-	switch w := widget.(type) {
-	case *gtk.Entry:
-		text, err := w.GetText()
-		if err != nil {
-			return false
-		}
-		v.controller.Enter(text)
-	case *gtk.ComboBoxText:
-		activeField := v.widgetToField(&w.Widget)
-		v.controller.SetActiveField(activeField)
-		text := w.GetActiveText()
-		v.controller.Enter(text)
-	}
-
-	return false
-}
-
-func (v *entryView) onXITClicked(button *gtk.CheckButton) bool {
-	if v.controller == nil {
-		return false
-	}
-	v.controller.SetXITActive(button.GetActive())
-	return true
-}
-
-func (v *entryView) onLogButtonClicked(button *gtk.Button) bool {
-	v.controller.Log()
-	return true
-}
-
-func (v *entryView) onClearButtonClicked(button *gtk.Button) bool {
-	v.controller.Clear()
-	return true
-}
-
-func (v *entryView) setTextWithoutChangeEvent(f func(string), value string) {
-	v.ignoreInput = true
-	defer func() { v.ignoreInput = false }()
-	f(value)
+func (v *entryView) SetEntryController(controller EntryController) {
+	v.controller = controller
 }
 
 func (v *entryView) SetUTC(text string) {
-	v.utc.SetText(text)
+	v.utcLabel.SetText(text)
 }
 
 func (v *entryView) SetMyCall(text string) {
-	v.myCall.SetText(text)
+	v.myCallLabel.SetText(text)
 }
 
 func (v *entryView) SetFrequency(frequency core.Frequency) {
-	v.frequency.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
+	v.frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
 }
 
 func (v *entryView) SetCallsign(text string) {
-	v.setTextWithoutChangeEvent(v.callsign.SetText, text)
-}
-
-func (v *entryView) SetTheirExchange(index int, text string) {
-	i := index - 1
-	if i < 0 || i >= len(v.theirExchanges) {
-		return
-	}
-	v.setTextWithoutChangeEvent(v.theirExchanges[i].SetText, text)
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	v.callsign.SetText(text)
 }
 
 func (v *entryView) SetBand(text string) {
-	v.setTextWithoutChangeEvent(func(s string) { v.band.SetActiveID(s) }, text)
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	idx := v.band.FindText(text)
+	if idx >= 0 {
+		v.band.SetCurrentIndex(idx)
+	}
 }
 
 func (v *entryView) SetMode(text string) {
-	v.setTextWithoutChangeEvent(func(s string) { v.mode.SetActiveID(s) }, text)
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	idx := v.mode.FindText(text)
+	if idx >= 0 {
+		v.mode.SetCurrentIndex(idx)
+	}
 }
 
 func (v *entryView) SetXITActive(active bool) {
-	if active == v.xit.GetActive() {
+	if v.xit.IsChecked() == active {
 		return
 	}
-	v.xit.SetActive(active)
+	v.xit.SetChecked(active)
 }
 
 func (v *entryView) SetXIT(active bool, offset core.Frequency) {
 	if active {
-		v.xit.SetLabel(fmt.Sprintf("XIT %s", offset))
+		v.xit.SetText(fmt.Sprintf("XIT %s", offset))
 	} else {
-		v.xit.SetLabel("XIT")
+		v.xit.SetText("XIT")
 	}
 }
 
@@ -292,157 +324,143 @@ func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.
 	}
 
 	if ptt {
-		style.AddClass(&v.txIndicator.Widget, txClass)
+		v.txIndicator.SetStyleSheet(TXIndicatorActiveStyle)
 	} else {
-		style.RemoveClass(&v.txIndicator.Widget, txClass)
+		v.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
 	}
-
 	v.txIndicator.SetText(text)
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {
 	i := index - 1
-	if i < 0 || i >= len(v.myExchanges) {
+	if i < 0 || i >= len(v.myExchangeFields) {
 		return
 	}
-	v.setTextWithoutChangeEvent(v.myExchanges[i].SetText, text)
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	v.myExchangeFields[i].SetText(text)
 }
 
-func (v *entryView) SetMyExchangeFields(fields []core.ExchangeField) {
-	v.setExchangeFields(fields, v.myExchangesParent, &v.myExchanges)
+func (v *entryView) SetTheirExchange(index int, text string) {
+	i := index - 1
+	if i < 0 || i >= len(v.theirExchangeFields) {
+		return
+	}
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	v.theirExchangeFields[i].SetText(text)
 }
 
-func (v *entryView) SetTheirExchangeFields(fields []core.ExchangeField) {
-	v.setExchangeFields(fields, v.theirExchangesParent, &v.theirExchanges)
+func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
+	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false)
+	v.setExchangeFields(theirExchangeFields, &v.theirExchangeFields, true)
 }
 
-func (v *entryView) setExchangeFields(fields []core.ExchangeField, parent *gtk.Grid, entries *[]*gtk.Entry) {
-	for _, entry := range *entries {
-		entry.Destroy()
-		parent.RemoveColumn(0)
+func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool) {
+	// Remove old fields
+	for _, f := range *editFields {
+		f.SetParent(nil)
+		f.Delete()
 	}
 
-	*entries = make([]*gtk.Entry, len(fields))
+	// Create new fields
+	*editFields = make([]*qtlib.QLineEdit, len(fields))
 	for i, field := range fields {
-		entry, err := gtk.EntryNew()
-		if err != nil {
-			log.Printf("cannot create entry for %s: %v", field.Field, err)
-			break
-		}
-		entry.SetName(string(field.Field))
-		entry.SetPlaceholderText(field.Short)
-		entry.SetTooltipText(field.Short) // TODO use field.Hint
-		entry.SetHExpand(true)
-		entry.SetHAlign(gtk.ALIGN_FILL)
-		entry.SetWidthChars(4)
-		entry.SetSensitive(!field.ReadOnly)
+		editField := qtlib.NewQLineEdit2()
+		editField.SetObjectName(*qtlib.NewQAnyStringView3(string(field.Field)))
+		editField.SetPlaceholderText(field.Short)
+		editField.SetEnabled(!field.ReadOnly)
 
-		(*entries)[i] = entry
-		parent.Add(entry)
-		v.addEntryEventHandlers(&entry.Widget)
+		if isTheirRow {
+			editField.SetStyleSheet(v.theirEntryStyle)
+		}
+
+		v.connectEditSignals(editField, core.TheirExchangeField(i+1), isTheirRow)
+		(*editFields)[i] = editField
 	}
-	parent.ShowAll()
 }
 
 func (v *entryView) SetActiveField(field core.EntryField) {
-	widget := v.fieldToWidget(field)
-	widget.GrabFocus()
+	switch field {
+	case core.CallsignField, core.OtherField:
+		v.callsign.SetFocus()
+	case core.BandField:
+		v.band.SetFocus()
+	case core.ModeField:
+		v.mode.SetFocus()
+	default:
+		switch {
+		case field.IsTheirExchange():
+			i := field.ExchangeIndex() - 1
+			if i >= 0 && i < len(v.theirExchangeFields) {
+				v.theirExchangeFields[i].SetFocus()
+			}
+		case field.IsMyExchange():
+			i := field.ExchangeIndex() - 1
+			if i >= 0 && i < len(v.myExchangeFields) {
+				v.myExchangeFields[i].SetFocus()
+			}
+		}
+	}
 }
 
 func (v *entryView) SelectText(field core.EntryField, s string) {
-	entry := v.fieldToEntry(field)
-	if entry == nil {
+	edit := v.fieldToEntry(field)
+	if edit == nil {
 		return
 	}
-	text, err := entry.GetText()
-	if err != nil {
-		return
-	}
+	text := edit.Text()
 	index := strings.Index(strings.ToUpper(text), strings.ToUpper(s))
 	if index == -1 {
 		return
 	}
-	entry.SelectRegion(index, index+len(s))
+	edit.SetSelection(index, len(s))
 }
 
-func (v *entryView) fieldToWidget(field core.EntryField) *gtk.Widget {
+func (v *entryView) fieldToEntry(field core.EntryField) *qtlib.QLineEdit {
 	switch field {
-	case core.CallsignField:
-		return &v.callsign.Widget
-	case core.BandField:
-		return &v.band.Widget
-	case core.ModeField:
-		return &v.mode.Widget
-	case core.OtherField:
-		return &v.callsign.Widget
-	}
-	switch {
-	case field.IsMyExchange():
-		i := field.ExchangeIndex() - 1
-		return &v.myExchanges[i].Widget
-	case field.IsTheirExchange():
-		i := field.ExchangeIndex() - 1
-		return &v.theirExchanges[i].Widget
-	default:
-		log.Fatalf("Unknown entry field %s", field)
-	}
-	panic("this is never reached")
-}
-
-func (v *entryView) fieldToEntry(field core.EntryField) *gtk.Entry {
-	switch field {
-	case core.CallsignField:
-		return v.callsign
-	case core.OtherField:
+	case core.CallsignField, core.OtherField:
 		return v.callsign
 	}
 	switch {
 	case field.IsMyExchange():
 		i := field.ExchangeIndex() - 1
-		return v.myExchanges[i]
+		if i >= 0 && i < len(v.myExchangeFields) {
+			return v.myExchangeFields[i]
+		}
 	case field.IsTheirExchange():
 		i := field.ExchangeIndex() - 1
-		return v.theirExchanges[i]
+		if i >= 0 && i < len(v.theirExchangeFields) {
+			return v.theirExchangeFields[i]
+		}
 	}
 	return nil
 }
 
-func (v *entryView) widgetToField(widget *gtk.Widget) core.EntryField {
-	name, _ := widget.GetName()
-	switch name {
-	case "callsignEntry":
-		return core.CallsignField
-	case "bandCombo":
-		return core.BandField
-	case "modeCombo":
-		return core.ModeField
-	default:
-		if core.IsExchangeField(name) {
-			return core.EntryField(name)
-		}
-		return core.OtherField
-	}
-}
-
-const (
-	entryDuplicateClass style.Class = "entry-duplicate"
-	entryEditingClass   style.Class = "entry-editing"
-	txClass             style.Class = "transmitting"
-)
-
 func (v *entryView) SetDuplicateMarker(duplicate bool) {
-	if duplicate {
-		style.AddClass(&v.entryRoot.Widget, entryDuplicateClass)
-	} else {
-		style.RemoveClass(&v.entryRoot.Widget, entryDuplicateClass)
-	}
+	v.isDuplicate = duplicate
+	v.updateMarkerStyle()
 }
 
 func (v *entryView) SetEditingMarker(editing bool) {
-	if editing {
-		style.AddClass(&v.entryRoot.Widget, entryEditingClass)
-	} else {
-		style.RemoveClass(&v.entryRoot.Widget, entryEditingClass)
+	v.isEditing = editing
+	v.updateMarkerStyle()
+}
+
+func (v *entryView) updateMarkerStyle() {
+	if v.root == nil {
+		return
+	}
+
+	switch {
+	case v.isDuplicate && v.isEditing:
+		v.root.SetStyleSheet(EntryDuplicateStyle)
+	case v.isDuplicate:
+		v.root.SetStyleSheet(EntryDuplicateStyle)
+	case v.isEditing:
+		v.root.SetStyleSheet(EntryEditingStyle)
+	default:
+		v.root.SetStyleSheet(EntryNormalStyle)
 	}
 }
 

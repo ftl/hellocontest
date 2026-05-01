@@ -2,13 +2,10 @@ package ui
 
 import (
 	"fmt"
-	"log"
 
-	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 )
 
-// KeyerController controls the keyer.
 type KeyerController interface {
 	Send(int)
 	Stop()
@@ -18,144 +15,119 @@ type KeyerController interface {
 }
 
 type keyerView struct {
-	controller KeyerController
-
-	buttons                 []*gtk.Button
-	stopButton              *gtk.Button
-	openKeyerSettingsButton *gtk.Button
-	speedEntry              *gtk.SpinButton
+	widget     *qtlib.QWidget
+	buttons    [4]*qtlib.QPushButton
+	stopButton *qtlib.QPushButton
+	macrosBtn  *qtlib.QPushButton
+	speedSpin  *qtlib.QSpinBox
 
 	cqLabelText  string
 	parrotActive bool
-
-	ignoreChangedEvent bool
+	ignoreInput  bool
+	controller   KeyerController
 }
 
-func setupKeyerView(builder *gtk.Builder) *keyerView {
-	result := new(keyerView)
+func newKeyerView() *keyerView {
+	v := &keyerView{}
+	v.widget = qtlib.NewQWidget2()
+	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("keyerButtons"))
+	layout := qtlib.NewQGridLayout(v.widget)
+	layout.SetContentsMargins(4, 5, 4, 5)
+	layout.SetSpacing(5)
 
-	result.buttons = make([]*gtk.Button, 4)
-	for i := 0; i < len(result.buttons); i++ {
-		result.buttons[i] = getUI(builder, fmt.Sprintf("f%dButton", i+1)).(*gtk.Button)
-		result.buttons[i].Connect("clicked", result.onButton(i))
+	v.stopButton = qtlib.NewQPushButton3("ESC: Stop")
+	layout.AddWidget2(v.stopButton.QWidget, 0, 0)
+	v.stopButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.Stop()
+		}
+	})
+
+	for i := range 4 {
+		idx := i
+		btn := qtlib.NewQPushButton3(fmt.Sprintf("F%d", i+1))
+		v.buttons[i] = btn
+		layout.AddWidget2(btn.QWidget, 0, i+1)
+		btn.OnClicked(func() {
+			if v.controller == nil {
+				return
+			}
+			v.controller.Send(idx)
+		})
 	}
 
-	result.stopButton = getUI(builder, "stopButton").(*gtk.Button)
-	result.stopButton.Connect("clicked", result.onStop)
+	v.macrosBtn = qtlib.NewQPushButton3("Macros...")
+	v.macrosBtn.SetObjectName(*qtlib.NewQAnyStringView3("keyerSettingsButton"))
+	layout.AddWidget2(v.macrosBtn.QWidget, 1, 0)
+	v.macrosBtn.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.OpenKeyerSettings()
+		}
+	})
 
-	result.openKeyerSettingsButton = getUI(builder, "openKeyerSettingsButton").(*gtk.Button)
-	result.openKeyerSettingsButton.Connect("clicked", result.onOpenKeyerSettings)
+	speedLabel := qtlib.NewQLabel3("Speed:")
+	speedLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
+	layout.AddWidget2(speedLabel.QWidget, 1, 3)
 
-	result.speedEntry = getUI(builder, "speedEntry").(*gtk.SpinButton)
-	result.speedEntry.Connect("value-changed", result.onSpeedChanged)
-	result.speedEntry.Connect("focus_out_event", result.onEntryFocusOut)
+	v.speedSpin = qtlib.NewQSpinBox2()
+	v.speedSpin.SetObjectName(*qtlib.NewQAnyStringView3("keyerSpeed"))
+	v.speedSpin.SetMinimum(5)
+	v.speedSpin.SetMaximum(60)
+	v.speedSpin.SetSuffix(" WPM")
+	layout.AddWidget2(v.speedSpin.QWidget, 1, 4)
+	v.speedSpin.OnValueChanged(func(val int) {
+		if v.ignoreInput || v.controller == nil {
+			return
+		}
+		v.controller.EnterSpeed(val)
+	})
+	v.speedSpin.OnFocusOutEvent(func(super func(event *qtlib.QFocusEvent), event *qtlib.QFocusEvent) {
+		super(event)
+		if v.controller != nil {
+			v.controller.Save()
+		}
+	})
 
-	return result
+	return v
 }
 
-func (v *keyerView) doIgnoreChanges(f func()) {
-	if v == nil {
+func (v *keyerView) SetKeyerController(c KeyerController) { v.controller = c }
+
+func (v *keyerView) SetLabel(index int, text string) {
+	if index < 0 || index >= 4 {
 		return
 	}
-
-	v.ignoreChangedEvent = true
-	defer func() {
-		v.ignoreChangedEvent = false
-	}()
-	f()
-}
-
-func (v *keyerView) onEntryFocusOut(widget interface{}, _ *gdk.Event) bool {
-	v.controller.Save()
-	return false
-}
-
-func (k *keyerView) onButton(index int) func(button *gtk.Button) bool {
-	return func(button *gtk.Button) bool {
-		if k.controller == nil {
-			log.Println("onButton: no keyer controller")
-			return false
-		}
-		k.controller.Send(index)
-		return true
-	}
-}
-
-func (k *keyerView) onOpenKeyerSettings(button *gtk.Button) bool {
-	if k.controller == nil {
-		log.Println("onOpenKeyerSettings: no keyer controller")
-		return false
-	}
-	k.controller.OpenKeyerSettings()
-	return true
-}
-
-func (k *keyerView) onStop(button *gtk.Button) bool {
-	if k.controller == nil {
-		log.Println("onStop: no keyer controller")
-		return false
-	}
-	k.controller.Stop()
-	return true
-}
-
-func (k *keyerView) onSpeedChanged(button *gtk.SpinButton) bool {
-	if k.ignoreChangedEvent {
-		return false
-	}
-	if k.controller == nil {
-		log.Println("onSpeedChanged: no keyer controller")
-		return false
-	}
-
-	k.controller.EnterSpeed(int(button.GetValue()))
-	return true
-}
-
-func (k *keyerView) SetKeyerController(controller KeyerController) {
-	k.controller = controller
-}
-
-func (k *keyerView) SetParrotActive(active bool) {
-	k.parrotActive = active
-	k.updateCQButtonLabel()
-}
-
-func (k *keyerView) updateCQButtonLabel() {
-	k.buttons[0].SetLabel(k.buildLabel(0, k.cqLabelText))
-}
-
-func (k *keyerView) SetLabel(index int, text string) {
 	if index == 0 {
-		k.cqLabelText = text
+		v.cqLabelText = text
 	}
-
-	label := k.buildLabel(index, text)
-	k.buttons[index].SetLabel(label)
+	v.buttons[index].SetText(v.buildLabel(index, text))
 }
 
-func (k *keyerView) buildLabel(index int, text string) string {
-	var decoration string
-	if index == 0 && k.parrotActive {
-		decoration = parrot
-	} else {
-		decoration = fmt.Sprintf("F%d", index+1)
+func (v *keyerView) buildLabel(index int, text string) string {
+	decoration := fmt.Sprintf("F%d", index+1)
+	if index == 0 && v.parrotActive {
+		decoration = "🦜"
 	}
-
 	if text == "" {
 		return decoration
 	}
 	return fmt.Sprintf("%s: %s", decoration, text)
 }
 
-func (k *keyerView) SetPattern(index int, text string) {
-	k.buttons[index].SetTooltipText(fmt.Sprintf("F%d: %s", index+1, text))
+func (v *keyerView) SetPattern(index int, text string) {
+	if index < 0 || index >= 4 {
+		return
+	}
+	v.buttons[index].SetToolTip(fmt.Sprintf("F%d: %s", index+1, text))
 }
 
-func (k *keyerView) Speed() int {
-	return int(k.speedEntry.GetValue())
+func (v *keyerView) SetSpeed(wpm int) {
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	v.speedSpin.SetValue(wpm)
 }
 
-func (k *keyerView) SetSpeed(speed int) {
-	k.speedEntry.SetValue(float64(speed))
+func (v *keyerView) SetParrotActive(active bool) {
+	v.parrotActive = active
+	v.buttons[0].SetText(v.buildLabel(0, v.cqLabelText))
 }

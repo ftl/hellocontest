@@ -3,6 +3,7 @@
 *.cabrillo
 *.adif
 hellocontest
+hellocontest-qt6
 hellocontest*.deb
 hellocontest*.AppImage
 .appimage/*.desktop

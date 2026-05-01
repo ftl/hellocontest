@@ -1,94 +1,53 @@
 package ui
 
 import (
-	"fmt"
-	"log"
-
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
 )
 
+var statusServiceOrder = []struct {
+	svc  core.Service
+	name string
+}{
+	{core.RadioService, "Radio"},
+	{core.KeyerService, "CW"},
+	{core.DXCCService, "DXCC"},
+	{core.SCPService, "SCP"},
+	{core.CallHistoryService, "CH"},
+	{core.MapService, "Map"},
+}
+
 type statusView struct {
-	colors colorProvider
-
-	radioLabel       *gtk.Label
-	keyerLabel       *gtk.Label
-	dxccLabel        *gtk.Label
-	scpLabel         *gtk.Label
-	callHistoryLabel *gtk.Label
-	mapLabel         *gtk.Label
+	statusBar *qtlib.QStatusBar
+	labels    map[core.Service]*qtlib.QLabel
 }
 
-const (
-	availableColor   = "theme_fg_color"
-	unavailableColor = "unfocused_insensitive_color"
-)
-
-func setupStatusView(builder *gtk.Builder, colors colorProvider) *statusView {
-	result := &statusView{
-		colors: colors,
+func newStatusView() *statusView {
+	v := &statusView{labels: make(map[core.Service]*qtlib.QLabel)}
+	v.statusBar = qtlib.NewQStatusBar2()
+	v.statusBar.SetObjectName(*qtlib.NewQAnyStringView3("statusBar"))
+	for _, s := range statusServiceOrder {
+		lbl := qtlib.NewQLabel3(s.name)
+		v.applyStyle(lbl, false)
+		v.statusBar.AddWidget(lbl.QWidget)
+		v.labels[s.svc] = lbl
 	}
-
-	result.radioLabel = getUI(builder, "radioStatusLabel").(*gtk.Label)
-	result.keyerLabel = getUI(builder, "keyerStatusLabel").(*gtk.Label)
-	result.dxccLabel = getUI(builder, "dxccStatusLabel").(*gtk.Label)
-	result.scpLabel = getUI(builder, "scpStatusLabel").(*gtk.Label)
-	result.callHistoryLabel = getUI(builder, "callHistoryStatusLabel").(*gtk.Label)
-	result.mapLabel = getUI(builder, "mapStatusLabel").(*gtk.Label)
-
-	style := result.indicatorStyle(false)
-	setStyledText(result.radioLabel, style, "Radio")
-	setStyledText(result.keyerLabel, style, "CW")
-	setStyledText(result.dxccLabel, style, "DXCC")
-	setStyledText(result.scpLabel, style, "SCP")
-	setStyledText(result.callHistoryLabel, style, "CH")
-	setStyledText(result.mapLabel, style, "Map")
-
-	return result
-}
-
-func (v *statusView) indicatorStyle(available bool) string {
-	var color string
-	if available {
-		color = availableColor
-	} else {
-		color = unavailableColor
-	}
-	return fmt.Sprintf("foreground='%s'", v.colors.ColorByName(color).ToWeb())
+	return v
 }
 
 func (v *statusView) StatusChanged(service core.Service, available bool) {
-	log.Printf("service status changed: %d, %t", service, available)
-	label, text := v.serviceLabel(service)
-	if label == nil {
-		log.Printf("unknown service %d", service)
+	lbl, ok := v.labels[service]
+	if !ok {
 		return
 	}
-
-	style := v.indicatorStyle(available)
-	setStyledText(label, style, text)
+	v.applyStyle(lbl, available)
 }
 
-func (v *statusView) serviceLabel(service core.Service) (*gtk.Label, string) {
-	switch service {
-	case core.RadioService:
-		return v.radioLabel, "Radio"
-	case core.KeyerService:
-		return v.keyerLabel, "CW"
-	case core.DXCCService:
-		return v.dxccLabel, "DXCC"
-	case core.SCPService:
-		return v.scpLabel, "SCP"
-	case core.CallHistoryService:
-		return v.callHistoryLabel, "CH"
-	case core.MapService:
-		return v.mapLabel, "Map"
-	default:
-		return nil, ""
+func (v *statusView) applyStyle(lbl *qtlib.QLabel, available bool) {
+	if available {
+		lbl.SetStyleSheet("")
+	} else {
+		lbl.SetStyleSheet(MutedTextStyle)
 	}
-}
-
-func setStyledText(label *gtk.Label, style, text string) {
-	label.SetMarkup(fmt.Sprintf(`<span %s>%s</span>`, style, text))
 }

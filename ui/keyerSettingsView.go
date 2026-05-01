@@ -2,14 +2,15 @@ package ui
 
 import (
 	"fmt"
-	"log"
 
-	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
 )
 
+const keyerMacroCount = 4
+
+// KeyerSettingsController is the callback surface the keyer settings dialog uses.
 type KeyerSettingsController interface {
 	EnterLabel(core.Workmode, int, string)
 	EnterMacro(core.Workmode, int, string)
@@ -19,190 +20,221 @@ type KeyerSettingsController interface {
 }
 
 type keyerSettingsView struct {
-	parent     *gtk.Dialog
-	controller KeyerSettingsController
+	dialog *qtlib.QDialog
 
-	spLabels              []*gtk.Entry
-	spMacros              []*gtk.Entry
-	runLabels             []*gtk.Entry
-	runMacros             []*gtk.Entry
-	labels                [][]*gtk.Entry
-	macros                [][]*gtk.Entry
-	presetCombo           *gtk.ComboBoxText
-	messageLabel          *gtk.Label
-	parrotIntervalSeconds *gtk.SpinButton
-	close                 *gtk.Button
+	root *qtlib.QWidget
 
+	// labels[workmode-1][index], macros[workmode-1][index]
+	labels [2][keyerMacroCount]*qtlib.QLineEdit
+	macros [2][keyerMacroCount]*qtlib.QLineEdit
+
+	presetCombo *qtlib.QComboBox
+	parrotSpin  *qtlib.QSpinBox
+
+	messageLabel *qtlib.QLabel
+	closeBtn     *qtlib.QPushButton
+
+	controller         KeyerSettingsController
 	ignoreChangedEvent bool
 }
 
-func setupKeyerSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller KeyerSettingsController) *keyerSettingsView {
-	result := new(keyerSettingsView)
-	result.parent = parent
-	result.controller = controller
-
-	const macroCount = 4
-	result.spLabels = make([]*gtk.Entry, macroCount)
-	result.spMacros = make([]*gtk.Entry, macroCount)
-	result.runLabels = make([]*gtk.Entry, macroCount)
-	result.runMacros = make([]*gtk.Entry, macroCount)
-	for i := 0; i < macroCount; i++ {
-		result.spLabels[i] = result.setupEntry(builder, "spF%dLabel", core.SearchPounce, i, result.onLabelChanged)
-		result.spMacros[i] = result.setupEntry(builder, "spF%dMacro", core.SearchPounce, i, result.onMacroChanged)
-		result.runLabels[i] = result.setupEntry(builder, "runF%dLabel", core.Run, i, result.onLabelChanged)
-		result.runMacros[i] = result.setupEntry(builder, "runF%dMacro", core.Run, i, result.onMacroChanged)
-	}
-
-	result.labels = [][]*gtk.Entry{result.spLabels, result.runLabels}
-	result.macros = [][]*gtk.Entry{result.spMacros, result.runMacros}
-
-	result.presetCombo = getUI(builder, "keyerPresetCombo").(*gtk.ComboBoxText)
-	result.presetCombo.Connect("changed", result.onPresetChanged)
-
-	result.parrotIntervalSeconds = getUI(builder, "parrotIntervalSpin").(*gtk.SpinButton)
-	result.parrotIntervalSeconds.Connect("value-changed", result.onParrotIntervalChanged)
-	result.parrotIntervalSeconds.Connect("focus_out_event", result.onEntryFocusOut)
-
-	result.messageLabel = getUI(builder, "keyerSettingsMessageLabel").(*gtk.Label)
-
-	result.close = getUI(builder, "keyerSettingsCloseButton").(*gtk.Button)
-	result.close.Connect("clicked", result.onClosePressed)
-	result.close.SetCanDefault(true)
-
-	return result
-}
-
-func (v *keyerSettingsView) setupEntry(builder *gtk.Builder, idPattern string, workmode core.Workmode, i int, listenerFactory func(core.Workmode, int) func(*gtk.Entry) bool) *gtk.Entry {
-	result := getUI(builder, fmt.Sprintf(idPattern, i+1)).(*gtk.Entry)
-	result.Connect("changed", listenerFactory(workmode, i))
-	result.Connect("focus_out_event", v.onEntryFocusOut)
-	return result
-}
-
-func (v *keyerSettingsView) doIgnoreChanges(f func()) {
-	if v == nil {
-		return
-	}
-
+func (v *keyerSettingsView) doIgnore(f func()) {
 	v.ignoreChangedEvent = true
-	defer func() {
-		v.ignoreChangedEvent = false
-	}()
+	defer func() { v.ignoreChangedEvent = false }()
 	f()
 }
 
-func (v *keyerSettingsView) onClosePressed(_ *gtk.Button) {
-	v.controller.Save()
-	v.parent.Close()
+func newKeyerSettingsView(dialog *qtlib.QDialog, controller KeyerSettingsController) *keyerSettingsView {
+	v := &keyerSettingsView{dialog: dialog, controller: controller}
+
+	v.root = qtlib.NewQWidget2()
+	root := qtlib.NewQVBoxLayout(v.root)
+
+	templatesLabel := qtlib.NewQLabel2()
+	templatesLabel.SetTextFormat(qtlib.RichText)
+	templatesLabel.SetOpenExternalLinks(true)
+	templatesLabel.SetText(`<b>Templates:</b>
+<table>
+<tr><td>{{.MyCall}}</td><td>the station callsign</td></tr>
+<tr><td>{{.MyReport}}</td><td>my report</td></tr>
+<tr><td>{{.MyNumber}}</td><td>my QSOnumber (t=0, n=9)</td></tr>
+<tr><td>{{.MyXchange}}</td><td>all exchange fields concatenated, except report and number</td></tr>
+<tr><td>{{.MyExchange}}</td><td>all exchange fields concatenated, including report and number</td></tr>
+<tr><td>{{.TheirCall}}</td><td>their callsign</td></tr>
+</table>
+For more details see <a href="https://github.com/ftl/hellocontest/wiki/Main-Window#cw-macros">the wiki</a>.
+`)
+	root.AddWidget(templatesLabel.QWidget)
+
+	tabs := qtlib.NewQTabWidget2()
+	tabs.AddTab(v.buildMacroTab(core.SearchPounce), "Search && Pounce")
+	tabs.AddTab(v.buildMacroTab(core.Run), "Run")
+	root.AddWidget(tabs.QWidget)
+
+	root.AddWidget(v.buildPresetGroup().QWidget)
+	root.AddWidget(v.buildParrotGroup().QWidget)
+
+	v.messageLabel = qtlib.NewQLabel3("")
+	root.AddWidget(v.messageLabel.QWidget)
+
+	root.AddWidget(v.buildButtonRow())
+
+	return v
 }
 
-func (v *keyerSettingsView) onEntryFocusOut(_ any, _ *gdk.Event) bool {
-	v.controller.Save()
-	return false
+func (v *keyerSettingsView) buildMacroTab(workmode core.Workmode) *qtlib.QWidget {
+	page := qtlib.NewQWidget2()
+	grid := qtlib.NewQGridLayout(page)
+
+	// Header row
+	grid.AddWidget2(qtlib.NewQLabel3("Key").QWidget, 0, 0)
+	grid.AddWidget2(qtlib.NewQLabel3("Label").QWidget, 0, 1)
+	grid.AddWidget2(qtlib.NewQLabel3("Macro").QWidget, 0, 2)
+
+	idx := int(workmode) - 1
+	for i := 0; i < keyerMacroCount; i++ {
+		row := i + 1
+		slot := i
+
+		keyLabel := qtlib.NewQLabel3(fmt.Sprintf("F%d:", i+1))
+		grid.AddWidget2(keyLabel.QWidget, row, 0)
+
+		labelEdit := qtlib.NewQLineEdit2()
+		labelEdit.OnTextChanged(func(text string) {
+			if v.ignoreChangedEvent {
+				return
+			}
+			v.controller.EnterLabel(workmode, slot, text)
+		})
+		labelEdit.OnFocusOutEvent(func(super func(ev *qtlib.QFocusEvent), ev *qtlib.QFocusEvent) {
+			super(ev)
+			v.controller.Save()
+		})
+		grid.AddWidget2(labelEdit.QWidget, row, 1)
+		v.labels[idx][slot] = labelEdit
+
+		macroEdit := qtlib.NewQLineEdit2()
+		macroEdit.OnTextChanged(func(text string) {
+			if v.ignoreChangedEvent {
+				return
+			}
+			v.controller.EnterMacro(workmode, slot, text)
+		})
+		macroEdit.OnFocusOutEvent(func(super func(ev *qtlib.QFocusEvent), ev *qtlib.QFocusEvent) {
+			super(ev)
+			v.controller.Save()
+		})
+		grid.AddWidget2(macroEdit.QWidget, row, 2)
+		v.macros[idx][slot] = macroEdit
+	}
+
+	return page
 }
 
-func (v *keyerSettingsView) onLabelChanged(workmode core.Workmode, index int) func(entry *gtk.Entry) bool {
-	return func(entry *gtk.Entry) bool {
+func (v *keyerSettingsView) buildPresetGroup() *qtlib.QGroupBox {
+	box := qtlib.NewQGroupBox3("Preset")
+	form := qtlib.NewQFormLayout(box.QWidget)
+
+	v.presetCombo = qtlib.NewQComboBox2()
+	v.presetCombo.OnCurrentTextChanged(func(text string) {
 		if v.ignoreChangedEvent {
-			return false
+			return
 		}
-		if v.controller == nil {
-			log.Println("onLabelChanged: no keyer controller")
-			return false
-		}
-		text, err := entry.GetText()
-		if err != nil {
-			log.Println(err)
-			return false
-		}
-		v.controller.EnterLabel(workmode, index, text)
-		return false
-	}
+		v.controller.SelectPreset(text)
+	})
+	form.AddRow3("Load preset:", v.presetCombo.QWidget)
+
+	return box
 }
 
-func (v *keyerSettingsView) onMacroChanged(workmode core.Workmode, index int) func(entry *gtk.Entry) bool {
-	return func(entry *gtk.Entry) bool {
+func (v *keyerSettingsView) buildParrotGroup() *qtlib.QGroupBox {
+	box := qtlib.NewQGroupBox3("CQ Parrot")
+	form := qtlib.NewQFormLayout(box.QWidget)
+
+	v.parrotSpin = qtlib.NewQSpinBox2()
+	v.parrotSpin.SetMinimum(1)
+	v.parrotSpin.SetMaximum(600)
+	v.parrotSpin.SetSuffix(" s")
+	v.parrotSpin.OnValueChanged(func(val int) {
 		if v.ignoreChangedEvent {
-			return false
+			return
 		}
-		if v.controller == nil {
-			log.Println("onMacroChanged: no keyer controller")
-			return false
-		}
-		text, err := entry.GetText()
-		if err != nil {
-			log.Println(err)
-			return false
-		}
-		v.controller.EnterMacro(workmode, index, text)
-		return false
-	}
-}
-
-func (v *keyerSettingsView) onPresetChanged(combo *gtk.ComboBoxText) bool {
-	if v.ignoreChangedEvent {
-		return false
-	}
-	if v.controller == nil {
-		log.Println("onPresetChanged: no keyer controller")
-		return false
-	}
-
-	v.controller.SelectPreset(combo.GetActiveText())
-	return true
-}
-
-func (v *keyerSettingsView) onParrotIntervalChanged(spin *gtk.SpinButton) bool {
-	if v.ignoreChangedEvent {
-		return false
-	}
-	if v.controller == nil {
-		log.Println("onParrotIntervalChanged: no keyer controller")
-		return false
-	}
-
-	v.controller.EnterParrotIntervalSeconds(int(spin.GetValue()))
-	return true
-}
-
-func (v *keyerSettingsView) SetKeyerController(controller KeyerSettingsController) {
-	v.controller = controller
-}
-
-func (v *keyerSettingsView) SetLabel(workmode core.Workmode, index int, text string) {
-	v.labels[int(workmode)-1][index].SetText(text)
-}
-
-func (v *keyerSettingsView) SetMacro(workmode core.Workmode, index int, text string) {
-	v.macros[int(workmode)-1][index].SetText(text)
-}
-
-func (v *keyerSettingsView) SetPresetNames(names []string) {
-	v.doIgnoreChanges(func() {
-		v.presetCombo.RemoveAll()
-		v.presetCombo.Append("", "")
-		for _, name := range names {
-			v.presetCombo.Append(name, name)
-		}
+		v.controller.EnterParrotIntervalSeconds(val)
 	})
-}
-
-func (v *keyerSettingsView) SetPreset(name string) {
-	v.doIgnoreChanges(func() {
-		v.presetCombo.SetActiveID(name)
+	v.parrotSpin.OnFocusOutEvent(func(super func(ev *qtlib.QFocusEvent), ev *qtlib.QFocusEvent) {
+		super(ev)
+		v.controller.Save()
 	})
+	form.AddRow3("Repeat interval:", v.parrotSpin.QWidget)
+
+	return box
 }
 
-func (v *keyerSettingsView) SetParrotIntervalSeconds(interval int) {
-	v.doIgnoreChanges(func() {
-		v.parrotIntervalSeconds.SetValue(float64(interval))
+func (v *keyerSettingsView) buildButtonRow() *qtlib.QWidget {
+	line := qtlib.NewQWidget2()
+	hbox := qtlib.NewQHBoxLayout(line)
+	hbox.SetContentsMargins(0, 0, 0, 0)
+	hbox.AddStretch()
+
+	v.closeBtn = qtlib.NewQPushButton3("Close")
+	v.closeBtn.OnClicked(func() {
+		v.controller.Save()
+		v.dialog.Reject()
 	})
+	hbox.AddWidget(v.closeBtn.QWidget)
+
+	return line
 }
 
-func (v *keyerSettingsView) ShowMessage(args ...interface{}) {
+// keyer.SettingsView implementation
+
+func (v *keyerSettingsView) ShowMessage(args ...any) {
 	v.messageLabel.SetText(fmt.Sprint(args...))
 }
 
 func (v *keyerSettingsView) ClearMessage() {
 	v.messageLabel.SetText("")
+}
+
+func (v *keyerSettingsView) SetLabel(workmode core.Workmode, index int, text string) {
+	idx := int(workmode) - 1
+	if idx < 0 || idx >= len(v.labels) || index < 0 || index >= keyerMacroCount {
+		return
+	}
+	v.doIgnore(func() { v.labels[idx][index].SetText(text) })
+}
+
+func (v *keyerSettingsView) SetMacro(workmode core.Workmode, index int, text string) {
+	idx := int(workmode) - 1
+	if idx < 0 || idx >= len(v.macros) || index < 0 || index >= keyerMacroCount {
+		return
+	}
+	v.doIgnore(func() { v.macros[idx][index].SetText(text) })
+}
+
+func (v *keyerSettingsView) SetPresetNames(names []string) {
+	v.doIgnore(func() {
+		v.presetCombo.Clear()
+		v.presetCombo.AddItem("")
+		for _, n := range names {
+			v.presetCombo.AddItem(n)
+		}
+	})
+}
+
+func (v *keyerSettingsView) SetPreset(name string) {
+	v.doIgnore(func() {
+		idx := v.presetCombo.FindText(name)
+		if idx < 0 {
+			idx = 0
+		}
+		v.presetCombo.SetCurrentIndex(idx)
+	})
+}
+
+func (v *keyerSettingsView) SetParrotIntervalSeconds(interval int) {
+	if interval <= 0 {
+		interval = 1
+	}
+	v.doIgnore(func() { v.parrotSpin.SetValue(interval) })
 }

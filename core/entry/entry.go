@@ -33,8 +33,6 @@ type View interface {
 	SetMyExchange(int, string)
 	SetTheirExchange(int, string)
 
-	SetMyExchangeFields([]core.ExchangeField)
-	SetTheirExchangeFields([]core.ExchangeField)
 	SetActiveField(core.EntryField)
 	SelectText(core.EntryField, string)
 	SetDuplicateMarker(bool)
@@ -190,7 +188,6 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 	c.Clear()
 	c.refreshUTC()
-	c.updateViewExchangeFields()
 }
 
 func (c *Controller) LogbookLoaded() {
@@ -1022,12 +1019,7 @@ func (c *Controller) updateExchangeFields(contest core.Contest) {
 	c.input.myExchange = make([]string, len(contest.MyExchangeFields))
 	c.input.theirExchange = make([]string, len(contest.TheirExchangeFields))
 
-	c.updateViewExchangeFields()
-}
-
-func (c *Controller) updateViewExchangeFields() {
-	c.view.SetMyExchangeFields(c.myExchangeFields)
-	c.view.SetTheirExchangeFields(c.theirExchangeFields)
+	c.Clear()
 }
 
 func (c *Controller) MarkInBandmap() {

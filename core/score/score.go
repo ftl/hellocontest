@@ -8,8 +8,8 @@ import (
 )
 
 type View interface {
-	Show()
-	Hide()
+	ShowTable()
+	ShowGraph()
 
 	ShowScore(score core.Score)
 	SetGoals(points int, multis int)
@@ -72,23 +72,26 @@ func (c *Controller) ScoreChanged(score core.Score) {
 	c.view.ShowScore(c.score)
 }
 
-func (c *Controller) Show() {
-	c.view.Show()
+func (c *Controller) ShowGraph() {
+	c.view.ShowGraph()
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.SetQTCsEnabled(c.qtcsEnabled)
 	c.view.ShowScore(c.score)
 }
 
-func (c *Controller) Hide() {
-	c.view.Hide()
+func (c *Controller) ShowTable() {
+	c.view.ShowTable()
+	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
+	c.view.SetQTCsEnabled(c.qtcsEnabled)
+	c.view.ShowScore(c.score)
 }
 
 var _ View = new(nullView)
 
 type nullView struct{}
 
-func (v *nullView) Show()                {}
-func (v *nullView) Hide()                {}
 func (v *nullView) ShowScore(core.Score) {}
+func (v *nullView) ShowGraph()           {}
+func (v *nullView) ShowTable()           {}
 func (v *nullView) SetGoals(int, int)    {}
 func (v *nullView) SetQTCsEnabled(bool)  {}

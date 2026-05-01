@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 )
 
 type ESMController interface {
@@ -9,39 +9,47 @@ type ESMController interface {
 }
 
 type esmView struct {
-	controller ESMController
-
-	enableButton *gtk.CheckButton
-	messageLabel *gtk.Label
+	widget      *qtlib.QWidget
+	checkbox    *qtlib.QCheckBox
+	msgLabel    *qtlib.QLabel
+	ignoreInput bool
+	controller  ESMController
 }
 
-func setupESMView(builder *gtk.Builder) *esmView {
-	result := new(esmView)
+func newESMView() *esmView {
+	v := &esmView{}
+	v.widget = qtlib.NewQWidget2()
+	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("esm"))
+	layout := qtlib.NewQHBoxLayout(v.widget)
 
-	result.enableButton = getUI(builder, "esmCheckButton").(*gtk.CheckButton)
-	result.messageLabel = getUI(builder, "esmMessageLabel").(*gtk.Label)
+	v.checkbox = qtlib.NewQCheckBox3("ESM")
+	layout.AddWidget(v.checkbox.QWidget)
 
-	result.enableButton.Connect("toggled", result.onEnableButtonToggled)
+	v.msgLabel = qtlib.NewQLabel2()
+	layout.AddWidget(v.msgLabel.QWidget)
 
-	return result
+	v.checkbox.OnStateChanged(func(state int) {
+		if v.ignoreInput || v.controller == nil {
+			return
+		}
+		v.controller.SetESMEnabled(state == int(qtlib.Checked))
+	})
+
+	return v
 }
 
-func (v *esmView) SetESMController(controller ESMController) {
-	v.controller = controller
-}
-
-func (v *esmView) onEnableButtonToggled(button *gtk.CheckButton) bool {
-	v.controller.SetESMEnabled(button.GetActive())
-	return true
-}
+func (v *esmView) SetESMController(c ESMController) { v.controller = c }
 
 func (v *esmView) SetESMEnabled(enabled bool) {
-	if v.enableButton.GetActive() == enabled {
-		return
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	if enabled {
+		v.checkbox.SetCheckState(qtlib.Checked)
+	} else {
+		v.checkbox.SetCheckState(qtlib.Unchecked)
 	}
-	v.enableButton.SetActive(enabled)
 }
 
 func (v *esmView) SetMessage(message string) {
-	v.messageLabel.SetText(message)
+	v.msgLabel.SetText(message)
 }

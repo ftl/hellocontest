@@ -5,78 +5,54 @@ import (
 	"math"
 	"time"
 
-	"github.com/gotk3/gotk3/cairo"
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
-	"github.com/ftl/hellocontest/ui/style"
 )
 
-const useCurvedGraph = false
-
-const timeIndicatorColorName = "hellocontest-timeindicator"
-
-type scoreGraphStyle struct {
-	colorProvider
-
-	backgroundColor style.Color
-	axisColor       style.Color
-	lowZoneColor    style.Color
-	timeFrameColor  style.Color
-	areaAlpha       float64
-	borderAlpha     float64
-
-	fontSize float64
-}
-
-func (s *scoreGraphStyle) Refresh() {
-	s.backgroundColor = s.colorProvider.BackgroundColor()
-	s.axisColor = s.colorProvider.ColorByName(axisColorName)
-	s.lowZoneColor = s.colorProvider.ColorByName(lowZoneColorName)
-	s.timeFrameColor = s.colorProvider.ColorByName(timeIndicatorColorName)
-}
+const (
+	scoreGraphFontSize    = 15
+	scoreGraphAreaAlpha   = 0.4
+	scoreGraphBorderAlpha = 0.8
+	scoreGraphMarginY     = 10.0
+	scoreGraphAxisWidth   = 1.0
+	scoreGraphDivWidth    = 0.5
+	scoreGraphDivCount    = 8
+	scoreGraphDefaultGoal = 60
+	scoreGraphMinWidth    = 320
+	scoreGraphMinHeight   = 160
+)
 
 type scoreGraph struct {
+	widget *qtlib.QWidget
+
 	clock          core.Clock
 	graphs         []core.BandGraph
 	maxPoints      int
 	maxMultis      int
 	pointsGoal     int
 	multisGoal     int
+	pointsBinGoal  float64
+	multisBinGoal  float64
 	timeFrameIndex int
-
-	pointsBinGoal float64
-	multisBinGoal float64
-
-	style          *scoreGraphStyle
-	useCurvedGraph bool
 }
 
-func newScoreGraph(colors colorProvider, clock core.Clock) *scoreGraph {
-	style := &scoreGraphStyle{
-		colorProvider: colors,
-		areaAlpha:     0.4,
-		borderAlpha:   0.8,
-		fontSize:      15,
+func newScoreGraph(clock core.Clock) *scoreGraph {
+	g := &scoreGraph{
+		clock:      clock,
+		pointsGoal: scoreGraphDefaultGoal,
+		multisGoal: scoreGraphDefaultGoal,
 	}
-	style.Refresh()
+	g.widget = qtlib.NewQWidget2()
+	g.widget.SetMinimumWidth(scoreGraphMinWidth)
+	g.widget.SetMinimumHeight(scoreGraphMinHeight)
+	g.updateBinGoals()
 
-	result := &scoreGraph{
-		clock:          clock,
-		graphs:         nil,
-		pointsGoal:     60,
-		multisGoal:     60,
-		style:          style,
-		useCurvedGraph: useCurvedGraph,
-	}
-
-	result.updateBinGoals()
-
-	return result
-}
-
-func (g *scoreGraph) RefreshStyle() {
-	g.style.Refresh()
+	g.widget.OnPaintEvent(func(super func(ev *qtlib.QPaintEvent), ev *qtlib.QPaintEvent) {
+		super(ev)
+		g.paint()
+	})
+	return g
 }
 
 func (g *scoreGraph) SetGraphs(graphs []core.BandGraph) {
@@ -95,7 +71,7 @@ func (g *scoreGraph) SetGraphs(graphs []core.BandGraph) {
 	g.UpdateTimeFrame()
 }
 
-func (g *scoreGraph) SetGoals(points int, multis int) {
+func (g *scoreGraph) SetGoals(points, multis int) {
 	g.pointsGoal = points
 	g.multisGoal = multis
 	g.updateBinGoals()
@@ -135,66 +111,40 @@ type graphLayout struct {
 	timeIndicatorHeight float64
 }
 
-func (g *scoreGraph) Draw(da *gtk.DrawingArea, cr *cairo.Context) {
-	cr.Save()
-	defer cr.Restore()
-
-	// preparations
-	valueCount := 0
-	if len(g.graphs) > 0 {
-		valueCount = len(g.graphs[0].DataPoints)
-	}
-	layout := g.calculateLayout(da, cr, valueCount)
-
-	g.fillBackground(cr)
-	g.drawLowZone(cr, layout)
-
-	// the graph
-	for i := len(g.graphs) - 1; i >= 0; i-- {
-		graph := g.graphs[i]
-		color := bandColor(g.style, graph.Band)
-		cr.SetSourceRGB(color.ToRGB())
-
-		if useCurvedGraph {
-			g.drawDataPointsCurved(cr, layout, graph.DataPoints)
-		} else {
-			g.drawDataPointsRectangular(cr, layout, graph.DataPoints)
-		}
-	}
-
-	g.drawTimeDivisions(cr, layout)
-	g.drawTimeIndicator(cr, layout)
-	g.drawZeroLine(cr, layout)
-}
-
-func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, cr *cairo.Context, valueCount int) graphLayout {
+func (g *scoreGraph) calculateLayout(painter *qtlib.QPainter, valueCount int) graphLayout {
 	result := graphLayout{
-		width:             float64(da.GetAllocatedWidth()),
-		height:            float64(da.GetAllocatedHeight()),
-		marginY:           10.0,
-		axisLineWidth:     1.0,
-		divisionLineWidth: .5,
+		width:             float64(g.widget.Width()),
+		height:            float64(g.widget.Height()),
+		marginY:           scoreGraphMarginY,
+		axisLineWidth:     scoreGraphAxisWidth,
+		divisionLineWidth: scoreGraphDivWidth,
 	}
 
-	cr.SetFontSize(g.style.fontSize)
-	result.leftLegendWidth = cr.TextExtents("00:00").Width + 2.0
-	result.timeIndicatorHeight = cr.TextExtents("Hg").Height + 2.0
+	fm := painter.FontMetrics()
+	result.leftLegendWidth = float64(fm.HorizontalAdvance("00:00")) + 2.0
+	result.timeIndicatorHeight = float64(fm.Height()) + 2.0
 	graphWidth := result.width - result.leftLegendWidth
 
 	result.zeroY = (result.height - result.timeIndicatorHeight) / 2.0
 	result.maxHeight = result.zeroY - result.marginY
-	result.pointsLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxPoints))*g.pointsBinGoal)
-	result.multisLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxMultis))*g.multisBinGoal)
+	if g.maxPoints > 0 {
+		result.pointsLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxPoints))*g.pointsBinGoal)
+	} else {
+		result.pointsLowZoneHeight = result.maxHeight / 2.0
+	}
+	if g.maxMultis > 0 {
+		result.multisLowZoneHeight = math.Min(result.maxHeight/2.0, (result.maxHeight/float64(g.maxMultis))*g.multisBinGoal)
+	} else {
+		result.multisLowZoneHeight = result.maxHeight / 2.0
+	}
 	if valueCount > 0 {
 		result.binWidth = graphWidth / float64(valueCount)
 	} else {
 		result.binWidth = graphWidth
 	}
 
-	const divCount = 8
-	if len(result.divX) != divCount {
-		result.divX = make([]float64, divCount-1)
-	}
+	divCount := scoreGraphDivCount
+	result.divX = make([]float64, divCount-1)
 	divWidth := graphWidth / float64(divCount)
 	for i := range result.divX {
 		result.divX[i] = float64(i+1) * divWidth
@@ -203,55 +153,99 @@ func (g *scoreGraph) calculateLayout(da *gtk.DrawingArea, cr *cairo.Context, val
 	return result
 }
 
-func (g *scoreGraph) fillBackground(cr *cairo.Context) {
-	cr.Save()
-	defer cr.Restore()
+func (g *scoreGraph) paint() {
+	painter := qtlib.NewQPainter2(g.widget.QPaintDevice)
+	defer painter.End()
+	painter.SetRenderHint(qtlib.QPainter__Antialiasing)
 
-	cr.SetSourceRGB(g.style.backgroundColor.ToRGB())
-	cr.Paint()
+	// Get colors from widget palette for theme support
+	palette := qtlib.QGuiApplication_Palette()
+	bgColor := palette.ColorWithCr(qtlib.QPalette__Window)
+	fgColor := palette.ColorWithCr(qtlib.QPalette__WindowText)
+	selectionColor := palette.ColorWithCr(qtlib.QPalette__Highlight)
+
+	bgRGB := [3]int{bgColor.Red(), bgColor.Green(), bgColor.Blue()}
+	fgRGB := [3]int{fgColor.Red(), fgColor.Green(), fgColor.Blue()}
+	selectionRGB := [3]int{selectionColor.Red(), selectionColor.Green(), selectionColor.Blue()}
+
+	// Derive low zone color as mid-tone between bg and fg
+	lowZoneRGB := [3]int{
+		(bgRGB[0] + fgRGB[0]) / 2,
+		(bgRGB[1] + fgRGB[1]) / 2,
+		(bgRGB[2] + fgRGB[2]) / 2,
+	}
+
+	font := qtlib.NewQFont()
+	font.SetPixelSize(scoreGraphFontSize)
+	painter.SetFont(font)
+
+	valueCount := 0
+	if len(g.graphs) > 0 {
+		valueCount = len(g.graphs[0].DataPoints)
+	}
+	layout := g.calculateLayout(painter, valueCount)
+
+	g.fillBackground(painter, layout, bgRGB)
+	g.drawLowZone(painter, layout, lowZoneRGB, fgRGB)
+
+	for i := len(g.graphs) - 1; i >= 0; i-- {
+		g.drawBand(painter, layout, g.graphs[i])
+	}
+
+	g.drawTimeDivisions(painter, layout, fgRGB)
+	g.drawTimeIndicator(painter, layout, fgRGB, selectionRGB)
+	g.drawZeroLine(painter, layout, fgRGB)
 }
 
-func (g *scoreGraph) drawZeroLine(cr *cairo.Context, layout graphLayout) {
-	// the line
-	cr.SetSourceRGB(g.style.axisColor.ToRGB())
-	cr.SetLineWidth(layout.axisLineWidth)
-	cr.MoveTo(layout.leftLegendWidth, layout.zeroY)
-	cr.LineTo(layout.width, layout.zeroY)
-	cr.Stroke()
-
-	// the legend
-	g.drawYLegendAt(cr, layout, layout.zeroY, "0")
+func (g *scoreGraph) fillBackground(painter *qtlib.QPainter, layout graphLayout, bgRGB [3]int) {
+	brush := qtlib.NewQBrush3(qtlib.NewQColor11(bgRGB[0], bgRGB[1], bgRGB[2], 255))
+	painter.FillRect2(0, 0, int(layout.width), int(layout.height), brush)
 }
 
-func (g *scoreGraph) drawYLegendAt(cr *cairo.Context, layout graphLayout, y float64, text string) {
-	textExtents := cr.TextExtents(text)
-	left := layout.leftLegendWidth - textExtents.Width - 2.0
-	bottom := y + textExtents.Height/2.0
-	cr.SetSourceRGB(g.style.axisColor.ToRGB())
-	cr.SetFontSize(g.style.fontSize)
-	cr.MoveTo(left, bottom)
-	cr.ShowText(text)
+func (g *scoreGraph) drawZeroLine(painter *qtlib.QPainter, layout graphLayout, fgRGB [3]int) {
+	pen := qtlib.NewQPen()
+	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	pen.SetWidthF(layout.axisLineWidth)
+	painter.SetPenWithPen(pen)
+
+	painter.DrawLine(qtlib.NewQLineF3(layout.leftLegendWidth, layout.zeroY, layout.width, layout.zeroY))
+
+	g.drawYLegendAt(painter, layout, layout.zeroY, "0", fgRGB)
 }
 
-func (g *scoreGraph) drawTimeDivisions(cr *cairo.Context, layout graphLayout) {
-	cr.SetSourceRGB(g.style.axisColor.ToRGB())
-	cr.SetLineWidth(layout.divisionLineWidth)
-	cr.SetFontSize(g.style.fontSize)
+func (g *scoreGraph) drawYLegendAt(painter *qtlib.QPainter, layout graphLayout, y float64, text string, fgRGB [3]int) {
+	fm := painter.FontMetrics()
+	textWidth := float64(fm.HorizontalAdvance(text))
+	textHeight := float64(fm.Height())
+	left := layout.leftLegendWidth - textWidth - 2.0
+	bottom := y + textHeight/2.0
 
-	// the zero line
-	cr.MoveTo(layout.leftLegendWidth, layout.zeroY-layout.maxHeight)
-	cr.LineTo(layout.leftLegendWidth, layout.zeroY+layout.maxHeight)
-	cr.Stroke()
+	pen := qtlib.NewQPen()
+	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	painter.SetPenWithPen(pen)
+	painter.DrawText(qtlib.NewQPointF3(left, bottom), text)
+}
 
-	// the vertical divisions
+func (g *scoreGraph) drawTimeDivisions(painter *qtlib.QPainter, layout graphLayout, fgRGB [3]int) {
+	pen := qtlib.NewQPen()
+	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	pen.SetWidthF(layout.divisionLineWidth)
+	painter.SetPenWithPen(pen)
+
+	painter.DrawLine(qtlib.NewQLineF3(
+		layout.leftLegendWidth, layout.zeroY-layout.maxHeight,
+		layout.leftLegendWidth, layout.zeroY+layout.maxHeight,
+	))
+
 	for _, x := range layout.divX {
-		cr.MoveTo(x+layout.leftLegendWidth, layout.zeroY-layout.maxHeight)
-		cr.LineTo(x+layout.leftLegendWidth, layout.zeroY+layout.maxHeight)
-		cr.Stroke()
+		painter.DrawLine(qtlib.NewQLineF3(
+			x+layout.leftLegendWidth, layout.zeroY-layout.maxHeight,
+			x+layout.leftLegendWidth, layout.zeroY+layout.maxHeight,
+		))
 	}
 }
 
-func (g *scoreGraph) drawTimeIndicator(cr *cairo.Context, layout graphLayout) {
+func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayout, fgRGB [3]int, selectionRGB [3]int) {
 	now := g.clock.Now()
 
 	var elapsedTime time.Duration
@@ -259,103 +253,122 @@ func (g *scoreGraph) drawTimeIndicator(cr *cairo.Context, layout graphLayout) {
 	if g.timeFrameIndex >= 0 && len(g.graphs) > 0 {
 		elapsedTime = g.graphs[0].ElapsedTime(now)
 		elapsedTimePercent = g.graphs[0].ElapsedTimePercent(now)
-	} else {
-		elapsedTime = 0
-		elapsedTimePercent = 0.0
 	}
 
-	// the time bar
 	left := layout.leftLegendWidth
 	right := left + (layout.width-left)*elapsedTimePercent
 	bottom := layout.height - layout.marginY
 	top := bottom - layout.timeIndicatorHeight
 
-	cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
-	cr.MoveTo(left, top)
-	cr.LineTo(right, top)
-	cr.LineTo(right, bottom)
-	cr.LineTo(left, bottom)
-	cr.ClosePath()
-	cr.Fill()
+	if right > left {
+		indicatorColor := qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255)
+		indicatorColor.SetAlphaF(scoreGraphBorderAlpha)
+		brush := qtlib.NewQBrush3(indicatorColor)
+		painter.FillRect2(int(left), int(top), int(right-left), int(bottom-top), brush)
+	}
 
-	// the elapsed time
-	elapsedTimeText := formatDuration(elapsedTime)
+	pen := qtlib.NewQPen()
+	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	painter.SetPenWithPen(pen)
 
-	cr.SetSourceRGB(g.style.axisColor.ToRGB())
-	cr.SetFontSize(g.style.fontSize)
-	cr.MoveTo(1, layout.height-layout.marginY-1)
-	cr.ShowText(elapsedTimeText)
+	elapsedTimeText := formatQtDuration(elapsedTime)
+	fm := painter.FontMetrics()
+	textHeight := float64(fm.Ascent())
 
-	// the time legend
+	// Center text vertically in the progress bar
+	centerY := layout.height - 1.0 - textHeight
+	painter.DrawText(qtlib.NewQPointF3(1, centerY), elapsedTimeText)
+
 	for i, x := range layout.divX {
 		if i%2 == 1 && len(g.graphs) > 0 {
 			percent := float64(i+1) / float64(len(layout.divX)+1)
-			text := formatDuration(g.graphs[0].PercentAsDuration(percent))
-			textExtents := cr.TextExtents(text)
-			cr.MoveTo(x+layout.leftLegendWidth-textExtents.Width/2.0, layout.zeroY+layout.maxHeight+textExtents.Height+2)
-			cr.ShowText(text)
+			text := formatQtDuration(g.graphs[0].PercentAsDuration(percent))
+			textWidth := float64(fm.HorizontalAdvance(text))
+			painter.DrawText(qtlib.NewQPointF3(
+				x+layout.leftLegendWidth-textWidth/2.0,
+				centerY,
+			), text)
 		}
 	}
 
-	// the old box
 	if g.timeFrameIndex >= 0 {
 		startX := float64(g.timeFrameIndex)*layout.binWidth + layout.leftLegendWidth
 		endX := float64(g.timeFrameIndex+1)*layout.binWidth + layout.leftLegendWidth
 
-		cr.SetSourceRGBA(g.style.timeFrameColor.ToRGBA())
-		cr.SetLineWidth(layout.divisionLineWidth)
-		cr.MoveTo(startX, layout.zeroY-layout.maxHeight)
-		cr.LineTo(endX, layout.zeroY-layout.maxHeight)
-		cr.LineTo(endX, layout.zeroY+layout.maxHeight)
-		cr.LineTo(startX, layout.zeroY+layout.maxHeight)
-		cr.ClosePath()
-		cr.Stroke()
+		framePen := qtlib.NewQPen()
+		frameColor := qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255)
+		frameColor.SetAlphaF(scoreGraphBorderAlpha)
+		framePen.SetColor(frameColor)
+		framePen.SetWidthF(layout.divisionLineWidth)
+		painter.SetPenWithPen(framePen)
+		painter.SetBrush(qtlib.NewQBrush())
+
+		path := qtlib.NewQPainterPath()
+		path.MoveTo2(startX, layout.zeroY-layout.maxHeight)
+		path.LineTo2(endX, layout.zeroY-layout.maxHeight)
+		path.LineTo2(endX, layout.zeroY+layout.maxHeight)
+		path.LineTo2(startX, layout.zeroY+layout.maxHeight)
+		path.CloseSubpath()
+		painter.DrawPath(path)
 	}
 }
 
-func (g *scoreGraph) drawLowZone(cr *cairo.Context, layout graphLayout) {
-	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.areaAlpha))
-	cr.MoveTo(layout.leftLegendWidth, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
-	cr.LineTo(layout.leftLegendWidth, layout.zeroY+layout.multisLowZoneHeight)
-	cr.ClosePath()
-	cr.Fill()
+func (g *scoreGraph) drawLowZone(painter *qtlib.QPainter, layout graphLayout, lowZoneRGB [3]int, fgRGB [3]int) {
+	fillColor := qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255)
+	fillColor.SetAlphaF(scoreGraphAreaAlpha)
+	fillBrush := qtlib.NewQBrush3(fillColor)
 
-	cr.SetSourceRGBA(g.style.lowZoneColor.WithAlpha(g.style.borderAlpha))
-	cr.SetLineWidth(layout.divisionLineWidth)
-	cr.MoveTo(layout.leftLegendWidth, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY-layout.pointsLowZoneHeight)
-	cr.LineTo(layout.width, layout.zeroY+layout.multisLowZoneHeight)
-	cr.LineTo(layout.leftLegendWidth, layout.zeroY+layout.multisLowZoneHeight)
-	cr.ClosePath()
-	cr.Stroke()
+	top := layout.zeroY - layout.pointsLowZoneHeight
+	bottom := layout.zeroY + layout.multisLowZoneHeight
+	painter.FillRect2(int(layout.leftLegendWidth), int(top), int(layout.width-layout.leftLegendWidth), int(bottom-top), fillBrush)
 
-	// the legend
-	g.drawYLegendAt(cr, layout, layout.zeroY-layout.pointsLowZoneHeight, fmt.Sprintf("%dP", int(g.pointsGoal)))
-	g.drawYLegendAt(cr, layout, layout.zeroY+layout.multisLowZoneHeight, fmt.Sprintf("%dM", int(g.multisGoal)))
+	borderColor := qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255)
+	borderColor.SetAlphaF(scoreGraphBorderAlpha)
+	pen := qtlib.NewQPen()
+	pen.SetColor(borderColor)
+	pen.SetWidthF(layout.divisionLineWidth)
+	painter.SetPenWithPen(pen)
+	painter.SetBrush(qtlib.NewQBrush())
+
+	path := qtlib.NewQPainterPath()
+	path.MoveTo2(layout.leftLegendWidth, top)
+	path.LineTo2(layout.width, top)
+	path.LineTo2(layout.width, bottom)
+	path.LineTo2(layout.leftLegendWidth, bottom)
+	path.CloseSubpath()
+	painter.DrawPath(path)
+
+	g.drawYLegendAt(painter, layout, layout.zeroY-layout.pointsLowZoneHeight, fmt.Sprintf("%dP", g.pointsGoal), fgRGB)
+	g.drawYLegendAt(painter, layout, layout.zeroY+layout.multisLowZoneHeight, fmt.Sprintf("%dM", g.multisGoal), fgRGB)
 }
 
-func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
+func (g *scoreGraph) drawBand(painter *qtlib.QPainter, layout graphLayout, graph core.BandGraph) {
+	datapoints := graph.DataPoints
 	valueCount := len(datapoints)
+	if valueCount == 0 {
+		return
+	}
 
-	cr.MoveTo(layout.leftLegendWidth, layout.zeroY)
+	fill := bandQColor(graph.Band)
+	fill.SetAlphaF(scoreGraphAreaAlpha)
+	brush := qtlib.NewQBrush3(fill)
+
+	path := qtlib.NewQPainterPath()
+	path.MoveTo2(layout.leftLegendWidth, layout.zeroY)
 
 	var valueScaling float64
 	if g.pointsBinGoal > 0 {
 		valueScaling = layout.pointsLowZoneHeight / g.pointsBinGoal
-	} else {
-		valueScaling = 0
 	}
-	for i := range valueCount {
+	for i := 0; i < valueCount; i++ {
 		startX := float64(i)*layout.binWidth + layout.leftLegendWidth
 		endX := float64(i+1)*layout.binWidth + layout.leftLegendWidth
 		value := float64(datapoints[i].Points)
 		y := layout.zeroY - math.Min(value*valueScaling, layout.maxHeight)
-		cr.LineTo(startX, y)
-		cr.LineTo(endX, y)
+		path.LineTo2(startX, y)
+		path.LineTo2(endX, y)
 		if i == valueCount-1 {
-			cr.LineTo(endX, layout.zeroY)
+			path.LineTo2(endX, layout.zeroY)
 		}
 	}
 
@@ -369,80 +382,20 @@ func (g *scoreGraph) drawDataPointsRectangular(cr *cairo.Context, layout graphLa
 		endX := float64(i)*layout.binWidth + layout.leftLegendWidth
 		value := float64(datapoints[i].Multis)
 		y := layout.zeroY + math.Min(value*valueScaling, layout.maxHeight)
-		cr.LineTo(startX, y)
-		cr.LineTo(endX, y)
+		path.LineTo2(startX, y)
+		path.LineTo2(endX, y)
 		if i == valueCount-1 {
-			cr.LineTo(endX, layout.zeroY)
+			path.LineTo2(endX, layout.zeroY)
 		}
 		if i == 0 {
-			cr.LineTo(endX, layout.zeroY)
+			path.LineTo2(endX, layout.zeroY)
 		}
 	}
-	cr.ClosePath()
-	cr.Fill()
+	path.CloseSubpath()
+
+	painter.FillPath(path, brush)
 }
 
-func (g *scoreGraph) drawDataPointsCurved(cr *cairo.Context, layout graphLayout, datapoints []core.BandScore) {
-	valueCount := len(datapoints)
-
-	cr.MoveTo(layout.leftLegendWidth, layout.zeroY)
-
-	var valueScaling float64
-	if g.pointsBinGoal > 0 {
-		valueScaling = layout.pointsLowZoneHeight / g.pointsBinGoal
-	} else {
-		valueScaling = 0
-	}
-	lastY := layout.zeroY
-	for i := range valueCount {
-		startX := float64(i)*layout.binWidth + layout.leftLegendWidth
-		centerX := startX + layout.binWidth/2.0
-		endX := float64(i+1)*layout.binWidth + layout.leftLegendWidth
-		value := float64(datapoints[i].Points)
-		y := layout.zeroY - math.Min(value*valueScaling, layout.maxHeight)
-		if i == 0 {
-			cr.LineTo(startX, y)
-			cr.LineTo(centerX, y)
-		} else {
-			cr.CurveTo(startX, lastY, startX, y, centerX, y)
-		}
-		if i == valueCount-1 {
-			cr.LineTo(endX, y)
-			cr.LineTo(endX, layout.zeroY)
-		}
-
-		lastY = y
-	}
-
-	if g.multisBinGoal > 0 {
-		valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
-	} else {
-		valueScaling = 0
-	}
-	valueScaling = layout.multisLowZoneHeight / g.multisBinGoal
-	lastY = layout.zeroY
-	for i := valueCount - 1; i >= 0; i-- {
-		startX := float64(i+1)*layout.binWidth + layout.leftLegendWidth
-		centerX := startX - layout.binWidth/2.0
-		endX := float64(i)*layout.binWidth + layout.leftLegendWidth
-		value := float64(datapoints[i].Multis)
-		y := layout.zeroY + math.Min(value*valueScaling, layout.maxHeight)
-		if i == valueCount-1 {
-			cr.LineTo(startX, y)
-			cr.LineTo(centerX, y)
-		} else {
-			cr.CurveTo(startX, lastY, startX, y, centerX, y)
-		}
-		if i == 0 {
-			cr.LineTo(endX, y)
-			cr.LineTo(endX, layout.zeroY)
-		}
-		lastY = y
-	}
-	cr.ClosePath()
-	cr.Fill()
-}
-
-func formatDuration(d time.Duration) string {
+func formatQtDuration(d time.Duration) string {
 	return fmt.Sprintf("%02d:%02d", int(d.Hours()), int(d.Minutes())%60)
 }

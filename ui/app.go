@@ -2,279 +2,478 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"path/filepath"
-	"strings"
+	"os"
 	"time"
 
-	"github.com/ftl/gmtry"
-	"github.com/gotk3/gotk3/gdk"
-	"github.com/gotk3/gotk3/glib"
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
+	"github.com/mappu/miqt/qt6/mainthread"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
-	"github.com/ftl/hellocontest/ui/glade"
-	"github.com/ftl/hellocontest/ui/style"
+	"github.com/ftl/hellocontest/core/settings"
 )
 
-const AppID = "ft.hellocontest"
+const (
+	settingsOrg        = "com.thecodingflow"
+	settingsApp        = "hellocontest"
+	settingGeometry    = "ui/mainWindowGeometry"
+	settingWindowState = "ui/mainWindowState"
 
-const parrot = "🦜"
+	defaultMainWindowWidth  = 400
+	defaultMainWindowHeight = 600
+)
 
+// Script matches the ui.Script interface used in main.go
 type Script interface {
 	app.Script
 	Now() time.Time
+	SetScreenshotter(s Screenshotter)
+	WindowState() string
 }
 
-// Run the application
+// Run starts the Qt6 application
 func Run(version string, sponsors string, startupScript Script, args []string) {
-	var err error
-	app := &application{id: AppID, version: version, sponsors: sponsors, startupScript: startupScript}
+	qApp := qtlib.NewQApplication(os.Args)
+	style := NewStyle()
+	style.Apply(qApp)
 
-	gtk.WindowSetDefaultIconName("hellocontest")
-
-	app.app, err = gtk.ApplicationNew(app.id, glib.APPLICATION_FLAGS_NONE)
-	if err != nil {
-		log.Fatal("Cannot create application: ", err)
+	a := &application{
+		version:       version,
+		sponsors:      sponsors,
+		startupScript: startupScript,
+		style:         style,
 	}
-	app.app.Connect("startup", app.startup)
-	app.app.Connect("activate", app.activate)
-	app.app.Connect("shutdown", app.shutdown)
 
-	app.app.Run(args)
-}
+	a.window = qtlib.NewQMainWindow2()
+	a.window.SetWindowTitle("Hello Contest")
 
-type application struct {
-	id            string
-	version       string
-	sponsors      string
-	startupScript Script
-
-	app                  *gtk.Application
-	builder              *gtk.Builder
-	style                *style.Style
-	windowGeometry       *gmtry.Geometry
-	mainWindow           *mainWindow
-	scoreWindow          *scoreWindow
-	rateWindow           *rateWindow
-	spotsWindow          *spotsWindow
-	newContestDialog     *newContestDialog
-	summaryDialog        *summaryDialog
-	exportCabrilloDialog *exportCabrilloDialog
-	qtcDialog            *qtcDialog
-	settingsDialog       *settingsDialog
-	keyerSettingsDialog  *keyerSettingsDialog
-
-	controller *app.Controller
-}
-
-func (a *application) startup() {
-	filename := filepath.Join(cfg.Directory(), "hellocontest.geometry")
-
-	a.windowGeometry = gmtry.NewGeometry(filename)
-}
-
-func (a *application) useDefaultWindowGeometry(cause error) {
-	log.Printf("Cannot load window geometry, using defaults instead: %v", cause)
-	a.mainWindow.UseDefaultWindowGeometry()
-}
-
-func (a *application) setAcceptFocus(acceptFocus bool) {
-	a.rateWindow.SetAcceptFocus(acceptFocus)
-	a.scoreWindow.SetAcceptFocus(acceptFocus)
-	a.spotsWindow.SetAcceptFocus(acceptFocus)
-}
-
-func (a *application) activate() {
-	a.builder = setupBuilder()
+	a.stopKeyHandler = newStopKeyHandler(a.window.QWidget)
 
 	configuration, err := cfg.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	var timebase core.Clock
-	if a.startupScript != nil {
-		timebase = a.startupScript
+	if startupScript != nil {
+		timebase = startupScript
 	} else {
 		timebase = clock.New()
 	}
-	a.controller = app.NewController(a.version, timebase, a.app, a.runAsync, configuration, a.sponsors)
+
+	a.controller = app.NewController(version, timebase, a, a.runAsync, configuration, sponsors)
 	a.controller.Startup()
+	a.controller.SetView(a)
+	a.stopKeyHandler.SetStopKeyController(a.controller)
 
-	a.mainWindow = setupMainWindow(a.builder, a.app, a.style, a.setAcceptFocus)
-	screen := a.mainWindow.window.GetScreen()
-	a.style = style.New()
-	a.style.AddToScreen(screen)
+	a.actions = newActions(a.window.QWidget, a.controller)
+	a.controller.Settings.Notify(a.actions)
+	a.controller.Entry.Notify(a.actions)
+	a.controller.Workmode.Notify(a.actions)
+	a.controller.QTCList.Notify(a.actions)
+	a.controller.VFO.Notify(a.actions)
 
-	a.scoreWindow = setupScoreWindow(a.windowGeometry, a.style, timebase)
-	a.rateWindow = setupRateWindow(a.windowGeometry, a.style)
-	a.spotsWindow = setupSpotsWindow(a.windowGeometry, a.style, a.controller.Bandmap)
-	a.settingsDialog = setupSettingsDialog(a.mainWindow.window, a.controller.Settings)
-	a.keyerSettingsDialog = setupKeyerSettingsDialog(a.mainWindow.window, a.controller.Keyer)
-	a.newContestDialog = setupNewContestDialog(a.mainWindow.window, a.controller.NewContestController)
-	a.summaryDialog = setupSummaryDialog(a.mainWindow.window, a.controller.SummaryController)
-	a.exportCabrilloDialog = setupExportCabrilloDialog(a.mainWindow.window, a.controller.ExportCabrilloController)
-	a.qtcDialog = setupQTCDialog(a.mainWindow.window, a.controller.QTCController)
+	a.createMenu()
+	a.createCentralWidget()
+	a.createStatusBar()
+	a.createViews(timebase)
+	a.createDialogs()
 
-	a.mainWindow.SetMainMenuController(a.controller)
-	a.mainWindow.SetRadioMenuController(a.controller)
-	a.mainWindow.SetSpotSourceMenuController(a.controller)
-	a.mainWindow.SetStopKeyController(a.controller)
-	a.mainWindow.SetQSOListController(a.controller.QSOList)
-	a.mainWindow.SetEntryController(a.controller.Entry)
-	a.mainWindow.SetWorkmodeController(a.controller.Workmode)
-	a.mainWindow.SetKeyerController(a.controller.Keyer)
-	a.mainWindow.SetESMController(a.controller.Entry)
+	qApp.QGuiApplication.OnPaletteChanged(func(_ *qtlib.QPalette) {
+		a.centralArea.RepaintForThemeChange()
+		a.qsoTableView.RepaintForThemeChange()
+		a.qtcTableView.RepaintForThemeChange()
+		a.scoreGraphView.RepaintForThemeChange()
+		a.scoreTableView.RepaintForThemeChange()
+		a.rateView.RepaintForThemeChange()
+		a.spotsView.RepaintForThemeChange()
+	})
 
-	a.controller.SetView(a.mainWindow)
-	a.controller.QSOList.Notify(a.mainWindow)
-	a.controller.QTCList.Notify(a.mainWindow)
-	a.controller.Entry.SetView(a.mainWindow)
-	a.controller.Entry.SetESMView(a.mainWindow.esmView)
-	a.controller.Entry.Notify(a.mainWindow)
-	a.controller.VFO.Notify(a.mainWindow)
-	a.controller.Workmode.SetView(a.mainWindow)
-	a.controller.Workmode.Notify(a.mainWindow)
-	a.controller.Radio.SetView(a.mainWindow)
-	a.controller.Keyer.SetView(a.mainWindow)
-	a.controller.Keyer.SetSettingsView(a.keyerSettingsDialog)
-	a.controller.ServiceStatus.Notify(a.mainWindow)
-	a.controller.Callinfo.SetView(a.mainWindow)
-	a.controller.ScoreController.SetView(a.scoreWindow)
-	a.controller.Rate.SetView(a.rateWindow)
-	a.controller.Rate.Notify(a.scoreWindow)
-	// TODO: use a listener model for the bandmap to allow multiple views on the bandmap (scope, spots list, mini-scope)
-	a.controller.Bandmap.SetView(a.spotsWindow)
-	a.controller.Settings.SetView(a.settingsDialog)
-	a.controller.Settings.Notify(a.mainWindow)
-	a.controller.NewContestController.SetView(a.newContestDialog)
-	a.controller.SummaryController.SetView(a.summaryDialog)
-	a.controller.ExportCabrilloController.SetView(a.exportCabrilloDialog)
-	a.controller.QTCController.SetView(a.qtcDialog)
-	a.controller.Clusters.SetView(a.mainWindow)
-	a.controller.Parrot.SetView(a.mainWindow)
-
-	a.mainWindow.mainMenu.editESM.SetActive(a.controller.ESMEnabled())
-
-	a.mainWindow.ConnectToGeometry(a.windowGeometry)
-	err = a.windowGeometry.Restore()
-	if err != nil {
-		a.useDefaultWindowGeometry(err)
+	if startupScript == nil {
+		a.restoreWindowState()
+		qApp.OnAboutToQuit(a.storeWindowState)
 	}
 
-	a.mainWindow.Show()
-	a.scoreWindow.RestoreVisibility()
-	a.rateWindow.RestoreVisibility()
-	a.spotsWindow.RestoreVisibility()
+	a.controller.Settings.Notify(settings.ContestListenerFunc(func(c core.Contest) {
+		a.SetExchangeFields(c.MyExchangeFields, c.TheirExchangeFields)
+	}))
+	contest := a.controller.Settings.Contest()
+	a.SetExchangeFields(contest.MyExchangeFields, contest.TheirExchangeFields)
 
+	a.window.Show()
 	a.controller.Refresh()
 
-	if a.startupScript != nil {
-		a.controller.RunScript(context.Background(), a.startupScript)
+	if startupScript != nil {
+		a.restoreWindowStateFromString(startupScript.WindowState())
+		startupScript.SetScreenshotter(newScreenshotter(a))
+		scriptCtx, cancelScript := context.WithCancel(context.Background())
+		qApp.OnAboutToQuit(cancelScript)
+		a.controller.RunScript(scriptCtx, startupScript)
 	}
+
+	qtlib.QApplication_Exec()
 }
 
-func (a *application) shutdown() {
-	a.controller.Shutdown()
+type application struct {
+	version       string
+	sponsors      string
+	startupScript Script
 
-	err := a.windowGeometry.Store()
+	style *Style
+
+	window     *qtlib.QMainWindow
+	controller *app.Controller
+
+	stopKeyHandler *stopKeyHandler
+
+	actions *actions
+
+	centralArea *centralArea
+
+	entryView    *entryView
+	callinfoView *callinfoView
+	workmodeView *workmodeView
+	statusView   *statusView
+	keyerView    *keyerView
+	esmView      *esmView
+
+	mainMenu       *mainMenu
+	radioMenu      *radioMenu
+	spotSourceMenu *spotSourceMenu
+
+	qsoTableView   *qsoTableView
+	qtcTableView   *qtcTableView
+	scoreGraphView *scoreGraphView
+	scoreTableView *scoreTableView
+	spotsView      *spotsView
+	rateView       *rateView
+
+	settingsDialog       *settingsDialog
+	keyerSettingsDialog  *keyerSettingsDialog
+	newContestDialog     *newContestDialog
+	summaryDialog        *summaryDialog
+	exportCabrilloDialog *exportCabrilloDialog
+	qtcDialog            *qtcDialog
+}
+
+func (a *application) findMenu(name string) *qtlib.QMenu {
+	if a.mainMenu == nil {
+		return nil
+	}
+	switch name {
+	case "fileMenu":
+		return a.mainMenu.fileMenu
+	case "editMenu":
+		return a.mainMenu.editMenu
+	}
+	return nil
+}
+
+func (a *application) createMenu() {
+	a.radioMenu = newRadioMenu(a.actions)
+	a.spotSourceMenu = newSpotSourceMenu(a.actions)
+	a.mainMenu = newMainMenu(a.window, a.actions, a.radioMenu, a.spotSourceMenu)
+
+	// TEMPORAL COUPLING: first create all the widgets, then call the controller
+	a.controller.Clusters.SetView(a.spotSourceMenu)
+	a.controller.Radio.SetView(a.radioMenu)
+
+	a.window.SetMenuBar(a.mainMenu.menuBar)
+}
+
+func (a *application) createCentralWidget() {
+	// setup entry view
+	a.entryView = newEntryView()
+	a.entryView.SetEntryController(a.controller.Entry)
+	a.controller.Entry.SetView(a.entryView)
+	a.controller.Entry.Notify(a.entryView)
+
+	// setup callinfo view
+	a.callinfoView = newCallinfoView()
+	a.callinfoView.SetQTCsEnabled(a.controller.QTCList.QTCsEnabled())
+	a.controller.Callinfo.SetView(a.callinfoView)
+	a.controller.QTCList.Notify(a.callinfoView)
+
+	// setup remeining center parts
+	a.esmView = newESMView()
+	a.esmView.SetESMController(a.controller.Entry)
+	a.controller.Entry.SetESMView(a.esmView)
+
+	a.workmodeView = newWorkmodeView()
+	a.workmodeView.SetWorkmodeController(a.controller.Workmode)
+	a.controller.Workmode.SetView(a.workmodeView)
+
+	a.keyerView = newKeyerView()
+	a.keyerView.SetKeyerController(a.controller.Keyer)
+	// TODO: replace with explicit type
+	keyerButtons := &keyerButtonAdapter{keyerView: a.keyerView, messenger: a.entryView}
+	a.controller.Keyer.SetView(keyerButtons)
+	a.controller.Parrot.SetView(a.keyerView)
+
+	a.centralArea = newCentralArea(a.entryView, a.callinfoView, a.esmView, a.workmodeView, a.keyerView)
+
+	a.window.SetCentralWidget(a.centralArea.root)
+}
+
+func (a *application) createStatusBar() {
+	a.statusView = newStatusView()
+	a.controller.ServiceStatus.Notify(a.statusView)
+	a.window.SetStatusBar(a.statusView.statusBar)
+}
+
+func (a *application) createViews(timebase core.Clock) {
+	// setup QSO list dock
+	a.qsoTableView = newQSOTableView(a.window.QWidget, a.controller.QSOList)
+	a.controller.QSOList.SetView(a.qsoTableView)
+	a.controller.QSOList.Notify(a.qsoTableView)
+
+	// setup QTC list dock
+	a.qtcTableView = newQTCTableView(a.window.QWidget)
+	a.qtcTableView.SetQTCsEnabled(a.controller.QTCList.QTCsEnabled())
+	a.controller.QTCList.SetView(a.qtcTableView)
+	a.controller.QTCList.Notify(a.qtcTableView)
+
+	// setup rate dock (created before score dock so it appears above on the left)
+	a.rateView = newRateView(a.window.QWidget)
+	a.controller.Rate.SetView(a.rateView)
+
+	// setup score graph dock (created after rate dock so it appears below on the left)
+	a.scoreGraphView = newScoreGraphView(a.window.QWidget, timebase)
+	a.controller.Rate.Notify(a.scoreGraphView)
+
+	// setup score table dock
+	a.scoreTableView = newScoreTableView(a.window.QWidget)
+	// TODO: decouple scoreGraph and scoreTable
+	scoreComposite := &scoreCompositeAdapter{
+		graph: a.scoreGraphView,
+		table: a.scoreTableView,
+	}
+	a.controller.ScoreController.SetView(scoreComposite)
+
+	// setup spots dock
+	a.spotsView = newSpotsView(a.window.QWidget, a.controller.Bandmap, a.style)
+	a.controller.Bandmap.SetView(a.spotsView)
+
+	// setup the default positions for the dockable view components
+	a.window.SetCorner(qtlib.TopLeftCorner, qtlib.LeftDockWidgetArea)
+	a.window.SetCorner(qtlib.BottomLeftCorner, qtlib.LeftDockWidgetArea)
+	a.window.SetCorner(qtlib.TopRightCorner, qtlib.RightDockWidgetArea)
+	a.window.SetCorner(qtlib.BottomRightCorner, qtlib.RightDockWidgetArea)
+	a.window.AddDockWidget(qtlib.TopDockWidgetArea, a.qsoTableView.Dock())
+	a.window.AddDockWidget(qtlib.TopDockWidgetArea, a.qtcTableView.Dock())
+	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.rateView.Dock())
+	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreGraphView.Dock())
+	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreTableView.Dock())
+	a.window.AddDockWidget(qtlib.RightDockWidgetArea, a.spotsView.Dock())
+}
+
+func (a *application) createDialogs() {
+	a.settingsDialog = newSettingsDialog(a.window, a.controller.Settings)
+	a.controller.Settings.SetView(a.settingsDialog)
+
+	a.keyerSettingsDialog = newKeyerSettingsDialog(a.window, a.controller.Keyer)
+	a.controller.Keyer.SetSettingsView(a.keyerSettingsDialog)
+
+	a.newContestDialog = newNewContestDialog(a.window, a.controller.NewContestController)
+	a.controller.NewContestController.SetView(a.newContestDialog)
+
+	a.summaryDialog = newSummaryDialog(a.window, a.controller.SummaryController)
+	a.controller.SummaryController.SetView(a.summaryDialog)
+
+	a.exportCabrilloDialog = newExportCabrilloDialog(a.window, a.controller.ExportCabrilloController)
+	a.controller.ExportCabrilloController.SetView(a.exportCabrilloDialog)
+
+	a.qtcDialog = newQTCDialog(a.window, a.controller.QTCController)
+	a.controller.QTCController.SetView(a.qtcDialog)
+}
+
+func (a *application) restoreWindowStateFromString(windowState string) {
+	if windowState == "" {
+		return
+	}
+	tmp, err := os.CreateTemp("", "hellocontest-windowstate-*.ini")
 	if err != nil {
-		log.Printf("Cannot store window geometry: %v", err)
+		log.Printf("restoreWindowStateFromString: cannot create temp file: %v", err)
+		return
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	if _, err := tmp.WriteString(windowState); err != nil {
+		tmp.Close()
+		log.Printf("restoreWindowStateFromString: cannot write temp file: %v", err)
+		return
+	}
+	if err := tmp.Close(); err != nil {
+		log.Printf("restoreWindowStateFromString: cannot close temp file: %v", err)
+		return
+	}
+	settings := qtlib.NewQSettings4(tmpName, qtlib.QSettings__IniFormat)
+	if v := settings.Value(*qtlib.NewQAnyStringView3(settingGeometry), qtlib.NewQVariant()); v.IsValid() {
+		a.window.RestoreGeometry(v.ToByteArray())
+	}
+	if v := settings.Value(*qtlib.NewQAnyStringView3(settingWindowState), qtlib.NewQVariant()); v.IsValid() {
+		a.window.RestoreState(v.ToByteArray())
 	}
 }
 
-func (a *application) runAsync(f func()) {
-	runAsync(f)
-}
-
-func runAsync(f func()) {
-	glib.IdleAdd(func() bool {
-		f()
-		return false
-	})
-}
-
-func setupBuilder() *gtk.Builder {
-	builder, err := gtk.BuilderNew()
-	if err != nil {
-		log.Fatal("Cannot create builder: ", err)
-	}
-
-	builder.AddFromString(glade.Assets)
-
-	return builder
-}
-
-func connectToGeometry(geometry *gmtry.Geometry, id gmtry.ID, window *gtk.Window) {
-	var connectable gmtry.Connectable
-	if isWayland() {
-		connectable = &waylandWrapper{window}
+func (a *application) restoreWindowState() {
+	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
+	if v := settings.Value(*qtlib.NewQAnyStringView3(settingGeometry), qtlib.NewQVariant()); v.IsValid() {
+		a.window.RestoreGeometry(v.ToByteArray())
 	} else {
-		connectable = window
+		a.window.Resize(defaultMainWindowWidth, defaultMainWindowHeight)
 	}
-	geometry.Add(id, connectable)
+	if v := settings.Value(*qtlib.NewQAnyStringView3(settingWindowState), qtlib.NewQVariant()); v.IsValid() {
+		a.window.RestoreState(v.ToByteArray())
+	}
+}
 
-	window.Connect("configure-event", func(_ any, event *gdk.Event) {
-		e := gdk.EventConfigureNewFromEvent(event)
-		w := geometry.Get(id)
-		w.SetPosition(window.GetPosition())
-		w.SetSize(e.Width(), e.Height())
-	})
-	window.Connect("window-state-event", func(_ any, event *gdk.Event) {
-		e := gdk.EventWindowStateNewFromEvent(event)
-		if e.ChangedMask()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED {
-			geometry.Get(id).SetMaximized(e.NewWindowState()&gdk.WINDOW_STATE_MAXIMIZED == gdk.WINDOW_STATE_MAXIMIZED)
+func (a *application) storeWindowState() {
+	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
+	settings.SetValue(
+		*qtlib.NewQAnyStringView3(settingGeometry),
+		qtlib.NewQVariant12(a.window.SaveGeometry()),
+	)
+	settings.SetValue(
+		*qtlib.NewQAnyStringView3(settingWindowState),
+		qtlib.NewQVariant12(a.window.SaveState()),
+	)
+	settings.Sync()
+}
+
+func (a *application) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
+	a.centralArea.SetExchangeFields(myExchangeFields, theirExchangeFields)
+}
+
+// runAsync posts a function to run on the Qt main thread (implements core.AsyncRunner)
+func (a *application) runAsync(f func()) {
+	mainthread.Start(f)
+}
+
+// Quit implements app.Quitter
+func (a *application) Quit() {
+	qtlib.QCoreApplication_Quit()
+}
+
+// BringToFront implements app.View
+func (a *application) BringToFront() {
+	a.window.Raise()
+	a.window.ActivateWindow()
+}
+
+// ShowFilename implements app.View
+func (a *application) ShowFilename(filename string) {
+	a.window.SetWindowTitle(fmt.Sprintf("Hello Contest - %s", filename))
+}
+
+// SelectOpenFile implements app.View
+func (a *application) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {
+	filter := buildFileFilter(patterns)
+	dlg := qtlib.NewQFileDialog6(a.window.QWidget, title, dir, filter)
+	dlg.SetAcceptMode(qtlib.QFileDialog__AcceptOpen)
+	dlg.SetFileMode(qtlib.QFileDialog__ExistingFile)
+	// Wayland: force a proper top-level window so the compositor lets the user
+	// drag the dialog anywhere, including onto other monitors.
+	dlg.SetWindowFlags(
+		qtlib.Window |
+			qtlib.CustomizeWindowHint |
+			qtlib.WindowTitleHint |
+			qtlib.WindowCloseButtonHint,
+	)
+	if dlg.Exec() != int(qtlib.QDialog__Accepted) {
+		return "", false, nil
+	}
+	files := dlg.SelectedFiles()
+	if len(files) == 0 || files[0] == "" {
+		return "", false, nil
+	}
+	return files[0], true, nil
+}
+
+// SelectSaveFile implements app.View
+func (a *application) SelectSaveFile(title string, dir string, filename string, patterns ...string) (string, bool, error) {
+	filter := buildFileFilter(patterns)
+	defaultPath := dir
+	if filename != "" {
+		defaultPath = dir + "/" + filename
+	}
+	result := qtlib.QFileDialog_GetSaveFileName4(a.window.QWidget, title, defaultPath, filter)
+	if result == "" {
+		return "", false, nil
+	}
+	return result, true, nil
+}
+
+// ShowInfoDialog implements app.View
+func (a *application) ShowInfoDialog(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	qtlib.QMessageBox_Information(a.window.QWidget, "Information", msg)
+}
+
+// ShowQuestionDialog implements app.View
+func (a *application) ShowQuestionDialog(format string, args ...any) bool {
+	msg := fmt.Sprintf(format, args...)
+	result := qtlib.QMessageBox_Question(a.window.QWidget, "Question", msg)
+	return result == qtlib.QMessageBox__Yes
+}
+
+// ShowErrorDialog implements app.View
+func (a *application) ShowErrorDialog(format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	qtlib.QMessageBox_Critical(a.window.QWidget, "Error", msg)
+}
+
+type scoreCompositeAdapter struct {
+	graph *scoreGraphView
+	table *scoreTableView
+}
+
+func (s *scoreCompositeAdapter) ShowScore(score core.Score) {
+	s.graph.ShowScore(score)
+	s.table.ShowScore(score)
+}
+
+func (s *scoreCompositeAdapter) ShowGraph() {
+	s.graph.Show()
+}
+
+func (s *scoreCompositeAdapter) ShowTable() {
+	s.table.Show()
+}
+
+func (s *scoreCompositeAdapter) SetGoals(points, multis int) {
+	s.graph.SetGoals(points, multis)
+	s.table.SetGoals(points, multis)
+}
+
+func (s *scoreCompositeAdapter) SetQTCsEnabled(enabled bool) {
+	s.graph.SetQTCsEnabled(enabled)
+	s.table.SetQTCsEnabled(enabled)
+}
+
+type keyerButtonAdapter struct {
+	*keyerView
+	messenger *entryView
+}
+
+func (a *keyerButtonAdapter) ShowMessage(args ...any) { a.messenger.ShowMessage(args...) }
+
+// buildFileFilter converts glob patterns like "*.log" to Qt filter format
+func buildFileFilter(patterns []string) string {
+	if len(patterns) == 0 {
+		return "All Files (*)"
+	}
+	result := ""
+	for i, p := range patterns {
+		if i > 0 {
+			result += ";;"
 		}
-	})
-	window.Connect("show", func() {
-		w := geometry.Get(id)
-		w.SetVisible(true)
-	})
-	window.Connect("hide", func() {
-		w := geometry.Get(id)
-		w.SetVisible(false)
-	})
-}
-
-func isWayland() bool {
-	display, err := gdk.DisplayGetDefault()
-	if err != nil {
-		return true // better safe than sorry
+		result += fmt.Sprintf("Files (%s)", p)
 	}
-	displayName, err := display.GetName()
-	if err != nil {
-		return true // better safe than sorry
-	}
-	return strings.Contains(strings.ToLower(displayName), "wayland")
-}
-
-type waylandWrapper struct {
-	wrapped gmtry.Connectable
-}
-
-func (w *waylandWrapper) Move(x, y int) {
-	// ignore
-}
-
-func (w *waylandWrapper) Resize(width, height int) {
-	// ignore
-}
-
-func (w *waylandWrapper) Maximize() {
-	w.wrapped.Maximize()
-}
-
-func (w *waylandWrapper) GetPosition() (x, y int) {
-	return w.wrapped.GetPosition()
-}
-
-func (w *waylandWrapper) GetSize() (width, height int) {
-	return w.wrapped.GetSize()
-}
-
-func (w *waylandWrapper) IsMaximized() bool {
-	return w.wrapped.IsMaximized()
+	result += ";;All Files (*)"
+	return result
 }

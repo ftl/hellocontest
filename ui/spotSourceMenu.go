@@ -1,64 +1,30 @@
 package ui
 
 import (
-	"fmt"
-
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 )
 
 type SpotSourceMenuController interface {
-	SetSpotSourceEnabled(string, bool)
+	SetSpotSourceEnabled(name string, enabled bool)
 }
 
 type spotSourceMenu struct {
-	controller SpotSourceMenuController
-
-	parentMenu *gtk.Menu
-
-	items map[string]*gtk.CheckMenuItem
+	menu    *qtlib.QMenu
+	actions *actions
 }
 
-func setupSpotSourceMenu(builder *gtk.Builder) *spotSourceMenu {
-	result := new(spotSourceMenu)
-	result.items = make(map[string]*gtk.CheckMenuItem)
-
-	parentItem := getUI(builder, "menuBandmap").(*gtk.MenuItem)
-	parentMenu, _ := parentItem.GetSubmenu()
-	result.parentMenu = parentMenu.(*gtk.Menu)
-
-	return result
+func newSpotSourceMenu(a *actions) *spotSourceMenu {
+	return &spotSourceMenu{actions: a}
 }
 
-func (m *spotSourceMenu) SetSpotSourceMenuController(controller SpotSourceMenuController) {
-	m.controller = controller
-}
-
-func (m *spotSourceMenu) AddSpotSourceEntry(name string) {
-	_, ok := m.items[name]
-	if ok {
+func (v *spotSourceMenu) AddSpotSourceEntry(name string) {
+	if _, exists := v.actions.spotSourceActions[name]; exists {
 		return
 	}
-
-	checkItem, _ := gtk.CheckMenuItemNewWithLabel(fmt.Sprintf("Use %s", name))
-	checkItem.Connect("toggled", m.onEnableSpotSource(name, checkItem))
-
-	m.items[name] = checkItem
-	m.parentMenu.Add(checkItem)
+	action := v.actions.AddSpotSourceAction(name)
+	v.menu.AddAction(action)
 }
 
-func (m *spotSourceMenu) onEnableSpotSource(name string, item *gtk.CheckMenuItem) func() {
-	return func() {
-		if m.controller == nil {
-			return
-		}
-		m.controller.SetSpotSourceEnabled(name, item.GetActive())
-	}
-}
-
-func (m *spotSourceMenu) SetSpotSourceEnabled(name string, enabled bool) {
-	item, ok := m.items[name]
-	if !ok {
-		return
-	}
-	item.SetActive(enabled)
+func (v *spotSourceMenu) SetSpotSourceEnabled(name string, enabled bool) {
+	v.actions.SetSpotSourceEnabled(name, enabled)
 }

@@ -12,6 +12,10 @@ type QSOScorer interface {
 	Unmute()
 }
 
+type QSOView interface {
+	Show()
+}
+
 // QSOList is the data source for the visible QSO list with all its additional information.
 // It is based on the Logbook data but uses several other data sources to enrich the
 // QSO information.
@@ -24,6 +28,7 @@ type QSOList struct {
 	invalid bool
 
 	listeners []any
+	view      QSOView
 }
 
 func NewQSOList(settings core.Settings) *QSOList {
@@ -32,7 +37,19 @@ func NewQSOList(settings core.Settings) *QSOList {
 		myExchangeFields:    contest.MyExchangeFields,
 		theirExchangeFields: contest.TheirExchangeFields,
 		list:                make([]core.QSO, 0),
+		view:                new(nullQSOView),
 	}
+}
+
+func (l *QSOList) SetView(view QSOView) {
+	if view == nil {
+		l.view = new(nullQSOView)
+	}
+	l.view = view
+}
+
+func (l *QSOList) Show() {
+	l.view.Show()
 }
 
 func (l *QSOList) ContestChanged(contest core.Contest) {
@@ -129,3 +146,7 @@ func (l *QSOList) emitExchangeFieldsChanged(myExchangeFields []core.ExchangeFiel
 		}
 	}
 }
+
+type nullQSOView struct{}
+
+func (*nullQSOView) Show() {}

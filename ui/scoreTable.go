@@ -2,213 +2,108 @@ package ui
 
 import (
 	"fmt"
-	"log"
+
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
-	"github.com/gotk3/gotk3/glib"
-	"github.com/gotk3/gotk3/gtk"
 )
 
 const (
-	scoreColumnBand int = iota
-	scoreColumnQSOs
-	scoreColumnQTCs
-	scoreColumnDupes
-	scoreColumnPoints
-	scoreColumnPointsPerQSOs
-	scoreColumnMultis
-	scoreColumnQSOsPerMulti
-	scoreColumnResult
+	colBand = iota
+	colQSOs
+	colQTCs
+	colDupes
+	colPoints
+	colPointsPerQSO
+	colMultis
+	colQSOsPerMulti
+	colResult
 
-	scoreColumnForeground
-	scoreColumnBackground
-
-	scoreColumnCount
+	colCount
 )
 
-const totalBandName = "Total"
-
 type scoreTable struct {
-	colors colorProvider
+	widget *qtlib.QTableView
+	model  *qtlib.QStandardItemModel
 
-	table        *gtk.TreeView
-	tableContent *gtk.ListStore
-	tableColumns []*gtk.TreeViewColumn
-
-	score       core.Score
 	qtcsEnabled bool
+	bold        *qtlib.QFont
 }
 
-func newScoreTable(colors colorProvider) *scoreTable {
-	result := &scoreTable{
-		colors: colors,
+func newScoreTable() *scoreTable {
+	t := &scoreTable{}
+	t.model = qtlib.NewQStandardItemModel2(0, colCount)
+	headers := []string{"Band  ", "QSOs", "QTCs", "Dupes", "Points", "P/Q  ", "Mult", "Q/M", "Result"}
+	t.model.SetHorizontalHeaderLabels(headers)
+
+	t.widget = qtlib.NewQTableView2()
+	t.widget.SetModel(t.model.QAbstractItemModel)
+
+	// configure the score table individually instead of using ConfigureReadOnlyTable
+	t.widget.SetEditTriggers(qtlib.QAbstractItemView__NoEditTriggers)
+	t.widget.SetSelectionMode(qtlib.QAbstractItemView__NoSelection)
+	t.widget.SetFocusPolicy(qtlib.NoFocus)
+	t.widget.VerticalHeader().SetVisible(false)
+	t.widget.HorizontalHeader().SetStretchLastSection(false)
+	t.widget.HorizontalHeader().SetHighlightSections(false)
+	t.widget.HorizontalHeader().SetDefaultAlignment(qtlib.AlignLeft | qtlib.AlignVCenter)
+
+	for i, header := range headers {
+		SetColumnSampleWidth(t.widget, i, header)
 	}
 
-	result.tableContent = createScoreListStore(scoreColumnCount)
+	t.bold = qtlib.NewQFont()
+	t.bold.SetBold(true)
 
-	result.tableColumns = []*gtk.TreeViewColumn{
-		createScoreBandColumn("Band", scoreColumnBand, colors),
-		createScoreColumn("QSOs", scoreColumnQSOs),
-		createScoreColumn("QTCs", scoreColumnQTCs),
-		createScoreColumn("Dupes", scoreColumnDupes),
-		createScoreColumn("Points", scoreColumnPoints),
-		createScoreColumn("P/Q", scoreColumnPointsPerQSOs),
-		createScoreColumn("Mult", scoreColumnMultis),
-		createScoreColumn("Q/M", scoreColumnQSOsPerMulti),
-		createScoreColumn("Result", scoreColumnResult),
-	}
+	t.widget.SetColumnHidden(colQTCs, true)
 
-	result.table, _ = gtk.TreeViewNew()
-	result.table.SetHExpand(true)
-	result.table.SetVExpand(false)
-	result.table.SetHAlign(gtk.ALIGN_CENTER)
-	result.table.SetVAlign(gtk.ALIGN_FILL)
-	result.table.SetCanFocus(false)
-	result.table.SetModel(result.tableContent)
-	result.table.AppendColumn(result.tableColumns[scoreColumnBand])
-	result.table.AppendColumn(result.tableColumns[scoreColumnQSOs])
-	result.table.AppendColumn(result.tableColumns[scoreColumnDupes])
-	result.table.AppendColumn(result.tableColumns[scoreColumnPoints])
-	result.table.AppendColumn(result.tableColumns[scoreColumnPointsPerQSOs])
-	result.table.AppendColumn(result.tableColumns[scoreColumnMultis])
-	result.table.AppendColumn(result.tableColumns[scoreColumnQSOsPerMulti])
-	result.table.AppendColumn(result.tableColumns[scoreColumnResult])
-	result.table.Connect("style-updated", result.refreshTableStyle)
-
-	return result
-}
-
-func createScoreListStore(columnCount int) *gtk.ListStore {
-	types := make([]glib.Type, columnCount)
-	for i := range types {
-		types[i] = glib.TYPE_STRING
-	}
-	result, err := gtk.ListStoreNew(types...)
-	if err != nil {
-		log.Fatalf("Cannot create list store: %v", err)
-	}
-	return result
-}
-
-func createScoreBandColumn(title string, id int, colors colorProvider) *gtk.TreeViewColumn {
-	cellRenderer, err := gtk.CellRendererTextNew()
-	if err != nil {
-		log.Fatalf("Cannot create cell renderer for band column: %v", err)
-	}
-	cellRenderer.SetProperty("xalign", 1.0) // align text to the right
-
-	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "markup", id)
-	if err != nil {
-		log.Fatalf("Cannot create column %s: %v", title, err)
-	}
-
-	if colors != nil {
-		cellRenderer.SetProperty("foreground-set", true)
-		cellRenderer.SetProperty("background-set", true)
-		column.AddAttribute(cellRenderer, "foreground", scoreColumnForeground)
-		column.AddAttribute(cellRenderer, "background", scoreColumnBackground)
-	}
-
-	return column
-}
-
-func createScoreColumn(title string, id int) *gtk.TreeViewColumn {
-	cellRenderer, err := gtk.CellRendererTextNew()
-	if err != nil {
-		log.Fatalf("Cannot create cell renderer for column %s: %v", title, err)
-	}
-	cellRenderer.SetProperty("xalign", 1.0) // align text to the right
-
-	column, err := gtk.TreeViewColumnNewWithAttribute(title, cellRenderer, "markup", id)
-	if err != nil {
-		log.Fatalf("Cannot create column %s: %v", title, err)
-	}
-
-	return column
-}
-
-func (t *scoreTable) Table() *gtk.TreeView {
-	return t.table
+	return t
 }
 
 func (t *scoreTable) SetQTCsEnabled(enabled bool) {
-	if t.qtcsEnabled == enabled {
-		return
-	}
 	t.qtcsEnabled = enabled
-
-	if enabled {
-		t.table.InsertColumn(t.tableColumns[scoreColumnQTCs], scoreColumnQTCs)
-	} else {
-		t.table.RemoveColumn(t.tableColumns[scoreColumnQTCs])
-	}
+	t.widget.SetColumnHidden(colQTCs, !enabled)
 }
 
 func (t *scoreTable) ShowScore(score core.Score) {
-	t.score = score
-	t.showScoreInTable(score)
-}
+	ClearTableRows(t.model)
 
-func (t *scoreTable) showScoreInTable(score core.Score) {
-	t.tableContent.Clear()
 	for _, band := range core.Bands {
-		bandScore, ok := score.ScorePerBand[band]
+		bs, ok := score.ScorePerBand[band]
 		if !ok {
 			continue
 		}
-		row := t.tableContent.Append()
-		err := t.fillBandScoreToTableRow(row, band, bandScore)
-		if err != nil {
-			log.Printf("Cannot add entry to band score for band %s: %v", band, err)
-		}
+		t.appendRow(string(band), bs, false)
 	}
-	row := t.tableContent.Append()
-	err := t.fillBandScoreToTableRow(row, totalBandName, score.Result())
-	if err != nil {
-		log.Printf("Cannot add entry to band score for total score: %v", err)
-	}
-}
-func (t *scoreTable) fillBandScoreToTableRow(row *gtk.TreeIter, band core.Band, score core.BandScore) error {
-	styler := func(s string) string {
-		result := s
-		if band == totalBandName {
-			result = fmt.Sprintf("<b>%s</b>", result)
-		}
-		return result
-	}
-
-	columns := []int{
-		scoreColumnBand,
-		scoreColumnQSOs,
-		scoreColumnQTCs,
-		scoreColumnDupes,
-		scoreColumnPoints,
-		scoreColumnPointsPerQSOs,
-		scoreColumnMultis,
-		scoreColumnQSOsPerMulti,
-		scoreColumnResult,
-	}
-
-	values := []any{
-		styler(string(band)),
-		fmt.Sprintf(styler("%d"), score.QSOs),
-		fmt.Sprintf(styler("%d"), score.QTCs),
-		fmt.Sprintf(styler("%d"), score.Duplicates),
-		fmt.Sprintf(styler("%d"), score.Points),
-		fmt.Sprintf(styler("%4.1f"), score.PointsPerQSO()),
-		fmt.Sprintf(styler("%d"), score.Multis),
-		fmt.Sprintf(styler("%4.1f"), score.QSOsPerMulti()),
-		fmt.Sprintf(styler("%d"), score.Result()),
-	}
-
-	if t.colors != nil {
-		columns = append(columns, scoreColumnForeground, scoreColumnBackground)
-		values = append(values, bandColor(t.colors, band).ToWeb(), bandBackgroundColor(t.colors).ToWeb())
-	}
-
-	return t.tableContent.Set(row, columns, values)
+	t.appendRow("Total", score.Result(), true)
 }
 
-func (t *scoreTable) refreshTableStyle() {
-	t.showScoreInTable(t.score)
+func (t *scoreTable) appendRow(bandLabel string, bs core.BandScore, total bool) {
+	cells := []*qtlib.QStandardItem{
+		qtlib.NewQStandardItem2(bandLabel),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%d", bs.QSOs)),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%d", bs.QTCs)),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%d", bs.Duplicates)),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%d", bs.Points)),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%4.1f", bs.PointsPerQSO())),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%d", bs.Multis)),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%4.1f", bs.QSOsPerMulti())),
+		qtlib.NewQStandardItem2(fmt.Sprintf("%d", bs.Result())),
+	}
+	alignment := qtlib.AlignRight | qtlib.AlignVCenter
+	for i, item := range cells {
+		item.SetTextAlignment(alignment)
+		if total {
+			item.SetFont(t.bold)
+			continue
+		}
+		if i == colBand {
+			item.SetForeground(qtlib.NewQBrush3(bandQColor(core.Band(bandLabel))))
+			item.SetBackground(qtlib.NewQBrush3(bandBGQColor()))
+		}
+	}
+	rowIdx := t.model.RowCount(qtlib.NewQModelIndex())
+	for col, item := range cells {
+		t.model.SetItem(rowIdx, col, item)
+	}
 }

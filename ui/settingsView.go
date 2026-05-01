@@ -1,13 +1,12 @@
 package ui
 
 import (
-	"log"
-
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
 )
 
+// SettingsController is the callback surface the settings dialog uses.
 type SettingsController interface {
 	Save()
 	Reset()
@@ -40,524 +39,541 @@ type SettingsController interface {
 	EnterMultisGoal(string)
 }
 
-const (
-	stationCallsign        fieldID = "stationCallsign"
-	stationOperator        fieldID = "stationOperator"
-	stationLocator         fieldID = "stationLocator"
-	contestIdentifier      fieldID = "contestIdentifier"
-	contestName            fieldID = "contestName"
-	contestStartTime       fieldID = "contestStartTime"
-	operationModeSprint    fieldID = "operationModeSprint"
-	contestEnableQTCs      fieldID = "contestEnableQTCs"
-	contestCallHistoryFile fieldID = "contestCallHistoryFile"
-	qsosGoal               fieldID = "qsosGoal"
-	pointsGoal             fieldID = "pointsGoal"
-	multisGoal             fieldID = "multisGoal"
-)
+type exchangeRow struct {
+	label *qtlib.QLabel
+	entry *qtlib.QLineEdit
+	field core.EntryField
+}
+
+type callHistoryFieldRow struct {
+	label *qtlib.QLabel
+	combo *qtlib.QComboBox
+	field core.EntryField
+}
 
 type settingsView struct {
-	parent     *gtk.Dialog
-	controller SettingsController
+	dialog *qtlib.QDialog
 
+	root *qtlib.QWidget
+
+	stationCallsign *qtlib.QLineEdit
+	stationOperator *qtlib.QLineEdit
+	stationLocator  *qtlib.QLineEdit
+
+	contestCombo *qtlib.QComboBox
+	contestIDs   []string
+	contestTexts []string
+
+	contestName       *qtlib.QLineEdit
+	contestStartTime  *qtlib.QLineEdit
+	startTimeTodayBtn *qtlib.QPushButton
+	startTimeNowBtn   *qtlib.QPushButton
+	sprintMode        *qtlib.QCheckBox
+	enableQTCs        *qtlib.QCheckBox
+
+	exchangeGrid        *qtlib.QGridLayout
+	exchangeRows        []exchangeRow
+	generateSerialChk   *qtlib.QCheckBox
+	generateReportChk   *qtlib.QCheckBox
+	serialExchangeEntry *qtlib.QLineEdit
+	reportExchangeEntry *qtlib.QLineEdit
+
+	callHistoryPath                *qtlib.QLineEdit
+	callHistoryBrowseBtn           *qtlib.QPushButton
+	callHistoryClearBtn            *qtlib.QPushButton
+	callHistoryArchiveBtn          *qtlib.QPushButton
+	callHistoryFieldGrid           *qtlib.QGridLayout
+	callHistoryFieldRows           []callHistoryFieldRow
+	availableCallHistoryFieldNames []string
+
+	qsosGoal   *qtlib.QLineEdit
+	pointsGoal *qtlib.QLineEdit
+	multisGoal *qtlib.QLineEdit
+
+	messageLabel *qtlib.QLabel
+
+	resetBtn *qtlib.QPushButton
+	closeBtn *qtlib.QPushButton
+
+	controller         SettingsController
 	ignoreChangedEvent bool
-
-	message *gtk.Label
-	reset   *gtk.Button
-	close   *gtk.Button
-
-	fields map[fieldID]any
-
-	exchangeFieldsParent             *gtk.Grid
-	exchangeFieldCount               int
-	generateSerialExchangeButton     *gtk.CheckButton
-	generateReportButton             *gtk.CheckButton
-	serialExchangeEntry              *gtk.Entry
-	reportEntry                      *gtk.Entry
-	contestStartTimeTodayButton      *gtk.Button
-	contestStartTimeNowButton        *gtk.Button
-	callHistoryFieldNamesParent      *gtk.Grid
-	clearCallHistorySettingsButton   *gtk.Button
-	openCallHistoryArchivePageButton *gtk.Button
-	availableCallHistoryFieldNames   []string
 }
 
-func setupSettingsView(builder *gtk.Builder, parent *gtk.Dialog, controller SettingsController) *settingsView {
-	result := new(settingsView)
-	result.parent = parent
-	result.controller = controller
-	result.fields = make(map[fieldID]any)
-
-	result.message = getUI(builder, "settingsMessageLabel").(*gtk.Label)
-	result.exchangeFieldsParent = getUI(builder, "contestExchangeFieldsGrid").(*gtk.Grid)
-	result.contestStartTimeTodayButton = getUI(builder, "contestStartTimeTodayButton").(*gtk.Button)
-	result.contestStartTimeTodayButton.Connect("clicked", result.onContestStartTimeTodayPressed)
-	result.contestStartTimeNowButton = getUI(builder, "contestStartTimeNowButton").(*gtk.Button)
-	result.contestStartTimeNowButton.Connect("clicked", result.onContestStartTimeNowPressed)
-	result.callHistoryFieldNamesParent = getUI(builder, "contestCallHistoryFieldNamesGrid").(*gtk.Grid)
-	result.clearCallHistorySettingsButton = getUI(builder, "contestCallHistoryClearButton").(*gtk.Button)
-	result.clearCallHistorySettingsButton.Connect("clicked", result.onClearCallHistoryPressed)
-	result.openCallHistoryArchivePageButton = getUI(builder, "contestOpenCallHistoryArchivePageButton").(*gtk.Button)
-	result.openCallHistoryArchivePageButton.Connect("clicked", result.onOpenCallHistoryArchivePagePressed)
-
-	result.reset = getUI(builder, "resetButton").(*gtk.Button)
-	result.reset.Connect("clicked", result.onResetPressed)
-	result.close = getUI(builder, "closeButton").(*gtk.Button)
-	result.close.Connect("clicked", result.onClosePressed)
-	result.close.SetCanDefault(true)
-	result.parent.SetDefault(&result.close.Widget)
-
-	result.addEntry(builder, stationCallsign)
-	result.addEntry(builder, stationOperator)
-	result.addEntry(builder, stationLocator)
-	result.addCombo(builder, contestIdentifier)
-	result.addEntry(builder, contestName)
-	result.addEntry(builder, contestStartTime)
-	result.addCheckButton(builder, operationModeSprint)
-	result.addCheckButton(builder, contestEnableQTCs)
-	result.addFileChooser(builder, contestCallHistoryFile)
-	result.addEntry(builder, qsosGoal)
-	result.addEntry(builder, pointsGoal)
-	result.addEntry(builder, multisGoal)
-
-	result.parent.Connect("destroy", result.onDestroy)
-
-	return result
-}
-
-func (v *settingsView) SetSettingsController(controller SettingsController) {
-	v.controller = controller
-}
-func (v *settingsView) ShowMessage(message string) {
-	v.message.SetText(message)
-	v.message.Show()
-}
-
-func (v *settingsView) HideMessage() {
-	v.message.Hide()
-}
-
-func (v *settingsView) Ready() bool {
-	return v != nil
-}
-
-func (v *settingsView) addEntry(builder *gtk.Builder, id fieldID) {
-	entry := getUI(builder, string(id)+"Entry").(*gtk.Entry)
-	field, _ := entry.GetName()
-	v.fields[fieldID(field)] = entry
-
-	widget := &entry.Widget
-	widget.Connect("changed", v.onFieldChanged)
-}
-
-func (v *settingsView) addCheckButton(builder *gtk.Builder, id fieldID) {
-	button := getUI(builder, string(id)+"Button").(*gtk.CheckButton)
-	field, _ := button.GetName()
-	v.fields[fieldID(field)] = button
-
-	widget := &button.Widget
-	widget.Connect("toggled", v.onFieldChanged)
-}
-
-func (v *settingsView) addCombo(builder *gtk.Builder, id fieldID) {
-	entry := getUI(builder, string(id)+"Combo").(*gtk.ComboBoxText)
-	field, _ := entry.GetName()
-	v.fields[fieldID(field)] = entry
-
-	widget := &entry.Widget
-	widget.Connect("changed", v.onFieldChanged)
-}
-
-func (v *settingsView) addFileChooser(builder *gtk.Builder, id fieldID) {
-	button := getUI(builder, string(id)+"Chooser").(*gtk.FileChooserButton)
-	field, _ := button.GetName()
-	v.fields[fieldID(field)] = button
-
-	widget := &button.Widget
-	widget.Connect("file-set", v.onFieldChanged)
-}
-
-func (v *settingsView) onFieldChanged(w any) bool {
-	if v.ignoreChangedEvent {
-		return false
-	}
-
-	var field string
-	var value any
-	switch widget := w.(type) {
-	case *gtk.Entry:
-		field, _ = widget.GetName()
-		value, _ = widget.GetText()
-	case *gtk.ComboBoxText:
-		field, _ = widget.GetName()
-		value = widget.GetActiveID()
-	case *gtk.CheckButton:
-		field, _ = widget.GetName()
-		value = widget.GetActive()
-	case *gtk.FileChooserButton:
-		field, _ = widget.GetName()
-		value = widget.GetFilename()
-	default:
-		return false
-	}
-
-	switch fieldID(field) {
-	case stationCallsign:
-		v.controller.EnterStationCallsign(value.(string))
-	case stationOperator:
-		v.controller.EnterStationOperator(value.(string))
-	case stationLocator:
-		v.controller.EnterStationLocator(value.(string))
-	case contestIdentifier:
-		v.controller.SelectContestIdentifier(value.(string))
-	case contestName:
-		v.controller.EnterContestName(value.(string))
-	case contestStartTime:
-		v.controller.EnterContestStartTime(value.(string))
-	case operationModeSprint:
-		v.controller.SetOperationModeSprint(value.(bool))
-	case contestEnableQTCs:
-		v.controller.SetContestEnableQTCs(value.(bool))
-	case contestCallHistoryFile:
-		v.controller.EnterContestCallHistoryFile(value.(string))
-	case qsosGoal:
-		v.controller.EnterQSOsGoal(value.(string))
-	case pointsGoal:
-		v.controller.EnterPointsGoal(value.(string))
-	case multisGoal:
-		v.controller.EnterMultisGoal(value.(string))
-	default:
-		log.Printf("enter unknown field %s: %v", field, value)
-	}
-
-	return false
-}
-
-func (v *settingsView) onContestStartTimeTodayPressed(_ *gtk.Button) {
-	v.controller.SetContestStartTimeToday()
-}
-
-func (v *settingsView) onContestStartTimeNowPressed(_ *gtk.Button) {
-	v.controller.SetContestStartTimeNow()
-}
-
-func (v *settingsView) onOpenCallHistoryArchivePagePressed(_ *gtk.Button) {
-	v.controller.OpenCallHistoryArchivePage()
-}
-
-func (v *settingsView) onClearCallHistoryPressed(_ *gtk.Button) {
-	v.controller.ClearCallHistory()
-}
-
-func (v *settingsView) onResetPressed(_ *gtk.Button) {
-	v.controller.Reset()
-}
-
-func (v *settingsView) onClosePressed(_ *gtk.Button) {
-	v.parent.Close()
-}
-
-func (v *settingsView) onDestroy() {
-	v.controller.Save()
-}
-
-func (v *settingsView) setEntryField(field fieldID, value string) {
-	v.doIgnoreChanges(func() {
-		v.fields[field].(*gtk.Entry).SetText(value)
-	})
-}
-
-func (v *settingsView) setCheckboxField(field fieldID, value bool) {
-	v.doIgnoreChanges(func() {
-		v.fields[field].(*gtk.CheckButton).SetActive(value)
-	})
-}
-
-func (v *settingsView) selectComboField(field fieldID, value string) {
-	v.doIgnoreChanges(func() {
-		v.fields[field].(*gtk.ComboBoxText).SetActiveID(value)
-	})
-}
-
-func (v *settingsView) setFileChooserField(field fieldID, value string) {
-	v.doIgnoreChanges(func() {
-		v.fields[field].(*gtk.FileChooserButton).SetFilename(value)
-	})
-}
-
-func (v *settingsView) doIgnoreChanges(f func()) {
-	if v == nil {
-		return
-	}
-
+func (v *settingsView) doIgnore(f func()) {
 	v.ignoreChangedEvent = true
-	defer func() {
-		v.ignoreChangedEvent = false
-	}()
+	defer func() { v.ignoreChangedEvent = false }()
 	f()
 }
 
+func newSettingsView(dialog *qtlib.QDialog, controller SettingsController) *settingsView {
+	v := &settingsView{dialog: dialog, controller: controller}
+
+	v.root = qtlib.NewQWidget2()
+	root := qtlib.NewQVBoxLayout(v.root)
+
+	root.AddWidget(v.buildStationGroup().QWidget)
+	root.AddWidget(v.buildContestGroup().QWidget)
+	root.AddWidget(v.buildExchangeGroup().QWidget)
+	root.AddWidget(v.buildCallHistoryGroup().QWidget)
+	root.AddWidget(v.buildGoalsGroup().QWidget)
+
+	v.messageLabel = qtlib.NewQLabel3("")
+	root.AddWidget(v.messageLabel.QWidget)
+
+	root.AddWidget(v.buildButtonRow())
+
+	return v
+}
+
+func (v *settingsView) buildStationGroup() *qtlib.QGroupBox {
+	box := qtlib.NewQGroupBox3("Station")
+	form := qtlib.NewQFormLayout(box.QWidget)
+
+	v.stationCallsign = qtlib.NewQLineEdit2()
+	v.stationCallsign.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterStationCallsign(text)
+	})
+	form.AddRow3("Callsign:", v.stationCallsign.QWidget)
+
+	v.stationOperator = qtlib.NewQLineEdit2()
+	v.stationOperator.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterStationOperator(text)
+	})
+	form.AddRow3("Operator:", v.stationOperator.QWidget)
+
+	v.stationLocator = qtlib.NewQLineEdit2()
+	v.stationLocator.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterStationLocator(text)
+	})
+	form.AddRow3("Locator:", v.stationLocator.QWidget)
+
+	return box
+}
+
+func (v *settingsView) buildContestGroup() *qtlib.QGroupBox {
+	box := qtlib.NewQGroupBox3("Contest")
+	form := qtlib.NewQFormLayout(box.QWidget)
+
+	v.contestCombo = makeFilterableCombo()
+	v.contestCombo.OnActivated(func(index int) {
+		if v.ignoreChangedEvent || index < 0 || index >= len(v.contestIDs) {
+			return
+		}
+		v.controller.SelectContestIdentifier(v.contestIDs[index])
+	})
+	form.AddRow3("Contest:", v.contestCombo.QWidget)
+
+	v.contestName = qtlib.NewQLineEdit2()
+	v.contestName.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterContestName(text)
+	})
+	form.AddRow3("Name:", v.contestName.QWidget)
+
+	// Start time: entry + Today + Now inside an HBox.
+	startTimeLine := qtlib.NewQWidget2()
+	startTimeHBox := qtlib.NewQHBoxLayout(startTimeLine)
+	startTimeHBox.SetContentsMargins(0, 0, 0, 0)
+	v.contestStartTime = qtlib.NewQLineEdit2()
+	v.contestStartTime.SetPlaceholderText("DD-MM-YYYY HH:mm")
+	v.contestStartTime.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterContestStartTime(text)
+	})
+	startTimeHBox.AddWidget(v.contestStartTime.QWidget)
+	v.startTimeTodayBtn = qtlib.NewQPushButton3("Today")
+	v.startTimeTodayBtn.OnClicked(func() { v.controller.SetContestStartTimeToday() })
+	startTimeHBox.AddWidget(v.startTimeTodayBtn.QWidget)
+	v.startTimeNowBtn = qtlib.NewQPushButton3("Now")
+	v.startTimeNowBtn.OnClicked(func() { v.controller.SetContestStartTimeNow() })
+	startTimeHBox.AddWidget(v.startTimeNowBtn.QWidget)
+	form.AddRow3("Start Time (UTC):", startTimeLine)
+
+	v.sprintMode = qtlib.NewQCheckBox3("Sprint mode (auto-switch workmode after each QSO)")
+	v.sprintMode.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetOperationModeSprint(checked)
+	})
+	form.AddRow3("Operation Mode:", v.sprintMode.QWidget)
+
+	v.enableQTCs = qtlib.NewQCheckBox3("Enable QTCs")
+	v.enableQTCs.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetContestEnableQTCs(checked)
+	})
+	form.AddRow3("QTCs:", v.enableQTCs.QWidget)
+
+	return box
+}
+
+func (v *settingsView) buildExchangeGroup() *qtlib.QGroupBox {
+	box := qtlib.NewQGroupBox3("My Exchange")
+	box.SetObjectName(*qtlib.NewQAnyStringView3("myExchangeGroup"))
+	v.exchangeGrid = qtlib.NewQGridLayout(box.QWidget)
+	return box
+}
+
+func (v *settingsView) buildCallHistoryGroup() *qtlib.QGroupBox {
+	box := qtlib.NewQGroupBox3("Call History")
+	outer := qtlib.NewQVBoxLayout(box.QWidget)
+
+	fileLine := qtlib.NewQWidget2()
+	fileHBox := qtlib.NewQHBoxLayout(fileLine)
+	fileHBox.SetContentsMargins(0, 0, 0, 0)
+	v.callHistoryPath = qtlib.NewQLineEdit2()
+	v.callHistoryPath.SetReadOnly(true)
+	fileHBox.AddWidget(v.callHistoryPath.QWidget)
+
+	v.callHistoryBrowseBtn = qtlib.NewQPushButton3("Browse…")
+	v.callHistoryBrowseBtn.OnClicked(func() {
+		dlg := qtlib.NewQFileDialog4(v.dialog.QWidget, "Select Call History File")
+		dlg.SetAcceptMode(qtlib.QFileDialog__AcceptOpen)
+		dlg.SetFileMode(qtlib.QFileDialog__ExistingFile)
+		dlg.SetNameFilter("Call history files (*.txt *.csv);;All Files (*)")
+		dlg.SetWindowFlags(
+			qtlib.Window |
+				qtlib.CustomizeWindowHint |
+				qtlib.WindowTitleHint |
+				qtlib.WindowCloseButtonHint,
+		)
+		if dlg.Exec() != int(qtlib.QDialog__Accepted) {
+			return
+		}
+		files := dlg.SelectedFiles()
+		if len(files) == 0 {
+			return
+		}
+		v.controller.EnterContestCallHistoryFile(files[0])
+	})
+	fileHBox.AddWidget(v.callHistoryBrowseBtn.QWidget)
+
+	v.callHistoryClearBtn = qtlib.NewQPushButton3("Clear")
+	v.callHistoryClearBtn.OnClicked(func() { v.controller.ClearCallHistory() })
+	fileHBox.AddWidget(v.callHistoryClearBtn.QWidget)
+
+	v.callHistoryArchiveBtn = qtlib.NewQPushButton3("🌐")
+	v.callHistoryArchiveBtn.OnClicked(func() { v.controller.OpenCallHistoryArchivePage() })
+	fileHBox.AddWidget(v.callHistoryArchiveBtn.QWidget)
+
+	outer.AddWidget(fileLine)
+
+	fieldsContainer := qtlib.NewQWidget2()
+	v.callHistoryFieldGrid = qtlib.NewQGridLayout(fieldsContainer)
+	outer.AddWidget(fieldsContainer)
+
+	return box
+}
+
+func (v *settingsView) buildGoalsGroup() *qtlib.QGroupBox {
+	box := qtlib.NewQGroupBox3("Goals")
+	layout := qtlib.NewQHBoxLayout(box.QWidget)
+
+	layout.AddWidget(qtlib.NewQLabel3("QSOs/hour:").QWidget)
+	v.qsosGoal = qtlib.NewQLineEdit2()
+	v.qsosGoal.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterQSOsGoal(text)
+	})
+	layout.AddWidget(v.qsosGoal.QWidget)
+
+	layout.AddWidget(qtlib.NewQLabel3("Points/hour:").QWidget)
+	v.pointsGoal = qtlib.NewQLineEdit2()
+	v.pointsGoal.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterPointsGoal(text)
+	})
+	layout.AddWidget(v.pointsGoal.QWidget)
+
+	layout.AddWidget(qtlib.NewQLabel3("Multis/hour:").QWidget)
+	v.multisGoal = qtlib.NewQLineEdit2()
+	v.multisGoal.OnTextChanged(func(text string) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.EnterMultisGoal(text)
+	})
+	layout.AddWidget(v.multisGoal.QWidget)
+
+	return box
+}
+
+func (v *settingsView) buildButtonRow() *qtlib.QWidget {
+	line := qtlib.NewQWidget2()
+	hbox := qtlib.NewQHBoxLayout(line)
+	hbox.SetContentsMargins(0, 0, 0, 0)
+
+	v.resetBtn = qtlib.NewQPushButton3("Reset")
+	v.resetBtn.OnClicked(func() { v.controller.Reset() })
+	hbox.AddWidget(v.resetBtn.QWidget)
+
+	hbox.AddStretch()
+
+	v.closeBtn = qtlib.NewQPushButton3("Close")
+	v.closeBtn.OnClicked(func() { v.dialog.Reject() })
+	hbox.AddWidget(v.closeBtn.QWidget)
+
+	return line
+}
+
+// settings.View implementation
+
+func (v *settingsView) ShowMessage(message string) {
+	v.messageLabel.SetText(message)
+	v.messageLabel.SetVisible(true)
+}
+
+func (v *settingsView) HideMessage() {
+	v.messageLabel.SetVisible(false)
+}
+
 func (v *settingsView) SetStationCallsign(value string) {
-	v.setEntryField(stationCallsign, value)
+	v.doIgnore(func() { v.stationCallsign.SetText(value) })
 }
 
 func (v *settingsView) SetStationOperator(value string) {
-	v.setEntryField(stationOperator, value)
+	v.doIgnore(func() { v.stationOperator.SetText(value) })
 }
 
 func (v *settingsView) SetStationLocator(value string) {
-	v.setEntryField(stationLocator, value)
+	v.doIgnore(func() { v.stationLocator.SetText(value) })
 }
 
 func (v *settingsView) SetContestIdentifiers(ids []string, texts []string) {
 	if len(ids) != len(texts) {
-		panic("contest identifiers and names are not in sync")
+		return
 	}
-
-	v.doIgnoreChanges(func() {
-		combo := v.fields[contestIdentifier].(*gtk.ComboBoxText)
-		combo.RemoveAll()
-		for i, value := range ids {
-			combo.Append(value, texts[i])
+	v.contestIDs = append(v.contestIDs[:0], ids...)
+	v.contestTexts = append(v.contestTexts[:0], texts...)
+	v.doIgnore(func() {
+		v.contestCombo.Clear()
+		for _, t := range texts {
+			v.contestCombo.AddItem(t)
 		}
-		combo.SetActive(0)
 	})
 }
 
 func (v *settingsView) SelectContestIdentifier(value string) {
-	v.selectComboField(contestIdentifier, value)
-}
-
-func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
-	for i := 0; i < v.exchangeFieldCount; i++ {
-		label, _ := v.exchangeFieldsParent.GetChildAt(0, 0)
-		if label != nil {
-			label.ToWidget().Destroy()
+	v.doIgnore(func() {
+		for i, id := range v.contestIDs {
+			if id == value {
+				v.contestCombo.SetCurrentIndex(i)
+				return
+			}
 		}
-		entry, _ := v.exchangeFieldsParent.GetChildAt(1, 0)
-		if entry != nil {
-			entry.ToWidget().Destroy()
-		}
-		v.exchangeFieldsParent.RemoveRow(0)
-
-		label, _ = v.callHistoryFieldNamesParent.GetChildAt(0, 0)
-		if label != nil {
-			label.ToWidget().Destroy()
-		}
-		fieldName, _ := v.callHistoryFieldNamesParent.GetChildAt(1, 0)
-		if fieldName != nil {
-			fieldName.ToWidget().Destroy()
-		}
-		v.callHistoryFieldNamesParent.RemoveRow(0)
-	}
-	if v.generateSerialExchangeButton != nil {
-		v.generateSerialExchangeButton.Destroy()
-		v.generateSerialExchangeButton = nil
-		v.serialExchangeEntry = nil
-	}
-	if v.generateReportButton != nil {
-		v.generateReportButton.Destroy()
-		v.generateReportButton = nil
-		v.reportEntry = nil
-	}
-
-	for i, field := range fields {
-		v.exchangeFieldsParent.InsertRow(i)
-		label, _ := gtk.LabelNew(field.Short)
-		label.SetHAlign(gtk.ALIGN_START)
-		label.SetHExpand(false)
-		v.exchangeFieldsParent.Attach(label, 0, i, 1, 1)
-
-		entry, _ := gtk.EntryNew()
-		entry.SetName(string(field.Field))
-		entry.SetWidthChars(4)
-		entry.SetTooltipText(field.Short) // TODO use field.Hint
-		entry.SetHAlign(gtk.ALIGN_FILL)
-		entry.SetHExpand(false)
-		entry.Connect("changed", v.onExchangeFieldChanged)
-		v.exchangeFieldsParent.Attach(entry, 1, i, 1, 1)
-
-		v.callHistoryFieldNamesParent.InsertRow(i)
-		label, _ = gtk.LabelNew(field.Short)
-		label.SetHAlign(gtk.ALIGN_START)
-		label.SetHExpand(false)
-		v.callHistoryFieldNamesParent.Attach(label, 0, i, 1, 1)
-
-		fieldName, _ := gtk.ComboBoxTextNew()
-		fieldName.SetName(string(field.Field))
-		fieldName.Append("", "")
-		for _, t := range v.availableCallHistoryFieldNames {
-			fieldName.Append(t, t)
-		}
-		fieldName.SetTooltipText(field.Short) // TODO use field.Hint
-		fieldName.SetHAlign(gtk.ALIGN_FILL)
-		fieldName.SetHExpand(true)
-		fieldName.Connect("changed", v.onCallHistoryFieldNameChanged)
-		v.callHistoryFieldNamesParent.Attach(fieldName, 1, i, 1, 1)
-
-		if field.CanContainSerial && v.generateSerialExchangeButton == nil {
-			serialCheckButton, _ := gtk.CheckButtonNew()
-			serialCheckButton.SetLabel("Gen. Serial Number")
-			serialCheckButton.SetTooltipText("Check this if you want to automatically generate a serial number as your exchange for this field.")
-			serialCheckButton.SetHAlign(gtk.ALIGN_START)
-			serialCheckButton.SetHExpand(true)
-			serialCheckButton.Connect("toggled", v.onGenerateSerialExchangeChanged)
-			v.exchangeFieldsParent.Attach(serialCheckButton, 2, i, 1, 1)
-			v.generateSerialExchangeButton = serialCheckButton
-			v.serialExchangeEntry = entry
-		}
-
-		if field.CanContainReport && v.generateReportButton == nil {
-			reportCheckButton, _ := gtk.CheckButtonNew()
-			reportCheckButton.SetLabel("Gen. Report")
-			reportCheckButton.SetTooltipText("Check this if you want to automatically generate a report based on the currently selected mode.")
-			reportCheckButton.SetHAlign(gtk.ALIGN_START)
-			reportCheckButton.SetHExpand(true)
-			reportCheckButton.Connect("toggled", v.onGenerateReportChanged)
-			v.exchangeFieldsParent.Attach(reportCheckButton, 2, i, 1, 1)
-			v.generateReportButton = reportCheckButton
-			v.reportEntry = entry
-		}
-	}
-
-	v.exchangeFieldsParent.ShowAll()
-	v.callHistoryFieldNamesParent.ShowAll()
-	v.exchangeFieldCount = len(fields)
-}
-
-func (v *settingsView) onExchangeFieldChanged(entry *gtk.Entry) bool {
-	if v.ignoreChangedEvent {
-		return false
-	}
-
-	name, _ := entry.GetName()
-	entryField := core.EntryField(name)
-
-	value, _ := entry.GetText()
-
-	v.controller.EnterContestExchangeValue(entryField, value)
-
-	return false
-}
-
-func (v *settingsView) onGenerateSerialExchangeChanged(checkButton *gtk.CheckButton) bool {
-	if v.ignoreChangedEvent {
-		return false
-	}
-
-	value := checkButton.GetActive()
-	v.serialExchangeEntry.SetSensitive(!value)
-	v.controller.EnterContestGenerateSerialExchange(value)
-
-	return false
-}
-
-func (v *settingsView) onGenerateReportChanged(checkButton *gtk.CheckButton) bool {
-	if v.ignoreChangedEvent {
-		return false
-	}
-
-	value := checkButton.GetActive()
-	v.reportEntry.SetSensitive(!value)
-	v.controller.EnterContestGenerateReport(value)
-
-	return false
-}
-
-func (v *settingsView) SetContestExchangeValue(index int, value string) {
-	child, _ := v.exchangeFieldsParent.GetChildAt(1, index-1)
-	entry, ok := child.(*gtk.Entry)
-	if !ok {
-		return
-	}
-
-	v.doIgnoreChanges(func() {
-		entry.SetText(value)
+		v.contestCombo.SetCurrentIndex(-1)
 	})
 }
 
-func (v *settingsView) SetContestGenerateSerialExchange(active bool, sensitive bool) {
-	if v.generateSerialExchangeButton == nil {
+func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
+	v.doIgnore(func() {
+		// Wipe existing exchange rows.
+		for _, row := range v.exchangeRows {
+			v.exchangeGrid.RemoveWidget(row.label.QWidget)
+			row.label.QWidget.SetParent(nil)
+			row.label.QWidget.DeleteLater()
+			v.exchangeGrid.RemoveWidget(row.entry.QWidget)
+			row.entry.QWidget.SetParent(nil)
+			row.entry.QWidget.DeleteLater()
+		}
+		v.exchangeRows = v.exchangeRows[:0]
+
+		if v.generateSerialChk != nil {
+			v.exchangeGrid.RemoveWidget(v.generateSerialChk.QWidget)
+			v.generateSerialChk.QWidget.SetParent(nil)
+			v.generateSerialChk.QWidget.DeleteLater()
+			v.generateSerialChk = nil
+			v.serialExchangeEntry = nil
+		}
+		if v.generateReportChk != nil {
+			v.exchangeGrid.RemoveWidget(v.generateReportChk.QWidget)
+			v.generateReportChk.QWidget.SetParent(nil)
+			v.generateReportChk.QWidget.DeleteLater()
+			v.generateReportChk = nil
+			v.reportExchangeEntry = nil
+		}
+
+		// Wipe existing call-history field rows.
+		for _, row := range v.callHistoryFieldRows {
+			v.callHistoryFieldGrid.RemoveWidget(row.label.QWidget)
+			row.label.QWidget.SetParent(nil)
+			row.label.QWidget.DeleteLater()
+			v.callHistoryFieldGrid.RemoveWidget(row.combo.QWidget)
+			row.combo.QWidget.SetParent(nil)
+			row.combo.QWidget.DeleteLater()
+		}
+		v.callHistoryFieldRows = v.callHistoryFieldRows[:0]
+
+		// Build new rows.
+		for i, field := range fields {
+			label := qtlib.NewQLabel3(field.Short)
+			entry := qtlib.NewQLineEdit2()
+			entry.SetToolTip(field.Short)
+			entryField := field.Field
+			entry.OnTextChanged(func(text string) {
+				if v.ignoreChangedEvent {
+					return
+				}
+				v.controller.EnterContestExchangeValue(entryField, text)
+			})
+			v.exchangeGrid.AddWidget2(label.QWidget, i, 0)
+			v.exchangeGrid.AddWidget2(entry.QWidget, i, 1)
+			v.exchangeRows = append(v.exchangeRows, exchangeRow{label: label, entry: entry, field: entryField})
+
+			if field.CanContainSerial && v.generateSerialChk == nil {
+				chk := qtlib.NewQCheckBox3("Gen. Serial Number")
+				chk.SetToolTip("Check this to automatically generate a serial number for this exchange field.")
+				chk.OnToggled(func(checked bool) {
+					if v.ignoreChangedEvent {
+						return
+					}
+					if v.serialExchangeEntry != nil {
+						v.serialExchangeEntry.SetEnabled(!checked)
+					}
+					v.controller.EnterContestGenerateSerialExchange(checked)
+				})
+				v.exchangeGrid.AddWidget2(chk.QWidget, i, 2)
+				v.generateSerialChk = chk
+				v.serialExchangeEntry = entry
+			}
+			if field.CanContainReport && v.generateReportChk == nil {
+				chk := qtlib.NewQCheckBox3("Gen. Report")
+				chk.SetToolTip("Check this to automatically generate a report based on the current mode.")
+				chk.OnToggled(func(checked bool) {
+					if v.ignoreChangedEvent {
+						return
+					}
+					if v.reportExchangeEntry != nil {
+						v.reportExchangeEntry.SetEnabled(!checked)
+					}
+					v.controller.EnterContestGenerateReport(checked)
+				})
+				v.exchangeGrid.AddWidget2(chk.QWidget, i, 2)
+				v.generateReportChk = chk
+				v.reportExchangeEntry = entry
+			}
+
+			chLabel := qtlib.NewQLabel3(field.Short)
+			chCombo := qtlib.NewQComboBox2()
+			chCombo.AddItem("")
+			for _, name := range v.availableCallHistoryFieldNames {
+				chCombo.AddItem(name)
+			}
+			chCombo.SetToolTip(field.Short)
+			chField := field.Field
+			chCombo.OnCurrentTextChanged(func(text string) {
+				if v.ignoreChangedEvent {
+					return
+				}
+				v.controller.EnterContestCallHistoryFieldName(chField, text)
+			})
+			v.callHistoryFieldGrid.AddWidget2(chLabel.QWidget, i, 0)
+			v.callHistoryFieldGrid.AddWidget2(chCombo.QWidget, i, 1)
+			v.callHistoryFieldRows = append(v.callHistoryFieldRows, callHistoryFieldRow{label: chLabel, combo: chCombo, field: chField})
+		}
+	})
+}
+
+func (v *settingsView) SetContestExchangeValue(index int, value string) {
+	i := index - 1
+	if i < 0 || i >= len(v.exchangeRows) {
 		return
 	}
+	v.doIgnore(func() { v.exchangeRows[i].entry.SetText(value) })
+}
 
-	v.doIgnoreChanges(func() {
-		v.generateSerialExchangeButton.SetActive(active)
-		v.generateSerialExchangeButton.SetSensitive(sensitive)
-		v.serialExchangeEntry.SetSensitive(!active)
+func (v *settingsView) SetContestGenerateSerialExchange(active bool, sensitive bool) {
+	if v.generateSerialChk == nil {
+		return
+	}
+	v.doIgnore(func() {
+		v.generateSerialChk.SetChecked(active)
+		v.generateSerialChk.SetEnabled(sensitive)
+		if v.serialExchangeEntry != nil {
+			v.serialExchangeEntry.SetEnabled(!active)
+		}
 	})
 }
 
 func (v *settingsView) SetContestGenerateReport(active bool, sensitive bool) {
-	if v.generateReportButton == nil {
+	if v.generateReportChk == nil {
 		return
 	}
-
-	v.doIgnoreChanges(func() {
-		v.generateReportButton.SetActive(active)
-		v.generateReportButton.SetSensitive(sensitive)
-		v.reportEntry.SetSensitive(!active)
+	v.doIgnore(func() {
+		v.generateReportChk.SetChecked(active)
+		v.generateReportChk.SetEnabled(sensitive)
+		if v.reportExchangeEntry != nil {
+			v.reportExchangeEntry.SetEnabled(!active)
+		}
 	})
-}
-
-func (v *settingsView) onCallHistoryFieldNameChanged(entry *gtk.ComboBoxText) bool {
-	if v.ignoreChangedEvent {
-		return false
-	}
-
-	name, _ := entry.GetName()
-	entryField := core.EntryField(name)
-
-	value := entry.GetActiveText()
-
-	v.controller.EnterContestCallHistoryFieldName(entryField, value)
-
-	return false
-}
-
-func (v *settingsView) SetContestCallHistoryFieldName(i int, value string) {
-	child, _ := v.callHistoryFieldNamesParent.GetChildAt(1, i)
-	entry, ok := child.(*gtk.ComboBoxText)
-	if !ok {
-		return
-	}
-
-	v.doIgnoreChanges(func() {
-		entry.SetActiveID(value)
-	})
-}
-
-func (v *settingsView) SetContestAvailableCallHistoryFieldNames(fieldNames []string) {
-	v.availableCallHistoryFieldNames = fieldNames
-}
-
-func (v *settingsView) SetContestName(value string) {
-	v.setEntryField(contestName, value)
-}
-
-func (v *settingsView) SetContestStartTime(value string) {
-	v.setEntryField(contestStartTime, value)
-}
-
-func (v *settingsView) SetOperationModeSprint(value bool) {
-	v.setCheckboxField(operationModeSprint, value)
 }
 
 func (v *settingsView) SetContestEnableQTCs(value bool) {
-	v.setCheckboxField(contestEnableQTCs, value)
+	v.doIgnore(func() { v.enableQTCs.SetChecked(value) })
+}
+
+func (v *settingsView) SetContestName(value string) {
+	v.doIgnore(func() { v.contestName.SetText(value) })
+}
+
+func (v *settingsView) SetContestStartTime(value string) {
+	v.doIgnore(func() { v.contestStartTime.SetText(value) })
+}
+
+func (v *settingsView) SetOperationModeSprint(value bool) {
+	v.doIgnore(func() { v.sprintMode.SetChecked(value) })
 }
 
 func (v *settingsView) SetContestCallHistoryFile(value string) {
-	v.setFileChooserField(contestCallHistoryFile, value)
+	v.doIgnore(func() { v.callHistoryPath.SetText(value) })
+}
+
+func (v *settingsView) SetContestCallHistoryFieldName(i int, value string) {
+	if i < 0 || i >= len(v.callHistoryFieldRows) {
+		return
+	}
+	v.doIgnore(func() {
+		combo := v.callHistoryFieldRows[i].combo
+		idx := combo.FindText(value)
+		if idx < 0 {
+			idx = 0
+		}
+		combo.SetCurrentIndex(idx)
+	})
+}
+
+func (v *settingsView) SetContestAvailableCallHistoryFieldNames(names []string) {
+	v.availableCallHistoryFieldNames = append(v.availableCallHistoryFieldNames[:0], names...)
 }
 
 func (v *settingsView) SetQSOsGoal(value string) {
-	v.setEntryField(qsosGoal, value)
+	v.doIgnore(func() { v.qsosGoal.SetText(value) })
 }
 
 func (v *settingsView) SetPointsGoal(value string) {
-	v.setEntryField(pointsGoal, value)
+	v.doIgnore(func() { v.pointsGoal.SetText(value) })
 }
 
 func (v *settingsView) SetMultisGoal(value string) {
-	v.setEntryField(multisGoal, value)
+	v.doIgnore(func() { v.multisGoal.SetText(value) })
 }

@@ -6,17 +6,34 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+type QTCView interface {
+	Show()
+}
+
 type QTCList struct {
 	enabled bool
 	qtcs    []core.QTC
 
 	listeners []any
+	view      QTCView
 }
 
 func NewQTCList() *QTCList {
 	return &QTCList{
 		qtcs: make([]core.QTC, 0),
+		view: new(nullQTCView),
 	}
+}
+
+func (l *QTCList) SetView(view QTCView) {
+	if view == nil {
+		l.view = new(nullQTCView)
+	}
+	l.view = view
+}
+
+func (l *QTCList) Show() {
+	l.view.Show()
 }
 
 func (l *QTCList) Notify(listener any) {
@@ -104,3 +121,7 @@ func (l *QTCList) SelectLastQTC() {
 	l.emitQTCSelected(qtc)
 	l.emitQTCRowSelected(index)
 }
+
+type nullQTCView struct{}
+
+func (*nullQTCView) Show() {}

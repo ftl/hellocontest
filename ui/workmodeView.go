@@ -1,72 +1,66 @@
 package ui
 
 import (
-	"log"
-
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
 )
 
-// WorkmodeController controls the workmode handling.
 type WorkmodeController interface {
 	SetWorkmode(core.Workmode)
 }
 
 type workmodeView struct {
-	controller WorkmodeController
-
-	searchPounceModeButton *gtk.RadioButton
-	runModeButton          *gtk.RadioButton
-	operationModeLabel     *gtk.Label
+	widget             *qtlib.QWidget
+	searchPounceRadio  *qtlib.QRadioButton
+	runRadio           *qtlib.QRadioButton
+	operationModeLabel *qtlib.QLabel
+	controller         WorkmodeController
+	ignoreInput        bool
 }
 
-func setupWorkmodeView(builder *gtk.Builder) *workmodeView {
-	result := new(workmodeView)
+func newWorkmodeView() *workmodeView {
+	v := &workmodeView{}
+	v.widget = qtlib.NewQWidget2()
+	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("workmode"))
+	layout := qtlib.NewQHBoxLayout(v.widget)
 
-	result.searchPounceModeButton = getUI(builder, "searchPounceModeButton").(*gtk.RadioButton)
-	result.runModeButton = getUI(builder, "runModeButton").(*gtk.RadioButton)
-	result.operationModeLabel = getUI(builder, "operationModeLabel").(*gtk.Label)
+	workmodeLabel := qtlib.NewQLabel3("Workmode:")
+	v.searchPounceRadio = qtlib.NewQRadioButton3("S&&P")
+	v.runRadio = qtlib.NewQRadioButton3("Run")
+	v.operationModeLabel = qtlib.NewQLabel2()
 
-	result.searchPounceModeButton.Connect("toggled", result.onSearchPounceModeButtonToggled)
-	result.runModeButton.Connect("toggled", result.onRunModeButtonToggled)
+	layout.AddWidget(workmodeLabel.QWidget)
+	layout.AddWidget(v.searchPounceRadio.QWidget)
+	layout.AddWidget(v.runRadio.QWidget)
+	layout.AddWidget(v.operationModeLabel.QWidget)
 
-	return result
-}
-
-func (v *workmodeView) onSearchPounceModeButtonToggled(button *gtk.RadioButton) bool {
-	if button.GetActive() {
+	v.searchPounceRadio.OnToggled(func(checked bool) {
+		if v.ignoreInput || !checked || v.controller == nil {
+			return
+		}
 		v.controller.SetWorkmode(core.SearchPounce)
-	}
-	return true
-}
-
-func (v *workmodeView) onRunModeButtonToggled(button *gtk.RadioButton) bool {
-	if button.GetActive() {
+	})
+	v.runRadio.OnToggled(func(checked bool) {
+		if v.ignoreInput || !checked || v.controller == nil {
+			return
+		}
 		v.controller.SetWorkmode(core.Run)
-	}
-	return true
+	})
+
+	return v
 }
 
-func (v *workmodeView) SetWorkmodeController(controller WorkmodeController) {
-	v.controller = controller
-}
+func (v *workmodeView) SetWorkmodeController(c WorkmodeController) { v.controller = c }
 
-func (v *workmodeView) SetWorkmode(workmode core.Workmode) {
-	var activeButton *gtk.RadioButton
-	switch workmode {
+func (v *workmodeView) SetWorkmode(wm core.Workmode) {
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	switch wm {
 	case core.SearchPounce:
-		activeButton = v.searchPounceModeButton
+		v.searchPounceRadio.SetChecked(true)
 	case core.Run:
-		activeButton = v.runModeButton
-	default:
-		activeButton = nil
-	}
-
-	if activeButton != nil && !activeButton.GetActive() {
-		name, _ := activeButton.GetLabel()
-		log.Printf("UI: set %s active", name)
-		activeButton.SetActive(true)
+		v.runRadio.SetChecked(true)
 	}
 }
 

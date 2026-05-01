@@ -599,13 +599,13 @@ type MatchingPart struct {
 type MatchingAssembly []MatchingPart
 
 func (m MatchingAssembly) String() string {
-	var result string
+	var result strings.Builder
 	for _, match := range m {
 		if match.OP != Delete {
-			result += match.Value
+			result.WriteString(match.Value)
 		}
 	}
-	return result
+	return result.String()
 }
 
 type Settings interface {

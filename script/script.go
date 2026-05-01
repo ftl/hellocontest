@@ -6,13 +6,24 @@ import (
 	"time"
 
 	"github.com/ftl/hellocontest/core/app"
+	"github.com/ftl/hellocontest/ui"
 )
 
 type Script struct {
-	clock    *Clock
-	sections []*Section
+	clock       *Clock
+	windowState string
+	sections    []*Section
 
 	currentSection int
+	screenshotter  ui.Screenshotter
+}
+
+func (s *Script) SetScreenshotter(sh ui.Screenshotter) {
+	s.screenshotter = sh
+}
+
+func (s *Script) WindowState() string {
+	return s.windowState
 }
 
 type Section struct {
@@ -25,9 +36,10 @@ type Section struct {
 }
 
 type Runtime struct {
-	Clock *Clock
-	App   *app.Controller
-	UI    func(func())
+	Clock         *Clock
+	App           *app.Controller
+	UI            func(func())
+	Screenshotter ui.Screenshotter
 }
 
 type Step func(ctx context.Context, r *Runtime) time.Duration
@@ -41,7 +53,7 @@ func (s *Script) Now() time.Time {
 	return s.clock.Now()
 }
 
-func (s *Script) Step(ctx context.Context, app *app.Controller, ui func(func())) bool {
+func (s *Script) Step(ctx context.Context, controller *app.Controller, runUI func(func())) bool {
 	if s.currentSection >= len(s.sections) {
 		return false
 	}
@@ -51,9 +63,10 @@ func (s *Script) Step(ctx context.Context, app *app.Controller, ui func(func()))
 
 	section := s.sections[s.currentSection]
 	runtime := &Runtime{
-		Clock: s.clock,
-		App:   app,
-		UI:    ui,
+		Clock:         s.clock,
+		App:           controller,
+		UI:            runUI,
+		Screenshotter: s.screenshotter,
 	}
 
 	cont := section.Step(ctx, runtime)

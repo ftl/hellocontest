@@ -1,49 +1,121 @@
 package ui
 
 import (
-	"log"
-
-	"github.com/gotk3/gotk3/gtk"
+	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/qtc"
 )
 
+var _ qtc.View = (*qtcDialog)(nil)
+
 type qtcDialog struct {
-	dialog *gtk.Dialog
-	parent gtk.IWidget
+	parent     *qtlib.QMainWindow
+	controller QTCController
 
-	controller     QTCController
-	view           *qtcView
+	dialog *qtlib.QDialog
+	view   *qtcView
+	logBtn *qtlib.QPushButton
+
 	stopKeyHandler *stopKeyHandler
-	logButton      *gtk.Button
 
-	// data fields
 	activePhase core.QTCWorkflowPhase
 	activeField core.QTCField
 	activeQTC   int
+
+	completed bool
 }
 
-func setupQTCDialog(parent gtk.IWidget, controller QTCController) *qtcDialog {
-	result := &qtcDialog{
-		parent:     parent,
-		controller: controller,
-	}
-	return result
-}
-
-func (d *qtcDialog) onDestroy() {
-	d.dialog = nil
-	d.view = nil
+func newQTCDialog(parent *qtlib.QMainWindow, controller QTCController) *qtcDialog {
+	return &qtcDialog{parent: parent, controller: controller}
 }
 
 func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
-	// TODO: implement modal dialog
-	return 10, true
+	// TODO: implement a small modal QInputDialog-style picker.
+	if max > 10 {
+		max = 10
+	}
+	return max, true
+}
+
+func (d *qtcDialog) Show(mode core.QTCMode, series core.QTCSeries) {
+	d.completed = false
+
+	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
+	d.dialog.SetWindowTitle("QTC")
+	d.dialog.SetModal(true)
+	d.dialog.SetMinimumSize(qtlib.NewQSize2(600, 500))
+	d.dialog.SetWindowFlags(
+		qtlib.Window |
+			qtlib.CustomizeWindowHint |
+			qtlib.WindowTitleHint |
+			qtlib.WindowCloseButtonHint,
+	)
+
+	d.stopKeyHandler = newStopKeyHandler(d.dialog.QWidget)
+	d.stopKeyHandler.SetStopKeyController(d.controller)
+
+	d.view = newQTCView(d.controller, mode)
+
+	root := qtlib.NewQVBoxLayout(d.dialog.QWidget)
+	root.AddWidget(d.view.root)
+
+	buttons := qtlib.NewQDialogButtonBox4(
+		qtlib.QDialogButtonBox__Ok | qtlib.QDialogButtonBox__Cancel,
+	)
+	d.logBtn = buttons.Button(qtlib.QDialogButtonBox__Ok)
+	d.logBtn.SetText("Log")
+	buttons.OnAccepted(func() {
+		d.completed = true
+		d.controller.CompleteQTCSeries()
+		d.dialog.Accept()
+	})
+	buttons.OnRejected(func() {
+		if d.completed {
+			d.dialog.Reject()
+			return
+		}
+		d.controller.AbortQTCSeries()
+		d.dialog.Reject()
+	})
+	root.AddWidget(buttons.QWidget)
+
+	d.view.setHeader(series.TheirCallsign, series.Header)
+	d.view.setQTCs(series.QTCs)
+	d.applyActivePhase()
+
+	d.dialog.Exec()
+	d.dialog.DeleteLater()
+	d.dialog = nil
+	d.view = nil
+	d.logBtn = nil
+	d.stopKeyHandler = nil
+}
+
+func (d *qtcDialog) Close() {
+	if d.dialog == nil {
+		return
+	}
+	d.completed = true
+	d.dialog.Done(int(qtlib.QDialog__Accepted))
+}
+
+func (d *qtcDialog) UpdateQTC(index int, q core.QTC) {
+	if d.view == nil {
+		return
+	}
+	d.view.setQTC(index, q)
+}
+
+func (d *qtcDialog) ClearDataInputs() {
+	if d.view == nil {
+		return
+	}
+	d.view.clearExchangeEntry()
 }
 
 func (d *qtcDialog) ShowFieldError(field core.QTCField, message string) {
 	if d.view == nil {
-		log.Printf("field error on %s: %s", field, message)
 		return
 	}
 	d.view.setFieldError(field, message)
@@ -56,79 +128,12 @@ func (d *qtcDialog) ClearFieldError() {
 	d.view.clearFieldError()
 }
 
-func (d *qtcDialog) Show(qtcMode core.QTCMode, qtcSeries core.QTCSeries) {
-	d.view = newQTCView(d.controller, qtcMode)
-
-	// setup the dialog
-	dialog, _ := gtk.DialogNew()
-	d.dialog = dialog
-	d.dialog.SetDefaultSize(400, 400)
-	d.dialog.SetTransientFor(nil)
-	d.dialog.SetPosition(gtk.WIN_POS_CENTER)
-	d.dialog.Connect("destroy", d.onDestroy)
-	d.dialog.SetTitle("QTC")
-	d.dialog.SetDefaultResponse(gtk.RESPONSE_OK)
-	d.dialog.SetModal(true)
-	contentArea, _ := d.dialog.GetContentArea()
-	contentArea.Add(d.view.root)
-	d.logButton, _ = d.dialog.AddButton("Log", gtk.RESPONSE_OK)
-	d.dialog.AddButton("Cancel", gtk.RESPONSE_CANCEL)
-	d.stopKeyHandler = setupStopKeyHandler(&d.dialog.Widget)
-	d.stopKeyHandler.SetStopKeyController(d.controller)
-	d.dialog.ShowAll()
-
-	// put the QTC series data into the view's widgets
-	d.view.setHeader(qtcSeries.TheirCallsign, qtcSeries.Header)
-	d.view.setQTCs(qtcSeries.QTCs)
-	d.focusActivePhase()
-
-	// run the dialog until it is closed by the controller (d.dialog == nil)
-	for {
-		response := d.dialog.Run()
-		switch response {
-		case gtk.RESPONSE_OK:
-			d.controller.CompleteQTCSeries()
-		default:
-			d.controller.AbortQTCSeries()
-		}
-		if d.dialog == nil {
-			return
-		}
-	}
-}
-
-func (d *qtcDialog) UpdateQTC(index int, qtc core.QTC) {
-	if d.view == nil {
-		return
-	}
-	d.view.setQTC(index, qtc)
-}
-
-func (d *qtcDialog) Close() {
-	if d.dialog == nil {
-		return
-	}
-
-	d.dialog.Close()
-	d.dialog.Destroy()
-	d.dialog = nil
-	d.view = nil
-}
-
-func (d *qtcDialog) ClearDataInputs() {
-	if d.view == nil {
-		return
-	}
-
-	d.view.clearExchangeEntry()
-}
-
 func (d *qtcDialog) SetActivePhase(phase core.QTCWorkflowPhase) {
 	d.activePhase = phase
-	d.focusActivePhase()
+	d.applyActivePhase()
 }
 
-func (d *qtcDialog) focusActivePhase() {
+func (d *qtcDialog) applyActivePhase() {
 	if d.view == nil {
 		return
 	}
@@ -141,30 +146,26 @@ func (d *qtcDialog) focusActivePhase() {
 		d.view.focusData()
 	case core.QTCFinish:
 		d.view.focusNone()
-		d.logButton.GrabFocus()
+		if d.logBtn != nil {
+			d.logBtn.SetFocus()
+		}
+	default:
+		d.view.focusNone()
 	}
 }
 
 func (d *qtcDialog) SetActiveField(field core.QTCField) {
 	d.activeField = field
-	d.focusActiveField()
-}
-
-func (d *qtcDialog) focusActiveField() {
 	if d.view == nil {
 		return
 	}
-	d.view.focusEntry(d.activeField)
+	d.view.focusEntry(field)
 }
 
 func (d *qtcDialog) SetActiveQTC(index int) {
 	d.activeQTC = index
-	d.focusActiveQTC()
-}
-
-func (d *qtcDialog) focusActiveQTC() {
 	if d.view == nil {
 		return
 	}
-	d.view.focusQTC(d.activeQTC)
+	d.view.focusQTC(index)
 }

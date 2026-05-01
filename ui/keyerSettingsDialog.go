@@ -1,81 +1,110 @@
 package ui
 
 import (
+	qtlib "github.com/mappu/miqt/qt6"
+
 	"github.com/ftl/hellocontest/core"
-	"github.com/gotk3/gotk3/gtk"
+	"github.com/ftl/hellocontest/core/keyer"
 )
 
+var _ keyer.SettingsView = (*keyerSettingsDialog)(nil)
+
 type keyerSettingsDialog struct {
-	dialog *gtk.Dialog
-	parent gtk.IWidget
-
+	parent     *qtlib.QMainWindow
 	controller KeyerSettingsController
-	*keyerSettingsView
+
+	dialog  *qtlib.QDialog
+	view    *keyerSettingsView
+	created bool
 }
 
-func setupKeyerSettingsDialog(parent gtk.IWidget, controller KeyerSettingsController) *keyerSettingsDialog {
-	result := &keyerSettingsDialog{
-		parent:     parent,
-		controller: controller,
-	}
-	return result
-}
-
-func (d *keyerSettingsDialog) onDestroy() {
-	d.dialog = nil
-	d.keyerSettingsView = nil
+func newKeyerSettingsDialog(parent *qtlib.QMainWindow, controller KeyerSettingsController) *keyerSettingsDialog {
+	return &keyerSettingsDialog{parent: parent, controller: controller}
 }
 
 func (d *keyerSettingsDialog) Show() {
-	if d.dialog == nil {
-		builder := setupBuilder()
-		d.dialog = getUI(builder, "keyerSettingsDialog").(*gtk.Dialog)
-		d.dialog.SetPosition(gtk.WIN_POS_CENTER)
-		d.dialog.Connect("destroy", d.onDestroy)
-		d.keyerSettingsView = setupKeyerSettingsView(builder, d.dialog, d.controller)
+	if !d.created {
+		d.create()
+		d.created = true
 	}
-	d.dialog.ShowAll()
-	d.dialog.Present()
+	d.dialog.Show()
+	d.dialog.Raise()
+	d.dialog.ActivateWindow()
 }
 
-func (d *keyerSettingsDialog) ShowMessage(message ...any) {
-	if d.keyerSettingsView == nil {
+func (d *keyerSettingsDialog) create() {
+	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
+	d.dialog.SetObjectName(*qtlib.NewQAnyStringView3("keyerSettingsDialog"))
+	d.dialog.SetWindowTitle("Keyer Macros")
+	d.dialog.SetModal(false)
+	d.dialog.SetMinimumWidth(600)
+	d.dialog.SetWindowFlags(
+		qtlib.Window |
+			qtlib.CustomizeWindowHint |
+			qtlib.WindowTitleHint |
+			qtlib.WindowCloseButtonHint,
+	)
+
+	d.view = newKeyerSettingsView(d.dialog, d.controller)
+
+	layout := qtlib.NewQVBoxLayout(d.dialog.QWidget)
+	layout.AddWidget(d.view.root)
+
+	d.dialog.AdjustSize()
+
+	d.dialog.OnFinished(func(result int) {
+		d.controller.Save()
+		d.dialog.Hide()
+	})
+}
+
+// keyer.SettingsView delegation
+
+func (d *keyerSettingsDialog) ShowMessage(args ...any) {
+	if d.view == nil {
 		return
 	}
-	d.keyerSettingsView.ShowMessage(message...)
+	d.view.ShowMessage(args...)
 }
 
 func (d *keyerSettingsDialog) ClearMessage() {
-	if d.keyerSettingsView == nil {
+	if d.view == nil {
 		return
 	}
-	d.keyerSettingsView.ClearMessage()
+	d.view.ClearMessage()
 }
 
 func (d *keyerSettingsDialog) SetLabel(workmode core.Workmode, index int, text string) {
-	if d.keyerSettingsView == nil {
+	if d.view == nil {
 		return
 	}
-	d.keyerSettingsView.SetLabel(workmode, index, text)
+	d.view.SetLabel(workmode, index, text)
 }
 
 func (d *keyerSettingsDialog) SetMacro(workmode core.Workmode, index int, text string) {
-	if d.keyerSettingsView == nil {
+	if d.view == nil {
 		return
 	}
-	d.keyerSettingsView.SetMacro(workmode, index, text)
+	d.view.SetMacro(workmode, index, text)
 }
 
 func (d *keyerSettingsDialog) SetPresetNames(names []string) {
-	if d.keyerSettingsView == nil {
+	if d.view == nil {
 		return
 	}
-	d.keyerSettingsView.SetPresetNames(names)
+	d.view.SetPresetNames(names)
 }
 
 func (d *keyerSettingsDialog) SetPreset(name string) {
-	if d.keyerSettingsView == nil {
+	if d.view == nil {
 		return
 	}
-	d.keyerSettingsView.SetPreset(name)
+	d.view.SetPreset(name)
+}
+
+func (d *keyerSettingsDialog) SetParrotIntervalSeconds(interval int) {
+	if d.view == nil {
+		return
+	}
+	d.view.SetParrotIntervalSeconds(interval)
 }

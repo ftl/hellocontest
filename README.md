@@ -2,7 +2,7 @@
 
 
 # Hello Contest
-A simple amateur radio contest log for Linux, written in Go using [gotk3](https://github.com/gotk3) for the UI. The main focus is on CW contests on HF, but it should also work for SSB or RTTY contests.
+A simple amateur radio contest log for Linux, written in Go using the Qt6 mapping [miqt](https://github.com/mappu/miqt) for the UI. The main focus is on CW contests on HF, but it should also work for SSB or RTTY contests.
 
 ![main window with qso data](https://github.com/ftl/hellocontest/blob/master/docs/screenshots/main_window_filled.png?raw=true)
 
@@ -43,24 +43,8 @@ Build *Hello Contest* using the included Makefile by simply running
 make
 ```
 
-The following libraries are required:
+The Qt6 build requires the Qt6 development package at compile time — `qt6-base-dev` on Debian/Ubuntu or `qt6-qtbase-devel` on Fedora. Running the resulting binary requires the matching runtime packages. See the [miqt's README](https://github.com/mappu/miqt#linux-native) for more details about the required dependencies.
 
-* libgtk-3-0
-* libgtk-3-dev
-* libpango-1.0-0
-* libpango1.0-dev
-* libpangocairo-1.0-0
-
-### gtk+3.0
-To build the software on your system with the gotk3 library, you may need to set a tag with the version number of gtk+3.0 that is installed on your system:
-
-```
-# find out the version number
-pkg-config --modversion gtk+-3.0
-
-# build Hello Contest (example for gtk+ 3.22.30)
-go build -tags gtk_3_22
-```
 
 ### Protobuf
 *Hello Contest* uses Google's [protocol buffers](https://developers.google.com/protocol-buffers/) to define the data format of the log data stored on disk. The proto definition of the data format resides in the `core/pb` package. This package also contains the generated Go code to access the binary logbook data according to the proto definition. If you make any changes to the proto definition, you need to regenerate this code. The code generation is done using Google's `protoc` compiler for protocol buffers (see Google's [documentation on protocol buffers](https://developers.google.com/protocol-buffers/) for more information about how to install this tool). To run the code generation simply execute

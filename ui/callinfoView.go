@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	qtlib "github.com/mappu/miqt/qt6"
@@ -199,7 +198,6 @@ func renderValue(points int, multis int, value int) string {
 
 func renderQTCStatus(sentQTCs int, receivedQTCs int, enabled bool) string {
 	if !enabled {
-		log.Printf("QTCs DISABLED")
 		return ""
 	}
 
@@ -215,6 +213,5 @@ func renderQTCStatus(sentQTCs int, receivedQTCs int, enabled bool) string {
 		text = "QTCs: 0"
 	}
 
-	log.Println(text)
 	return text
 }

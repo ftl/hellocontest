@@ -70,7 +70,7 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 	a.controller.SetView(a)
 	a.stopKeyHandler.SetStopKeyController(a.controller)
 
-	a.actions = newActions(a.window.QWidget, a.controller)
+	a.actions = newActions(a.window.QWidget, a.controller, configuration.Keybindings())
 	a.controller.Settings.Notify(a.actions)
 	a.controller.Entry.Notify(a.actions)
 	a.controller.Workmode.Notify(a.actions)

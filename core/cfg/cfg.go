@@ -127,6 +127,52 @@ var Default = &Data{
 			RunLabels: []string{"CQ", "Exch", "TU QRZ?", "TU"},
 		},
 	},
+	Keybindings: map[string]string{
+		"file.new":                    "Ctrl+N",
+		"file.open":                   "Ctrl+O",
+		"file.save_as":                "",
+		"file.export_summary":         "",
+		"file.export_cabrillo":        "",
+		"file.export_adif":            "",
+		"file.export_csv":             "",
+		"file.export_callhistory":     "",
+		"file.open_rules":             "",
+		"file.open_upload":            "",
+		"file.settings":               "Ctrl+.",
+		"file.config_file":            "Ctrl+Shift+.",
+		"file.quit":                   "Ctrl+Q",
+		"entry.clear":                 "",
+		"entry.goto_entry_field":      "Ctrl+E",
+		"entry.edit_last_qso":         "Ctrl+L",
+		"entry.refresh_prediction":    "Ctrl+P",
+		"entry.log_qso":               "",
+		"entry.start_parrot":          "Ctrl+F1",
+		"entry.esm":                   "Ctrl+Shift+M",
+		"entry.workmode_sp":           "Ctrl+S",
+		"entry.workmode_run":          "Ctrl+R",
+		"entry.offer_qtc":             "F5",
+		"entry.request_qtc":           "F6",
+		"radio.xit_active":            "Ctrl+Shift+X",
+		"bandmap.mark":                "Ctrl+M",
+		"bandmap.goto_highest_spot":   "Ctrl+Shift+N",
+		"bandmap.goto_nearest_spot":   "Ctrl+N",
+		"bandmap.goto_next_spot_up":   "Ctrl+Up",
+		"bandmap.goto_next_spot_down": "Ctrl+Down",
+		"bandmap.send_spots_to_tci":   "",
+		"window.show_qsos":            "",
+		"window.show_qtcs":            "",
+		"window.show_score_graph":     "",
+		"window.show_score_table":     "",
+		"window.show_rate":            "",
+		"window.show_spots":           "",
+		"help.wiki":                   "",
+		"help.sponsors":               "",
+		"help.about":                  "",
+		"keyer.send_macro_1":          "F1",
+		"keyer.send_macro_2":          "F2",
+		"keyer.send_macro_3":          "F3",
+		"keyer.send_macro_4":          "F4",
+	},
 	SpotLifetime: "10m",
 	SpotSources: []core.SpotSource{
 		{
@@ -203,6 +249,7 @@ type Data struct {
 	KeyerPresets  []core.KeyerPreset `json:"keyer_presets"`
 	SpotLifetime  string             `json:"spot_lifetime"`
 	SpotSources   []core.SpotSource  `json:"spot_sources"`
+	Keybindings   map[string]string  `json:"keybindings"`
 }
 
 type LoadedConfiguration struct {
@@ -258,4 +305,11 @@ func (c *LoadedConfiguration) SpotLifetime() time.Duration {
 
 func (c *LoadedConfiguration) SpotSources() []core.SpotSource {
 	return c.data.SpotSources
+}
+
+func (c *LoadedConfiguration) Keybindings() map[string]string {
+	if c.data.Keybindings == nil {
+		return map[string]string{}
+	}
+	return c.data.Keybindings
 }

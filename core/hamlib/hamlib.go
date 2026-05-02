@@ -7,7 +7,6 @@ import (
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/hl-go"
-	"github.com/ftl/rigproxy/pkg/client"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -104,7 +103,7 @@ func (c *Client) poll() (vfoState, error) {
 	return vfoState{
 		frequency: core.Frequency(frequency),
 		band:      toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name),
-		mode:      toCoreMode(client.Mode(mode)), // TODO: migrate toCoreMode to hl-go types
+		mode:      toCoreMode(mode),
 		xitActive: xitActive,
 		xitOffset: core.Frequency(xitOffset),
 		ptt:       pttStatus != hl.PTTOff,
@@ -187,7 +186,7 @@ func (c *Client) SetBand(band core.Band) {
 
 func (c *Client) SetMode(mode core.Mode) {
 	c.doInLoop(func() {
-		err := c.client.SetMode(hl.CurrVFO, hl.Mode(toClientMode(mode)), 0) // TODO: migrate toClientMode to hl-go types
+		err := c.client.SetMode(hl.CurrVFO, toClientMode(mode), 0)
 		if err != nil {
 			log.Printf("hamlib: cannot switch to mode: %v", err)
 			return
@@ -318,4 +317,91 @@ func (c *Client) emitPTTChanged(active bool) {
 	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
 		listener.VFOPTTChanged(active)
 	})
+}
+
+func toCoreBand(bandName bandplan.BandName) core.Band {
+	if bandName == bandplan.BandUnknown {
+		return core.NoBand
+	}
+	return core.Band(bandName)
+}
+
+func toCoreMode(mode hl.Mode) core.Mode {
+	switch mode {
+	case hl.ModeUSB, hl.ModeLSB:
+		return core.ModeSSB
+	case hl.ModeCW, hl.ModeCWR:
+		return core.ModeCW
+	case hl.ModeRTTY, hl.ModeRTTYR:
+		return core.ModeRTTY
+	case hl.ModeFM, hl.ModeWFM:
+		return core.ModeFM
+	case hl.ModePKTLSB, hl.ModePKTUSB, hl.ModePKTFM, hl.ModeECSSLSB, hl.ModeECSSUSB, hl.ModeSAM, hl.ModeSAL, hl.ModeSAH:
+		return core.ModeDigital
+	default:
+		return core.NoMode
+	}
+}
+
+func toClientMode(mode core.Mode) hl.Mode {
+	switch mode {
+	case core.ModeCW:
+		return hl.ModeCW
+	case core.ModeSSB:
+		return hl.ModeUSB // TODO make this dependent of the current frequency either LSB or USB
+	case core.ModeFM:
+		return hl.ModeFM
+	case core.ModeRTTY:
+		return hl.ModeRTTY
+	case core.ModeDigital:
+		return hl.ModePKTUSB
+	default:
+		return ""
+	}
+}
+
+func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) core.Frequency {
+	log.Printf("find mode portion center: %d %s", f, mode)
+	frequency := hamradio.Frequency(f)
+	band := bp.ByFrequency(frequency)
+	var modePortion bandplan.Portion
+	var currentPortion bandplan.Portion
+	for _, portion := range band.Portions {
+		if (portion.Mode == mode && portion.From < frequency) || modePortion.Mode != mode {
+			modePortion = portion
+		}
+		if portion.Contains(frequency) {
+			currentPortion = portion
+		}
+		if modePortion.Mode == mode && currentPortion.Mode != "" {
+			break
+		}
+	}
+	if currentPortion.Mode == mode {
+		return core.Frequency(currentPortion.Center())
+	}
+	if modePortion.Mode == mode {
+		return core.Frequency(modePortion.Center())
+	}
+	return core.Frequency(band.Center())
+}
+
+func toBandplanMode(mode core.Mode) bandplan.Mode {
+	switch mode {
+	case core.ModeCW:
+		return bandplan.ModeCW
+	case core.ModeSSB, core.ModeFM:
+		return bandplan.ModePhone
+	case core.ModeDigital, core.ModeRTTY:
+		return bandplan.ModeDigital
+	default:
+		return bandplan.ModeDigital
+	}
+}
+
+func toBandplanBandName(band core.Band) bandplan.BandName {
+	if band == core.NoBand {
+		return bandplan.BandUnknown
+	}
+	return bandplan.BandName(band)
 }

@@ -1,0 +1,56 @@
+package core
+
+const (
+	ActionFileNew               = "file.new"
+	ActionFileOpen              = "file.open"
+	ActionFileSaveAs            = "file.save_as"
+	ActionFileExportSummary     = "file.export_summary"
+	ActionFileExportCabrillo    = "file.export_cabrillo"
+	ActionFileExportADIF        = "file.export_adif"
+	ActionFileExportCSV         = "file.export_csv"
+	ActionFileExportCallhistory = "file.export_callhistory"
+	ActionFileOpenRules         = "file.open_rules"
+	ActionFileOpenUpload        = "file.open_upload"
+	ActionFileSettings          = "file.settings"
+	ActionFileConfigFile        = "file.config_file"
+	ActionFileQuit              = "file.quit"
+
+	ActionEntryClear             = "entry.clear"
+	ActionEntryGotoEntryField    = "entry.goto_entry_field"
+	ActionEntryEditLastQSO       = "entry.edit_last_qso"
+	ActionEntryRefreshPrediction = "entry.refresh_prediction"
+	ActionEntrySelectBestMatch   = "entry.select_best_match"
+	ActionEntryLogQSO            = "entry.log_qso"
+	ActionEntryStartParrot       = "entry.start_parrot"
+	ActionEntryEnableESM         = "entry.enable_esm"
+	ActionEntryNextESMStep       = "entry.next_esm_step"
+	ActionEntryWorkmodeSP        = "entry.workmode_sp"
+	ActionEntryWorkmodeRun       = "entry.workmode_run"
+	ActionEntryOfferQTC          = "entry.offer_qtc"
+	ActionEntryRequestQTC        = "entry.request_qtc"
+
+	ActionRadioXITActive = "radio.xit_active"
+
+	ActionBandmapMark                 = "bandmap.mark"
+	ActionBandmapGotoHighestValueSpot = "bandmap.goto_highest_value_spot"
+	ActionBandmapGotoNearestSpot      = "bandmap.goto_nearest_spot"
+	ActionBandmapGotoNextSpotUp       = "bandmap.goto_next_spot_up"
+	ActionBandmapGotoNextSpotDown     = "bandmap.goto_next_spot_down"
+	ActionBandmapSendSpotsToTci       = "bandmap.send_spots_to_tci"
+
+	ActionWindowShowQSOs       = "window.show_qsos"
+	ActionWindowShowQTCs       = "window.show_qtcs"
+	ActionWindowShowScoreGraph = "window.show_score_graph"
+	ActionWindowShowScoreTable = "window.show_score_table"
+	ActionWindowShowRate       = "window.show_rate"
+	ActionWindowShowSpots      = "window.show_spots"
+
+	ActionHelpWiki     = "help.wiki"
+	ActionHelpSponsors = "help.sponsors"
+	ActionHelpAbout    = "help.about"
+
+	ActionKeyerSendMacro1 = "keyer.send_macro_1"
+	ActionKeyerSendMacro2 = "keyer.send_macro_2"
+	ActionKeyerSendMacro3 = "keyer.send_macro_3"
+	ActionKeyerSendMacro4 = "keyer.send_macro_4"
+)

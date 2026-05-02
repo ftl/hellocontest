@@ -1,52 +1,34 @@
 package hamlib
 
 import (
-	"context"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
+	"github.com/ftl/hl-go"
 	"github.com/ftl/rigproxy/pkg/client"
-	"github.com/ftl/rigproxy/pkg/protocol"
 
 	"github.com/ftl/hellocontest/core"
 )
 
-func New(address string, bandplan bandplan.Bandplan) *Client {
-	return &Client{
-		address:         address,
-		pollingInterval: 500 * time.Millisecond,
-		pollingTimeout:  2 * time.Second,
-		retryInterval:   5 * time.Second,
-		requestTimeout:  500 * time.Millisecond,
-		done:            make(chan struct{}),
-		bandplan:        bandplan,
-	}
-}
-
 type Client struct {
-	conn *client.Conn
-
-	listeners []any
-
-	address         string
-	pollingInterval time.Duration
-	pollingTimeout  time.Duration
-	retryInterval   time.Duration
-	requestTimeout  time.Duration
-	connected       bool
-	closed          chan struct{}
-	done            chan struct{}
+	client *hl.RigClient
 
 	bandplan bandplan.Bandplan
 
-	incoming vfoSettings
-	outgoing vfoSettings
+	listeners []any
+
+	pollingInterval time.Duration
+	requestTimeout  time.Duration
+	do              chan func()
+	done            chan struct{}
+	loopStopped     chan struct{}
+
+	lastState vfoState
 }
 
-type vfoSettings struct {
+type vfoState struct {
 	frequency core.Frequency
 	band      core.Band
 	mode      core.Mode
@@ -55,71 +37,98 @@ type vfoSettings struct {
 	ptt       bool
 }
 
-func (c *Client) KeepOpen() {
+func New(address string, bandplan bandplan.Bandplan) *Client {
+	result := &Client{
+		client:          hl.NewRigClient(address),
+		bandplan:        bandplan,
+		pollingInterval: 500 * time.Millisecond,
+		requestTimeout:  500 * time.Millisecond,
+		do:              make(chan func()),
+		done:            make(chan struct{}),
+		loopStopped:     make(chan struct{}),
+	}
+	result.client.Notify(result)
+	return result
+}
+
+func (c *Client) run() {
 	go func() {
-		disconnected := make(chan bool, 1)
+		defer close(c.loopStopped)
 		for {
-			err := c.connect(func() {
-				disconnected <- true
-			})
+			currentState, err := c.poll()
 			if err == nil {
-				select {
-				case <-disconnected:
-					log.Print("Connection lost to Hamlib, waiting for retry.")
-				case <-c.done:
-					log.Print("Connection to Hamlib closed.")
-					return
-				}
-			} else {
-				log.Printf("Cannot connect to Hamlib, waiting for retry: %v", err)
+				continue
 			}
+			c.emitChangeNotifications(c.lastState, currentState)
+			c.lastState = currentState
 
 			select {
-			case <-time.After(c.retryInterval):
-				log.Print("Retrying to connect to Hamlib")
+			case f := <-c.do:
+				f()
+			case <-time.After(c.pollingInterval):
 			case <-c.done:
-				log.Print("Connection to Hamlib closed.")
 				return
 			}
 		}
 	}()
 }
 
-func (c *Client) Connect() error {
-	return c.connect(nil)
+// poll must only be called from the run goroutine!
+func (c *Client) poll() (vfoState, error) {
+	frequency, err := c.client.GetFrequency(hl.CurrVFO)
+	if err != nil {
+		return vfoState{}, err
+	}
+	mode, _, err := c.client.GetMode(hl.CurrVFO)
+	if err != nil {
+		return vfoState{}, err
+	}
+	xitActive, err := c.client.GetFunc(hl.CurrVFO, hl.XITFunction)
+	if err != nil {
+		return vfoState{}, err
+	}
+	var xitOffset hl.Frequency
+	if xitActive {
+		xitOffset, err = c.client.GetXIT(hl.CurrVFO)
+		if err != nil {
+			return vfoState{}, err
+		}
+	} else {
+		xitOffset = 0
+	}
+	pttStatus, err := c.client.GetPTT(hl.CurrVFO)
+	if err != nil {
+		return vfoState{}, err
+	}
+
+	return vfoState{
+		frequency: core.Frequency(frequency),
+		band:      toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name),
+		mode:      toCoreMode(client.Mode(mode)), // TODO: migrate toCoreMode to hl-go types
+		xitActive: xitActive,
+		xitOffset: core.Frequency(xitOffset),
+		ptt:       pttStatus != hl.PTTOff,
+	}, nil
 }
 
-func (c *Client) connect(whenClosed func()) error {
-	var err error
+func (c *Client) doInLoop(f func()) {
+	c.do <- f
+}
 
-	c.conn, err = client.Open(c.address)
+func (c *Client) KeepOpen() {
+	err := c.client.Open(true)
+	if err != nil {
+		log.Printf("hamlib: connection error: %v", err)
+	}
+	c.run()
+}
+
+func (c *Client) Connect() error {
+	err := c.client.Open(false)
 	if err != nil {
 		return err
 	}
-
-	c.closed = make(chan struct{})
-	c.connected = true
-	c.emitConnectionChanged(c.connected)
-
-	c.conn.StartPolling(c.pollingInterval, c.pollingTimeout,
-		client.PollCommand(client.OnFrequency(c.setIncomingFrequency)),
-		client.PollCommand(client.OnModeAndPassband(c.setIncomingModeAndPassband)),
-		client.PollCommand(c.onXITActive()),
-		client.PollCommand(c.onXITOffset()),
-		client.PollCommand(c.onPTTActive()),
-	)
-
-	c.conn.WhenClosed(func() {
-		c.connected = false
-		c.emitConnectionChanged(c.connected)
-
-		if whenClosed != nil {
-			whenClosed()
-		}
-
-		close(c.closed)
-	})
-
+	c.run()
 	return nil
 }
 
@@ -128,271 +137,124 @@ func (c *Client) Disconnect() {
 	case <-c.done:
 		return
 	default:
-		close(c.done)
-		if c.conn != nil {
-			c.conn.Close()
-		}
 	}
+	close(c.done)
+	<-c.loopStopped
+	c.client.Close()
+}
+
+func (c *Client) RigConnected(connected bool) {
+	c.emitConnectionChanged(connected)
 }
 
 func (c *Client) IsConnected() bool {
-	return c.connected
+	return c.client.IsConnected()
 }
 
 func (c *Client) Active() bool {
-	return c.connected
+	return c.IsConnected()
 }
 
-func (c *Client) withRequestTimeout() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), c.requestTimeout)
-}
-
-func (c *Client) setIncomingFrequency(frequency client.Frequency) {
-	incomingFrequency := core.Frequency(frequency)
-	if c.incoming.frequency == incomingFrequency {
-		return
-	}
-	c.incoming.frequency = incomingFrequency
-	c.emitFrequencyChanged(c.incoming.frequency)
-	// log.Printf("incoming frequency: %s", c.incoming.frequency)
-
-	band := c.bandplan.ByFrequency(frequency)
-	incomingBand := toCoreBand(band.Name)
-	if incomingBand == c.incoming.band {
-		return
-	}
-	c.incoming.band = incomingBand
-	c.emitBandChanged(c.incoming.band)
-	// log.Printf("incoming band: %v", c.incoming.band)
-}
-
-func (c *Client) setIncomingModeAndPassband(mode client.Mode, _ client.Frequency) {
-	incomingMode := toCoreMode(mode)
-	if incomingMode == c.incoming.mode {
-		return
-	}
-	c.incoming.mode = incomingMode
-	c.emitModeChanged(c.incoming.mode)
-	// log.Printf("incoming mode %v", incomingMode)
-}
-
-func (c *Client) onXITActive() (client.ResponseHandler, string, string) {
-	return client.ResponseHandlerFunc(func(r protocol.Response) {
-		if len(r.Data) == 0 {
-			return
-		}
-		active := (r.Data[0] == "1")
-		c.setIncomingXITActive(active)
-	}), "get_func", "XIT"
-}
-
-func (c *Client) setIncomingXITActive(active bool) {
-	if c.incoming.xitActive == active {
-		return
-	}
-	c.incoming.xitActive = active
-	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
-	// log.Printf("incoming XIT active: %v %d", c.incoming.xitActive, c.incoming.xitOffset)
-}
-
-func (c *Client) onXITOffset() (client.ResponseHandler, string) {
-	return client.ResponseHandlerFunc(func(r protocol.Response) {
-		if len(r.Data) == 0 {
-			return
-		}
-		offset, err := strconv.Atoi(r.Data[0])
+func (c *Client) SetFrequency(frequency core.Frequency) {
+	c.doInLoop(func() {
+		err := c.client.SetFrequency(hl.CurrVFO, hl.Frequency(frequency))
 		if err != nil {
-			log.Printf("cannot parse XIT offset: %v", err)
-			return
+			log.Printf("hamlib: cannot set frequency: %v", err)
 		}
-		c.setIncomingXITOffset(offset)
-	}), "get_xit"
-}
-
-func (c *Client) setIncomingXITOffset(offset int) {
-	incomingXITOffset := core.Frequency(offset)
-	if c.incoming.xitOffset == incomingXITOffset {
-		return
-	}
-	c.incoming.xitOffset = incomingXITOffset
-	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
-	// log.Printf("incoming XIT offset: %v %d", c.incoming.xitActive, c.incoming.xitOffset)
-}
-
-func (c *Client) onPTTActive() (client.ResponseHandler, string) {
-	return client.ResponseHandlerFunc(func(r protocol.Response) {
-		if len(r.Data) == 0 {
-			return
-		}
-		active := (r.Data[0] != "0")
-		c.setPTTActive(active)
-	}), "get_ptt"
-}
-
-func (c *Client) setPTTActive(active bool) {
-	if c.incoming.ptt == active {
-		return
-	}
-	c.incoming.ptt = active
-	c.emitPTTChanged(c.incoming.ptt)
-	// log.Printf("incoming PTT active: %v", c.incoming.ptt)
-}
-
-func (c *Client) SetFrequency(f core.Frequency) {
-	if f == c.outgoing.frequency {
-		return
-	}
-	c.outgoing.frequency = f
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
-	c.conn.SetFrequency(ctx, client.Frequency(f))
-
-	log.Printf("outgoing frequency: %s", f)
+		c.lastState.frequency = frequency
+		c.lastState.band = toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name)
+	})
 }
 
 func (c *Client) SetBand(band core.Band) {
-	if band == c.outgoing.band {
-		return
-	}
-	if c.conn == nil || c.conn.Closed() {
-		return
-	}
-
-	outgoingBandName := toBandplanBandName(band)
-	outgoingBand, ok := c.bandplan[outgoingBandName]
+	outgoingBand, ok := c.bandplan[toBandplanBandName(band)]
 	if !ok {
-		log.Printf("unknown band %v", band)
+		log.Printf("hamlib: unknown band %v", band)
 		return
 	}
-	c.outgoing.band = band
-	log.Printf("outgoing band: %v", band)
 
-	err := c.switchToBand(outgoingBand)
-	if err == nil {
-		return
-	}
-	log.Printf("cannot switch to band %s directly: %v", outgoingBand, err)
-
-	err = c.switchToBandByFrequencyAndMode(outgoingBand)
-	if err != nil {
-		log.Printf("cannot switch to band %s by frequency: %v", band, err)
-		return
-	}
-}
-
-func (c *Client) switchToBand(band bandplan.Band) error {
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
-	return c.conn.SwitchToBand(ctx, band)
-}
-
-func (c *Client) switchToBandByFrequencyAndMode(band bandplan.Band) error {
-	frequency := findModePortionCenter(c.bandplan, int(band.Center()), toBandplanMode(c.incoming.mode))
-
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
-	return c.conn.SetFrequency(ctx, client.Frequency(frequency))
+	c.doInLoop(func() {
+		frequency := findModePortionCenter(c.bandplan, int(outgoingBand.Center()), toBandplanMode(c.lastState.mode))
+		err := c.client.SetFrequency(hl.CurrVFO, hl.Frequency(frequency))
+		if err != nil {
+			log.Printf("hamlib: cannot switch to band: %v", err)
+			return
+		}
+		c.lastState.frequency = core.Frequency(frequency)
+		c.lastState.band = band
+	})
 }
 
 func (c *Client) SetMode(mode core.Mode) {
-	if mode == c.outgoing.mode {
-		return
-	}
-	c.outgoing.mode = mode
-
-	outgoingMode := toClientMode(c.outgoing.mode)
-	if c.conn == nil || c.conn.Closed() {
-		return
-	}
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
-	c.conn.SetModeAndPassband(ctx, outgoingMode, 0)
-
-	log.Printf("outgoing mode: %v", mode)
+	c.doInLoop(func() {
+		err := c.client.SetMode(hl.CurrVFO, hl.Mode(toClientMode(mode)), 0) // TODO: migrate toClientMode to hl-go types
+		if err != nil {
+			log.Printf("hamlib: cannot switch to mode: %v", err)
+			return
+		}
+		c.lastState.mode = mode
+	})
 }
 
 func (c *Client) SetXIT(active bool, offset core.Frequency) {
-	if active == c.outgoing.xitActive && offset == c.outgoing.xitOffset {
-		return
-	}
-	c.outgoing.xitActive = active
-	c.outgoing.xitOffset = offset
+	c.doInLoop(func() {
+		if active == c.lastState.xitActive && offset == c.lastState.xitOffset {
+			return
+		}
 
-	if c.conn == nil || c.conn.Closed() {
-		return
-	}
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
+		if active != c.lastState.xitActive {
+			err := c.client.SetFunc(hl.CurrVFO, hl.XITFunction, active)
+			if err != nil {
+				log.Printf("hamlib: cannot set XIT function: %v", err)
+				return
+			}
+		}
 
-	activeStr := "0"
-	if active {
-		activeStr = "1"
-	}
-	err := c.conn.Set(ctx, "set_func", "XIT", activeStr)
-	if err != nil {
-		log.Printf("setting XTI active failed: %v", err)
-		return
-	}
+		if active && (offset != c.lastState.xitOffset) {
+			err := c.client.SetXIT(hl.CurrVFO, hl.Frequency(offset))
+			if err != nil {
+				log.Printf("hamlib: cannot set XIT offset: %v", err)
+				return
+			}
+		}
 
-	if active {
-		err = c.conn.Set(ctx, "set_xit", strconv.Itoa(int(offset)))
-	}
-	if err != nil {
-		log.Printf("setting the XIT offset failed: %v", err)
-	}
+		c.lastState.xitActive = active
+		c.lastState.xitOffset = offset
+	})
+	// TODO: enable the XIT and set its offset
 }
 
 func (c *Client) Refresh() {
-	if c.incoming.frequency != 0 {
-		log.Printf("Refreshing VFO frequency: %f", c.incoming.frequency)
-		c.emitFrequencyChanged(c.incoming.frequency)
-	}
-	if c.incoming.band != core.NoBand {
-		log.Printf("Refreshing VFO band: %s", c.incoming.band)
-		c.emitBandChanged(c.incoming.band)
-	}
-	if c.incoming.mode != core.NoMode {
-		log.Printf("Refreshing VFO mode: %s", c.incoming.mode)
-		c.emitModeChanged(c.incoming.mode)
-	}
-	c.emitXITChanged(c.incoming.xitActive, c.incoming.xitOffset)
-	c.emitPTTChanged(c.incoming.ptt)
+	c.doInLoop(func() {
+		c.emitChangeNotifications(vfoState{}, c.lastState)
+	})
 }
 
 func (c *Client) Speed(speed int) {
-	if c.conn == nil || c.conn.Closed() {
-		return
-	}
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
-	err := c.conn.SetMorseSpeed(ctx, speed)
-	if err != nil {
-		log.Printf("setting the morse speed failed: %v", err)
-	}
+	c.doInLoop(func() {
+		err := c.client.SetLevel(hl.CurrVFO, hl.KeyerSpeedLevel, float64(speed))
+		if err != nil {
+			log.Printf("hamlib: cannot set morse speed: %v", err)
+		}
+	})
 }
 
 func (c *Client) Send(text string) {
-	if c.conn == nil || c.conn.Closed() {
-		return
-	}
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
-	err := c.conn.SendMorse(ctx, text)
-	if err != nil {
-		log.Printf("sending the morse code failed: %v", err)
-	}
+	c.doInLoop(func() {
+		err := c.client.SendMorse(text)
+		if err != nil {
+			log.Printf("hamlib: cannot send morse text: %v", err)
+		}
+	})
 }
 
 func (c *Client) Abort() {
-	if c.conn == nil || c.conn.Closed() {
-		return
-	}
-	ctx, cancel := c.withRequestTimeout()
-	defer cancel()
-	err := c.conn.StopMorse(ctx)
-	if err != nil {
-		log.Printf("stopping the morse code transmission failed: %v", err)
-	}
+	c.doInLoop(func() {
+		err := c.client.StopMorse()
+		if err != nil {
+			log.Printf("hamlib: cannot stop morse transmission: %v", err)
+		}
+	})
 }
 
 func (c *Client) Notify(listener any) {
@@ -403,138 +265,57 @@ func (c *Client) emitConnectionChanged(connected bool) {
 	type listenerType interface {
 		ConnectionChanged(bool)
 	}
-	for _, listener := range c.listeners {
-		if typedListener, ok := listener.(listenerType); ok {
-			typedListener.ConnectionChanged(connected)
-		}
-	}
+	core.Emit(c.listeners, func(listener listenerType) {
+		listener.ConnectionChanged(connected)
+	})
 }
 
-func (c *Client) emitFrequencyChanged(f core.Frequency) {
-	for _, listener := range c.listeners {
-		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
-			frequencyListener.VFOFrequencyChanged(f)
+func (c *Client) emitChangeNotifications(last, current vfoState) {
+	go func() {
+		if last.frequency != current.frequency {
+			c.emitFrequencyChanged(current.frequency)
 		}
-	}
+		if last.band != current.band {
+			c.emitBandChanged(current.band)
+		}
+		if last.mode != current.mode {
+			c.emitModeChanged(current.mode)
+		}
+		if (last.xitActive != current.xitActive) || (current.xitActive && (last.xitOffset != current.xitOffset)) {
+			c.emitXITChanged(current.xitActive, current.xitOffset)
+		}
+		if last.ptt != current.ptt {
+			c.emitPTTChanged(current.ptt)
+		}
+	}()
 }
 
-func (c *Client) emitBandChanged(b core.Band) {
-	for _, listener := range c.listeners {
-		if bandListener, ok := listener.(core.VFOBandListener); ok {
-			log.Printf("triggering band change on %T", bandListener)
-			bandListener.VFOBandChanged(b)
-		}
-	}
+func (c *Client) emitFrequencyChanged(frequency core.Frequency) {
+	core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
+		listener.VFOFrequencyChanged(frequency)
+	})
 }
 
-func (c *Client) emitModeChanged(m core.Mode) {
-	for _, listener := range c.listeners {
-		if modeListener, ok := listener.(core.VFOModeListener); ok {
-			modeListener.VFOModeChanged(m)
-		}
-	}
+func (c *Client) emitBandChanged(band core.Band) {
+	core.Emit(c.listeners, func(listener core.VFOBandListener) {
+		listener.VFOBandChanged(band)
+	})
+}
+
+func (c *Client) emitModeChanged(mode core.Mode) {
+	core.Emit(c.listeners, func(listener core.VFOModeListener) {
+		listener.VFOModeChanged(mode)
+	})
 }
 
 func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
-	for _, listener := range c.listeners {
-		if xitListener, ok := listener.(core.VFOXITListener); ok {
-			xitListener.VFOXITChanged(active, offset)
-		}
-	}
+	core.Emit(c.listeners, func(listener core.VFOXITListener) {
+		listener.VFOXITChanged(active, offset)
+	})
 }
 
 func (c *Client) emitPTTChanged(active bool) {
-	for _, listener := range c.listeners {
-		if xitListener, ok := listener.(core.VFOPTTListener); ok {
-			xitListener.VFOPTTChanged(active)
-		}
-	}
-}
-
-func toCoreBand(bandName bandplan.BandName) core.Band {
-	if bandName == bandplan.BandUnknown {
-		return core.NoBand
-	}
-	return core.Band(bandName)
-}
-
-func toBandplanBandName(band core.Band) bandplan.BandName {
-	if band == core.NoBand {
-		return bandplan.BandUnknown
-	}
-	return bandplan.BandName(band)
-}
-
-func toCoreMode(mode client.Mode) core.Mode {
-	switch mode {
-	case client.ModeUSB, client.ModeLSB:
-		return core.ModeSSB
-	case client.ModeCW, client.ModeCWR:
-		return core.ModeCW
-	case client.ModeRTTY, client.ModeRTTYR:
-		return core.ModeRTTY
-	case client.ModeFM, client.ModeWFM:
-		return core.ModeFM
-	case client.ModePKTLSB, client.ModePKTUSB, client.ModePKTFM, client.ModeECSSLSB, client.ModeECSSUSB, client.ModeFAX, client.ModeSAM, client.ModeSAL, client.ModeSAH:
-		return core.ModeDigital
-	default:
-		return core.NoMode
-	}
-}
-
-func toClientMode(mode core.Mode) client.Mode {
-	switch mode {
-	case core.ModeCW:
-		return client.ModeCW
-	case core.ModeSSB:
-		return client.ModeUSB // TODO make this dependent of the current frequency either LSB or USB
-	case core.ModeFM:
-		return client.ModeFM
-	case core.ModeRTTY:
-		return client.ModeRTTY
-	case core.ModeDigital:
-		return client.ModePKTUSB
-	default:
-		return client.ModeNone
-	}
-}
-
-func toBandplanMode(mode core.Mode) bandplan.Mode {
-	log.Printf("to bandplan mode: %s", mode)
-	switch mode {
-	case core.ModeCW:
-		return bandplan.ModeCW
-	case core.ModeSSB, core.ModeFM:
-		return bandplan.ModePhone
-	case core.ModeDigital, core.ModeRTTY:
-		return bandplan.ModeDigital
-	default:
-		return bandplan.ModeDigital
-	}
-}
-
-func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) int {
-	log.Printf("find mode portion center: %d %s", f, mode)
-	frequency := hamradio.Frequency(f)
-	band := bp.ByFrequency(frequency)
-	var modePortion bandplan.Portion
-	var currentPortion bandplan.Portion
-	for _, portion := range band.Portions {
-		if (portion.Mode == mode && portion.From < frequency) || modePortion.Mode != mode {
-			modePortion = portion
-		}
-		if portion.Contains(frequency) {
-			currentPortion = portion
-		}
-		if modePortion.Mode == mode && currentPortion.Mode != "" {
-			break
-		}
-	}
-	if currentPortion.Mode == mode {
-		return int(currentPortion.Center())
-	}
-	if modePortion.Mode == mode {
-		return int(modePortion.Center())
-	}
-	return int(band.Center())
+	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
+		listener.VFOPTTChanged(active)
+	})
 }

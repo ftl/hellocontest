@@ -1740,3 +1740,12 @@ func FormatTimestamp(ts time.Time) string {
 func FormatDuration(d time.Duration) string {
 	return fmt.Sprintf("%02dh%02d", int(d.Hours()), int(d.Minutes())-int(d.Hours())*60)
 }
+
+func Emit[L any](listeners []any, notify func(listener L)) {
+	for i := range listeners {
+		listener, ok := listeners[i].(L)
+		if ok {
+			notify(listener)
+		}
+	}
+}

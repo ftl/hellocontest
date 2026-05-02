@@ -8,11 +8,12 @@ require (
 	github.com/ftl/conval v0.11.3
 	github.com/ftl/godxmap v1.0.1
 	github.com/ftl/hamradio v0.3.0
+	github.com/ftl/hl-go v1.0.3
 	github.com/ftl/rigproxy v0.2.6
 	github.com/ftl/tci v0.3.2
 	github.com/mappu/miqt v0.13.1-0.20260426030313-65d643625640
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/texttheater/golang-levenshtein v1.0.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	google.golang.org/protobuf v1.33.0

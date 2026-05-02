@@ -56,7 +56,7 @@ func (c *Client) run() {
 		defer close(c.loopStopped)
 		for {
 			currentState, err := c.poll()
-			if err == nil {
+			if err != nil {
 				continue
 			}
 			c.emitChangeNotifications(c.lastState, currentState)

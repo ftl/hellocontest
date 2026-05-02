@@ -29,9 +29,11 @@ const (
 	ActionEntryGotoEntryField    = "entry.goto_entry_field"
 	ActionEntryEditLastQSO       = "entry.edit_last_qso"
 	ActionEntryRefreshPrediction = "entry.refresh_prediction"
+	ActionEntrySelectBestMatch   = "entry.select_best_match"
 	ActionEntryLogQSO            = "entry.log_qso"
 	ActionEntryStartParrot       = "entry.start_parrot"
-	ActionEntryESM               = "entry.esm"
+	ActionEntryEnableESM         = "entry.enable_esm"
+	ActionEntryNextESMStep       = "entry.next_esm_step"
 	ActionEntryWorkmodeSP        = "entry.workmode_sp"
 	ActionEntryWorkmodeRun       = "entry.workmode_run"
 	ActionEntryOfferQTC          = "entry.offer_qtc"
@@ -133,10 +135,12 @@ type actions struct {
 	spotSourceActions map[string]*qtlib.QAction
 
 	// Other actions
-	sendMacro1Action *qtlib.QAction
-	sendMacro2Action *qtlib.QAction
-	sendMacro3Action *qtlib.QAction
-	sendMacro4Action *qtlib.QAction
+	sendMacro1Action      *qtlib.QAction
+	sendMacro2Action      *qtlib.QAction
+	sendMacro3Action      *qtlib.QAction
+	sendMacro4Action      *qtlib.QAction
+	selectBestMatchAction *qtlib.QAction
+	nextESMStepAction     *qtlib.QAction
 }
 
 func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings map[string]string) *actions {
@@ -177,9 +181,9 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.gotoEntryAction = a.makeTriggerAction("&Goto Entry Fields", a.shortcutFor(ActionEntryGotoEntryField, "Ctrl+E"), controller.GotoEntryFields)
 	a.editLastAction = a.makeTriggerAction("Edit &Last QSO", a.shortcutFor(ActionEntryEditLastQSO, "Ctrl+L"), controller.EditLastQSO)
 	a.refreshPredAction = a.makeTriggerAction("Refresh &Prediction", a.shortcutFor(ActionEntryRefreshPrediction, "Ctrl+P"), controller.RefreshPrediction)
-	a.logQSOAction = a.makeTriggerAction("Log QSO", a.shortcutFor(ActionEntryLogQSO, ""), controller.LogQSO)
+	a.logQSOAction = a.makeTriggerAction("Log QSO", a.shortcutFor(ActionEntryLogQSO, "Ctrl+Return"), controller.LogQSO)
 	a.startParrotAction = a.makeTriggerAction("Start Parrot", a.shortcutFor(ActionEntryStartParrot, "Ctrl+F1"), controller.StartParrot)
-	a.esmAction = a.makeCheckAction("ESM", a.shortcutFor(ActionEntryESM, "Ctrl+Shift+M"), controller.SetESMEnabled)
+	a.esmAction = a.makeCheckAction("ESM", a.shortcutFor(ActionEntryEnableESM, "Ctrl+Shift+M"), controller.SetESMEnabled)
 	a.spAction = a.makeToggleAction("S&P", a.shortcutFor(ActionEntryWorkmodeSP, "Ctrl+S"), controller.SwitchToSPWorkmode)
 	a.workModeGroup.AddAction(a.spAction)
 	a.runAction = a.makeToggleAction("Run", a.shortcutFor(ActionEntryWorkmodeRun, "Ctrl+R"), controller.SwitchToRunWorkmode)
@@ -216,7 +220,16 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.sendMacro2Action = a.makeTriggerAction("Macro 2", a.shortcutFor(ActionKeyerSendMacro2, "F2"), func() { controller.Keyer.Send(1) })
 	a.sendMacro3Action = a.makeTriggerAction("Macro 3", a.shortcutFor(ActionKeyerSendMacro3, "F3"), func() { controller.Keyer.Send(2) })
 	a.sendMacro4Action = a.makeTriggerAction("Macro 4", a.shortcutFor(ActionKeyerSendMacro4, "F4"), func() { controller.Keyer.Send(3) })
-	a.parent.AddActions([]*qtlib.QAction{a.sendMacro1Action, a.sendMacro2Action, a.sendMacro3Action, a.sendMacro4Action})
+	a.selectBestMatchAction = a.makeTriggerAction("Select Best Match", a.shortcutFor(ActionEntrySelectBestMatch, "Alt+Return"), controller.Entry.SelectBestMatchOnFrequency)
+	a.nextESMStepAction = a.makeTriggerAction("Next ESM Step", a.shortcutFor(ActionEntryNextESMStep, ""), controller.Entry.NextESMStep)
+	a.parent.AddActions([]*qtlib.QAction{
+		a.sendMacro1Action,
+		a.sendMacro2Action,
+		a.sendMacro3Action,
+		a.sendMacro4Action,
+		a.selectBestMatchAction,
+		a.nextESMStepAction,
+	})
 
 	// setup initial action state from controller
 	a.updateFromController()

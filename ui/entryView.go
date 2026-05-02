@@ -236,11 +236,7 @@ func (v *entryView) handleKeyPress(super func(ev *qtlib.QKeyEvent), ev *qtlib.QK
 	case key == int(qtlib.Key_Space):
 		v.controller.GotoNextField()
 	case key == int(qtlib.Key_Return) || key == int(qtlib.Key_Enter):
-		if alt {
-			v.controller.SelectBestMatchOnFrequency()
-		} else if ctrl {
-			v.controller.Log()
-		} else {
+		if !(alt || ctrl) {
 			v.controller.EnterPressed()
 		}
 	case key == int(qtlib.Key_Question):

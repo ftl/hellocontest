@@ -20,14 +20,16 @@ type Server struct {
 	dispatcher ActionDispatcher
 	keyer      Keyer
 	port       int
+	runner     func(func())
 	httpServer *http.Server
 }
 
-func NewServer(dispatcher ActionDispatcher, keyer Keyer, port int) *Server {
+func NewServer(dispatcher ActionDispatcher, keyer Keyer, port int, runner func(func())) *Server {
 	return &Server{
 		dispatcher: dispatcher,
 		keyer:      keyer,
 		port:       port,
+		runner:     runner,
 	}
 }
 
@@ -65,6 +67,14 @@ func (s *Server) Stop() {
 	}
 }
 
+func (s *Server) runOnMainThread(f func() error) error {
+	result := make(chan error, 1)
+	s.runner(func() {
+		result <- f()
+	})
+	return <-result
+}
+
 func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -75,7 +85,7 @@ func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing action parameter", http.StatusBadRequest)
 		return
 	}
-	if err := s.dispatcher.DoAction(action); err != nil {
+	if err := s.runOnMainThread(func() error { return s.dispatcher.DoAction(action) }); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -92,7 +102,7 @@ func (s *Server) handleSend(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing text parameter", http.StatusBadRequest)
 		return
 	}
-	if err := s.keyer.SendTextWithTemplate(text); err != nil {
+	if err := s.runOnMainThread(func() error { return s.keyer.SendTextWithTemplate(text) }); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

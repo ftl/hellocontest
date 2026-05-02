@@ -31,8 +31,8 @@ import (
 	"github.com/ftl/hellocontest/core/parrot"
 	"github.com/ftl/hellocontest/core/qtc"
 	"github.com/ftl/hellocontest/core/radio"
-	"github.com/ftl/hellocontest/core/remote"
 	"github.com/ftl/hellocontest/core/rate"
+	"github.com/ftl/hellocontest/core/remote"
 	"github.com/ftl/hellocontest/core/score"
 	"github.com/ftl/hellocontest/core/scp"
 	"github.com/ftl/hellocontest/core/session"
@@ -230,7 +230,7 @@ func (c *Controller) Startup() {
 
 	remoteSettings := c.configuration.RemoteServerSettings()
 	if remoteSettings.Enabled {
-		c.remoteServer = remote.NewServer(c, c.Keyer, remoteSettings.Port)
+		c.remoteServer = remote.NewServer(c, c.Keyer, remoteSettings.Port, c.asyncRunner)
 		if err := c.remoteServer.Start(); err != nil {
 			log.Printf("remote server failed to start: %v", err)
 			c.remoteServer = nil

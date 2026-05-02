@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	qtlib "github.com/mappu/miqt/qt6"
 
@@ -230,54 +231,57 @@ func (a *actions) updateFromController() {
 // Dynamic action management
 
 func (a *actions) AddRadioAction(name string) *qtlib.QAction {
-	if existing, ok := a.radioActions[name]; ok {
+	normalizedName := strings.ToLower(name)
+	if existing, ok := a.radioActions[normalizedName]; ok {
 		return existing
 	}
 	action := qtlib.NewQAction()
 	action.SetText(name)
 	action.SetCheckable(true)
 	a.radioGroup.AddAction(action)
-	a.radioActions[name] = action
+	a.radioActions[normalizedName] = action
 	action.OnToggled(func(checked bool) {
 		if a.ignoreInput || !checked {
 			return
 		}
-		a.controller.Radio.SelectRadio(name)
+		a.controller.SelectRadio(normalizedName)
 	})
 	return action
 }
 
 func (a *actions) AddKeyerAction(name string) *qtlib.QAction {
-	if existing, ok := a.keyerActions[name]; ok {
+	normalizedName := strings.ToLower(name)
+	if existing, ok := a.keyerActions[normalizedName]; ok {
 		return existing
 	}
 	action := qtlib.NewQAction()
 	action.SetText(name)
 	action.SetCheckable(true)
 	a.keyerGroup.AddAction(action)
-	a.keyerActions[name] = action
+	a.keyerActions[normalizedName] = action
 	action.OnToggled(func(checked bool) {
 		if a.ignoreInput || !checked {
 			return
 		}
-		a.controller.Radio.SelectKeyer(name)
+		a.controller.SelectKeyer(normalizedName)
 	})
 	return action
 }
 
 func (a *actions) AddSpotSourceAction(name string) *qtlib.QAction {
-	if existing, ok := a.spotSourceActions[name]; ok {
+	normalizedName := strings.ToLower(name)
+	if existing, ok := a.spotSourceActions[normalizedName]; ok {
 		return existing
 	}
 	action := qtlib.NewQAction()
 	action.SetText(fmt.Sprintf("Use %s", name))
 	action.SetCheckable(true)
-	a.spotSourceActions[name] = action
+	a.spotSourceActions[normalizedName] = action
 	action.OnToggled(func(checked bool) {
 		if a.ignoreInput {
 			return
 		}
-		a.controller.Clusters.SetSpotSourceEnabled(name, checked)
+		a.controller.Clusters.SetSpotSourceEnabled(normalizedName, checked)
 	})
 	return action
 }
@@ -285,6 +289,8 @@ func (a *actions) AddSpotSourceAction(name string) *qtlib.QAction {
 func (a *actions) SetRadioSelected(name string) {
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
+
+	name = strings.ToLower(name)
 	for n, action := range a.radioActions {
 		action.SetChecked(n == name)
 	}
@@ -293,18 +299,22 @@ func (a *actions) SetRadioSelected(name string) {
 func (a *actions) SetKeyerSelected(name string) {
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
+
+	name = strings.ToLower(name)
 	for n, action := range a.keyerActions {
 		action.SetChecked(n == name)
 	}
 }
 
 func (a *actions) SetSpotSourceEnabled(name string, enabled bool) {
+	a.ignoreInput = true
+	defer func() { a.ignoreInput = false }()
+
+	name = strings.ToLower(name)
 	action, ok := a.spotSourceActions[name]
 	if !ok {
 		return
 	}
-	a.ignoreInput = true
-	defer func() { a.ignoreInput = false }()
 	action.SetChecked(enabled)
 }
 

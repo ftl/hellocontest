@@ -82,7 +82,7 @@ func (c *Controller) SetView(view View) {
 			view.SetRadioSelected(c.activeRadioName)
 		}
 		if c.activeKeyer != nil {
-			view.SetRadioSelected(c.activeKeyerName)
+			view.SetKeyerSelected(c.activeKeyerName)
 		}
 	})
 }
@@ -161,6 +161,10 @@ func (c *Controller) emitKeyerSelected(name string) {
 }
 
 /* Radio */
+
+func (c *Controller) Radio() string {
+	return c.activeRadioName
+}
 
 func (c *Controller) SelectRadio(name string) error {
 	config, ok := c.radioConfig(name)
@@ -344,6 +348,10 @@ func (c *Controller) EntryRemoved(entry core.BandmapEntry) {
 }
 
 /* Keyer */
+
+func (c *Controller) Keyer() string {
+	return c.activeKeyerName
+}
 
 func (c *Controller) SelectKeyer(name string) error {
 	if normalizeName(c.activeKeyerName) == normalizeName(name) {

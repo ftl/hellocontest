@@ -881,11 +881,14 @@ func (c *Controller) SetSpotSourceEnabled(name string, enabled bool) {
 func (c *Controller) SelectRadio(name string) {
 	err := c.Radio.SelectRadio(name)
 	if err != nil {
-		log.Println(err) // TODO show an error dialog
 		return
 	}
 
-	err = c.session.SetRadio1(name)
+	err = c.session.SetRadio1(c.Radio.Radio())
+	if err != nil {
+		log.Println(err)
+	}
+	err = c.session.SetKeyer1(c.Radio.Keyer())
 	if err != nil {
 		log.Println(err)
 	}
@@ -898,7 +901,7 @@ func (c *Controller) SelectKeyer(name string) {
 		return
 	}
 
-	err = c.session.SetKeyer1(name)
+	err = c.session.SetKeyer1(c.Radio.Keyer())
 	if err != nil {
 		log.Println(err)
 	}

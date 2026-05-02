@@ -554,6 +554,19 @@ func (k *Keyer) SendText(text string, args ...any) {
 	k.send(fmt.Sprintf(text, args...))
 }
 
+func (k *Keyer) SendTextWithTemplate(text string) error {
+	template, err := parseTemplate(text)
+	if err != nil {
+		return err
+	}
+	buffer := bytes.NewBufferString("")
+	if err := template.Execute(buffer, k.fillins()); err != nil {
+		return err
+	}
+	k.send(buffer.String())
+	return nil
+}
+
 func (k *Keyer) send(s string) {
 	log.Printf("sending %q", s)
 	k.lastTransmission = s

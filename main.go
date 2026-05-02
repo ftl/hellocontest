@@ -26,6 +26,9 @@ func main() {
 		case "sponsors":
 			fmt.Printf("This release of Hello Contest is sponsored by:\n%s\nThank you all for your great support!\n73, Florian\n", sponsors)
 			os.Exit(0)
+		case "keybindings":
+			ui.PrintKeybindingsTable()
+			os.Exit(0)
 		case "screenshots":
 			startupScript = script.ScreenshotsScript
 			args = args[0:1]

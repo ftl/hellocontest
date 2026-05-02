@@ -41,12 +41,12 @@ const (
 
 	ActionRadioXITActive = "radio.xit_active"
 
-	ActionBandmapMark             = "bandmap.mark"
-	ActionBandmapGotoHighestSpot  = "bandmap.goto_highest_spot"
-	ActionBandmapGotoNearestSpot  = "bandmap.goto_nearest_spot"
-	ActionBandmapGotoNextSpotUp   = "bandmap.goto_next_spot_up"
-	ActionBandmapGotoNextSpotDown = "bandmap.goto_next_spot_down"
-	ActionBandmapSendSpotsToTci   = "bandmap.send_spots_to_tci"
+	ActionBandmapMark                 = "bandmap.mark"
+	ActionBandmapGotoHighestValueSpot = "bandmap.goto_highest_value_spot"
+	ActionBandmapGotoNearestSpot      = "bandmap.goto_nearest_spot"
+	ActionBandmapGotoNextSpotUp       = "bandmap.goto_next_spot_up"
+	ActionBandmapGotoNextSpotDown     = "bandmap.goto_next_spot_down"
+	ActionBandmapSendSpotsToTci       = "bandmap.send_spots_to_tci"
 
 	ActionWindowShowQSOs       = "window.show_qsos"
 	ActionWindowShowQTCs       = "window.show_qtcs"
@@ -71,6 +71,7 @@ type actions struct {
 	controller  *app.Controller
 	keybindings map[string]string
 	ignoreInput bool
+	allInfos    []ActionInfo
 
 	// Action groups
 	workModeGroup *qtlib.QActionGroup
@@ -162,66 +163,66 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.keyerGroup.SetExclusive(true)
 
 	// File menu
-	a.newFileAction = a.makeTriggerAction("&New...", a.shortcutFor(ActionFileNew, "Ctrl+N"), controller.New)
-	a.openFileAction = a.makeTriggerAction("&Open...", a.shortcutFor(ActionFileOpen, "Ctrl+O"), controller.Open)
-	a.saveAsAction = a.makeTriggerAction("Save &As...", a.shortcutFor(ActionFileSaveAs, ""), controller.SaveAs)
-	a.exportSummaryAction = a.makeTriggerAction("&Summary...", a.shortcutFor(ActionFileExportSummary, ""), controller.ExportSummary)
-	a.exportCabrilloAction = a.makeTriggerAction("&Cabrillo...", a.shortcutFor(ActionFileExportCabrillo, ""), controller.ExportCabrillo)
-	a.exportADIFAction = a.makeTriggerAction("&ADIF...", a.shortcutFor(ActionFileExportADIF, ""), controller.ExportADIF)
-	a.exportCSVAction = a.makeTriggerAction("C&SV...", a.shortcutFor(ActionFileExportCSV, ""), controller.ExportCSV)
-	a.exportCallhistoryAction = a.makeTriggerAction("Call &History...", a.shortcutFor(ActionFileExportCallhistory, ""), controller.ExportCallhistory)
-	a.openRulesAction = a.makeTriggerAction("Open Contest &Rules Page", a.shortcutFor(ActionFileOpenRules, ""), controller.OpenContestRulesPage)
-	a.openUploadAction = a.makeTriggerAction("Open Contest &Upload Page", a.shortcutFor(ActionFileOpenUpload, ""), controller.OpenContestUploadPage)
-	a.settingsAction = a.makeTriggerAction("Contest &Settings...", a.shortcutFor(ActionFileSettings, "Ctrl+."), controller.OpenSettings)
-	a.configFileAction = a.makeTriggerAction("Open &Configuration File...", a.shortcutFor(ActionFileConfigFile, "Ctrl+Shift+."), controller.OpenConfigurationFile)
-	a.quitAction = a.makeTriggerAction("&Quit", a.shortcutFor(ActionFileQuit, "Ctrl+Q"), controller.Quit)
+	a.newFileAction = a.makeTriggerAction(ActionFileNew, "&New...", "Create a new contest log", "Ctrl+N", controller.New)
+	a.openFileAction = a.makeTriggerAction(ActionFileOpen, "&Open...", "Open a contest log", "Ctrl+O", controller.Open)
+	a.saveAsAction = a.makeTriggerAction(ActionFileSaveAs, "Save &As...", "", "", controller.SaveAs)
+	a.exportSummaryAction = a.makeTriggerAction(ActionFileExportSummary, "&Summary...", "Export the contest summary", "", controller.ExportSummary)
+	a.exportCabrilloAction = a.makeTriggerAction(ActionFileExportCabrillo, "&Cabrillo...", "Export the log as Cabrillo file", "", controller.ExportCabrillo)
+	a.exportADIFAction = a.makeTriggerAction(ActionFileExportADIF, "&ADIF...", "Export the log as ADIF file", "", controller.ExportADIF)
+	a.exportCSVAction = a.makeTriggerAction(ActionFileExportCSV, "C&SV...", "Export the log as CSV file", "", controller.ExportCSV)
+	a.exportCallhistoryAction = a.makeTriggerAction(ActionFileExportCallhistory, "Call &History...", "Export a call history file based on the contest log", "", controller.ExportCallhistory)
+	a.openRulesAction = a.makeTriggerAction(ActionFileOpenRules, "Open Contest &Rules Page", "", "", controller.OpenContestRulesPage)
+	a.openUploadAction = a.makeTriggerAction(ActionFileOpenUpload, "Open Contest &Upload Page", "", "", controller.OpenContestUploadPage)
+	a.settingsAction = a.makeTriggerAction(ActionFileSettings, "Contest &Settings...", "", "Ctrl+.", controller.OpenSettings)
+	a.configFileAction = a.makeTriggerAction(ActionFileConfigFile, "Open &Configuration File...", "Open the configuration file in the external editor", "Ctrl+Shift+.", controller.OpenConfigurationFile)
+	a.quitAction = a.makeTriggerAction(ActionFileQuit, "&Quit", "", "Ctrl+Q", controller.Quit)
 
 	// Edit menu
-	a.clearEntryAction = a.makeTriggerAction("&Clear Entry Fields", a.shortcutFor(ActionEntryClear, ""), controller.ClearEntryFields)
-	a.gotoEntryAction = a.makeTriggerAction("&Goto Entry Fields", a.shortcutFor(ActionEntryGotoEntryField, "Ctrl+E"), controller.GotoEntryFields)
-	a.editLastAction = a.makeTriggerAction("Edit &Last QSO", a.shortcutFor(ActionEntryEditLastQSO, "Ctrl+L"), controller.EditLastQSO)
-	a.refreshPredAction = a.makeTriggerAction("Refresh &Prediction", a.shortcutFor(ActionEntryRefreshPrediction, "Ctrl+P"), controller.RefreshPrediction)
-	a.logQSOAction = a.makeTriggerAction("Log QSO", a.shortcutFor(ActionEntryLogQSO, "Ctrl+Return"), controller.LogQSO)
-	a.startParrotAction = a.makeTriggerAction("Start Parrot", a.shortcutFor(ActionEntryStartParrot, "Ctrl+F1"), controller.StartParrot)
-	a.esmAction = a.makeCheckAction("ESM", a.shortcutFor(ActionEntryEnableESM, "Ctrl+Shift+M"), controller.SetESMEnabled)
-	a.spAction = a.makeToggleAction("S&P", a.shortcutFor(ActionEntryWorkmodeSP, "Ctrl+S"), controller.SwitchToSPWorkmode)
+	a.clearEntryAction = a.makeTriggerAction(ActionEntryClear, "&Clear Entry Fields", "Clear the entry fields", "", controller.ClearEntryFields)
+	a.gotoEntryAction = a.makeTriggerAction(ActionEntryGotoEntryField, "&Goto Entry Fields", "Focus the entry field", "Ctrl+E", controller.GotoEntryFields)
+	a.editLastAction = a.makeTriggerAction(ActionEntryEditLastQSO, "Edit &Last QSO", "Select the last QSO for editing", "Ctrl+L", controller.EditLastQSO)
+	a.refreshPredAction = a.makeTriggerAction(ActionEntryRefreshPrediction, "Refresh &Prediction", "Refresh the exchange prediction", "Ctrl+P", controller.RefreshPrediction)
+	a.logQSOAction = a.makeTriggerAction(ActionEntryLogQSO, "Log QSO", "", "Ctrl+Return", controller.LogQSO)
+	a.startParrotAction = a.makeTriggerAction(ActionEntryStartParrot, "Start Parrot", "Start the keyer parrot", "Ctrl+F1", controller.StartParrot)
+	a.esmAction = a.makeCheckAction(ActionEntryEnableESM, "ESM", "Enable ESM", "Ctrl+Shift+M", controller.SetESMEnabled)
+	a.spAction = a.makeToggleAction(ActionEntryWorkmodeSP, "S&P", "", "Ctrl+S", controller.SwitchToSPWorkmode)
 	a.workModeGroup.AddAction(a.spAction)
-	a.runAction = a.makeToggleAction("Run", a.shortcutFor(ActionEntryWorkmodeRun, "Ctrl+R"), controller.SwitchToRunWorkmode)
+	a.runAction = a.makeToggleAction(ActionEntryWorkmodeRun, "Run", "", "Ctrl+R", controller.SwitchToRunWorkmode)
 	a.workModeGroup.AddAction(a.runAction)
-	a.offerQTCAction = a.makeTriggerAction("Offer QTC", a.shortcutFor(ActionEntryOfferQTC, "F5"), controller.OfferQTC)
-	a.requestQTCAction = a.makeTriggerAction("Request QTC", a.shortcutFor(ActionEntryRequestQTC, "F6"), controller.RequestQTC)
+	a.offerQTCAction = a.makeTriggerAction(ActionEntryOfferQTC, "Offer QTC", "", "F5", controller.OfferQTC)
+	a.requestQTCAction = a.makeTriggerAction(ActionEntryRequestQTC, "Request QTC", "", "F6", controller.RequestQTC)
 
 	// Radio menu
-	a.xitActiveAction = a.makeCheckAction("XIT Active", a.shortcutFor(ActionRadioXITActive, "Ctrl+Shift+X"), controller.SetXITActive)
+	a.xitActiveAction = a.makeCheckAction(ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "Ctrl+Shift+X", controller.SetXITActive)
 
 	// Bandmap menu
-	a.markBandmapAction = a.makeTriggerAction("Mark In Bandmap", a.shortcutFor(ActionBandmapMark, "Ctrl+M"), controller.MarkInBandmap)
-	a.highestSpotAction = a.makeTriggerAction("Goto Highest Value Spot", a.shortcutFor(ActionBandmapGotoHighestSpot, "Ctrl+Shift+N"), controller.GotoHighestValueSpot)
-	a.nearestSpotAction = a.makeTriggerAction("Goto Nearest Spot", a.shortcutFor(ActionBandmapGotoNearestSpot, "Ctrl+N"), controller.GotoNearestSpot)
-	a.nextSpotUpAction = a.makeTriggerAction("Goto Next Spot Up", a.shortcutFor(ActionBandmapGotoNextSpotUp, "Ctrl+Up"), controller.GotoNextSpotUp)
-	a.nextSpotDownAction = a.makeTriggerAction("Goto Next Spot Down", a.shortcutFor(ActionBandmapGotoNextSpotDown, "Ctrl+Down"), controller.GotoNextSpotDown)
-	a.sendSpotsToTciAction = a.makeCheckAction("Send Spots to TCI", a.shortcutFor(ActionBandmapSendSpotsToTci, ""), controller.SetSendSpotsToTci)
+	a.markBandmapAction = a.makeTriggerAction(ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
+	a.highestSpotAction = a.makeTriggerAction(ActionBandmapGotoHighestValueSpot, "Goto Highest Value Spot", "Go to the spot with the highest predicted value", "Ctrl+Shift+N", controller.GotoHighestValueSpot)
+	a.nearestSpotAction = a.makeTriggerAction(ActionBandmapGotoNearestSpot, "Goto Nearest Spot", "Go to the spot closest to the current frequency", "Ctrl+N", controller.GotoNearestSpot)
+	a.nextSpotUpAction = a.makeTriggerAction(ActionBandmapGotoNextSpotUp, "Goto Next Spot Up", "", "Ctrl+Up", controller.GotoNextSpotUp)
+	a.nextSpotDownAction = a.makeTriggerAction(ActionBandmapGotoNextSpotDown, "Goto Next Spot Down", "", "Ctrl+Down", controller.GotoNextSpotDown)
+	a.sendSpotsToTciAction = a.makeCheckAction(ActionBandmapSendSpotsToTci, "Send Spots to TCI", "", "", controller.SetSendSpotsToTci)
 
 	// Window menu
-	a.showQSOsAction = a.makeTriggerAction("&QSOs", a.shortcutFor(ActionWindowShowQSOs, ""), controller.ShowQSOs)
-	a.showQTCsAction = a.makeTriggerAction("Q&TCs", a.shortcutFor(ActionWindowShowQTCs, ""), controller.ShowQTCs)
-	a.showScoreGraphAction = a.makeTriggerAction("Score &Graph", a.shortcutFor(ActionWindowShowScoreGraph, ""), controller.ShowScoreGraph)
-	a.showScoreTableAction = a.makeTriggerAction("&Score Table", a.shortcutFor(ActionWindowShowScoreTable, ""), controller.ShowScoreTable)
-	a.showRateAction = a.makeTriggerAction("&Rate", a.shortcutFor(ActionWindowShowRate, ""), controller.ShowRate)
-	a.showSpotsAction = a.makeTriggerAction("S&pots", a.shortcutFor(ActionWindowShowSpots, ""), controller.ShowSpots)
+	a.showQSOsAction = a.makeTriggerAction(ActionWindowShowQSOs, "&QSOs", "Show the QSOs list", "", controller.ShowQSOs)
+	a.showQTCsAction = a.makeTriggerAction(ActionWindowShowQTCs, "Q&TCs", "Show the QTCs list", "", controller.ShowQTCs)
+	a.showScoreGraphAction = a.makeTriggerAction(ActionWindowShowScoreGraph, "Score &Graph", "Show the score graph", "", controller.ShowScoreGraph)
+	a.showScoreTableAction = a.makeTriggerAction(ActionWindowShowScoreTable, "&Score Table", "Show the score table", "", controller.ShowScoreTable)
+	a.showRateAction = a.makeTriggerAction(ActionWindowShowRate, "&Rate", "Show the QSO rate", "", controller.ShowRate)
+	a.showSpotsAction = a.makeTriggerAction(ActionWindowShowSpots, "S&pots", "Show the spots table", "", controller.ShowSpots)
 
 	// Help menu
-	a.wikiAction = a.makeTriggerAction("&Wiki", a.shortcutFor(ActionHelpWiki, ""), controller.OpenWiki)
-	a.sponsorsAction = a.makeTriggerAction("&Sponsors", a.shortcutFor(ActionHelpSponsors, ""), controller.Sponsors)
-	a.aboutAction = a.makeTriggerAction("&About", a.shortcutFor(ActionHelpAbout, ""), controller.About)
+	a.wikiAction = a.makeTriggerAction(ActionHelpWiki, "&Wiki", "Open the manual in the webbrowser", "", controller.OpenWiki)
+	a.sponsorsAction = a.makeTriggerAction(ActionHelpSponsors, "&Sponsors", "Open the sponsors page in the webbrowser", "", controller.Sponsors)
+	a.aboutAction = a.makeTriggerAction(ActionHelpAbout, "&About", "Show the about dialog", "", controller.About)
 
 	// Other actions
-	a.sendMacro1Action = a.makeTriggerAction("Macro 1", a.shortcutFor(ActionKeyerSendMacro1, "F1"), func() { controller.Keyer.Send(0) })
-	a.sendMacro2Action = a.makeTriggerAction("Macro 2", a.shortcutFor(ActionKeyerSendMacro2, "F2"), func() { controller.Keyer.Send(1) })
-	a.sendMacro3Action = a.makeTriggerAction("Macro 3", a.shortcutFor(ActionKeyerSendMacro3, "F3"), func() { controller.Keyer.Send(2) })
-	a.sendMacro4Action = a.makeTriggerAction("Macro 4", a.shortcutFor(ActionKeyerSendMacro4, "F4"), func() { controller.Keyer.Send(3) })
-	a.selectBestMatchAction = a.makeTriggerAction("Select Best Match", a.shortcutFor(ActionEntrySelectBestMatch, "Alt+Return"), controller.Entry.SelectBestMatchOnFrequency)
-	a.nextESMStepAction = a.makeTriggerAction("Next ESM Step", a.shortcutFor(ActionEntryNextESMStep, ""), controller.Entry.NextESMStep)
+	a.sendMacro1Action = a.makeTriggerAction(ActionKeyerSendMacro1, "Send Macro 1", "Send the keyer macro #1", "F1", func() { controller.Keyer.Send(0) })
+	a.sendMacro2Action = a.makeTriggerAction(ActionKeyerSendMacro2, "Send Macro 2", "Send the keyer macro #2", "F2", func() { controller.Keyer.Send(1) })
+	a.sendMacro3Action = a.makeTriggerAction(ActionKeyerSendMacro3, "Send Macro 3", "Send the keyer macro #3", "F3", func() { controller.Keyer.Send(2) })
+	a.sendMacro4Action = a.makeTriggerAction(ActionKeyerSendMacro4, "Send Macro 4", "Send the keyer macro #4", "F4", func() { controller.Keyer.Send(3) })
+	a.selectBestMatchAction = a.makeTriggerAction(ActionEntrySelectBestMatch, "Select Best Match", "Select the best matching callsign", "Alt+Return", func() { controller.Entry.SelectBestMatchOnFrequency() })
+	a.nextESMStepAction = a.makeTriggerAction(ActionEntryNextESMStep, "Next ESM Step", "Execute the next ESM step", "", func() { controller.Entry.NextESMStep() })
 	a.parent.AddActions([]*qtlib.QAction{
 		a.sendMacro1Action,
 		a.sendMacro2Action,
@@ -237,43 +238,59 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	return a
 }
 
-func (a *actions) makeTriggerAction(text, shortcut string, handler func()) *qtlib.QAction {
-	action := a.makeAction(text, shortcut)
-	action.OnTriggered(handler)
+func (a *actions) makeTriggerAction(id, text, tooltip, defaultShortcut string, handler func()) *qtlib.QAction {
+	a.allInfos = append(a.allInfos, ActionInfo{ID: id, Name: stripAccelerator(text), Tooltip: tooltip, DefaultShortcut: defaultShortcut})
+	action := a.makeAction(text, a.shortcutFor(id, defaultShortcut), tooltip)
+	if handler != nil {
+		action.OnTriggered(handler)
+	}
 	return action
 }
 
-func (a *actions) makeCheckAction(text, shortcut string, handler func(bool)) *qtlib.QAction {
-	action := a.makeAction(text, shortcut)
+func (a *actions) makeCheckAction(id, text, tooltip, defaultShortcut string, handler func(bool)) *qtlib.QAction {
+	a.allInfos = append(a.allInfos, ActionInfo{ID: id, Name: stripAccelerator(text), Tooltip: tooltip, DefaultShortcut: defaultShortcut})
+	action := a.makeAction(text, a.shortcutFor(id, defaultShortcut), tooltip)
 	action.SetCheckable(true)
 	action.OnToggled(func(checked bool) {
 		if a.ignoreInput {
 			return
 		}
-		handler(checked)
+		if handler != nil {
+			handler(checked)
+		}
 	})
 	return action
 }
 
-func (a *actions) makeToggleAction(text, shortcut string, handler func()) *qtlib.QAction {
-	action := a.makeAction(text, shortcut)
+func (a *actions) makeToggleAction(id, text, tooltip, defaultShortcut string, handler func()) *qtlib.QAction {
+	a.allInfos = append(a.allInfos, ActionInfo{ID: id, Name: stripAccelerator(text), Tooltip: tooltip, DefaultShortcut: defaultShortcut})
+	action := a.makeAction(text, a.shortcutFor(id, defaultShortcut), tooltip)
 	action.SetCheckable(true)
 	action.OnToggled(func(checked bool) {
 		if a.ignoreInput || !checked {
 			return
 		}
-		handler()
+		if handler != nil {
+			handler()
+		}
 	})
 	return action
 }
 
-func (a *actions) makeAction(text, shortcut string) *qtlib.QAction {
+func (a *actions) makeAction(text, shortcut, tooltip string) *qtlib.QAction {
 	action := qtlib.NewQAction()
 	action.SetText(text)
 	if shortcut != "" {
 		action.SetShortcut(qtlib.NewQKeySequence2(shortcut))
 	}
+	if tooltip != "" {
+		action.SetToolTip(tooltip)
+	}
 	return action
+}
+
+func stripAccelerator(text string) string {
+	return strings.TrimSuffix(strings.ReplaceAll(text, "&", ""), "...")
 }
 
 func (a *actions) shortcutFor(id, defaultShortcut string) string {
@@ -284,6 +301,9 @@ func (a *actions) shortcutFor(id, defaultShortcut string) string {
 }
 
 func (a *actions) updateFromController() {
+	if a.controller == nil {
+		return
+	}
 	a.ignoreInput = true
 
 	a.esmAction.SetChecked(a.controller.ESMEnabled())

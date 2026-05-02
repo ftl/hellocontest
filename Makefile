@@ -39,6 +39,9 @@ screenshots: build
 copy_screenshots_config:
 	cp -f ~/.config/com.thecodingflow/hellocontest.conf ./script/screenshots_config.conf
 
+keybindings: build
+	./${BINARY_NAME} keybindings
+
 install_deps:
 	go install github.com/mappu/miqt
 

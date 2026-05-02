@@ -15,7 +15,7 @@ jobs:
       appimage_filenname: ${{ steps.create_appimage.outputs.appimage_filename }}
     steps:
       - name: Install Linux packages and build tools
-        run: sudo apt update && sudo apt install -y --no-install-recommends qt6-base-dev libqscintilla2-qt6-dev qt6-base-private-dev qt6-charts-dev qt6-multimedia-dev qt6-pdf-dev qt6-positioning-dev qt6-svg-dev qt6-tools-dev qt6-webchannel-dev qt6-webengine-dev qt6-declarative-dev qml6-module-qtquick-{controls,shapes,layouts,templates,window} build-essential
+        run: sudo add-apt-repository universe && sudo apt update && sudo apt install -y --no-install-recommends libfuse2t64 qt6-base-dev libqscintilla2-qt6-dev qt6-base-private-dev qt6-charts-dev qt6-multimedia-dev qt6-pdf-dev qt6-positioning-dev qt6-svg-dev qt6-tools-dev qt6-webchannel-dev qt6-webengine-dev qt6-declarative-dev qml6-module-qtquick-{controls,shapes,layouts,templates,window} build-essential
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3

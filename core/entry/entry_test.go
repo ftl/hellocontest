@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -209,7 +208,7 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := callsign.Parse("DL1ABC")
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
 	qso := core.QSO{
 		Callsign:      dl1abc,
 		Band:          core.Band20m,
@@ -257,7 +256,7 @@ func TestEntryController_EnterFrequency(t *testing.T) {
 func TestEntryController_LogNewQSO(t *testing.T) {
 	clock, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := callsign.Parse("DL1ABC")
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
 	qso := core.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now(),
@@ -431,8 +430,8 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 	log.Activate()
 	view.Activate()
 
-	dl1ab, _ := callsign.Parse("DL1AB")
-	dl1abc, _ := callsign.Parse("DL1ABC")
+	dl1ab, _ := core.ParseCallsign("DL1AB")
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
 	qso := core.QSO{
 		Callsign:    dl1ab,
 		Time:        clock.Now(),
@@ -457,7 +456,7 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	clock, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := callsign.Parse("DL1ABC")
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
 	qso := core.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now().Add(-1 * time.Minute),
@@ -523,7 +522,7 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 	clock, _, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	view.Activate()
 
-	dl1abc, _ := callsign.Parse("DL1ABC")
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
 	qso := core.QSO{
 		Band:          core.Band80m,
 		Mode:          core.ModeCW,
@@ -560,8 +559,8 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 func TestEntryController_EditQSO(t *testing.T) {
 	clock, log, _, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := callsign.Parse("DL1ABC")
-	dl2abc, _ := callsign.Parse("DL2ABC")
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	dl2abc, _ := core.ParseCallsign("DL2ABC")
 	qso := core.QSO{
 		Band:          core.Band80m,
 		Mode:          core.ModeCW,
@@ -675,7 +674,7 @@ type testSettings struct {
 
 func (s *testSettings) Station() core.Station {
 	return core.Station{
-		Callsign: callsign.MustParse(s.myCall),
+		Callsign: core.MustParseCallsign(s.myCall),
 	}
 }
 

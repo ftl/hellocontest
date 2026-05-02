@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
@@ -62,7 +61,7 @@ type Logbook interface {
 	LastExchange() []string
 	AddQSO(core.QSO)
 	UpdateQSO(core.QSO)
-	FindDuplicateQSOs(callsign.Callsign, core.Band, core.Mode) []core.QSO
+	FindDuplicateQSOs(core.Callsign, core.Band, core.Mode) []core.QSO
 }
 
 // QSOList functionality used for QSO entry.
@@ -86,7 +85,7 @@ type Callinfo interface {
 
 type Bandmap interface {
 	Add(core.Spot)
-	SelectByCallsign(callsign.Callsign)
+	SelectByCallsign(core.Callsign)
 }
 
 // NewController returns a new entry controller.
@@ -268,7 +267,7 @@ func (c *Controller) GotoNextPlaceholder() {
 }
 
 func (c *Controller) leaveCallsignField() {
-	callsign, err := callsign.Parse(c.input.callsign)
+	callsign, err := core.ParseCallsign(c.input.callsign)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -390,7 +389,7 @@ func (c *Controller) setTheirExchangePrediction(i int, value string) {
 	c.view.SetTheirExchange(i+1, value)
 }
 
-func (c *Controller) isDuplicate(callsign callsign.Callsign) (core.QSO, bool) {
+func (c *Controller) isDuplicate(callsign core.Callsign) (core.QSO, bool) {
 	qsos := c.logbook.FindDuplicateQSOs(callsign, c.selectedBand, c.selectedMode)
 	if len(qsos) == 0 {
 		return core.QSO{}, false
@@ -608,7 +607,7 @@ func (c *Controller) enterCallsign(s string) {
 	c.emitCallsignEntered(c.input.callsign)
 	c.notifyCallinfoInputChanged(c.input.callsign, c.selectedBand, c.selectedMode, c.input.theirExchange)
 
-	callsign, err := callsign.Parse(s)
+	callsign, err := core.ParseCallsign(s)
 	if err != nil {
 		return
 	}
@@ -660,10 +659,10 @@ func (c *Controller) EnterPressed() {
 	}
 }
 
-func (c *Controller) CurrentQSOState() (callsign.Callsign, core.QSODataState) {
+func (c *Controller) CurrentQSOState() (core.Callsign, core.QSODataState) {
 	callEmpty := (c.input.callsign == "")
 
-	call, err := callsign.Parse(c.input.callsign)
+	call, err := core.ParseCallsign(c.input.callsign)
 	callOK := (err == nil)
 
 	theirExchange := make([]string, len(c.theirExchangeFields))
@@ -672,14 +671,14 @@ func (c *Controller) CurrentQSOState() (callsign.Callsign, core.QSODataState) {
 
 	switch {
 	case callEmpty, !callOK:
-		return callsign.NoCallsign, core.QSODataEmpty
+		return core.NoCallsign, core.QSODataEmpty
 	case callOK && !exchangeOK:
 		return call, core.QSODataInvalid
 	case callOK && exchangeOK:
 		return call, core.QSODataValid
 	default:
 		log.Printf("invalid QSO state: %s, %+v", c.input.callsign, c.input.theirExchange)
-		return callsign.NoCallsign, core.QSODataEmpty
+		return core.NoCallsign, core.QSODataEmpty
 	}
 }
 
@@ -692,7 +691,7 @@ func (c *Controller) Log() {
 		qso.Time = c.clock.Now()
 	}
 
-	qso.Callsign, err = callsign.Parse(c.input.callsign)
+	qso.Callsign, err = core.ParseCallsign(c.input.callsign)
 	if err != nil {
 		c.showErrorOnField(err, core.CallsignField)
 		return
@@ -806,15 +805,15 @@ func parseKilohertz(s string) (core.Frequency, bool) {
 	return core.Frequency(kHz * 1000), true
 }
 
-func parseBandmapCallsign(s string) (callsign.Callsign, bool) {
+func parseBandmapCallsign(s string) (core.Callsign, bool) {
 	if !strings.HasPrefix(s, "@") {
-		return callsign.Callsign{}, false
+		return core.Callsign{}, false
 	}
 
-	call, err := callsign.Parse(s[1:])
+	call, err := core.ParseCallsign(s[1:])
 	if err != nil {
 		log.Printf("invalid bandmap callsign: %v", err)
-		return callsign.Callsign{}, false
+		return core.Callsign{}, false
 	}
 	return call, true
 }
@@ -1031,7 +1030,7 @@ func (c *Controller) updateExchangeFields(contest core.Contest) {
 }
 
 func (c *Controller) MarkInBandmap() {
-	call, err := callsign.Parse(c.input.callsign)
+	call, err := core.ParseCallsign(c.input.callsign)
 	if err != nil {
 		log.Printf("Cannot mark invalid call: %v", err)
 		return

@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +18,7 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 	now := time.Now()
 	view := new(fakeView)
 	keyer := new(fakeKeyer)
-	theirCallsign := callsign.MustParse("DL1ABC")
+	theirCallsign := core.MustParseCallsign("DL1ABC")
 	logbook := &fakeLogbook{
 		nextSeriesNumber: 4,
 		lastCallsign:     theirCallsign,
@@ -97,7 +96,7 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		QTCTime:       core.QTCTime{Hour: 1, Minute: 23},
-		QTCCallsign:   callsign.MustParse("DK1AB"),
+		QTCCallsign:   core.MustParseCallsign("DK1AB"),
 		QTCNumber:     core.QSONumber(1),
 	}, logbook.loggedQTCs[0])
 	assert.Equal(t, core.QTC{
@@ -110,7 +109,7 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		QTCTime:       core.QTCTime{Hour: 1, Minute: 24},
-		QTCCallsign:   callsign.MustParse("DK2AB"),
+		QTCCallsign:   core.MustParseCallsign("DK2AB"),
 		QTCNumber:     core.QSONumber(2),
 	}, logbook.loggedQTCs[1])
 }
@@ -119,7 +118,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 	now := time.Now()
 	view := new(fakeView)
 	keyer := new(fakeKeyer)
-	theirCallsign := callsign.MustParse("DL1ABC")
+	theirCallsign := core.MustParseCallsign("DL1ABC")
 	logbook := &fakeLogbook{lastCallsign: theirCallsign}
 	c := newController().
 		WithClock(clock.Static(now)).
@@ -187,7 +186,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		Timestamp:   now,
 		Confirmed:   true,
 		QTCTime:     core.QTCTime{Hour: 1, Minute: 23},
-		QTCCallsign: callsign.MustParse("DK1AB"),
+		QTCCallsign: core.MustParseCallsign("DK1AB"),
 		QTCNumber:   core.QSONumber(1),
 	}, c.currentSeries.QTCs[0])
 	assert.Equal(t, core.QTC{
@@ -195,7 +194,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		Timestamp:   now,
 		Confirmed:   true,
 		QTCTime:     core.QTCTime{Hour: 1, Minute: 23},
-		QTCCallsign: callsign.MustParse("DK1AB"),
+		QTCCallsign: core.MustParseCallsign("DK1AB"),
 		QTCNumber:   core.QSONumber(1),
 	}, view.series.QTCs[0])
 	assert.Equal(t, "", c.currentInput[core.QTCTimestampField])
@@ -228,7 +227,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		Timestamp:   now,
 		Confirmed:   true,
 		QTCTime:     core.QTCTime{Hour: 1, Minute: 24},
-		QTCCallsign: callsign.MustParse("DK2AB"),
+		QTCCallsign: core.MustParseCallsign("DK2AB"),
 		QTCNumber:   core.QSONumber(2),
 	}, c.currentSeries.QTCs[1])
 	assert.Equal(t, core.QTC{
@@ -236,7 +235,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		Timestamp:   now,
 		Confirmed:   true,
 		QTCTime:     core.QTCTime{Hour: 1, Minute: 24},
-		QTCCallsign: callsign.MustParse("DK2AB"),
+		QTCCallsign: core.MustParseCallsign("DK2AB"),
 		QTCNumber:   core.QSONumber(2),
 	}, view.series.QTCs[1])
 	assert.Equal(t, "", c.currentInput[core.QTCTimestampField])
@@ -258,7 +257,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		QTCTime:       core.QTCTime{Hour: 1, Minute: 23},
-		QTCCallsign:   callsign.MustParse("DK1AB"),
+		QTCCallsign:   core.MustParseCallsign("DK1AB"),
 		QTCNumber:     core.QSONumber(1),
 	}, logbook.loggedQTCs[0])
 	assert.Equal(t, core.QTC{
@@ -271,7 +270,7 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		QTCTime:       core.QTCTime{Hour: 1, Minute: 24},
-		QTCCallsign:   callsign.MustParse("DK2AB"),
+		QTCCallsign:   core.MustParseCallsign("DK2AB"),
 		QTCNumber:     core.QSONumber(2),
 	}, logbook.loggedQTCs[1])
 }
@@ -303,7 +302,7 @@ func TestRequestQTC_HeaderErrors(t *testing.T) {
 			now := time.Now()
 			view := new(fakeView)
 			keyer := new(fakeKeyer)
-			theirCallsign := callsign.MustParse("DL1ABC")
+			theirCallsign := core.MustParseCallsign("DL1ABC")
 			logbook := &fakeLogbook{lastCallsign: theirCallsign}
 			c := newController().
 				WithClock(clock.Static(now)).
@@ -392,7 +391,7 @@ func TestRequestQTC_DataErrors(t *testing.T) {
 			now := time.Now()
 			view := new(fakeView)
 			keyer := new(fakeKeyer)
-			theirCallsign := callsign.MustParse("DL1ABC")
+			theirCallsign := core.MustParseCallsign("DL1ABC")
 			logbook := &fakeLogbook{lastCallsign: theirCallsign}
 			c := newController().
 				WithClock(clock.Static(now)).

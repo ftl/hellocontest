@@ -3,14 +3,13 @@ package logbook
 import (
 	"testing"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ftl/hellocontest/core"
 )
 
 func TestDupeIndex(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	index := make(dupeIndex)
 
 	index.Add(dl1abc, core.NoBand, core.NoMode, 1)

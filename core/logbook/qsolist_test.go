@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -34,10 +33,10 @@ func TestQSOList_QSOAdded(t *testing.T) {
 }
 
 func TestQSOList_SelectRow(t *testing.T) {
-	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
+	qso := core.QSO{Callsign: core.MustParseCallsign("DL1ABC"), MyNumber: 1}
 	list := NewQSOList(new(testSettings))
 	list.QSOAdded(qso)
-	list.QSOAdded(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2})
+	list.QSOAdded(core.QSO{Callsign: core.MustParseCallsign("K3LR"), MyNumber: 2})
 	qsoNotified := false
 	indexNotified := false
 	list.Notify(QSOSelectedListenerFunc(func(selectedQSO core.QSO) {
@@ -56,8 +55,8 @@ func TestQSOList_SelectRow(t *testing.T) {
 }
 
 func TestQSOList_SelectLastQSO(t *testing.T) {
-	qso := core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1}
-	lastQSO := core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 2}
+	qso := core.QSO{Callsign: core.MustParseCallsign("DL1ABC"), MyNumber: 1}
+	lastQSO := core.QSO{Callsign: core.MustParseCallsign("K3LR"), MyNumber: 2}
 	list := NewQSOList(new(testSettings))
 	list.QSOAdded(qso)
 	list.QSOAdded(lastQSO)
@@ -101,7 +100,7 @@ func toQSOs(numbers ...int) []core.QSO {
 }
 
 func toQSO(number int) core.QSO {
-	return core.QSO{Callsign: callsign.MustParse(fmt.Sprintf("DL%dNN", number)), MyNumber: core.QSONumber(number)}
+	return core.QSO{Callsign: core.MustParseCallsign(fmt.Sprintf("DL%dNN", number)), MyNumber: core.QSONumber(number)}
 }
 
 type testSettings struct{}

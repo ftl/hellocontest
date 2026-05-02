@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
@@ -189,7 +188,7 @@ func (c *scoreCounter) AddQTCSeries(series core.QTCSeries) {
 	}
 }
 
-func (c *scoreCounter) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
+func (c *scoreCounter) Value(callsign core.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
 	continent, country, _, _ := toConvalDXCCEntity(entity)
 	convalQSO := conval.QSO{
 		TheirCall:      callsign,

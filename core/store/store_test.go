@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 	"github.com/ftl/hellocontest/core"
 	"github.com/stretchr/testify/assert"
@@ -59,7 +58,7 @@ func TestFileStore_V1QSORoundtrip(t *testing.T) {
 	require.NoError(t, err)
 
 	qso := core.QSO{
-		Callsign:      callsign.MustParse("DL1ABC"),
+		Callsign:      core.MustParseCallsign("DL1ABC"),
 		Time:          time.Unix(123, 0),
 		Frequency:     3535000,
 		Band:          core.Band80m,
@@ -99,13 +98,13 @@ func TestFileStore_V1StationRoundtrip(t *testing.T) {
 
 	loc, err := locator.Parse("AA00AA")
 	station1 := core.Station{
-		Callsign: callsign.MustParse("DL0ABC"),
-		Operator: callsign.MustParse("DL1ABC"),
+		Callsign: core.MustParseCallsign("DL0ABC"),
+		Operator: core.MustParseCallsign("DL1ABC"),
 		Locator:  loc,
 	}
 	station2 := core.Station{
-		Callsign: callsign.MustParse("DL0ABC"),
-		Operator: callsign.MustParse("DL2ABC"),
+		Callsign: core.MustParseCallsign("DL0ABC"),
+		Operator: core.MustParseCallsign("DL2ABC"),
 		Locator:  loc,
 	}
 	err = fs.WriteStation(station1)
@@ -203,11 +202,11 @@ func TestFileStore_V1QTCRoundtrip(t *testing.T) {
 
 		Kind:          core.SentQTC,
 		QSONumber:     45,
-		TheirCallsign: callsign.MustParse("DL1ABC"),
+		TheirCallsign: core.MustParseCallsign("DL1ABC"),
 		Header:        core.QTCHeader{SeriesNumber: 7, QTCCount: 10},
 
 		QTCTime:     core.QTCTime{Hour: 12, Minute: 34},
-		QTCCallsign: callsign.MustParse("DL2ABC"),
+		QTCCallsign: core.MustParseCallsign("DL2ABC"),
 		QTCNumber:   56,
 	}
 	err = fs.WriteQTC(qtc)

@@ -2,8 +2,8 @@ package logbook
 
 import (
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 
+	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
 )
 
@@ -14,14 +14,14 @@ type testConvalCounter struct {
 	workedCallsigns map[string]bool
 }
 
-func (t *testConvalCounter) markAsWorked(call callsign.Callsign) {
+func (t *testConvalCounter) markAsWorked(call core.Callsign) {
 	if t.workedCallsigns == nil {
 		t.workedCallsigns = make(map[string]bool)
 	}
 	t.workedCallsigns[call.String()] = true
 }
 
-func (t *testConvalCounter) worked(call callsign.Callsign) bool {
+func (t *testConvalCounter) worked(call core.Callsign) bool {
 	if t.workedCallsigns == nil {
 		return false
 	}

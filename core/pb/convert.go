@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
@@ -18,7 +17,7 @@ import (
 func ToQSO(pbQSO *QSO) (core.QSO, error) {
 	var qso core.QSO
 	var err error
-	qso.Callsign, err = callsign.Parse(pbQSO.Callsign)
+	qso.Callsign, err = core.ParseCallsign(pbQSO.Callsign)
 	if err != nil {
 		return core.QSO{}, err
 	}
@@ -74,15 +73,15 @@ func QSOToPB(qso core.QSO) *QSO {
 func ToStation(pbStation *Station) (core.Station, error) {
 	var station core.Station
 	var err error
-	station.Callsign, err = callsign.Parse(pbStation.Callsign)
+	station.Callsign, err = core.ParseCallsign(pbStation.Callsign)
 	if err != nil {
 		log.Printf("Cannot parse station callsign: %v", err)
-		station.Callsign = callsign.Callsign{}
+		station.Callsign = core.Callsign{}
 	}
-	station.Operator, err = callsign.Parse(pbStation.Operator)
+	station.Operator, err = core.ParseCallsign(pbStation.Operator)
 	if err != nil {
 		log.Printf("Cannot parse station operator: %v", err)
-		station.Operator = callsign.Callsign{}
+		station.Operator = core.Callsign{}
 	}
 	station.Locator, err = locator.Parse(pbStation.Locator)
 	if err != nil {
@@ -204,7 +203,7 @@ func ToQTC(pbQTC *QTC) (core.QTC, error) {
 
 	qtc.Kind = core.QTCKind(pbQTC.Kind)
 	qtc.QSONumber = core.QSONumber(pbQTC.QsoNumber)
-	qtc.TheirCallsign, err = callsign.Parse(pbQTC.TheirCallsign)
+	qtc.TheirCallsign, err = core.ParseCallsign(pbQTC.TheirCallsign)
 	if err != nil {
 		return core.QTC{}, err
 	}
@@ -223,7 +222,7 @@ func ToQTC(pbQTC *QTC) (core.QTC, error) {
 		}
 	}
 
-	qtc.QTCCallsign, err = callsign.Parse(pbQTC.QtcCallsign)
+	qtc.QTCCallsign, err = core.ParseCallsign(pbQTC.QtcCallsign)
 	if err != nil {
 		return core.QTC{}, err
 	}

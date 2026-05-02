@@ -3,7 +3,6 @@ package mocked
 import (
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/stretchr/testify/mock"
 
@@ -74,7 +73,7 @@ func (m *Log) UpdateQSO(qso core.QSO) {
 	m.Called(qso)
 }
 
-func (m *Log) FindDuplicateQSOs(call callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+func (m *Log) FindDuplicateQSOs(call core.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	if !m.active {
 		return []core.QSO{}
 	}
@@ -91,7 +90,7 @@ func (m *QSOList) Activate() {
 	m.active = true
 }
 
-func (m *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+func (m *QSOList) Find(callsign core.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	if !m.active {
 		return []core.QSO{}
 	}
@@ -99,7 +98,7 @@ func (m *QSOList) Find(callsign callsign.Callsign, band core.Band, mode core.Mod
 	return args.Get(0).([]core.QSO)
 }
 
-func (m *QSOList) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
+func (m *QSOList) FindWorkedQSOs(callsign core.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
 	if !m.active {
 		return []core.QSO{}, false
 	}

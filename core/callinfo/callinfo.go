@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
@@ -31,17 +30,17 @@ type CallHistoryFinder interface {
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
 // It can also find worked callsigns that are similar to a given string, e.g. for supercheck.
 type DupeChecker interface {
-	FindWorkedQSOs(callsign.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
+	FindWorkedQSOs(core.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
 	Find(string) ([]core.AnnotatedCallsign, error)
 }
 
 // Valuer provides the points and multis of a QSO based on the given information.
 type Valuer interface {
-	Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string)
+	Value(callsign core.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string)
 }
 
 type QTCProvider interface {
-	QTCsInLog(callsign.Callsign) (sent, received int)
+	QTCsInLog(core.Callsign) (sent, received int)
 }
 
 // View defines the visual part of the call information window.
@@ -120,7 +119,7 @@ func (c *Callinfo) emitFrameChanged() {
 	c.view.ShowFrame(c.frame)
 }
 
-func (c *Callinfo) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
+func (c *Callinfo) GetInfo(call core.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
 	return c.collector.GetInfo(call, band, mode, currentExchange)
 }
 

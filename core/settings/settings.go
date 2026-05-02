@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 	"github.com/ftl/hamradio/scp"
 
@@ -352,7 +351,7 @@ func (s *Settings) OpenConfigurationFile() {
 }
 
 func (s *Settings) EnterStationCallsign(value string) {
-	cs, err := callsign.Parse(value)
+	cs, err := core.ParseCallsign(value)
 	if err != nil {
 		s.view.ShowMessage(fmt.Sprintf("%v", err))
 		return
@@ -362,10 +361,10 @@ func (s *Settings) EnterStationCallsign(value string) {
 }
 
 func (s *Settings) EnterStationOperator(value string) {
-	var cs callsign.Callsign
+	var cs core.Callsign
 	var err error
 	if value != "" {
-		cs, err = callsign.Parse(value)
+		cs, err = core.ParseCallsign(value)
 	}
 	if err != nil {
 		s.view.ShowMessage(fmt.Sprintf("%v", err))

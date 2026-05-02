@@ -3,7 +3,6 @@ package callinfo
 import (
 	"sync"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 
 	"github.com/ftl/hellocontest/core"
@@ -76,7 +75,7 @@ func (c *Collector) GetInfoForInput(input string, band core.Band, mode core.Mode
 	return result
 }
 
-func (c *Collector) GetInfo(call callsign.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
+func (c *Collector) GetInfo(call core.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
 	result := core.Callinfo{
 		Input: normalizeInput(call.String()),
 		Call:  call,
@@ -104,12 +103,12 @@ func (c *Collector) UpdateValue(info *core.Callinfo, band core.Band, mode core.M
 }
 
 func (c *Collector) addCallsign(info *core.Callinfo) bool {
-	call, err := callsign.Parse(info.Input)
+	call, err := core.ParseCallsign(info.Input)
 	info.CallValid = (err == nil)
 	if info.CallValid {
 		info.Call = call
 	} else {
-		info.Call = callsign.Callsign{}
+		info.Call = core.Callsign{}
 	}
 	return info.CallValid
 }

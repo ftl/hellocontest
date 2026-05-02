@@ -10,7 +10,6 @@ import (
 	"github.com/ftl/clusterix"
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 
 	"github.com/ftl/hellocontest/core"
@@ -42,7 +41,7 @@ type Clusters struct {
 	ignoreUpdates bool
 
 	valid       bool
-	myCallsign  callsign.Callsign
+	myCallsign  core.Callsign
 	myCountry   string
 	myContinent string
 }
@@ -330,7 +329,7 @@ func (c *cluster) findSpotterRegion(spotter string) (string, string, bool) {
 	} else {
 		spotterCallString = spotter[:dashIndex]
 	}
-	spotterCall, err := callsign.Parse(spotterCallString)
+	spotterCall, err := core.ParseCallsign(spotterCallString)
 	if err != nil {
 		return "", "", false
 	}
@@ -405,35 +404,35 @@ func openDemoCluster(bandmap Bandmap, clock core.Clock) openClusterFunc {
 			bandmap:   bandmap,
 			spots: []core.Spot{
 				{
-					Call:      callsign.MustParse("W1WA"),
+					Call:      core.MustParseCallsign("W1WA"),
 					Frequency: 7012000,
 					Band:      core.Band40m,
 					Mode:      core.ModeCW,
 					Source:    core.ClusterSpot,
 				},
 				{
-					Call:      callsign.MustParse("DA0BCC"),
+					Call:      core.MustParseCallsign("DA0BCC"),
 					Frequency: 7013700,
 					Band:      core.Band40m,
 					Mode:      core.ModeCW,
 					Source:    core.RBNSpot,
 				},
 				{
-					Call:      callsign.MustParse("DA0HQ"),
+					Call:      core.MustParseCallsign("DA0HQ"),
 					Frequency: 7012300,
 					Band:      core.Band40m,
 					Mode:      core.ModeCW,
 					Source:    core.SkimmerSpot,
 				},
 				{
-					Call:      callsign.MustParse("G0ABC"),
+					Call:      core.MustParseCallsign("G0ABC"),
 					Frequency: 7015000,
 					Band:      core.Band40m,
 					Mode:      core.ModeCW,
 					Source:    core.ManualSpot,
 				},
 				{
-					Call:      callsign.MustParse("PA0ABC"),
+					Call:      core.MustParseCallsign("PA0ABC"),
 					Frequency: 7019000,
 					Band:      core.Band40m,
 					Mode:      core.ModeCW,

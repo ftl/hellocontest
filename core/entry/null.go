@@ -3,8 +3,6 @@ package entry
 import (
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
-
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -59,8 +57,8 @@ func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) {}
 
 type nullBandmap struct{}
 
-func (n *nullBandmap) Add(core.Spot)                      {}
-func (n *nullBandmap) SelectByCallsign(callsign.Callsign) {}
+func (n *nullBandmap) Add(core.Spot)                  {}
+func (n *nullBandmap) SelectByCallsign(core.Callsign) {}
 
 type nullESMView struct{}
 

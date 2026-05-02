@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/locator"
 	"github.com/stretchr/testify/assert"
 
@@ -16,8 +15,8 @@ import (
 
 func TestQsoLine(t *testing.T) {
 	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyExchange}} {{.TheirCall}} {{.TheirExchange}}"))
-	myCall, _ := callsign.Parse("AA1ZZZ")
-	theirCall, _ := callsign.Parse("S50A")
+	myCall, _ := core.ParseCallsign("AA1ZZZ")
+	theirCall, _ := core.ParseCallsign("S50A")
 	testCases := []struct {
 		desc     string
 		qso      core.QSO
@@ -74,7 +73,7 @@ func TestExport(t *testing.T) {
 		stationLocator:    "AA00AA",
 		contestIdentifier: "HELLO-CONTEST-CABRILLO-TEST",
 	}
-	theirCall := callsign.MustParse("S50A")
+	theirCall := core.MustParseCallsign("S50A")
 	qso := core.QSO{
 		Callsign:      theirCall,
 		Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
@@ -97,7 +96,7 @@ func TestExport(t *testing.T) {
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,
 		QTCTime:       core.QTCTime{Hour: 12, Minute: 34},
-		QTCCallsign:   callsign.MustParse("DL1ABC"),
+		QTCCallsign:   core.MustParseCallsign("DL1ABC"),
 		QTCNumber:     5,
 	}
 
@@ -130,8 +129,8 @@ type testSettings struct {
 func (s *testSettings) Station() core.Station {
 	loc, _ := locator.Parse(s.stationLocator)
 	return core.Station{
-		Callsign: callsign.MustParse(s.stationCallsign),
-		Operator: callsign.MustParse(s.stationOperator),
+		Callsign: core.MustParseCallsign(s.stationCallsign),
+		Operator: core.MustParseCallsign(s.stationOperator),
 		Locator:  loc,
 	}
 }

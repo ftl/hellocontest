@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
 )
@@ -63,9 +62,9 @@ func (s *Supercheck) Calculate(input string, band core.Band, mode core.Mode) []c
 	return result
 }
 
-func (s *Supercheck) findMatchingCallsigns(input string) map[callsign.Callsign]core.AnnotatedCallsign {
+func (s *Supercheck) findMatchingCallsigns(input string) map[core.Callsign]core.AnnotatedCallsign {
 	if s.dupes == nil || s.callsigns == nil || s.history == nil {
-		return map[callsign.Callsign]core.AnnotatedCallsign{}
+		return map[core.Callsign]core.AnnotatedCallsign{}
 	}
 
 	normalizedInput := normalizeInput(input)
@@ -82,7 +81,7 @@ func (s *Supercheck) findMatchingCallsigns(input string) map[callsign.Callsign]c
 		historicMatches = []core.AnnotatedCallsign{}
 	}
 
-	result := make(map[callsign.Callsign]core.AnnotatedCallsign, len(dupeMatches)+len(scpMatches)+len(historicMatches))
+	result := make(map[core.Callsign]core.AnnotatedCallsign, len(dupeMatches)+len(scpMatches)+len(historicMatches))
 	for _, match := range dupeMatches {
 		result[match.Callsign] = match
 	}

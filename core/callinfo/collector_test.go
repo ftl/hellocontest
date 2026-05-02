@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -28,7 +27,7 @@ func TestCollector_addCallsign(t *testing.T) {
 		{
 			name:     "valid callsign",
 			input:    core.Callinfo{Input: "DL1ABC"},
-			expected: core.Callinfo{Input: "DL1ABC", Call: callsign.MustParse("DL1ABC"), CallValid: true},
+			expected: core.Callinfo{Input: "DL1ABC", Call: core.MustParseCallsign("DL1ABC"), CallValid: true},
 		},
 		{
 			name:     "incomplete callsign",

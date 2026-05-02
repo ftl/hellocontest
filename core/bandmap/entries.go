@@ -5,7 +5,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 
 	"github.com/ftl/hellocontest/core"
@@ -80,7 +79,7 @@ func (e *Entry) Matches(spot core.Spot) (core.SpotQuality, bool) {
 	}
 }
 
-func calculateCallsignDistance(call1, call2 callsign.Callsign) int {
+func calculateCallsignDistance(call1, call2 core.Callsign) int {
 	options := levenshtein.DefaultOptions
 	return levenshtein.DistanceForStrings([]rune(call1.String()), []rune(call2.String()), options)
 }
@@ -251,7 +250,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 	l.notifier.emitEntryAdded(newEntry.BandmapEntry)
 }
 
-func (l *Entries) RefreshCallinfo(call callsign.Callsign, now time.Time, weights core.BandmapWeights) {
+func (l *Entries) RefreshCallinfo(call core.Callsign, now time.Time, weights core.BandmapWeights) {
 	for _, e := range l.entries {
 		if e.Call.String() == call.String() {
 			l.complementCallinfo(e, now, weights)
@@ -292,7 +291,7 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 	return left
 }
 
-func (l *Entries) MarkAsWorked(call callsign.Callsign, band core.Band, mode core.Mode) {
+func (l *Entries) MarkAsWorked(call core.Callsign, band core.Band, mode core.Mode) {
 	for _, e := range l.entries {
 		match := true
 		if call != e.Call {

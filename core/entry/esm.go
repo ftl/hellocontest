@@ -4,8 +4,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/ftl/hamradio/callsign"
-
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -87,7 +85,7 @@ func (c *Controller) currentESMState() core.ESMState {
 		if c.input.callsign == "" {
 			return core.ESMCallsignEmpty
 		}
-		_, err := callsign.Parse(c.input.callsign)
+		_, err := core.ParseCallsign(c.input.callsign)
 		if err != nil {
 			return core.ESMCallsignInvalid
 		}

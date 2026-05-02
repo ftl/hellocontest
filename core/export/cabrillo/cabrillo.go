@@ -10,7 +10,6 @@ import (
 
 	"github.com/ftl/cabrillo"
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -426,7 +425,7 @@ func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO
 	export.Callsign = settings.Station().Callsign
 	export.CreatedBy = "Hello Contest"
 	export.Contest = cabrillo.ContestIdentifier(settings.Contest().Definition.Identifier)
-	export.Operators = []callsign.Callsign{settings.Station().Operator}
+	export.Operators = []core.Callsign{settings.Station().Operator}
 	export.GridLocator = settings.Station().Locator
 	export.ClaimedScore = claimedScore
 
@@ -482,7 +481,7 @@ var mode = map[core.Mode]cabrillo.QSOMode{
 	core.ModeDigital: cabrillo.QSOModeDigi,
 }
 
-func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso core.QSO) error {
+func writeQSO(w io.Writer, t *template.Template, mycall core.Callsign, qso core.QSO) error {
 	var frequency string
 	if qso.Frequency == 0 {
 		frequency = qrg[qso.Band]
@@ -516,7 +515,7 @@ func writeQSO(w io.Writer, t *template.Template, mycall callsign.Callsign, qso c
 	return err
 }
 
-func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
+func toQSO(qso core.QSO, mycall core.Callsign) cabrillo.QSO {
 	return cabrillo.QSO{
 		Frequency: toQSOFrequency(qso.Frequency, qso.Band),
 		Mode:      mode[qso.Mode],
@@ -533,7 +532,7 @@ func toQSO(qso core.QSO, mycall callsign.Callsign) cabrillo.QSO {
 	}
 }
 
-func toQTC(qtc core.QTC, mycall callsign.Callsign) cabrillo.QTC {
+func toQTC(qtc core.QTC, mycall core.Callsign) cabrillo.QTC {
 	result := cabrillo.QTC{
 		Frequency: toQSOFrequency(qtc.Frequency, qtc.Band),
 		Mode:      mode[qtc.Mode],

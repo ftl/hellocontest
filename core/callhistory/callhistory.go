@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
@@ -122,7 +121,7 @@ func (f *Finder) SelectFieldNames(fieldNames []string) {
 }
 
 func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
-	searchCallsign, err := callsign.Parse(s)
+	searchCallsign, err := core.ParseCallsign(s)
 	if err != nil {
 		log.Print(err)
 		return core.AnnotatedCallsign{}, false
@@ -179,7 +178,7 @@ func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 }
 
 func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
-	cs, err := callsign.Parse(match.Key())
+	cs, err := core.ParseCallsign(match.Key())
 	if err != nil {
 		return core.AnnotatedCallsign{}, nil
 	}

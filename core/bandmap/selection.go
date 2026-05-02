@@ -1,8 +1,6 @@
 package bandmap
 
 import (
-	"github.com/ftl/hamradio/callsign"
-
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -61,7 +59,7 @@ func (s *Selection) SelectEntry(id core.BandmapEntryID) {
 	}
 }
 
-func (s *Selection) SelectByCallsign(call callsign.Callsign) {
+func (s *Selection) SelectByCallsign(call core.Callsign) {
 	callStr := call.String()
 	s.entries.ForEach(func(entry core.BandmapEntry) bool {
 		if entry.Call.String() == callStr && s.visibleFilter(entry) {

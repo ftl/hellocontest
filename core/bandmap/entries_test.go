@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -60,19 +59,19 @@ func TestEntry_Add_OnlySameCallAndSimilarFrequency(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			entry := Entry{
 				BandmapEntry: core.BandmapEntry{
-					Call:      callsign.MustParse("dl1abc"),
+					Call:      core.MustParseCallsign("dl1abc"),
 					Frequency: frequency,
 				},
 			}
 
-			_, added := entry.Add(core.Spot{Call: callsign.MustParse(tc.call), Frequency: tc.frequency})
+			_, added := entry.Add(core.Spot{Call: core.MustParseCallsign(tc.call), Frequency: tc.frequency})
 			assert.Equal(t, tc.valid, added)
 		})
 	}
 }
 
 func TestEntry_Add_MaintainsLastHeard(t *testing.T) {
-	call := callsign.MustParse("dl1abc")
+	call := core.MustParseCallsign("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
 	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency}}
@@ -91,7 +90,7 @@ func TestEntry_Add_MaintainsLastHeard(t *testing.T) {
 }
 
 func TestEntry_Add_MaintainsFrequency(t *testing.T) {
-	call := callsign.MustParse("dl1abc")
+	call := core.MustParseCallsign("dl1abc")
 	frequency := core.Frequency(7035000)
 	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency}}
 	entry.Add(core.Spot{Call: call, Frequency: frequency})
@@ -110,7 +109,7 @@ func TestEntry_Add_MaintainsFrequency(t *testing.T) {
 }
 
 func TestEntry_Add_MaintainsHighestRankedSource(t *testing.T) {
-	call := callsign.MustParse("dl1abc")
+	call := core.MustParseCallsign("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
 	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency}}
@@ -126,7 +125,7 @@ func TestEntry_Add_MaintainsHighestRankedSource(t *testing.T) {
 }
 
 func TestEntry_RemoveSpotsBefore(t *testing.T) {
-	call := callsign.MustParse("dl1abc")
+	call := core.MustParseCallsign("dl1abc")
 	frequency := core.Frequency(7035000)
 	now := time.Now()
 	entry := Entry{BandmapEntry: core.BandmapEntry{Call: call, Frequency: frequency}}
@@ -162,7 +161,7 @@ func TestEntries_AddNewEntry(t *testing.T) {
 	entries := NewEntries(&Notifier{}, countAllEntries)
 	assert.Equal(t, 0, entries.Len())
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3760000, Time: now}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3760000, Time: now}, now, defaultWeights)
 
 	assert.Equal(t, 1, entries.Len())
 
@@ -345,10 +344,10 @@ func TestEntries_insert(t *testing.T) {
 func TestEntries_QueryByFilters(t *testing.T) {
 	now := time.Now()
 	entries := NewEntries(&Notifier{}, countAllEntries)
-	entries.Add(core.Spot{Call: callsign.MustParse("DL1ABC"), Frequency: 7020000, Band: core.Band40m, Source: core.ManualSpot}, now.Add(-1*time.Minute), defaultWeights)
-	entries.Add(core.Spot{Call: callsign.MustParse("DL2ABC"), Frequency: 14015000, Band: core.Band20m, Source: core.ManualSpot}, now.Add(-2*time.Minute), defaultWeights)
-	entries.Add(core.Spot{Call: callsign.MustParse("DL3ABC"), Frequency: 14030000, Band: core.Band20m, Source: core.ClusterSpot}, now.Add(-2*time.Minute), defaultWeights)
-	entries.Add(core.Spot{Call: callsign.MustParse("DL4ABC"), Frequency: 28010000, Band: core.Band10m, Source: core.ClusterSpot}, now.Add(-2*time.Minute), defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("DL1ABC"), Frequency: 7020000, Band: core.Band40m, Source: core.ManualSpot}, now.Add(-1*time.Minute), defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("DL2ABC"), Frequency: 14015000, Band: core.Band20m, Source: core.ManualSpot}, now.Add(-2*time.Minute), defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("DL3ABC"), Frequency: 14030000, Band: core.Band20m, Source: core.ClusterSpot}, now.Add(-2*time.Minute), defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("DL4ABC"), Frequency: 28010000, Band: core.Band10m, Source: core.ClusterSpot}, now.Add(-2*time.Minute), defaultWeights)
 	actualCallsigns := make([]string, 0, 4)
 
 	tt := []struct {
@@ -390,11 +389,11 @@ func TestEntries_CleanOutOldEntries(t *testing.T) {
 	now := time.Now()
 	entries := NewEntries(&Notifier{}, countAllEntries)
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)}, now, defaultWeights)
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)}, now, defaultWeights)
-	entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535500, Time: now.Add(-10 * time.Hour)}, now, defaultWeights)
-	entries.Add(core.Spot{Source: core.WorkedSpot, Call: callsign.MustParse("dl3abc"), Frequency: 3535500, Time: now.Add(-50 * time.Hour)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Time: now.Add(-30 * time.Minute)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Time: now.Add(-10 * time.Minute)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl2abc"), Frequency: 3535500, Time: now.Add(-10 * time.Hour)}, now, defaultWeights)
+	entries.Add(core.Spot{Source: core.WorkedSpot, Call: core.MustParseCallsign("dl3abc"), Frequency: 3535500, Time: now.Add(-50 * time.Hour)}, now, defaultWeights)
 
 	assert.Equal(t, 3, entries.Len())
 	assert.Equal(t, "DL3ABC", entries.entries[0].Call.String())
@@ -422,10 +421,10 @@ func TestEntries_Notify(t *testing.T) {
 	listener := new(testEntryListener)
 	notifier.Notify(listener)
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
 	assert.Equal(t, "DL1ABC", listener.added[0].Call.String())
 
-	entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Time: now.Add(-40 * time.Minute)}, now, defaultWeights)
 	assert.Equal(t, "DL1ABC", listener.updated[0].Call.String())
 
 	entries.CleanOut(30*time.Minute, now, defaultWeights)
@@ -434,11 +433,11 @@ func TestEntries_Notify(t *testing.T) {
 
 func TestEntry_Matches(t *testing.T) {
 	now := time.Now()
-	spot := core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3535000, Time: now.Add(-5 * time.Minute)}
+	spot := core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Time: now.Add(-5 * time.Minute)}
 	entry := NewEntry(spot)
 	assert.Equal(t, core.UnknownSpotQuality, entry.Quality)
 
-	similarSpot := core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
+	similarSpot := core.Spot{Call: core.MustParseCallsign("dl2abc"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
 	quality, match := entry.Matches(similarSpot)
 	assert.False(t, match)
 	assert.Equal(t, core.UnknownSpotQuality, quality)
@@ -461,21 +460,21 @@ func TestEntry_Matches(t *testing.T) {
 	assert.True(t, added)
 	assert.Equal(t, core.ValidSpotQuality, entry.Quality)
 
-	qsySpot := core.Spot{Call: callsign.MustParse("dl1abc"), Frequency: 3545000, Time: now.Add(-2 * time.Minute)}
+	qsySpot := core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3545000, Time: now.Add(-2 * time.Minute)}
 	quality, match = entry.Matches(qsySpot)
 	assert.False(t, match)
 	assert.Equal(t, core.QSYSpotQuality, quality)
 	_, added = entry.Add(qsySpot)
 	assert.False(t, added)
 
-	bustedSpot := core.Spot{Call: callsign.MustParse("dl2abc"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
+	bustedSpot := core.Spot{Call: core.MustParseCallsign("dl2abc"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
 	quality, match = entry.Matches(bustedSpot)
 	assert.False(t, match)
 	assert.Equal(t, core.BustedSpotQuality, quality)
 	_, added = entry.Add(bustedSpot)
 	assert.False(t, added)
 
-	completeDifferentSpot := core.Spot{Call: callsign.MustParse("dl3xyz"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
+	completeDifferentSpot := core.Spot{Call: core.MustParseCallsign("dl3xyz"), Frequency: 3535000, Time: now.Add(-2 * time.Minute)}
 	quality, match = entry.Matches(completeDifferentSpot)
 	assert.False(t, match)
 	assert.Equal(t, core.UnknownSpotQuality, quality)
@@ -495,8 +494,8 @@ func TestCalculateCallsignDistance(t *testing.T) {
 	}
 	for _, tc := range tt {
 		t.Run(tc.call1+" "+tc.call2, func(t *testing.T) {
-			call1 := callsign.MustParse(tc.call1)
-			call2 := callsign.MustParse(tc.call2)
+			call1 := core.MustParseCallsign(tc.call1)
+			call2 := core.MustParseCallsign(tc.call2)
 			actual := calculateCallsignDistance(call1, call2)
 
 			assert.Equal(t, tc.expected, actual)
@@ -561,13 +560,13 @@ func TestEntries_MarkAsWorked(t *testing.T) {
 			entries := NewEntries(&Notifier{}, countAllEntries)
 
 			// the entries will be sorted by band and time
-			entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Band: core.Band20m, Frequency: 14114000, Mode: core.ModeSSB, Time: now.Add(-11 * time.Minute)}, now, defaultWeights)
-			entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Band: core.Band20m, Frequency: 14014000, Mode: core.ModeCW, Time: now.Add(-10 * time.Minute)}, now, defaultWeights)
-			entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Band: core.Band40m, Frequency: 7073000, Time: now.Add(-30 * time.Minute)}, now, defaultWeights)
-			entries.Add(core.Spot{Call: callsign.MustParse("dl2abc"), Band: core.Band80m, Frequency: 3535500, Time: now.Add(-12 * time.Hour)}, now, defaultWeights)
-			entries.Add(core.Spot{Call: callsign.MustParse("dl1abc"), Band: core.Band80m, Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
+			entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Band: core.Band20m, Frequency: 14114000, Mode: core.ModeSSB, Time: now.Add(-11 * time.Minute)}, now, defaultWeights)
+			entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Band: core.Band20m, Frequency: 14014000, Mode: core.ModeCW, Time: now.Add(-10 * time.Minute)}, now, defaultWeights)
+			entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Band: core.Band40m, Frequency: 7073000, Time: now.Add(-30 * time.Minute)}, now, defaultWeights)
+			entries.Add(core.Spot{Call: core.MustParseCallsign("dl2abc"), Band: core.Band80m, Frequency: 3535500, Time: now.Add(-12 * time.Hour)}, now, defaultWeights)
+			entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Band: core.Band80m, Frequency: 3535000, Time: now.Add(-1 * time.Hour)}, now, defaultWeights)
 
-			entries.MarkAsWorked(callsign.MustParse("dl1abc"), tc.band, tc.mode)
+			entries.MarkAsWorked(core.MustParseCallsign("dl1abc"), tc.band, tc.mode)
 
 			for i, spotType := range tc.expected {
 				assert.Equal(t, spotType, entries.entries[i].Source, "entry #%d", i)

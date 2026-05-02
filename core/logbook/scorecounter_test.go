@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ftl/hellocontest/core"
@@ -21,15 +20,15 @@ func TestScoreCounter_AddQSO_ScoreQSO(t *testing.T) {
 		},
 	}
 
-	scoredQSO := scoreCounter.AddQSO(core.QSO{Callsign: callsign.MustParse("DL1ABC"), MyNumber: 1})
+	scoredQSO := scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("DL1ABC"), MyNumber: 1})
 	assert.Equal(t, 1, scoredQSO.Points)
 	assert.Equal(t, 2, scoredQSO.Multis)
 
-	scoredQSO = scoreCounter.AddQSO(core.QSO{Callsign: callsign.MustParse("K3LR"), MyNumber: 3})
+	scoredQSO = scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("K3LR"), MyNumber: 3})
 	assert.Equal(t, 6, scoredQSO.Points)
 	assert.Equal(t, 7, scoredQSO.Multis)
 
-	scoredQSO = scoreCounter.AddQSO(core.QSO{Callsign: callsign.MustParse("DK9ZZ"), MyNumber: 2})
+	scoredQSO = scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("DK9ZZ"), MyNumber: 2})
 	assert.Equal(t, 3, scoredQSO.Points)
 	assert.Equal(t, 4, scoredQSO.Multis)
 }
@@ -37,7 +36,7 @@ func TestScoreCounter_AddQSO_ScoreQSO(t *testing.T) {
 func TestScoreCounter_AddQTC_ScoreQTC(t *testing.T) {
 	scoreCounter := newScoreCounter(new(testSettings), testEntity)
 	scoreCounter.counter = &testConvalCounter{}
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
 	now := time.Now()
 
@@ -56,8 +55,8 @@ func TestScoreCounter_AddQTC_ScoreQTC(t *testing.T) {
 }
 
 func TestScoreCounter_AddQSO_MarksDuplicates(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
-	dl2abc := callsign.MustParse("DL2ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
+	dl2abc := core.MustParseCallsign("DL2ABC")
 	scoreCounter := newScoreCounter(new(testSettings), testEntity)
 	scoreCounter.counter = &testConvalCounter{}
 

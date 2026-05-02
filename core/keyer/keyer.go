@@ -9,8 +9,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
-
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -108,7 +106,7 @@ type Keyer struct {
 
 	listeners []any
 
-	stationCallsign       callsign.Callsign
+	stationCallsign       core.Callsign
 	workmode              core.Workmode
 	wpm                   int
 	parrotIntervalSeconds int

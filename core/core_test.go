@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -136,7 +135,7 @@ func TestBandmapEntry_ProximityFactor(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			entry := BandmapEntry{
-				Call:      callsign.MustParse("dl1abc"),
+				Call:      MustParseCallsign("dl1abc"),
 				Frequency: frequency,
 			}
 
@@ -183,7 +182,7 @@ func TestBandmapEntry_OnFrequency(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			entry := BandmapEntry{
-				Call:      callsign.MustParse("dl1abc"),
+				Call:      MustParseCallsign("dl1abc"),
 				Frequency: frequency,
 			}
 

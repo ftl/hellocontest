@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
@@ -445,7 +444,7 @@ func (l *Logbook) lastQSOLocked() core.QSO {
 	return l.qsos[len(l.qsos)-1]
 }
 
-func (l *Logbook) LastCallsign() callsign.Callsign {
+func (l *Logbook) LastCallsign() core.Callsign {
 	return l.lastQSOLocked().Callsign
 }
 
@@ -637,7 +636,7 @@ func (l *Logbook) allQTCs() []core.QTC {
 	return result
 }
 
-func (l *Logbook) QTCsInLog(theirCall callsign.Callsign) (sent, received int) {
+func (l *Logbook) QTCsInLog(theirCall core.Callsign) (sent, received int) {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
@@ -652,7 +651,7 @@ func (l *Logbook) QTCsInLog(theirCall callsign.Callsign) (sent, received int) {
 	return sent, received
 }
 
-func (l *Logbook) AvailableFor(theirCall callsign.Callsign) int {
+func (l *Logbook) AvailableFor(theirCall core.Callsign) int {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
@@ -671,7 +670,7 @@ func (l *Logbook) AvailableFor(theirCall callsign.Callsign) int {
 	return min(core.MaxQTCsPerCall-theirQTCCount, len(l.availableQTCs)-theirQSOCount)
 }
 
-func (l *Logbook) PrepareFor(theirCall callsign.Callsign, count int) []core.QTC {
+func (l *Logbook) PrepareFor(theirCall core.Callsign, count int) []core.QTC {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
@@ -756,7 +755,7 @@ func (l *Logbook) dupeBandAndMode(band core.Band, mode core.Mode) (core.Band, co
 	}
 }
 
-func (l *Logbook) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) []core.QSO {
+func (l *Logbook) FindDuplicateQSOs(callsign core.Callsign, band core.Band, mode core.Mode) []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
@@ -766,7 +765,7 @@ func (l *Logbook) FindDuplicateQSOs(callsign callsign.Callsign, band core.Band, 
 	return l.getQSOs(numbers)
 }
 
-func (l *Logbook) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
+func (l *Logbook) FindWorkedQSOs(callsign core.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
 	qsos := l.findWorkedQSOsLocked(callsign)
 	if len(qsos) == 0 {
 		return qsos, false
@@ -791,7 +790,7 @@ func (l *Logbook) FindWorkedQSOs(callsign callsign.Callsign, band core.Band, mod
 	return qsos, duplicate
 }
 
-func (l *Logbook) findWorkedQSOsLocked(callsign callsign.Callsign) []core.QSO {
+func (l *Logbook) findWorkedQSOsLocked(callsign core.Callsign) []core.QSO {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 
@@ -873,7 +872,7 @@ func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
 }
 
 func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
-	cs, err := callsign.Parse(match.Key())
+	cs, err := core.ParseCallsign(match.Key())
 	if err != nil {
 		return core.AnnotatedCallsign{}, nil
 	}
@@ -909,7 +908,7 @@ func (l *Logbook) FillSummary(summary *core.Summary) {
 	l.scoreCounter.FillSummary(summary)
 }
 
-func (l *Logbook) Value(callsign callsign.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
+func (l *Logbook) Value(callsign core.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
 	l.dataLock.RLock()
 	defer l.dataLock.RUnlock()
 

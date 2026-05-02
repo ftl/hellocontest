@@ -3,7 +3,6 @@ package qtc
 import (
 	"fmt"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 )
@@ -225,7 +224,7 @@ func (b *qtcBuilder) Add(time, call string, qtcNumber core.QSONumber) *qtcBuilde
 	if err != nil {
 		panic(err)
 	}
-	qtcCallsign := callsign.MustParse(call)
+	qtcCallsign := core.MustParseCallsign(call)
 	qtc := core.QTC{
 		Kind:          b.kind,
 		TheirCallsign: b.theirCallsign,

@@ -3,7 +3,6 @@ package scp
 import (
 	"log"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/scp"
 
 	"github.com/ftl/hellocontest/core"
@@ -84,7 +83,7 @@ func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
 }
 
 func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
-	cs, err := callsign.Parse(match.Key())
+	cs, err := core.ParseCallsign(match.Key())
 	if err != nil {
 		return core.AnnotatedCallsign{}, nil
 	}

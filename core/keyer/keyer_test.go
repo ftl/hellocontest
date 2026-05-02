@@ -3,7 +3,6 @@ package keyer
 import (
 	"testing"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/mocked"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +65,7 @@ type testSettings struct {
 
 func (s *testSettings) Station() core.Station {
 	return core.Station{
-		Callsign: callsign.MustParse(s.stationCallsign),
+		Callsign: core.MustParseCallsign(s.stationCallsign),
 	}
 }
 

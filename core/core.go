@@ -48,6 +48,14 @@ type Callsign = callsign.Callsign
 
 var NoCallsign = callsign.NoCallsign
 
+func MustParseCallsign(s string) Callsign {
+	return callsign.MustParse(s)
+}
+
+func ParseCallsign(s string) (Callsign, error) {
+	return callsign.Parse(s)
+}
+
 // Frequency in Hz.
 type Frequency float64
 

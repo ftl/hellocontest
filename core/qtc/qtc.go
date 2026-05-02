@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ftl/hamradio/callsign"
-
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -23,9 +21,9 @@ const (
 
 type Logbook interface {
 	NextSeriesNumber() int
-	LastCallsign() callsign.Callsign
+	LastCallsign() core.Callsign
 	AddQTCSeries(core.QTCSeries)
-	PrepareFor(callsign.Callsign, int) []core.QTC
+	PrepareFor(core.Callsign, int) []core.QTC
 }
 
 type QTCList interface {
@@ -34,7 +32,7 @@ type QTCList interface {
 }
 
 type EntryController interface {
-	CurrentQSOState() (callsign.Callsign, core.QSODataState)
+	CurrentQSOState() (core.Callsign, core.QSODataState)
 	Log()
 }
 
@@ -129,7 +127,7 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.qtcList.SetQTCsEnabled(contest.EnableQTCs)
 }
 
-func (c *Controller) questionInvalidQSOData(call callsign.Callsign) bool {
+func (c *Controller) questionInvalidQSOData(call core.Callsign) bool {
 	return c.infoDialogs.ShowQuestion("The entered callsign is valid, but the QSO data is invalid. Proceed with the entered callsign of %s?", call.String())
 }
 
@@ -203,14 +201,14 @@ func (c *Controller) OfferQTC() {
 	c.view.Show(c.currentMode, c.currentSeries)
 }
 
-func (c *Controller) findOutTheirCallsign() (callsign.Callsign, bool) {
+func (c *Controller) findOutTheirCallsign() (core.Callsign, bool) {
 	theirCall, currentQSOState := c.entryController.CurrentQSOState()
 	switch currentQSOState {
 	case core.QSODataValid: // a) there is currently a valid QSO in the entry fields that is not yet logged -> log this QSO and take their callsign
 		c.entryController.Log()
 	case core.QSODataInvalid: // b) there is currently a valid callsign and some QSO data (but not valid) in the entry fields -> show info about invalid QSO data, ask if the callsign should be used -> use the callsign
 		if !c.questionInvalidQSOData(theirCall) {
-			return callsign.Callsign{}, false
+			return core.Callsign{}, false
 		}
 	case core.QSODataEmpty: // c) there is currently a valid callsign in the entry field, but no QSO data at all-> use this callsign
 	default:
@@ -330,14 +328,14 @@ func (c *Controller) currentReferenceTime() core.QTCTime {
 	return c.currentSeries.QTCs[previousQTC].QTCTime
 }
 
-func (c *Controller) currentQTCCallsign() (callsign.Callsign, error) {
+func (c *Controller) currentQTCCallsign() (core.Callsign, error) {
 	qtcCallsignStr, ok := c.currentInput[core.QTCCallsignField]
 	if !ok || (qtcCallsignStr == "") {
-		return callsign.Callsign{}, fmt.Errorf("the QTC callsign field is empty")
+		return core.Callsign{}, fmt.Errorf("the QTC callsign field is empty")
 	}
-	qtcCallsign, err := callsign.Parse(qtcCallsignStr)
+	qtcCallsign, err := core.ParseCallsign(qtcCallsignStr)
 	if err != nil {
-		return callsign.Callsign{}, err
+		return core.Callsign{}, err
 	}
 	return qtcCallsign, nil
 }

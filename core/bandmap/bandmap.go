@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -26,11 +25,11 @@ type View interface {
 }
 
 type DupeChecker interface {
-	FindWorkedQSOs(callsign.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
+	FindWorkedQSOs(core.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
 }
 
 type Callinfo interface {
-	GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo
+	GetInfo(core.Callsign, core.Band, core.Mode, []string) core.Callinfo
 	UpdateValue(*core.Callinfo, core.Band, core.Mode) bool
 }
 
@@ -337,7 +336,7 @@ func (m *Bandmap) SelectEntry(id core.BandmapEntryID) {
 	}
 }
 
-func (m *Bandmap) SelectByCallsign(call callsign.Callsign) {
+func (m *Bandmap) SelectByCallsign(call core.Callsign) {
 	m.do <- func() {
 		m.selection.SelectByCallsign(call)
 		m.update()
@@ -411,7 +410,7 @@ func (n *nullVFO) SetXITActive(bool)           {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) GetInfo(callsign.Callsign, core.Band, core.Mode, []string) core.Callinfo {
+func (n *nullCallinfo) GetInfo(core.Callsign, core.Band, core.Mode, []string) core.Callinfo {
 	return core.Callinfo{}
 }
 func (n *nullCallinfo) UpdateValue(*core.Callinfo, core.Band, core.Mode) bool {

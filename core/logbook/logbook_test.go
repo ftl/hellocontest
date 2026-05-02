@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 )
@@ -81,7 +80,7 @@ func TestLogbook_AddQSO_updatesTheScore(t *testing.T) {
 			},
 		},
 	)
-	qso := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")}
+	qso := core.QSO{MyNumber: 1, Callsign: core.MustParseCallsign("DL1ABC")}
 	require.Equal(t, 0, logbook.Score().Result().Result())
 
 	logbook.AddQSO(qso)
@@ -98,7 +97,7 @@ func TestLogbook_AddQSO_emitsScoreChanged(t *testing.T) {
 			},
 		},
 	)
-	qso := core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")}
+	qso := core.QSO{MyNumber: 1, Callsign: core.MustParseCallsign("DL1ABC")}
 	var changedScore core.Score
 	listener := ScoreChangedFunc(func(score core.Score) {
 		changedScore = score
@@ -187,10 +186,10 @@ func TestLogbook_UpdateQSO_updatesTheScore(t *testing.T) {
 			},
 		},
 	)
-	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")})
+	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: core.MustParseCallsign("DL1ABC")})
 	require.Equal(t, 2, logbook.Score().Result().Result())
 
-	logbook.UpdateQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")})
+	logbook.UpdateQSO(core.QSO{MyNumber: 1, Callsign: core.MustParseCallsign("DL2ABC")})
 
 	assert.Equal(t, 12, logbook.Score().Result().Result())
 }
@@ -211,8 +210,8 @@ func TestLogbook_UpdateQSO_emitsScoreChanged(t *testing.T) {
 	})
 	logbook.Notify(listener)
 
-	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")})
-	logbook.UpdateQSO(core.QSO{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")})
+	logbook.AddQSO(core.QSO{MyNumber: 1, Callsign: core.MustParseCallsign("DL1ABC")})
+	logbook.UpdateQSO(core.QSO{MyNumber: 1, Callsign: core.MustParseCallsign("DL2ABC")})
 
 	assert.Equal(t, 12, changedScore.Result().Result())
 }
@@ -271,9 +270,9 @@ func TestLogbook_Load_emitsQSOAddedForAllQSOs(t *testing.T) {
 }
 
 func TestLogbook_Load_updatesTheScore(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	sentHeader := core.QTCHeader{SeriesNumber: 1, QTCCount: 3}
-	dl2abc := callsign.MustParse("DL2ABC")
+	dl2abc := core.MustParseCallsign("DL2ABC")
 	receivedHeader := core.QTCHeader{SeriesNumber: 12, QTCCount: 3}
 	now := time.Now()
 	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-5 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
@@ -321,15 +320,15 @@ func TestLogbook_Load_emitsScoreChanged(t *testing.T) {
 	logbook.Notify(listener)
 
 	logbook.Load(new(nullWriter), []core.QSO{
-		{MyNumber: 1, Callsign: callsign.MustParse("DL1ABC")},
-		{MyNumber: 1, Callsign: callsign.MustParse("DL2ABC")},
+		{MyNumber: 1, Callsign: core.MustParseCallsign("DL1ABC")},
+		{MyNumber: 1, Callsign: core.MustParseCallsign("DL2ABC")},
 	}, nil)
 
 	assert.Equal(t, 12, changedScore.Result().Result())
 }
 
 func TestLogbook_Load_loadsQTCs(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
 	now := time.Now()
 	qtcs := []core.QTC{
@@ -345,7 +344,7 @@ func TestLogbook_Load_loadsQTCs(t *testing.T) {
 }
 
 func TestLogbook_Load_emitsQTCAddedForAllQTCs(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
 	now := time.Now()
 	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
@@ -457,7 +456,7 @@ func TestLogbook_FindDuplicateQSOs_bandRules(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dl1abc := callsign.MustParse("DL1ABC")
+			dl1abc := core.MustParseCallsign("DL1ABC")
 			qso := core.QSO{MyNumber: 1, Callsign: dl1abc, Band: core.Band80m, Mode: core.ModeCW}
 			logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 			logbook.bandRule = test.bandRule
@@ -569,7 +568,7 @@ func TestLogbook_FindWorkedQSOs_bandRules(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			dl1abc := callsign.MustParse("DL1ABC")
+			dl1abc := core.MustParseCallsign("DL1ABC")
 			qso := core.QSO{MyNumber: 1, Callsign: dl1abc, Band: core.Band80m, Mode: core.ModeCW}
 			logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 			logbook.bandRule = test.bandRule
@@ -584,9 +583,9 @@ func TestLogbook_FindWorkedQSOs_bandRules(t *testing.T) {
 }
 
 func TestLogbook_Find(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
-	dl2abc := callsign.MustParse("DL2ABC")
-	n1mm := callsign.MustParse("N1MM")
+	dl1abc := core.MustParseCallsign("DL1ABC")
+	dl2abc := core.MustParseCallsign("DL2ABC")
+	n1mm := core.MustParseCallsign("N1MM")
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	logbook.bandRule = conval.Once
 	logbook.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 1})
@@ -612,7 +611,7 @@ func TestLogbook_Find(t *testing.T) {
 }
 
 func TestLogbook_AddQTCSeries(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
 	now := time.Now()
 	series := core.QTCSeries{
@@ -632,7 +631,7 @@ func TestLogbook_AddQTCSeries(t *testing.T) {
 }
 
 func TestLogbook_AddQTCSeries_emitsQTCAddedForAllQTCs(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
 	now := time.Now()
 	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
@@ -656,7 +655,7 @@ func TestLogbook_AddQTCSeries_emitsQTCAddedForAllQTCs(t *testing.T) {
 
 func TestLogbook_AddQTCSeries_updatesTheScore(t *testing.T) {
 	now := time.Now()
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	sentHeader := core.QTCHeader{SeriesNumber: 1, QTCCount: 3}
 	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-5 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
 	qtc2 := core.QTC{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-4 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
@@ -666,7 +665,7 @@ func TestLogbook_AddQTCSeries_updatesTheScore(t *testing.T) {
 		Header:        sentHeader,
 		QTCs:          []core.QTC{qtc1, qtc2, qtc3},
 	}
-	dl2abc := callsign.MustParse("DL2ABC")
+	dl2abc := core.MustParseCallsign("DL2ABC")
 	receivedHeader := core.QTCHeader{SeriesNumber: 12, QTCCount: 3}
 	qtc4 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 1, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
 	qtc5 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 2, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
@@ -685,7 +684,7 @@ func TestLogbook_AddQTCSeries_updatesTheScore(t *testing.T) {
 
 func TestLogbook_AddQTCSeries_emitsScoreChanged(t *testing.T) {
 	now := time.Now()
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	sentHeader := core.QTCHeader{SeriesNumber: 1, QTCCount: 3}
 	qtc1 := core.QTC{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-5 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
 	qtc2 := core.QTC{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: sentHeader, Timestamp: now.Add(-4 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
@@ -695,7 +694,7 @@ func TestLogbook_AddQTCSeries_emitsScoreChanged(t *testing.T) {
 		Header:        sentHeader,
 		QTCs:          []core.QTC{qtc1, qtc2, qtc3},
 	}
-	dl2abc := callsign.MustParse("DL2ABC")
+	dl2abc := core.MustParseCallsign("DL2ABC")
 	receivedHeader := core.QTCHeader{SeriesNumber: 12, QTCCount: 3}
 	qtc4 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 1, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
 	qtc5 := core.QTC{Kind: core.ReceivedQTC, QTCNumber: 2, TheirCallsign: dl2abc, Header: receivedHeader, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000}
@@ -720,7 +719,7 @@ func TestLogbook_AddQTCSeries_emitsScoreChanged(t *testing.T) {
 }
 
 func TestLogbook_AvailableFor(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	logbook.qtcsEnabled = true
 
@@ -732,19 +731,19 @@ func TestLogbook_AvailableFor(t *testing.T) {
 	assert.Equal(t, 0, available, "own")
 
 	for i := range core.MaxQTCsPerCall {
-		theirCall := callsign.MustParse(fmt.Sprintf("K%dAB", i+1))
+		theirCall := core.MustParseCallsign(fmt.Sprintf("K%dAB", i+1))
 		logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(i + 2), Callsign: theirCall})
 		available = logbook.AvailableFor(dl1abc)
 		assert.Equal(t, i+1, available, theirCall.String())
 	}
 
-	logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(core.MaxQTCsPerCall + 2), Callsign: callsign.MustParse("K1MORE")})
+	logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(core.MaxQTCsPerCall + 2), Callsign: core.MustParseCallsign("K1MORE")})
 	available = logbook.AvailableFor(dl1abc)
 	assert.Equal(t, core.MaxQTCsPerCall, available, "one more")
 }
 
 func TestLogbook_PrepareFor(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	logbook.qtcsEnabled = true
 
@@ -756,13 +755,13 @@ func TestLogbook_PrepareFor(t *testing.T) {
 	assert.Equal(t, 0, len(qtcs), "own")
 
 	for i := range core.MaxQTCsPerCall {
-		theirCall := callsign.MustParse(fmt.Sprintf("K%dAB", i+1))
+		theirCall := core.MustParseCallsign(fmt.Sprintf("K%dAB", i+1))
 		logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(i + 2), Callsign: theirCall})
 		qtcs = logbook.PrepareFor(dl1abc, core.MaxQTCsPerCall)
 		assert.Equal(t, i+1, len(qtcs), theirCall.String())
 	}
 
-	logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(core.MaxQTCsPerCall + 2), Callsign: callsign.MustParse("K1MORE")})
+	logbook.AddQSO(core.QSO{MyNumber: core.QSONumber(core.MaxQTCsPerCall + 2), Callsign: core.MustParseCallsign("K1MORE")})
 	qtcs = logbook.PrepareFor(dl1abc, core.MaxQTCsPerCall)
 	assert.Equal(t, core.MaxQTCsPerCall, len(qtcs), "one more")
 
@@ -771,8 +770,8 @@ func TestLogbook_PrepareFor(t *testing.T) {
 }
 
 func TestLogbook_MarksDuplicates(t *testing.T) {
-	dl1abc := callsign.MustParse("DL1ABC")
-	dl2abc := callsign.MustParse("DL2ABC")
+	dl1abc := core.MustParseCallsign("DL1ABC")
+	dl2abc := core.MustParseCallsign("DL2ABC")
 	logbook := NewLogbook(clock.Zero(), new(testSettings), testEntity)
 	logbook.scoreCounter.counter = &testConvalCounter{}
 	logbook.scoreCounter.counterFactory = func() convalCounter {

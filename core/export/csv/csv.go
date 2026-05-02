@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hellocontest/core"
 )
@@ -19,7 +18,7 @@ type DXCCFinder interface {
 
 // Export writes the given QSOs to the given writer in the CSV format.
 // The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, mycall callsign.Callsign, qsos ...core.QSO) error {
+func Export(w io.Writer, mycall core.Callsign, qsos ...core.QSO) error {
 	csvWriter := csv.NewWriter(w)
 	for _, qso := range qsos {
 		if err := writeQSO(csvWriter, mycall, qso); err != nil {
@@ -30,7 +29,7 @@ func Export(w io.Writer, mycall callsign.Callsign, qsos ...core.QSO) error {
 	return nil
 }
 
-func writeQSO(w *csv.Writer, mycall callsign.Callsign, qso core.QSO) error {
+func writeQSO(w *csv.Writer, mycall core.Callsign, qso core.QSO) error {
 	myCallIndex := 5
 	theirCallIndex := myCallIndex + 1 + len(qso.MyExchange)
 	dxccPrefixIndex := theirCallIndex + 1 + len(qso.TheirExchange)

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,7 +33,7 @@ func TestData(t *testing.T) {
 }
 
 func TestRecord(t *testing.T) {
-	theirCall, _ := callsign.Parse("S50A")
+	theirCall, _ := core.ParseCallsign("S50A")
 	testCases := []struct {
 		desc     string
 		qso      core.QSO
@@ -130,7 +129,7 @@ func TestRecord(t *testing.T) {
 
 func TestExport(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte{})
-	theirCall, _ := callsign.Parse("S50A")
+	theirCall, _ := core.ParseCallsign("S50A")
 	qso := core.QSO{
 		Callsign:      theirCall,
 		Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),

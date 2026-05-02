@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hellocontest/core"
 	"github.com/stretchr/testify/assert"
 )
@@ -13,8 +12,8 @@ import (
 func TestExportCSV(t *testing.T) {
 	buffer := bytes.NewBuffer([]byte{})
 
-	err := Export(buffer, callsign.MustParse("DL0ABC"), core.QSO{
-		Callsign:      callsign.MustParse("DL1ABC"),
+	err := Export(buffer, core.MustParseCallsign("DL0ABC"), core.QSO{
+		Callsign:      core.MustParseCallsign("DL1ABC"),
 		Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
 		Band:          core.Band40m,
 		Mode:          core.ModeCW,

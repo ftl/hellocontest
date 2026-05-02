@@ -31,6 +31,7 @@ import (
 	"github.com/ftl/hellocontest/core/parrot"
 	"github.com/ftl/hellocontest/core/qtc"
 	"github.com/ftl/hellocontest/core/radio"
+	"github.com/ftl/hellocontest/core/remote"
 	"github.com/ftl/hellocontest/core/rate"
 	"github.com/ftl/hellocontest/core/score"
 	"github.com/ftl/hellocontest/core/scp"
@@ -93,6 +94,8 @@ type Controller struct {
 	Bandmap                  *bandmap.Bandmap
 	Clusters                 *cluster.Clusters
 	Parrot                   *parrot.Parrot
+
+	remoteServer *remote.Server
 }
 
 // View defines the visual functionality of the main application window.
@@ -224,6 +227,15 @@ func (c *Controller) Startup() {
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Workmode.Notify(c.Keyer)
 	c.Entry.SetKeyer(c.Keyer)
+
+	remoteSettings := c.configuration.RemoteServerSettings()
+	if remoteSettings.Enabled {
+		c.remoteServer = remote.NewServer(c, c.Keyer, remoteSettings.Port)
+		if err := c.remoteServer.Start(); err != nil {
+			log.Printf("remote server failed to start: %v", err)
+			c.remoteServer = nil
+		}
+	}
 
 	c.QTCController = qtc.NewController(c.clock, c, c.Logbook, c.QTCList, c.Entry, c.Keyer)
 	c.VFO.Notify(c.QTCController)
@@ -369,6 +381,9 @@ func (c *Controller) loadLogbook(filename string, store *store.FileStore, qsos [
 }
 
 func (c *Controller) Shutdown() {
+	if c.remoteServer != nil {
+		c.remoteServer.Stop()
+	}
 	c.Radio.Stop()
 }
 

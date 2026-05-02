@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     outputs:
       version_number: ${{ steps.version_number.outputs.version_number }}
       deb_package_filename: ${{ steps.create_deb_package.outputs.deb_package_filename }}

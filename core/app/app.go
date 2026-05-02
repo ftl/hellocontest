@@ -914,3 +914,61 @@ func (c *Controller) Stop() {
 func (c *Controller) DoubleStop() {
 	c.Entry.Clear()
 }
+
+func (c *Controller) DoAction(id string) error {
+	switch id {
+	case core.ActionEntryClear:
+		c.ClearEntryFields()
+	case core.ActionEntryGotoEntryField:
+		c.GotoEntryFields()
+	case core.ActionEntryEditLastQSO:
+		c.EditLastQSO()
+	case core.ActionEntryRefreshPrediction:
+		c.RefreshPrediction()
+	case core.ActionEntrySelectBestMatch:
+		c.Entry.SelectBestMatchOnFrequency()
+	case core.ActionEntryLogQSO:
+		c.LogQSO()
+	case core.ActionEntryStartParrot:
+		c.StartParrot()
+	case core.ActionEntryNextESMStep:
+		c.Entry.NextESMStep()
+	case core.ActionEntryOfferQTC:
+		c.OfferQTC()
+	case core.ActionEntryRequestQTC:
+		c.RequestQTC()
+	case core.ActionBandmapMark:
+		c.MarkInBandmap()
+	case core.ActionBandmapGotoHighestValueSpot:
+		c.GotoHighestValueSpot()
+	case core.ActionBandmapGotoNearestSpot:
+		c.GotoNearestSpot()
+	case core.ActionBandmapGotoNextSpotUp:
+		c.GotoNextSpotUp()
+	case core.ActionBandmapGotoNextSpotDown:
+		c.GotoNextSpotDown()
+	case core.ActionWindowShowQSOs:
+		c.ShowQSOs()
+	case core.ActionWindowShowQTCs:
+		c.ShowQTCs()
+	case core.ActionWindowShowScoreGraph:
+		c.ShowScoreGraph()
+	case core.ActionWindowShowScoreTable:
+		c.ShowScoreTable()
+	case core.ActionWindowShowRate:
+		c.ShowRate()
+	case core.ActionWindowShowSpots:
+		c.ShowSpots()
+	case core.ActionKeyerSendMacro1:
+		c.Keyer.Send(0)
+	case core.ActionKeyerSendMacro2:
+		c.Keyer.Send(1)
+	case core.ActionKeyerSendMacro3:
+		c.Keyer.Send(2)
+	case core.ActionKeyerSendMacro4:
+		c.Keyer.Send(3)
+	default:
+		return fmt.Errorf("unknown action: %s", id)
+	}
+	return nil
+}

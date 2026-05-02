@@ -16,6 +16,7 @@ var statusServiceOrder = []struct {
 	{core.SCPService, "SCP"},
 	{core.CallHistoryService, "CH"},
 	{core.MapService, "Map"},
+	{core.RemoteService, "RMT"},
 }
 
 type statusView struct {

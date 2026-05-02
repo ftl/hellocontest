@@ -234,7 +234,12 @@ func (c *Controller) Startup() {
 		if err := c.remoteServer.Start(); err != nil {
 			log.Printf("remote server failed to start: %v", err)
 			c.remoteServer = nil
+			c.ServiceStatus.StatusChanged(core.RemoteService, false)
+		} else {
+			c.ServiceStatus.StatusChanged(core.RemoteService, true)
 		}
+	} else {
+		c.ServiceStatus.StatusChanged(core.RemoteService, false)
 	}
 
 	c.QTCController = qtc.NewController(c.clock, c, c.Logbook, c.QTCList, c.Entry, c.Keyer)

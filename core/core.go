@@ -1716,6 +1716,7 @@ const (
 	SCPService
 	CallHistoryService
 	MapService
+	RemoteService
 )
 
 type ServiceStatusListener interface {

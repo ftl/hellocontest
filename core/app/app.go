@@ -118,6 +118,7 @@ type Configuration interface {
 	SpotSources() []core.SpotSource
 	Radios() []core.Radio
 	Keyers() []core.Keyer
+	RemoteServerSettings() core.RemoteServerSettings
 }
 
 // Script can be used to automate things

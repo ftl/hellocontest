@@ -788,6 +788,11 @@ type KeyerPreset struct {
 	RunLabels []string `json:"run_labels"`
 }
 
+type RemoteServerSettings struct {
+	Enabled bool `json:"enabled"`
+	Port    int  `json:"port"`
+}
+
 type Summary struct {
 	// comes from the contest definition
 	ContestName  string

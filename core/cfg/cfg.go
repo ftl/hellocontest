@@ -191,6 +191,10 @@ var Default = &Data{
 			Filter:      core.OwnContinentSpotsOnly,
 		},
 	},
+	RemoteServer: core.RemoteServerSettings{
+		Enabled: false,
+		Port:    8383,
+	},
 }
 
 // Load loads the configuration from the default location (see github.com/ftl/cfg/LoadJSON()).
@@ -241,17 +245,18 @@ func AbsoluteFilename() string {
 }
 
 type Data struct {
-	LogDirectory  string             `json:"log_directory"`
-	HamDXMapPort  int                `json:"ham_dx_map_port"`
-	Station       *pb.Station        `json:"station"`
-	Contest       *pb.Contest        `json:"contest"`
-	Radios        []core.Radio       `json:"radios"`
-	Keyers        []core.Keyer       `json:"keyers"`
-	KeyerSettings core.KeyerSettings `json:"keyer_settings"`
-	KeyerPresets  []core.KeyerPreset `json:"keyer_presets"`
-	SpotLifetime  string             `json:"spot_lifetime"`
-	SpotSources   []core.SpotSource  `json:"spot_sources"`
-	Keybindings   map[string]string  `json:"keybindings"`
+	LogDirectory  string                    `json:"log_directory"`
+	HamDXMapPort  int                       `json:"ham_dx_map_port"`
+	Station       *pb.Station               `json:"station"`
+	Contest       *pb.Contest               `json:"contest"`
+	Radios        []core.Radio              `json:"radios"`
+	Keyers        []core.Keyer              `json:"keyers"`
+	KeyerSettings core.KeyerSettings        `json:"keyer_settings"`
+	KeyerPresets  []core.KeyerPreset        `json:"keyer_presets"`
+	SpotLifetime  string                    `json:"spot_lifetime"`
+	SpotSources   []core.SpotSource         `json:"spot_sources"`
+	Keybindings   map[string]string         `json:"keybindings"`
+	RemoteServer  core.RemoteServerSettings `json:"remote_server"`
 }
 
 type LoadedConfiguration struct {
@@ -314,4 +319,8 @@ func (c *LoadedConfiguration) Keybindings() map[string]string {
 		return map[string]string{}
 	}
 	return c.data.Keybindings
+}
+
+func (c *LoadedConfiguration) RemoteServerSettings() core.RemoteServerSettings {
+	return c.data.RemoteServer
 }

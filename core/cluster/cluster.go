@@ -72,8 +72,9 @@ func isDemoSource(name string) bool {
 }
 
 func (c *Clusters) cluster(name string) *cluster {
+	normalizedName := strings.ToLower(name)
 	for _, cluster := range c.clusters {
-		if cluster.source.Name == name {
+		if strings.ToLower(cluster.source.Name) == normalizedName {
 			return cluster
 		}
 	}

@@ -113,30 +113,24 @@ func (c *Controller) Notify(listener any) {
 }
 
 func (c *Controller) emitRadioStatusChanged(available bool) {
-	for _, listener := range c.listeners {
-		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
-			serviceStatusListener.StatusChanged(core.RadioService, available)
-		}
-	}
+	core.Emit(c.listeners, func(listener core.ServiceStatusListener) {
+		listener.StatusChanged(core.RadioService, available)
+	})
 }
 
 func (c *Controller) emitKeyerStatusChanged(available bool) {
-	for _, listener := range c.listeners {
-		if serviceStatusListener, ok := listener.(core.ServiceStatusListener); ok {
-			serviceStatusListener.StatusChanged(core.KeyerService, available)
-		}
-	}
+	core.Emit(c.listeners, func(listener core.ServiceStatusListener) {
+		listener.StatusChanged(core.KeyerService, available)
+	})
 }
 
 func (c *Controller) emitRadioSelected(name string) {
 	type listenerType interface {
 		RadioSelected(string)
 	}
-	for _, listener := range c.listeners {
-		if typedListener, ok := listener.(listenerType); ok {
-			typedListener.RadioSelected(name)
-		}
-	}
+	core.Emit(c.listeners, func(listener listenerType) {
+		listener.RadioSelected(name)
+	})
 	if c.view != nil {
 		c.doIgnoreUpdates(func() {
 			c.view.SetRadioSelected(name)
@@ -148,11 +142,9 @@ func (c *Controller) emitKeyerSelected(name string) {
 	type listenerType interface {
 		KeyerSelected(string)
 	}
-	for _, listener := range c.listeners {
-		if typedListener, ok := listener.(listenerType); ok {
-			typedListener.KeyerSelected(name)
-		}
-	}
+	core.Emit(c.listeners, func(listener listenerType) {
+		listener.KeyerSelected(name)
+	})
 	if c.view != nil {
 		c.doIgnoreUpdates(func() {
 			c.view.SetKeyerSelected(name)

@@ -1676,6 +1676,13 @@ type XITControl interface {
 	SetXITActive(bool)
 }
 
+type VFOID int
+
+const (
+	VFO1 VFOID = iota
+	VFO2
+)
+
 type VFO interface {
 	XITControl
 	Notify(any)

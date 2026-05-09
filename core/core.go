@@ -1695,6 +1695,10 @@ type VFO interface {
 	SetXIT(bool, Frequency)
 }
 
+type CurrentVFOListener interface {
+	CurrentVFOChanged(VFOID)
+}
+
 type VFOFrequencyListener interface {
 	VFOFrequencyChanged(Frequency)
 }

@@ -82,6 +82,16 @@ func sanitizeHamlibVFO(id core.VFOID, s string) hl.VFO {
 	return ""
 }
 
+func (c *Client) toVFOID(vfo hl.VFO) (core.VFOID, bool) {
+	normalizedVFO := strings.ToLower(string(vfo))
+	for id := range c.vfos {
+		if strings.ToLower(string(c.vfos[id])) == normalizedVFO {
+			return core.VFOID(id), true
+		}
+	}
+	return -1, false
+}
+
 func (c *Client) run() {
 	go func() {
 		defer close(c.loopStopped)
@@ -92,7 +102,11 @@ func (c *Client) run() {
 				log.Printf("hamlib: cannot poll: %v", err)
 				continue
 			}
+
+			lastVFO := c.currentVFO
 			c.currentVFO = currentVFO
+			c.emitCurrentVFOChanged(lastVFO, currentVFO)
+
 			for vfo := range core.VFOCount {
 				c.emitChangeNotifications(vfo, c.lastState[vfo], currentState[vfo])
 				c.lastState[vfo] = currentState[vfo]
@@ -337,6 +351,25 @@ func (c *Client) emitConnectionChanged(connected bool) {
 	core.Emit(c.listeners, func(listener listenerType) {
 		listener.ConnectionChanged(connected)
 	})
+}
+
+func (c *Client) emitCurrentVFOChanged(last, current hl.VFO) {
+	if last == current {
+		return
+	}
+
+	vfoID, ok := c.toVFOID(current)
+	if !ok {
+		log.Printf("VFO change ignored: %s -> %s", last, current)
+		return
+	}
+	log.Printf("current vfo changed: %d = %s", vfoID, c.vfos[vfoID])
+
+	go func() {
+		core.Emit(c.listeners, func(listener core.CurrentVFOListener) {
+			listener.CurrentVFOChanged(vfoID)
+		})
+	}()
 }
 
 func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState) {

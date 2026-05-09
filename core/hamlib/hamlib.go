@@ -15,6 +15,8 @@ type Client struct {
 	client *hl.RigClient
 
 	bandplan bandplan.Bandplan
+	vfo1     hl.VFO
+	vfo2     hl.VFO
 
 	listeners []any
 
@@ -36,10 +38,12 @@ type vfoState struct {
 	ptt       bool
 }
 
-func New(address string, bandplan bandplan.Bandplan) *Client {
+func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
 	result := &Client{
 		client:          hl.NewRigClient(address),
 		bandplan:        bandplan,
+		vfo1:            sanitizeHamlibVFO(core.VFO1, vfo1),
+		vfo2:            sanitizeHamlibVFO(core.VFO2, vfo2),
 		pollingInterval: 500 * time.Millisecond,
 		requestTimeout:  500 * time.Millisecond,
 		do:              make(chan func()),
@@ -48,6 +52,28 @@ func New(address string, bandplan bandplan.Bandplan) *Client {
 	}
 	result.client.Notify(result)
 	return result
+}
+
+func sanitizeHamlibVFO(id core.VFOID, s string) hl.VFO {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if s == "" { // shortcut
+		if id == core.VFO1 {
+			return hl.CurrVFO
+		}
+		return ""
+	}
+
+	validVFOs := []hl.VFO{hl.MainVFO, hl.SubVFO, hl.VFOA, hl.VFOB, hl.VFOC, hl.MainAVFO, hl.SubAVFO, hl.MainBVFO, hl.SubBVFO}
+	for _, vfo := range validVFOs {
+		if strings.ToLower(string(vfo)) == s {
+			return vfo
+		}
+	}
+	log.Printf("hamlib: invalid VFO: %s", s)
+	if id == core.VFO1 {
+		return hl.CurrVFO
+	}
+	return ""
 }
 
 func (c *Client) run() {

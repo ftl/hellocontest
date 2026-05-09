@@ -13,6 +13,12 @@ import (
 	"github.com/ftl/hellocontest/core/tci"
 )
 
+const (
+	hamlibVFO1Option = "vfo1"
+	hamlibVFO2Option = "vfo2"
+	tciTRXOption     = "trx"
+)
+
 type View interface {
 	AddRadio(name string)
 	AddKeyer(name string)
@@ -227,14 +233,18 @@ func (c *Controller) onRadioConnectionChanged(connected bool) {
 }
 
 func (c *Controller) newHamlibClient(config core.Radio) radio {
-	hamlibClient := hamlib.New(config.Address, c.bandplan)
+	vfo1, ok := config.Options[hamlibVFO1Option]
+	if !ok {
+		vfo1 = ""
+	}
+	vfo2, ok := config.Options[hamlibVFO2Option]
+	if !ok {
+		vfo2 = ""
+	}
+	hamlibClient := hamlib.New(config.Address, c.bandplan, vfo1, vfo2)
 	hamlibClient.KeepOpen()
 	return hamlibClient
 }
-
-const (
-	tciTRXOption = "trx"
-)
 
 func (c *Controller) newTCIClient(config core.Radio) (radio, error) {
 	var err error

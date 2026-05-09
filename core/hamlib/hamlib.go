@@ -130,13 +130,14 @@ func (c *Client) poll(state []vfoState) (hl.VFO, []vfoState, error) {
 		return hl.CurrVFO, state, err
 	}
 
-	s, err := c.pollVFO(c.vfos[core.VFO1])
-	if err == nil {
-		state[core.VFO1] = s
+	vfoID, ok := c.toVFOID(currVFO)
+	if !ok {
+		// ignore the state of the current VFO if it is not one of our two
+		return hl.CurrVFO, state, nil
 	}
-	s, err = c.pollVFO(c.vfos[core.VFO2])
+	s, err := c.pollVFO(c.vfos[vfoID])
 	if err == nil {
-		state[core.VFO2] = s
+		state[vfoID] = s
 	}
 
 	return currVFO, state, nil

@@ -28,6 +28,7 @@ type Client struct {
 
 	currentVFO hl.VFO
 	lastState  []vfoState
+	pollAll    bool
 }
 
 type vfoState struct {
@@ -54,6 +55,7 @@ func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client 
 		loopStopped:     make(chan struct{}),
 		currentVFO:      hl.CurrVFO,
 		lastState:       make([]vfoState, int(core.VFOCount)),
+		pollAll:         true,
 	}
 	result.client.Notify(result)
 	log.Printf("hamlib: using VFOs: %v", result.vfos)
@@ -97,11 +99,12 @@ func (c *Client) run() {
 		defer close(c.loopStopped)
 		currentState := make([]vfoState, core.VFOCount)
 		for {
-			currentVFO, currentState, err := c.poll(currentState)
+			currentVFO, currentState, err := c.poll(currentState, c.pollAll)
 			if err != nil {
 				log.Printf("hamlib: cannot poll: %v", err)
 				continue
 			}
+			c.pollAll = false
 
 			lastVFO := c.currentVFO
 			c.currentVFO = currentVFO
@@ -124,20 +127,29 @@ func (c *Client) run() {
 }
 
 // poll must only be called from the run goroutine!
-func (c *Client) poll(state []vfoState) (hl.VFO, []vfoState, error) {
+func (c *Client) poll(state []vfoState, all bool) (hl.VFO, []vfoState, error) {
 	currVFO, err := c.client.GetVFO()
 	if err != nil {
 		return hl.CurrVFO, state, err
 	}
 
-	vfoID, ok := c.toVFOID(currVFO)
-	if !ok {
-		// ignore the state of the current VFO if it is not one of our two
-		return hl.CurrVFO, state, nil
-	}
-	s, err := c.pollVFO(c.vfos[vfoID])
-	if err == nil {
-		state[vfoID] = s
+	if all {
+		for vfoID := range core.VFOCount {
+			s, err := c.pollVFO(c.vfos[vfoID])
+			if err == nil {
+				state[vfoID] = s
+			}
+		}
+	} else {
+		vfoID, ok := c.toVFOID(currVFO)
+		if !ok {
+			// ignore the state of the current VFO if it is not one of our two
+			return hl.CurrVFO, state, nil
+		}
+		s, err := c.pollVFO(c.vfos[vfoID])
+		if err == nil {
+			state[vfoID] = s
+		}
 	}
 
 	return currVFO, state, nil

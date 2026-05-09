@@ -1681,6 +1681,8 @@ type VFOID int
 const (
 	VFO1 VFOID = iota
 	VFO2
+
+	VFOCount
 )
 
 type VFO interface {

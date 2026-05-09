@@ -2,6 +2,7 @@ package hamlib
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/ftl/hamradio"
@@ -15,8 +16,7 @@ type Client struct {
 	client *hl.RigClient
 
 	bandplan bandplan.Bandplan
-	vfo1     hl.VFO
-	vfo2     hl.VFO
+	vfos     []hl.VFO
 
 	listeners []any
 
@@ -26,31 +26,37 @@ type Client struct {
 	done            chan struct{}
 	loopStopped     chan struct{}
 
-	lastState vfoState
+	currentVFO hl.VFO
+	lastState  []vfoState
 }
 
 type vfoState struct {
-	frequency core.Frequency
-	band      core.Band
-	mode      core.Mode
-	xitActive bool
-	xitOffset core.Frequency
-	ptt       bool
+	vfo          hl.VFO
+	frequency    core.Frequency
+	band         core.Band
+	mode         core.Mode
+	xitActive    bool
+	xitOffset    core.Frequency
+	xitAvailable bool
+	ptt          bool
+	pttAvailable bool
 }
 
 func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
 	result := &Client{
 		client:          hl.NewRigClient(address),
 		bandplan:        bandplan,
-		vfo1:            sanitizeHamlibVFO(core.VFO1, vfo1),
-		vfo2:            sanitizeHamlibVFO(core.VFO2, vfo2),
+		vfos:            []hl.VFO{sanitizeHamlibVFO(core.VFO1, vfo1), sanitizeHamlibVFO(core.VFO2, vfo2)},
 		pollingInterval: 500 * time.Millisecond,
 		requestTimeout:  500 * time.Millisecond,
 		do:              make(chan func()),
 		done:            make(chan struct{}),
 		loopStopped:     make(chan struct{}),
+		currentVFO:      hl.CurrVFO,
+		lastState:       make([]vfoState, int(core.VFOCount)),
 	}
 	result.client.Notify(result)
+	log.Printf("hamlib: using VFOs: %v", result.vfos)
 	return result
 }
 
@@ -79,13 +85,18 @@ func sanitizeHamlibVFO(id core.VFOID, s string) hl.VFO {
 func (c *Client) run() {
 	go func() {
 		defer close(c.loopStopped)
+		currentState := make([]vfoState, core.VFOCount)
 		for {
-			currentState, err := c.poll()
+			currentVFO, currentState, err := c.poll(currentState)
 			if err != nil {
+				log.Printf("hamlib: cannot poll: %v", err)
 				continue
 			}
-			c.emitChangeNotifications(c.lastState, currentState)
-			c.lastState = currentState
+			c.currentVFO = currentVFO
+			for vfo := range core.VFOCount {
+				c.emitChangeNotifications(vfo, c.lastState[vfo], currentState[vfo])
+				c.lastState[vfo] = currentState[vfo]
+			}
 
 			select {
 			case f := <-c.do:
@@ -99,40 +110,68 @@ func (c *Client) run() {
 }
 
 // poll must only be called from the run goroutine!
-func (c *Client) poll() (vfoState, error) {
-	frequency, err := c.client.GetFrequency(hl.CurrVFO)
+func (c *Client) poll(state []vfoState) (hl.VFO, []vfoState, error) {
+	currVFO, err := c.client.GetVFO()
 	if err != nil {
-		return vfoState{}, err
+		return hl.CurrVFO, state, err
 	}
-	mode, _, err := c.client.GetMode(hl.CurrVFO)
-	if err != nil {
-		return vfoState{}, err
+
+	s, err := c.pollVFO(c.vfos[core.VFO1])
+	if err == nil {
+		state[core.VFO1] = s
 	}
-	xitActive, err := c.client.GetFunc(hl.CurrVFO, hl.XITFunction)
-	if err != nil {
-		return vfoState{}, err
+	s, err = c.pollVFO(c.vfos[core.VFO2])
+	if err == nil {
+		state[core.VFO2] = s
 	}
-	var xitOffset hl.Frequency
-	if xitActive {
-		xitOffset, err = c.client.GetXIT(hl.CurrVFO)
-		if err != nil {
-			return vfoState{}, err
-		}
-	} else {
-		xitOffset = 0
+
+	return currVFO, state, nil
+}
+
+// pollVFO must only be called from the run goroutine!
+func (c *Client) pollVFO(vfo hl.VFO) (vfoState, error) {
+	if vfo == "" {
+		return vfoState{}, nil
 	}
-	pttStatus, err := c.client.GetPTT(hl.CurrVFO)
+
+	frequency, mode, _, _, _, err := c.client.GetVFOInfo(vfo)
 	if err != nil {
 		return vfoState{}, err
 	}
 
+	xitAvailable := true
+	xitActive, err := c.client.GetFunc(vfo, hl.XITFunction)
+	if err != nil {
+		xitActive = false
+		xitAvailable = false
+	}
+	var xitOffset hl.Frequency
+	if xitActive {
+		xitOffset, err = c.client.GetXIT(vfo)
+		if err != nil {
+			xitActive = false
+			xitOffset = 0
+			xitAvailable = false
+		}
+	} else {
+		xitOffset = 0
+	}
+	pttStatus, err := c.client.GetPTT(vfo)
+	pttAvailable := err == nil
+	if err != nil {
+		pttStatus = hl.PTTOff
+	}
+
 	return vfoState{
-		frequency: core.Frequency(frequency),
-		band:      toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name),
-		mode:      toCoreMode(mode),
-		xitActive: xitActive,
-		xitOffset: core.Frequency(xitOffset),
-		ptt:       pttStatus != hl.PTTOff,
+		vfo:          vfo,
+		frequency:    core.Frequency(frequency),
+		band:         toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name),
+		mode:         toCoreMode(mode),
+		xitActive:    xitActive,
+		xitOffset:    core.Frequency(xitOffset),
+		xitAvailable: xitAvailable,
+		ptt:          pttStatus != hl.PTTOff,
+		pttAvailable: pttAvailable,
 	}, nil
 }
 
@@ -184,17 +223,20 @@ func (c *Client) Active() bool {
 }
 
 func (c *Client) SetFrequency(frequency core.Frequency) {
+	// TODO: add the VFOID to all VFO-related Setters
+	vfo := core.VFO1
 	c.doInLoop(func() {
-		err := c.client.SetFrequency(hl.CurrVFO, hl.Frequency(frequency))
+		err := c.client.SetFrequency(c.vfos[vfo], hl.Frequency(frequency))
 		if err != nil {
 			log.Printf("hamlib: cannot set frequency: %v", err)
 		}
-		c.lastState.frequency = frequency
-		c.lastState.band = toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name)
 	})
 }
 
 func (c *Client) SetBand(band core.Band) {
+	// TODO: add the VFOID to all VFO-related Setters
+	vfo := core.VFO1
+
 	outgoingBand, ok := c.bandplan[toBandplanBandName(band)]
 	if !ok {
 		log.Printf("hamlib: unknown band %v", band)
@@ -202,59 +244,58 @@ func (c *Client) SetBand(band core.Band) {
 	}
 
 	c.doInLoop(func() {
-		frequency := findModePortionCenter(c.bandplan, int(outgoingBand.Center()), toBandplanMode(c.lastState.mode))
-		err := c.client.SetFrequency(hl.CurrVFO, hl.Frequency(frequency))
+		frequency := findModePortionCenter(c.bandplan, int(outgoingBand.Center()), toBandplanMode(c.lastState[vfo].mode))
+		err := c.client.SetFrequency(c.vfos[vfo], hl.Frequency(frequency))
 		if err != nil {
 			log.Printf("hamlib: cannot switch to band: %v", err)
 			return
 		}
-		c.lastState.frequency = core.Frequency(frequency)
-		c.lastState.band = band
 	})
 }
 
 func (c *Client) SetMode(mode core.Mode) {
+	// TODO: add the VFOID to all VFO-related Setters
+	vfo := core.VFO1
 	c.doInLoop(func() {
-		err := c.client.SetMode(hl.CurrVFO, toClientMode(mode), 0)
+		err := c.client.SetMode(c.vfos[vfo], toClientMode(mode), 0)
 		if err != nil {
 			log.Printf("hamlib: cannot switch to mode: %v", err)
 			return
 		}
-		c.lastState.mode = mode
 	})
 }
 
 func (c *Client) SetXIT(active bool, offset core.Frequency) {
+	// TODO: add the VFOID to all VFO-related Setters
+	vfo := core.VFO1
 	c.doInLoop(func() {
-		if active == c.lastState.xitActive && offset == c.lastState.xitOffset {
+		if active == c.lastState[vfo].xitActive && offset == c.lastState[vfo].xitOffset {
 			return
 		}
 
-		if active != c.lastState.xitActive {
-			err := c.client.SetFunc(hl.CurrVFO, hl.XITFunction, active)
+		if active != c.lastState[vfo].xitActive {
+			err := c.client.SetFunc(c.vfos[vfo], hl.XITFunction, active)
 			if err != nil {
 				log.Printf("hamlib: cannot set XIT function: %v", err)
 				return
 			}
 		}
 
-		if active && (offset != c.lastState.xitOffset) {
-			err := c.client.SetXIT(hl.CurrVFO, hl.Frequency(offset))
+		if active && (offset != c.lastState[vfo].xitOffset) {
+			err := c.client.SetXIT(c.vfos[vfo], hl.Frequency(offset))
 			if err != nil {
 				log.Printf("hamlib: cannot set XIT offset: %v", err)
 				return
 			}
 		}
-
-		c.lastState.xitActive = active
-		c.lastState.xitOffset = offset
 	})
-	// TODO: enable the XIT and set its offset
 }
 
 func (c *Client) Refresh() {
 	c.doInLoop(func() {
-		c.emitChangeNotifications(vfoState{}, c.lastState)
+		for vfo := range core.VFOCount {
+			c.emitChangeNotifications(vfo, vfoState{}, c.lastState[vfo])
+		}
 	})
 }
 
@@ -298,7 +339,11 @@ func (c *Client) emitConnectionChanged(connected bool) {
 	})
 }
 
-func (c *Client) emitChangeNotifications(last, current vfoState) {
+func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState) {
+	// TODO: add the VFOID to the VFO-related events
+	if vfo != core.VFO1 {
+		return
+	}
 	go func() {
 		if last.frequency != current.frequency {
 			c.emitFrequencyChanged(current.frequency)

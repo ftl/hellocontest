@@ -141,15 +141,18 @@ func (c *Client) doInLoop(f func()) {
 }
 
 func (c *Client) KeepOpen() {
-	err := c.client.Open(true)
+	err := c.connectAndRun(true)
 	if err != nil {
 		log.Printf("hamlib: connection error: %v", err)
 	}
-	c.run()
 }
 
 func (c *Client) Connect() error {
-	err := c.client.Open(false)
+	return c.connectAndRun(false)
+}
+
+func (c *Client) connectAndRun(automaticReconnect bool) error {
+	err := c.client.Open(automaticReconnect)
 	if err != nil {
 		return err
 	}

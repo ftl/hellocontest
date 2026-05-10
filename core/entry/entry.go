@@ -23,14 +23,16 @@ const (
 type View interface {
 	SetUTC(string)
 	SetMyCall(string)
-	SetFrequency(core.Frequency)
-	SetCallsign(string)
-	SetBand(text string)
-	SetMode(text string)
-	SetXITActive(active bool)
-	SetXIT(active bool, offset core.Frequency)
-	SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 	SetMyExchange(int, string)
+
+	SetFrequency(core.VFOID, core.Frequency)
+	SetBand(vfo core.VFOID, text string)
+	SetMode(vfo core.VFOID, text string)
+	SetXITActive(vfo core.VFOID, active bool)
+	SetXIT(vfo core.VFOID, active bool, offset core.Frequency)
+	SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
+
+	SetCallsign(string)
 	SetTheirExchange(int, string)
 
 	SetActiveField(core.EntryField)
@@ -377,9 +379,9 @@ func (c *Controller) showInput() {
 	for i, value := range c.input.myExchange {
 		c.view.SetMyExchange(i+1, value)
 	}
-	c.view.SetFrequency(c.selectedFrequency)
-	c.view.SetBand(c.input.band)
-	c.view.SetMode(c.input.mode)
+	c.view.SetFrequency(core.VFO1, c.selectedFrequency)
+	c.view.SetBand(core.VFO1, c.input.band)
+	c.view.SetMode(core.VFO1, c.input.mode)
 }
 
 // setTheirExchangePrediction replaces the value of the given field with the given predicted value,
@@ -465,7 +467,7 @@ func (c *Controller) SetXITActive(active bool) {
 
 func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
 	if vfo != core.VFO1 {
-		log.Printf("VFO %s: frequency changed: %s", c.vfos[vfo].Name(), frequency.String())
+		c.view.SetFrequency(vfo, frequency)
 		return
 	}
 	if c.editing {
@@ -477,7 +479,7 @@ func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequenc
 	jump := math.Abs(float64(c.selectedFrequency-frequency)) > float64(jumpThreshold)
 	c.selectedFrequency = frequency
 
-	c.view.SetFrequency(frequency)
+	c.view.SetFrequency(core.VFO1, frequency)
 
 	if jump && !c.ignoreFrequencyJump {
 		c.Clear()
@@ -497,7 +499,7 @@ func (c *Controller) bandSelected(s string) {
 
 func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
 	if vfo != core.VFO1 {
-		log.Printf("VFO %s: band changed: %s", c.vfos[vfo].Name(), band)
+		c.view.SetBand(vfo, band.String())
 		return
 	}
 	if c.editing {
@@ -508,7 +510,7 @@ func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
 	}
 	c.selectedBand = band
 	c.input.band = c.selectedBand.String()
-	c.view.SetBand(c.input.band)
+	c.view.SetBand(core.VFO1, c.input.band)
 }
 
 func (c *Controller) modeSelected(s string) {
@@ -553,7 +555,7 @@ func defaultReportForMode(mode core.Mode) string {
 
 func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 	if vfo != core.VFO1 {
-		log.Printf("VFO %s: mode changed: %s", c.vfos[vfo].Name(), mode)
+		c.view.SetMode(vfo, mode.String())
 		return
 	}
 	if c.editing {
@@ -564,24 +566,21 @@ func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 	}
 	c.selectedMode = mode
 	c.input.mode = c.selectedMode.String()
-	c.view.SetMode(c.input.mode)
+	c.view.SetMode(core.VFO1, c.input.mode)
 }
 
 func (c *Controller) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
-	if vfo != core.VFO1 {
-		log.Printf("VFO %s: XIT changed: %t %s", c.vfos[vfo].Name(), active, offset.String())
-		return
-	}
-	c.view.SetXIT(active, offset)
+	c.view.SetXIT(vfo, active, offset)
 }
 
 func (c *Controller) XITActiveChanged(active bool) {
-	c.view.SetXITActive(active)
+	// TODO: add VFO parameter to XITActiveChanged
+	c.view.SetXITActive(core.VFO1, active)
 }
 
 func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
 	if vfo != core.VFO1 {
-		log.Printf("VFO %s: PTT changed: %t", c.vfos[vfo].Name(), active)
+		c.view.SetTXState(vfo, active, false, 0)
 		return
 	}
 	c.ptt = active
@@ -602,7 +601,7 @@ func (c *Controller) ParrotTimeLeft(timeLeft time.Duration) {
 }
 
 func (c *Controller) updateTXState() {
-	c.view.SetTXState(c.ptt, c.parrotActive, c.parrotTimeLeft)
+	c.view.SetTXState(core.VFO1, c.ptt, c.parrotActive, c.parrotTimeLeft)
 }
 
 func (c *Controller) SendQuestion() {
@@ -960,7 +959,7 @@ func (c *Controller) Clear() {
 
 	c.showInput()
 	c.view.SetMyCall(c.stationCallsign)
-	c.view.SetFrequency(c.selectedFrequency)
+	c.view.SetFrequency(core.VFO1, c.selectedFrequency)
 	c.view.SetActiveField(c.activeField)
 	c.view.SetDuplicateMarker(false)
 	c.view.SetEditingMarker(false)

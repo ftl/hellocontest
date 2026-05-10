@@ -43,6 +43,14 @@ type entryView struct {
 	txIndicator    *qtlib.QLabel
 	messageLabel   *qtlib.QLabel
 
+	vfo2Label             *qtlib.QLabel
+	vfo2FrequencyLabel    *qtlib.QLabel
+	vfo2BandLabel         *qtlib.QLabel
+	vfo2ModeLabel         *qtlib.QLabel
+	vfo2XITIndicator      *qtlib.QLabel
+	vfo2TXIndicator       *qtlib.QLabel
+	vfo2BandModeContainer *qtlib.QWidget
+
 	theirLabel        *qtlib.QLabel
 	callsign          *qtlib.QLineEdit
 	bandModeContainer *qtlib.QWidget
@@ -78,7 +86,7 @@ func newEntryView() *entryView {
 	v.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	// Row 2: "VFO:" label, frequency label, band combo, mode combo, XIT checkbox, TX indicator
-	v.vfoLabel = qtlib.NewQLabel3("VFO:")
+	v.vfoLabel = qtlib.NewQLabel3("VFO 1:")
 
 	v.frequencyLabel = qtlib.NewQLabel3("- kHz")
 	v.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("frequencyLabel"))
@@ -124,6 +132,24 @@ func newEntryView() *entryView {
 
 	// Row 7: Message label (span all 6 columns)
 	v.messageLabel = qtlib.NewQLabel3("")
+
+	// Row 8: VFO2
+	v.vfo2Label = qtlib.NewQLabel3("VFO 2:")
+	v.vfo2FrequencyLabel = qtlib.NewQLabel3("- kHz")
+	v.vfo2FrequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2FrequencyLabel"))
+	v.vfo2FrequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
+	v.vfo2BandModeContainer = qtlib.NewQWidget2()
+	vfo2BandModeLayout := qtlib.NewQHBoxLayout(v.vfo2BandModeContainer)
+	v.vfo2BandLabel = qtlib.NewQLabel3("- m")
+	v.vfo2BandLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2BandLabel"))
+	vfo2BandModeLayout.AddWidget2(v.vfo2BandLabel.QWidget, 1)
+	v.vfo2ModeLabel = qtlib.NewQLabel3("-")
+	v.vfo2ModeLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2ModeLabel"))
+	vfo2BandModeLayout.AddWidget2(v.vfo2ModeLabel.QWidget, 2)
+	v.vfo2XITIndicator = qtlib.NewQLabel3("XIT")
+	v.vfo2XITIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2XITIndicator"))
+	v.vfo2TXIndicator = qtlib.NewQLabel3("RX")
+	v.vfo2TXIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2TXIndicator"))
 
 	// Initialize combos
 	SetupBandCombo(v.band)
@@ -262,8 +288,13 @@ func (v *entryView) SetMyCall(text string) {
 	v.myCallLabel.SetText(text)
 }
 
-func (v *entryView) SetFrequency(frequency core.Frequency) {
-	v.frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
+func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+	switch vfo {
+	case core.VFO1:
+		v.frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
+	case core.VFO2:
+		v.vfo2FrequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
+	}
 }
 
 func (v *entryView) SetCallsign(text string) {
@@ -272,40 +303,63 @@ func (v *entryView) SetCallsign(text string) {
 	v.callsign.SetText(text)
 }
 
-func (v *entryView) SetBand(text string) {
-	v.ignoreInput = true
-	defer func() { v.ignoreInput = false }()
-	idx := v.band.FindText(text)
-	if idx >= 0 {
-		v.band.SetCurrentIndex(idx)
+func (v *entryView) SetBand(vfo core.VFOID, text string) {
+	switch vfo {
+	case core.VFO1:
+		v.ignoreInput = true
+		defer func() { v.ignoreInput = false }()
+		idx := v.band.FindText(text)
+		if idx >= 0 {
+			v.band.SetCurrentIndex(idx)
+		}
+	case core.VFO2:
+		v.vfo2BandLabel.SetText(text)
 	}
 }
 
-func (v *entryView) SetMode(text string) {
-	v.ignoreInput = true
-	defer func() { v.ignoreInput = false }()
-	idx := v.mode.FindText(text)
-	if idx >= 0 {
-		v.mode.SetCurrentIndex(idx)
+func (v *entryView) SetMode(vfo core.VFOID, text string) {
+	switch vfo {
+	case core.VFO1:
+		v.ignoreInput = true
+		defer func() { v.ignoreInput = false }()
+		idx := v.mode.FindText(text)
+		if idx >= 0 {
+			v.mode.SetCurrentIndex(idx)
+		}
+	case core.VFO2:
+		v.vfo2ModeLabel.SetText(text)
 	}
 }
 
-func (v *entryView) SetXITActive(active bool) {
-	if v.xit.IsChecked() == active {
-		return
+func (v *entryView) SetXITActive(vfo core.VFOID, active bool) {
+	switch vfo {
+	case core.VFO1:
+		if v.xit.IsChecked() == active {
+			return
+		}
+		v.xit.SetChecked(active)
+	case core.VFO2:
+		// TODO: handle event
 	}
-	v.xit.SetChecked(active)
 }
 
-func (v *entryView) SetXIT(active bool, offset core.Frequency) {
+func (v *entryView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {
+	var text string
 	if active {
-		v.xit.SetText(fmt.Sprintf("XIT %s", offset))
+		text = fmt.Sprintf("XIT %s", offset)
 	} else {
-		v.xit.SetText("XIT")
+		text = "XIT"
+	}
+
+	switch vfo {
+	case core.VFO1:
+		v.xit.SetText(text)
+	case core.VFO2:
+		v.vfo2XITIndicator.SetText(text)
 	}
 }
 
-func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	var text string
 	switch {
 	case parrotActive:
@@ -319,12 +373,17 @@ func (v *entryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.
 		text = ""
 	}
 
-	if ptt {
-		v.txIndicator.SetStyleSheet(TXIndicatorActiveStyle)
-	} else {
-		v.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
+	switch vfo {
+	case core.VFO1:
+		if ptt {
+			v.txIndicator.SetStyleSheet(TXIndicatorActiveStyle)
+		} else {
+			v.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
+		}
+		v.txIndicator.SetText(text)
+	case core.VFO2:
+		v.vfo2TXIndicator.SetText(text)
 	}
-	v.txIndicator.SetText(text)
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {

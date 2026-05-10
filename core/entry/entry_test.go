@@ -51,11 +51,11 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.On("SetMyExchange", 2, "001").Once()
 	view.On("SetMyExchange", 3, "").Once()
 	view.On("SetMyCall", "DL0ABC").Once()
-	view.On("SetFrequency", mock.Anything).Once()
+	view.On("SetFrequency", core.VFO1, mock.Anything).Once()
 	view.On("SetCallsign", "").Once()
-	view.On("SetBand", "160m").Once()
-	view.On("SetFrequency", mock.Anything).Once()
-	view.On("SetMode", "CW").Once()
+	view.On("SetBand", core.VFO1, "160m").Once()
+	view.On("SetFrequency", core.VFO1, mock.Anything).Once()
+	view.On("SetMode", core.VFO1, "CW").Once()
 	view.On("SetActiveField", core.CallsignField).Once()
 	view.On("SetDuplicateMarker", false).Once()
 	view.On("SetEditingMarker", false).Once()
@@ -536,9 +536,9 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 		MyExchange:    []string{"579", "034", "B36"},
 	}
 
-	view.On("SetBand", "80m").Once()
-	view.On("SetFrequency", mock.Anything).Once()
-	view.On("SetMode", "CW").Once()
+	view.On("SetBand", core.VFO1, "80m").Once()
+	view.On("SetFrequency", core.VFO1, mock.Anything).Once()
+	view.On("SetMode", core.VFO1, "CW").Once()
 	view.On("SetCallsign", "DL1ABC").Once()
 	view.On("SetTheirExchange", 1, "559").Once()
 	view.On("SetTheirExchange", 2, "012").Once()

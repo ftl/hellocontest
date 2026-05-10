@@ -10,25 +10,26 @@ import (
 
 type nullView struct{}
 
-func (n *nullView) SetUTC(string)                                                        {}
-func (n *nullView) SetMyCall(string)                                                     {}
-func (n *nullView) SetFrequency(core.Frequency)                                          {}
-func (n *nullView) SetCallsign(string)                                                   {}
-func (n *nullView) SetBand(text string)                                                  {}
-func (n *nullView) SetMode(text string)                                                  {}
-func (n *nullView) SetXITActive(active bool)                                             {}
-func (n *nullView) SetXIT(active bool, offset core.Frequency)                            {}
-func (n *nullView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {}
-func (n *nullView) SetMyExchange(int, string)                                            {}
-func (n *nullView) SetTheirExchange(int, string)                                         {}
-func (n *nullView) SetMyExchangeFields([]core.ExchangeField)                             {}
-func (n *nullView) SetTheirExchangeFields([]core.ExchangeField)                          {}
-func (n *nullView) SetActiveField(core.EntryField)                                       {}
-func (n *nullView) SelectText(core.EntryField, string)                                   {}
-func (n *nullView) SetDuplicateMarker(bool)                                              {}
-func (n *nullView) SetEditingMarker(bool)                                                {}
-func (n *nullView) ShowMessage(...any)                                                   {}
-func (n *nullView) ClearMessage()                                                        {}
+func (n *nullView) SetUTC(string)                                             {}
+func (n *nullView) SetMyCall(string)                                          {}
+func (n *nullView) SetFrequency(core.VFOID, core.Frequency)                   {}
+func (n *nullView) SetCallsign(string)                                        {}
+func (n *nullView) SetBand(vfo core.VFOID, text string)                       {}
+func (n *nullView) SetMode(vfo core.VFOID, text string)                       {}
+func (n *nullView) SetXITActive(vfo core.VFOID, active bool)                  {}
+func (n *nullView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {}
+func (n *nullView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+}
+func (n *nullView) SetMyExchange(int, string)                   {}
+func (n *nullView) SetTheirExchange(int, string)                {}
+func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
+func (n *nullView) SetTheirExchangeFields([]core.ExchangeField) {}
+func (n *nullView) SetActiveField(core.EntryField)              {}
+func (n *nullView) SelectText(core.EntryField, string)          {}
+func (n *nullView) SetDuplicateMarker(bool)                     {}
+func (n *nullView) SetEditingMarker(bool)                       {}
+func (n *nullView) ShowMessage(...any)                          {}
+func (n *nullView) ClearMessage()                               {}
 
 type nullVFO struct{}
 

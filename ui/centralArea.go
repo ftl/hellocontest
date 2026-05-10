@@ -123,6 +123,13 @@ func (a *centralArea) addWidgetsToLayout() {
 
 	// row 7: message
 	a.entryLayout.AddWidget3(a.entry.messageLabel.QWidget, 7, 0, 1, -1)
+
+	// row 8: VFO2
+	a.entryLayout.AddWidget2(a.entry.vfo2Label.QWidget, 8, 0)
+	a.entryLayout.AddWidget2(a.entry.vfo2FrequencyLabel.QWidget, 8, 1)
+	a.entryLayout.AddWidget2(a.entry.vfo2BandModeContainer, 8, 2)
+	a.entryLayout.AddWidget2(a.entry.vfo2XITIndicator.QWidget, 8, lastColumn-1)
+	a.entryLayout.AddWidget2(a.entry.vfo2TXIndicator.QWidget, 8, lastColumn)
 }
 
 func (a *centralArea) removeWidgetsFromLayout() {

@@ -198,11 +198,11 @@ func (m *EntryView) SetMyCall(mycall string) {
 	m.Called(mycall)
 }
 
-func (m *EntryView) SetFrequency(frequency core.Frequency) {
+func (m *EntryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	if !m.active {
 		return
 	}
-	m.Called(frequency)
+	m.Called(vfo, frequency)
 }
 
 func (m *EntryView) SetCallsign(callsign string) {
@@ -219,39 +219,39 @@ func (m *EntryView) SetTheirExchange(index int, value string) {
 	m.Called(index, value)
 }
 
-func (m *EntryView) SetBand(text string) {
+func (m *EntryView) SetBand(vfo core.VFOID, text string) {
 	if !m.active {
 		return
 	}
-	m.Called(text)
+	m.Called(vfo, text)
 }
 
-func (m *EntryView) SetMode(text string) {
+func (m *EntryView) SetMode(vfo core.VFOID, text string) {
 	if !m.active {
 		return
 	}
-	m.Called(text)
+	m.Called(vfo, text)
 }
 
-func (m *EntryView) SetXITActive(active bool) {
+func (m *EntryView) SetXITActive(vfo core.VFOID, active bool) {
 	if !m.active {
 		return
 	}
-	m.Called(active)
+	m.Called(vfo, active)
 }
 
-func (m *EntryView) SetXIT(active bool, offset core.Frequency) {
+func (m *EntryView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {
 	if !m.active {
 		return
 	}
-	m.Called(active, offset)
+	m.Called(vfo, active, offset)
 }
 
-func (m *EntryView) SetTXState(ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+func (m *EntryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	if !m.active {
 		return
 	}
-	m.Called(ptt, parrotActive, parrotTimeLeft)
+	m.Called(vfo, ptt, parrotActive, parrotTimeLeft)
 }
 
 func (m *EntryView) SetMyExchange(index int, value string) {

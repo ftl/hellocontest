@@ -75,7 +75,7 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 	a.controller.Entry.Notify(a.actions)
 	a.controller.Workmode.Notify(a.actions)
 	a.controller.QTCList.Notify(a.actions)
-	a.controller.VFO.Notify(a.actions)
+	a.controller.VFOs[core.VFO1].Notify(a.actions)
 
 	a.createMenu()
 	a.createCentralWidget()

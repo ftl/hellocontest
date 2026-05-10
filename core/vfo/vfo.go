@@ -27,8 +27,8 @@ type Logbook interface {
 type VFO struct {
 	XITControl
 
-	ID   core.VFOID
-	Name string
+	id   core.VFOID
+	name string
 
 	bandplan      bandplan.Bandplan
 	logbook       Logbook
@@ -42,8 +42,8 @@ type VFO struct {
 
 func NewVFO(id core.VFOID, name string, bandplan bandplan.Bandplan, logbook Logbook, asyncRunner core.AsyncRunner) *VFO {
 	result := &VFO{
-		ID:          id,
-		Name:        name,
+		id:          id,
+		name:        name,
 		bandplan:    bandplan,
 		logbook:     logbook,
 		asyncRunner: asyncRunner,
@@ -62,6 +62,10 @@ func (v *VFO) SetClient(client Client) {
 	if client != nil {
 		v.client.Notify(v)
 	}
+}
+
+func (v *VFO) Name() string {
+	return v.name
 }
 
 func (v *VFO) Notify(listener any) {
@@ -135,28 +139,28 @@ func (v *VFO) LogbookLoaded() {
 }
 
 func (v *VFO) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
-	if vfo != v.ID {
+	if vfo != v.id {
 		return
 	}
 	v.offlineClient.SetFrequency(frequency)
 }
 
 func (v *VFO) VFOBandChanged(vfo core.VFOID, band core.Band) {
-	if vfo != v.ID {
+	if vfo != v.id {
 		return
 	}
 	v.offlineClient.SetBand(band)
 }
 
 func (v *VFO) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
-	if vfo != v.ID {
+	if vfo != v.id {
 		return
 	}
 	v.offlineClient.SetMode(mode)
 }
 
 func (v *VFO) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
-	if vfo != v.ID {
+	if vfo != v.id {
 		return
 	}
 	v.XITControl.VFOXITChanged(vfo, active, offset)
@@ -164,7 +168,7 @@ func (v *VFO) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) 
 }
 
 func (v *VFO) VFOPTTChanged(vfo core.VFOID, active bool) {
-	if vfo != v.ID {
+	if vfo != v.id {
 		return
 	}
 	v.offlineClient.SetPTT(active)
@@ -173,7 +177,7 @@ func (v *VFO) VFOPTTChanged(vfo core.VFOID, active bool) {
 func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 	core.Emit(v.listeners, func(listener core.VFOFrequencyListener) {
 		v.asyncRunner(func() {
-			listener.VFOFrequencyChanged(v.ID, frequency)
+			listener.VFOFrequencyChanged(v.id, frequency)
 		})
 	})
 }
@@ -181,7 +185,7 @@ func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 func (v *VFO) emitBandChanged(band core.Band) {
 	core.Emit(v.listeners, func(listener core.VFOBandListener) {
 		v.asyncRunner(func() {
-			listener.VFOBandChanged(v.ID, band)
+			listener.VFOBandChanged(v.id, band)
 		})
 	})
 }
@@ -189,7 +193,7 @@ func (v *VFO) emitBandChanged(band core.Band) {
 func (v *VFO) emitModeChanged(mode core.Mode) {
 	core.Emit(v.listeners, func(listener core.VFOModeListener) {
 		v.asyncRunner(func() {
-			listener.VFOModeChanged(v.ID, mode)
+			listener.VFOModeChanged(v.id, mode)
 		})
 	})
 }
@@ -197,7 +201,7 @@ func (v *VFO) emitModeChanged(mode core.Mode) {
 func (v *VFO) emitXITChanged(active bool, offset core.Frequency) {
 	core.Emit(v.listeners, func(listener core.VFOXITListener) {
 		v.asyncRunner(func() {
-			listener.VFOXITChanged(v.ID, active, offset)
+			listener.VFOXITChanged(v.id, active, offset)
 		})
 	})
 }
@@ -205,7 +209,7 @@ func (v *VFO) emitXITChanged(active bool, offset core.Frequency) {
 func (v *VFO) emitPTTChanged(active bool) {
 	core.Emit(v.listeners, func(listener core.VFOPTTListener) {
 		v.asyncRunner(func() {
-			listener.VFOPTTChanged(v.ID, active)
+			listener.VFOPTTChanged(v.id, active)
 		})
 	})
 }

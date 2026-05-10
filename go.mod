@@ -8,7 +8,7 @@ require (
 	github.com/ftl/conval v0.11.3
 	github.com/ftl/godxmap v1.0.1
 	github.com/ftl/hamradio v0.3.0
-	github.com/ftl/hl-go v1.0.4
+	github.com/ftl/hl-go v1.0.6
 	github.com/ftl/tci v0.3.2
 	github.com/mappu/miqt v0.13.1-0.20260426030313-65d643625640
 	github.com/pkg/errors v0.9.1

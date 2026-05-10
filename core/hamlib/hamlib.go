@@ -27,8 +27,8 @@ type Client struct {
 	loopStopped     chan struct{}
 
 	currentVFO hl.VFO
+	singleVFO  bool
 	lastState  []vfoState
-	pollAll    bool
 }
 
 type vfoState struct {
@@ -36,6 +36,7 @@ type vfoState struct {
 	frequency    core.Frequency
 	band         core.Band
 	mode         core.Mode
+	txVFO        bool
 	xitActive    bool
 	xitOffset    core.Frequency
 	xitAvailable bool
@@ -44,30 +45,42 @@ type vfoState struct {
 }
 
 func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
+	vfos, singleVFO := sanitizeVFOs(vfo1, vfo2)
 	result := &Client{
 		client:          hl.NewRigClient(address),
 		bandplan:        bandplan,
-		vfos:            []hl.VFO{sanitizeHamlibVFO(core.VFO1, vfo1), sanitizeHamlibVFO(core.VFO2, vfo2)},
+		vfos:            vfos,
 		pollingInterval: 500 * time.Millisecond,
 		requestTimeout:  500 * time.Millisecond,
 		do:              make(chan func()),
 		done:            make(chan struct{}),
 		loopStopped:     make(chan struct{}),
 		currentVFO:      hl.CurrVFO,
+		singleVFO:       singleVFO,
 		lastState:       make([]vfoState, int(core.VFOCount)),
-		pollAll:         true,
 	}
 	result.client.Notify(result)
-	log.Printf("hamlib: using VFOs: %v", result.vfos)
+	if singleVFO {
+		log.Printf("hamlib: using SINGLE VFO: %s", result.vfos[core.VFO1])
+	} else {
+		log.Printf("hamlib: using VFOs: %v", result.vfos)
+	}
 	return result
 }
 
-func sanitizeHamlibVFO(id core.VFOID, s string) hl.VFO {
+func sanitizeVFOs(vfo1, vfo2 string) ([]hl.VFO, bool) {
+	result := []hl.VFO{sanitizeHamlibVFO(vfo1), sanitizeHamlibVFO(vfo2)}
+	singleVFO := false
+	if result[core.VFO1] == "" {
+		result[core.VFO1] = hl.CurrVFO
+		singleVFO = true
+	}
+	return result, singleVFO
+}
+
+func sanitizeHamlibVFO(s string) hl.VFO {
 	s = strings.ToLower(strings.TrimSpace(s))
 	if s == "" { // shortcut
-		if id == core.VFO1 {
-			return hl.CurrVFO
-		}
 		return ""
 	}
 
@@ -77,10 +90,8 @@ func sanitizeHamlibVFO(id core.VFOID, s string) hl.VFO {
 			return vfo
 		}
 	}
+
 	log.Printf("hamlib: invalid VFO: %s", s)
-	if id == core.VFO1 {
-		return hl.CurrVFO
-	}
 	return ""
 }
 
@@ -99,20 +110,18 @@ func (c *Client) run() {
 		defer close(c.loopStopped)
 		currentState := make([]vfoState, core.VFOCount)
 		for {
-			currentVFO, currentState, err := c.poll(currentState, c.pollAll)
+			currentVFO, currentState, err := c.poll(currentState)
 			if err != nil {
 				log.Printf("hamlib: cannot poll: %v", err)
-				continue
-			}
-			c.pollAll = false
+			} else {
+				lastVFO := c.currentVFO
+				c.currentVFO = currentVFO
+				c.emitCurrentVFOChanged(lastVFO, currentVFO)
 
-			lastVFO := c.currentVFO
-			c.currentVFO = currentVFO
-			c.emitCurrentVFOChanged(lastVFO, currentVFO)
-
-			for vfo := range core.VFOCount {
-				c.emitChangeNotifications(vfo, c.lastState[vfo], currentState[vfo])
-				c.lastState[vfo] = currentState[vfo]
+				for vfo := range core.VFOCount {
+					c.emitChangeNotifications(vfo, c.lastState[vfo], currentState[vfo])
+					c.lastState[vfo] = currentState[vfo]
+				}
 			}
 
 			select {
@@ -127,36 +136,21 @@ func (c *Client) run() {
 }
 
 // poll must only be called from the run goroutine!
-func (c *Client) poll(state []vfoState, all bool) (hl.VFO, []vfoState, error) {
-	currVFO, err := c.client.GetVFO()
-	if err != nil {
-		return hl.CurrVFO, state, err
+func (c *Client) poll(state []vfoState) (hl.VFO, []vfoState, error) {
+	if c.singleVFO {
+		vfoState, err := c.pollSingleVFO(hl.CurrVFO)
+		if err != nil {
+			return hl.CurrVFO, state, err
+		}
+		state[core.VFO1] = vfoState
+		return hl.CurrVFO, state, nil
 	}
 
-	if all {
-		for vfoID := range core.VFOCount {
-			s, err := c.pollVFO(c.vfos[vfoID])
-			if err == nil {
-				state[vfoID] = s
-			}
-		}
-	} else {
-		vfoID, ok := c.toVFOID(currVFO)
-		if !ok {
-			// ignore the state of the current VFO if it is not one of our two
-			return hl.CurrVFO, state, nil
-		}
-		s, err := c.pollVFO(c.vfos[vfoID])
-		if err == nil {
-			state[vfoID] = s
-		}
-	}
-
-	return currVFO, state, nil
+	return c.pollDualVFO(state)
 }
 
-// pollVFO must only be called from the run goroutine!
-func (c *Client) pollVFO(vfo hl.VFO) (vfoState, error) {
+// pollSingleVFO must only be called from the run goroutine!
+func (c *Client) pollSingleVFO(vfo hl.VFO) (vfoState, error) {
 	if vfo == "" {
 		return vfoState{}, nil
 	}
@@ -166,43 +160,102 @@ func (c *Client) pollVFO(vfo hl.VFO) (vfoState, error) {
 		return vfoState{}, err
 	}
 
-	xitAvailable := true
-	xitActive, err := c.client.GetFunc(vfo, hl.XITFunction)
+	result := vfoState{
+		vfo:       vfo,
+		frequency: core.Frequency(frequency),
+		band:      toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name),
+		mode:      toCoreMode(mode),
+		txVFO:     true,
+	}
+	result = c.pollVFOAdditional(vfo, result)
+
+	return result, nil
+}
+
+func (c *Client) pollDualVFO(state []vfoState) (hl.VFO, []vfoState, error) {
+	rigInfo, err := c.client.GetRigInfo()
 	if err != nil {
-		xitActive = false
-		xitAvailable = false
+		// TODO: be a bit smarter than just giving up
+		log.Printf("hamlib: cannot retrieve RigInfo: %v", err)
+		return c.currentVFO, state, err
+	}
+	// log.Printf("hamlib: RigInfo: %v", rigInfo)
+
+	for _, vfoInfo := range rigInfo.VFOs {
+		vfoID, ok := c.toVFOID(vfoInfo.VFO)
+		if !ok {
+			continue
+		}
+		vfoState := state[vfoID]
+		vfoState.vfo = vfoInfo.VFO
+		vfoState.frequency = core.Frequency(vfoInfo.Frequency)
+		vfoState.band = toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(vfoInfo.Frequency)).Name)
+		vfoState.mode = toCoreMode(vfoInfo.Mode)
+		vfoState.txVFO = vfoInfo.TXActive
+		state[vfoID] = vfoState
+	}
+
+	var vfoID core.VFOID
+	var idOK bool
+	currentVFO, err := c.client.GetVFO()
+	if err != nil {
+		// GetVFO is not supported on every radio, fallback to VFO1
+		// log.Printf("hamlib: get_vfo not supported, using VFO %s", c.currentVFO)
+		currentVFO = c.currentVFO
+		vfoID = core.VFO1
+		idOK = true
+	} else {
+		vfoID, idOK = c.toVFOID(currentVFO)
+	}
+	if idOK {
+		vfoState := state[vfoID]
+		vfoState = c.pollVFOAdditional(vfoState.vfo, vfoState)
+		state[vfoID] = vfoState
+	}
+
+	return currentVFO, state, nil
+}
+
+// pollVFOAdditional must only be called from the run goroutine!
+func (c *Client) pollVFOAdditional(vfo hl.VFO, state vfoState) vfoState {
+	result := state
+	var err error
+
+	result.xitAvailable = true
+	result.xitActive, err = c.client.GetFunc(vfo, hl.XITFunction)
+	if err != nil {
+		result.xitActive = false
+		result.xitAvailable = false
 	}
 	var xitOffset hl.Frequency
-	if xitActive {
+	if result.xitActive {
 		xitOffset, err = c.client.GetXIT(vfo)
 		if err != nil {
-			xitActive = false
+			result.xitActive = false
+			result.xitAvailable = false
 			xitOffset = 0
-			xitAvailable = false
 		}
 	} else {
 		xitOffset = 0
 	}
+	result.xitOffset = core.Frequency(xitOffset)
+
 	pttStatus, err := c.client.GetPTT(vfo)
-	pttAvailable := err == nil
+	result.pttAvailable = (err == nil)
 	if err != nil {
 		pttStatus = hl.PTTOff
 	}
+	result.ptt = (pttStatus != hl.PTTOff)
 
-	return vfoState{
-		vfo:          vfo,
-		frequency:    core.Frequency(frequency),
-		band:         toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name),
-		mode:         toCoreMode(mode),
-		xitActive:    xitActive,
-		xitOffset:    core.Frequency(xitOffset),
-		xitAvailable: xitAvailable,
-		ptt:          pttStatus != hl.PTTOff,
-		pttAvailable: pttAvailable,
-	}, nil
+	return result
 }
 
 func (c *Client) doInLoop(f func()) {
+	select {
+	case <-c.done:
+		return
+	default:
+	}
 	c.do <- f
 }
 

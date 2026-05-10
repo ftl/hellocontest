@@ -1687,6 +1687,7 @@ const (
 
 type VFO interface {
 	XITControl
+	Name() string
 	Notify(any)
 	Refresh()
 	SetFrequency(Frequency)

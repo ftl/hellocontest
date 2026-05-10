@@ -603,7 +603,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	settings := &testSettings{myCall: "DL0ABC"}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
-	controller.SetVFO(vfo)
+	controller.SetVFO(core.VFO1, vfo)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -621,7 +621,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
-	controller.SetVFO(vfo)
+	controller.SetVFO(core.VFO1, vfo)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -643,7 +643,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: exchangeValues}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
-	controller.SetVFO(vfo)
+	controller.SetVFO(core.VFO1, vfo)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -704,12 +704,13 @@ func fieldDefinition(fields ...conval.ExchangeField) *conval.Definition {
 
 type testVFO struct{ controller *Controller }
 
+func (v *testVFO) Name() string { return "TESTVFO" }
 func (v *testVFO) Notify(any)   {}
 func (v *testVFO) Active() bool { return false }
 func (v *testVFO) Refresh() {
-	v.controller.VFOFrequencyChanged(1810000)
-	v.controller.VFOBandChanged(core.Band160m)
-	v.controller.VFOModeChanged(core.ModeCW)
+	v.controller.VFOFrequencyChanged(core.VFO1, 1810000)
+	v.controller.VFOBandChanged(core.VFO1, core.Band160m)
+	v.controller.VFOModeChanged(core.VFO1, core.ModeCW)
 }
 func (v *testVFO) SetFrequency(core.Frequency) {}
 func (v *testVFO) SetBand(core.Band)           {}

@@ -32,6 +32,7 @@ func (n *nullView) ClearMessage()                                               
 
 type nullVFO struct{}
 
+func (n *nullVFO) Name() string                { return "" }
 func (n *nullVFO) Notify(any)                  {}
 func (n *nullVFO) Active() bool                { return false }
 func (n *nullVFO) Refresh()                    {}

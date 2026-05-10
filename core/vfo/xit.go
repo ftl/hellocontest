@@ -53,7 +53,7 @@ func (x *XITControl) activateOnVFO() {
 }
 
 func (x *XITControl) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
-	if vfo != x.vfo.ID {
+	if vfo != x.vfo.id {
 		return
 	}
 	x.activeOnVFO = active

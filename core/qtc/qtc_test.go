@@ -33,9 +33,9 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 		WithLogbook(logbook).
 		Build()
 	c.SetView(view)
-	c.VFOFrequencyChanged(7020000)
-	c.VFOBandChanged(core.Band40m)
-	c.VFOModeChanged(core.ModeCW)
+	c.VFOFrequencyChanged(core.VFO1, 7020000)
+	c.VFOBandChanged(core.VFO1, core.Band40m)
+	c.VFOModeChanged(core.VFO1, core.ModeCW)
 
 	c.OfferQTC()
 	assert.Equal(t, "qtc", keyer.lastTransmission)
@@ -126,9 +126,9 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		WithLogbook(logbook).
 		Build()
 	c.SetView(view)
-	c.VFOFrequencyChanged(7020000)
-	c.VFOBandChanged(core.Band40m)
-	c.VFOModeChanged(core.ModeCW)
+	c.VFOFrequencyChanged(core.VFO1, 7020000)
+	c.VFOBandChanged(core.VFO1, core.Band40m)
+	c.VFOModeChanged(core.VFO1, core.ModeCW)
 
 	c.RequestQTC()
 	assert.Equal(t, core.QTCStart, c.activePhase)
@@ -310,9 +310,9 @@ func TestRequestQTC_HeaderErrors(t *testing.T) {
 				WithLogbook(logbook).
 				Build()
 			c.SetView(view)
-			c.VFOFrequencyChanged(7020000)
-			c.VFOBandChanged(core.Band40m)
-			c.VFOModeChanged(core.ModeCW)
+			c.VFOFrequencyChanged(core.VFO1, 7020000)
+			c.VFOBandChanged(core.VFO1, core.Band40m)
+			c.VFOModeChanged(core.VFO1, core.ModeCW)
 			c.RequestQTC()
 			c.StartAction()
 			c.ConfirmStart()
@@ -399,9 +399,9 @@ func TestRequestQTC_DataErrors(t *testing.T) {
 				WithLogbook(logbook).
 				Build()
 			c.SetView(view)
-			c.VFOFrequencyChanged(7020000)
-			c.VFOBandChanged(core.Band40m)
-			c.VFOModeChanged(core.ModeCW)
+			c.VFOFrequencyChanged(core.VFO1, 7020000)
+			c.VFOBandChanged(core.VFO1, core.Band40m)
+			c.VFOModeChanged(core.VFO1, core.ModeCW)
 			c.RequestQTC()
 			c.StartAction()
 			c.ConfirmStart()

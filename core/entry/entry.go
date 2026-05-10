@@ -96,12 +96,15 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 		logbook:     logbook,
 		qsoList:     qsoList,
 		callinfo:    new(nullCallinfo),
-		vfo:         new(nullVFO),
+		vfos:        make([]core.VFO, core.VFOCount),
 		asyncRunner: asyncRunner,
 		bandmap:     bandmap,
 		esmView:     new(nullESMView),
 
 		stationCallsign: settings.Station().Callsign.String(),
+	}
+	for vfo := range len(result.vfos) {
+		result.vfos[vfo] = new(nullVFO)
 	}
 	result.refreshTicker = ticker.New(clock, result.refreshUTC)
 	result.updateExchangeFields(settings.Contest())
@@ -115,7 +118,7 @@ type Controller struct {
 	qsoList  QSOList
 	keyer    Keyer
 	callinfo Callinfo
-	vfo      core.VFO
+	vfos     []core.VFO
 	bandmap  Bandmap
 	esmView  ESMView
 
@@ -217,11 +220,11 @@ func (c *Controller) CallinfoFrameChanged(frame core.CallinfoFrame) {
 	// TODO what do we need to update here?
 }
 
-func (c *Controller) SetVFO(vfo core.VFO) {
+func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
 	if vfo == nil {
-		c.vfo = new(nullVFO)
+		c.vfos[id] = new(nullVFO)
 	} else {
-		c.vfo = vfo
+		c.vfos[id] = vfo
 	}
 	vfo.Notify(c)
 }
@@ -447,21 +450,22 @@ func (c *Controller) Enter(text string) {
 
 func (c *Controller) frequencyEntered(frequency core.Frequency) {
 	// log.Printf("Frequency selected: %s", frequency)
-	c.vfo.SetFrequency(frequency)
+	c.vfos[core.VFO1].SetFrequency(frequency)
 }
 
 func (c *Controller) bandEntered(band core.Band) {
 	c.input.band = band.String()
-	c.vfo.SetBand(band)
+	c.vfos[core.VFO1].SetBand(band)
 }
 
 func (c *Controller) SetXITActive(active bool) {
-	c.vfo.SetXITActive(active)
+	c.vfos[core.VFO1].SetXITActive(active)
 	c.view.SetActiveField(c.activeField)
 }
 
 func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
 	if vfo != core.VFO1 {
+		log.Printf("VFO %s: frequency changed: %s", c.vfos[vfo].Name(), frequency.String())
 		return
 	}
 	if c.editing {
@@ -486,13 +490,14 @@ func (c *Controller) bandSelected(s string) {
 	if band, err := parse.Band(s); err == nil {
 		// log.Printf("Band selected: %v", band)
 		c.selectedBand = band
-		c.vfo.SetBand(band)
+		c.vfos[core.VFO1].SetBand(band)
 		c.enterCallsign(c.input.callsign)
 	}
 }
 
 func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
 	if vfo != core.VFO1 {
+		log.Printf("VFO %s: band changed: %s", c.vfos[vfo].Name(), band)
 		return
 	}
 	if c.editing {
@@ -511,7 +516,7 @@ func (c *Controller) modeSelected(s string) {
 		log.Printf("Mode selected: %v", mode)
 		c.selectedMode = mode
 
-		c.vfo.SetMode(mode)
+		c.vfos[core.VFO1].SetMode(mode)
 		if c.generateReport {
 			c.generateReportForMode(mode)
 		}
@@ -548,6 +553,7 @@ func defaultReportForMode(mode core.Mode) string {
 
 func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 	if vfo != core.VFO1 {
+		log.Printf("VFO %s: mode changed: %s", c.vfos[vfo].Name(), mode)
 		return
 	}
 	if c.editing {
@@ -563,6 +569,7 @@ func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 
 func (c *Controller) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
 	if vfo != core.VFO1 {
+		log.Printf("VFO %s: XIT changed: %t %s", c.vfos[vfo].Name(), active, offset.String())
 		return
 	}
 	c.view.SetXIT(active, offset)
@@ -574,6 +581,7 @@ func (c *Controller) XITActiveChanged(active bool) {
 
 func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
 	if vfo != core.VFO1 {
+		log.Printf("VFO %s: PTT changed: %t", c.vfos[vfo].Name(), active)
 		return
 	}
 	c.ptt = active
@@ -904,7 +912,7 @@ func (c *Controller) Clear() {
 	c.editing = false
 	c.editQSO = core.QSO{}
 
-	c.vfo.Refresh()
+	c.vfos[core.VFO1].Refresh()
 
 	nextNumber := c.logbook.NextQSONumber()
 	c.activeField = core.CallsignField

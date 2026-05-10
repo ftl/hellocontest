@@ -74,7 +74,7 @@ type Controller struct {
 	callHistoryFinder *callhistory.Finder
 	hamDXMap          *hamdxmap.HamDXMap
 
-	VFO                      *vfo.VFO
+	VFOs                     []*vfo.VFO
 	Logbook                  *logbook.Logbook
 	QSOList                  *logbook.QSOList
 	QTCList                  *logbook.QTCList
@@ -206,17 +206,20 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Entry)
 	c.QSOList.Notify(c.Workmode)
 
-	c.VFO = vfo.NewVFO(core.VFO1, "VFO 1", c.bandplan, c.Logbook, c.asyncRunner)
-	c.Entry.SetVFO(c.VFO)
-	c.VFO.Notify(c.Bandmap)
-	c.Bandmap.SetVFO(c.VFO)
-	c.Logbook.Notify(c.VFO)
-	c.Workmode.Notify(c.VFO)
-
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
 	c.Radio.Notify(c.ServiceStatus)
 	c.Bandmap.Notify(c.Radio) // TODO implement Entry... in radio.Controller
-	c.VFO.SetClient(c.Radio)
+
+	c.VFOs = make([]*vfo.VFO, core.VFOCount)
+	for vfoID := range len(c.VFOs) {
+		v := vfo.NewVFO(core.VFOID(vfoID), fmt.Sprintf("VFO %d", vfoID+1), c.bandplan, c.Logbook, c.asyncRunner)
+		v.SetClient(c.Radio)
+		c.VFOs[vfoID] = v
+		c.Entry.SetVFO(core.VFOID(vfoID), v)
+		c.Logbook.Notify(v)
+	}
+	c.Bandmap.SetVFO(c.VFOs[core.VFO1])
+	c.Workmode.Notify(c.VFOs[core.VFO1])
 
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
 	c.Radio.SelectRadio(c.session.Radio1())
@@ -243,7 +246,7 @@ func (c *Controller) Startup() {
 	}
 
 	c.QTCController = qtc.NewController(c.clock, c, c.Logbook, c.QTCList, c.Entry, c.Keyer)
-	c.VFO.Notify(c.QTCController)
+	c.VFOs[core.VFO1].Notify(c.QTCController)
 
 	c.Rate = rate.NewCounter(c.clock, c.asyncRunner)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
@@ -852,11 +855,11 @@ func (c *Controller) RequestQTC() {
 }
 
 func (c *Controller) XITActive() bool {
-	return c.VFO.XITActive()
+	return c.VFOs[core.VFO1].XITActive()
 }
 
 func (c *Controller) SetXITActive(active bool) {
-	c.VFO.SetXITActive(active)
+	c.VFOs[core.VFO1].SetXITActive(active)
 }
 
 func (c *Controller) MarkInBandmap() {

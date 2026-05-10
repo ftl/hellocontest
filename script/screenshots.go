@@ -484,7 +484,7 @@ func parseQSOCSV() []qsoData {
 func enterQSOData(r *Runtime, qso qsoData) {
 	r.UI(r.App.Entry.Clear)
 	r.Clock.SetMinute(qso.minute)
-	r.App.VFO.SetFrequency(qso.frequency)
+	r.App.VFOs[core.VFO1].SetFrequency(qso.frequency)
 	time.Sleep(100 * time.Millisecond)
 	r.UI(func() {
 		r.App.Workmode.SetWorkmode(qso.workmode)

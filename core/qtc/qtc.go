@@ -147,15 +147,24 @@ func (c *Controller) clearErrorMessage() {
 	c.view.ClearFieldError()
 }
 
-func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
+func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+	if vfo != core.VFO1 {
+		return
+	}
 	c.vfoFrequency = frequency
 }
 
-func (c *Controller) VFOBandChanged(band core.Band) {
+func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
+	if vfo != core.VFO1 {
+		return
+	}
 	c.vfoBand = band
 }
 
-func (c *Controller) VFOModeChanged(mode core.Mode) {
+func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
+	if vfo != core.VFO1 {
+		return
+	}
 	c.vfoMode = mode
 }
 

@@ -233,14 +233,20 @@ func (m *Bandmap) ScoreChanged(_ core.Score) {
 	}
 }
 
-func (m *Bandmap) VFOFrequencyChanged(frequency core.Frequency) {
+func (m *Bandmap) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+	if vfo != core.VFO1 {
+		return
+	}
 	m.do <- func() {
 		m.activeFrequency = frequency
 		// the frame is not updated with every frequency change, this creates too much load
 	}
 }
 
-func (m *Bandmap) VFOBandChanged(band core.Band) {
+func (m *Bandmap) VFOBandChanged(vfo core.VFOID, band core.Band) {
+	if vfo != core.VFO1 {
+		return
+	}
 	m.do <- func() {
 		if band == m.activeBand {
 			return
@@ -254,7 +260,10 @@ func (m *Bandmap) VFOBandChanged(band core.Band) {
 	}
 }
 
-func (m *Bandmap) VFOModeChanged(mode core.Mode) {
+func (m *Bandmap) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
+	if vfo != core.VFO1 {
+		return
+	}
 	m.do <- func() {
 		if m.activeMode == mode {
 			return

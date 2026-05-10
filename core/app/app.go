@@ -206,7 +206,7 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Entry)
 	c.QSOList.Notify(c.Workmode)
 
-	c.VFO = vfo.NewVFO("VFO 1", c.bandplan, c.Logbook, c.asyncRunner)
+	c.VFO = vfo.NewVFO(core.VFO1, "VFO 1", c.bandplan, c.Logbook, c.asyncRunner)
 	c.Entry.SetVFO(c.VFO)
 	c.VFO.Notify(c.Bandmap)
 	c.Bandmap.SetVFO(c.VFO)

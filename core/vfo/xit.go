@@ -52,7 +52,10 @@ func (x *XITControl) activateOnVFO() {
 	x.vfo.SetXIT(x.activeOnVFO, x.offset)
 }
 
-func (x *XITControl) VFOXITChanged(active bool, offset core.Frequency) {
+func (x *XITControl) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
+	if vfo != x.vfo.ID {
+		return
+	}
 	x.activeOnVFO = active
 	x.offset = offset
 

@@ -1700,23 +1700,23 @@ type CurrentVFOListener interface {
 }
 
 type VFOFrequencyListener interface {
-	VFOFrequencyChanged(Frequency)
+	VFOFrequencyChanged(VFOID, Frequency)
 }
 
 type VFOBandListener interface {
-	VFOBandChanged(Band)
+	VFOBandChanged(VFOID, Band)
 }
 
 type VFOModeListener interface {
-	VFOModeChanged(Mode)
+	VFOModeChanged(VFOID, Mode)
 }
 
 type VFOXITListener interface {
-	VFOXITChanged(bool, Frequency)
+	VFOXITChanged(VFOID, bool, Frequency)
 }
 
 type VFOPTTListener interface {
-	VFOPTTChanged(bool)
+	VFOPTTChanged(VFOID, bool)
 }
 
 type Service int

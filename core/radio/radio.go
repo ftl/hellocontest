@@ -205,11 +205,13 @@ func (c *Controller) SelectRadio(name string) error {
 	}
 	c.activeRadio.Notify(connectionChangedFunc(c.onRadioConnectionChanged))
 	c.emitRadioSelected(config.Name)
+	c.onRadioConnectionChanged(c.activeRadio.IsConnected())
 
 	if c.radioAsKeyer {
 		c.activeKeyer = c.activeRadio
 		c.activeKeyerName = core.RadioKeyer
 		c.emitKeyerSelected(core.RadioKeyer)
+		c.onKeyerConnectionChanged(c.activeKeyer.IsConnected())
 		return nil
 	}
 	return c.SelectKeyer(config.Keyer)

@@ -3,6 +3,7 @@ package hamlib
 import (
 	"log"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/ftl/hamradio"
@@ -10,6 +11,10 @@ import (
 	"github.com/ftl/hl-go"
 
 	"github.com/ftl/hellocontest/core"
+)
+
+const (
+	doBufferSize = 10
 )
 
 type Client struct {
@@ -24,6 +29,7 @@ type Client struct {
 	requestTimeout  time.Duration
 	do              chan func()
 	done            chan struct{}
+	loopRunning     *atomic.Bool
 	loopStopped     chan struct{}
 
 	currentVFO hl.VFO
@@ -52,8 +58,9 @@ func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client 
 		vfos:            vfos,
 		pollingInterval: 500 * time.Millisecond,
 		requestTimeout:  500 * time.Millisecond,
-		do:              make(chan func()),
+		do:              make(chan func(), doBufferSize),
 		done:            make(chan struct{}),
+		loopRunning:     new(atomic.Bool),
 		loopStopped:     make(chan struct{}),
 		currentVFO:      hl.CurrVFO,
 		singleVFO:       singleVFO,
@@ -108,6 +115,8 @@ func (c *Client) toVFOID(vfo hl.VFO) (core.VFOID, bool) {
 func (c *Client) run() {
 	go func() {
 		defer close(c.loopStopped)
+		defer c.loopRunning.Store(false)
+		c.loopRunning.Store(true)
 		currentState := make([]vfoState, core.VFOCount)
 		for {
 			currentVFO, currentState, err := c.poll(currentState)
@@ -172,6 +181,7 @@ func (c *Client) pollSingleVFO(vfo hl.VFO) (vfoState, error) {
 	return result, nil
 }
 
+// pollDualVFO must only be called from the run goroutine!
 func (c *Client) pollDualVFO(state []vfoState) (hl.VFO, []vfoState, error) {
 	rigInfo, err := c.client.GetRigInfo()
 	if err != nil {
@@ -251,10 +261,9 @@ func (c *Client) pollVFOAdditional(vfo hl.VFO, state vfoState) vfoState {
 }
 
 func (c *Client) doInLoop(f func()) {
-	select {
-	case <-c.done:
+	loopRunning := c.loopRunning.Load()
+	if !loopRunning {
 		return
-	default:
 	}
 	c.do <- f
 }
@@ -272,7 +281,7 @@ func (c *Client) Connect() error {
 
 func (c *Client) connectAndRun(automaticReconnect bool) error {
 	err := c.client.Open(automaticReconnect)
-	if err != nil {
+	if err != nil && !automaticReconnect {
 		return err
 	}
 	c.run()

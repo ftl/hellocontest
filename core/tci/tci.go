@@ -83,44 +83,34 @@ func (c *Client) emitConnectionChanged(connected bool) {
 	}
 }
 
-func (c *Client) emitFrequencyChanged(f core.Frequency) {
-	for _, listener := range c.listeners {
-		if frequencyListener, ok := listener.(core.VFOFrequencyListener); ok {
-			frequencyListener.VFOFrequencyChanged(f)
-		}
-	}
+func (c *Client) emitFrequencyChanged(frequency core.Frequency) {
+	core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
+		listener.VFOFrequencyChanged(core.VFO1, frequency)
+	})
 }
 
-func (c *Client) emitBandChanged(b core.Band) {
-	for _, listener := range c.listeners {
-		if bandListener, ok := listener.(core.VFOBandListener); ok {
-			bandListener.VFOBandChanged(b)
-		}
-	}
+func (c *Client) emitBandChanged(band core.Band) {
+	core.Emit(c.listeners, func(listener core.VFOBandListener) {
+		listener.VFOBandChanged(core.VFO1, band)
+	})
 }
 
-func (c *Client) emitModeChanged(m core.Mode) {
-	for _, listener := range c.listeners {
-		if modeListener, ok := listener.(core.VFOModeListener); ok {
-			modeListener.VFOModeChanged(m)
-		}
-	}
+func (c *Client) emitModeChanged(mode core.Mode) {
+	core.Emit(c.listeners, func(listener core.VFOModeListener) {
+		listener.VFOModeChanged(core.VFO1, mode)
+	})
 }
 
 func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
-	for _, listener := range c.listeners {
-		if xitListener, ok := listener.(core.VFOXITListener); ok {
-			xitListener.VFOXITChanged(active, offset)
-		}
-	}
+	core.Emit(c.listeners, func(listener core.VFOXITListener) {
+		listener.VFOXITChanged(core.VFO1, active, offset)
+	})
 }
 
 func (c *Client) emitPTTChanged(active bool) {
-	for _, listener := range c.listeners {
-		if xitListener, ok := listener.(core.VFOPTTListener); ok {
-			xitListener.VFOPTTChanged(active)
-		}
-	}
+	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
+		listener.VFOPTTChanged(core.VFO1, active)
+	})
 }
 
 func (c *Client) Speed(wpm int) {

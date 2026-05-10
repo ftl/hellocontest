@@ -460,7 +460,10 @@ func (c *Controller) SetXITActive(active bool) {
 	c.view.SetActiveField(c.activeField)
 }
 
-func (c *Controller) VFOFrequencyChanged(frequency core.Frequency) {
+func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+	if vfo != core.VFO1 {
+		return
+	}
 	if c.editing {
 		return
 	}
@@ -488,7 +491,10 @@ func (c *Controller) bandSelected(s string) {
 	}
 }
 
-func (c *Controller) VFOBandChanged(band core.Band) {
+func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
+	if vfo != core.VFO1 {
+		return
+	}
 	if c.editing {
 		return
 	}
@@ -540,7 +546,10 @@ func defaultReportForMode(mode core.Mode) string {
 	}
 }
 
-func (c *Controller) VFOModeChanged(mode core.Mode) {
+func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
+	if vfo != core.VFO1 {
+		return
+	}
 	if c.editing {
 		return
 	}
@@ -552,7 +561,10 @@ func (c *Controller) VFOModeChanged(mode core.Mode) {
 	c.view.SetMode(c.input.mode)
 }
 
-func (c *Controller) VFOXITChanged(active bool, offset core.Frequency) {
+func (c *Controller) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
+	if vfo != core.VFO1 {
+		return
+	}
 	c.view.SetXIT(active, offset)
 }
 
@@ -560,7 +572,10 @@ func (c *Controller) XITActiveChanged(active bool) {
 	c.view.SetXITActive(active)
 }
 
-func (c *Controller) VFOPTTChanged(active bool) {
+func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
+	if vfo != core.VFO1 {
+		return
+	}
 	c.ptt = active
 	c.updateTXState()
 }

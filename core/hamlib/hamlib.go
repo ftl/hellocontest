@@ -205,22 +205,22 @@ func (c *Client) pollDualVFO(state []vfoState) (hl.VFO, []vfoState, error) {
 		state[vfoID] = vfoState
 	}
 
-	var vfoID core.VFOID
-	var idOK bool
+	var currentVFOID core.VFOID
+	var currentVFOOK bool
 	currentVFO, err := c.client.GetVFO()
 	if err != nil {
 		// GetVFO is not supported on every radio, fallback to VFO1
 		// log.Printf("hamlib: get_vfo not supported, using VFO %s", c.currentVFO)
 		currentVFO = c.currentVFO
-		vfoID = core.VFO1
-		idOK = true
+		currentVFOID = core.VFO1
+		currentVFOOK = true
 	} else {
-		vfoID, idOK = c.toVFOID(currentVFO)
+		currentVFOID, currentVFOOK = c.toVFOID(currentVFO)
 	}
-	if idOK {
-		vfoState := state[vfoID]
+	if currentVFOOK {
+		vfoState := state[currentVFOID]
 		vfoState = c.pollVFOAdditional(vfoState.vfo, vfoState)
-		state[vfoID] = vfoState
+		state[currentVFOID] = vfoState
 	}
 
 	return currentVFO, state, nil
@@ -448,56 +448,52 @@ func (c *Client) emitCurrentVFOChanged(last, current hl.VFO) {
 }
 
 func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState) {
-	// TODO: add the VFOID to the VFO-related events
-	if vfo != core.VFO1 {
-		return
-	}
 	go func() {
 		if last.frequency != current.frequency {
-			c.emitFrequencyChanged(current.frequency)
+			c.emitFrequencyChanged(vfo, current.frequency)
 		}
 		if last.band != current.band {
-			c.emitBandChanged(current.band)
+			c.emitBandChanged(vfo, current.band)
 		}
 		if last.mode != current.mode {
-			c.emitModeChanged(current.mode)
+			c.emitModeChanged(vfo, current.mode)
 		}
 		if (last.xitActive != current.xitActive) || (current.xitActive && (last.xitOffset != current.xitOffset)) {
-			c.emitXITChanged(current.xitActive, current.xitOffset)
+			c.emitXITChanged(vfo, current.xitActive, current.xitOffset)
 		}
 		if last.ptt != current.ptt {
-			c.emitPTTChanged(current.ptt)
+			c.emitPTTChanged(vfo, current.ptt)
 		}
 	}()
 }
 
-func (c *Client) emitFrequencyChanged(frequency core.Frequency) {
+func (c *Client) emitFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
 	core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
-		listener.VFOFrequencyChanged(frequency)
+		listener.VFOFrequencyChanged(vfo, frequency)
 	})
 }
 
-func (c *Client) emitBandChanged(band core.Band) {
+func (c *Client) emitBandChanged(vfo core.VFOID, band core.Band) {
 	core.Emit(c.listeners, func(listener core.VFOBandListener) {
-		listener.VFOBandChanged(band)
+		listener.VFOBandChanged(vfo, band)
 	})
 }
 
-func (c *Client) emitModeChanged(mode core.Mode) {
+func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
 	core.Emit(c.listeners, func(listener core.VFOModeListener) {
-		listener.VFOModeChanged(mode)
+		listener.VFOModeChanged(vfo, mode)
 	})
 }
 
-func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
+func (c *Client) emitXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
 	core.Emit(c.listeners, func(listener core.VFOXITListener) {
-		listener.VFOXITChanged(active, offset)
+		listener.VFOXITChanged(vfo, active, offset)
 	})
 }
 
-func (c *Client) emitPTTChanged(active bool) {
+func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
 	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
-		listener.VFOPTTChanged(active)
+		listener.VFOPTTChanged(vfo, active)
 	})
 }
 

@@ -129,23 +129,23 @@ func (c *Client) Abort() {
 	}
 }
 
-func (c *Client) SetFrequency(frequency core.Frequency) {
-	err := c.client.SetVFOFrequency(c.trx.trx, client.VFOA, int(frequency))
+func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+	err := c.client.SetVFOFrequency(c.trx.trx, toTCIVFO(vfo), int(frequency))
 	if err != nil {
 		log.Printf("cannot set VFO frequency: %v", err)
 	}
 }
 
-func (c *Client) SetBand(band core.Band) {
+func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 	bandplanBand := c.bandplan[toBandplanBandName(band)]
 	frequency := findModePortionCenter(c.bandplan, int(bandplanBand.Center()), toBandplanMode(c.trx.mode))
-	err := c.client.SetVFOFrequency(c.trx.trx, client.VFOA, frequency)
+	err := c.client.SetVFOFrequency(c.trx.trx, toTCIVFO(vfo), frequency)
 	if err != nil {
 		log.Printf("cannot switch to band %s: %v", band, err)
 	}
 }
 
-func (c *Client) SetMode(mode core.Mode) {
+func (c *Client) SetMode(_ core.VFOID, mode core.Mode) {
 	err := c.client.SetMode(c.trx.trx, toClientMode(mode))
 	if err != nil {
 		log.Printf("cannot set mode: %v", err)
@@ -326,6 +326,13 @@ func (l *trxListener) SetTX(trx int, enable bool) {
 	l.ptt = enable
 	l.client.emitPTTChanged(l.ptt)
 	// log.Printf("incoming PTT %v", enable)
+}
+
+func toTCIVFO(vfo core.VFOID) client.VFO {
+	if vfo == core.VFO2 {
+		return client.VFOB
+	}
+	return client.VFOA
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

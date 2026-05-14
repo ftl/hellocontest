@@ -48,9 +48,9 @@ type radio interface {
 	keyer
 	Disconnect()
 	Active() bool
-	SetFrequency(core.Frequency)
-	SetBand(core.Band)
-	SetMode(core.Mode)
+	SetFrequency(core.VFOID, core.Frequency)
+	SetBand(core.VFOID, core.Band)
+	SetMode(core.VFOID, core.Mode)
 	SetXIT(bool, core.Frequency)
 	Refresh()
 	Notify(any)
@@ -273,25 +273,25 @@ func (c *Controller) Active() bool {
 	return c.activeRadio.Active()
 }
 
-func (c *Controller) SetFrequency(f core.Frequency) {
+func (c *Controller) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	if c.activeRadio == nil {
 		return
 	}
-	c.activeRadio.SetFrequency(f)
+	c.activeRadio.SetFrequency(vfo, frequency)
 }
 
-func (c *Controller) SetBand(b core.Band) {
+func (c *Controller) SetBand(vfo core.VFOID, band core.Band) {
 	if c.activeRadio == nil {
 		return
 	}
-	c.activeRadio.SetBand(b)
+	c.activeRadio.SetBand(vfo, band)
 }
 
-func (c *Controller) SetMode(m core.Mode) {
+func (c *Controller) SetMode(vfo core.VFOID, mode core.Mode) {
 	if c.activeRadio == nil {
 		return
 	}
-	c.activeRadio.SetMode(m)
+	c.activeRadio.SetMode(vfo, mode)
 }
 
 func (c *Controller) SetXIT(active bool, offset core.Frequency) {

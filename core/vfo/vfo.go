@@ -13,9 +13,9 @@ type Client interface {
 	Notify(any)
 	Active() bool
 	Refresh()
-	SetFrequency(core.Frequency)
-	SetBand(core.Band)
-	SetMode(core.Mode)
+	SetFrequency(core.VFOID, core.Frequency)
+	SetBand(core.VFOID, core.Band)
+	SetMode(core.VFOID, core.Mode)
 	SetXIT(bool, core.Frequency)
 }
 
@@ -88,7 +88,7 @@ func (v *VFO) Refresh() {
 
 func (v *VFO) SetFrequency(frequency core.Frequency) {
 	if v.online() {
-		v.client.SetFrequency(frequency)
+		v.client.SetFrequency(v.id, frequency)
 	} else {
 		v.offlineClient.SetFrequency(frequency)
 	}
@@ -96,7 +96,7 @@ func (v *VFO) SetFrequency(frequency core.Frequency) {
 
 func (v *VFO) SetBand(band core.Band) {
 	if v.online() {
-		v.client.SetBand(band)
+		v.client.SetBand(v.id, band)
 	} else {
 		v.offlineClient.SetBand(band)
 	}
@@ -104,7 +104,7 @@ func (v *VFO) SetBand(band core.Band) {
 
 func (v *VFO) SetMode(mode core.Mode) {
 	if v.online() {
-		v.client.SetMode(mode)
+		v.client.SetMode(v.id, mode)
 	} else {
 		v.offlineClient.SetMode(mode)
 	}

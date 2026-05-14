@@ -311,9 +311,7 @@ func (c *Client) Active() bool {
 	return c.IsConnected()
 }
 
-func (c *Client) SetFrequency(frequency core.Frequency) {
-	// TODO: add the VFOID to all VFO-related Setters
-	vfo := core.VFO1
+func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	c.doInLoop(func() {
 		err := c.client.SetFrequency(c.vfos[vfo], hl.Frequency(frequency))
 		if err != nil {
@@ -322,10 +320,7 @@ func (c *Client) SetFrequency(frequency core.Frequency) {
 	})
 }
 
-func (c *Client) SetBand(band core.Band) {
-	// TODO: add the VFOID to all VFO-related Setters
-	vfo := core.VFO1
-
+func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 	outgoingBand, ok := c.bandplan[toBandplanBandName(band)]
 	if !ok {
 		log.Printf("hamlib: unknown band %v", band)
@@ -342,9 +337,7 @@ func (c *Client) SetBand(band core.Band) {
 	})
 }
 
-func (c *Client) SetMode(mode core.Mode) {
-	// TODO: add the VFOID to all VFO-related Setters
-	vfo := core.VFO1
+func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
 	c.doInLoop(func() {
 		err := c.client.SetMode(c.vfos[vfo], toClientMode(mode), 0)
 		if err != nil {

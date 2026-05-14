@@ -45,8 +45,8 @@ type entryView struct {
 
 	vfo2Label             *qtlib.QLabel
 	vfo2FrequencyLabel    *qtlib.QLabel
-	vfo2BandLabel         *qtlib.QLabel
-	vfo2ModeLabel         *qtlib.QLabel
+	vfo2Band              *qtlib.QComboBox
+	vfo2Mode              *qtlib.QComboBox
 	vfo2XITIndicator      *qtlib.QLabel
 	vfo2TXIndicator       *qtlib.QLabel
 	vfo2BandModeContainer *qtlib.QWidget
@@ -138,14 +138,17 @@ func newEntryView() *entryView {
 	v.vfo2FrequencyLabel = qtlib.NewQLabel3("- kHz")
 	v.vfo2FrequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2FrequencyLabel"))
 	v.vfo2FrequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
+
 	v.vfo2BandModeContainer = qtlib.NewQWidget2()
 	vfo2BandModeLayout := qtlib.NewQHBoxLayout(v.vfo2BandModeContainer)
-	v.vfo2BandLabel = qtlib.NewQLabel3("- m")
-	v.vfo2BandLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2BandLabel"))
-	vfo2BandModeLayout.AddWidget2(v.vfo2BandLabel.QWidget, 1)
-	v.vfo2ModeLabel = qtlib.NewQLabel3("-")
-	v.vfo2ModeLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2ModeLabel"))
-	vfo2BandModeLayout.AddWidget2(v.vfo2ModeLabel.QWidget, 2)
+
+	v.vfo2Band = qtlib.NewQComboBox2()
+	v.vfo2Band.SetObjectName(*qtlib.NewQAnyStringView3("vfo2BandCombo"))
+	vfo2BandModeLayout.AddWidget2(v.vfo2Band.QWidget, 1)
+	v.vfo2Mode = qtlib.NewQComboBox2()
+	v.vfo2Mode.SetObjectName(*qtlib.NewQAnyStringView3("vfo2ModeCombo"))
+	vfo2BandModeLayout.AddWidget2(v.vfo2Mode.QWidget, 2)
+
 	v.vfo2XITIndicator = qtlib.NewQLabel3("XIT")
 	v.vfo2XITIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2XITIndicator"))
 	v.vfo2TXIndicator = qtlib.NewQLabel3("RX")
@@ -154,6 +157,8 @@ func newEntryView() *entryView {
 	// Initialize combos
 	SetupBandCombo(v.band)
 	SetupModeCombo(v.mode)
+	SetupBandCombo(v.vfo2Band)
+	SetupModeCombo(v.vfo2Mode)
 
 	// Connect signals for static widgets
 	v.connectEditSignals(v.callsign, core.CallsignField, true)
@@ -304,30 +309,40 @@ func (v *entryView) SetCallsign(text string) {
 }
 
 func (v *entryView) SetBand(vfo core.VFOID, text string) {
+	var combo *qtlib.QComboBox
 	switch vfo {
 	case core.VFO1:
-		v.ignoreInput = true
-		defer func() { v.ignoreInput = false }()
-		idx := v.band.FindText(text)
-		if idx >= 0 {
-			v.band.SetCurrentIndex(idx)
-		}
+		combo = v.band
 	case core.VFO2:
-		v.vfo2BandLabel.SetText(text)
+		combo = v.vfo2Band
+	default:
+		return
+	}
+
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	idx := combo.FindText(text)
+	if idx >= 0 {
+		combo.SetCurrentIndex(idx)
 	}
 }
 
 func (v *entryView) SetMode(vfo core.VFOID, text string) {
+	var combo *qtlib.QComboBox
 	switch vfo {
 	case core.VFO1:
-		v.ignoreInput = true
-		defer func() { v.ignoreInput = false }()
-		idx := v.mode.FindText(text)
-		if idx >= 0 {
-			v.mode.SetCurrentIndex(idx)
-		}
+		combo = v.mode
 	case core.VFO2:
-		v.vfo2ModeLabel.SetText(text)
+		combo = v.vfo2Mode
+	default:
+		return
+	}
+
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	idx := combo.FindText(text)
+	if idx >= 0 {
+		combo.SetCurrentIndex(idx)
 	}
 }
 

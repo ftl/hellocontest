@@ -24,15 +24,15 @@ func TestEntryController_Clear(t *testing.T) {
 
 	controller.Clear()
 
-	assert.Equal(t, "599", controller.input.myReport, "my report")
-	assert.Equal(t, "001", controller.input.myNumber, "my number")
-	assert.Equal(t, []string{"599", "001", ""}, controller.input.myExchange, "my exchange")
-	assert.Equal(t, "", controller.input.callsign, "callsign")
-	assert.Equal(t, "599", controller.input.theirReport, "their report")
-	assert.Equal(t, "", controller.input.theirNumber, "their number")
-	assert.Equal(t, []string{"599", "", ""}, controller.input.theirExchange, "their exchange")
-	assert.Equal(t, "160m", controller.input.band, "band")
-	assert.Equal(t, "CW", controller.input.mode, "mode")
+	assert.Equal(t, "599", controller.input[controller.focusedVFO].myReport, "my report")
+	assert.Equal(t, "001", controller.input[controller.focusedVFO].myNumber, "my number")
+	assert.Equal(t, []string{"599", "001", ""}, controller.input[controller.focusedVFO].myExchange, "my exchange")
+	assert.Equal(t, "", controller.input[controller.focusedVFO].callsign, "callsign")
+	assert.Equal(t, "599", controller.input[controller.focusedVFO].theirReport, "their report")
+	assert.Equal(t, "", controller.input[controller.focusedVFO].theirNumber, "their number")
+	assert.Equal(t, []string{"599", "", ""}, controller.input[controller.focusedVFO].theirExchange, "their exchange")
+	assert.Equal(t, "160m", controller.input[controller.focusedVFO].band, "band")
+	assert.Equal(t, "CW", controller.input[controller.focusedVFO].mode, "mode")
 }
 
 func TestEntryController_ClearView(t *testing.T) {
@@ -199,7 +199,7 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
 
-	assert.Equal(t, "DL1ABC", controller.input.callsign)
+	assert.Equal(t, "DL1ABC", controller.input[controller.focusedVFO].callsign)
 
 	log.AssertExpectations(t)
 	view.AssertExpectations(t)
@@ -248,7 +248,7 @@ func TestEntryController_EnterFrequency(t *testing.T) {
 	controller.Enter("7028")
 	controller.EnterPressed()
 
-	assert.Equal(t, "", controller.input.callsign)
+	assert.Equal(t, "", controller.input[controller.focusedVFO].callsign)
 
 	view.AssertExpectations(t)
 }
@@ -652,17 +652,17 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 }
 
 func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
-	assert.Equal(t, qso.Callsign.String(), controller.input.callsign, "callsign")
-	assert.Equal(t, qso.TheirReport.String(), controller.input.theirReport, "their report")
-	assert.Equal(t, qso.TheirNumber.String(), controller.input.theirNumber, "their number")
-	assert.Equal(t, qso.TheirExchange, controller.input.theirExchange, "their exchange")
-	assert.Equal(t, qso.MyReport.String(), controller.input.myReport, "my report")
-	assert.Equal(t, qso.MyNumber.String(), controller.input.myNumber, "my number")
-	assert.Equal(t, qso.MyExchange, controller.input.myExchange, "my exchange")
-	assert.Equal(t, qso.Band.String(), controller.input.band, "input band")
-	assert.Equal(t, qso.Band, controller.selectedBand, "selected band")
-	assert.Equal(t, qso.Mode.String(), controller.input.mode, "input mode")
-	assert.Equal(t, qso.Mode, controller.selectedMode, "selected mode")
+	assert.Equal(t, qso.Callsign.String(), controller.input[controller.focusedVFO].callsign, "callsign")
+	assert.Equal(t, qso.TheirReport.String(), controller.input[controller.focusedVFO].theirReport, "their report")
+	assert.Equal(t, qso.TheirNumber.String(), controller.input[controller.focusedVFO].theirNumber, "their number")
+	assert.Equal(t, qso.TheirExchange, controller.input[controller.focusedVFO].theirExchange, "their exchange")
+	assert.Equal(t, qso.MyReport.String(), controller.input[controller.focusedVFO].myReport, "my report")
+	assert.Equal(t, qso.MyNumber.String(), controller.input[controller.focusedVFO].myNumber, "my number")
+	assert.Equal(t, qso.MyExchange, controller.input[controller.focusedVFO].myExchange, "my exchange")
+	assert.Equal(t, qso.Band.String(), controller.input[controller.focusedVFO].band, "input band")
+	assert.Equal(t, qso.Band, controller.selectedBand[controller.focusedVFO], "selected band")
+	assert.Equal(t, qso.Mode.String(), controller.input[controller.focusedVFO].mode, "input mode")
+	assert.Equal(t, qso.Mode, controller.selectedMode[controller.focusedVFO], "selected mode")
 }
 
 type testSettings struct {

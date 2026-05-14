@@ -82,10 +82,10 @@ func (c *Controller) updateESM() {
 func (c *Controller) currentESMState() core.ESMState {
 	switch {
 	case c.activeField == core.CallsignField:
-		if c.input.callsign == "" {
+		if c.input[c.focusedVFO].callsign == "" {
 			return core.ESMCallsignEmpty
 		}
-		_, err := core.ParseCallsign(c.input.callsign)
+		_, err := core.ParseCallsign(c.input[c.focusedVFO].callsign)
 		if err != nil {
 			return core.ESMCallsignInvalid
 		}
@@ -103,7 +103,7 @@ func (c *Controller) currentESMState() core.ESMState {
 func (c *Controller) updateSPMessage() string {
 	switch c.esmState {
 	case core.ESMCallsignEmpty, core.ESMCallsignInvalid:
-		return callsignRequest(c.input.callsign)
+		return callsignRequest(c.input[c.focusedVFO].callsign)
 	case core.ESMCallsignValid:
 		return c.getKeyerText(0)
 	case core.ESMExchangeInvalid:
@@ -120,7 +120,7 @@ func (c *Controller) updateRunMessage() string {
 	case core.ESMCallsignEmpty:
 		return c.getKeyerText(0)
 	case core.ESMCallsignInvalid:
-		return callsignRequest(c.input.callsign)
+		return callsignRequest(c.input[c.focusedVFO].callsign)
 	case core.ESMCallsignValid:
 		return c.getKeyerText(1)
 	case core.ESMExchangeInvalid:

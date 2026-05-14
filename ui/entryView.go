@@ -16,6 +16,7 @@ const parrot = "🦜"
 type EntryController interface {
 	GotoNextField() core.EntryField
 	GotoNextPlaceholder()
+	SetFocusedVFO(core.VFOID)
 	SetActiveField(core.EntryField)
 
 	Enter(string)
@@ -161,9 +162,11 @@ func newEntryView() *entryView {
 	SetupModeCombo(v.vfo2Mode)
 
 	// Connect signals for static widgets
-	v.connectEditSignals(v.callsign, core.CallsignField, true)
-	v.connectComboSignals(v.band, core.BandField)
-	v.connectComboSignals(v.mode, core.ModeField)
+	v.connectEditSignals(v.callsign, core.VFO1, core.CallsignField, true)
+	v.connectComboSignals(v.band, core.VFO1, core.BandField)
+	v.connectComboSignals(v.mode, core.VFO1, core.ModeField)
+	v.connectComboSignals(v.vfo2Band, core.VFO2, core.BandField)
+	v.connectComboSignals(v.vfo2Mode, core.VFO2, core.ModeField)
 
 	// Connect button/checkbox signals
 	v.logButton.OnClicked(func() {
@@ -191,17 +194,19 @@ func (v *entryView) setRootWidget(root *qtlib.QWidget) {
 	v.root.SetObjectName(*qtlib.NewQAnyStringView3("entryWidget"))
 }
 
-func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, field core.EntryField) {
+func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, vfo core.VFOID, field core.EntryField) {
 	combo.OnCurrentTextChanged(func(text string) {
 		if v.controller == nil || v.ignoreInput {
 			return
 		}
+		v.controller.SetFocusedVFO(vfo)
 		v.controller.SetActiveField(field)
 		v.controller.Enter(text)
 	})
 	combo.OnFocusInEvent(func(super func(ev *qtlib.QFocusEvent), ev *qtlib.QFocusEvent) {
 		super(ev)
 		if v.controller != nil {
+			v.controller.SetFocusedVFO(vfo)
 			v.controller.SetActiveField(field)
 		}
 	})
@@ -210,7 +215,7 @@ func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, field core.Entry
 	})
 }
 
-func (v *entryView) connectEditSignals(edit *qtlib.QLineEdit, field core.EntryField, isTheirRow bool) {
+func (v *entryView) connectEditSignals(edit *qtlib.QLineEdit, vfo core.VFOID, field core.EntryField, isTheirRow bool) {
 	edit.OnTextChanged(func(text string) {
 		if v.controller == nil || v.ignoreInput {
 			return
@@ -221,6 +226,7 @@ func (v *entryView) connectEditSignals(edit *qtlib.QLineEdit, field core.EntryFi
 		super(ev)
 		edit.SelectAll()
 		if v.controller != nil {
+			v.controller.SetFocusedVFO(vfo)
 			v.controller.SetActiveField(field)
 		}
 	})
@@ -445,7 +451,7 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 			editField.SetStyleSheet(v.theirEntryStyle)
 		}
 
-		v.connectEditSignals(editField, core.TheirExchangeField(i+1), isTheirRow)
+		v.connectEditSignals(editField, core.VFO1, core.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
 	}
 }

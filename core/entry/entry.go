@@ -445,7 +445,6 @@ func (c *Controller) Enter(text string) {
 		c.input[c.focusedVFO].callsign = text
 		c.enterCallsign(text)
 	case core.BandField:
-		log.Printf("ENTERING BAND: %s %d", text, c.focusedVFO)
 		c.input[c.focusedVFO].band = text
 		c.bandSelected(text)
 	case core.ModeField:

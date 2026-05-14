@@ -73,14 +73,9 @@ func (c *Client) Notify(listener any) {
 }
 
 func (c *Client) emitConnectionChanged(connected bool) {
-	type listenerType interface {
-		ConnectionChanged(bool)
-	}
-	for _, listener := range c.listeners {
-		if typedListener, ok := listener.(listenerType); ok {
-			typedListener.ConnectionChanged(connected)
-		}
-	}
+	core.Emit(c.listeners, func(listener core.ConnectionChangedListener) {
+		listener.ConnectionChanged(connected)
+	})
 }
 
 func (c *Client) emitFrequencyChanged(frequency core.Frequency) {

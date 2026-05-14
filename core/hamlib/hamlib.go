@@ -420,10 +420,7 @@ func (c *Client) Notify(listener any) {
 }
 
 func (c *Client) emitConnectionChanged(connected bool) {
-	type listenerType interface {
-		ConnectionChanged(bool)
-	}
-	core.Emit(c.listeners, func(listener listenerType) {
+	core.Emit(c.listeners, func(listener core.ConnectionChangedListener) {
 		listener.ConnectionChanged(connected)
 	})
 }

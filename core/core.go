@@ -1720,6 +1720,16 @@ type VFOPTTListener interface {
 	VFOPTTChanged(VFOID, bool)
 }
 
+type ConnectionChangedListener interface {
+	ConnectionChanged(bool)
+}
+
+type ConnectionChangedFunc func(bool)
+
+func (f ConnectionChangedFunc) ConnectionChanged(connected bool) {
+	f(connected)
+}
+
 type Service int
 
 const (

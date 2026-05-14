@@ -203,7 +203,7 @@ func (c *Controller) SelectRadio(name string) error {
 	for _, listener := range c.listeners {
 		c.activeRadio.Notify(listener)
 	}
-	c.activeRadio.Notify(connectionChangedFunc(c.onRadioConnectionChanged))
+	c.activeRadio.Notify(core.ConnectionChangedFunc(c.onRadioConnectionChanged))
 	c.emitRadioSelected(config.Name)
 	c.onRadioConnectionChanged(c.activeRadio.IsConnected())
 
@@ -396,7 +396,7 @@ func (c *Controller) SelectKeyer(name string) error {
 		return fmt.Errorf("unknown keyer %q", name)
 	}
 
-	c.activeKeyer.Notify(connectionChangedFunc(c.onKeyerConnectionChanged))
+	c.activeKeyer.Notify(core.ConnectionChangedFunc(c.onKeyerConnectionChanged))
 	c.emitKeyerSelected(name)
 	c.emitKeyerStatusChanged(c.activeKeyer.IsConnected())
 
@@ -442,10 +442,4 @@ func (c *Controller) Abort() {
 
 func normalizeName(name string) string {
 	return strings.TrimSpace(strings.ToLower(name))
-}
-
-type connectionChangedFunc func(bool)
-
-func (f connectionChangedFunc) ConnectionChanged(connected bool) {
-	f(connected)
 }

@@ -203,7 +203,7 @@ func (c *Controller) SetView(view View) {
 
 func (c *Controller) LogbookLoaded() {
 	c.selectedBand[core.VFO1] = c.logbook.LastBand()
-	c.selectedMode[core.VFO2] = c.logbook.LastMode()
+	c.selectedMode[core.VFO1] = c.logbook.LastMode()
 	c.Clear()
 	c.showInput()
 }

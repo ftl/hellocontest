@@ -121,6 +121,7 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 	}
 	for vfo := range len(result.vfos) {
 		result.vfos[vfo] = new(nullVFO)
+		result.activeField[vfo] = core.CallsignField
 	}
 	result.refreshTicker = ticker.New(clock, result.refreshUTC)
 	result.updateExchangeFields(settings.Contest())
@@ -473,6 +474,7 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 	}
 	c.focusedVFO = vfo
 	c.vfoSwitcher.SetCurrentVFO(vfo)
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 
 // setFocusedVFOSilent updates focusedVFO without commanding the rig. Used by edit mode.

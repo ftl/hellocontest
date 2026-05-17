@@ -28,6 +28,13 @@ const (
 	ActionEntryWorkmodeRun       = "entry.workmode_run"
 	ActionEntryOfferQTC          = "entry.offer_qtc"
 	ActionEntryRequestQTC        = "entry.request_qtc"
+	ActionEntryToggleFocusedVFO  = "entry.toggle_focused_vfo"
+	ActionEntryFocusVFO1         = "entry.focus_vfo1"
+	ActionEntryFocusVFO2         = "entry.focus_vfo2"
+	ActionEntryLogVFO1           = "entry.log_vfo1"
+	ActionEntryLogVFO2           = "entry.log_vfo2"
+	ActionEntryClearVFO1         = "entry.clear_vfo1"
+	ActionEntryClearVFO2         = "entry.clear_vfo2"
 
 	ActionRadioXITActive = "radio.xit_active"
 

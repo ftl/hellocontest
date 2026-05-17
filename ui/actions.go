@@ -87,6 +87,9 @@ type actions struct {
 	sendMacro4Action      *qtlib.QAction
 	selectBestMatchAction *qtlib.QAction
 	nextESMStepAction     *qtlib.QAction
+	toggleVFOAction       *qtlib.QAction
+	focusVFO1Action       *qtlib.QAction
+	focusVFO2Action       *qtlib.QAction
 }
 
 func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings map[string]string) *actions {
@@ -168,6 +171,9 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.sendMacro4Action = a.makeTriggerAction(core.ActionKeyerSendMacro4, "Send Macro 4", "Send the keyer macro #4", "F4", func() { controller.Keyer.Send(3) })
 	a.selectBestMatchAction = a.makeTriggerAction(core.ActionEntrySelectBestMatch, "Select Best Match", "Select the best matching callsign", "Alt+Return", func() { controller.Entry.SelectBestMatchOnFrequency() })
 	a.nextESMStepAction = a.makeTriggerAction(core.ActionEntryNextESMStep, "Next ESM Step", "Execute the next ESM step", "", func() { controller.Entry.NextESMStep() })
+	a.toggleVFOAction = a.makeTriggerAction(core.ActionEntryToggleFocusedVFO, "Toggle Focused VFO", "Switch focus between VFO 1 and VFO 2", "F8", func() { controller.Entry.ToggleFocusedVFO() })
+	a.focusVFO1Action = a.makeTriggerAction(core.ActionEntryFocusVFO1, "Focus VFO 1", "Set the focused VFO to VFO 1", "F9", func() { controller.Entry.FocusVFO1() })
+	a.focusVFO2Action = a.makeTriggerAction(core.ActionEntryFocusVFO2, "Focus VFO 2", "Set the focused VFO to VFO 2", "F10", func() { controller.Entry.FocusVFO2() })
 	a.parent.AddActions([]*qtlib.QAction{
 		a.sendMacro1Action,
 		a.sendMacro2Action,
@@ -175,6 +181,9 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.sendMacro4Action,
 		a.selectBestMatchAction,
 		a.nextESMStepAction,
+		a.toggleVFOAction,
+		a.focusVFO1Action,
+		a.focusVFO2Action,
 	})
 
 	// setup initial action state from controller

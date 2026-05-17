@@ -208,6 +208,8 @@ func (c *Controller) Startup() {
 
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
 	c.Radio.Notify(c.ServiceStatus)
+	c.Radio.Notify(c.Entry)
+	c.Entry.SetVFOSwitcher(c.Radio)
 	c.Bandmap.Notify(c.Radio) // TODO implement Entry... in radio.Controller
 
 	c.VFOs = make([]*vfo.VFO, core.VFOCount)
@@ -957,6 +959,20 @@ func (c *Controller) DoAction(id string) error {
 		c.StartParrot()
 	case core.ActionEntryNextESMStep:
 		c.Entry.NextESMStep()
+	case core.ActionEntryToggleFocusedVFO:
+		c.Entry.ToggleFocusedVFO()
+	case core.ActionEntryFocusVFO1:
+		c.Entry.FocusVFO1()
+	case core.ActionEntryFocusVFO2:
+		c.Entry.FocusVFO2()
+	case core.ActionEntryLogVFO1:
+		c.Entry.LogVFO(core.VFO1)
+	case core.ActionEntryLogVFO2:
+		c.Entry.LogVFO(core.VFO2)
+	case core.ActionEntryClearVFO1:
+		c.Entry.ClearVFO(core.VFO1)
+	case core.ActionEntryClearVFO2:
+		c.Entry.ClearVFO(core.VFO2)
 	case core.ActionEntryOfferQTC:
 		c.OfferQTC()
 	case core.ActionEntryRequestQTC:

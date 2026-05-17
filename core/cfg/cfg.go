@@ -43,6 +43,9 @@ var Default = &Data{
 			Type:    "tci",
 			Address: "localhost:40001",
 			Keyer:   "radio",
+			Options: map[string]string{
+				"single_vfo": "false",
+			},
 		},
 	},
 	Keyers: []core.Keyer{
@@ -154,6 +157,13 @@ var Default = &Data{
 		"entry.workmode_run":              "Ctrl+R",
 		"entry.offer_qtc":                 "F5",
 		"entry.request_qtc":               "F6",
+		"entry.toggle_focused_vfo":        "F8",
+		"entry.focus_vfo1":                "F9",
+		"entry.focus_vfo2":                "F10",
+		"entry.log_vfo1":                  "",
+		"entry.log_vfo2":                  "",
+		"entry.clear_vfo1":                "",
+		"entry.clear_vfo2":                "",
 		"radio.xit_active":                "Ctrl+Shift+X",
 		"bandmap.mark":                    "Ctrl+M",
 		"bandmap.goto_highest_value_spot": "Ctrl+Shift+N",

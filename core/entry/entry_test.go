@@ -154,7 +154,7 @@ func _TestEntryController_UpdateExchangeFields(t *testing.T) {
 func _TestEntryController_GotoNextField(t *testing.T) {
 	_, _, _, view, controller, config := setupEntryTestWithExchangeFields(3)
 
-	assert.Equal(t, core.CallsignField, controller.activeField, "callsign should be active at start")
+	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO], "callsign should be active at start")
 
 	testCases := []struct {
 		active, next core.EntryField
@@ -179,7 +179,7 @@ func _TestEntryController_GotoNextField(t *testing.T) {
 			controller.SetActiveField(tc.active)
 			actual := controller.GotoNextField()
 			assert.Equal(t, tc.next, actual)
-			assert.Equal(t, tc.next, controller.activeField)
+			assert.Equal(t, tc.next, controller.activeField[controller.focusedVFO])
 		})
 	}
 
@@ -189,6 +189,7 @@ func _TestEntryController_GotoNextField(t *testing.T) {
 func TestEntryController_EnterNewCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	log.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
 
 	view.Activate()
@@ -222,6 +223,7 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	}
 
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	log.On("FindDuplicateQSOs", dl1abc, core.Band160m, core.ModeCW).Return([]core.QSO{qso}).Twice()
 
 	view.Activate()
@@ -302,12 +304,13 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 
 	log.AssertExpectations(t)
 	qsoList.AssertExpectations(t)
-	assert.Equal(t, core.CallsignField, controller.activeField)
+	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTest()
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 
 	view.Activate()
 	view.On("SetActiveField", core.CallsignField).Once()
@@ -318,7 +321,7 @@ func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.CallsignField, controller.activeField)
+	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
@@ -334,6 +337,7 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	controller.Enter("000")
 
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
 	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -342,7 +346,7 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirExchangeField(1), controller.activeField)
+	assert.Equal(t, core.TheirExchangeField(1), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
@@ -360,6 +364,7 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	controller.Enter("abc")
 
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
 	view.On("SetActiveField", core.TheirExchangeField(2)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -368,7 +373,7 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirExchangeField(2), controller.activeField)
+	assert.Equal(t, core.TheirExchangeField(2), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
@@ -384,6 +389,7 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	controller.Enter("559")
 
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
 	view.On("SetActiveField", core.TheirExchangeField(2)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -392,7 +398,7 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirExchangeField(2), controller.activeField)
+	assert.Equal(t, core.TheirExchangeField(2), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
@@ -414,6 +420,7 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	controller.Enter("abc")
 
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
 	view.On("SetActiveField", core.MyExchangeField(1)).Once()
 	view.On("ShowMessage", mock.Anything).Once()
@@ -422,12 +429,13 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.MyExchangeField(1), controller.activeField)
+	assert.Equal(t, core.MyExchangeField(1), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing.T) {
 	clock, log, _, view, controller, _ := setupEntryTest()
 	log.Activate()
+	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
 
 	dl1ab, _ := core.ParseCallsign("DL1AB")
@@ -515,7 +523,7 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 
 	log.AssertExpectations(t)
 	qsoList.AssertExpectations(t)
-	assert.Equal(t, core.CallsignField, controller.activeField)
+	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_SelectRowForEditing(t *testing.T) {
@@ -585,7 +593,7 @@ func TestEntryController_EditQSO(t *testing.T) {
 
 	log.Activate()
 	log.On("UpdateQSO", changedQSO).Once()
-	log.On("LastExchange").Return([]string{"599", "001", ""}).Times(2)
+	log.On("LastExchange").Return([]string{"599", "001", ""}).Maybe()
 	log.On("NextQSONumber").Return(core.QSONumber(35))
 	controller.EnterPressed()
 

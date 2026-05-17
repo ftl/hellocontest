@@ -29,7 +29,7 @@ func (c *Controller) SetESMView(esmView ESMView) {
 	log.Printf("setting esmView: %t", c.esmEnabled)
 	c.esmView = esmView
 	c.esmView.SetESMEnabled(c.esmEnabled)
-	c.esmView.SetMessage(c.esmMessage)
+	c.esmView.SetMessage(c.esmMessage[c.focusedVFO])
 }
 
 func (c *Controller) ESMEnabled() bool {
@@ -39,7 +39,7 @@ func (c *Controller) ESMEnabled() bool {
 func (c *Controller) SetESMEnabled(enabled bool) {
 	c.esmEnabled = enabled
 	c.esmView.SetESMEnabled(enabled)
-	c.view.SetActiveField(c.activeField)
+	c.view.SetActiveField(c.activeField[c.focusedVFO])
 	c.emitESMEnabled(enabled)
 }
 
@@ -52,36 +52,39 @@ func (c *Controller) emitESMEnabled(enabled bool) {
 }
 
 func (c *Controller) NextESMStep() {
+	if !c.canTransmit() {
+		return
+	}
 	c.updateESM()
-	c.keyer.SendText(c.esmMessage)
+	c.keyer.SendText(c.esmMessage[c.focusedVFO])
 	switch {
-	case c.esmState == core.ESMCallsignValid && c.workmode == core.Run:
+	case c.esmState[c.focusedVFO] == core.ESMCallsignValid && c.workmode == core.Run:
 		c.GotoNextField()
-		if c.activeField == c.theirReportExchangeField.Field {
+		if c.activeField[c.focusedVFO] == c.theirReportExchangeField.Field {
 			c.GotoNextField()
 		}
-	case c.esmState == core.ESMExchangeValid:
+	case c.esmState[c.focusedVFO] == core.ESMExchangeValid:
 		c.Log()
 	}
 }
 
 func (c *Controller) updateESM() {
-	c.esmState = c.currentESMState()
+	c.esmState[c.focusedVFO] = c.currentESMState()
 
 	switch c.workmode {
 	case core.SearchPounce:
-		c.esmMessage = c.updateSPMessage()
+		c.esmMessage[c.focusedVFO] = c.updateSPMessage()
 	case core.Run:
-		c.esmMessage = c.updateRunMessage()
+		c.esmMessage[c.focusedVFO] = c.updateRunMessage()
 	default:
-		c.esmMessage = ""
+		c.esmMessage[c.focusedVFO] = ""
 	}
-	c.esmView.SetMessage(c.esmMessage)
+	c.esmView.SetMessage(c.esmMessage[c.focusedVFO])
 }
 
 func (c *Controller) currentESMState() core.ESMState {
 	switch {
-	case c.activeField == core.CallsignField:
+	case c.activeField[c.focusedVFO] == core.CallsignField:
 		if c.input[c.focusedVFO].callsign == "" {
 			return core.ESMCallsignEmpty
 		}
@@ -90,7 +93,7 @@ func (c *Controller) currentESMState() core.ESMState {
 			return core.ESMCallsignInvalid
 		}
 		return core.ESMCallsignValid
-	case c.activeField.IsTheirExchange():
+	case c.activeField[c.focusedVFO].IsTheirExchange():
 		_, err := c.parseTheirExchange(nil, nil, nil)
 		if err != nil {
 			return core.ESMExchangeInvalid
@@ -101,7 +104,7 @@ func (c *Controller) currentESMState() core.ESMState {
 }
 
 func (c *Controller) updateSPMessage() string {
-	switch c.esmState {
+	switch c.esmState[c.focusedVFO] {
 	case core.ESMCallsignEmpty, core.ESMCallsignInvalid:
 		return callsignRequest(c.input[c.focusedVFO].callsign)
 	case core.ESMCallsignValid:
@@ -116,7 +119,7 @@ func (c *Controller) updateSPMessage() string {
 }
 
 func (c *Controller) updateRunMessage() string {
-	switch c.esmState {
+	switch c.esmState[c.focusedVFO] {
 	case core.ESMCallsignEmpty:
 		return c.getKeyerText(0)
 	case core.ESMCallsignInvalid:

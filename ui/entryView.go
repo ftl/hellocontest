@@ -30,6 +30,9 @@ type EntryController interface {
 	EnterPressed()
 	Log()
 	Clear()
+
+	LogVFO(core.VFOID)
+	ClearVFO(core.VFOID)
 }
 
 type entryView struct {
@@ -51,6 +54,12 @@ type entryView struct {
 	vfo2XITIndicator      *qtlib.QLabel
 	vfo2TXIndicator       *qtlib.QLabel
 	vfo2BandModeContainer *qtlib.QWidget
+
+	vfo2TheirLabel          *qtlib.QLabel
+	vfo2Callsign            *qtlib.QLineEdit
+	vfo2TheirExchangeFields []*qtlib.QLineEdit
+	vfo2LogButton           *qtlib.QPushButton
+	vfo2ClearButton         *qtlib.QPushButton
 
 	theirLabel        *qtlib.QLabel
 	callsign          *qtlib.QLineEdit
@@ -155,6 +164,19 @@ func newEntryView() *entryView {
 	v.vfo2TXIndicator = qtlib.NewQLabel3("RX")
 	v.vfo2TXIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2TXIndicator"))
 
+	// VFO2 input row: their label + callsign field + (later) their-exchange fields + log/clear
+	v.vfo2TheirLabel = qtlib.NewQLabel3("Their:")
+	v.vfo2Callsign = qtlib.NewQLineEdit2()
+	v.vfo2Callsign.SetObjectName(*qtlib.NewQAnyStringView3("vfo2CallsignEntry"))
+	v.vfo2Callsign.SetPlaceholderText("Call")
+	if v.theirEntryStyle != "" {
+		v.vfo2Callsign.SetStyleSheet(v.theirEntryStyle)
+	}
+	v.vfo2LogButton = qtlib.NewQPushButton3("Log")
+	v.vfo2LogButton.SetFocusPolicy(qtlib.NoFocus)
+	v.vfo2ClearButton = qtlib.NewQPushButton3("Clear")
+	v.vfo2ClearButton.SetFocusPolicy(qtlib.NoFocus)
+
 	// Initialize combos
 	SetupBandCombo(v.band)
 	SetupModeCombo(v.mode)
@@ -163,6 +185,7 @@ func newEntryView() *entryView {
 
 	// Connect signals for static widgets
 	v.connectEditSignals(v.callsign, core.VFO1, core.CallsignField, true)
+	v.connectEditSignals(v.vfo2Callsign, core.VFO2, core.CallsignField, true)
 	v.connectComboSignals(v.band, core.VFO1, core.BandField)
 	v.connectComboSignals(v.mode, core.VFO1, core.ModeField)
 	v.connectComboSignals(v.vfo2Band, core.VFO2, core.BandField)
@@ -171,12 +194,22 @@ func newEntryView() *entryView {
 	// Connect button/checkbox signals
 	v.logButton.OnClicked(func() {
 		if v.controller != nil {
-			v.controller.Log()
+			v.controller.LogVFO(core.VFO1)
 		}
 	})
 	v.clearButton.OnClicked(func() {
 		if v.controller != nil {
-			v.controller.Clear()
+			v.controller.ClearVFO(core.VFO1)
+		}
+	})
+	v.vfo2LogButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.LogVFO(core.VFO2)
+		}
+	})
+	v.vfo2ClearButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.ClearVFO(core.VFO2)
 		}
 	})
 	v.xit.OnStateChanged(func(state int) {
@@ -308,10 +341,17 @@ func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	}
 }
 
-func (v *entryView) SetCallsign(text string) {
+func (v *entryView) SetCallsign(vfo core.VFOID, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
-	v.callsign.SetText(text)
+	switch vfo {
+	case core.VFO1:
+		v.callsign.SetText(text)
+	case core.VFO2:
+		if v.vfo2Callsign != nil {
+			v.vfo2Callsign.SetText(text)
+		}
+	}
 }
 
 func (v *entryView) SetBand(vfo core.VFOID, text string) {
@@ -417,22 +457,32 @@ func (v *entryView) SetMyExchange(index int, text string) {
 	v.myExchangeFields[i].SetText(text)
 }
 
-func (v *entryView) SetTheirExchange(index int, text string) {
+func (v *entryView) SetTheirExchange(vfo core.VFOID, index int, text string) {
 	i := index - 1
-	if i < 0 || i >= len(v.theirExchangeFields) {
+	var fields []*qtlib.QLineEdit
+	switch vfo {
+	case core.VFO1:
+		fields = v.theirExchangeFields
+	case core.VFO2:
+		fields = v.vfo2TheirExchangeFields
+	default:
+		return
+	}
+	if i < 0 || i >= len(fields) {
 		return
 	}
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
-	v.theirExchangeFields[i].SetText(text)
+	fields[i].SetText(text)
 }
 
 func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
-	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false)
-	v.setExchangeFields(theirExchangeFields, &v.theirExchangeFields, true)
+	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false, core.VFO1)
+	v.setExchangeFields(theirExchangeFields, &v.theirExchangeFields, true, core.VFO1)
+	v.setExchangeFields(theirExchangeFields, &v.vfo2TheirExchangeFields, true, core.VFO2)
 }
 
-func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool) {
+func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool, vfo core.VFOID) {
 	// Remove old fields
 	for _, f := range *editFields {
 		f.SetParent(nil)
@@ -443,7 +493,11 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 	*editFields = make([]*qtlib.QLineEdit, len(fields))
 	for i, field := range fields {
 		editField := qtlib.NewQLineEdit2()
-		editField.SetObjectName(*qtlib.NewQAnyStringView3(string(field.Field)))
+		objName := string(field.Field)
+		if vfo == core.VFO2 {
+			objName = "vfo2_" + objName
+		}
+		editField.SetObjectName(*qtlib.NewQAnyStringView3(objName))
 		editField.SetPlaceholderText(field.Short)
 		editField.SetEnabled(!field.ReadOnly)
 
@@ -451,25 +505,42 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 			editField.SetStyleSheet(v.theirEntryStyle)
 		}
 
-		v.connectEditSignals(editField, core.VFO1, core.TheirExchangeField(i+1), isTheirRow)
+		v.connectEditSignals(editField, vfo, core.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
 	}
 }
 
-func (v *entryView) SetActiveField(field core.EntryField) {
+func (v *entryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
+	callsign := v.callsign
+	band := v.band
+	mode := v.mode
+	theirExchange := v.theirExchangeFields
+	if vfo == core.VFO2 {
+		callsign = v.vfo2Callsign
+		band = v.vfo2Band
+		mode = v.vfo2Mode
+		theirExchange = v.vfo2TheirExchangeFields
+	}
+
 	switch field {
 	case core.CallsignField, core.OtherField:
-		v.callsign.SetFocus()
+		if callsign != nil {
+			callsign.SetFocus()
+		}
 	case core.BandField:
-		v.band.SetFocus()
+		if band != nil {
+			band.SetFocus()
+		}
 	case core.ModeField:
-		v.mode.SetFocus()
+		if mode != nil {
+			mode.SetFocus()
+		}
 	default:
 		switch {
 		case field.IsTheirExchange():
 			i := field.ExchangeIndex() - 1
-			if i >= 0 && i < len(v.theirExchangeFields) {
-				v.theirExchangeFields[i].SetFocus()
+			if i >= 0 && i < len(theirExchange) {
+				theirExchange[i].SetFocus()
 			}
 		case field.IsMyExchange():
 			i := field.ExchangeIndex() - 1
@@ -480,8 +551,8 @@ func (v *entryView) SetActiveField(field core.EntryField) {
 	}
 }
 
-func (v *entryView) SelectText(field core.EntryField, s string) {
-	edit := v.fieldToEntry(field)
+func (v *entryView) SelectText(vfo core.VFOID, field core.EntryField, s string) {
+	edit := v.fieldToEntry(vfo, field)
 	if edit == nil {
 		return
 	}
@@ -493,10 +564,16 @@ func (v *entryView) SelectText(field core.EntryField, s string) {
 	edit.SetSelection(index, len(s))
 }
 
-func (v *entryView) fieldToEntry(field core.EntryField) *qtlib.QLineEdit {
+func (v *entryView) fieldToEntry(vfo core.VFOID, field core.EntryField) *qtlib.QLineEdit {
+	callsign := v.callsign
+	theirExchange := v.theirExchangeFields
+	if vfo == core.VFO2 {
+		callsign = v.vfo2Callsign
+		theirExchange = v.vfo2TheirExchangeFields
+	}
 	switch field {
 	case core.CallsignField, core.OtherField:
-		return v.callsign
+		return callsign
 	}
 	switch {
 	case field.IsMyExchange():
@@ -506,19 +583,26 @@ func (v *entryView) fieldToEntry(field core.EntryField) *qtlib.QLineEdit {
 		}
 	case field.IsTheirExchange():
 		i := field.ExchangeIndex() - 1
-		if i >= 0 && i < len(v.theirExchangeFields) {
-			return v.theirExchangeFields[i]
+		if i >= 0 && i < len(theirExchange) {
+			return theirExchange[i]
 		}
 	}
 	return nil
 }
 
-func (v *entryView) SetDuplicateMarker(duplicate bool) {
+func (v *entryView) SetDuplicateMarker(vfo core.VFOID, duplicate bool) {
+	// TODO step 6 follow-up: per-VFO duplicate marker. For now, only VFO1 drives the root style.
+	if vfo != core.VFO1 {
+		return
+	}
 	v.isDuplicate = duplicate
 	v.updateMarkerStyle()
 }
 
-func (v *entryView) SetEditingMarker(editing bool) {
+func (v *entryView) SetEditingMarker(vfo core.VFOID, editing bool) {
+	if vfo != core.VFO1 {
+		return
+	}
 	v.isEditing = editing
 	v.updateMarkerStyle()
 }
@@ -540,10 +624,53 @@ func (v *entryView) updateMarkerStyle() {
 	}
 }
 
-func (v *entryView) ShowMessage(args ...any) {
+func (v *entryView) ShowMessage(vfo core.VFOID, args ...any) {
+	// TODO step 6 follow-up: per-VFO message label. For now, single shared label fed by any VFO.
+	_ = vfo
 	v.messageLabel.SetText(fmt.Sprint(args...))
 }
 
-func (v *entryView) ClearMessage() {
+func (v *entryView) ClearMessage(vfo core.VFOID) {
+	_ = vfo
 	v.messageLabel.SetText("")
+}
+
+// SetVFOEnabled toggles the visibility/enabled state of a VFO's row of widgets.
+// VFO1 is always enabled. VFO2 widgets are shown/hidden as a group.
+func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
+	if vfo == core.VFO1 {
+		return
+	}
+	if v.vfo2Label != nil {
+		v.vfo2Label.SetVisible(enabled)
+	}
+	if v.vfo2FrequencyLabel != nil {
+		v.vfo2FrequencyLabel.SetVisible(enabled)
+	}
+	if v.vfo2BandModeContainer != nil {
+		v.vfo2BandModeContainer.SetVisible(enabled)
+	}
+	if v.vfo2XITIndicator != nil {
+		v.vfo2XITIndicator.SetVisible(enabled)
+	}
+	if v.vfo2TXIndicator != nil {
+		v.vfo2TXIndicator.SetVisible(enabled)
+	}
+	if v.vfo2TheirLabel != nil {
+		v.vfo2TheirLabel.SetVisible(enabled)
+	}
+	if v.vfo2Callsign != nil {
+		v.vfo2Callsign.SetVisible(enabled)
+		v.vfo2Callsign.SetEnabled(enabled)
+	}
+	for _, f := range v.vfo2TheirExchangeFields {
+		f.SetVisible(enabled)
+		f.SetEnabled(enabled)
+	}
+	if v.vfo2LogButton != nil {
+		v.vfo2LogButton.SetVisible(enabled)
+	}
+	if v.vfo2ClearButton != nil {
+		v.vfo2ClearButton.SetVisible(enabled)
+	}
 }

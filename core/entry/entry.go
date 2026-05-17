@@ -32,15 +32,16 @@ type View interface {
 	SetXIT(vfo core.VFOID, active bool, offset core.Frequency)
 	SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 
-	SetCallsign(string)
-	SetTheirExchange(int, string)
+	SetCallsign(core.VFOID, string)
+	SetTheirExchange(vfo core.VFOID, index int, text string)
 
-	SetActiveField(core.EntryField)
-	SelectText(core.EntryField, string)
-	SetDuplicateMarker(bool)
-	SetEditingMarker(bool)
-	ShowMessage(...any)
-	ClearMessage()
+	SetActiveField(core.VFOID, core.EntryField)
+	SelectText(core.VFOID, core.EntryField, string)
+	SetDuplicateMarker(core.VFOID, bool)
+	SetEditingMarker(core.VFOID, bool)
+	ShowMessage(core.VFOID, ...any)
+	ClearMessage(core.VFOID)
+	SetVFOEnabled(core.VFOID, bool)
 }
 
 type input struct {
@@ -301,14 +302,14 @@ func (c *Controller) GotoNextField() core.EntryField {
 	}
 
 	c.SetActiveField(nextField)
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 	return c.activeField[c.focusedVFO]
 }
 
 func (c *Controller) GotoNextPlaceholder() {
 	c.SetActiveField(core.CallsignField)
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
-	c.view.SelectText(c.activeField[c.focusedVFO], core.FilterPlaceholder)
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+	c.view.SelectText(c.focusedVFO, c.activeField[c.focusedVFO], core.FilterPlaceholder)
 }
 
 func (c *Controller) leaveCallsignField() {
@@ -331,15 +332,15 @@ func (c *Controller) leaveCallsignField() {
 
 	_, found := c.isDuplicate(c.focusedVFO, callsign)
 	if !found {
-		c.view.SetDuplicateMarker(false)
+		c.view.SetDuplicateMarker(c.focusedVFO, false)
 		return
 	}
 	if c.editing {
-		c.view.SetDuplicateMarker(c.editQSO.Callsign != callsign)
+		c.view.SetDuplicateMarker(c.focusedVFO, c.editQSO.Callsign != callsign)
 		return
 	}
 
-	c.view.SetDuplicateMarker(true)
+	c.view.SetDuplicateMarker(c.focusedVFO, true)
 }
 
 // isPredictable returns true if the exchange for the given field is predictable.
@@ -412,16 +413,20 @@ func ensureLen(a []string, l int) []string {
 }
 
 func (c *Controller) showInput() {
-	c.view.SetCallsign(c.input[core.VFO1].callsign)
-	for i, value := range c.input[core.VFO1].theirExchange {
-		c.view.SetTheirExchange(i+1, value)
+	for vfo := range core.VFOCount {
+		v := core.VFOID(vfo)
+		c.view.SetCallsign(v, c.input[vfo].callsign)
+		for i, value := range c.input[vfo].theirExchange {
+			c.view.SetTheirExchange(v, i+1, value)
+		}
+		c.view.SetFrequency(v, c.selectedFrequency[vfo])
+		c.view.SetBand(v, c.input[vfo].band)
+		c.view.SetMode(v, c.input[vfo].mode)
 	}
+	// myExchange remains shared (single row in the UI).
 	for i, value := range c.input[core.VFO1].myExchange {
 		c.view.SetMyExchange(i+1, value)
 	}
-	c.view.SetFrequency(core.VFO1, c.selectedFrequency[core.VFO1])
-	c.view.SetBand(core.VFO1, c.input[core.VFO1].band)
-	c.view.SetMode(core.VFO1, c.input[core.VFO1].mode)
 }
 
 // setTheirExchangePrediction replaces the value of the given field with the given predicted value,
@@ -431,7 +436,7 @@ func (c *Controller) setTheirExchangePrediction(i int, value string) {
 		return
 	}
 	c.input[c.focusedVFO].theirExchange[i] = value
-	c.view.SetTheirExchange(i+1, value)
+	c.view.SetTheirExchange(c.focusedVFO, i+1, value)
 }
 
 func (c *Controller) isDuplicate(vfo core.VFOID, callsign core.Callsign) (core.QSO, bool) {
@@ -668,8 +673,8 @@ func (c *Controller) selectCallsign(callsign string) {
 	}
 	c.SetActiveField(core.CallsignField)
 	c.Enter(callsign)
-	c.view.SetCallsign(c.input[c.focusedVFO].callsign)
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
+	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 
 func (c *Controller) Enter(text string) {
@@ -709,7 +714,7 @@ func (c *Controller) bandEntered(band core.Band) {
 
 func (c *Controller) SetXITActive(active bool) {
 	c.vfos[core.VFO1].SetXITActive(active)
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 
 func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
@@ -726,7 +731,7 @@ func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequenc
 
 	if jump && !c.ignoreFrequencyJump {
 		c.Clear()
-		c.view.SetActiveField(c.activeField[c.focusedVFO])
+		c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 	}
 	c.ignoreFrequencyJump = false
 }
@@ -776,7 +781,7 @@ func (c *Controller) generateReportForMode(mode core.Mode) {
 	if theirIndex > 0 {
 		c.input[c.focusedVFO].theirReport = generatedReport
 		c.input[c.focusedVFO].theirExchange[theirIndex-1] = generatedReport
-		c.view.SetTheirExchange(theirIndex, c.input[c.focusedVFO].myReport)
+		c.view.SetTheirExchange(c.focusedVFO, theirIndex, c.input[c.focusedVFO].myReport)
 	}
 }
 
@@ -881,7 +886,7 @@ func (c *Controller) enterCallsign(s string) {
 
 	qso, found := c.isDuplicate(c.focusedVFO, callsign)
 	if !found {
-		c.view.ClearMessage()
+		c.view.ClearMessage(c.focusedVFO)
 		return
 	}
 
@@ -905,8 +910,8 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.enterEditMode(qso)
 
 	c.showQSO(qso)
-	c.view.SetActiveField(core.CallsignField)
-	c.view.SetEditingMarker(true)
+	c.view.SetActiveField(c.focusedVFO, core.CallsignField)
+	c.view.SetEditingMarker(core.VFO1, true)
 	c.notifyCallinfoInputChanged(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
 }
 
@@ -914,7 +919,7 @@ func (c *Controller) EnterPressed() {
 	if c.parseCallsignCommand() {
 		c.input[c.focusedVFO].callsign = ""
 		c.enterCallsign(c.input[c.focusedVFO].callsign)
-		c.view.SetCallsign(c.input[c.focusedVFO].callsign)
+		c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
 		return
 	}
 
@@ -1143,15 +1148,15 @@ func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *cor
 func (c *Controller) showErrorOnField(err error, field core.EntryField) {
 	c.SetActiveField(field)
 	c.errorField[c.focusedVFO] = field
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
-	c.view.ShowMessage(err)
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+	c.view.ShowMessage(c.focusedVFO, err)
 }
 
 func (c *Controller) clearErrorOnField(field core.EntryField) {
 	if c.errorField[c.focusedVFO] != field {
 		return
 	}
-	c.view.ClearMessage()
+	c.view.ClearMessage(c.focusedVFO)
 }
 
 func (c *Controller) Clear() {
@@ -1162,10 +1167,10 @@ func (c *Controller) Clear() {
 		c.showInput()
 		c.view.SetMyCall(c.stationCallsign)
 		c.view.SetFrequency(c.focusedVFO, c.selectedFrequency[c.focusedVFO])
-		c.view.SetActiveField(c.activeField[c.focusedVFO])
-		c.view.SetDuplicateMarker(false)
-		c.view.SetEditingMarker(false)
-		c.view.ClearMessage()
+		c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+		c.view.SetDuplicateMarker(c.focusedVFO, false)
+		c.view.SetEditingMarker(core.VFO1, false)
+		c.view.ClearMessage(c.focusedVFO)
 		c.selectLastQSO()
 		c.notifyCallinfoInputChanged("", core.NoBand, core.NoMode, []string{})
 		return
@@ -1225,16 +1230,16 @@ func (c *Controller) Clear() {
 	c.showInput()
 	c.view.SetMyCall(c.stationCallsign)
 	c.view.SetFrequency(c.focusedVFO, c.selectedFrequency[c.focusedVFO])
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
-	c.view.SetDuplicateMarker(false)
-	c.view.SetEditingMarker(false)
-	c.view.ClearMessage()
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+	c.view.SetDuplicateMarker(c.focusedVFO, false)
+	c.view.SetEditingMarker(core.VFO1, false)
+	c.view.ClearMessage(c.focusedVFO)
 	c.selectLastQSO()
 	c.notifyCallinfoInputChanged("", core.NoBand, core.NoMode, []string{})
 }
 
 func (c *Controller) Activate() {
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 
 func (c *Controller) EditLastQSO() {
@@ -1334,5 +1339,5 @@ func (c *Controller) EntrySelected(entry core.BandmapEntry) {
 	c.frequencyEntered(entry.Frequency)
 	c.SetActiveField(core.CallsignField)
 	c.Enter(entry.Call.String())
-	c.view.SetCallsign(c.input[c.focusedVFO].callsign)
+	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
 }

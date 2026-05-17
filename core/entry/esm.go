@@ -39,7 +39,7 @@ func (c *Controller) ESMEnabled() bool {
 func (c *Controller) SetESMEnabled(enabled bool) {
 	c.esmEnabled = enabled
 	c.esmView.SetESMEnabled(enabled)
-	c.view.SetActiveField(c.activeField[c.focusedVFO])
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 	c.emitESMEnabled(enabled)
 }
 

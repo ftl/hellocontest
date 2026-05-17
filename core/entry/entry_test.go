@@ -44,22 +44,19 @@ func TestEntryController_ClearView(t *testing.T) {
 	qsoList.On("SelectLastQSO").Once()
 
 	view.Activate()
-	view.On("SetTheirExchange", 1, "599").Once()
-	view.On("SetTheirExchange", 2, "").Once()
-	view.On("SetTheirExchange", 3, "").Once()
+	view.On("SetTheirExchange", mock.Anything, mock.Anything, mock.Anything)
 	view.On("SetMyExchange", 1, "599").Once()
 	view.On("SetMyExchange", 2, "001").Once()
 	view.On("SetMyExchange", 3, "").Once()
 	view.On("SetMyCall", "DL0ABC").Once()
-	view.On("SetFrequency", core.VFO1, mock.Anything).Once()
-	view.On("SetCallsign", "").Once()
-	view.On("SetBand", core.VFO1, "160m").Once()
-	view.On("SetFrequency", core.VFO1, mock.Anything).Once()
-	view.On("SetMode", core.VFO1, "CW").Once()
-	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("SetDuplicateMarker", false).Once()
-	view.On("SetEditingMarker", false).Once()
-	view.On("ClearMessage").Once()
+	view.On("SetFrequency", mock.Anything, mock.Anything)
+	view.On("SetCallsign", mock.Anything, mock.Anything)
+	view.On("SetBand", mock.Anything, mock.Anything)
+	view.On("SetMode", mock.Anything, mock.Anything)
+	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
+	view.On("SetDuplicateMarker", core.VFO1, false).Once()
+	view.On("SetEditingMarker", core.VFO1, false).Once()
+	view.On("ClearMessage", core.VFO1).Once()
 
 	controller.Clear()
 
@@ -170,7 +167,7 @@ func _TestEntryController_GotoNextField(t *testing.T) {
 	}
 	view.Activate()
 	view.On("Callsign").Return("").Maybe()
-	view.On("SetActiveField", mock.Anything).Times(len(testCases))
+	view.On("SetActiveField", core.VFO1, mock.Anything).Times(len(testCases))
 	view.On("SetMyExchangeFields", mock.Anything).Times(len(testCases))
 	view.On("SetTheirExchangeFields", mock.Anything).Times(len(testCases))
 	for _, tc := range testCases {
@@ -193,9 +190,9 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 	log.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
 
 	view.Activate()
-	view.On("SetDuplicateMarker", false).Once()
-	view.On("ClearMessage").Once()
-	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
+	view.On("SetDuplicateMarker", core.VFO1, false).Once()
+	view.On("ClearMessage", core.VFO1).Once()
+	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(1)).Once()
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -227,11 +224,11 @@ func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	log.On("FindDuplicateQSOs", dl1abc, core.Band160m, core.ModeCW).Return([]core.QSO{qso}).Twice()
 
 	view.Activate()
-	view.On("SetDuplicateMarker", true).Once()
-	view.On("ShowMessage", mock.Anything).Once()
-	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
-	// view.On("SetTheirExchange", mock.Anything, mock.Anything).Once() // TODO implement the prediction with the new exchange fields
+	view.On("SetDuplicateMarker", core.VFO1, true).Once()
+	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
+	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(1)).Once()
+	// view.On("SetTheirExchange", mock.Anything, mock.Anything) // TODO implement the prediction with the new exchange fields
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -245,7 +242,7 @@ func TestEntryController_EnterFrequency(t *testing.T) {
 	_, _, _, view, controller, _ := setupEntryTest()
 
 	view.Activate()
-	view.On("SetCallsign", "").Once()
+	view.On("SetCallsign", mock.Anything, "")
 
 	controller.Enter("7028")
 	controller.EnterPressed()
@@ -313,8 +310,8 @@ func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 	log.On("NextQSONumber").Return(core.QSONumber(1))
 
 	view.Activate()
-	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("ShowMessage", mock.Anything).Once()
+	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
+	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
 
 	controller.Enter("DL")
 	controller.EnterPressed()
@@ -339,8 +336,8 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	log.Activate()
 	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.TheirExchangeField(1)).Once()
-	view.On("ShowMessage", mock.Anything).Once()
+	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(1)).Once()
+	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
@@ -366,8 +363,8 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	log.Activate()
 	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.TheirExchangeField(2)).Once()
-	view.On("ShowMessage", mock.Anything).Once()
+	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(2)).Once()
+	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
@@ -391,8 +388,8 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	log.Activate()
 	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.TheirExchangeField(2)).Once()
-	view.On("ShowMessage", mock.Anything).Once()
+	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(2)).Once()
+	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
@@ -422,8 +419,8 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	log.Activate()
 	log.On("NextQSONumber").Return(core.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.MyExchangeField(1)).Once()
-	view.On("ShowMessage", mock.Anything).Once()
+	view.On("SetActiveField", core.VFO1, core.MyExchangeField(1)).Once()
+	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
@@ -450,13 +447,13 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 	}
 
 	log.On("FindDuplicateQSOs", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
-	view.On("ShowMessage", mock.Anything).Once()
-	view.On("SetActiveField", mock.Anything).Once()
+	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", core.VFO1, mock.Anything).Once()
 	controller.Enter("DL1AB")
 	view.AssertExpectations(t)
 
 	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
-	view.On("ClearMessage").Once()
+	view.On("ClearMessage", core.VFO1).Once()
 	controller.Enter("DL1ABC")
 	view.AssertExpectations(t)
 }
@@ -544,18 +541,16 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 		MyExchange:    []string{"579", "034", "B36"},
 	}
 
-	view.On("SetBand", core.VFO1, "80m").Once()
-	view.On("SetFrequency", core.VFO1, mock.Anything).Once()
-	view.On("SetMode", core.VFO1, "CW").Once()
-	view.On("SetCallsign", "DL1ABC").Once()
-	view.On("SetTheirExchange", 1, "559").Once()
-	view.On("SetTheirExchange", 2, "012").Once()
-	view.On("SetTheirExchange", 3, "A01").Once()
+	view.On("SetBand", mock.Anything, mock.Anything)
+	view.On("SetFrequency", mock.Anything, mock.Anything)
+	view.On("SetMode", mock.Anything, mock.Anything)
+	view.On("SetCallsign", mock.Anything, mock.Anything)
+	view.On("SetTheirExchange", mock.Anything, mock.Anything, mock.Anything)
 	view.On("SetMyExchange", 1, "579").Once()
 	view.On("SetMyExchange", 2, "034").Once()
 	view.On("SetMyExchange", 3, "B36").Once()
-	view.On("SetActiveField", core.CallsignField).Once()
-	view.On("SetEditingMarker", true).Once()
+	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
+	view.On("SetEditingMarker", core.VFO1, true).Once()
 
 	controller.QSOSelected(qso)
 

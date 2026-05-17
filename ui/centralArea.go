@@ -124,12 +124,21 @@ func (a *centralArea) addWidgetsToLayout() {
 	// row 7: message
 	a.entryLayout.AddWidget3(a.entry.messageLabel.QWidget, 7, 0, 1, -1)
 
-	// row 8: VFO2
+	// row 8: VFO2 frequency / band / mode / XIT / TX
 	a.entryLayout.AddWidget2(a.entry.vfo2Label.QWidget, 8, 0)
 	a.entryLayout.AddWidget2(a.entry.vfo2FrequencyLabel.QWidget, 8, 1)
 	a.entryLayout.AddWidget2(a.entry.vfo2BandModeContainer, 8, 2)
 	a.entryLayout.AddWidget2(a.entry.vfo2XITIndicator.QWidget, 8, lastColumn-1)
 	a.entryLayout.AddWidget2(a.entry.vfo2TXIndicator.QWidget, 8, lastColumn)
+
+	// row 9: VFO2 their data: call, exchange, log, clear
+	a.entryLayout.AddWidget2(a.entry.vfo2TheirLabel.QWidget, 9, 0)
+	a.entryLayout.AddWidget2(a.entry.vfo2Callsign.QWidget, 9, 1)
+	for i := range a.entry.vfo2TheirExchangeFields {
+		a.entryLayout.AddWidget2(a.entry.vfo2TheirExchangeFields[i].QWidget, 9, i+2)
+	}
+	a.entryLayout.AddWidget2(a.entry.vfo2LogButton.QWidget, 9, lastColumn-1)
+	a.entryLayout.AddWidget2(a.entry.vfo2ClearButton.QWidget, 9, lastColumn)
 }
 
 func (a *centralArea) removeWidgetsFromLayout() {
@@ -174,4 +183,20 @@ func (a *centralArea) removeWidgetsFromLayout() {
 
 	// row 7: message
 	a.entryLayout.RemoveWidget(a.entry.messageLabel.QWidget)
+
+	// row 8: VFO2
+	a.entryLayout.RemoveWidget(a.entry.vfo2Label.QWidget)
+	a.entryLayout.RemoveWidget(a.entry.vfo2FrequencyLabel.QWidget)
+	a.entryLayout.RemoveWidget(a.entry.vfo2BandModeContainer)
+	a.entryLayout.RemoveWidget(a.entry.vfo2XITIndicator.QWidget)
+	a.entryLayout.RemoveWidget(a.entry.vfo2TXIndicator.QWidget)
+
+	// row 9: VFO2 their data
+	a.entryLayout.RemoveWidget(a.entry.vfo2TheirLabel.QWidget)
+	a.entryLayout.RemoveWidget(a.entry.vfo2Callsign.QWidget)
+	for i := range a.entry.vfo2TheirExchangeFields {
+		a.entryLayout.RemoveWidget(a.entry.vfo2TheirExchangeFields[i].QWidget)
+	}
+	a.entryLayout.RemoveWidget(a.entry.vfo2LogButton.QWidget)
+	a.entryLayout.RemoveWidget(a.entry.vfo2ClearButton.QWidget)
 }

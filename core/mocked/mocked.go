@@ -205,18 +205,18 @@ func (m *EntryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	m.Called(vfo, frequency)
 }
 
-func (m *EntryView) SetCallsign(callsign string) {
+func (m *EntryView) SetCallsign(vfo core.VFOID, callsign string) {
 	if !m.active {
 		return
 	}
-	m.Called(callsign)
+	m.Called(vfo, callsign)
 }
 
-func (m *EntryView) SetTheirExchange(index int, value string) {
+func (m *EntryView) SetTheirExchange(vfo core.VFOID, index int, value string) {
 	if !m.active {
 		return
 	}
-	m.Called(index, value)
+	m.Called(vfo, index, value)
 }
 
 func (m *EntryView) SetBand(vfo core.VFOID, text string) {
@@ -275,46 +275,53 @@ func (m *EntryView) SetTheirExchangeFields(fields []core.ExchangeField) {
 	m.Called(fields)
 }
 
-func (m *EntryView) SetActiveField(field core.EntryField) {
+func (m *EntryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
 	if !m.active {
 		return
 	}
-	m.Called(field)
+	m.Called(vfo, field)
 }
 
-func (m *EntryView) SelectText(field core.EntryField, s string) {
+func (m *EntryView) SelectText(vfo core.VFOID, field core.EntryField, s string) {
 	if !m.active {
 		return
 	}
-	m.Called(field, s)
+	m.Called(vfo, field, s)
 }
 
-func (m *EntryView) SetDuplicateMarker(active bool) {
+func (m *EntryView) SetDuplicateMarker(vfo core.VFOID, active bool) {
 	if !m.active {
 		return
 	}
-	m.Called(active)
+	m.Called(vfo, active)
 }
 
-func (m *EntryView) SetEditingMarker(active bool) {
+func (m *EntryView) SetEditingMarker(vfo core.VFOID, active bool) {
 	if !m.active {
 		return
 	}
-	m.Called(active)
+	m.Called(vfo, active)
 }
 
-func (m *EntryView) ShowMessage(args ...interface{}) {
+func (m *EntryView) ShowMessage(vfo core.VFOID, args ...interface{}) {
 	if !m.active {
 		return
 	}
-	m.Called(args)
+	m.Called(vfo, args)
 }
 
-func (m *EntryView) ClearMessage() {
+func (m *EntryView) ClearMessage(vfo core.VFOID) {
 	if !m.active {
 		return
 	}
-	m.Called()
+	m.Called(vfo)
+}
+
+func (m *EntryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
+	if !m.active {
+		return
+	}
+	m.Called(vfo, enabled)
 }
 
 type Clock struct {

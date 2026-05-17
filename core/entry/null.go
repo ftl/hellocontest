@@ -13,7 +13,7 @@ type nullView struct{}
 func (n *nullView) SetUTC(string)                                             {}
 func (n *nullView) SetMyCall(string)                                          {}
 func (n *nullView) SetFrequency(core.VFOID, core.Frequency)                   {}
-func (n *nullView) SetCallsign(string)                                        {}
+func (n *nullView) SetCallsign(core.VFOID, string)                            {}
 func (n *nullView) SetBand(vfo core.VFOID, text string)                       {}
 func (n *nullView) SetMode(vfo core.VFOID, text string)                       {}
 func (n *nullView) SetXITActive(vfo core.VFOID, active bool)                  {}
@@ -21,15 +21,16 @@ func (n *nullView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {}
 func (n *nullView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 }
 func (n *nullView) SetMyExchange(int, string)                   {}
-func (n *nullView) SetTheirExchange(int, string)                {}
+func (n *nullView) SetTheirExchange(core.VFOID, int, string)    {}
 func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
 func (n *nullView) SetTheirExchangeFields([]core.ExchangeField) {}
-func (n *nullView) SetActiveField(core.EntryField)              {}
-func (n *nullView) SelectText(core.EntryField, string)          {}
-func (n *nullView) SetDuplicateMarker(bool)                     {}
-func (n *nullView) SetEditingMarker(bool)                       {}
-func (n *nullView) ShowMessage(...any)                          {}
-func (n *nullView) ClearMessage()                               {}
+func (n *nullView) SetActiveField(core.VFOID, core.EntryField)  {}
+func (n *nullView) SelectText(core.VFOID, core.EntryField, string) {}
+func (n *nullView) SetDuplicateMarker(core.VFOID, bool)            {}
+func (n *nullView) SetEditingMarker(core.VFOID, bool)              {}
+func (n *nullView) ShowMessage(core.VFOID, ...any)                 {}
+func (n *nullView) ClearMessage(core.VFOID)                        {}
+func (n *nullView) SetVFOEnabled(core.VFOID, bool)                 {}
 
 type nullVFO struct{}
 

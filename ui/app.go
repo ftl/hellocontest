@@ -463,7 +463,9 @@ type keyerButtonAdapter struct {
 	messenger *entryView
 }
 
-func (a *keyerButtonAdapter) ShowMessage(args ...any) { a.messenger.ShowMessage(args...) }
+func (a *keyerButtonAdapter) ShowMessage(args ...any) {
+	a.messenger.ShowMessage(core.VFO1, args...)
+}
 
 // buildFileFilter converts glob patterns like "*.log" to Qt filter format
 func buildFileFilter(patterns []string) string {

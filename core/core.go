@@ -1720,6 +1720,10 @@ type VFOPTTListener interface {
 	VFOPTTChanged(VFOID, bool)
 }
 
+type RadioChangedListener interface {
+	RadioChanged(name string, singleVFO bool)
+}
+
 type ConnectionChangedListener interface {
 	ConnectionChanged(bool)
 }

@@ -232,13 +232,18 @@ func (c *Controller) SetView(view View) {
 	}
 
 	c.view = view
+	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
 	c.Clear()
 	c.refreshUTC()
 }
 
 func (c *Controller) LogbookLoaded() {
-	c.selectedBand[core.VFO1] = c.logbook.LastBand()
-	c.selectedMode[core.VFO1] = c.logbook.LastMode()
+	lastBand := c.logbook.LastBand()
+	lastMode := c.logbook.LastMode()
+	for vfo := range core.VFOCount {
+		c.selectedBand[vfo] = lastBand
+		c.selectedMode[vfo] = lastMode
+	}
 	c.Clear()
 	c.showInput()
 }
@@ -522,6 +527,7 @@ func (c *Controller) RadioChanged(_ string, singleVFO bool) {
 		c.input[core.VFO2] = input{}
 		c.setFocusedVFOSilent(core.VFO1)
 	}
+	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
 }
 
 // canTransmit reports whether the keyer is currently allowed to transmit. False during edit mode.
@@ -1184,44 +1190,22 @@ func (c *Controller) Clear() {
 	c.vfos[c.focusedVFO].Refresh()
 
 	c.activeField[c.focusedVFO] = core.CallsignField
-	c.input[c.focusedVFO].callsign = ""
-	if c.selectedBand[c.focusedVFO] != core.NoBand {
-		c.input[c.focusedVFO].band = c.selectedBand[c.focusedVFO].String()
-	}
-	generatedReport := ""
-	if c.selectedMode[c.focusedVFO] != core.NoMode {
-		c.input[c.focusedVFO].mode = c.selectedMode[c.focusedVFO].String()
-		generatedReport = defaultReportForMode(c.selectedMode[c.focusedVFO])
-	}
 
-	c.input[c.focusedVFO].myReport = ""
-	c.input[c.focusedVFO].myNumber = ""
-	c.input[c.focusedVFO].theirReport = ""
-	c.input[c.focusedVFO].theirNumber = ""
-	c.input[c.focusedVFO].theirExchange = make([]string, len(c.theirExchangeFields))
-	c.input[c.focusedVFO].myExchange = make([]string, len(c.myExchangeFields))
 	lastExchange := c.logbook.LastExchange()
-	for i, value := range c.defaultExchangeValues {
-		if value == "" && i < len(lastExchange) {
-			value = lastExchange[i]
-		}
-
-		if i >= len(c.myExchangeFields) {
+	c.fillExchangeDefaults(c.focusedVFO, lastExchange)
+	// Non-focused VFOs that have no in-progress QSO are also initialized so their default
+	// report follows the current contest/mode.
+	for vfo := range core.VFOCount {
+		v := core.VFOID(vfo)
+		if v == c.focusedVFO {
 			continue
 		}
-
-		c.input[c.focusedVFO].myExchange[i] = value
-		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
-			if c.generateReport {
-				value = generatedReport
-			}
-			c.input[c.focusedVFO].myReport = value
-			c.input[c.focusedVFO].myExchange[i] = value
-
-			c.input[c.focusedVFO].theirExchange[i] = value
-			c.input[c.focusedVFO].theirReport = value
+		if c.claimedSerial[v] != 0 || c.input[v].callsign != "" {
+			continue
 		}
+		c.fillExchangeDefaults(v, lastExchange)
 	}
+
 	// Refresh serial displays for both VFOs (other VFO's preview may shift after the release).
 	c.refreshMyNumberInputs()
 
@@ -1236,6 +1220,45 @@ func (c *Controller) Clear() {
 	c.view.ClearMessage(c.focusedVFO)
 	c.selectLastQSO()
 	c.notifyCallinfoInputChanged("", core.NoBand, core.NoMode, []string{})
+}
+
+// fillExchangeDefaults resets vfo's input fields (callsign/band/mode/exchange) and seeds
+// the default exchange values (mode-derived report, last-exchange carry-over). Idempotent.
+func (c *Controller) fillExchangeDefaults(vfo core.VFOID, lastExchange []string) {
+	c.input[vfo].callsign = ""
+	if c.selectedBand[vfo] != core.NoBand {
+		c.input[vfo].band = c.selectedBand[vfo].String()
+	}
+	generatedReport := ""
+	if c.selectedMode[vfo] != core.NoMode {
+		c.input[vfo].mode = c.selectedMode[vfo].String()
+		generatedReport = defaultReportForMode(c.selectedMode[vfo])
+	}
+
+	c.input[vfo].myReport = ""
+	c.input[vfo].myNumber = ""
+	c.input[vfo].theirReport = ""
+	c.input[vfo].theirNumber = ""
+	c.input[vfo].theirExchange = make([]string, len(c.theirExchangeFields))
+	c.input[vfo].myExchange = make([]string, len(c.myExchangeFields))
+	for i, value := range c.defaultExchangeValues {
+		if value == "" && i < len(lastExchange) {
+			value = lastExchange[i]
+		}
+		if i >= len(c.myExchangeFields) {
+			continue
+		}
+		c.input[vfo].myExchange[i] = value
+		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
+			if c.generateReport {
+				value = generatedReport
+			}
+			c.input[vfo].myReport = value
+			c.input[vfo].myExchange[i] = value
+			c.input[vfo].theirExchange[i] = value
+			c.input[vfo].theirReport = value
+		}
+	}
 }
 
 func (c *Controller) Activate() {

@@ -726,22 +726,24 @@ func (c *Controller) SetXITActive(active bool) {
 }
 
 func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
-	if vfo == core.VFO1 && c.editing {
-		return
-	}
-	if c.selectedFrequency[vfo] == frequency {
-		return
-	}
-	jump := math.Abs(float64(c.selectedFrequency[vfo]-frequency)) > float64(jumpThreshold)
-	c.selectedFrequency[vfo] = frequency
+	c.asyncRunner(func() {
+		if vfo == core.VFO1 && c.editing {
+			return
+		}
+		if c.selectedFrequency[vfo] == frequency {
+			return
+		}
+		jump := math.Abs(float64(c.selectedFrequency[vfo]-frequency)) > float64(jumpThreshold)
+		c.selectedFrequency[vfo] = frequency
 
-	c.view.SetFrequency(vfo, frequency)
+		c.view.SetFrequency(vfo, frequency)
 
-	if jump && !c.ignoreFrequencyJump {
-		c.Clear()
-		c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
-	}
-	c.ignoreFrequencyJump = false
+		if jump && !c.ignoreFrequencyJump {
+			c.Clear()
+			c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+		}
+		c.ignoreFrequencyJump = false
+	})
 }
 
 func (c *Controller) bandSelected(s string) {
@@ -754,15 +756,18 @@ func (c *Controller) bandSelected(s string) {
 }
 
 func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
-	if vfo == core.VFO1 && c.editing {
-		return
-	}
-	if band == core.NoBand || band == c.selectedBand[c.focusedVFO] {
-		return
-	}
-	c.selectedBand[c.focusedVFO] = band
-	c.input[vfo].band = band.String()
-	c.view.SetBand(vfo, c.input[vfo].band)
+	c.asyncRunner(func() {
+		if vfo == core.VFO1 && c.editing {
+			return
+		}
+		if band == core.NoBand || band == c.selectedBand[c.focusedVFO] {
+			return
+		}
+		c.selectedBand[c.focusedVFO] = band
+		c.input[vfo].band = band.String()
+
+		c.view.SetBand(vfo, c.input[vfo].band)
+	})
 }
 
 func (c *Controller) modeSelected(s string) {
@@ -805,33 +810,42 @@ func defaultReportForMode(mode core.Mode) string {
 }
 
 func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
-	if vfo == core.VFO1 && c.editing {
-		return
-	}
-	if mode == core.NoMode || mode == c.selectedMode[c.focusedVFO] {
-		return
-	}
-	c.selectedMode[c.focusedVFO] = mode
-	c.input[vfo].mode = mode.String()
-	c.view.SetMode(vfo, c.input[vfo].mode)
+	c.asyncRunner(func() {
+		if vfo == core.VFO1 && c.editing {
+			return
+		}
+		if mode == core.NoMode || mode == c.selectedMode[c.focusedVFO] {
+			return
+		}
+		c.selectedMode[c.focusedVFO] = mode
+		c.input[vfo].mode = mode.String()
+
+		c.view.SetMode(vfo, c.input[vfo].mode)
+	})
 }
 
 func (c *Controller) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
-	c.view.SetXIT(vfo, active, offset)
+	c.asyncRunner(func() {
+		c.view.SetXIT(vfo, active, offset)
+	})
 }
 
 func (c *Controller) XITActiveChanged(active bool) {
 	// TODO: add VFO parameter to XITActiveChanged
-	c.view.SetXITActive(core.VFO1, active)
+	c.asyncRunner(func() {
+		c.view.SetXITActive(core.VFO1, active)
+	})
 }
 
 func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
-	if vfo != core.VFO1 {
-		c.view.SetTXState(vfo, active, false, 0)
-		return
-	}
-	c.ptt = active
-	c.updateTXState()
+	c.asyncRunner(func() {
+		if vfo != core.VFO1 {
+			c.view.SetTXState(vfo, active, false, 0)
+			return
+		}
+		c.ptt = active
+		c.updateTXState()
+	})
 }
 
 func (c *Controller) ParrotActive(active bool) {

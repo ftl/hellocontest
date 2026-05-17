@@ -75,6 +75,7 @@ type entryView struct {
 	clearButton *qtlib.QPushButton
 
 	theirEntryStyle string
+	vfo2Enabled     bool
 
 	ignoreInput bool
 	isDuplicate bool
@@ -505,6 +506,11 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 			editField.SetStyleSheet(v.theirEntryStyle)
 		}
 
+		if vfo == core.VFO2 && !v.vfo2Enabled {
+			editField.SetVisible(false)
+			editField.SetEnabled(false)
+		}
+
 		v.connectEditSignals(editField, vfo, core.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
 	}
@@ -641,6 +647,7 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	if vfo == core.VFO1 {
 		return
 	}
+	v.vfo2Enabled = enabled
 	if v.vfo2Label != nil {
 		v.vfo2Label.SetVisible(enabled)
 	}

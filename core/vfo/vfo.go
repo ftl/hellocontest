@@ -13,6 +13,7 @@ type Client interface {
 	Notify(any)
 	Active() bool
 	Refresh()
+	SetCurrentVFO(core.VFOID)
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(core.VFOID, core.Band)
 	SetMode(core.VFOID, core.Mode)

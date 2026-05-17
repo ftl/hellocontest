@@ -275,8 +275,3 @@ Shifted:
 - `core/hamlib/hamlib.go:139–351` and `core/tci/tci.go:331–332` — backend dual-VFO state.
 - `ui/entryView.go:47–53, 137–169, 302–406` and `ui/centralArea.go:127–132` — VFO2 widgets.
 - `git log --oneline master..2vfo` — commits of the second-VFO work.
-
-## Outlook: upcoming implementation tasks
-
-- show separate supercheck, callinfo, and message rows for the VFO2
-- handle the TX VFO

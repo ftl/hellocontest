@@ -16,14 +16,15 @@ import (
 
 const retryInterval = 10 * time.Second
 
-func NewClient(address string, trx int, bandplan bandplan.Bandplan) (*Client, error) {
+func NewClient(address string, trx int, singleVFO bool, bandplan bandplan.Bandplan) (*Client, error) {
 	host, err := network.ParseTCPAddr(address)
 	if err != nil {
 		return nil, err
 	}
 
 	result := &Client{
-		bandplan: bandplan,
+		bandplan:  bandplan,
+		singleVFO: singleVFO,
 	}
 	result.trx = &trxListener{
 		client: result,
@@ -39,6 +40,8 @@ func NewClient(address string, trx int, bandplan bandplan.Bandplan) (*Client, er
 type Client struct {
 	client   *client.Client
 	bandplan bandplan.Bandplan
+
+	singleVFO bool
 
 	sendSpots      bool
 	lastHeardSpots map[string]time.Time
@@ -66,6 +69,15 @@ func (c *Client) IsConnected() bool {
 
 func (c *Client) Active() bool {
 	return c.connected
+}
+
+func (c *Client) SingleVFO() bool {
+	return c.singleVFO
+}
+
+func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+	// TODO: implement rig-side current VFO selection via TCI.
+	log.Printf("tci: SetCurrentVFO(%d) not yet implemented", vfo)
 }
 
 func (c *Client) Notify(listener any) {

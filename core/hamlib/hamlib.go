@@ -311,6 +311,15 @@ func (c *Client) Active() bool {
 	return c.IsConnected()
 }
 
+func (c *Client) SingleVFO() bool {
+	return c.singleVFO
+}
+
+func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+	// TODO: implement rig-side current VFO selection (hl SetVFO).
+	log.Printf("hamlib: SetCurrentVFO(%d) not yet implemented", vfo)
+}
+
 func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	c.doInLoop(func() {
 		err := c.client.SetFrequency(c.vfos[vfo], hl.Frequency(frequency))

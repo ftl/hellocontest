@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	hamlibVFO1Option = "vfo1"
-	hamlibVFO2Option = "vfo2"
-	tciTRXOption     = "trx"
+	hamlibVFO1Option   = "vfo1"
+	hamlibVFO2Option   = "vfo2"
+	tciTRXOption       = "trx"
+	tciSingleVFOOption = "single_vfo"
 )
 
 type View interface {
@@ -48,6 +49,7 @@ type radio interface {
 	keyer
 	Disconnect()
 	Active() bool
+	SingleVFO() bool
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(core.VFOID, core.Band)
 	SetMode(core.VFOID, core.Mode)
@@ -106,6 +108,7 @@ func (c *Controller) Stop() {
 		c.activeRadio.Disconnect()
 		c.activeRadio = nil
 		c.activeRadioName = ""
+		c.emitRadioChanged("", true)
 	}
 	if c.activeKeyer != nil {
 		c.activeKeyer.Abort()
@@ -130,12 +133,9 @@ func (c *Controller) emitKeyerStatusChanged(available bool) {
 	})
 }
 
-func (c *Controller) emitRadioSelected(name string) {
-	type listenerType interface {
-		RadioSelected(string)
-	}
-	core.Emit(c.listeners, func(listener listenerType) {
-		listener.RadioSelected(name)
+func (c *Controller) emitRadioChanged(name string, singleVFO bool) {
+	core.Emit(c.listeners, func(listener core.RadioChangedListener) {
+		listener.RadioChanged(name, singleVFO)
 	})
 	if c.view != nil {
 		c.doIgnoreUpdates(func() {
@@ -194,7 +194,7 @@ func (c *Controller) SelectRadio(name string) error {
 	}
 
 	if err != nil {
-		c.emitRadioSelected("")
+		c.emitRadioChanged("", true)
 		return err
 	}
 	c.activeRadio = radio
@@ -204,7 +204,7 @@ func (c *Controller) SelectRadio(name string) error {
 		c.activeRadio.Notify(listener)
 	}
 	c.activeRadio.Notify(core.ConnectionChangedFunc(c.onRadioConnectionChanged))
-	c.emitRadioSelected(config.Name)
+	c.emitRadioChanged(config.Name, c.activeRadio.SingleVFO())
 	c.onRadioConnectionChanged(c.activeRadio.IsConnected())
 
 	if c.radioAsKeyer {
@@ -258,7 +258,15 @@ func (c *Controller) newTCIClient(config core.Radio) (radio, error) {
 			return nil, fmt.Errorf("invalid trx option: %v", err)
 		}
 	}
-	tciClient, err := tci.NewClient(config.Address, trx, c.bandplan)
+	singleVFO := false
+	singleVFOStr, ok := config.Options[tciSingleVFOOption]
+	if ok {
+		singleVFO, err = strconv.ParseBool(singleVFOStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid single_vfo option: %v", err)
+		}
+	}
+	tciClient, err := tci.NewClient(config.Address, trx, singleVFO, c.bandplan)
 	if err != nil {
 		return nil, err
 	}
@@ -271,6 +279,13 @@ func (c *Controller) Active() bool {
 		return false
 	}
 	return c.activeRadio.Active()
+}
+
+func (c *Controller) SingleVFO() bool {
+	if c.activeRadio == nil {
+		return true
+	}
+	return c.activeRadio.SingleVFO()
 }
 
 func (c *Controller) SetFrequency(vfo core.VFOID, frequency core.Frequency) {

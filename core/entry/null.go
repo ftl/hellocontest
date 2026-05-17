@@ -55,7 +55,7 @@ func (n *nullLogbook) UpdateQSO(core.QSO)         {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) InputChanged(string, core.Band, core.Mode, []string) {}
+func (n *nullCallinfo) InputChanged(core.VFOID, string, core.Band, core.Mode, []string) {}
 
 type nullBandmap struct{}
 

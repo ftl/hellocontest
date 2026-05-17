@@ -49,7 +49,7 @@ type View interface {
 }
 
 type CallinfoFrameListener interface {
-	CallinfoFrameChanged(core.CallinfoFrame)
+	CallinfoFrameChanged(core.VFOID, core.CallinfoFrame)
 }
 
 type Callinfo struct {
@@ -62,7 +62,7 @@ type Callinfo struct {
 	theirExchangeFields []core.ExchangeField
 	qtcsEnabled         bool
 
-	frame core.CallinfoFrame
+	frames [core.VFOCount]core.CallinfoFrame
 }
 
 func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, qtcProvider QTCProvider) *Callinfo {
@@ -110,13 +110,13 @@ func (c *Callinfo) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Callinfo) emitFrameChanged() {
+func (c *Callinfo) emitFrameChanged(vfo core.VFOID) {
 	for _, listener := range c.listeners {
 		if l, ok := listener.(CallinfoFrameListener); ok {
-			l.CallinfoFrameChanged(c.frame)
+			l.CallinfoFrameChanged(vfo, c.frames[vfo])
 		}
 	}
-	c.view.ShowFrame(c.frame)
+	c.view.ShowFrame(c.frames[vfo])
 }
 
 func (c *Callinfo) GetInfo(call core.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
@@ -127,39 +127,42 @@ func (c *Callinfo) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mo
 	return c.collector.UpdateValue(info, band, mode)
 }
 
-func (c *Callinfo) InputChanged(call string, band core.Band, mode core.Mode, currentExchange []string) {
+func (c *Callinfo) InputChanged(vfo core.VFOID, call string, band core.Band, mode core.Mode, currentExchange []string) {
 	normalizedCall := normalizeInput(call)
 
 	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
 	supercheck := c.supercheck.Calculate(normalizedCall, band, mode)
 
-	c.frame.NormalizedCallInput = normalizedCall
-	c.frame.DXCCEntity = callinfo.DXCCEntity
-	c.frame.Azimuth = callinfo.Azimuth
-	c.frame.Distance = callinfo.Distance
-	c.frame.UserInfo = callinfo.UserText
+	frame := &c.frames[vfo]
+	frame.NormalizedCallInput = normalizedCall
+	frame.DXCCEntity = callinfo.DXCCEntity
+	frame.Azimuth = callinfo.Azimuth
+	frame.Distance = callinfo.Distance
+	frame.UserInfo = callinfo.UserText
 
-	c.frame.Points = callinfo.Points
-	c.frame.Multis = callinfo.Multis
-	c.frame.Value = callinfo.Value
-	c.frame.SentQTCs = callinfo.SentQTCs
-	c.frame.ReceivedQTCs = callinfo.ReceivedQTCs
+	frame.Points = callinfo.Points
+	frame.Multis = callinfo.Multis
+	frame.Value = callinfo.Value
+	frame.SentQTCs = callinfo.SentQTCs
+	frame.ReceivedQTCs = callinfo.ReceivedQTCs
 
-	c.frame.PredictedExchange = callinfo.PredictedExchange
-	c.frame.Supercheck = supercheck
+	frame.PredictedExchange = callinfo.PredictedExchange
+	frame.Supercheck = supercheck
 
-	c.emitFrameChanged()
+	c.emitFrameChanged(vfo)
 }
 
+// EntryOnFrequency is driven by the bandmap, which is VFO1-only in this step. Updates VFO1's frame only.
 func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
-	last := c.frame.CallsignOnFrequency.Callsign.String()
+	frame := &c.frames[core.VFO1]
+	last := frame.CallsignOnFrequency.Callsign.String()
 	if !available {
-		c.frame.CallsignOnFrequency = core.AnnotatedCallsign{}
-	} else if c.frame.CallsignOnFrequency.Callsign.String() == entry.Call.String() {
+		frame.CallsignOnFrequency = core.AnnotatedCallsign{}
+	} else if frame.CallsignOnFrequency.Callsign.String() == entry.Call.String() {
 		// go on
 	} else {
-		exactMatch := c.frame.NormalizedCallInput == entry.Call.String()
-		c.frame.CallsignOnFrequency = core.AnnotatedCallsign{
+		exactMatch := frame.NormalizedCallInput == entry.Call.String()
+		frame.CallsignOnFrequency = core.AnnotatedCallsign{
 			Callsign:          entry.Call,
 			Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
 			Duplicate:         entry.Info.Duplicate,
@@ -172,8 +175,8 @@ func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 		}
 	}
 
-	if last != c.frame.CallsignOnFrequency.Callsign.String() {
-		c.emitFrameChanged()
+	if last != frame.CallsignOnFrequency.Callsign.String() {
+		c.emitFrameChanged(core.VFO1)
 	}
 }
 

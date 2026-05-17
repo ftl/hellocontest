@@ -82,7 +82,7 @@ type Keyer interface {
 
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
-	InputChanged(call string, band core.Band, mode core.Mode, exchange []string)
+	InputChanged(vfo core.VFOID, call string, band core.Band, mode core.Mode, exchange []string)
 }
 
 type Bandmap interface {
@@ -254,11 +254,11 @@ func (c *Controller) notifyCallinfoInputChanged(call string, band core.Band, mod
 	if c.callinfo == nil {
 		return
 	}
-	c.callinfo.InputChanged(call, band, mode, exchange)
+	c.callinfo.InputChanged(c.focusedVFO, call, band, mode, exchange)
 }
 
-func (c *Controller) CallinfoFrameChanged(frame core.CallinfoFrame) {
-	c.currentCallinfoFrame[c.focusedVFO] = frame
+func (c *Controller) CallinfoFrameChanged(vfo core.VFOID, frame core.CallinfoFrame) {
+	c.currentCallinfoFrame[vfo] = frame
 	// TODO what do we need to update here?
 }
 

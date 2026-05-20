@@ -2,276 +2,373 @@
 
 ## Context
 
-Reference document describing how `app`, `entry`, `vfo`, and `radio` collaborate inside hellocontest. The single-VFO baseline of this document lives in git history; the present version captures the state on the in-progress `2vfo` branch, which extends the wiring to support a second VFO. Each section calls out what changed against the original single-VFO design so the remaining work can be planned against an accurate baseline.
+Reference document describing how `app`, `entry`, `vfo`, `radio`, `callinfo`, and `ui` collaborate inside hellocontest. The single-VFO baseline lives in git history; this version captures the state after completing the initial dual-VFO implementation (steps 1–8 of the plan), so that the remaining work can be planned against an accurate baseline.
 
 ---
 
-## 1. Layered roles — unchanged in principle, multiplied in count
+## 1. Layered roles
 
-| Package | Role then | Role now |
-|---------|-----------|----------|
-| `core/app` | Composition root, wires single VFO | Same role, but constructs **`core.VFOCount` VFOs** in a loop (currently 2: VFO1, VFO2) |
-| `core/entry` | Held one VFO via `core.VFO` interface | Holds a **slice** `vfos []core.VFO` indexed by `VFOID`, plus a `focusedVFO core.VFOID` cursor that routes user input |
-| `core/vfo` | One `VFO` struct, owned listener list | Each `VFO` carries an `id core.VFOID` and a `name`; events emitted are tagged with that ID. Multiple `VFO` instances coexist over the same `Client` |
-| `core/radio` | Single backend, single `vfo.Client` | Still a single backend, but the `vfo.Client` interface is **VFO-ID-aware** and the hamlib/TCI backends know how to talk to two physical VFOs on one rig |
-
-No new top-level packages. No cyclic imports. All multi-VFO contracts live in `core/core.go` alongside the existing listener interfaces.
+| Package | Role |
+|---------|------|
+| `core/app` | Composition root. Constructs `core.VFOCount` (=2) VFOs in a loop; wires `RadioChangedListener`, `VFOSwitcher`, and all `Notify` chains. |
+| `core/entry` | Owns per-VFO state slices indexed by `VFOID`. A `focusedVFO` cursor routes all user-driven commands. Both VFOs hold independent pending QSOs simultaneously (aka. SO2V). |
+| `core/vfo` | One `VFO` struct per physical VFO. Emits events tagged with `id`; filters inbound events that don't match its `id`. |
+| `core/radio` | Single backend, single `activeRadio`. The `vfo.Client` interface and all backends are VFO-ID-aware. Emits `RadioChanged(name, singleVFO)` to notify downstream of backend capability. |
+| `core/callinfo` | Threaded with `VFOID`; maintains per-VFO `frames` and emits `CallinfoFrameChanged(vfo, frame)`. |
+| `ui` | `entryView` has a full second row of widgets for VFO2 (callsign, exchange fields, Log/Clear buttons, status labels). Row visibility driven by `SetVFOEnabled`. |
 
 ---
 
-## 2. New core types (`core/core.go:1679–1721`)
+## 2. Core types (`core/core.go:1679–1725`)
 
 ```go
 type VFOID int
+const ( VFO1 VFOID = iota; VFO2; VFOCount )
 
-const (
-    VFO1 VFOID = iota
-    VFO2
-
-    VFOCount
-)
-
-type VFO interface {
-    XITControl
-    Name() string         // NEW
-    Notify(any)
-    Refresh()
-    SetFrequency(Frequency)
-    SetBand(Band)
-    SetMode(Mode)
-    SetXIT(bool, Frequency)
+type RadioChangedListener interface {
+    RadioChanged(name string, singleVFO bool)
 }
 
-type CurrentVFOListener interface {       // NEW
-    CurrentVFOChanged(VFOID)
-}
+type CurrentVFOListener interface { CurrentVFOChanged(VFOID) }
+
+// All five VFO event interfaces now carry a leading VFOID:
+type VFOFrequencyListener interface { VFOFrequencyChanged(VFOID, Frequency) }
+type VFOBandListener      interface { VFOBandChanged(VFOID, Band) }
+type VFOModeListener      interface { VFOModeChanged(VFOID, Mode) }
+type VFOXITListener       interface { VFOXITChanged(VFOID, bool, Frequency) }
+type VFOPTTListener       interface { VFOPTTChanged(VFOID, bool) }
 ```
 
-All five existing VFO event interfaces gained a leading `VFOID` parameter:
-
-| Then | Now |
-|------|-----|
-| `VFOFrequencyChanged(Frequency)` | `VFOFrequencyChanged(VFOID, Frequency)` |
-| `VFOBandChanged(Band)` | `VFOBandChanged(VFOID, Band)` |
-| `VFOModeChanged(Mode)` | `VFOModeChanged(VFOID, Mode)` |
-| `VFOXITChanged(bool, Frequency)` | `VFOXITChanged(VFOID, bool, Frequency)` |
-| `VFOPTTChanged(bool)` | `VFOPTTChanged(VFOID, bool)` |
-
-`CurrentVFOListener` is the new "focus moved" event channel; in the original single-VFO snapshot there was no notion of an active/focused VFO.
+`RadioChangedListener` is new. It carries the radio name and a `singleVFO` flag that drives VFO2 visibility.
 
 ---
 
-## 3. `core/vfo` package — VFO struct and Client interface
+## 3. `core/vfo` — VFO struct and Client interface
 
-**VFO struct** now (`core/vfo/vfo.go:27–41`):
+**VFO struct** (`vfo.go:27–59`):
 
 ```go
 type VFO struct {
     XITControl
-    id   core.VFOID          // NEW
-    name string               // NEW
-    bandplan      bandplan.Bandplan
-    logbook       Logbook
-    client        Client
+    id          core.VFOID   // identifies this instance
+    name        string
+    bandplan    bandplan.Bandplan
+    logbook     Logbook
+    client      Client
     offlineClient *offlineClient
-    refreshing    bool
-    asyncRunner   core.AsyncRunner
-    listeners []any
+    asyncRunner core.AsyncRunner
+    listeners   []any
 }
 ```
 
-Constructor signature (`vfo.go:43`):
+Constructor: `NewVFO(id core.VFOID, name string, bandplan, logbook, asyncRunner)`.
 
-```go
-func NewVFO(id core.VFOID, name string, bandplan bandplan.Bandplan,
-            logbook Logbook, asyncRunner core.AsyncRunner) *VFO
-```
-
-(was `NewVFO("VFO 1", bandplan, Logbook, asyncRunner)`).
-
-**`vfo.Client` interface** — gained `VFOID` on the per-VFO setters:
+**`vfo.Client` interface** (`vfo.go:12–20`) — per-VFO setters take `VFOID`:
 
 ```go
 type Client interface {
     Notify(any)
     Active() bool
     Refresh()
-    SetFrequency(core.VFOID, core.Frequency)   // CHANGED
-    SetBand(core.VFOID, core.Band)             // CHANGED
-    SetMode(core.VFOID, core.Mode)             // CHANGED
-    SetXIT(bool, core.Frequency)               // unchanged (single XIT)
+    SetCurrentVFO(core.VFOID)             // NEW; stub in all backends
+    SetFrequency(core.VFOID, core.Frequency)
+    SetBand(core.VFOID, core.Band)
+    SetMode(core.VFOID, core.Mode)
+    SetXIT(bool, core.Frequency)          // not yet VFO-scoped
 }
 ```
 
-XIT deliberately remains unscoped — there is currently a single XIT control surface in the UI, tied to VFO1 (see TODOs).
+Inbound filter (`vfo.go:142–176`): each `VFO*Changed` callback starts with `if vfo != v.id { return }`.
 
-**Online/offline contract is unchanged**: each `VFO` still uses an `offlineClient` until `SetClient(client)` connects it to the radio. Per-band cache lives in the `offlineClient` exactly as before. The `online()` check (`vfo.go:75`) is identical.
-
-**Emit semantics**: each emit method now propagates `v.id` as the first argument so listeners can filter. The inbound listener methods on the VFO itself (`VFOFrequencyChanged(vfo, f)`, etc.) include an early-return guard `if vfo != v.id { return }` so cross-VFO chatter from a shared client is ignored.
-
-`asyncRunner` UI-thread marshalling is unchanged.
+Emit semantics (`vfo.go:178–216`): each `emit*Changed` method wraps listeners via `asyncRunner` before calling the listener method, ensuring callers land on the UI thread even when the backend emits from a goroutine.
 
 ---
 
-## 4. `core/radio` package — bridge stays single, backends become dual-VFO
+## 4. `core/radio` — backend bridge
 
-`Controller` still has exactly **one** `activeRadio` / `activeKeyer`. It is still constructed before VFOs (`app.go:209`).
+`Controller` struct (`radio.go:31–46`) holds one `activeRadio radio` plus `listeners []any`. The internal `radio` interface (`radio.go:48–60`) now requires `SingleVFO() bool` and `SetCurrentVFO(core.VFOID)`.
 
-The `vfo.Client` implementation methods take `VFOID` and forward it (`core/radio/radio.go:269–309`):
+**`emitRadioChanged`** (`radio.go:137–146`): called from `SelectRadio` (success and error paths) and `Stop`. Fires `RadioChangedListener.RadioChanged(name, singleVFO)` to all `c.listeners`. `c.listeners` is also forwarded wholesale to `activeRadio.Notify` in `SelectRadio` (`radio.go:204–205`), giving VFO objects and other listeners direct access to hamlib/TCI events.
+
+**Entry subscribed via `c.Radio.Notify(c.Entry)`** (app.go:211). Because the listener list is forwarded to the hamlib client, Entry's VFO event handlers can be invoked from the hamlib polling goroutine; all such handlers are wrapped in `c.asyncRunner` (see §5).
+
+**Backend capability:**
+
+| Backend | `SingleVFO()` | `SetCurrentVFO()` | Dual-VFO polling | Dual-VFO setting |
+|---------|--------------|------------------|-----------------|-----------------|
+| hamlib | returns `c.singleVFO` (set when `vfo2` option absent) | stub — logs, no-op | `pollDualVFO` / `pollSingleVFO` fallback | `SetFrequency/Band/Mode(vfo, …)` ✓ |
+| TCI | reads `single_vfo` config key (default false) | stub — logs, no-op | per-TRX routing | `toTCIVFO()` mapping ✓ |
+
+**`SetXIT`** (`hamlib.go:359+`): still hardcodes `core.VFO1` internally. `// TODO: add VFOID to SetXIT`.
+
+---
+
+## 5. `core/entry` — per-VFO state and routing
+
+### 5.1 Controller struct fields (`entry.go:152–205`)
+
+Per-VFO slices (length `core.VFOCount`, index = `VFOID`):
+
+| Field | Type |
+|-------|------|
+| `vfos` | `[]core.VFO` |
+| `input` | `[]input` |
+| `selectedFrequency` | `[]core.Frequency` |
+| `selectedBand` | `[]core.Band` |
+| `selectedMode` | `[]core.Mode` |
+| `activeField` | `[]core.EntryField` |
+| `errorField` | `[]core.EntryField` |
+| `currentCallinfoFrame` | `[]core.CallinfoFrame` |
+| `claimedSerial` | `[]core.QSONumber` |
+| `claimSnapshot` | `[]core.QSONumber` |
+| `esmState` | `[]core.ESMState` |
+| `esmMessage` | `[]string` |
+
+Shared/single fields: `focusedVFO core.VFOID`, `vfo2Enabled bool`, `editing bool`, `editQSO core.QSO`, `editSnapshot *editSnapshot`, `ptt bool`, `parrotActive bool`, `parrotTimeLeft`, `esmEnabled bool`.
+
+All per-VFO slices initialised in `NewController` (`entry.go:95–128`). `activeField` elements seeded to `core.CallsignField` so that a VFO focus switch always lands on a valid field.
+
+### 5.2 Focus model (`entry.go:466–520`)
+
+`SetFocusedVFO(vfo VFOID)` is the single funnel:
+1. Guards: no-op if `vfo == VFO2 && !c.vfo2Enabled`; no-op if already focused.
+2. Updates `c.focusedVFO`.
+3. Calls `c.vfoSwitcher.SetCurrentVFO(vfo)` (commands rig, currently stub).
+4. Calls `c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])` — moves UI cursor.
+
+`setFocusedVFOSilent` skips steps 3–4; used by edit-mode enter/leave to avoid rig command and unnecessary view churn.
+
+Public focus actions (wired to F8/F9/F10 in `ui/actions.go` and remote server):
+
+| Method | Hotkey | Behaviour |
+|--------|--------|-----------|
+| `ToggleFocusedVFO()` | F8 | Flips VFO1↔VFO2; no-op if VFO2 disabled |
+| `FocusVFO1()` | F9 | `SetFocusedVFO(VFO1)` |
+| `FocusVFO2()` | F10 | `SetFocusedVFO(VFO2)` |
+
+Log/Clear helpers:
 
 ```go
-func (c *Controller) SetFrequency(vfo core.VFOID, frequency core.Frequency)
-func (c *Controller) SetBand(vfo core.VFOID, band core.Band)
-func (c *Controller) SetMode(vfo core.VFOID, mode core.Mode)
-func (c *Controller) SetXIT(active bool, offset core.Frequency)
+func (c *Controller) LogVFO(vfo VFOID)   { c.SetFocusedVFO(vfo); c.Log() }
+func (c *Controller) ClearVFO(vfo VFOID) { c.SetFocusedVFO(vfo); c.Clear() }
 ```
 
-New config options for hamlib (`radio.go:17–18`): `hamlibVFO1Option`, `hamlibVFO2Option`. `newHamlibClient()` reads both and hands them to `hamlib.New(...)`.
+### 5.3 Serial claim model (`entry.go:540–620`)
 
-`SelectRadio` listener re-registration logic is unchanged: when the backend switches, every cached listener is re-`Notify`'d into the new backend (`radio.go:203–204`). VFO1 and VFO2 both ride this same wire.
+A serial number can be in one of three states:
 
-**Backend status:**
+- **Claimed**: assigned to a VFO's pending (unlogged) QSO the moment a valid callsign is first parsed. Stored in `claimedSerial[vfo]`. Sticky — re-parsing the same field with the same VFO does not re-claim.
+- **Taken**: logged into the logbook. Permanently unavailable.
+- **Unclaimed / preview**: next available serial, skipping the other VFO's claimed serial.
 
-- **TCI** has dual-VFO routing via `toTCIVFO()` (`core/tci/tci.go:331–332`).
-- **Hamlib** is dual-VFO on both directions:
-  - Polling: `pollDualVFO` reads `GetRigInfo` and fills `lastState[VFO1]`/`lastState[VFO2]`, with single-VFO fallback via `pollSingleVFO` when `vfo2` is unconfigured (`hamlib.go:139–224`).
-  - Setting: `SetFrequency(vfo core.VFOID, …)`, `SetBand(vfo core.VFOID, …)`, `SetMode(vfo core.VFOID, …)` all take a `VFOID` and forward to `c.client.SetX(c.vfos[vfo], …)` (`hamlib.go:314, 323, 332`).
+Key methods:
 
-The remaining gap is **`SetXIT`** (`hamlib.go:344`): signature `SetXIT(active bool, offset core.Frequency)` with `// TODO: add the VFOID to all VFO-related Setters` and `vfo := core.VFO1` hardcoded inside, so XIT writes always target VFO1. (`Speed`/`Send`/`Abort` still use `hl.CurrVFO`, but those are keyer concerns, not per-VFO ones.)
-
----
-
-## 5. `core/entry` — biggest behavioural surface change
-
-The original Entry held one `core.VFO`. Today (`core/entry/entry.go`):
-
-- `vfos []core.VFO` (line 128), initialised to a slice of `nullVFO` of length `core.VFOCount`.
-- `focusedVFO core.VFOID` (line 151) tracks which VFO the typing user is currently driving.
-- Per-VFO scratch state: `input[VFOID]`, `selectedBand[VFOID]`, `selectedMode[VFOID]`, etc. (constructor lines 105–115).
-
-**New / changed methods:**
-
-| Method | Then | Now |
-|--------|------|-----|
-| `SetVFO(VFO)` | One slot | `SetVFO(id core.VFOID, vfo core.VFO)` (line 231) — fills a slot in the slice, then `vfo.Notify(c)` |
-| `SetFocusedVFO(VFOID)` | did not exist | New entrypoint (`entry.go:411`) — currently only updates the cursor, with a `// TODO: whatever else is necessary when the focused VFO changes` |
-
-**Routing of user-driven commands:**
-
-- `SetFrequency` (line 469) → **hardcoded** `c.vfos[core.VFO1].SetFrequency(...)` (only one frequency input field exists today).
-- `SetBand` (lines 474, 505) → `c.vfos[c.focusedVFO].SetBand(band)` — band combo follows focus.
-- `SetMode` (line 526) → `c.vfos[c.focusedVFO].SetMode(mode)`.
-- `SetXITActive` (line 478) → **hardcoded** `core.VFO1` (single XIT switch in UI).
-- `Refresh()` (line 921) → `c.vfos[c.focusedVFO].Refresh()`.
-
-**Callbacks from VFOs:** all five (`VFOFrequencyChanged`, `VFOBandChanged`, `VFOModeChanged`, `VFOXITChanged`, `VFOPTTChanged`) now carry the originating `VFOID`. Entry routes them per-VFO (caching band/mode/frequency into the right slot of its scratch state). A few paths are still VFO1-only by intent — e.g. the parrot/TX-state handling in `VFOPTTChanged` (around line 605).
-
-**`Log()` gated to VFO1**: `entry.go:709` — early-return when `focusedVFO != VFO1`. Comment: `// TODO: remove once we have real edit fields for both VFOs.` Logging from VFO2 is intentionally disabled until per-VFO call/exchange input lands.
-
----
-
-## 6. App wiring — current `Startup()` block (`core/app/app.go:188–249`)
-
-Construction order:
-
-1. `entry.NewController(...)` (line 188) — same as before.
-2. `radio.NewController(...)` (line 209) — must precede VFO construction now: each VFO calls `SetClient(c.Radio)` inline during the loop below.
-3. **Loop** (lines 213–220):
-   ```go
-   c.VFOs = make([]*vfo.VFO, core.VFOCount)
-   for vfoID := range len(c.VFOs) {
-       v := vfo.NewVFO(core.VFOID(vfoID),
-                       fmt.Sprintf("VFO %d", vfoID+1),
-                       c.bandplan, c.Logbook, c.asyncRunner)
-       v.SetClient(c.Radio)
-       c.VFOs[vfoID] = v
-       c.Entry.SetVFO(core.VFOID(vfoID), v)
-       c.Logbook.Notify(v)
-   }
-   ```
-4. `c.Bandmap.SetVFO(c.VFOs[core.VFO1])` — **VFO1 only**.
-5. `c.Workmode.Notify(c.VFOs[core.VFO1])` — **VFO1 only**.
-6. `c.Radio.SelectRadio(c.session.Radio1())` — still one radio selection.
-7. `c.VFOs[core.VFO1].Notify(c.QTCController)` (line 249) — **VFO1 only**.
-
-Both VFOs exist and both push events into Entry, but several downstream consumers (Bandmap, Workmode, QTC) intentionally listen only to VFO1 right now. That is consistent with the UI: there is one bandmap, one workmode panel, one QTC controller.
-
-**Shutdown** (`app.go:391`): unchanged — `c.Radio.Stop()` and the remote server if present. No per-VFO teardown.
-
----
-
-## 7. UI surface (`ui/entryView.go`, `ui/centralArea.go`)
-
-The entry view has gained a parallel row of VFO2 widgets (`entryView.go:47–53, 137–169`): `vfo2Label`, `vfo2FrequencyLabel`, `vfo2Band`, `vfo2Mode`, `vfo2XITIndicator`, `vfo2TXIndicator`. `centralArea.go:127–132` places them in the layout.
-
-All `SetFrequency / SetBand / SetMode / SetXIT / SetTXState` setters on the view now take a `VFOID` and dispatch to the right widget row (`entryView.go:302–406`).
-
-There is **no second call/exchange edit field** — that remains the gating reason `Entry.Log()` is locked to VFO1.
-
----
-
-## 8. Updated diagram
-
-```
-                  ┌────────────┐
-                  │   app      │  Startup builds N=VFOCount VFOs
-                  └─────┬──────┘
-                        │ for each VFOID: NewVFO + SetClient + SetVFO
-       ┌────────────────┼──────────────────────────┐
-       ▼                ▼                          ▼
-   ┌───────┐  SetVFO(id, v)   ┌─────────────┐  SetClient   ┌─────────┐
-   │ entry │ ◄────────────── ┤ vfo[VFO1]    │ ───────────► │  radio  │
-   │ vfos[]│  VFO1 events    │ vfo[VFO2]    │ ◄────────── (Notify both)
-   │ focus │ ◄────────────── │              │  freq/band/  └────┬────┘
-   └───────┘  VFO2 events    └──────┬───────┘  mode events       │
-                                    │                            │
-                                    ▼                            ▼
-                            offlineClient                hamlib (dual-VFO
-                            (per-band cache,             polling + setting)
-                             per VFO instance)           / tci
+```go
+claimSerialFor(vfo)          // reserve next unclaimed serial; no-op if already claimed
+releaseSerialClaimFor(vfo)   // zero the claim slot
+nextUnclaimedSerial(forVFO)  // walks from NextQSONumber(), skips other VFO's claim
+displayedSerialFor(vfo)      // claimed || nextUnclaimedSerial preview
+refreshMyNumberInputs()      // reads NextQSONumber once, writes both VFOs' input.myNumber
 ```
 
-Bandmap, Workmode, QTC remain attached but **only to `vfo[VFO1]`** at present.
+`claimSnapshot[vfo]` records `NextQSONumber()` at claim time. On release via `Clear()`, if the logbook number has advanced (i.e. a QSO was logged on the other VFO in between), the serial is permanently skipped.
+
+### 5.4 Edit-mode modal (`entry.go:624–663`)
+
+`enterEditMode(qso core.QSO)`:
+1. Snapshots VFO1 state into `editSnapshot` (focusedVFO, full `input[VFO1]`, claimedSerial, claimSnapshot, activeField, errorField, callinfoFrame, esmState[], esmMessage[]).
+2. `setFocusedVFOSilent(VFO1)` — no rig command, no view cursor move.
+3. Sets `editing = true`, `editQSO = qso`.
+4. Claims `qso.MyNumber` for VFO1 for the duration.
+
+`leaveEditMode()` (called by `Clear()` when `editing == true`):
+1. Restores all snapshotted fields for VFO1.
+2. `setFocusedVFOSilent(snap.focusedVFO)` — returns focus to where it was.
+3. Clears `editing`, `editQSO`, `editSnapshot`.
+4. **TODO**: call `c.view.SetVFOEnabled(core.VFO2, true)` after edit exit (VFO2 disable during edit not yet wired, see §8).
+
+`canTransmit() bool` (`entry.go:536`): returns `!c.editing`. All keyer entry points (`SendQuestion`, `RepeatLastTransmission`, `NextESMStep`, ESM auto-send in `EnterPressed`) guard on this.
+
+### 5.5 VFO event handlers (`entry.go:728–868`)
+
+All five handlers are fully wrapped in `c.asyncRunner` so that the entire body (state mutation + view call) runs on the UI thread, regardless of whether the caller is a hamlib goroutine or a vfo-marshalled call:
+
+```go
+func (c *Controller) VFOFrequencyChanged(vfo VFOID, frequency Frequency) {
+    c.asyncRunner(func() {
+        // ... guard edits, compute jump, update selectedFrequency, call view
+    })
+}
+```
+
+Same pattern for `VFOBandChanged`, `VFOModeChanged`, `VFOXITChanged`, `VFOPTTChanged`.
+
+`VFOFrequencyChanged`: detects jumps (`> jumpThreshold`); on jump triggers `Clear()` and resets `ignoreFrequencyJump`.
+
+`VFOPTTChanged`: VFO1 PTT drives `c.ptt` + `updateTXState()`; other VFOs update their TX indicator directly.
+
+### 5.6 ESM (`entry/esm.go`)
+
+Fully per-VFO: `esmState[focusedVFO]`, `esmMessage[focusedVFO]`. `NextESMStep` guards via `canTransmit()`. `updateESM` reads and writes the focused VFO's slots.
+
+### 5.7 `Log()` (`entry.go:980–1071`)
+
+Now routes from `c.focusedVFO` for callsign, frequency, band, mode, exchange input. No longer locked to VFO1. On success, calls `refreshMyNumberInputs()` so the other VFO's serial preview updates immediately.
+
+### 5.8 `Clear()` (`entry.go:1184–1239`)
+
+Two paths:
+- **Edit exit** (`c.editing == true`): calls `leaveEditMode()`, then redraws VFO1 state from snapshot.
+- **Normal clear**: releases `claimedSerial[focusedVFO]`, resets `input[focusedVFO]`, calls `fillExchangeDefaults(focusedVFO, lastExchange)`. Also fills idle non-focused VFOs (those with no callsign and no claim) so default reports stay current after mode/band changes.
 
 ---
 
-## 9. Invariants — what held, what shifted
+## 6. `core/callinfo` — VFOID threading
 
-Held:
-- **Single VFO event source**: still true per VFO instance. `vfo.emit*` is still the only egress; backends never bypass.
-- **Late binding via type assertion**: still the only registration mechanism; producer side iterates with type assertions.
-- **`asyncRunner` UI-thread contract**: unchanged in vfo. Radio still does not marshal.
-- **Construction precedes wiring**: still respected.
+`Callinfo.InputChanged(vfo core.VFOID, call string, band, mode, exchange)` updates `frames[vfo]` and emits `CallinfoFrameChanged(vfo, frames[vfo])`.
 
-Shifted:
-- **Events are now tagged with `VFOID`**. Listeners must dispatch on the ID; the old "the VFO" assumption no longer holds.
-- **Multiple VFO instances share one Client**. Each VFO filters inbound events from the shared client by its own `id`. The client must address commands to a specific VFO (via the `VFOID` argument on `SetFrequency`/`SetBand`/`SetMode`).
-- **A user-input focus concept now exists in Entry** (`focusedVFO`) that did not exist before. Several downstream paths still hardcode VFO1.
+`Entry.CallinfoFrameChanged(vfo, frame)` stores into `currentCallinfoFrame[vfo]`.
+
+`EntryOnFrequency` (bandmap spot overlay) is VFO1-only by design — bandmap is tied to VFO1.
 
 ---
 
-## 10. Outstanding work (in-flight)
+## 7. App wiring (`core/app/app.go:188–275`)
 
-| File:line | TODO |
-|-----------|------|
-| `core/hamlib/hamlib.go:344` | `// TODO: add the VFOID to all VFO-related Setters` — `SetXIT` lacks `VFOID` and hardcodes `core.VFO1`. `SetFrequency`/`SetBand`/`SetMode` already take `VFOID`. |
-| `core/entry/entry.go:411` `SetFocusedVFO` | `// TODO: whatever else is necessary when the focused VFO changes` — currently only updates the cursor; band/mode display refresh on focus change not implemented |
-| `core/entry/entry.go:577` | `// TODO: add VFO parameter to XITActiveChanged` — XIT change handler hardcodes VFO1 |
-| `core/entry/entry.go:709` | `// TODO: remove once we have real edit fields for both VFOs` — `Log()` early-returns if `focusedVFO != VFO1` |
-| `core/entry/entry.go:979` | `// TODO: myNumber, myReport, myExchange are independent of the currently focused VFO` — design ambiguity: per-VFO vs global serial/report |
-| `core/entry/entry.go:1082` | `// TODO: check if the entry's band is currently selected in one of the two VFOs` — bandmap → VFO routing needs to pick a VFO when a spot is taken |
-| `core/app/app.go:221–249` | Several listeners attached to VFO1 only (Bandmap, Workmode, QTC). Decide which of these should become per-VFO and which stay VFO1-only |
-| UI | No second call/exchange input fields exist; without them, VFO2 cannot be the source of a logged QSO |
+Construction and notification order:
+
+```
+Entry := entry.NewController(...)
+Radio := radio.NewController(...)
+
+Radio.Notify(ServiceStatus)
+Radio.Notify(Entry)         // Entry receives RadioChanged + is forwarded to hamlib listeners
+Entry.SetVFOSwitcher(Radio) // Entry can command rig VFO switch
+
+for vfoID in 0..VFOCount:
+    v := vfo.NewVFO(vfoID, ...)
+    v.SetClient(Radio)
+    Entry.SetVFO(vfoID, v)
+    Logbook.Notify(v)
+
+Bandmap.SetVFO(VFOs[VFO1])       // VFO1-only
+Workmode.Notify(VFOs[VFO1])      // VFO1-only
+VFOs[VFO1].Notify(QTCController) // VFO1-only
+
+Radio.SelectRadio(session.Radio1())
+
+Callinfo.Notify(Entry)  // CallinfoFrameChanged flows to entry
+Entry.SetCallinfo(Callinfo)
+```
+
+**`DoAction` VFO cases** (`app.go:962–975`):
+
+```go
+case ActionEntryToggleFocusedVFO: c.Entry.ToggleFocusedVFO()
+case ActionEntryFocusVFO1:        c.Entry.FocusVFO1()
+case ActionEntryFocusVFO2:        c.Entry.FocusVFO2()
+case ActionEntryLogVFO1:          c.Entry.LogVFO(core.VFO1)
+case ActionEntryLogVFO2:          c.Entry.LogVFO(core.VFO2)
+case ActionEntryClearVFO1:        c.Entry.ClearVFO(core.VFO1)
+case ActionEntryClearVFO2:        c.Entry.ClearVFO(core.VFO2)
+```
+
+All seven actions also reachable via remote server (`POST /do?action=<id>`).
 
 ---
 
-## Verification (read-only)
+## 8. UI surface
 
-- `core/core.go:1679–1721` — new `VFOID` type, updated listener interfaces, `CurrentVFOListener`.
-- `core/vfo/vfo.go:12–20, 27–63, 135–215` — VFO struct, `Client` interface, emit/filter logic.
-- `core/radio/radio.go:17–19, 167–249, 269–309` — VFO2 option, `SelectRadio` re-registration, `vfo.Client` impl with `VFOID`.
-- `core/app/app.go:188–249` — current wiring block including VFO loop.
-- `core/entry/entry.go:105–115, 128, 151, 231–238, 411–417, 469–605, 709–712, 1082` — slice-of-VFO storage, `focusedVFO`, routing.
-- `core/hamlib/hamlib.go:139–351` and `core/tci/tci.go:331–332` — backend dual-VFO state.
-- `ui/entryView.go:47–53, 137–169, 302–406` and `ui/centralArea.go:127–132` — VFO2 widgets.
-- `git log --oneline master..2vfo` — commits of the second-VFO work.
+### `ui/entryView.go`
+
+VFO2 widgets (`entryView` struct, lines 50–62):
+- `vfo2Label`, `vfo2FrequencyLabel`, `vfo2BandModeContainer`
+- `vfo2XITIndicator`, `vfo2TXIndicator`
+- `vfo2TheirLabel`, `vfo2Callsign`, `vfo2TheirExchangeFields`
+- `vfo2LogButton`, `vfo2ClearButton`
+
+`vfo2Enabled bool` stored on `entryView` for visibility bookkeeping (see below).
+
+**`SetVFOEnabled(vfo, enabled)`** (`entryView.go:640–676`): VFO1 is always enabled (no-op). For VFO2, shows/hides the entire widget cluster. Records `v.vfo2Enabled = enabled`.
+
+**`setExchangeFields`** (`entryView.go:485–511`): when building new VFO2 exchange fields, checks `v.vfo2Enabled` and hides/disables newly created fields if the flag is false. This prevents a startup race where `SetVFOEnabled(VFO2, false)` fires before the exchange fields exist.
+
+All per-row view methods take a `VFOID` and dispatch to the correct widget set: `SetCallsign`, `SetTheirExchange`, `SetActiveField`, `SetDuplicateMarker`, `SetEditingMarker`, `ShowMessage`, `ClearMessage`, `SetFrequency`, `SetBand`, `SetMode`, `SetXIT`, `SetXITActive`, `SetTXState`.
+
+Hotkey actions (`ui/actions.go`):
+
+```
+F8  → toggleVFOAction  → Entry.ToggleFocusedVFO()
+F9  → focusVFO1Action  → Entry.FocusVFO1()
+F10 → focusVFO2Action  → Entry.FocusVFO2()
+```
+
+Hotkey defaults also recorded in `cfg.Default.Keybindings` (`cfg/cfg.go`).
+
+### `ui/centralArea.go`
+
+VFO2 widgets occupy row 9 of the entry grid layout (below VFO1's their-exchange row). `removeWidgetsFromLayout` handles both rows 8 and 9.
+
+---
+
+## 9. Event flow diagram
+
+```
+hamlib goroutine                vfo.VFO (UI thread via asyncRunner)
+      │                                │
+      │ emitFrequencyChanged ──────────► VFOFrequencyChanged(id, f)
+      │ emitBandChanged      ──────────► VFOBandChanged(id, b)
+      │ emitModeChanged      ──────────► VFOModeChanged(id, m)
+      │ emitXITChanged       ──────────► VFOXITChanged(id, …)
+      │ emitPTTChanged       ──────────► VFOPTTChanged(id, p)
+      │                                │
+      │ (also forwarded directly to Entry via Radio.Notify → wrapped in asyncRunner inside handler)
+      │                                │
+      ▼                                ▼
+                        entry.Controller
+                        ┌─────────────────────────────────┐
+                        │ focusedVFO cursor                │
+                        │ per-VFO: input[], band[], mode[] │
+                        │          activeField[], esmState[]│
+                        │          claimedSerial[]          │
+                        └──────────────┬──────────────────┘
+                                       │ view calls (UI thread)
+                                       ▼
+                               entryView (Qt widgets)
+                               VFO1 row  │  VFO2 row
+                               callsign  │  callsign
+                               exchange  │  exchange
+                               Log/Clear │  Log/Clear
+
+radio.Controller (main thread)
+  emitRadioChanged(name, singleVFO)
+        │
+        ├──► Entry.RadioChanged  → vfo2Enabled, view.SetVFOEnabled
+        └──► view (if implements RadioChangedListener)
+```
+
+---
+
+## 10. Invariants
+
+- **Single event source per VFO**: `vfo.VFO.emit*` is the canonical egress. Backends never bypass it. (Entry also receives raw hamlib events via `Radio.Notify` forwarding, but those handlers are fully wrapped in `asyncRunner`.)
+- **asyncRunner contract**: all UI-touching code in Entry event handlers runs inside `c.asyncRunner`. VFO objects marshal outward via their own `asyncRunner`. No Qt call made from a non-UI goroutine.
+- **Construction precedes wiring**: `Radio` constructed before VFOs; VFOs constructed before `SelectRadio`; VFOs registered on Entry before events can fire.
+- **focusedVFO as single routing cursor**: every user input path reads `c.focusedVFO`; `SetFocusedVFO` is the sole mutator from outside the controller.
+- **vfo2Enabled gates VFO2**: `SetFocusedVFO(VFO2)`, `FocusVFO2`, `LogVFO(VFO2)`, `ClearVFO(VFO2)` all no-op when `!c.vfo2Enabled`. View mirrors state via `SetVFOEnabled`.
+
+---
+
+## 11. Outstanding work
+
+| Location | Item |
+|----------|------|
+| `core/hamlib/hamlib.go`, `core/tci/tci.go` | `SetCurrentVFO(VFOID)` is a stub (log + no-op). Real implementation must command the rig to switch TX VFO. |
+| `core/hamlib/hamlib.go` `SetXIT` | Hardcodes `core.VFO1`. Needs `VFOID` parameter like the other setters. |
+| `core/entry/entry.go:577` `XITActiveChanged` | `// TODO: add VFO parameter to XITActiveChanged` — handler and `vfo.XITControl` interface lack `VFOID`. |
+| `core/entry/entry.go` `leaveEditMode` line 662 | `// TODO step 6: c.view.SetVFOEnabled(core.VFO2, true)` — edit mode does not yet call `SetVFOEnabled(VFO2, false)` on enter or `true` on leave. VFO2 stays visible and interactive during editing. |
+| `core/entry/entry.go` `enterEditMode` | Complement of above: `c.view.SetVFOEnabled(core.VFO2, false)` missing at edit entry. |
+| `core/app/app.go:223–224` | `Bandmap.SetVFO`, `Workmode.Notify` intentionally VFO1-only. Decide if bandmap routing should follow `focusedVFO` or stay VFO1-only. |
+| `core/app/app.go:249` | `VFOs[VFO1].Notify(QTCController)` — QTC stays VFO1-only by design; confirm or expand. |
+| `ui/entryView.go` | Tab order cycles within each VFO's row independently. Confirm correct for SO2R workflow. |
+| Remote server | `LogVFO`/`ClearVFO` currently pass `VFOID` as a Go call only; verify remote HTTP surface encodes VFO identity if needed beyond action IDs. |

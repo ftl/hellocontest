@@ -112,8 +112,7 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 		activeField:          make([]core.EntryField, core.VFOCount),
 		errorField:           make([]core.EntryField, core.VFOCount),
 		currentCallinfoFrame: make([]core.CallinfoFrame, core.VFOCount),
-		claimedSerial:        make([]core.QSONumber, core.VFOCount),
-		claimSnapshot:        make([]core.QSONumber, core.VFOCount),
+		claims:               newSerialClaims(),
 		esmState:             make([]core.ESMState, core.VFOCount),
 		esmMessage:           make([]string, core.VFOCount),
 
@@ -187,8 +186,7 @@ type Controller struct {
 	selectedFrequency   []core.Frequency
 	selectedBand        []core.Band
 	selectedMode        []core.Mode
-	claimedSerial       []core.QSONumber
-	claimSnapshot       []core.QSONumber
+	claims               SerialClaims
 	editing             bool
 	editQSO             core.QSO
 	editSnapshot        *editSnapshot
@@ -537,45 +535,16 @@ func (c *Controller) canTransmit() bool {
 	return !c.editing
 }
 
-// nextUnclaimedSerial walks forward from the logbook's NextQSONumber, skipping any serial
-// currently claimed by the other VFO, and returns the first free serial for forVFO.
-func (c *Controller) nextUnclaimedSerial(forVFO core.VFOID) core.QSONumber {
-	candidate := c.logbook.NextQSONumber()
-	otherVFO := core.VFO1
-	if forVFO == core.VFO1 {
-		otherVFO = core.VFO2
-	}
-	if c.claimedSerial[otherVFO] != 0 && c.claimedSerial[otherVFO] == candidate {
-		candidate++
-	}
-	return candidate
-}
-
-// displayedSerialFor returns the serial currently visible to the operator on vfo's row:
-// the claimed value if any, otherwise the next unclaimed preview.
-func (c *Controller) displayedSerialFor(vfo core.VFOID) core.QSONumber {
-	if c.claimedSerial[vfo] != 0 {
-		return c.claimedSerial[vfo]
-	}
-	return c.nextUnclaimedSerial(vfo)
-}
-
 // claimSerialFor reserves the next unclaimed serial for the given VFO if it has none yet.
 // Sticky: subsequent calls while a claim exists are no-ops.
 func (c *Controller) claimSerialFor(vfo core.VFOID) {
-	if c.claimedSerial[vfo] != 0 {
-		return
-	}
-	c.claimedSerial[vfo] = c.nextUnclaimedSerial(vfo)
-	c.claimSnapshot[vfo] = c.logbook.NextQSONumber()
+	c.claims.ClaimNext(vfo, c.logbook.NextQSONumber())
 	c.refreshMyNumberInputs()
 }
 
-// releaseSerialClaimFor frees the claim slot for vfo. The serial itself is reusable only if
-// NextQSONumber has not advanced since the claim was taken.
+// releaseSerialClaimFor frees the claim slot for vfo.
 func (c *Controller) releaseSerialClaimFor(vfo core.VFOID) {
-	c.claimedSerial[vfo] = 0
-	c.claimSnapshot[vfo] = 0
+	c.claims.Release(vfo)
 	c.refreshMyNumberInputs()
 }
 
@@ -583,27 +552,14 @@ func (c *Controller) releaseSerialClaimFor(vfo core.VFOID) {
 // current displayed serial value. Reads NextQSONumber once.
 func (c *Controller) refreshMyNumberInputs() {
 	base := c.logbook.NextQSONumber()
-	for vfo := range core.VFOCount {
-		c.writeMyNumberInput(core.VFOID(vfo), c.displayedSerialWithBase(core.VFOID(vfo), base))
+	for vfo, serial := range c.claims.AllDisplayed(base) {
+		c.writeMyNumberInput(core.VFOID(vfo), serial)
 	}
 }
 
 func (c *Controller) refreshMyNumberInput(vfo core.VFOID) {
-	c.writeMyNumberInput(vfo, c.displayedSerialFor(vfo))
-}
-
-func (c *Controller) displayedSerialWithBase(vfo core.VFOID, base core.QSONumber) core.QSONumber {
-	if c.claimedSerial[vfo] != 0 {
-		return c.claimedSerial[vfo]
-	}
-	other := core.VFO1
-	if vfo == core.VFO1 {
-		other = core.VFO2
-	}
-	if c.claimedSerial[other] != 0 && c.claimedSerial[other] == base {
-		return base + 1
-	}
-	return base
+	base := c.logbook.NextQSONumber()
+	c.writeMyNumberInput(vfo, c.claims.DisplayedSerial(vfo, base))
 }
 
 func (c *Controller) writeMyNumberInput(vfo core.VFOID, serial core.QSONumber) {
@@ -625,8 +581,8 @@ func (c *Controller) enterEditMode(qso core.QSO) {
 	c.editSnapshot = &editSnapshot{
 		focusedVFO:    c.focusedVFO,
 		input:         c.input[core.VFO1],
-		claimedSerial: c.claimedSerial[core.VFO1],
-		claimSnapshot: c.claimSnapshot[core.VFO1],
+		claimedSerial: c.claims.claimed[core.VFO1],
+		claimSnapshot: c.claims.snapshot[core.VFO1],
 		activeField:   c.activeField[core.VFO1],
 		errorField:    c.errorField[core.VFO1],
 		callinfoFrame: c.currentCallinfoFrame[core.VFO1],
@@ -636,8 +592,8 @@ func (c *Controller) enterEditMode(qso core.QSO) {
 	c.setFocusedVFOSilent(core.VFO1)
 	c.editing = true
 	c.editQSO = qso
-	c.claimedSerial[core.VFO1] = qso.MyNumber
-	c.claimSnapshot[core.VFO1] = c.logbook.NextQSONumber()
+	c.claims.claimed[core.VFO1] = qso.MyNumber
+	c.claims.snapshot[core.VFO1] = c.logbook.NextQSONumber()
 	// TODO step 6: c.view.SetVFOEnabled(core.VFO2, false)
 }
 
@@ -648,8 +604,8 @@ func (c *Controller) leaveEditMode() {
 	}
 	snap := c.editSnapshot
 	c.input[core.VFO1] = snap.input
-	c.claimedSerial[core.VFO1] = snap.claimedSerial
-	c.claimSnapshot[core.VFO1] = snap.claimSnapshot
+	c.claims.claimed[core.VFO1] = snap.claimedSerial
+	c.claims.snapshot[core.VFO1] = snap.claimSnapshot
 	c.activeField[core.VFO1] = snap.activeField
 	c.errorField[core.VFO1] = snap.errorField
 	c.currentCallinfoFrame[core.VFO1] = snap.callinfoFrame
@@ -1200,8 +1156,7 @@ func (c *Controller) Clear() {
 
 	// Release before the wipe so claim slots reflect "nothing pending" while we rebuild.
 	// The companion refresh writes the serial display below, after the input zero/fill pass.
-	c.claimedSerial[c.focusedVFO] = 0
-	c.claimSnapshot[c.focusedVFO] = 0
+	c.claims.Release(c.focusedVFO)
 
 	c.vfos[c.focusedVFO].Refresh()
 
@@ -1216,7 +1171,7 @@ func (c *Controller) Clear() {
 		if v == c.focusedVFO {
 			continue
 		}
-		if c.claimedSerial[v] != 0 || c.input[v].callsign != "" {
+		if c.claims.claimed[v] != 0 || c.input[v].callsign != "" {
 			continue
 		}
 		c.fillExchangeDefaults(v, lastExchange)

@@ -1333,6 +1333,51 @@ func TestJ3_VFOModeChanged_SameMode_Ignored(t *testing.T) {
 		AssertViewNotCalledWith("SetMode", core.VFO1, "CW")
 }
 
+// J2b. VFOBandChanged targets event VFO, not focused VFO
+// Regression: VFO2 band-change while VFO1 focused must update VFO2's state,
+// not corrupt VFO1's selectedBand.
+
+func TestJ2b_VFOBandChanged_VFO2Event_WhileVFO1Focused(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		VFOBandChanged(core.VFO2, core.Band40m).
+		AssertBandView(core.VFO2, "40m").
+		AssertViewNotCalledWith("SetBand", core.VFO1, "40m")
+}
+
+func TestJ2b_VFOBandChanged_VFO2Event_DoesNotCorruptVFO1(t *testing.T) {
+	// After VFO2 band event, VFO1's selectedBand must still be Band20m (from Refresh).
+	// Verify by sending VFO1 Band20m again — it should be a same-band no-op.
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		VFOBandChanged(core.VFO2, core.Band40m).
+		VFOBandChanged(core.VFO1, core.Band20m). // resetSpies; must be no-op (same band)
+		AssertViewNotCalledWith("SetBand", core.VFO1, "20m")
+}
+
+// J3b. VFOModeChanged targets event VFO, not focused VFO
+// Regression: same issue as J2b but for mode.
+
+func TestJ3b_VFOModeChanged_VFO2Event_WhileVFO1Focused(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		VFOModeChanged(core.VFO2, core.ModeSSB).
+		AssertModeView(core.VFO2, "SSB").
+		AssertViewNotCalledWith("SetMode", core.VFO1, "SSB")
+}
+
+func TestJ3b_VFOModeChanged_VFO2Event_DoesNotCorruptVFO1(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		VFOModeChanged(core.VFO2, core.ModeSSB).
+		VFOModeChanged(core.VFO1, core.ModeCW). // resetSpies; must be no-op (same mode)
+		AssertViewNotCalledWith("SetMode", core.VFO1, "CW")
+}
+
 // J4. VFOXITChanged
 // Pre:  event for vfo.
 // Post: view.SetXIT(vfo, active, offset).

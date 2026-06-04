@@ -240,7 +240,7 @@ Same pattern for `VFOBandChanged`, `VFOModeChanged`, `VFOXITChanged`, `VFOPTTCha
 
 `VFOFrequencyChanged`: detects jumps (`> jumpThreshold`); on jump triggers `Clear()` and resets `ignoreFrequencyJump`.
 
-`VFOBandChanged` / `VFOModeChanged`: **note** — these compare and write `selectedBand/selectedMode` using `c.focusedVFO` (not the event's `vfo` parameter), but write `input[vfo].band/mode` using the event parameter. This means the comparison guard and state update target different VFO slots when the event comes from a non-focused VFO.
+`VFOBandChanged` / `VFOModeChanged`: compare, update `selectedBand/selectedMode`, and write `input[vfo]` all using the event's `vfo` parameter.
 
 `VFOPTTChanged`: VFO1 PTT drives `c.ptt` + `updateTXState()`; other VFOs update their TX indicator directly.
 
@@ -410,7 +410,6 @@ radio.Controller (main thread)
 | `core/entry/entry.go:789` `XITActiveChanged` | `// TODO: add VFO parameter to XITActiveChanged` — handler and `vfo.XITControl` interface lack `VFOID`. |
 | `core/entry/entry.go:597` `enterEditMode` | `// TODO step 6: c.view.SetVFOEnabled(core.VFO2, false)` — edit mode does not yet hide VFO2 on enter. |
 | `core/entry/entry.go:618` `leaveEditMode` | `// TODO step 6: c.view.SetVFOEnabled(core.VFO2, true)` — complement of above; VFO2 stays visible and interactive during editing. |
-| `core/entry/entry.go:714,768` `VFOBandChanged`/`VFOModeChanged` | These handlers compare and update `selectedBand[focusedVFO]` / `selectedMode[focusedVFO]` but write `input[vfo]` using the event's VFO param. When the event arrives for a non-focused VFO the comparison guard and state update target different slots. Needs review. |
 | `core/app/app.go:223–224` | `Bandmap.SetVFO`, `Workmode.Notify` intentionally VFO1-only. Decide if bandmap routing should follow `focusedVFO` or stay VFO1-only. |
 | `core/app/app.go:251` | `VFOs[VFO1].Notify(QTCController)` — QTC stays VFO1-only by design; confirm or expand. |
 | `ui/entryView.go` | Tab order cycles within each VFO's row independently. Confirm correct for SO2R workflow. |

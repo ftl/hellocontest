@@ -1,7 +1,6 @@
 package entry
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -63,125 +62,6 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.AssertExpectations(t)
 }
 
-func _TestEntryController_UpdateExchangeFields(t *testing.T) {
-	const wagDOKProperty = conval.Property("wag_dok")
-
-	tt := []struct {
-		desc                   string
-		value                  *conval.Definition
-		generateSerialExchange bool
-		expectedMyFields       []core.ExchangeField
-		expectedTheirFields    []core.ExchangeField
-	}{
-		{
-			desc:                "no definition",
-			value:               nil,
-			expectedMyFields:    nil,
-			expectedTheirFields: nil,
-		},
-		{
-			desc: "rst and member number",
-			value: fieldDefinition(
-				conval.ExchangeField{conval.RSTProperty},
-				conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty},
-			),
-			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "myExchange_2", Short: "member_number/nm", Properties: conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty}},
-			},
-			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "theirExchange_2", Short: "member_number/nm", Properties: conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty}},
-			},
-		},
-		{
-			desc: "rst and dok or serial number",
-			value: fieldDefinition(
-				conval.ExchangeField{conval.RSTProperty},
-				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty},
-			),
-			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "myExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true},
-			},
-			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true},
-			},
-		},
-		{
-			desc: "rst and serial number",
-			value: fieldDefinition(
-				conval.ExchangeField{conval.RSTProperty},
-				conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty},
-			),
-			generateSerialExchange: true,
-			expectedMyFields: []core.ExchangeField{
-				{Field: "myExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "myExchange_2", Short: "#", Hint: "Serial Number", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true, ReadOnly: true},
-			},
-			expectedTheirFields: []core.ExchangeField{
-				{Field: "theirExchange_1", Short: "rst", Properties: conval.ExchangeField{conval.RSTProperty}, CanContainReport: true},
-				{Field: "theirExchange_2", Short: "serial/nm/wag_dok", Properties: conval.ExchangeField{conval.SerialNumberProperty, conval.NoMemberProperty, wagDOKProperty}, CanContainSerial: true},
-			},
-		},
-	}
-	for _, tc := range tt {
-		t.Run(tc.desc, func(t *testing.T) {
-			_, _, _, view, controller, _ := setupEntryTest()
-
-			contest := core.Contest{
-				Definition:             tc.value,
-				GenerateSerialExchange: tc.generateSerialExchange,
-				ExchangeValues:         make([]string, len(tc.expectedMyFields)),
-			}
-			contest.UpdateExchangeFields()
-
-			view.Activate()
-			view.On("SetMyExchangeFields", tc.expectedMyFields).Once()
-			view.On("SetTheirExchangeFields", tc.expectedTheirFields).Once()
-
-			controller.updateExchangeFields(contest)
-
-			view.AssertExpectations(t)
-		})
-	}
-}
-
-func _TestEntryController_GotoNextField(t *testing.T) {
-	_, _, _, view, controller, config := setupEntryTestWithExchangeFields(3)
-
-	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO], "callsign should be active at start")
-
-	testCases := []struct {
-		active, next core.EntryField
-	}{
-		{core.CallsignField, core.TheirExchangeField(1)},
-		{core.OtherField, core.CallsignField},
-		{core.MyExchangeField(1), core.CallsignField},
-		{core.MyExchangeField(2), core.CallsignField},
-		{core.MyExchangeField(3), core.CallsignField},
-		{core.TheirExchangeField(1), core.TheirExchangeField(2)},
-		{core.TheirExchangeField(2), core.TheirExchangeField(3)},
-		{core.TheirExchangeField(3), core.CallsignField},
-	}
-	view.Activate()
-	view.On("Callsign").Return("").Maybe()
-	view.On("SetActiveField", core.VFO1, mock.Anything).Times(len(testCases))
-	view.On("SetMyExchangeFields", mock.Anything).Times(len(testCases))
-	view.On("SetTheirExchangeFields", mock.Anything).Times(len(testCases))
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%s -> %s", tc.active, tc.next), func(t *testing.T) {
-			controller.ContestChanged(config.Contest())
-			controller.SetActiveField(tc.active)
-			actual := controller.GotoNextField()
-			assert.Equal(t, tc.next, actual)
-			assert.Equal(t, tc.next, controller.activeField[controller.focusedVFO])
-		})
-	}
-
-	view.AssertExpectations(t)
-}
 
 func TestEntryController_EnterNewCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()

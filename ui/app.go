@@ -201,7 +201,7 @@ func (a *application) createCentralWidget() {
 	a.controller.Callinfo.SetView(a.callinfoView)
 	a.controller.QTCList.Notify(a.callinfoView)
 
-	// setup remeining center parts
+	// setup remaining center parts
 	a.esmView = newESMView()
 	a.esmView.SetESMController(a.controller.Entry)
 	a.controller.Entry.SetESMView(a.esmView)

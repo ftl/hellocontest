@@ -45,7 +45,8 @@ type QTCProvider interface {
 
 // View defines the visual part of the call information window.
 type View interface {
-	ShowFrame(core.CallinfoFrame)
+	ShowFrame(core.VFOID, core.CallinfoFrame)
+	SetVFOEnabled(core.VFOID, bool)
 }
 
 type CallinfoFrameListener interface {
@@ -61,6 +62,7 @@ type Callinfo struct {
 
 	theirExchangeFields []core.ExchangeField
 	qtcsEnabled         bool
+	vfo2Enabled         bool
 
 	frames [core.VFOCount]core.CallinfoFrame
 }
@@ -85,6 +87,7 @@ func (c *Callinfo) SetView(view View) {
 	}
 
 	c.view = view
+	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
 }
 
 func (c *Callinfo) StationChanged(station core.Station) {
@@ -116,7 +119,7 @@ func (c *Callinfo) emitFrameChanged(vfo core.VFOID) {
 			l.CallinfoFrameChanged(vfo, c.frames[vfo])
 		}
 	}
-	c.view.ShowFrame(c.frames[vfo])
+	c.view.ShowFrame(vfo, c.frames[vfo])
 }
 
 func (c *Callinfo) GetInfo(call core.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
@@ -180,6 +183,12 @@ func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 	}
 }
 
+// RadioChanged implements core.RadioChangedListener.
+func (c *Callinfo) RadioChanged(_ string, singleVFO bool) {
+	c.vfo2Enabled = !singleVFO
+	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
+}
+
 func normalizeInput(input string) string {
 	return strings.TrimSpace(strings.ToUpper(input))
 }
@@ -189,4 +198,5 @@ type nullView struct{}
 func (v *nullView) Show()                                           {}
 func (v *nullView) Hide()                                           {}
 func (v *nullView) SetPredictedExchangeFields([]core.ExchangeField) {}
-func (v *nullView) ShowFrame(frame core.CallinfoFrame)              {}
+func (v *nullView) ShowFrame(core.VFOID, core.CallinfoFrame)        {}
+func (v *nullView) SetVFOEnabled(core.VFOID, bool)                  {}

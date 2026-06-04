@@ -74,6 +74,8 @@ type entryView struct {
 	logButton   *qtlib.QPushButton
 	clearButton *qtlib.QPushButton
 
+	vfo2MessageLabel *qtlib.QLabel
+
 	theirEntryStyle string
 	vfo2Enabled     bool
 
@@ -143,6 +145,9 @@ func newEntryView() *entryView {
 
 	// Row 7: Message label (span all 6 columns)
 	v.messageLabel = qtlib.NewQLabel3("")
+
+	// VFO2 message label
+	v.vfo2MessageLabel = qtlib.NewQLabel3("")
 
 	// Row 8: VFO2
 	v.vfo2Label = qtlib.NewQLabel3("VFO 2:")
@@ -631,14 +636,19 @@ func (v *entryView) updateMarkerStyle() {
 }
 
 func (v *entryView) ShowMessage(vfo core.VFOID, args ...any) {
-	// TODO step 6 follow-up: per-VFO message label. For now, single shared label fed by any VFO.
-	_ = vfo
-	v.messageLabel.SetText(fmt.Sprint(args...))
+	label := v.messageLabel
+	if vfo == core.VFO2 {
+		label = v.vfo2MessageLabel
+	}
+	label.SetText(fmt.Sprint(args...))
 }
 
 func (v *entryView) ClearMessage(vfo core.VFOID) {
-	_ = vfo
-	v.messageLabel.SetText("")
+	label := v.messageLabel
+	if vfo == core.VFO2 {
+		label = v.vfo2MessageLabel
+	}
+	label.SetText("")
 }
 
 // SetVFOEnabled toggles the visibility/enabled state of a VFO's row of widgets.
@@ -679,5 +689,8 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	}
 	if v.vfo2ClearButton != nil {
 		v.vfo2ClearButton.SetVisible(enabled)
+	}
+	if v.vfo2MessageLabel != nil {
+		v.vfo2MessageLabel.SetVisible(enabled)
 	}
 }

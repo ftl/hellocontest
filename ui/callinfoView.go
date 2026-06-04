@@ -12,21 +12,67 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+type callinfoVFOWidgets struct {
+	callsignLabel           *qtlib.QLabel
+	valueLabel              *qtlib.QLabel
+	qtcStatusLabel          *qtlib.QLabel
+	infoContainer           *qtlib.QWidget
+	dxccLabel               *qtlib.QLabel
+	userInfoLabel           *qtlib.QLabel
+	supercheckLabel         *qtlib.QLabel
+	predictedExchangeLabels []*qtlib.QLabel
+}
+
 type callinfoView struct {
 	widget *qtlib.QWidget
 
-	callsignLabel   *qtlib.QLabel
-	valueLabel      *qtlib.QLabel
-	qtcStatusLabel  *qtlib.QLabel
-	infoContainer   *qtlib.QWidget
-	dxccLabel       *qtlib.QLabel
-	userInfoLabel   *qtlib.QLabel
-	supercheckLabel *qtlib.QLabel
-
-	predictedExchangeLabels []*qtlib.QLabel
+	vfo [core.VFOCount]callinfoVFOWidgets
 
 	qtcsEnabled bool
-	current     core.CallinfoFrame
+	vfo2Visible bool
+	current     [core.VFOCount]core.CallinfoFrame
+}
+
+func newCallinfoVFOWidgets(prefix string) callinfoVFOWidgets {
+	w := callinfoVFOWidgets{}
+
+	w.callsignLabel = qtlib.NewQLabel2()
+	w.callsignLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "predictedBestMatch"))
+	w.callsignLabel.SetTextFormat(qtlib.RichText)
+
+	w.valueLabel = qtlib.NewQLabel2()
+	w.valueLabel.SetTextFormat(qtlib.RichText)
+	w.valueLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "predictedValue"))
+
+	w.qtcStatusLabel = qtlib.NewQLabel2()
+	w.qtcStatusLabel.SetTextFormat(qtlib.RichText)
+	w.qtcStatusLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "qtcStatus"))
+	w.qtcStatusLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
+
+	w.supercheckLabel = qtlib.NewQLabel2()
+	w.supercheckLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "supercheckLabel"))
+	w.supercheckLabel.SetTextFormat(qtlib.RichText)
+	w.supercheckLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
+	w.supercheckLabel.SetMinimumWidth(0)
+
+	w.dxccLabel = qtlib.NewQLabel2()
+	w.dxccLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "dxccLabel"))
+	w.dxccLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
+	w.dxccLabel.SetMinimumWidth(0)
+
+	w.userInfoLabel = qtlib.NewQLabel2()
+	w.userInfoLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "userInfoLabel"))
+	w.userInfoLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
+	w.userInfoLabel.SetMinimumWidth(0)
+	w.userInfoLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
+
+	w.infoContainer = qtlib.NewQWidget2()
+	infoLayout := qtlib.NewQHBoxLayout(w.infoContainer)
+	infoLayout.SetContentsMargins(0, 0, 0, 0)
+	infoLayout.AddWidget(w.dxccLabel.QWidget)
+	infoLayout.AddWidget(w.userInfoLabel.QWidget)
+
+	return w
 }
 
 func newCallinfoView() *callinfoView {
@@ -34,67 +80,42 @@ func newCallinfoView() *callinfoView {
 
 	v.widget = qtlib.NewQWidget2()
 
-	v.callsignLabel = qtlib.NewQLabel2()
-	v.callsignLabel.SetObjectName(*qtlib.NewQAnyStringView3("predictedBestMatch"))
-	v.callsignLabel.SetTextFormat(qtlib.RichText)
+	v.vfo[core.VFO1] = newCallinfoVFOWidgets("vfo1")
+	v.vfo[core.VFO2] = newCallinfoVFOWidgets("vfo2")
 
-	v.valueLabel = qtlib.NewQLabel2()
-	v.valueLabel.SetTextFormat(qtlib.RichText)
-	v.valueLabel.SetObjectName(*qtlib.NewQAnyStringView3("predictedValue"))
-
-	v.qtcStatusLabel = qtlib.NewQLabel2()
-	v.qtcStatusLabel.SetTextFormat(qtlib.RichText)
-	v.qtcStatusLabel.SetObjectName(*qtlib.NewQAnyStringView3("qtcStatus"))
-	v.qtcStatusLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
-
-	v.supercheckLabel = qtlib.NewQLabel2()
-	v.supercheckLabel.SetObjectName(*qtlib.NewQAnyStringView3("supercheckLabel"))
-	v.supercheckLabel.SetTextFormat(qtlib.RichText)
-	v.supercheckLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
-	v.supercheckLabel.SetMinimumWidth(0)
-
-	v.dxccLabel = qtlib.NewQLabel2()
-	v.dxccLabel.SetObjectName(*qtlib.NewQAnyStringView3("dxccLabel"))
-	v.dxccLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
-	v.dxccLabel.SetMinimumWidth(0)
-
-	v.userInfoLabel = qtlib.NewQLabel2()
-	v.userInfoLabel.SetObjectName(*qtlib.NewQAnyStringView3("userInfoLabel"))
-	v.userInfoLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
-	v.userInfoLabel.SetMinimumWidth(0)
-	v.userInfoLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
-
-	v.infoContainer = qtlib.NewQWidget2()
-	infoLayout := qtlib.NewQHBoxLayout(v.infoContainer)
-	infoLayout.SetContentsMargins(0, 0, 0, 0)
-	infoLayout.AddWidget(v.dxccLabel.QWidget)
-	infoLayout.AddWidget(v.userInfoLabel.QWidget)
+	// VFO2 widgets initially hidden
+	v.SetVFOEnabled(core.VFO2, false)
 
 	return v
 }
 
-func (v *callinfoView) ShowFrame(frame core.CallinfoFrame) {
-	v.current = frame
-	v.refresh()
+func (v *callinfoView) ShowFrame(vfo core.VFOID, frame core.CallinfoFrame) {
+	v.current[vfo] = frame
+	v.refreshVFO(vfo)
 }
 
 func (v *callinfoView) SetQTCsEnabled(enabled bool) {
 	v.qtcsEnabled = enabled
-	v.refresh()
+	for vfo := range core.VFOCount {
+		v.refreshVFO(vfo)
+	}
 }
 
-func (v *callinfoView) refresh() {
-	best := v.current.BestMatchOnFrequency()
-	v.callsignLabel.SetText(renderAnnotatedCallsignHTML(best))
-	v.dxccLabel.SetText(renderDXCC(v.current.DXCCEntity, v.current.Azimuth, v.current.Distance))
-	v.valueLabel.SetText(renderValue(v.current.Points, v.current.Multis, v.current.Value))
-	v.qtcStatusLabel.SetText(renderQTCStatus(v.current.SentQTCs, v.current.ReceivedQTCs, v.qtcsEnabled))
-	v.userInfoLabel.SetText(v.current.UserInfo)
-	v.supercheckLabel.SetText(renderSupercheckHTML(v.current.Supercheck))
+func (v *callinfoView) refreshVFO(vfo core.VFOID) {
+	w := &v.vfo[vfo]
+	cur := &v.current[vfo]
 
-	for i, lbl := range v.predictedExchangeLabels {
-		if i < len(v.current.PredictedExchange) {
-			lbl.SetText(strings.TrimSpace(v.current.PredictedExchange[i]))
+	best := cur.BestMatchOnFrequency()
+	w.callsignLabel.SetText(renderAnnotatedCallsignHTML(best))
+	w.dxccLabel.SetText(renderDXCC(cur.DXCCEntity, cur.Azimuth, cur.Distance))
+	w.valueLabel.SetText(renderValue(cur.Points, cur.Multis, cur.Value))
+	w.qtcStatusLabel.SetText(renderQTCStatus(cur.SentQTCs, cur.ReceivedQTCs, v.qtcsEnabled))
+	w.userInfoLabel.SetText(cur.UserInfo)
+	w.supercheckLabel.SetText(renderSupercheckHTML(cur.Supercheck))
+
+	for i, lbl := range w.predictedExchangeLabels {
+		if i < len(cur.PredictedExchange) {
+			lbl.SetText(strings.TrimSpace(cur.PredictedExchange[i]))
 		} else {
 			lbl.SetText("-")
 		}
@@ -102,17 +123,43 @@ func (v *callinfoView) refresh() {
 }
 
 func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {
-	for _, label := range v.predictedExchangeLabels {
-		label.Delete()
-	}
-	v.predictedExchangeLabels = nil
-
-	for i := range fields {
-		valueLabel := qtlib.NewQLabel2()
-		if i == 0 {
-			valueLabel.SetObjectName(*qtlib.NewQAnyStringView3("predictedExchange"))
+	for vfo := range core.VFOCount {
+		w := &v.vfo[vfo]
+		for _, label := range w.predictedExchangeLabels {
+			label.Delete()
 		}
-		v.predictedExchangeLabels = append(v.predictedExchangeLabels, valueLabel)
+		w.predictedExchangeLabels = nil
+
+		prefix := "vfo1"
+		if vfo == core.VFO2 {
+			prefix = "vfo2"
+		}
+		for i := range fields {
+			valueLabel := qtlib.NewQLabel2()
+			if i == 0 {
+				valueLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "predictedExchange"))
+			}
+			if vfo == core.VFO2 {
+				valueLabel.SetVisible(v.vfo2Visible)
+			}
+			w.predictedExchangeLabels = append(w.predictedExchangeLabels, valueLabel)
+		}
+	}
+}
+
+func (v *callinfoView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
+	if vfo == core.VFO1 {
+		return
+	}
+	v.vfo2Visible = enabled
+	w := &v.vfo[core.VFO2]
+	w.callsignLabel.SetVisible(enabled)
+	w.valueLabel.SetVisible(enabled)
+	w.qtcStatusLabel.SetVisible(enabled)
+	w.infoContainer.SetVisible(enabled)
+	w.supercheckLabel.SetVisible(enabled)
+	for _, lbl := range w.predictedExchangeLabels {
+		lbl.SetVisible(enabled)
 	}
 }
 

@@ -206,9 +206,14 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Entry)
 	c.QSOList.Notify(c.Workmode)
 
+	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.Logbook, c.Logbook, c.Logbook)
+	c.Entry.SetCallinfo(c.Callinfo)
+	c.Callinfo.Notify(c.Entry)
+
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
 	c.Radio.Notify(c.ServiceStatus)
 	c.Radio.Notify(c.Entry)
+	c.Radio.Notify(c.Callinfo)
 	c.Entry.SetVFOSwitcher(c.Radio)
 	c.Bandmap.Notify(c.Radio) // TODO implement Entry... in radio.Controller
 
@@ -254,9 +259,6 @@ func (c *Controller) Startup() {
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))
 	c.QSOList.Notify(logbook.QSOAddedListenerFunc(c.Rate.Add))
 
-	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.Logbook, c.Logbook, c.Logbook)
-	c.Entry.SetCallinfo(c.Callinfo)
-	c.Callinfo.Notify(c.Entry)
 	c.Bandmap.SetCallinfo(c.Callinfo)
 	c.Bandmap.Notify(c.Callinfo)
 	c.Logbook.Notify(c.Callinfo)

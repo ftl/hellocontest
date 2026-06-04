@@ -640,6 +640,20 @@ func (s *Scenario) AssertQSOListSelectLastCalled() *Scenario {
 	return s
 }
 
+// AssertBandView asserts view.SetBand(vfo, text) was called.
+func (s *Scenario) AssertBandView(vfo core.VFOID, text string) *Scenario {
+	s.t.Helper()
+	s.view.assertCalledWith(s.t, "SetBand", vfo, text)
+	return s
+}
+
+// AssertModeView asserts view.SetMode(vfo, text) was called.
+func (s *Scenario) AssertModeView(vfo core.VFOID, text string) *Scenario {
+	s.t.Helper()
+	s.view.assertCalledWith(s.t, "SetMode", vfo, text)
+	return s
+}
+
 // AssertFrequencyView asserts view.SetFrequency(vfo, freq) was called.
 func (s *Scenario) AssertFrequencyView(vfo core.VFOID, freq core.Frequency) *Scenario {
 	s.t.Helper()

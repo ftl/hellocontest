@@ -716,10 +716,10 @@ func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
 		if vfo == core.VFO1 && c.editing {
 			return
 		}
-		if band == core.NoBand || band == c.selectedBand[c.focusedVFO] {
+		if band == core.NoBand || band == c.selectedBand[vfo] {
 			return
 		}
-		c.selectedBand[c.focusedVFO] = band
+		c.selectedBand[vfo] = band
 		c.input[vfo].band = band.String()
 
 		c.view.SetBand(vfo, c.input[vfo].band)
@@ -770,10 +770,10 @@ func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 		if vfo == core.VFO1 && c.editing {
 			return
 		}
-		if mode == core.NoMode || mode == c.selectedMode[c.focusedVFO] {
+		if mode == core.NoMode || mode == c.selectedMode[vfo] {
 			return
 		}
-		c.selectedMode[c.focusedVFO] = mode
+		c.selectedMode[vfo] = mode
 		c.input[vfo].mode = mode.String()
 
 		c.view.SetMode(vfo, c.input[vfo].mode)

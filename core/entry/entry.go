@@ -49,9 +49,6 @@ type input struct {
 	theirReport   string
 	theirNumber   string
 	theirExchange []string
-	myReport      string
-	myNumber      string
-	myExchange    []string
 	band          string
 	mode          string
 }
@@ -139,6 +136,9 @@ func (n *nullVFOSwitcher) SetCurrentVFO(core.VFOID) {}
 type editSnapshot struct {
 	focusedVFO    core.VFOID
 	input         input
+	myReport      string
+	myNumber      string
+	myExchange    []string
 	claimedSerial core.QSONumber
 	claimSnapshot core.QSONumber
 	activeField   core.EntryField
@@ -179,6 +179,9 @@ type Controller struct {
 	currentCallinfoFrame     []core.CallinfoFrame
 
 	input               []input
+	myReport            string
+	myNumber            string
+	myExchange          []string
 	focusedVFO          core.VFOID
 	vfo2Enabled         bool
 	activeField         []core.EntryField
@@ -393,9 +396,9 @@ func (c *Controller) showQSO(qso core.QSO) {
 	c.input[core.VFO1].theirReport = qso.TheirReport.String()
 	c.input[core.VFO1].theirNumber = qso.TheirNumber.String()
 	c.input[core.VFO1].theirExchange = ensureLen(qso.TheirExchange, len(c.theirExchangeFields))
-	c.input[core.VFO1].myReport = qso.MyReport.String()
-	c.input[core.VFO1].myNumber = qso.MyNumber.String()
-	c.input[core.VFO1].myExchange = ensureLen(qso.MyExchange, len(c.myExchangeFields))
+	c.myReport = qso.MyReport.String()
+	c.myNumber = qso.MyNumber.String()
+	c.myExchange = ensureLen(qso.MyExchange, len(c.myExchangeFields))
 	c.input[core.VFO1].band = qso.Band.String()
 	c.input[core.VFO1].mode = qso.Mode.String()
 
@@ -428,7 +431,7 @@ func (c *Controller) showInput() {
 		c.view.SetMode(v, c.input[vfo].mode)
 	}
 	// myExchange remains shared (single row in the UI).
-	for i, value := range c.input[core.VFO1].myExchange {
+	for i, value := range c.myExchange {
 		c.view.SetMyExchange(i+1, value)
 	}
 }
@@ -472,6 +475,7 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 	}
 	c.focusedVFO = vfo
 	c.vfoSwitcher.SetCurrentVFO(vfo)
+	c.refreshMyNumberInputs()
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 
@@ -548,31 +552,29 @@ func (c *Controller) releaseSerialClaimFor(vfo core.VFOID) {
 	c.refreshMyNumberInputs()
 }
 
-// refreshMyNumberInputs syncs each VFO's input.myNumber (and exchange serial slot) with the
-// current displayed serial value. Reads NextQSONumber once.
+// refreshMyNumberInputs syncs myNumber (and exchange serial slot) with the
+// current displayed serial value for the focused VFO. Reads NextQSONumber once.
 func (c *Controller) refreshMyNumberInputs() {
 	base := c.logbook.NextQSONumber()
-	for vfo, serial := range c.claims.AllDisplayed(base) {
-		c.writeMyNumberInput(core.VFOID(vfo), serial)
-	}
+	c.writeMyNumberInput(c.claims.DisplayedSerial(c.focusedVFO, base))
 }
 
 func (c *Controller) refreshMyNumberInput(vfo core.VFOID) {
 	base := c.logbook.NextQSONumber()
-	c.writeMyNumberInput(vfo, c.claims.DisplayedSerial(vfo, base))
+	c.writeMyNumberInput(c.claims.DisplayedSerial(vfo, base))
 }
 
-func (c *Controller) writeMyNumberInput(vfo core.VFOID, serial core.QSONumber) {
+func (c *Controller) writeMyNumberInput(serial core.QSONumber) {
 	value := serial.String()
-	c.input[vfo].myNumber = value
+	c.myNumber = value
 	i := c.myNumberExchangeField.Field.ExchangeIndex() - 1
 	if i < 0 || !c.generateSerialExchange {
 		return
 	}
-	if i >= len(c.input[vfo].myExchange) {
+	if i >= len(c.myExchange) {
 		return
 	}
-	c.input[vfo].myExchange[i] = value
+	c.myExchange[i] = value
 }
 
 // enterEditMode snapshots VFO1's state, force-focuses VFO1 silently, marks editing,
@@ -581,6 +583,9 @@ func (c *Controller) enterEditMode(qso core.QSO) {
 	c.editSnapshot = &editSnapshot{
 		focusedVFO:    c.focusedVFO,
 		input:         c.input[core.VFO1],
+		myReport:      c.myReport,
+		myNumber:      c.myNumber,
+		myExchange:    append([]string(nil), c.myExchange...),
 		claimedSerial: c.claims.claimed[core.VFO1],
 		claimSnapshot: c.claims.snapshot[core.VFO1],
 		activeField:   c.activeField[core.VFO1],
@@ -604,6 +609,9 @@ func (c *Controller) leaveEditMode() {
 	}
 	snap := c.editSnapshot
 	c.input[core.VFO1] = snap.input
+	c.myReport = snap.myReport
+	c.myNumber = snap.myNumber
+	c.myExchange = append(c.myExchange[:0], snap.myExchange...)
 	c.claims.claimed[core.VFO1] = snap.claimedSerial
 	c.claims.snapshot[core.VFO1] = snap.claimSnapshot
 	c.activeField[core.VFO1] = snap.activeField
@@ -657,7 +665,7 @@ func (c *Controller) Enter(text string) {
 	i := c.activeField[c.focusedVFO].ExchangeIndex() - 1
 	switch {
 	case c.activeField[c.focusedVFO].IsMyExchange():
-		c.input[c.focusedVFO].myExchange[i] = text
+		c.myExchange[i] = text
 	case c.activeField[c.focusedVFO].IsTheirExchange():
 		c.input[c.focusedVFO].theirExchange[i] = text
 		c.enterTheirExchange(c.activeField[c.focusedVFO])
@@ -742,15 +750,15 @@ func (c *Controller) generateReportForMode(mode core.Mode) {
 	generatedReport := defaultReportForMode(mode)
 	myIndex := c.myReportExchangeField.Field.ExchangeIndex()
 	if myIndex > 0 {
-		c.input[c.focusedVFO].myReport = generatedReport
-		c.input[c.focusedVFO].myExchange[myIndex-1] = generatedReport
-		c.view.SetMyExchange(myIndex, c.input[c.focusedVFO].myReport)
+		c.myReport = generatedReport
+		c.myExchange[myIndex-1] = generatedReport
+		c.view.SetMyExchange(myIndex, c.myReport)
 	}
 	theirIndex := c.theirReportExchangeField.Field.ExchangeIndex()
 	if theirIndex > 0 {
 		c.input[c.focusedVFO].theirReport = generatedReport
 		c.input[c.focusedVFO].theirExchange[theirIndex-1] = generatedReport
-		c.view.SetTheirExchange(c.focusedVFO, theirIndex, c.input[c.focusedVFO].myReport)
+		c.view.SetTheirExchange(c.focusedVFO, theirIndex, c.myReport)
 	}
 }
 
@@ -969,13 +977,13 @@ func (c *Controller) Log() {
 	}
 
 	// handle my exchange
-	myNumber, err := strconv.Atoi(c.input[c.focusedVFO].myNumber)
+	myNumber, err := strconv.Atoi(c.myNumber)
 	if err == nil {
 		qso.MyNumber = core.QSONumber(myNumber)
 	}
 	qso.MyExchange = make([]string, len(c.myExchangeFields))
 	for i, field := range c.myExchangeFields {
-		value := c.input[c.focusedVFO].myExchange[i]
+		value := c.myExchange[i]
 		qso.MyExchange[i] = value
 
 		// TODO parse the value using the conval validators and show an error on the field
@@ -1206,12 +1214,12 @@ func (c *Controller) fillExchangeDefaults(vfo core.VFOID, lastExchange []string)
 		generatedReport = defaultReportForMode(c.selectedMode[vfo])
 	}
 
-	c.input[vfo].myReport = ""
-	c.input[vfo].myNumber = ""
+	c.myReport = ""
+	c.myNumber = ""
 	c.input[vfo].theirReport = ""
 	c.input[vfo].theirNumber = ""
 	c.input[vfo].theirExchange = make([]string, len(c.theirExchangeFields))
-	c.input[vfo].myExchange = make([]string, len(c.myExchangeFields))
+	c.myExchange = make([]string, len(c.myExchangeFields))
 	for i, value := range c.defaultExchangeValues {
 		if value == "" && i < len(lastExchange) {
 			value = lastExchange[i]
@@ -1219,13 +1227,13 @@ func (c *Controller) fillExchangeDefaults(vfo core.VFOID, lastExchange []string)
 		if i >= len(c.myExchangeFields) {
 			continue
 		}
-		c.input[vfo].myExchange[i] = value
+		c.myExchange[i] = value
 		if i == c.myReportExchangeField.Field.ExchangeIndex()-1 {
 			if c.generateReport {
 				value = generatedReport
 			}
-			c.input[vfo].myReport = value
-			c.input[vfo].myExchange[i] = value
+			c.myReport = value
+			c.myExchange[i] = value
 			c.input[vfo].theirExchange[i] = value
 			c.input[vfo].theirReport = value
 		}
@@ -1252,24 +1260,24 @@ func (c *Controller) selectLastQSO() {
 }
 
 func (c *Controller) CurrentValues() core.KeyerValues {
-	myNumber, _ := strconv.Atoi(c.input[c.focusedVFO].myNumber)
+	myNumber, _ := strconv.Atoi(c.myNumber)
 
-	myXchanges := make([]string, 0, len(c.input[c.focusedVFO].myExchange))
+	myXchanges := make([]string, 0, len(c.myExchange))
 	for i, field := range c.myExchangeFields {
 		switch field.Field {
 		case c.myReportExchangeField.Field, c.myNumberExchangeField.Field:
 			continue
 		default:
-			myXchanges = append(myXchanges, c.input[c.focusedVFO].myExchange[i])
+			myXchanges = append(myXchanges, c.myExchange[i])
 		}
 	}
 
 	values := core.KeyerValues{}
-	values.MyReport, _ = parse.RST(c.input[c.focusedVFO].myReport)
+	values.MyReport, _ = parse.RST(c.myReport)
 	values.MyNumber = core.QSONumber(myNumber)
 	values.MyXchange = strings.Join(myXchanges, " ")
-	values.MyExchange = strings.Join(c.input[c.focusedVFO].myExchange, " ")
-	values.MyExchanges = c.input[c.focusedVFO].myExchange
+	values.MyExchange = strings.Join(c.myExchange, " ")
+	values.MyExchanges = c.myExchange
 	values.TheirCall = c.input[c.focusedVFO].callsign
 
 	return values
@@ -1300,8 +1308,8 @@ func (c *Controller) updateExchangeFields(contest core.Contest) {
 	c.generateReport = contest.GenerateReport
 	c.defaultExchangeValues = contest.ExchangeValues
 
+	c.myExchange = make([]string, len(contest.MyExchangeFields))
 	for vfo := range core.VFOCount {
-		c.input[vfo].myExchange = make([]string, len(contest.MyExchangeFields))
 		c.input[vfo].theirExchange = make([]string, len(contest.TheirExchangeFields))
 	}
 

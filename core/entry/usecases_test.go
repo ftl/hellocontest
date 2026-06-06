@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/ftl/hellocontest/core"
 )
 
@@ -1626,5 +1628,70 @@ func TestN2_CurrentValues_MyNumber_ReflectsClaimedSerial(t *testing.T) {
 	vals := s.controller.CurrentValues()
 	if vals.MyNumber != 42 {
 		t.Errorf("expected MyNumber=42, got %d", vals.MyNumber)
+	}
+}
+
+// I7. Dual-VFO serial interleaving
+// Pre:  classic exchange, nextQSONumber=6, VFO2 enabled.
+// Flow: VFO1 enters callsign (claims 6), tabs to exchange → VFO2 enters callsign
+//       (claims 7), fills exchange, logs → focus VFO1, fill exchange, log.
+// Post: VFO2 QSO has MyNumber=7, VFO1 QSO has MyNumber=6.
+
+func TestI7_DualVFO_SerialInterleaving(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		WithNextQSONumber(6)
+
+	// Ensure VFO2 has band and mode set (VFO1 gets them via vfoSpy.Refresh in SetView).
+	s.controller.VFOBandChanged(core.VFO2, core.Band20m)
+	s.controller.VFOModeChanged(core.VFO2, core.ModeCW)
+
+	// VFO1: enter callsign → claims serial 6; advance to first exchange field.
+	s.controller.Enter("DL1ABC")
+	s.controller.GotoNextField()
+
+	// VFO2: enter callsign → claims serial 7 (collision avoidance skips 6).
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL2XYZ")
+	// Fill VFO2 exchange fields.
+	s.controller.GotoNextField()
+	s.controller.Enter("599") // TheirExchange1 (RST)
+	s.controller.GotoNextField()
+	s.controller.Enter("042") // TheirExchange2 (serial)
+	s.controller.GotoNextField()
+	s.controller.Enter("OE") // TheirExchange3 (text)
+
+	// Log VFO2 QSO.
+	s.controller.Log()
+	if !assert.Len(t, s.logbook.addedQSOs, 1, "VFO2 QSO must be logged") {
+		t.FailNow()
+	}
+	vfo2QSO := s.logbook.addedQSOs[0]
+	if vfo2QSO.MyNumber != 7 {
+		t.Errorf("VFO2 QSO: expected MyNumber=7, got %d", vfo2QSO.MyNumber)
+	}
+
+	// Simulate logbook advancing after the logged QSO.
+	s.logbook.nextQSONumber = 7
+
+	// Focus VFO1: serial display must reflect VFO1's still-held claim (6).
+	s.controller.SetFocusedVFO(core.VFO1)
+	// Fill remaining VFO1 exchange fields.
+	s.controller.Enter("599") // TheirExchange1 (RST) — active field is still TheirExchange1
+	s.controller.GotoNextField()
+	s.controller.Enter("001") // TheirExchange2 (serial)
+	s.controller.GotoNextField()
+	s.controller.Enter("DL") // TheirExchange3 (text)
+
+	// Log VFO1 QSO.
+	s.logbook.resetCalls()
+	s.controller.Log()
+	if !assert.Len(t, s.logbook.addedQSOs, 1, "VFO1 QSO must be logged") {
+		t.FailNow()
+	}
+	vfo1QSO := s.logbook.addedQSOs[0]
+	if vfo1QSO.MyNumber != 6 {
+		t.Errorf("VFO1 QSO: expected MyNumber=6, got %d", vfo1QSO.MyNumber)
 	}
 }

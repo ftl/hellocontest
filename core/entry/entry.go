@@ -706,11 +706,27 @@ func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequenc
 		c.view.SetFrequency(vfo, frequency)
 
 		if jump && !c.ignoreFrequencyJump {
-			c.Clear()
-			c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+			c.clearInput(vfo)
 		}
 		c.ignoreFrequencyJump = false
 	})
+}
+
+// clearInput resets the input for the given VFO without changing the focused VFO.
+func (c *Controller) clearInput(vfo core.VFOID) {
+	c.claims.Release(vfo)
+	c.vfos[vfo].Refresh()
+	c.activeField[vfo] = core.CallsignField
+
+	lastExchange := c.logbook.LastExchange()
+	c.fillExchangeDefaults(vfo, lastExchange)
+
+	c.refreshMyNumberInputs()
+	c.showInput()
+	c.view.SetFrequency(vfo, c.selectedFrequency[vfo])
+	c.view.SetActiveField(vfo, c.activeField[vfo])
+	c.view.SetDuplicateMarker(vfo, false)
+	c.view.ClearMessage(vfo)
 }
 
 func (c *Controller) bandSelected(s string) {

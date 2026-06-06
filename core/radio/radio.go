@@ -55,6 +55,9 @@ type radio interface {
 	SetBand(core.VFOID, core.Band)
 	SetMode(core.VFOID, core.Mode)
 	SetXIT(bool, core.Frequency)
+	MuteAudio(core.VFOID)
+	UnmuteAudio(core.VFOID)
+	ToggleAudio(core.VFOID)
 	Refresh()
 	Notify(any)
 }
@@ -322,6 +325,27 @@ func (c *Controller) SetXIT(active bool, offset core.Frequency) {
 		return
 	}
 	c.activeRadio.SetXIT(active, offset)
+}
+
+func (c *Controller) MuteAudio(vfo core.VFOID) {
+	if c.activeRadio == nil {
+		return
+	}
+	c.activeRadio.MuteAudio(vfo)
+}
+
+func (c *Controller) UnmuteAudio(vfo core.VFOID) {
+	if c.activeRadio == nil {
+		return
+	}
+	c.activeRadio.UnmuteAudio(vfo)
+}
+
+func (c *Controller) ToggleAudio(vfo core.VFOID) {
+	if c.activeRadio == nil {
+		return
+	}
+	c.activeRadio.ToggleAudio(vfo)
 }
 
 func (c *Controller) Refresh() {

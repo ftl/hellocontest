@@ -866,6 +866,18 @@ func (c *Controller) SetXITActive(active bool) {
 	c.VFOs[core.VFO1].SetXITActive(active)
 }
 
+func (c *Controller) MuteAudio(vfo core.VFOID) {
+	c.VFOs[vfo].MuteAudio()
+}
+
+func (c *Controller) UnmuteAudio(vfo core.VFOID) {
+	c.VFOs[vfo].UnmuteAudio()
+}
+
+func (c *Controller) ToggleAudio(vfo core.VFOID) {
+	c.VFOs[vfo].ToggleAudio()
+}
+
 func (c *Controller) MarkInBandmap() {
 	c.Entry.MarkInBandmap()
 }

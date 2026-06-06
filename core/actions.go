@@ -36,7 +36,13 @@ const (
 	ActionEntryClearVFO1         = "entry.clear_vfo1"
 	ActionEntryClearVFO2         = "entry.clear_vfo2"
 
-	ActionRadioXITActive = "radio.xit_active"
+	ActionRadioXITActive       = "radio.xit_active"
+	ActionRadioMuteAudioVFO1   = "radio.mute_audio_vfo1"
+	ActionRadioMuteAudioVFO2   = "radio.mute_audio_vfo2"
+	ActionRadioUnmuteAudioVFO1 = "radio.unmute_audio_vfo1"
+	ActionRadioUnmuteAudioVFO2 = "radio.unmute_audio_vfo2"
+	ActionRadioToggleAudioVFO1 = "radio.toggle_audio_vfo1"
+	ActionRadioToggleAudioVFO2 = "radio.toggle_audio_vfo2"
 
 	ActionBandmapMark                 = "bandmap.mark"
 	ActionBandmapGotoHighestValueSpot = "bandmap.goto_highest_value_spot"

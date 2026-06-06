@@ -18,6 +18,9 @@ type Client interface {
 	SetBand(core.VFOID, core.Band)
 	SetMode(core.VFOID, core.Mode)
 	SetXIT(bool, core.Frequency)
+	MuteAudio(core.VFOID)
+	UnmuteAudio(core.VFOID)
+	ToggleAudio(core.VFOID)
 }
 
 type Logbook interface {
@@ -116,6 +119,30 @@ func (v *VFO) SetXIT(active bool, offset core.Frequency) {
 		v.client.SetXIT(active, offset)
 	} else {
 		v.offlineClient.SetXIT(active, offset)
+	}
+}
+
+func (v *VFO) MuteAudio() {
+	if v.online() {
+		v.client.MuteAudio(v.id)
+	} else {
+		v.offlineClient.MuteAudio()
+	}
+}
+
+func (v *VFO) UnmuteAudio() {
+	if v.online() {
+		v.client.UnmuteAudio(v.id)
+	} else {
+		v.offlineClient.UnmuteAudio()
+	}
+}
+
+func (v *VFO) ToggleAudio() {
+	if v.online() {
+		v.client.ToggleAudio(v.id)
+	} else {
+		v.offlineClient.ToggleAudio()
 	}
 }
 
@@ -339,3 +366,9 @@ func (c *offlineClient) SetXIT(active bool, offset core.Frequency) {
 func (c *offlineClient) SetPTT(active bool) {
 	c.vfo.emitPTTChanged(active)
 }
+
+func (c *offlineClient) MuteAudio() {}
+
+func (c *offlineClient) UnmuteAudio() {}
+
+func (c *offlineClient) ToggleAudio() {}

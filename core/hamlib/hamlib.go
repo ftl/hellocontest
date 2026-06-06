@@ -35,6 +35,7 @@ type Client struct {
 	currentVFO hl.VFO
 	singleVFO  bool
 	lastState  []vfoState
+	audioLevel []float64
 }
 
 type vfoState struct {
@@ -48,7 +49,6 @@ type vfoState struct {
 	xitAvailable bool
 	ptt          bool
 	pttAvailable bool
-	audioLevel   float64
 }
 
 func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
@@ -66,6 +66,7 @@ func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client 
 		currentVFO:      hl.CurrVFO,
 		singleVFO:       singleVFO,
 		lastState:       make([]vfoState, int(core.VFOCount)),
+		audioLevel:      make([]float64, int(core.VFOCount)),
 	}
 	result.client.Notify(result)
 	if singleVFO {
@@ -400,7 +401,7 @@ func (c *Client) MuteAudio(vfo core.VFOID) {
 			return
 		}
 
-		c.lastState[vfo].audioLevel = currentLevel
+		c.audioLevel[vfo] = currentLevel
 
 		err = c.client.SetLevel(c.vfos[vfo], hl.AudioFrequencyLevel, 0)
 		if err != nil {
@@ -412,7 +413,7 @@ func (c *Client) MuteAudio(vfo core.VFOID) {
 
 func (c *Client) UnmuteAudio(vfo core.VFOID) {
 	c.doInLoop(func() {
-		lastLevel := c.lastState[vfo].audioLevel
+		lastLevel := c.audioLevel[vfo]
 		if lastLevel == 0 {
 			return
 		}
@@ -427,7 +428,7 @@ func (c *Client) UnmuteAudio(vfo core.VFOID) {
 
 func (c *Client) ToggleAudio(vfo core.VFOID) {
 	c.doInLoop(func() {
-		lastLevel := c.lastState[vfo].audioLevel
+		lastLevel := c.audioLevel[vfo]
 		currentLevel, err := c.client.GetLevel(c.vfos[vfo], hl.AudioFrequencyLevel)
 		if err != nil {
 			log.Printf("hamlib: cannot retrieve current audio level: %v", err)
@@ -442,8 +443,9 @@ func (c *Client) ToggleAudio(vfo core.VFOID) {
 			nextLevel = lastLevel
 		} else {
 			nextLevel = 0
-			c.lastState[vfo].audioLevel = currentLevel
 		}
+
+		c.audioLevel[vfo] = currentLevel
 
 		err = c.client.SetLevel(c.vfos[vfo], hl.AudioFrequencyLevel, nextLevel)
 		if err != nil {

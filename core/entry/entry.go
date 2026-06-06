@@ -259,13 +259,6 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 	c.callinfo = callinfo
 }
 
-func (c *Controller) notifyCallinfoInputChanged(call string, band core.Band, mode core.Mode, exchange []string) {
-	if c.callinfo == nil {
-		return
-	}
-	c.callinfo.InputChanged(c.focusedVFO, call, band, mode, exchange)
-}
-
 func (c *Controller) CallinfoFrameChanged(vfo core.VFOID, frame core.CallinfoFrame) {
 	c.currentCallinfoFrame[vfo] = frame
 	// TODO what do we need to update here?
@@ -365,7 +358,7 @@ func (c *Controller) isPredictable(field core.EntryField) bool {
 }
 
 func (c *Controller) RefreshPrediction() {
-	c.notifyCallinfoInputChanged(c.input[c.focusedVFO].callsign, c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO], []string{})
+	c.callinfoInputChanged(c.focusedVFO, c.input[c.focusedVFO].callsign, c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO], []string{})
 
 	if len(c.input[c.focusedVFO].theirExchange) == len(c.currentCallinfoFrame[c.focusedVFO].PredictedExchange) {
 		for i, field := range c.theirExchangeFields {
@@ -727,6 +720,15 @@ func (c *Controller) clearInput(vfo core.VFOID) {
 	c.view.SetActiveField(vfo, c.activeField[vfo])
 	c.view.SetDuplicateMarker(vfo, false)
 	c.view.ClearMessage(vfo)
+	c.callinfoInputChanged(vfo, "", core.NoBand, core.NoMode, []string{})
+}
+
+// callinfoInputChanged notifies the callinfo subsystem about input changes on a specific VFO.
+func (c *Controller) callinfoInputChanged(vfo core.VFOID, call string, band core.Band, mode core.Mode, exchange []string) {
+	if c.callinfo == nil {
+		return
+	}
+	c.callinfo.InputChanged(vfo, call, band, mode, exchange)
 }
 
 func (c *Controller) bandSelected(s string) {
@@ -879,7 +881,7 @@ func (c *Controller) RepeatLastTransmission() {
 
 func (c *Controller) enterCallsign(s string) {
 	c.emitCallsignEntered(c.input[c.focusedVFO].callsign)
-	c.notifyCallinfoInputChanged(c.input[c.focusedVFO].callsign, c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO], c.input[c.focusedVFO].theirExchange)
+	c.callinfoInputChanged(c.focusedVFO, c.input[c.focusedVFO].callsign, c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO], c.input[c.focusedVFO].theirExchange)
 
 	callsign, err := core.ParseCallsign(s)
 	if err != nil {
@@ -904,7 +906,7 @@ func (c *Controller) enterTheirExchange(field core.EntryField) {
 	if c.callinfo == nil {
 		return
 	}
-	c.notifyCallinfoInputChanged(c.input[c.focusedVFO].callsign, c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO], c.input[c.focusedVFO].theirExchange)
+	c.callinfoInputChanged(c.focusedVFO, c.input[c.focusedVFO].callsign, c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO], c.input[c.focusedVFO].theirExchange)
 	c.clearErrorOnField(field)
 }
 
@@ -919,7 +921,7 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.showQSO(qso)
 	c.view.SetActiveField(c.focusedVFO, core.CallsignField)
 	c.view.SetEditingMarker(core.VFO1, true)
-	c.notifyCallinfoInputChanged(qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
+	c.callinfoInputChanged(c.focusedVFO, qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
 }
 
 func (c *Controller) EnterPressed() {
@@ -1179,7 +1181,7 @@ func (c *Controller) Clear() {
 		c.view.SetEditingMarker(core.VFO1, false)
 		c.view.ClearMessage(c.focusedVFO)
 		c.selectLastQSO()
-		c.notifyCallinfoInputChanged("", core.NoBand, core.NoMode, []string{})
+		c.callinfoInputChanged(c.focusedVFO, "", core.NoBand, core.NoMode, []string{})
 		return
 	}
 
@@ -1219,7 +1221,7 @@ func (c *Controller) Clear() {
 	c.view.SetEditingMarker(core.VFO1, false)
 	c.view.ClearMessage(c.focusedVFO)
 	c.selectLastQSO()
-	c.notifyCallinfoInputChanged("", core.NoBand, core.NoMode, []string{})
+	c.callinfoInputChanged(c.focusedVFO, "", core.NoBand, core.NoMode, []string{})
 }
 
 // fillExchangeDefaults resets vfo's input fields (callsign/band/mode/exchange) and seeds

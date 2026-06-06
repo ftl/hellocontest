@@ -275,6 +275,13 @@ func (m *EntryView) SetTheirExchangeFields(fields []core.ExchangeField) {
 	m.Called(fields)
 }
 
+func (m *EntryView) SetSerialClaim(vfo core.VFOID, n core.QSONumber) {
+	if !m.active {
+		return
+	}
+	m.Called(vfo, n)
+}
+
 func (m *EntryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
 	if !m.active {
 		return

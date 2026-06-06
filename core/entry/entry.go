@@ -35,6 +35,7 @@ type View interface {
 	SetCallsign(core.VFOID, string)
 	SetTheirExchange(vfo core.VFOID, index int, text string)
 
+	SetSerialClaim(core.VFOID, core.QSONumber)
 	SetActiveField(core.VFOID, core.EntryField)
 	SelectText(core.VFOID, core.EntryField, string)
 	SetDuplicateMarker(core.VFOID, bool)
@@ -550,9 +551,13 @@ func (c *Controller) releaseSerialClaimFor(vfo core.VFOID) {
 
 // refreshMyNumberInputs syncs myNumber (and exchange serial slot) with the
 // current displayed serial value for the focused VFO. Reads NextQSONumber once.
+// Also pushes each VFO's serial claim to the view.
 func (c *Controller) refreshMyNumberInputs() {
 	base := c.logbook.NextQSONumber()
 	c.writeMyNumberInput(c.claims.DisplayedSerial(c.focusedVFO, base))
+	for vfo := range core.VFOCount {
+		c.view.SetSerialClaim(core.VFOID(vfo), c.claims.claimed[vfo])
+	}
 }
 
 func (c *Controller) refreshMyNumberInput(vfo core.VFOID) {

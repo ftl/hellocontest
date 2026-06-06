@@ -61,6 +61,9 @@ type entryView struct {
 	vfo2LogButton           *qtlib.QPushButton
 	vfo2ClearButton         *qtlib.QPushButton
 
+	serialClaimLabel     *qtlib.QLabel
+	vfo2SerialClaimLabel *qtlib.QLabel
+
 	theirLabel        *qtlib.QLabel
 	callsign          *qtlib.QLineEdit
 	bandModeContainer *qtlib.QWidget
@@ -347,6 +350,24 @@ func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	}
 }
 
+func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber) {
+	var label *qtlib.QLabel
+	switch vfo {
+	case core.VFO1:
+		label = v.serialClaimLabel
+	case core.VFO2:
+		label = v.vfo2SerialClaimLabel
+	}
+	if label == nil {
+		return
+	}
+	if serial == 0 {
+		label.SetText("")
+	} else {
+		label.SetText(fmt.Sprintf("#%s", serial.String()))
+	}
+}
+
 func (v *entryView) SetCallsign(vfo core.VFOID, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
@@ -480,6 +501,32 @@ func (v *entryView) SetTheirExchange(vfo core.VFOID, index int, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
 	fields[i].SetText(text)
+}
+
+func (v *entryView) SetSerialClaimLabelsVisible(visible bool) {
+	if visible && v.vfo2Enabled {
+		if v.serialClaimLabel == nil {
+			v.serialClaimLabel = qtlib.NewQLabel3("")
+			v.serialClaimLabel.SetObjectName(*qtlib.NewQAnyStringView3("serialClaim"))
+			v.serialClaimLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+		}
+		if v.vfo2SerialClaimLabel == nil {
+			v.vfo2SerialClaimLabel = qtlib.NewQLabel3("")
+			v.vfo2SerialClaimLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2SerialClaim"))
+			v.vfo2SerialClaimLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+		}
+	} else {
+		if v.serialClaimLabel != nil {
+			v.serialClaimLabel.SetParent(nil)
+			v.serialClaimLabel.Delete()
+			v.serialClaimLabel = nil
+		}
+		if v.vfo2SerialClaimLabel != nil {
+			v.vfo2SerialClaimLabel.SetParent(nil)
+			v.vfo2SerialClaimLabel.Delete()
+			v.vfo2SerialClaimLabel = nil
+		}
+	}
 }
 
 func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
@@ -672,6 +719,9 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	}
 	if v.vfo2TXIndicator != nil {
 		v.vfo2TXIndicator.SetVisible(enabled)
+	}
+	if v.vfo2SerialClaimLabel != nil {
+		v.vfo2SerialClaimLabel.SetVisible(enabled)
 	}
 	if v.vfo2TheirLabel != nil {
 		v.vfo2TheirLabel.SetVisible(enabled)

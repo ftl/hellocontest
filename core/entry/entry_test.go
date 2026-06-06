@@ -483,6 +483,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
+	view.On("SetSerialClaim", mock.Anything, mock.Anything).Maybe()
 	settings := &testSettings{myCall: "DL0ABC"}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
@@ -500,6 +501,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
+	view.On("SetSerialClaim", mock.Anything, mock.Anything).Maybe()
 	exchangeFields := []conval.ExchangeField{{conval.RSTProperty}, {conval.SerialNumberProperty}, {conval.GenericTextProperty}}
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
@@ -518,6 +520,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	log := new(mocked.Log)
 	qsoList := new(mocked.QSOList)
 	view := new(mocked.EntryView)
+	view.On("SetSerialClaim", mock.Anything, mock.Anything).Maybe()
 	exchangeFields := make([]conval.ExchangeField, exchangeFieldCount)
 	exchangeValues := make([]string, exchangeFieldCount)
 	for i := range exchangeFields {

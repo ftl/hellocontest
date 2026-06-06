@@ -828,6 +828,9 @@ func (v *viewSpy) SetCallsign(vfo core.VFOID, s string) { v.record("SetCallsign"
 func (v *viewSpy) SetTheirExchange(vfo core.VFOID, index int, text string) {
 	v.record("SetTheirExchange", vfo, index, text)
 }
+func (v *viewSpy) SetSerialClaim(vfo core.VFOID, n core.QSONumber) {
+	v.record("SetSerialClaim", vfo, n)
+}
 func (v *viewSpy) SetActiveField(vfo core.VFOID, field core.EntryField) {
 	v.record("SetActiveField", vfo, field)
 }

@@ -86,6 +86,7 @@ func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.runOnMainThread(func() error { return s.dispatcher.DoAction(action) }); err != nil {
+		log.Printf("remote action %s failed: %v", action, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -196,6 +196,12 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.toggleVFOAction,
 		a.focusVFO1Action,
 		a.focusVFO2Action,
+		a.muteAudioVFO1Action,
+		a.muteAudioVFO2Action,
+		a.unmuteAudioVFO1Action,
+		a.unmuteAudioVFO2Action,
+		a.toggleAudioVFO1Action,
+		a.toggleAudioVFO2Action,
 	})
 
 	// setup initial action state from controller

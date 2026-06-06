@@ -1021,6 +1021,18 @@ func (c *Controller) DoAction(id string) error {
 		c.Keyer.Send(2)
 	case core.ActionKeyerSendMacro4:
 		c.Keyer.Send(3)
+	case core.ActionRadioMuteAudioVFO1:
+		c.MuteAudio(core.VFO1)
+	case core.ActionRadioMuteAudioVFO2:
+		c.MuteAudio(core.VFO2)
+	case core.ActionRadioUnmuteAudioVFO1:
+		c.UnmuteAudio(core.VFO1)
+	case core.ActionRadioUnmuteAudioVFO2:
+		c.UnmuteAudio(core.VFO2)
+	case core.ActionRadioToggleAudioVFO1:
+		c.ToggleAudio(core.VFO1)
+	case core.ActionRadioToggleAudioVFO2:
+		c.ToggleAudio(core.VFO2)
 	default:
 		return fmt.Errorf("unknown action: %s", id)
 	}

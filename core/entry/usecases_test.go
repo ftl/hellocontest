@@ -1344,6 +1344,39 @@ func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
 		"focused VFO must still be VFO1")
 }
 
+func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsCallinfoAndMessage(t *testing.T) {
+	// Regression: a frequency jump on VFO2 must clear VFO2's callinfo and message,
+	// not VFO1's. Focus must stay on VFO1.
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2()
+
+	// Enter callsign on VFO1.
+	s.controller.Enter("DL1ABC")
+	// Switch to VFO2, enter callsign (triggers callinfo).
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL2XYZ")
+	// Switch back to VFO1.
+	s.controller.SetFocusedVFO(core.VFO1)
+	s.resetSpies()
+
+	// Large frequency jump on VFO2.
+	s.controller.VFOFrequencyChanged(core.VFO2, 14050000+1000)
+
+	// VFO2 callinfo must be cleared (InputChanged with empty call for VFO2).
+	s.AssertCallinfoCleared(core.VFO2)
+	// VFO2 message must be cleared.
+	s.view.assertCalledWith(s.t, "ClearMessage", core.VFO2)
+	// VFO1 message must NOT be cleared.
+	assert.False(t, s.view.wasCalledWith("ClearMessage", core.VFO1),
+		"VFO1 message must not be cleared by VFO2 frequency jump")
+	// Focus must remain on VFO1.
+	s.resetSpies()
+	s.controller.Enter("DL9ZZZ")
+	assert.Equal(t, "DL9ZZZ", s.controller.CurrentValues().TheirCall,
+		"focused VFO must still be VFO1")
+}
+
 func TestJ1_VFOFrequencyChanged_UpdatesFrequencyView(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().

@@ -373,6 +373,21 @@ func (s *Scenario) AssertCallinfoNotified(callsign string) *Scenario {
 	return s
 }
 
+// AssertCallinfoCleared asserts callinfo.InputChanged(vfo, "") was called for the given VFO.
+func (s *Scenario) AssertCallinfoCleared(vfo core.VFOID) *Scenario {
+	s.t.Helper()
+	found := false
+	for _, inp := range s.callinfo.inputs {
+		if inp.vfo == vfo && inp.call == "" {
+			found = true
+			break
+		}
+	}
+	assert.True(s.t, found,
+		"expected callinfo.InputChanged(%v, \"\") to be called (clear callinfo for VFO)", vfo)
+	return s
+}
+
 // AssertMessageCleared asserts view.ClearMessage(vfo) was called and ShowMessage was not.
 func (s *Scenario) AssertMessageCleared(vfo core.VFOID) *Scenario {
 	s.t.Helper()
@@ -860,14 +875,24 @@ func (l *logbookSpy) FindDuplicateQSOs(_ core.Callsign, _ core.Band, _ core.Mode
 
 // ---- callinfoSpy ------------------------------------------------------------
 
-type callinfoSpy struct {
-	callsigns []string
+type callinfoInput struct {
+	vfo  core.VFOID
+	call string
 }
 
-func (c *callinfoSpy) resetCalls() { c.callsigns = nil }
+type callinfoSpy struct {
+	callsigns []string
+	inputs    []callinfoInput
+}
 
-func (c *callinfoSpy) InputChanged(_ core.VFOID, call string, _ core.Band, _ core.Mode, _ []string) {
+func (c *callinfoSpy) resetCalls() {
+	c.callsigns = nil
+	c.inputs = nil
+}
+
+func (c *callinfoSpy) InputChanged(vfo core.VFOID, call string, _ core.Band, _ core.Mode, _ []string) {
 	c.callsigns = append(c.callsigns, call)
+	c.inputs = append(c.inputs, callinfoInput{vfo: vfo, call: call})
 }
 
 // ---- listenerSpy ------------------------------------------------------------

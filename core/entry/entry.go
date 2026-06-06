@@ -717,10 +717,15 @@ func (c *Controller) clearInput(vfo core.VFOID) {
 	c.refreshMyNumberInputs()
 	c.showInput()
 	c.view.SetFrequency(vfo, c.selectedFrequency[vfo])
-	c.view.SetActiveField(vfo, c.activeField[vfo])
 	c.view.SetDuplicateMarker(vfo, false)
 	c.view.ClearMessage(vfo)
 	c.callinfoInputChanged(vfo, "", core.NoBand, core.NoMode, []string{})
+
+	// Only push UI focus if this is focused VFO. For non-focused VFOs
+	// we reset internal state only — SetActiveField would steal focus.
+	if vfo == c.focusedVFO {
+		c.view.SetActiveField(vfo, c.activeField[vfo])
+	}
 }
 
 // callinfoInputChanged notifies the callinfo subsystem about input changes on a specific VFO.

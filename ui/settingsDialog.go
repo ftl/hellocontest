@@ -168,6 +168,13 @@ func (d *settingsDialog) SetOperationModeSprint(v bool) {
 	d.view.SetOperationModeSprint(v)
 }
 
+func (d *settingsDialog) SetSwitchTXVFOOnFocus(v bool) {
+	if d.view == nil {
+		return
+	}
+	d.view.SetSwitchTXVFOOnFocus(v)
+}
+
 func (d *settingsDialog) SetContestCallHistoryFile(v string) {
 	if d.view == nil {
 		return

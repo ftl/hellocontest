@@ -1001,6 +1001,24 @@ func (s *Scenario) WithVFO2() *Scenario {
 	return s
 }
 
+// WithSwitchTXVFOOnFocus enables the SwitchTXVFOOnFocus contest option.
+// Must be called after WithClassicExchange (or similar) since it re-applies the contest.
+func (s *Scenario) WithSwitchTXVFOOnFocus() *Scenario {
+	contest := core.Contest{
+		Definition: scenarioFieldDefinition(
+			conval.ExchangeField{conval.RSTProperty},
+			conval.ExchangeField{conval.SerialNumberProperty},
+			conval.ExchangeField{conval.GenericTextProperty},
+		),
+		GenerateSerialExchange: true,
+		ExchangeValues:         []string{"599", "", ""},
+		SwitchTXVFOOnFocus:     true,
+	}
+	contest.UpdateExchangeFields()
+	s.controller.ContestChanged(contest)
+	return s
+}
+
 // WithVFOSwitcher wires the vfoSwitcherSpy into the controller.
 func (s *Scenario) WithVFOSwitcher() *Scenario {
 	s.vfoSwitcher = &vfoSwitcherSpy{seq: &s.seq}

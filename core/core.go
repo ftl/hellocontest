@@ -644,6 +644,7 @@ type Contest struct {
 	TheirNumberExchangeField ExchangeField
 
 	OperationModeSprint   bool
+	SwitchTXVFOOnFocus    bool
 	CallHistoryFilename   string
 	CallHistoryFieldNames []string
 

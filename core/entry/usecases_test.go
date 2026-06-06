@@ -1064,6 +1064,15 @@ func TestH1_SetFocusedVFO_ReappliesActiveField_NoVFOSwitch(t *testing.T) {
 		"SetFocusedVFO must not call SetTXVFO")
 }
 
+func TestH1_SetFocusedVFO_WithSwitchTXVFOOnFocus_SwitchesTXVFO(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().WithVFO2().WithVFOSwitcher().
+		WithSwitchTXVFOOnFocus().
+		SetFocusedVFO(core.VFO2).
+		AssertVFOSwitcherCalled(core.VFO2).
+		AssertActiveField(core.VFO2, core.CallsignField)
+}
+
 func TestH1_SetFocusedVFO_VFO2Disabled_Ignored(t *testing.T) {
 	// VFO2 not enabled → SetFocusedVFO(VFO2) is a no-op.
 	NewScenario(t).

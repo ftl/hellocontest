@@ -80,6 +80,7 @@ message Contest {
   google.protobuf.Timestamp start_time = 26;
   bool generate_report = 27;
   bool enable_qtcs = 28;
+  bool switch_tx_vfo_on_focus = 29;
 }
 
 message Multis { // deprecated

@@ -82,6 +82,18 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 	c.client.SetSplitEnable(c.trx.trx, vfo == core.VFO2)
 }
 
+func (c *Client) MuteAudio(vfo core.VFOID) {
+	log.Printf("tci: MuteAudio not implemented")
+}
+
+func (c *Client) UnmuteAudio(vfo core.VFOID) {
+	log.Printf("tci: UnmuteAudio not implemented")
+}
+
+func (c *Client) ToggleAudio(vfo core.VFOID) {
+	log.Printf("tci: ToggleAudio not implemented")
+}
+
 func (c *Client) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }

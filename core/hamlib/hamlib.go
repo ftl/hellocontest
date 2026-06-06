@@ -48,6 +48,7 @@ type vfoState struct {
 	xitAvailable bool
 	ptt          bool
 	pttAvailable bool
+	audioLevel   float64
 }
 
 func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
@@ -384,6 +385,70 @@ func (c *Client) SetXIT(active bool, offset core.Frequency) {
 				log.Printf("hamlib: cannot set XIT offset: %v", err)
 				return
 			}
+		}
+	})
+}
+
+func (c *Client) MuteAudio(vfo core.VFOID) {
+	c.doInLoop(func() {
+		currentLevel, err := c.client.GetLevel(c.vfos[vfo], hl.AudioFrequencyLevel)
+		if err != nil {
+			log.Printf("hamlib: cannot retrieve current audio level: %v", err)
+			return
+		}
+		if currentLevel == 0 {
+			return
+		}
+
+		c.lastState[vfo].audioLevel = currentLevel
+
+		err = c.client.SetLevel(c.vfos[vfo], hl.AudioFrequencyLevel, 0)
+		if err != nil {
+			log.Printf("hamlib: cannot mute audio level: %v", err)
+			return
+		}
+	})
+}
+
+func (c *Client) UnmuteAudio(vfo core.VFOID) {
+	c.doInLoop(func() {
+		lastLevel := c.lastState[vfo].audioLevel
+		if lastLevel == 0 {
+			return
+		}
+
+		err := c.client.SetLevel(c.vfos[vfo], hl.AudioFrequencyLevel, lastLevel)
+		if err != nil {
+			log.Printf("hamlib: cannot unmute audio level: %v", err)
+			return
+		}
+	})
+}
+
+func (c *Client) ToggleAudio(vfo core.VFOID) {
+	c.doInLoop(func() {
+		lastLevel := c.lastState[vfo].audioLevel
+		currentLevel, err := c.client.GetLevel(c.vfos[vfo], hl.AudioFrequencyLevel)
+		if err != nil {
+			log.Printf("hamlib: cannot retrieve current audio level: %v", err)
+			return
+		}
+		if currentLevel == lastLevel {
+			return
+		}
+
+		var nextLevel float64
+		if currentLevel == 0 {
+			nextLevel = lastLevel
+		} else {
+			nextLevel = 0
+			c.lastState[vfo].audioLevel = currentLevel
+		}
+
+		err = c.client.SetLevel(c.vfos[vfo], hl.AudioFrequencyLevel, nextLevel)
+		if err != nil {
+			log.Printf("hamlib: cannot set audio level: %v", err)
+			return
 		}
 	})
 }

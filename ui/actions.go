@@ -90,6 +90,12 @@ type actions struct {
 	toggleVFOAction       *qtlib.QAction
 	focusVFO1Action       *qtlib.QAction
 	focusVFO2Action       *qtlib.QAction
+	muteAudioVFO1Action   *qtlib.QAction
+	muteAudioVFO2Action   *qtlib.QAction
+	unmuteAudioVFO1Action *qtlib.QAction
+	unmuteAudioVFO2Action *qtlib.QAction
+	toggleAudioVFO1Action *qtlib.QAction
+	toggleAudioVFO2Action *qtlib.QAction
 }
 
 func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings map[string]string) *actions {
@@ -174,6 +180,12 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.toggleVFOAction = a.makeTriggerAction(core.ActionEntryToggleFocusedVFO, "Toggle Focused VFO", "Switch focus between VFO 1 and VFO 2", "F8", func() { controller.Entry.ToggleFocusedVFO() })
 	a.focusVFO1Action = a.makeTriggerAction(core.ActionEntryFocusVFO1, "Focus VFO 1", "Set the focused VFO to VFO 1", "F9", func() { controller.Entry.FocusVFO1() })
 	a.focusVFO2Action = a.makeTriggerAction(core.ActionEntryFocusVFO2, "Focus VFO 2", "Set the focused VFO to VFO 2", "F10", func() { controller.Entry.FocusVFO2() })
+	a.muteAudioVFO1Action = a.makeTriggerAction(core.ActionRadioMuteAudioVFO1, "Mute VFO 1", "Mute audio on VFO 1", "", func() { controller.MuteAudio(core.VFO1) })
+	a.muteAudioVFO2Action = a.makeTriggerAction(core.ActionRadioMuteAudioVFO2, "Mute VFO 2", "Mute audio on VFO 2", "", func() { controller.MuteAudio(core.VFO2) })
+	a.unmuteAudioVFO1Action = a.makeTriggerAction(core.ActionRadioUnmuteAudioVFO1, "Unmute VFO 1", "Unmute audio on VFO 1", "", func() { controller.UnmuteAudio(core.VFO1) })
+	a.unmuteAudioVFO2Action = a.makeTriggerAction(core.ActionRadioUnmuteAudioVFO2, "Unmute VFO 2", "Unmute audio on VFO 2", "", func() { controller.UnmuteAudio(core.VFO2) })
+	a.toggleAudioVFO1Action = a.makeTriggerAction(core.ActionRadioToggleAudioVFO1, "Toggle Audio VFO 1", "Toggle audio on VFO 1", "", func() { controller.ToggleAudio(core.VFO1) })
+	a.toggleAudioVFO2Action = a.makeTriggerAction(core.ActionRadioToggleAudioVFO2, "Toggle Audio VFO 2", "Toggle audio on VFO 2", "", func() { controller.ToggleAudio(core.VFO2) })
 	a.parent.AddActions([]*qtlib.QAction{
 		a.sendMacro1Action,
 		a.sendMacro2Action,

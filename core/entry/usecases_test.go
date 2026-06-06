@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ftl/hellocontest/core"
 )
@@ -1681,9 +1682,7 @@ func TestI7_DualVFO_SerialInterleaving(t *testing.T) {
 
 	// Log VFO2 QSO.
 	s.controller.Log()
-	if !assert.Len(t, s.logbook.addedQSOs, 1, "VFO2 QSO must be logged") {
-		t.FailNow()
-	}
+	require.Len(t, s.logbook.addedQSOs, 1, "VFO2 QSO must be logged")
 	vfo2QSO := s.logbook.addedQSOs[0]
 	if vfo2QSO.MyNumber != 7 {
 		t.Errorf("VFO2 QSO: expected MyNumber=7, got %d", vfo2QSO.MyNumber)
@@ -1704,9 +1703,7 @@ func TestI7_DualVFO_SerialInterleaving(t *testing.T) {
 	// Log VFO1 QSO.
 	s.logbook.resetCalls()
 	s.controller.Log()
-	if !assert.Len(t, s.logbook.addedQSOs, 1, "VFO1 QSO must be logged") {
-		t.FailNow()
-	}
+	require.Len(t, s.logbook.addedQSOs, 1, "VFO1 QSO must be logged")
 	vfo1QSO := s.logbook.addedQSOs[0]
 	if vfo1QSO.MyNumber != 6 {
 		t.Errorf("VFO1 QSO: expected MyNumber=6, got %d", vfo1QSO.MyNumber)

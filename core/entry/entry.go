@@ -126,12 +126,12 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 
 // VFOSwitcher is implemented by something that can command the rig to make a given VFO the current one.
 type VFOSwitcher interface {
-	SetCurrentVFO(core.VFOID)
+	SetTXVFO(core.VFOID)
 }
 
 type nullVFOSwitcher struct{}
 
-func (n *nullVFOSwitcher) SetCurrentVFO(core.VFOID) {}
+func (n *nullVFOSwitcher) SetTXVFO(core.VFOID) {}
 
 type editSnapshot struct {
 	focusedVFO    core.VFOID
@@ -189,7 +189,7 @@ type Controller struct {
 	selectedFrequency   []core.Frequency
 	selectedBand        []core.Band
 	selectedMode        []core.Mode
-	claims               SerialClaims
+	claims              SerialClaims
 	editing             bool
 	editQSO             core.QSO
 	editSnapshot        *editSnapshot
@@ -474,7 +474,6 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 		return
 	}
 	c.focusedVFO = vfo
-	c.vfoSwitcher.SetCurrentVFO(vfo)
 	c.refreshMyNumberInputs()
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
@@ -837,6 +836,7 @@ func (c *Controller) SendQuestion() {
 		return
 	}
 
+	c.vfoSwitcher.SetTXVFO(c.focusedVFO)
 	switch {
 	case c.activeField[c.focusedVFO].IsTheirExchange():
 		c.keyer.SendQuestion("nr")
@@ -853,6 +853,7 @@ func (c *Controller) RepeatLastTransmission() {
 		return
 	}
 
+	// do not switch the VFO here, we want to explicitly stay on the same VFO that was used for the last transmission
 	c.keyer.Repeat()
 }
 

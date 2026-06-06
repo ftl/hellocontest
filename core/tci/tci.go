@@ -76,8 +76,7 @@ func (c *Client) SingleVFO() bool {
 }
 
 func (c *Client) SetCurrentVFO(vfo core.VFOID) {
-	// TODO: implement rig-side current VFO selection via TCI.
-	log.Printf("tci: SetCurrentVFO(%d) not yet implemented", vfo)
+	c.client.SetSplitEnable(c.trx.trx, vfo == core.VFO2)
 }
 
 func (c *Client) Notify(listener any) {

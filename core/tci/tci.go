@@ -75,7 +75,10 @@ func (c *Client) SingleVFO() bool {
 	return c.singleVFO
 }
 
-func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+func (c *Client) SetTXVFO(vfo core.VFOID) {
+	if c.singleVFO {
+		return
+	}
 	c.client.SetSplitEnable(c.trx.trx, vfo == core.VFO2)
 }
 

@@ -315,10 +315,14 @@ func (c *Client) SingleVFO() bool {
 	return c.singleVFO
 }
 
-func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+func (c *Client) SetTXVFO(vfo core.VFOID) {
+	if c.singleVFO {
+		return
+	}
 	c.doInLoop(func() {
 		hlVFO := c.vfos[vfo]
-		c.client.SetSplitVFO(hlVFO, !c.singleVFO, hlVFO)
+		enableSplit := vfo == core.VFO2
+		c.client.SetSplitVFO(hlVFO, enableSplit, hlVFO)
 	})
 }
 

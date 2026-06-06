@@ -872,7 +872,8 @@ func TestF2_ToggleESM_NotifiesListenerAndReappliesActiveField(t *testing.T) {
 
 // F3. NextESMStep — Run mode, CallsignValid: sends keyer text, advances past RST field.
 // Pre:  not editing; keyer set; ESM enabled.
-// Post: ESM state/message recomputed; keyer.SendText called; if Run+CallsignValid: GotoNextField (skip report field).
+// Post: SetTXVFO(focused) called before keyer.SendText;
+//       ESM state/message recomputed; keyer.SendText called; if Run+CallsignValid: GotoNextField (skip report field).
 
 func TestF3_NextESMStep_Run_CallsignValid_SendsAndAdvancesField(t *testing.T) {
 	// ClassicExchange: TheirExchange1=RST (theirReport field) → skipped → land on TheirExchange2.
@@ -880,9 +881,11 @@ func TestF3_NextESMStep_Run_CallsignValid_SendsAndAdvancesField(t *testing.T) {
 		WithClassicExchange().
 		WithESMEnabled().
 		WithKeyer().
+		WithVFOSwitcher().
 		WithWorkmode(core.Run).
 		Enter("DL1ABC"). // ESM state = CallsignValid
 		NextESMStep().
+		AssertTXVFOBeforeKeyer(core.VFO1).
 		AssertKeyerSentText().
 		AssertActiveField(core.VFO1, core.TheirExchangeField(2)) // skip RST → serial
 }
@@ -1048,15 +1051,17 @@ func TestG6_CallinfoFrameChanged_FrameUsedInSubsequentPrediction(t *testing.T) {
 
 // H1. SetFocusedVFO
 // Pre:  target ≠ VFO2 OR vfo2Enabled = true; target ≠ current focused VFO.
-// Post: focusedVFO = target; vfoSwitcher.SetCurrentVFO(target); view active field reapplied.
+// Post: focusedVFO = target; view active field reapplied.
+//       vfoSwitcher is NOT called here — it fires only before keyer TX.
 // Invariants: input rows; serial claims; logbook.
 
-func TestH1_SetFocusedVFO_CommandsRigAndReappliesActiveField(t *testing.T) {
-	NewScenario(t).
-		WithClassicExchange().WithVFO2().WithVFOSwitcher().
-		SetFocusedVFO(core.VFO2).
-		AssertVFOSwitcherCalled(core.VFO2).
+func TestH1_SetFocusedVFO_ReappliesActiveField_NoVFOSwitch(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().WithVFO2().WithVFOSwitcher()
+	s.SetFocusedVFO(core.VFO2).
 		AssertActiveField(core.VFO2, core.CallsignField)
+	assert.Empty(t, s.vfoSwitcher.calledWith,
+		"SetFocusedVFO must not call SetTXVFO")
 }
 
 func TestH1_SetFocusedVFO_VFO2Disabled_Ignored(t *testing.T) {
@@ -1422,28 +1427,31 @@ func TestJ6_VFOPTTChanged_VFO2_UpdatesTXStateForVFO2(t *testing.T) {
 
 // K1. SendQuestion
 // Pre:  keyer set; canTransmit = true.
-// Post: if active=their-exchange: keyer.SendQuestion("nr"); else: keyer.SendQuestion(callsign).
+// Post: SetTXVFO(focused) called before keyer.SendQuestion;
+//       if active=their-exchange: keyer.SendQuestion("nr"); else: keyer.SendQuestion(callsign).
 
 func TestK1_SendQuestion_CallsignField_SendsCallsign(t *testing.T) {
 	NewScenario(t).
-		WithClassicExchange().WithKeyer().
+		WithClassicExchange().WithKeyer().WithVFOSwitcher().
 		Enter("DL1ABC").
 		SendQuestion().
+		AssertTXVFOBeforeKeyer(core.VFO1).
 		AssertKeyerSentQuestion("DL1ABC")
 }
 
 func TestK1_SendQuestion_TheirExchangeField_SendsNR(t *testing.T) {
 	NewScenario(t).
-		WithClassicExchange().WithKeyer().
+		WithClassicExchange().WithKeyer().WithVFOSwitcher().
 		Enter("DL1ABC").
 		GotoNextField(). // → TheirExchange1
 		SendQuestion().
+		AssertTXVFOBeforeKeyer(core.VFO1).
 		AssertKeyerSentQuestion("nr")
 }
 
 // K2. RepeatLastTransmission
 // Pre:  keyer set; canTransmit = true.
-// Post: keyer.Repeat().
+// Post: keyer.Repeat(). VFO switcher is NOT called (stay on last TX VFO).
 
 func TestK2_RepeatLastTransmission_CallsKeyer(t *testing.T) {
 	NewScenario(t).

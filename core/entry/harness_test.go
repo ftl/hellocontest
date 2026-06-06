@@ -32,6 +32,7 @@ type Scenario struct {
 	esmView     *esmViewSpy
 	keyer       *keyerSpy
 	qsoList     *qsoListSpy
+	seq         int // shared sequence counter for ordering assertions
 }
 
 func NewScenario(t *testing.T) *Scenario {
@@ -67,6 +68,7 @@ func NewScenario(t *testing.T) *Scenario {
 }
 
 func (s *Scenario) resetSpies() {
+	s.seq = 0
 	s.view.reset()
 	s.logbook.resetCalls()
 	s.callinfo.resetCalls()
@@ -146,6 +148,7 @@ func (s *Scenario) WithWorkmode(w core.Workmode) *Scenario {
 
 // WithKeyer wires the keyer spy into the controller without spy reset.
 func (s *Scenario) WithKeyer() *Scenario {
+	s.keyer.seq = &s.seq
 	s.controller.SetKeyer(s.keyer)
 	return s
 }
@@ -907,10 +910,12 @@ func (e *esmViewSpy) SetMessage(msg string) { e.message = msg }
 // ---- keyerSpy ---------------------------------------------------------------
 
 type keyerSpy struct {
+	seq          *int // shared sequence counter (nil until WithKeyer+WithVFOSwitcher)
 	sentTexts    []string
 	sentQuestion string
 	repeated     bool
 	stopped      bool
+	txSeq        int // sequence number of first TX call in this spy cycle
 }
 
 func (k *keyerSpy) reset() {
@@ -918,9 +923,23 @@ func (k *keyerSpy) reset() {
 	k.sentQuestion = ""
 	k.repeated = false
 	k.stopped = false
+	k.txSeq = 0
 }
 
-func (k *keyerSpy) SendQuestion(q string) { k.sentQuestion = q }
+func (k *keyerSpy) nextSeq() int {
+	if k.seq == nil {
+		return 0
+	}
+	*k.seq++
+	return *k.seq
+}
+
+func (k *keyerSpy) SendQuestion(q string) {
+	k.sentQuestion = q
+	if k.txSeq == 0 {
+		k.txSeq = k.nextSeq()
+	}
+}
 
 func (k *keyerSpy) GetText(_ core.Workmode, index int) (string, error) {
 	return fmt.Sprintf("keyer[%d]", index), nil
@@ -928,10 +947,18 @@ func (k *keyerSpy) GetText(_ core.Workmode, index int) (string, error) {
 
 func (k *keyerSpy) SendText(text string, _ ...any) {
 	k.sentTexts = append(k.sentTexts, text)
+	if k.txSeq == 0 {
+		k.txSeq = k.nextSeq()
+	}
 }
 
-func (k *keyerSpy) Repeat() { k.repeated = true }
-func (k *keyerSpy) Stop()   { k.stopped = true }
+func (k *keyerSpy) Repeat() {
+	k.repeated = true
+	if k.txSeq == 0 {
+		k.txSeq = k.nextSeq()
+	}
+}
+func (k *keyerSpy) Stop() { k.stopped = true }
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -946,11 +973,23 @@ func scenarioFieldDefinition(fields ...conval.ExchangeField) *conval.Definition 
 // ---- vfoSwitcherSpy ---------------------------------------------------------
 
 type vfoSwitcherSpy struct {
+	seq        *int // shared sequence counter
 	calledWith []core.VFOID
+	lastSeq    int // sequence number of last SetTXVFO call
 }
 
-func (v *vfoSwitcherSpy) reset()                       { v.calledWith = nil }
-func (v *vfoSwitcherSpy) SetCurrentVFO(vfo core.VFOID) { v.calledWith = append(v.calledWith, vfo) }
+func (v *vfoSwitcherSpy) reset() {
+	v.calledWith = nil
+	v.lastSeq = 0
+}
+
+func (v *vfoSwitcherSpy) SetTXVFO(vfo core.VFOID) {
+	v.calledWith = append(v.calledWith, vfo)
+	if v.seq != nil {
+		*v.seq++
+		v.lastSeq = *v.seq
+	}
+}
 
 // ---- Setup methods (H–N additions) -----------------------------------------
 
@@ -964,7 +1003,7 @@ func (s *Scenario) WithVFO2() *Scenario {
 
 // WithVFOSwitcher wires the vfoSwitcherSpy into the controller.
 func (s *Scenario) WithVFOSwitcher() *Scenario {
-	s.vfoSwitcher = &vfoSwitcherSpy{}
+	s.vfoSwitcher = &vfoSwitcherSpy{seq: &s.seq}
 	s.controller.SetVFOSwitcher(s.vfoSwitcher)
 	return s
 }
@@ -1163,7 +1202,23 @@ func (s *Scenario) AssertVFOSwitcherCalled(vfo core.VFOID) *Scenario {
 			break
 		}
 	}
-	assert.True(s.t, found, "expected vfoSwitcher.SetCurrentVFO(%v) to be called", vfo)
+	assert.True(s.t, found, "expected vfoSwitcher.SetTXVFO(%v) to be called", vfo)
+	return s
+}
+
+// AssertTXVFOBeforeKeyer asserts SetTXVFO(vfo) was called before any keyer TX method.
+func (s *Scenario) AssertTXVFOBeforeKeyer(vfo core.VFOID) *Scenario {
+	s.t.Helper()
+	if s.vfoSwitcher == nil {
+		s.t.Error("vfoSwitcher spy not wired (call WithVFOSwitcher() in setup)")
+		return s
+	}
+	s.AssertVFOSwitcherCalled(vfo)
+	assert.NotZero(s.t, s.vfoSwitcher.lastSeq, "SetTXVFO was not called")
+	assert.NotZero(s.t, s.keyer.txSeq, "no keyer TX method was called")
+	assert.Less(s.t, s.vfoSwitcher.lastSeq, s.keyer.txSeq,
+		"SetTXVFO must be called before keyer TX (vfoSwitch seq=%d, keyer seq=%d)",
+		s.vfoSwitcher.lastSeq, s.keyer.txSeq)
 	return s
 }
 

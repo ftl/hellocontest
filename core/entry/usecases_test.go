@@ -1305,6 +1305,45 @@ func TestJ1_VFOFrequencyChanged_SmallJump_NoClear(t *testing.T) {
 		AssertViewNotCalledWith("SetCallsign", core.VFO1, "")
 }
 
+func TestJ1_VFOFrequencyChanged_LargeJump_ClearsEventVFO(t *testing.T) {
+	// Large jump on VFO1 clears VFO1 input.
+	NewScenario(t).
+		WithClassicExchange().
+		Enter("DL1ABC").
+		VFOFrequencyChanged(core.VFO1, 14050000+1000). // large jump
+		AssertCallsignView(core.VFO1, "")               // VFO1 cleared
+}
+
+func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
+	// Large jump on VFO2 must clear VFO2 input, not VFO1.
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2()
+
+	// Enter callsign on VFO1.
+	s.controller.Enter("DL1ABC")
+	// Switch to VFO2, enter callsign.
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL2XYZ")
+	// Switch back to VFO1 (so VFO1 is focused).
+	s.controller.SetFocusedVFO(core.VFO1)
+	s.resetSpies()
+
+	// Large frequency jump on VFO2 while VFO1 is focused.
+	s.controller.VFOFrequencyChanged(core.VFO2, 14050000+1000)
+
+	// VFO2 input must be cleared.
+	s.view.assertCalledWith(s.t, "SetCallsign", core.VFO2, "")
+	// VFO1 input must NOT be cleared.
+	assert.False(t, s.view.wasCalledWith("SetCallsign", core.VFO1, ""),
+		"VFO1 callsign must not be cleared by VFO2 frequency jump")
+	// Focused VFO must still be VFO1: verify by entering text — it goes to VFO1.
+	s.resetSpies()
+	s.controller.Enter("DL9ZZZ")
+	assert.Equal(t, "DL9ZZZ", s.controller.CurrentValues().TheirCall,
+		"focused VFO must still be VFO1")
+}
+
 func TestJ1_VFOFrequencyChanged_UpdatesFrequencyView(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().

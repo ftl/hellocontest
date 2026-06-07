@@ -103,7 +103,8 @@ func newEntryView() *entryView {
 	v.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	// Row 2: "VFO:" label, frequency label, band combo, mode combo, XIT checkbox, TX indicator
-	v.vfoLabel = qtlib.NewQLabel3("VFO 1:")
+	v.vfoLabel = qtlib.NewQLabel3("VFO 1")
+	v.vfoLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo1Label"))
 
 	v.frequencyLabel = qtlib.NewQLabel3("- kHz")
 	v.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("frequencyLabel"))
@@ -156,7 +157,9 @@ func newEntryView() *entryView {
 	v.vfoSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	// Row 9: VFO2
-	v.vfo2Label = qtlib.NewQLabel3("VFO 2:")
+	v.vfo2Label = qtlib.NewQLabel3("VFO 2")
+	v.vfo2Label.SetObjectName(*qtlib.NewQAnyStringView3("vfo2Label"))
+
 	v.vfo2FrequencyLabel = qtlib.NewQLabel3("- kHz")
 	v.vfo2FrequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2FrequencyLabel"))
 	v.vfo2FrequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
@@ -571,6 +574,17 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 
 		v.connectEditSignals(editField, vfo, core.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
+	}
+}
+
+func (v *entryView) SetActiveVFO(vfo core.VFOID) {
+	switch vfo {
+	case core.VFO1:
+		v.vfoLabel.SetStyleSheet(VFOActiveStyle)
+		v.vfo2Label.SetStyleSheet(VFOInactiveStyle)
+	case core.VFO2:
+		v.vfoLabel.SetStyleSheet(VFOInactiveStyle)
+		v.vfo2Label.SetStyleSheet(VFOActiveStyle)
 	}
 }
 

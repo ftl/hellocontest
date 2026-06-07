@@ -20,12 +20,13 @@ func (n *nullView) SetXITActive(vfo core.VFOID, active bool)                  {}
 func (n *nullView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {}
 func (n *nullView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 }
-func (n *nullView) SetMyExchange(int, string)                   {}
-func (n *nullView) SetTheirExchange(core.VFOID, int, string)    {}
-func (n *nullView) SetMyExchangeFields([]core.ExchangeField)    {}
-func (n *nullView) SetTheirExchangeFields([]core.ExchangeField) {}
-func (n *nullView) SetSerialClaim(core.VFOID, core.QSONumber)   {}
-func (n *nullView) SetActiveField(core.VFOID, core.EntryField)  {}
+func (n *nullView) SetMyExchange(int, string)                      {}
+func (n *nullView) SetTheirExchange(core.VFOID, int, string)       {}
+func (n *nullView) SetMyExchangeFields([]core.ExchangeField)       {}
+func (n *nullView) SetTheirExchangeFields([]core.ExchangeField)    {}
+func (n *nullView) SetSerialClaim(core.VFOID, core.QSONumber)      {}
+func (n *nullView) SetActiveVFO(core.VFOID)                        {}
+func (n *nullView) SetActiveField(core.VFOID, core.EntryField)     {}
 func (n *nullView) SelectText(core.VFOID, core.EntryField, string) {}
 func (n *nullView) SetDuplicateMarker(core.VFOID, bool)            {}
 func (n *nullView) SetEditingMarker(core.VFOID, bool)              {}

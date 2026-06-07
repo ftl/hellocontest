@@ -18,6 +18,8 @@ const (
 	EntryNormalStyle         = "QWidget#entryWidget { background-color: palette(window); }"
 	TXIndicatorActiveStyle   = "QLabel { color: red; font-weight: bold; }"
 	TXIndicatorInactiveStyle = ""
+	VFOActiveStyle           = "QLabel { padding-left: 2px; padding-right: 2px; background-color: palette(highlight); color: palette(highlighted-text); border: 1px solid palette(highlighted-text); border-radius: 10px; }"
+	VFOInactiveStyle         = "QLabel { padding-left: 3px; padding-right: 3px; }"
 
 	QTCPhaseActiveStyle   = "font-weight: bold; color: #1a65b1;"
 	QTCPhaseInactiveStyle = "font-weight: bold;"

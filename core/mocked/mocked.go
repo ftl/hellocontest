@@ -282,6 +282,13 @@ func (m *EntryView) SetSerialClaim(vfo core.VFOID, n core.QSONumber) {
 	m.Called(vfo, n)
 }
 
+func (m *EntryView) SetActiveVFO(vfo core.VFOID) {
+	if !m.active {
+		return
+	}
+	m.Called(vfo)
+}
+
 func (m *EntryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
 	if !m.active {
 		return

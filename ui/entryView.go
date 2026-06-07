@@ -47,16 +47,15 @@ type entryView struct {
 	txIndicator    *qtlib.QLabel
 	messageLabel   *qtlib.QLabel
 
-	vfoSeparator          *qtlib.QFrame
-	vfo2Label             *qtlib.QLabel
-	vfo2FrequencyLabel    *qtlib.QLabel
-	vfo2Band              *qtlib.QComboBox
-	vfo2Mode              *qtlib.QComboBox
-	vfo2XITIndicator      *qtlib.QLabel
-	vfo2TXIndicator       *qtlib.QLabel
-	vfo2BandModeContainer *qtlib.QWidget
+	vfoSeparator       *qtlib.QFrame
+	vfo2Label          *qtlib.QLabel
+	vfo2FrequencyLabel *qtlib.QLabel
+	vfo2Band           *qtlib.QComboBox
+	vfo2Mode           *qtlib.QComboBox
+	vfo2XITIndicator   *qtlib.QLabel
+	vfo2TXIndicator    *qtlib.QLabel
+	vfo2Container      *qtlib.QWidget
 
-	vfo2TheirLabel          *qtlib.QLabel
 	vfo2Callsign            *qtlib.QLineEdit
 	vfo2TheirExchangeFields []*qtlib.QLineEdit
 	vfo2LogButton           *qtlib.QPushButton
@@ -65,12 +64,11 @@ type entryView struct {
 	serialClaimLabel     *qtlib.QLabel
 	vfo2SerialClaimLabel *qtlib.QLabel
 
-	theirLabel        *qtlib.QLabel
-	callsign          *qtlib.QLineEdit
-	bandModeContainer *qtlib.QWidget
-	band              *qtlib.QComboBox
-	mode              *qtlib.QComboBox
-	xit               *qtlib.QCheckBox
+	callsign      *qtlib.QLineEdit
+	vfo1Container *qtlib.QWidget
+	band          *qtlib.QComboBox
+	mode          *qtlib.QComboBox
+	xit           *qtlib.QCheckBox
 
 	myExchangeFields    []*qtlib.QLineEdit
 	theirExchangeFields []*qtlib.QLineEdit
@@ -103,22 +101,25 @@ func newEntryView() *entryView {
 	v.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	// Row 2: "VFO:" label, frequency label, band combo, mode combo, XIT checkbox, TX indicator
+	v.vfo1Container = qtlib.NewQWidget2()
+	vfo1ContainerLayout := qtlib.NewQHBoxLayout(v.vfo1Container)
+
 	v.vfoLabel = qtlib.NewQLabel3("VFO 1")
 	v.vfoLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo1Label"))
+	v.vfoLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+	vfo1ContainerLayout.AddWidget(v.vfoLabel.QWidget)
 
 	v.frequencyLabel = qtlib.NewQLabel3("- kHz")
 	v.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("frequencyLabel"))
 	v.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
-
-	v.bandModeContainer = qtlib.NewQWidget2()
-	bandModeLayout := qtlib.NewQHBoxLayout(v.bandModeContainer)
+	vfo1ContainerLayout.AddWidget2(v.frequencyLabel.QWidget, 2)
 
 	v.band = qtlib.NewQComboBox2()
 	v.band.SetObjectName(*qtlib.NewQAnyStringView3("bandCombo"))
-	bandModeLayout.AddWidget2(v.band.QWidget, 1)
+	vfo1ContainerLayout.AddWidget(v.band.QWidget)
 	v.mode = qtlib.NewQComboBox2()
 	v.mode.SetObjectName(*qtlib.NewQAnyStringView3("modeCombo"))
-	bandModeLayout.AddWidget2(v.mode.QWidget, 2)
+	vfo1ContainerLayout.AddWidget(v.mode.QWidget)
 
 	v.xit = qtlib.NewQCheckBox3("XIT")
 	v.xit.SetObjectName(*qtlib.NewQAnyStringView3("xit"))
@@ -128,8 +129,6 @@ func newEntryView() *entryView {
 	// Row 3: Reserved for callinfo (later step)
 
 	// Row 4: "Their:" label, callsign QLineEdit, theirExchanges container, Log button, Clear button
-	v.theirLabel = qtlib.NewQLabel3("Their:")
-
 	v.callsign = qtlib.NewQLineEdit2()
 	v.callsign.SetObjectName(*qtlib.NewQAnyStringView3("callsignEntry"))
 	v.callsign.SetPlaceholderText("Call")
@@ -157,22 +156,25 @@ func newEntryView() *entryView {
 	v.vfoSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	// Row 9: VFO2
+	v.vfo2Container = qtlib.NewQWidget2()
+	vfo2ContainerLayout := qtlib.NewQHBoxLayout(v.vfo2Container)
+
 	v.vfo2Label = qtlib.NewQLabel3("VFO 2")
 	v.vfo2Label.SetObjectName(*qtlib.NewQAnyStringView3("vfo2Label"))
+	v.vfo2Label.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+	vfo2ContainerLayout.AddWidget(v.vfo2Label.QWidget)
 
 	v.vfo2FrequencyLabel = qtlib.NewQLabel3("- kHz")
 	v.vfo2FrequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2FrequencyLabel"))
 	v.vfo2FrequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
-
-	v.vfo2BandModeContainer = qtlib.NewQWidget2()
-	vfo2BandModeLayout := qtlib.NewQHBoxLayout(v.vfo2BandModeContainer)
+	vfo2ContainerLayout.AddWidget2(v.vfo2FrequencyLabel.QWidget, 2)
 
 	v.vfo2Band = qtlib.NewQComboBox2()
 	v.vfo2Band.SetObjectName(*qtlib.NewQAnyStringView3("vfo2BandCombo"))
-	vfo2BandModeLayout.AddWidget2(v.vfo2Band.QWidget, 1)
+	vfo2ContainerLayout.AddWidget(v.vfo2Band.QWidget)
 	v.vfo2Mode = qtlib.NewQComboBox2()
 	v.vfo2Mode.SetObjectName(*qtlib.NewQAnyStringView3("vfo2ModeCombo"))
-	vfo2BandModeLayout.AddWidget2(v.vfo2Mode.QWidget, 2)
+	vfo2ContainerLayout.AddWidget(v.vfo2Mode.QWidget)
 
 	v.vfo2XITIndicator = qtlib.NewQLabel3("XIT")
 	v.vfo2XITIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2XITIndicator"))
@@ -180,7 +182,6 @@ func newEntryView() *entryView {
 	v.vfo2TXIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2TXIndicator"))
 
 	// VFO2 input row: their label + callsign field + (later) their-exchange fields + log/clear
-	v.vfo2TheirLabel = qtlib.NewQLabel3("Their:")
 	v.vfo2Callsign = qtlib.NewQLineEdit2()
 	v.vfo2Callsign.SetObjectName(*qtlib.NewQAnyStringView3("vfo2CallsignEntry"))
 	v.vfo2Callsign.SetPlaceholderText("Call")
@@ -725,14 +726,8 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 		return
 	}
 	v.vfo2Enabled = enabled
-	if v.vfo2Label != nil {
-		v.vfo2Label.SetVisible(enabled)
-	}
-	if v.vfo2FrequencyLabel != nil {
-		v.vfo2FrequencyLabel.SetVisible(enabled)
-	}
-	if v.vfo2BandModeContainer != nil {
-		v.vfo2BandModeContainer.SetVisible(enabled)
+	if v.vfo2Container != nil {
+		v.vfo2Container.SetVisible(enabled)
 	}
 	if v.vfo2XITIndicator != nil {
 		v.vfo2XITIndicator.SetVisible(enabled)
@@ -742,9 +737,6 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	}
 	if v.vfo2SerialClaimLabel != nil {
 		v.vfo2SerialClaimLabel.SetVisible(enabled)
-	}
-	if v.vfo2TheirLabel != nil {
-		v.vfo2TheirLabel.SetVisible(enabled)
 	}
 	if v.vfo2Callsign != nil {
 		v.vfo2Callsign.SetVisible(enabled)

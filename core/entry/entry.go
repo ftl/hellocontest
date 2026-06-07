@@ -36,6 +36,7 @@ type View interface {
 	SetTheirExchange(vfo core.VFOID, index int, text string)
 
 	SetSerialClaim(core.VFOID, core.QSONumber)
+	SetActiveVFO(core.VFOID)
 	SetActiveField(core.VFOID, core.EntryField)
 	SelectText(core.VFOID, core.EntryField, string)
 	SetDuplicateMarker(core.VFOID, bool)
@@ -240,6 +241,7 @@ func (c *Controller) SetView(view View) {
 
 	c.view = view
 	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
+	c.view.SetActiveVFO(c.focusedVFO)
 	c.Clear()
 	c.refreshUTC()
 }
@@ -474,6 +476,7 @@ func (c *Controller) CurrentVFOChanged(vfo core.VFOID) {
 	}
 	c.focusedVFO = vfo
 	c.refreshMyNumberInputs()
+	c.view.SetActiveVFO(c.focusedVFO)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 
@@ -494,6 +497,7 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 	}
 	c.ignoreVFOChange = false
 	c.refreshMyNumberInputs()
+	c.view.SetActiveVFO(c.focusedVFO)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 

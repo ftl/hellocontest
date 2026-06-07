@@ -317,6 +317,18 @@ func (c *Client) SingleVFO() bool {
 	return c.singleVFO
 }
 
+func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+	if c.singleVFO {
+		return
+	}
+	c.doInLoop(func() {
+		err := c.client.SetVFO(c.vfos[vfo])
+		if err != nil {
+			log.Printf("hamlib: cannot set current VFO: %v", err)
+		}
+	})
+}
+
 func (c *Client) SetTXVFO(vfo core.VFOID) {
 	if c.singleVFO {
 		return
@@ -324,7 +336,10 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 	c.doInLoop(func() {
 		hlVFO := c.vfos[vfo]
 		enableSplit := vfo == core.VFO2
-		c.client.SetSplitVFO(hlVFO, enableSplit, hlVFO)
+		err := c.client.SetSplitVFO(hlVFO, enableSplit, hlVFO)
+		if err != nil {
+			log.Printf("hamlib: cannot set TX VFO: %v", err)
+		}
 	})
 }
 

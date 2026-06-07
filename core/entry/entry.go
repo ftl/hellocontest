@@ -127,12 +127,14 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 
 // VFOSwitcher is implemented by something that can command the rig to make a given VFO the current one.
 type VFOSwitcher interface {
+	SetCurrentVFO(core.VFOID)
 	SetTXVFO(core.VFOID)
 }
 
 type nullVFOSwitcher struct{}
 
-func (n *nullVFOSwitcher) SetTXVFO(core.VFOID) {}
+func (n *nullVFOSwitcher) SetCurrentVFO(core.VFOID) {}
+func (n *nullVFOSwitcher) SetTXVFO(core.VFOID)      {}
 
 type editSnapshot struct {
 	focusedVFO    core.VFOID
@@ -150,16 +152,17 @@ type editSnapshot struct {
 }
 
 type Controller struct {
-	clock       core.Clock
-	view        View
-	logbook     Logbook
-	qsoList     QSOList
-	keyer       Keyer
-	callinfo    Callinfo
-	vfos        []core.VFO
-	vfoSwitcher VFOSwitcher
-	bandmap     Bandmap
-	esmView     ESMView
+	clock           core.Clock
+	view            View
+	logbook         Logbook
+	qsoList         QSOList
+	keyer           Keyer
+	callinfo        Callinfo
+	vfos            []core.VFO
+	vfoSwitcher     VFOSwitcher
+	ignoreVFOChange bool
+	bandmap         Bandmap
+	esmView         ESMView
 
 	asyncRunner   core.AsyncRunner
 	refreshTicker *ticker.Ticker
@@ -459,6 +462,21 @@ func (c *Controller) SetVFOSwitcher(switcher VFOSwitcher) {
 	c.vfoSwitcher = switcher
 }
 
+func (c *Controller) CurrentVFOChanged(vfo core.VFOID) {
+	if c.ignoreVFOChange {
+		return
+	}
+	if vfo == core.VFO2 && !c.vfo2Enabled {
+		return
+	}
+	if c.focusedVFO == vfo {
+		return
+	}
+	c.focusedVFO = vfo
+	c.refreshMyNumberInputs()
+	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+}
+
 // SetFocusedVFO is the single funnel for changing focused VFO.
 // If SwitchTXVFOOnFocus is enabled, it also commands the rig to switch the TX VFO.
 func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
@@ -469,9 +487,12 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 		return
 	}
 	c.focusedVFO = vfo
+	c.ignoreVFOChange = true
+	c.vfoSwitcher.SetCurrentVFO(c.focusedVFO)
 	if c.switchTXVFOOnFocus {
 		c.vfoSwitcher.SetTXVFO(c.focusedVFO)
 	}
+	c.ignoreVFOChange = false
 	c.refreshMyNumberInputs()
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
@@ -868,7 +889,9 @@ func (c *Controller) SendQuestion() {
 		return
 	}
 
+	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetTXVFO(c.focusedVFO)
+	c.ignoreVFOChange = false
 	switch {
 	case c.activeField[c.focusedVFO].IsTheirExchange():
 		c.keyer.SendQuestion("nr")

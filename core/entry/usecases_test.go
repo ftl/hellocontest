@@ -1061,7 +1061,7 @@ func TestH1_SetFocusedVFO_ReappliesActiveField_NoVFOSwitch(t *testing.T) {
 		WithClassicExchange().WithVFO2().WithVFOSwitcher()
 	s.SetFocusedVFO(core.VFO2).
 		AssertActiveField(core.VFO2, core.CallsignField)
-	assert.Empty(t, s.vfoSwitcher.calledWith,
+	assert.Empty(t, s.vfoSwitcher.calledTXWith,
 		"SetFocusedVFO must not call SetTXVFO")
 }
 
@@ -1070,7 +1070,7 @@ func TestH1_SetFocusedVFO_WithSwitchTXVFOOnFocus_SwitchesTXVFO(t *testing.T) {
 		WithClassicExchange().WithVFO2().WithVFOSwitcher().
 		WithSwitchTXVFOOnFocus().
 		SetFocusedVFO(core.VFO2).
-		AssertVFOSwitcherCalled(core.VFO2).
+		AssertVFOSwitcherTXCalled(core.VFO2).
 		AssertActiveField(core.VFO2, core.CallsignField)
 }
 
@@ -1311,7 +1311,7 @@ func TestJ1_VFOFrequencyChanged_LargeJump_ClearsEventVFO(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		VFOFrequencyChanged(core.VFO1, 14050000+1000). // large jump
-		AssertCallsignView(core.VFO1, "")               // VFO1 cleared
+		AssertCallsignView(core.VFO1, "")              // VFO1 cleared
 }
 
 func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {

@@ -50,6 +50,7 @@ type radio interface {
 	Disconnect()
 	Active() bool
 	SingleVFO() bool
+	SetCurrentVFO(core.VFOID)
 	SetTXVFO(core.VFOID)
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(core.VFOID, core.Band)
@@ -290,6 +291,13 @@ func (c *Controller) SingleVFO() bool {
 		return true
 	}
 	return c.activeRadio.SingleVFO()
+}
+
+func (c *Controller) SetCurrentVFO(vfo core.VFOID) {
+	if c.activeRadio == nil {
+		return
+	}
+	c.activeRadio.SetCurrentVFO(vfo)
 }
 
 func (c *Controller) SetTXVFO(vfo core.VFOID) {

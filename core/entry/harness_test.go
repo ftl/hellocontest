@@ -1001,18 +1001,28 @@ func scenarioFieldDefinition(fields ...conval.ExchangeField) *conval.Definition 
 // ---- vfoSwitcherSpy ---------------------------------------------------------
 
 type vfoSwitcherSpy struct {
-	seq        *int // shared sequence counter
-	calledWith []core.VFOID
-	lastSeq    int // sequence number of last SetTXVFO call
+	seq               *int // shared sequence counter
+	calledCurrentWith []core.VFOID
+	calledTXWith      []core.VFOID
+	lastSeq           int // sequence number of last SetTXVFO call
 }
 
 func (v *vfoSwitcherSpy) reset() {
-	v.calledWith = nil
+	v.calledCurrentWith = nil
+	v.calledTXWith = nil
 	v.lastSeq = 0
 }
 
+func (v *vfoSwitcherSpy) SetCurrentVFO(vfo core.VFOID) {
+	v.calledCurrentWith = append(v.calledCurrentWith, vfo)
+	if v.seq != nil {
+		*v.seq++
+		v.lastSeq = *v.seq
+	}
+}
+
 func (v *vfoSwitcherSpy) SetTXVFO(vfo core.VFOID) {
-	v.calledWith = append(v.calledWith, vfo)
+	v.calledTXWith = append(v.calledTXWith, vfo)
 	if v.seq != nil {
 		*v.seq++
 		v.lastSeq = *v.seq
@@ -1234,15 +1244,15 @@ func (s *Scenario) Activate() *Scenario {
 
 // ---- Assertion methods (H–N additions) -------------------------------------
 
-// AssertVFOSwitcherCalled asserts the vfoSwitcher was commanded with the given VFO.
-func (s *Scenario) AssertVFOSwitcherCalled(vfo core.VFOID) *Scenario {
+// AssertVFOSwitcherTXCalled asserts the vfoSwitcher was commanded with the given VFO.
+func (s *Scenario) AssertVFOSwitcherTXCalled(vfo core.VFOID) *Scenario {
 	s.t.Helper()
 	if s.vfoSwitcher == nil {
 		s.t.Error("vfoSwitcher spy not wired (call WithVFOSwitcher() in setup)")
 		return s
 	}
 	found := false
-	for _, v := range s.vfoSwitcher.calledWith {
+	for _, v := range s.vfoSwitcher.calledTXWith {
 		if v == vfo {
 			found = true
 			break
@@ -1259,7 +1269,7 @@ func (s *Scenario) AssertTXVFOBeforeKeyer(vfo core.VFOID) *Scenario {
 		s.t.Error("vfoSwitcher spy not wired (call WithVFOSwitcher() in setup)")
 		return s
 	}
-	s.AssertVFOSwitcherCalled(vfo)
+	s.AssertVFOSwitcherTXCalled(vfo)
 	assert.NotZero(s.t, s.vfoSwitcher.lastSeq, "SetTXVFO was not called")
 	assert.NotZero(s.t, s.keyer.txSeq, "no keyer TX method was called")
 	assert.Less(s.t, s.vfoSwitcher.lastSeq, s.keyer.txSeq,

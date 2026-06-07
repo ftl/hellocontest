@@ -75,6 +75,10 @@ func (c *Client) SingleVFO() bool {
 	return c.singleVFO
 }
 
+func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+	// ignore: there is no sense of a "focused" VFO in TCI
+}
+
 func (c *Client) SetTXVFO(vfo core.VFOID) {
 	if c.singleVFO {
 		return
@@ -82,16 +86,32 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 	c.client.SetSplitEnable(c.trx.trx, vfo == core.VFO2)
 }
 
-func (c *Client) MuteAudio(vfo core.VFOID) {
-	log.Printf("tci: MuteAudio not implemented")
+func (c *Client) MuteAudio(_ core.VFOID) {
+	// TCI can only mute audio completely
+	err := c.client.SetMute(true)
+	if err != nil {
+		log.Printf("tci: cannot mute: %v", err)
+	}
 }
 
-func (c *Client) UnmuteAudio(vfo core.VFOID) {
-	log.Printf("tci: UnmuteAudio not implemented")
+func (c *Client) UnmuteAudio(_ core.VFOID) {
+	// TCI can only mute audio completely
+	err := c.client.SetMute(false)
+	if err != nil {
+		log.Printf("tci: cannot unmute: %v", err)
+	}
 }
 
-func (c *Client) ToggleAudio(vfo core.VFOID) {
-	log.Printf("tci: ToggleAudio not implemented")
+func (c *Client) ToggleAudio(_ core.VFOID) {
+	// TCI can only mute audio completely
+	muted, err := c.client.Mute()
+	if err != nil {
+		log.Printf("tci: cannot read mute state: %v", err)
+	}
+	err = c.client.SetMute(!muted)
+	if err != nil {
+		log.Printf("tci: cannot set mute state: %v", err)
+	}
 }
 
 func (c *Client) Notify(listener any) {

@@ -56,7 +56,9 @@ func (c *Controller) NextESMStep() {
 		return
 	}
 	c.updateESM()
+	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetTXVFO(c.focusedVFO)
+	c.ignoreVFOChange = false
 	c.keyer.SendText(c.esmMessage[c.focusedVFO])
 	switch {
 	case c.esmState[c.focusedVFO] == core.ESMCallsignValid && c.workmode == core.Run:

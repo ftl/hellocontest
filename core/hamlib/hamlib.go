@@ -336,7 +336,7 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 	c.doInLoop(func() {
 		hlVFO := c.vfos[vfo]
 		enableSplit := vfo == core.VFO2
-		err := c.client.SetSplitVFO(hlVFO, enableSplit, hlVFO)
+		err := c.client.SetSplitVFO(hlVFO, enableSplit, hl.CurrVFO)
 		if err != nil {
 			log.Printf("hamlib: cannot set TX VFO: %v", err)
 		}

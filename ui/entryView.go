@@ -47,6 +47,7 @@ type entryView struct {
 	txIndicator    *qtlib.QLabel
 	messageLabel   *qtlib.QLabel
 
+	vfoSeparator          *qtlib.QFrame
 	vfo2Label             *qtlib.QLabel
 	vfo2FrequencyLabel    *qtlib.QLabel
 	vfo2Band              *qtlib.QComboBox
@@ -149,10 +150,12 @@ func newEntryView() *entryView {
 	// Row 7: Message label (span all 6 columns)
 	v.messageLabel = qtlib.NewQLabel3("")
 
-	// VFO2 message label
-	v.vfo2MessageLabel = qtlib.NewQLabel3("")
+	// Row 8: Horizontal separator (span all 6 columns)
+	v.vfoSeparator = qtlib.NewQFrame2()
+	v.vfoSeparator.SetFrameShape(qtlib.QFrame__HLine)
+	v.vfoSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
-	// Row 8: VFO2
+	// Row 9: VFO2
 	v.vfo2Label = qtlib.NewQLabel3("VFO 2:")
 	v.vfo2FrequencyLabel = qtlib.NewQLabel3("- kHz")
 	v.vfo2FrequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2FrequencyLabel"))
@@ -185,6 +188,9 @@ func newEntryView() *entryView {
 	v.vfo2LogButton.SetFocusPolicy(qtlib.NoFocus)
 	v.vfo2ClearButton = qtlib.NewQPushButton3("Clear")
 	v.vfo2ClearButton.SetFocusPolicy(qtlib.NoFocus)
+
+	// VFO2 message label
+	v.vfo2MessageLabel = qtlib.NewQLabel3("")
 
 	// Initialize combos
 	SetupBandCombo(v.band)

@@ -21,7 +21,7 @@ func makeFilterableCombo() *qtlib.QComboBox {
 	return combo
 }
 
-func SetupBandCombo(combo *qtlib.QComboBox) {
+func setupBandCombo(combo *qtlib.QComboBox) {
 	combo.Clear()
 	for _, band := range core.Bands {
 		combo.AddItem(band.String())
@@ -29,7 +29,7 @@ func SetupBandCombo(combo *qtlib.QComboBox) {
 	combo.SetCurrentIndex(0)
 }
 
-func SetupModeCombo(combo *qtlib.QComboBox) {
+func setupModeCombo(combo *qtlib.QComboBox) {
 	combo.Clear()
 	for _, mode := range core.Modes {
 		combo.AddItem(mode.String())

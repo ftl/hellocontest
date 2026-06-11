@@ -80,85 +80,44 @@ func (a *centralArea) SetExchangeFields(myExchangeFields, theirExchangeFields []
 }
 
 func (a *centralArea) addWidgetsToLayout() {
-	lastColumn := 3 + len(a.entry.theirExchangeFields)
-
-	// row 0: my data: call, exchange
 	a.entryLayout.AddWidget2(a.entry.myCallLabel.QWidget, 0, 0)
 	for i := range a.entry.myExchangeFields {
 		a.entryLayout.AddWidget2(a.entry.myExchangeFields[i].QWidget, 0, i+1)
 	}
 
-	// row 1: horizontal separator
-	a.entryLayout.AddWidget3(a.entry.topSeparator.QWidget, 1, 0, 1, -1)
-
-	// row 2: Frequency, Band, Mode, [Serial Claim], XIT, TRX
-	a.entryLayout.AddWidget3(a.entry.vfo1Container, 2, 0, 1, 2)
-	if a.entry.serialClaimLabel != nil {
-		a.entryLayout.AddWidget2(a.entry.serialClaimLabel.QWidget, 2, 2)
+	a.addVFOWidgetsToLayout(core.VFO1, 1)
+	if a.entry.vfo2Enabled {
+		a.addVFOWidgetsToLayout(core.VFO2, 8)
 	}
-	a.entryLayout.AddWidget2(a.entry.xit.QWidget, 2, lastColumn-1)
-	a.entryLayout.AddWidget2(a.entry.txIndicator.QWidget, 2, lastColumn)
+}
 
-	// row 3: callinfo: best match, exchange, value, qtcs
-	a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO1].callsignLabel.QWidget, 3, 0)
-	for i := range a.callinfo.vfo[core.VFO1].predictedExchangeLabels {
-		a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO1].predictedExchangeLabels[i].QWidget, 3, i+1)
+func (a *centralArea) addVFOWidgetsToLayout(vfo core.VFOID, firstRow int) {
+	entry := a.entry.vfo[vfo]
+	callinfo := a.callinfo.vfo[vfo]
+	lastColumn := 3 + len(entry.theirExchangeFields)
+
+	a.entryLayout.AddWidget3(entry.topSeparator.QWidget, firstRow+0, 0, 1, -1)
+	a.entryLayout.AddWidget3(entry.vfoContainer, firstRow+1, 0, 1, 2)
+	if entry.serialClaimLabel != nil {
+		a.entryLayout.AddWidget2(entry.serialClaimLabel.QWidget, 2, 2)
 	}
-	a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO1].valueLabel.QWidget, 3, lastColumn-1)
-	a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO1].qtcStatusLabel.QWidget, 3, lastColumn)
-
-	// row 4: their data: call, exchange, log-button, clear-button
-	a.entryLayout.AddWidget2(a.entry.callsign.QWidget, 4, 0)
-	for i := range a.entry.theirExchangeFields {
-		a.entryLayout.AddWidget2(a.entry.theirExchangeFields[i].QWidget, 4, i+1)
+	a.entryLayout.AddWidget2(entry.xit.QWidget, firstRow+1, lastColumn-1)
+	a.entryLayout.AddWidget2(entry.txIndicator.QWidget, firstRow+1, lastColumn)
+	a.entryLayout.AddWidget2(callinfo.callsignLabel.QWidget, firstRow+2, 0)
+	for i := range callinfo.predictedExchangeLabels {
+		a.entryLayout.AddWidget2(callinfo.predictedExchangeLabels[i].QWidget, firstRow+2, i+1)
 	}
-	a.entryLayout.AddWidget2(a.entry.logButton.QWidget, 4, lastColumn-1)
-	a.entryLayout.AddWidget2(a.entry.clearButton.QWidget, 4, lastColumn)
-
-	// row 5: supercheck
-	a.entryLayout.AddWidget3(a.callinfo.vfo[core.VFO1].supercheckLabel.QWidget, 5, 0, 1, -1)
-
-	// row 6: dxcc, personal info
-	a.entryLayout.AddWidget3(a.callinfo.vfo[core.VFO1].infoContainer, 6, 0, 1, -1)
-
-	// row 7: message
-	a.entryLayout.AddWidget3(a.entry.messageLabel.QWidget, 7, 0, 1, -1)
-
-	// row 8: horizontal separator
-	a.entryLayout.AddWidget3(a.entry.vfoSeparator.QWidget, 8, 0, 1, -1)
-
-	// row 9: VFO2 frequency / band / mode / [serial claim] / XIT / TX
-	a.entryLayout.AddWidget3(a.entry.vfo2Container, 9, 0, 1, 2)
-	if a.entry.vfo2SerialClaimLabel != nil {
-		a.entryLayout.AddWidget2(a.entry.vfo2SerialClaimLabel.QWidget, 9, 2)
+	a.entryLayout.AddWidget2(callinfo.valueLabel.QWidget, firstRow+2, lastColumn-1)
+	a.entryLayout.AddWidget2(callinfo.qtcStatusLabel.QWidget, firstRow+2, lastColumn)
+	a.entryLayout.AddWidget2(entry.callsign.QWidget, firstRow+3, 0)
+	for i := range entry.theirExchangeFields {
+		a.entryLayout.AddWidget2(entry.theirExchangeFields[i].QWidget, firstRow+3, i+1)
 	}
-	a.entryLayout.AddWidget2(a.entry.vfo2XITIndicator.QWidget, 9, lastColumn-1)
-	a.entryLayout.AddWidget2(a.entry.vfo2TXIndicator.QWidget, 9, lastColumn)
-
-	// row 10: VFO2 callinfo: best match, predicted exchange, value, qtcs
-	a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO2].callsignLabel.QWidget, 10, 0)
-	for i := range a.callinfo.vfo[core.VFO2].predictedExchangeLabels {
-		a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO2].predictedExchangeLabels[i].QWidget, 10, i+1)
-	}
-	a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO2].valueLabel.QWidget, 10, lastColumn-1)
-	a.entryLayout.AddWidget2(a.callinfo.vfo[core.VFO2].qtcStatusLabel.QWidget, 10, lastColumn)
-
-	// row 11: VFO2 their data: call, exchange, log, clear
-	a.entryLayout.AddWidget2(a.entry.vfo2Callsign.QWidget, 11, 0)
-	for i := range a.entry.vfo2TheirExchangeFields {
-		a.entryLayout.AddWidget2(a.entry.vfo2TheirExchangeFields[i].QWidget, 11, i+1)
-	}
-	a.entryLayout.AddWidget2(a.entry.vfo2LogButton.QWidget, 11, lastColumn-1)
-	a.entryLayout.AddWidget2(a.entry.vfo2ClearButton.QWidget, 11, lastColumn)
-
-	// row 12: VFO2 supercheck
-	a.entryLayout.AddWidget3(a.callinfo.vfo[core.VFO2].supercheckLabel.QWidget, 12, 0, 1, -1)
-
-	// row 13: VFO2 dxcc, personal info
-	a.entryLayout.AddWidget3(a.callinfo.vfo[core.VFO2].infoContainer, 13, 0, 1, -1)
-
-	// row 14: VFO2 message
-	a.entryLayout.AddWidget3(a.entry.vfo2MessageLabel.QWidget, 14, 0, 1, -1)
+	a.entryLayout.AddWidget2(entry.logButton.QWidget, firstRow+3, lastColumn-1)
+	a.entryLayout.AddWidget2(entry.clearButton.QWidget, firstRow+3, lastColumn)
+	a.entryLayout.AddWidget3(callinfo.supercheckLabel.QWidget, firstRow+4, 0, 1, -1)
+	a.entryLayout.AddWidget3(callinfo.infoContainer, firstRow+5, 0, 1, -1)
+	a.entryLayout.AddWidget3(entry.messageLabel.QWidget, firstRow+5, 0, 1, -1)
 }
 
 func (a *centralArea) removeWidgetsFromLayout() {
@@ -168,80 +127,38 @@ func (a *centralArea) removeWidgetsFromLayout() {
 	for i := range a.entry.myExchangeFields {
 		a.entryLayout.RemoveWidget(a.entry.myExchangeFields[i].QWidget)
 	}
-
-	// row 1: horizontal separator
-	a.entryLayout.RemoveWidget(a.entry.topSeparator.QWidget)
-
-	// row 2: Frequency, Band, Mode, [Serial Claim], XIT, TRX
-	a.entryLayout.RemoveWidget(a.entry.vfoLabel.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.frequencyLabel.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.vfo1Container)
-	if a.entry.serialClaimLabel != nil {
-		a.entryLayout.RemoveWidget(a.entry.serialClaimLabel.QWidget)
+	a.removeVFOWidgetsFromLayout(core.VFO1)
+	if a.entry.vfo2Enabled {
+		a.removeVFOWidgetsFromLayout(core.VFO2)
 	}
-	a.entryLayout.RemoveWidget(a.entry.xit.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.txIndicator.QWidget)
+}
 
-	// row 3: callinfo: best match, exchange, value, qtcs
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO1].callsignLabel.QWidget)
-	for i := range a.callinfo.vfo[core.VFO1].predictedExchangeLabels {
-		a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO1].predictedExchangeLabels[i].QWidget)
+func (a *centralArea) removeVFOWidgetsFromLayout(vfo core.VFOID) {
+	entry := a.entry.vfo[vfo]
+	callinfo := a.callinfo.vfo[vfo]
+
+	a.entryLayout.RemoveWidget(entry.topSeparator.QWidget)
+	a.entryLayout.RemoveWidget(entry.vfoLabel.QWidget)
+	a.entryLayout.RemoveWidget(entry.frequencyLabel.QWidget)
+	a.entryLayout.RemoveWidget(entry.vfoContainer)
+	if entry.serialClaimLabel != nil {
+		a.entryLayout.RemoveWidget(entry.serialClaimLabel.QWidget)
 	}
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO1].valueLabel.QWidget)
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO1].qtcStatusLabel.QWidget)
-
-	// row 4: their data: call, exchange, log-button, clear-button
-	a.entryLayout.RemoveWidget(a.entry.callsign.QWidget)
-	for i := range a.entry.theirExchangeFields {
-		a.entryLayout.RemoveWidget(a.entry.theirExchangeFields[i].QWidget)
+	a.entryLayout.RemoveWidget(entry.xit.QWidget)
+	a.entryLayout.RemoveWidget(entry.txIndicator.QWidget)
+	a.entryLayout.RemoveWidget(callinfo.callsignLabel.QWidget)
+	for i := range callinfo.predictedExchangeLabels {
+		a.entryLayout.RemoveWidget(callinfo.predictedExchangeLabels[i].QWidget)
 	}
-	a.entryLayout.RemoveWidget(a.entry.logButton.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.clearButton.QWidget)
-
-	// row 5: supercheck
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO1].supercheckLabel.QWidget)
-
-	// row 6: dxcc, personal info
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO1].infoContainer)
-
-	// row 7: message
-	a.entryLayout.RemoveWidget(a.entry.messageLabel.QWidget)
-
-	// row 8: horizontal separator
-	a.entryLayout.RemoveWidget(a.entry.vfoSeparator.QWidget)
-
-	// row 9: VFO2
-	a.entryLayout.RemoveWidget(a.entry.vfo2Label.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.vfo2FrequencyLabel.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.vfo2Container)
-	if a.entry.vfo2SerialClaimLabel != nil {
-		a.entryLayout.RemoveWidget(a.entry.vfo2SerialClaimLabel.QWidget)
+	a.entryLayout.RemoveWidget(callinfo.valueLabel.QWidget)
+	a.entryLayout.RemoveWidget(callinfo.qtcStatusLabel.QWidget)
+	a.entryLayout.RemoveWidget(entry.callsign.QWidget)
+	for i := range entry.theirExchangeFields {
+		a.entryLayout.RemoveWidget(entry.theirExchangeFields[i].QWidget)
 	}
-	a.entryLayout.RemoveWidget(a.entry.vfo2XITIndicator.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.vfo2TXIndicator.QWidget)
-
-	// row 10: VFO2 callinfo
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO2].callsignLabel.QWidget)
-	for i := range a.callinfo.vfo[core.VFO2].predictedExchangeLabels {
-		a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO2].predictedExchangeLabels[i].QWidget)
-	}
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO2].valueLabel.QWidget)
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO2].qtcStatusLabel.QWidget)
-
-	// row 11: VFO2 their data
-	a.entryLayout.RemoveWidget(a.entry.vfo2Callsign.QWidget)
-	for i := range a.entry.vfo2TheirExchangeFields {
-		a.entryLayout.RemoveWidget(a.entry.vfo2TheirExchangeFields[i].QWidget)
-	}
-	a.entryLayout.RemoveWidget(a.entry.vfo2LogButton.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.vfo2ClearButton.QWidget)
-
-	// row 12: VFO2 supercheck
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO2].supercheckLabel.QWidget)
-
-	// row 13: VFO2 dxcc, personal info
-	a.entryLayout.RemoveWidget(a.callinfo.vfo[core.VFO2].infoContainer)
-
-	// row 14: VFO2 message
-	a.entryLayout.RemoveWidget(a.entry.vfo2MessageLabel.QWidget)
+	a.entryLayout.RemoveWidget(entry.logButton.QWidget)
+	a.entryLayout.RemoveWidget(entry.clearButton.QWidget)
+	a.entryLayout.RemoveWidget(callinfo.supercheckLabel.QWidget)
+	a.entryLayout.RemoveWidget(callinfo.infoContainer)
+	a.entryLayout.RemoveWidget(entry.messageLabel.QWidget)
 }

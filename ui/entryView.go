@@ -35,56 +35,44 @@ type EntryController interface {
 	ClearVFO(core.VFOID)
 }
 
+type entryVFOWidgets struct {
+	topSeparator *qtlib.QFrame
+
+	vfoContainer   *qtlib.QWidget
+	vfoLabel       *qtlib.QLabel
+	frequencyLabel *qtlib.QLabel
+	band           *qtlib.QComboBox
+	mode           *qtlib.QComboBox
+
+	serialClaimLabel *qtlib.QLabel
+	xit              *qtlib.QCheckBox
+	txIndicator      *qtlib.QLabel
+
+	callsign            *qtlib.QLineEdit
+	theirExchangeFields []*qtlib.QLineEdit
+	logButton           *qtlib.QPushButton
+	clearButton         *qtlib.QPushButton
+
+	messageLabel *qtlib.QLabel
+}
+
 type entryView struct {
 	root *qtlib.QWidget // root widget containing the grid layout
 
-	utcLabel    *qtlib.QLabel
-	myCallLabel *qtlib.QLabel
+	utcLabel *qtlib.QLabel // TODO: remove
 
-	vfoLabel       *qtlib.QLabel
-	topSeparator   *qtlib.QFrame
-	frequencyLabel *qtlib.QLabel
-	txIndicator    *qtlib.QLabel
-	messageLabel   *qtlib.QLabel
+	myCallLabel      *qtlib.QLabel
+	myExchangeFields []*qtlib.QLineEdit
 
-	vfoSeparator       *qtlib.QFrame
-	vfo2Label          *qtlib.QLabel
-	vfo2FrequencyLabel *qtlib.QLabel
-	vfo2Band           *qtlib.QComboBox
-	vfo2Mode           *qtlib.QComboBox
-	vfo2XITIndicator   *qtlib.QLabel
-	vfo2TXIndicator    *qtlib.QLabel
-	vfo2Container      *qtlib.QWidget
+	vfo [core.VFOCount]entryVFOWidgets
 
-	vfo2Callsign            *qtlib.QLineEdit
-	vfo2TheirExchangeFields []*qtlib.QLineEdit
-	vfo2LogButton           *qtlib.QPushButton
-	vfo2ClearButton         *qtlib.QPushButton
-
-	serialClaimLabel     *qtlib.QLabel
-	vfo2SerialClaimLabel *qtlib.QLabel
-
-	callsign      *qtlib.QLineEdit
-	vfo1Container *qtlib.QWidget
-	band          *qtlib.QComboBox
-	mode          *qtlib.QComboBox
-	xit           *qtlib.QCheckBox
-
-	myExchangeFields    []*qtlib.QLineEdit
-	theirExchangeFields []*qtlib.QLineEdit
-
-	logButton   *qtlib.QPushButton
-	clearButton *qtlib.QPushButton
-
-	vfo2MessageLabel *qtlib.QLabel
-
-	theirEntryStyle string
-	vfo2Enabled     bool
+	vfo2Enabled bool
 
 	ignoreInput bool
 	isDuplicate bool
 	isEditing   bool
-	controller  EntryController
+
+	controller EntryController
 }
 
 func newEntryView() *entryView {
@@ -95,149 +83,103 @@ func newEntryView() *entryView {
 
 	v.myCallLabel = qtlib.NewQLabel3("DL0ABC")
 
-	// Row 1: Horizontal separator (span all 6 columns)
-	v.topSeparator = qtlib.NewQFrame2()
-	v.topSeparator.SetFrameShape(qtlib.QFrame__HLine)
-	v.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
-
-	// Row 2: "VFO:" label, frequency label, band combo, mode combo, XIT checkbox, TX indicator
-	v.vfo1Container = qtlib.NewQWidget2()
-	vfo1ContainerLayout := qtlib.NewQHBoxLayout(v.vfo1Container)
-
-	v.vfoLabel = qtlib.NewQLabel3("VFO 1")
-	v.vfoLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo1Label"))
-	v.vfoLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-	vfo1ContainerLayout.AddWidget(v.vfoLabel.QWidget)
-
-	v.frequencyLabel = qtlib.NewQLabel3("- kHz")
-	v.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("frequencyLabel"))
-	v.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
-	vfo1ContainerLayout.AddWidget2(v.frequencyLabel.QWidget, 2)
-
-	v.band = qtlib.NewQComboBox2()
-	v.band.SetObjectName(*qtlib.NewQAnyStringView3("bandCombo"))
-	vfo1ContainerLayout.AddWidget(v.band.QWidget)
-	v.mode = qtlib.NewQComboBox2()
-	v.mode.SetObjectName(*qtlib.NewQAnyStringView3("modeCombo"))
-	vfo1ContainerLayout.AddWidget(v.mode.QWidget)
-
-	v.xit = qtlib.NewQCheckBox3("XIT")
-	v.xit.SetObjectName(*qtlib.NewQAnyStringView3("xit"))
-
-	v.txIndicator = qtlib.NewQLabel3("")
-
-	// Row 3: Reserved for callinfo (later step)
-
-	// Row 4: "Their:" label, callsign QLineEdit, theirExchanges container, Log button, Clear button
-	v.callsign = qtlib.NewQLineEdit2()
-	v.callsign.SetObjectName(*qtlib.NewQAnyStringView3("callsignEntry"))
-	v.callsign.SetPlaceholderText("Call")
-
-	fi := qtlib.NewQFontInfo(v.callsign.Font())
-	if pt := fi.PointSizeF(); pt > 0 {
-		v.theirEntryStyle = fmt.Sprintf("QLineEdit { font-size: %.1fpt; }", pt*2)
-	} else if px := fi.PixelSize(); px > 0 {
-		v.theirEntryStyle = fmt.Sprintf("QLineEdit { font-size: %dpx; }", px*2)
-	}
-	v.callsign.SetStyleSheet(v.theirEntryStyle)
-
-	v.logButton = qtlib.NewQPushButton3("Log")
-	v.logButton.SetFocusPolicy(qtlib.NoFocus)
-
-	v.clearButton = qtlib.NewQPushButton3("Clear")
-	v.clearButton.SetFocusPolicy(qtlib.NoFocus)
-
-	// Row 7: Message label (span all 6 columns)
-	v.messageLabel = qtlib.NewQLabel3("")
-
-	// Row 8: Horizontal separator (span all 6 columns)
-	v.vfoSeparator = qtlib.NewQFrame2()
-	v.vfoSeparator.SetFrameShape(qtlib.QFrame__HLine)
-	v.vfoSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
-
-	// Row 9: VFO2
-	v.vfo2Container = qtlib.NewQWidget2()
-	vfo2ContainerLayout := qtlib.NewQHBoxLayout(v.vfo2Container)
-
-	v.vfo2Label = qtlib.NewQLabel3("VFO 2")
-	v.vfo2Label.SetObjectName(*qtlib.NewQAnyStringView3("vfo2Label"))
-	v.vfo2Label.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-	vfo2ContainerLayout.AddWidget(v.vfo2Label.QWidget)
-
-	v.vfo2FrequencyLabel = qtlib.NewQLabel3("- kHz")
-	v.vfo2FrequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2FrequencyLabel"))
-	v.vfo2FrequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
-	vfo2ContainerLayout.AddWidget2(v.vfo2FrequencyLabel.QWidget, 2)
-
-	v.vfo2Band = qtlib.NewQComboBox2()
-	v.vfo2Band.SetObjectName(*qtlib.NewQAnyStringView3("vfo2BandCombo"))
-	vfo2ContainerLayout.AddWidget(v.vfo2Band.QWidget)
-	v.vfo2Mode = qtlib.NewQComboBox2()
-	v.vfo2Mode.SetObjectName(*qtlib.NewQAnyStringView3("vfo2ModeCombo"))
-	vfo2ContainerLayout.AddWidget(v.vfo2Mode.QWidget)
-
-	v.vfo2XITIndicator = qtlib.NewQLabel3("XIT")
-	v.vfo2XITIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2XITIndicator"))
-	v.vfo2TXIndicator = qtlib.NewQLabel3("RX")
-	v.vfo2TXIndicator.SetObjectName(*qtlib.NewQAnyStringView3("vfo2TXIndicator"))
-
-	// VFO2 input row: their label + callsign field + (later) their-exchange fields + log/clear
-	v.vfo2Callsign = qtlib.NewQLineEdit2()
-	v.vfo2Callsign.SetObjectName(*qtlib.NewQAnyStringView3("vfo2CallsignEntry"))
-	v.vfo2Callsign.SetPlaceholderText("Call")
-	if v.theirEntryStyle != "" {
-		v.vfo2Callsign.SetStyleSheet(v.theirEntryStyle)
-	}
-	v.vfo2LogButton = qtlib.NewQPushButton3("Log")
-	v.vfo2LogButton.SetFocusPolicy(qtlib.NoFocus)
-	v.vfo2ClearButton = qtlib.NewQPushButton3("Clear")
-	v.vfo2ClearButton.SetFocusPolicy(qtlib.NoFocus)
-
-	// VFO2 message label
-	v.vfo2MessageLabel = qtlib.NewQLabel3("")
-
-	// Initialize combos
-	SetupBandCombo(v.band)
-	SetupModeCombo(v.mode)
-	SetupBandCombo(v.vfo2Band)
-	SetupModeCombo(v.vfo2Mode)
+	v.vfo[core.VFO1] = newEntryVFOWidgets("vfo1", "VFO 1")
+	v.vfo[core.VFO2] = newEntryVFOWidgets("vfo2", "VFO 2")
 
 	// Connect signals for static widgets
-	v.connectEditSignals(v.callsign, core.VFO1, core.CallsignField, true)
-	v.connectEditSignals(v.vfo2Callsign, core.VFO2, core.CallsignField, true)
-	v.connectComboSignals(v.band, core.VFO1, core.BandField)
-	v.connectComboSignals(v.mode, core.VFO1, core.ModeField)
-	v.connectComboSignals(v.vfo2Band, core.VFO2, core.BandField)
-	v.connectComboSignals(v.vfo2Mode, core.VFO2, core.ModeField)
+	v.connectEditSignals(v.vfo[core.VFO1].callsign, core.VFO1, core.CallsignField, true)
+	v.connectEditSignals(v.vfo[core.VFO2].callsign, core.VFO2, core.CallsignField, true)
+	v.connectComboSignals(v.vfo[core.VFO1].band, core.VFO1, core.BandField)
+	v.connectComboSignals(v.vfo[core.VFO2].band, core.VFO2, core.BandField)
+	v.connectComboSignals(v.vfo[core.VFO1].mode, core.VFO1, core.ModeField)
+	v.connectComboSignals(v.vfo[core.VFO2].mode, core.VFO2, core.ModeField)
 
 	// Connect button/checkbox signals
-	v.logButton.OnClicked(func() {
+	v.vfo[core.VFO1].logButton.OnClicked(func() {
 		if v.controller != nil {
 			v.controller.LogVFO(core.VFO1)
 		}
 	})
-	v.clearButton.OnClicked(func() {
-		if v.controller != nil {
-			v.controller.ClearVFO(core.VFO1)
-		}
-	})
-	v.vfo2LogButton.OnClicked(func() {
+	v.vfo[core.VFO2].logButton.OnClicked(func() {
 		if v.controller != nil {
 			v.controller.LogVFO(core.VFO2)
 		}
 	})
-	v.vfo2ClearButton.OnClicked(func() {
+	v.vfo[core.VFO1].clearButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.ClearVFO(core.VFO1)
+		}
+	})
+	v.vfo[core.VFO2].clearButton.OnClicked(func() {
 		if v.controller != nil {
 			v.controller.ClearVFO(core.VFO2)
 		}
 	})
-	v.xit.OnStateChanged(func(state int) {
+	v.vfo[core.VFO1].xit.OnStateChanged(func(state int) {
 		if v.controller != nil {
+			v.controller.SetXITActive(state != 0)
+		}
+	})
+	v.vfo[core.VFO2].xit.OnStateChanged(func(state int) {
+		if v.controller != nil {
+			// TODO: handle different VFOs
 			v.controller.SetXITActive(state != 0)
 		}
 	})
 
 	return v
+}
+
+func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
+	w := entryVFOWidgets{}
+
+	w.topSeparator = qtlib.NewQFrame2()
+	w.topSeparator.SetFrameShape(qtlib.QFrame__HLine)
+	w.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
+
+	w.vfoContainer = qtlib.NewQWidget2()
+	vfoContainerLayout := qtlib.NewQHBoxLayout(w.vfoContainer)
+
+	w.vfoLabel = qtlib.NewQLabel3(vfoName)
+	w.vfoLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "Label"))
+	w.vfoLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+	vfoContainerLayout.AddWidget(w.vfoLabel.QWidget)
+
+	w.frequencyLabel = qtlib.NewQLabel3("- kHz")
+	w.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "FrequencyLabel"))
+	w.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
+	vfoContainerLayout.AddWidget2(w.frequencyLabel.QWidget, 2)
+
+	w.band = qtlib.NewQComboBox2()
+	w.band.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "BandCombo"))
+	setupBandCombo(w.band)
+	vfoContainerLayout.AddWidget(w.band.QWidget)
+
+	w.mode = qtlib.NewQComboBox2()
+	w.mode.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "ModeCombo"))
+	setupModeCombo(w.mode)
+	vfoContainerLayout.AddWidget(w.mode.QWidget)
+
+	w.xit = qtlib.NewQCheckBox3("XIT")
+	w.xit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "XIT"))
+
+	w.txIndicator = qtlib.NewQLabel3("")
+	w.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "TX"))
+
+	w.callsign = qtlib.NewQLineEdit2()
+	w.callsign.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "CallsignEntry"))
+	w.callsign.SetPlaceholderText("Call")
+	w.callsign.SetStyleSheet(EntryFieldStyle)
+
+	w.logButton = qtlib.NewQPushButton3("Log")
+	w.logButton.SetFocusPolicy(qtlib.NoFocus)
+
+	w.clearButton = qtlib.NewQPushButton3("Clear")
+	w.clearButton.SetFocusPolicy(qtlib.NoFocus)
+
+	w.messageLabel = qtlib.NewQLabel3("")
+
+	return w
 }
 
 // setRootWidgets sets the widget that is used to show the duplicate and editing marks
@@ -352,25 +294,15 @@ func (v *entryView) SetMyCall(text string) {
 }
 
 func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
-	switch vfo {
-	case core.VFO1:
-		v.frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
-	case core.VFO2:
-		v.vfo2FrequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
-	}
+	v.vfo[vfo].frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
 }
 
 func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber) {
-	var label *qtlib.QLabel
-	switch vfo {
-	case core.VFO1:
-		label = v.serialClaimLabel
-	case core.VFO2:
-		label = v.vfo2SerialClaimLabel
-	}
+	label := v.vfo[vfo].serialClaimLabel
 	if label == nil {
 		return
 	}
+
 	if serial == 0 {
 		label.SetText("")
 	} else {
@@ -381,29 +313,22 @@ func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber) {
 func (v *entryView) SetCallsign(vfo core.VFOID, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
-	switch vfo {
-	case core.VFO1:
-		v.callsign.SetText(text)
-	case core.VFO2:
-		if v.vfo2Callsign != nil {
-			v.vfo2Callsign.SetText(text)
-		}
-	}
-}
-
-func (v *entryView) SetBand(vfo core.VFOID, text string) {
-	var combo *qtlib.QComboBox
-	switch vfo {
-	case core.VFO1:
-		combo = v.band
-	case core.VFO2:
-		combo = v.vfo2Band
-	default:
+	widget := v.vfo[vfo].callsign
+	if widget == nil {
 		return
 	}
 
+	widget.SetText(text)
+}
+
+func (v *entryView) SetBand(vfo core.VFOID, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
+	combo := v.vfo[vfo].band
+	if combo == nil {
+		return
+	}
+
 	idx := combo.FindText(text)
 	if idx >= 0 {
 		combo.SetCurrentIndex(idx)
@@ -411,18 +336,13 @@ func (v *entryView) SetBand(vfo core.VFOID, text string) {
 }
 
 func (v *entryView) SetMode(vfo core.VFOID, text string) {
-	var combo *qtlib.QComboBox
-	switch vfo {
-	case core.VFO1:
-		combo = v.mode
-	case core.VFO2:
-		combo = v.vfo2Mode
-	default:
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	combo := v.vfo[vfo].mode
+	if combo == nil {
 		return
 	}
 
-	v.ignoreInput = true
-	defer func() { v.ignoreInput = false }()
 	idx := combo.FindText(text)
 	if idx >= 0 {
 		combo.SetCurrentIndex(idx)
@@ -430,34 +350,35 @@ func (v *entryView) SetMode(vfo core.VFOID, text string) {
 }
 
 func (v *entryView) SetXITActive(vfo core.VFOID, active bool) {
-	switch vfo {
-	case core.VFO1:
-		if v.xit.IsChecked() == active {
-			return
-		}
-		v.xit.SetChecked(active)
-	case core.VFO2:
-		// TODO: handle event
+	widget := v.vfo[vfo].xit
+	if widget == nil {
+		return
 	}
+	if widget.IsChecked() == active {
+		return
+	}
+	widget.SetChecked(active)
 }
 
 func (v *entryView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {
-	var text string
-	if active {
-		text = fmt.Sprintf("XIT %s", offset)
-	} else {
-		text = "XIT"
+	widget := v.vfo[vfo].xit
+	if widget == nil {
+		return
 	}
 
-	switch vfo {
-	case core.VFO1:
-		v.xit.SetText(text)
-	case core.VFO2:
-		v.vfo2XITIndicator.SetText(text)
+	if active {
+		widget.SetText(fmt.Sprintf("XIT %s", offset))
+	} else {
+		widget.SetText("XIT")
 	}
 }
 
 func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+	widget := v.vfo[vfo].txIndicator
+	if widget == nil {
+		return
+	}
+
 	var text string
 	switch {
 	case parrotActive:
@@ -471,17 +392,13 @@ func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parr
 		text = ""
 	}
 
-	switch vfo {
-	case core.VFO1:
-		if ptt {
-			v.txIndicator.SetStyleSheet(TXIndicatorActiveStyle)
-		} else {
-			v.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
-		}
-		v.txIndicator.SetText(text)
-	case core.VFO2:
-		v.vfo2TXIndicator.SetText(text)
+	// TODO: use a property with a selective style
+	if ptt {
+		widget.SetStyleSheet(TXIndicatorActiveStyle)
+	} else {
+		widget.SetStyleSheet(TXIndicatorInactiveStyle)
 	}
+	widget.SetText(text)
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {
@@ -495,54 +412,41 @@ func (v *entryView) SetMyExchange(index int, text string) {
 }
 
 func (v *entryView) SetTheirExchange(vfo core.VFOID, index int, text string) {
+	v.ignoreInput = true
+	defer func() { v.ignoreInput = false }()
+	fields := v.vfo[vfo].theirExchangeFields
 	i := index - 1
-	var fields []*qtlib.QLineEdit
-	switch vfo {
-	case core.VFO1:
-		fields = v.theirExchangeFields
-	case core.VFO2:
-		fields = v.vfo2TheirExchangeFields
-	default:
-		return
-	}
 	if i < 0 || i >= len(fields) {
 		return
 	}
-	v.ignoreInput = true
-	defer func() { v.ignoreInput = false }()
 	fields[i].SetText(text)
 }
 
 func (v *entryView) SetSerialClaimLabelsVisible(visible bool) {
-	if visible && v.vfo2Enabled {
-		if v.serialClaimLabel == nil {
-			v.serialClaimLabel = qtlib.NewQLabel3("")
-			v.serialClaimLabel.SetObjectName(*qtlib.NewQAnyStringView3("serialClaim"))
-			v.serialClaimLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-		}
-		if v.vfo2SerialClaimLabel == nil {
-			v.vfo2SerialClaimLabel = qtlib.NewQLabel3("")
-			v.vfo2SerialClaimLabel.SetObjectName(*qtlib.NewQAnyStringView3("vfo2SerialClaim"))
-			v.vfo2SerialClaimLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-		}
-	} else {
-		if v.serialClaimLabel != nil {
-			v.serialClaimLabel.SetParent(nil)
-			v.serialClaimLabel.Delete()
-			v.serialClaimLabel = nil
-		}
-		if v.vfo2SerialClaimLabel != nil {
-			v.vfo2SerialClaimLabel.SetParent(nil)
-			v.vfo2SerialClaimLabel.Delete()
-			v.vfo2SerialClaimLabel = nil
+	for vfo := range core.VFOCount {
+		widget := v.vfo[vfo].serialClaimLabel
+		prefix := fmt.Sprintf("vfo%d", vfo+1)
+		if visible && v.vfo2Enabled {
+			if widget == nil {
+				widget = qtlib.NewQLabel3("")
+				widget.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "SerialClaim"))
+				widget.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+				v.vfo[vfo].serialClaimLabel = widget
+			}
+		} else {
+			if widget != nil {
+				widget.SetParent(nil)
+				widget.Delete()
+				v.vfo[vfo].serialClaimLabel = nil
+			}
 		}
 	}
 }
 
 func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
 	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false, core.VFO1)
-	v.setExchangeFields(theirExchangeFields, &v.theirExchangeFields, true, core.VFO1)
-	v.setExchangeFields(theirExchangeFields, &v.vfo2TheirExchangeFields, true, core.VFO2)
+	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO1].theirExchangeFields, true, core.VFO1)
+	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO2].theirExchangeFields, true, core.VFO2)
 }
 
 func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool, vfo core.VFOID) {
@@ -565,7 +469,7 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 		editField.SetEnabled(!field.ReadOnly)
 
 		if isTheirRow {
-			editField.SetStyleSheet(v.theirEntryStyle)
+			editField.SetStyleSheet(EntryFieldStyle)
 		}
 
 		if vfo == core.VFO2 && !v.vfo2Enabled {
@@ -579,27 +483,22 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 }
 
 func (v *entryView) SetActiveVFO(vfo core.VFOID) {
+	// TODO: use a property with a selective style
 	switch vfo {
 	case core.VFO1:
-		v.vfoLabel.SetStyleSheet(VFOActiveStyle)
-		v.vfo2Label.SetStyleSheet(VFOInactiveStyle)
+		v.vfo[core.VFO1].vfoLabel.SetStyleSheet(VFOActiveStyle)
+		v.vfo[core.VFO2].vfoLabel.SetStyleSheet(VFOInactiveStyle)
 	case core.VFO2:
-		v.vfoLabel.SetStyleSheet(VFOInactiveStyle)
-		v.vfo2Label.SetStyleSheet(VFOActiveStyle)
+		v.vfo[core.VFO1].vfoLabel.SetStyleSheet(VFOInactiveStyle)
+		v.vfo[core.VFO2].vfoLabel.SetStyleSheet(VFOActiveStyle)
 	}
 }
 
 func (v *entryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
-	callsign := v.callsign
-	band := v.band
-	mode := v.mode
-	theirExchange := v.theirExchangeFields
-	if vfo == core.VFO2 {
-		callsign = v.vfo2Callsign
-		band = v.vfo2Band
-		mode = v.vfo2Mode
-		theirExchange = v.vfo2TheirExchangeFields
-	}
+	callsign := v.vfo[vfo].callsign
+	band := v.vfo[vfo].band
+	mode := v.vfo[vfo].mode
+	theirExchange := v.vfo[vfo].theirExchangeFields
 
 	switch field {
 	case core.CallsignField, core.OtherField:
@@ -644,12 +543,8 @@ func (v *entryView) SelectText(vfo core.VFOID, field core.EntryField, s string) 
 }
 
 func (v *entryView) fieldToEntry(vfo core.VFOID, field core.EntryField) *qtlib.QLineEdit {
-	callsign := v.callsign
-	theirExchange := v.theirExchangeFields
-	if vfo == core.VFO2 {
-		callsign = v.vfo2Callsign
-		theirExchange = v.vfo2TheirExchangeFields
-	}
+	callsign := v.vfo[vfo].callsign
+	theirExchange := v.vfo[vfo].theirExchangeFields
 	switch field {
 	case core.CallsignField, core.OtherField:
 		return callsign
@@ -704,19 +599,19 @@ func (v *entryView) updateMarkerStyle() {
 }
 
 func (v *entryView) ShowMessage(vfo core.VFOID, args ...any) {
-	label := v.messageLabel
-	if vfo == core.VFO2 {
-		label = v.vfo2MessageLabel
+	widget := v.vfo[vfo].messageLabel
+	if widget == nil {
+		return
 	}
-	label.SetText(fmt.Sprint(args...))
+	widget.SetText(fmt.Sprint(args...))
 }
 
 func (v *entryView) ClearMessage(vfo core.VFOID) {
-	label := v.messageLabel
-	if vfo == core.VFO2 {
-		label = v.vfo2MessageLabel
+	widget := v.vfo[vfo].messageLabel
+	if widget == nil {
+		return
 	}
-	label.SetText("")
+	widget.SetText("")
 }
 
 // SetVFOEnabled toggles the visibility/enabled state of a VFO's row of widgets.
@@ -726,33 +621,34 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 		return
 	}
 	v.vfo2Enabled = enabled
-	if v.vfo2Container != nil {
-		v.vfo2Container.SetVisible(enabled)
+	widgets := v.vfo[vfo]
+	if widgets.vfoContainer != nil {
+		widgets.vfoContainer.SetVisible(enabled)
 	}
-	if v.vfo2XITIndicator != nil {
-		v.vfo2XITIndicator.SetVisible(enabled)
+	if widgets.xit != nil {
+		widgets.xit.SetVisible(enabled)
 	}
-	if v.vfo2TXIndicator != nil {
-		v.vfo2TXIndicator.SetVisible(enabled)
+	if widgets.txIndicator != nil {
+		widgets.txIndicator.SetVisible(enabled)
 	}
-	if v.vfo2SerialClaimLabel != nil {
-		v.vfo2SerialClaimLabel.SetVisible(enabled)
+	if widgets.serialClaimLabel != nil {
+		widgets.serialClaimLabel.SetVisible(enabled)
 	}
-	if v.vfo2Callsign != nil {
-		v.vfo2Callsign.SetVisible(enabled)
-		v.vfo2Callsign.SetEnabled(enabled)
+	if widgets.callsign != nil {
+		widgets.callsign.SetVisible(enabled)
+		widgets.callsign.SetEnabled(enabled)
 	}
-	for _, f := range v.vfo2TheirExchangeFields {
+	for _, f := range widgets.theirExchangeFields {
 		f.SetVisible(enabled)
 		f.SetEnabled(enabled)
 	}
-	if v.vfo2LogButton != nil {
-		v.vfo2LogButton.SetVisible(enabled)
+	if widgets.logButton != nil {
+		widgets.logButton.SetVisible(enabled)
 	}
-	if v.vfo2ClearButton != nil {
-		v.vfo2ClearButton.SetVisible(enabled)
+	if widgets.clearButton != nil {
+		widgets.clearButton.SetVisible(enabled)
 	}
-	if v.vfo2MessageLabel != nil {
-		v.vfo2MessageLabel.SetVisible(enabled)
+	if widgets.messageLabel != nil {
+		widgets.messageLabel.SetVisible(enabled)
 	}
 }

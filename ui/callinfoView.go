@@ -24,13 +24,12 @@ type callinfoVFOWidgets struct {
 }
 
 type callinfoView struct {
-	widget *qtlib.QWidget
-
 	vfo [core.VFOCount]callinfoVFOWidgets
 
 	qtcsEnabled bool
-	vfo2Visible bool
-	current     [core.VFOCount]core.CallinfoFrame
+	vfo2Enabled bool
+
+	current [core.VFOCount]core.CallinfoFrame
 }
 
 func newCallinfoVFOWidgets(prefix string) callinfoVFOWidgets {
@@ -77,8 +76,6 @@ func newCallinfoVFOWidgets(prefix string) callinfoVFOWidgets {
 
 func newCallinfoView() *callinfoView {
 	v := &callinfoView{}
-
-	v.widget = qtlib.NewQWidget2()
 
 	v.vfo[core.VFO1] = newCallinfoVFOWidgets("vfo1")
 	v.vfo[core.VFO2] = newCallinfoVFOWidgets("vfo2")
@@ -140,7 +137,7 @@ func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {
 				valueLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "predictedExchange"))
 			}
 			if vfo == core.VFO2 {
-				valueLabel.SetVisible(v.vfo2Visible)
+				valueLabel.SetVisible(v.vfo2Enabled)
 			}
 			w.predictedExchangeLabels = append(w.predictedExchangeLabels, valueLabel)
 		}
@@ -151,7 +148,7 @@ func (v *callinfoView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	if vfo == core.VFO1 {
 		return
 	}
-	v.vfo2Visible = enabled
+	v.vfo2Enabled = enabled
 	w := &v.vfo[core.VFO2]
 	w.callsignLabel.SetVisible(enabled)
 	w.valueLabel.SetVisible(enabled)

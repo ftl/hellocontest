@@ -486,6 +486,22 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 	}
 }
 
+func (v *entryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
+	label := v.vfo[vfo].vfoLabel
+	if label == nil {
+		return
+	}
+	name := fmt.Sprintf("VFO %d", vfo+1)
+	switch workmode {
+	case core.Run:
+		label.SetText(name + " RUN")
+	case core.SearchPounce:
+		label.SetText(name + " S&P")
+	default:
+		label.SetText(name)
+	}
+}
+
 func (v *entryView) SetActiveVFO(vfo core.VFOID) {
 	// TODO: use a property with a selective style
 	switch vfo {

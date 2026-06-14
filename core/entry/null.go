@@ -33,6 +33,7 @@ func (n *nullView) SetEditingMarker(core.VFOID, bool)              {}
 func (n *nullView) ShowMessage(core.VFOID, ...any)                 {}
 func (n *nullView) ClearMessage(core.VFOID)                        {}
 func (n *nullView) SetVFOEnabled(core.VFOID, bool)                 {}
+func (n *nullView) SetVFOWorkmode(core.VFOID, core.Workmode)      {}
 
 type nullVFO struct{}
 

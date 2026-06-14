@@ -859,6 +859,9 @@ func (v *viewSpy) ShowMessage(vfo core.VFOID, args ...any) {
 }
 func (v *viewSpy) ClearMessage(vfo core.VFOID)          { v.record("ClearMessage", vfo) }
 func (v *viewSpy) SetVFOEnabled(vfo core.VFOID, b bool) { v.record("SetVFOEnabled", vfo, b) }
+func (v *viewSpy) SetVFOWorkmode(vfo core.VFOID, w core.Workmode) {
+	v.record("SetVFOWorkmode", vfo, w)
+}
 
 // ---- logbookSpy -------------------------------------------------------------
 

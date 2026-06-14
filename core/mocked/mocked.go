@@ -338,6 +338,13 @@ func (m *EntryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	m.Called(vfo, enabled)
 }
 
+func (m *EntryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
+	if !m.active {
+		return
+	}
+	m.Called(vfo, workmode)
+}
+
 type Clock struct {
 	mock.Mock
 }

@@ -926,7 +926,7 @@ func (l *listenerSpy) resetCalls() {
 	l.esmEnabledValues = nil
 }
 
-func (l *listenerSpy) CallsignEntered(callsign string) {
+func (l *listenerSpy) CallsignEntered(_ core.VFOID, callsign string) {
 	l.callsignsEntered = append(l.callsignsEntered, callsign)
 }
 

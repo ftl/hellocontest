@@ -1764,7 +1764,7 @@ func (f ServiceStatusListenerFunc) StatusChanged(service Service, available bool
 type AsyncRunner func(func())
 
 type CallsignEnteredListener interface {
-	CallsignEntered(callsign string)
+	CallsignEntered(vfo VFOID, callsign string)
 }
 
 type CallsignLoggedListener interface {

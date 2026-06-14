@@ -57,7 +57,7 @@ func (m *HamDXMap) WhenStopped(callback func()) {
 	}()
 }
 
-func (m *HamDXMap) CallsignEntered(callsign string) {
+func (m *HamDXMap) CallsignEntered(_ core.VFOID, callsign string) {
 	m.server.ShowPartialCall(callsign)
 }
 

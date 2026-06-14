@@ -233,7 +233,7 @@ func (c *Controller) emitFocusChanged(vfo core.VFOID) {
 func (c *Controller) emitCallsignEntered(callsign string) {
 	for _, l := range c.listeners {
 		if listener, ok := l.(core.CallsignEnteredListener); ok {
-			listener.CallsignEntered(callsign)
+			listener.CallsignEntered(c.focusedVFO, callsign)
 		}
 	}
 }

@@ -1371,7 +1371,7 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.updateExchangeFields(contest)
 }
 
-func (c *Controller) WorkmodeChanged(workmode core.Workmode) {
+func (c *Controller) WorkmodeChanged(_ core.VFOID, workmode core.Workmode) {
 	c.workmode = workmode
 	c.updateESM()
 }

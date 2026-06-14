@@ -142,7 +142,7 @@ func (s *Scenario) WithESMEnabled() *Scenario {
 
 // WithWorkmode sets the workmode without spy reset.
 func (s *Scenario) WithWorkmode(w core.Workmode) *Scenario {
-	s.controller.WorkmodeChanged(w)
+	s.controller.WorkmodeChanged(core.VFO1, w)
 	return s
 }
 
@@ -279,7 +279,7 @@ func (s *Scenario) VFOModeChanged(vfo core.VFOID, mode core.Mode) *Scenario {
 func (s *Scenario) WorkmodeChanged(w core.Workmode) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.WorkmodeChanged(w)
+	s.controller.WorkmodeChanged(core.VFO1, w)
 	return s
 }
 

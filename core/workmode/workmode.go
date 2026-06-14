@@ -25,13 +25,13 @@ type View interface {
 }
 
 type WorkmodeChangedListener interface {
-	WorkmodeChanged(workmode core.Workmode)
+	WorkmodeChanged(vfo core.VFOID, workmode core.Workmode)
 }
 
-type WorkmodeChangedListenerFunc func(workmode core.Workmode)
+type WorkmodeChangedListenerFunc func(vfo core.VFOID, workmode core.Workmode)
 
-func (f WorkmodeChangedListenerFunc) WorkmodeChanged(workmode core.Workmode) {
-	f(workmode)
+func (f WorkmodeChangedListenerFunc) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+	f(vfo, workmode)
 }
 
 func (c *Controller) SetView(view View) {
@@ -101,7 +101,7 @@ func (c *Controller) emitWorkmodeChanged(workmode core.Workmode) {
 	}
 	for _, listener := range c.listeners {
 		if workmodeChangedListener, ok := listener.(WorkmodeChangedListener); ok {
-			workmodeChangedListener.WorkmodeChanged(workmode)
+			workmodeChangedListener.WorkmodeChanged(core.VFO1, workmode)
 		}
 	}
 }

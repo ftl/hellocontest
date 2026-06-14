@@ -59,6 +59,44 @@ func TestPad(t *testing.T) {
 	assert.Equal(t, "", pad(0, ""))
 }
 
+func TestWorkmode_FocusSwitchOrderIndependence(t *testing.T) {
+	keyerSettings := core.KeyerSettings{
+		WPM:       25,
+		SPMacros:  []string{"sp0", "", "", ""},
+		RunMacros: []string{"run0", "", "", ""},
+	}
+	cwClient := new(mocked.CWClient)
+	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
+
+	// Simulate SO2V: VFO1=Run, VFO2=S&P
+	k.WorkmodeChanged(core.VFO1, core.Run)
+	k.WorkmodeChanged(core.VFO2, core.SearchPounce)
+	k.FocusChanged(core.VFO1)
+	assert.Equal(t, core.Run, k.workmode, "VFO1 focused → Run")
+
+	// Switch to VFO2
+	k.FocusChanged(core.VFO2)
+	assert.Equal(t, core.SearchPounce, k.workmode, "VFO2 focused → S&P")
+
+	// Switch back to VFO1 — this is the regression case.
+	// WorkmodeChanged may arrive before or after FocusChanged.
+	// Test both orderings:
+
+	// Order A: FocusChanged first, then WorkmodeChanged
+	k.FocusChanged(core.VFO1)
+	k.WorkmodeChanged(core.VFO1, core.Run)
+	assert.Equal(t, core.Run, k.workmode, "Order A: VFO1 focused → Run")
+
+	// Reset to VFO2
+	k.FocusChanged(core.VFO2)
+	assert.Equal(t, core.SearchPounce, k.workmode)
+
+	// Order B: WorkmodeChanged first, then FocusChanged
+	k.WorkmodeChanged(core.VFO1, core.Run)
+	k.FocusChanged(core.VFO1)
+	assert.Equal(t, core.Run, k.workmode, "Order B: VFO1 focused → Run")
+}
+
 type testSettings struct {
 	stationCallsign string
 }

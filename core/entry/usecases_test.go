@@ -2208,3 +2208,39 @@ func TestI12_EditMode_CommittedNotAffected(t *testing.T) {
 	assert.True(t, s.controller.IsSerialCommitted(core.VFO1),
 		"committed state must be restored after edit mode")
 }
+
+// L3b. SO2V workmode: VFO label shows correct workmode after focus switch round-trip.
+// Regression test: keyer/entry must show correct workmode regardless of event ordering
+// between FocusChanged and WorkmodeChanged.
+
+func TestL3b_SO2V_WorkmodeLabel_CorrectAfterWorkmodeChanged(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2()
+
+	// Simulate workmode controller setting Run: VFO1=Run, VFO2=S&P.
+	s.resetSpies()
+	s.controller.WorkmodeChanged(core.VFO1, core.Run)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
+
+	s.resetSpies()
+	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO2, core.SearchPounce)
+
+	// After focus switch, workmode controller re-emits WorkmodeChanged for
+	// both VFOs. Simulate that arriving after focus switch to VFO2:
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.resetSpies()
+	s.controller.WorkmodeChanged(core.VFO1, core.Run)
+	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO2, core.SearchPounce)
+
+	// Switch back to VFO1, re-emit workmodes — regression case:
+	// VFO1 must show Run, not S&P from previous focus.
+	s.controller.SetFocusedVFO(core.VFO1)
+	s.resetSpies()
+	s.controller.WorkmodeChanged(core.VFO1, core.Run)
+	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
+}

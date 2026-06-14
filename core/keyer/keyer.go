@@ -113,6 +113,7 @@ type Keyer struct {
 
 	stationCallsign       core.Callsign
 	focusedVFO            core.VFOID
+	vfoWorkmode           [core.VFOCount]core.Workmode
 	workmode              core.Workmode
 	wpm                   int
 	parrotIntervalSeconds int
@@ -319,15 +320,17 @@ func (k *Keyer) showKeyerSettings() {
 }
 
 func (k *Keyer) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
-	if vfo != k.focusedVFO {
-		return
+	k.vfoWorkmode[vfo] = workmode
+	if vfo == k.focusedVFO {
+		k.setWorkmode(workmode)
+		k.showPatterns()
 	}
-	k.setWorkmode(workmode)
-	k.showPatterns()
 }
 
 func (k *Keyer) FocusChanged(vfo core.VFOID) {
 	k.focusedVFO = vfo
+	k.setWorkmode(k.vfoWorkmode[vfo])
+	k.showPatterns()
 }
 
 func (k *Keyer) StationChanged(station core.Station) {

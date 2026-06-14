@@ -17,7 +17,7 @@ Conventions:
 ### A1. Enter callsign
 Type characters into the focused VFO's callsign field.
 - **Pre:** active field = `CallsignField` on focused VFO.
-- **Post:** `input[focused].callsign` = typed text; `CallsignEntered` listeners notified; callinfo input-changed notified; if text parses as callsign AND not editing: sticky serial claim held for focused VFO; if duplicate exists: error on callsign field, else message cleared.
+- **Post:** `input[focused].callsign` = typed text; `CallsignEntered(focusedVFO, callsign)` listeners notified; callinfo input-changed notified; if text parses as callsign AND not editing: sticky serial claim held for focused VFO; if duplicate exists: error on callsign field, else message cleared.
 - **Invariants:** other VFO's row; editing flag; selected band/mode/frequency; logbook.
 
 ### A2. Leave callsign field
@@ -417,13 +417,13 @@ Embedded in I1's `nextUnclaimedSerial`.
 
 ### K1. SendQuestion
 - **Pre:** keyer set; `canTransmit` = true (not editing).
-- **Post:** `SetTXVFO(focused)` called (with `ignoreVFOChange` guard); if active field is their-exchange: `keyer.SendQuestion("nr")`; else: `keyer.SendQuestion(callsign)`.
+- **Post:** `SetTXVFO(focused)` called (with `ignoreVFOChange` guard); `TransmissionStarted(focused)` emitted; if active field is their-exchange: `keyer.SendQuestion("nr")`; else: `keyer.SendQuestion(callsign)`.
 - **Editing:** no-op (`canTransmit` false).
 - **Invariants:** input; logbook.
 
 ### K2. RepeatLastTransmission
 - **Pre:** keyer set; `canTransmit` = true.
-- **Post:** `keyer.Repeat()`. VFO switcher is **not** called (stay on last TX VFO).
+- **Post:** `keyer.Repeat()`. VFO switcher is **not** called (stay on last TX VFO). `TransmissionStarted` is **not** emitted.
 - **Editing:** no-op (`canTransmit` false).
 - **Invariants:** input.
 
@@ -434,13 +434,18 @@ Embedded in I1's `nextUnclaimedSerial`.
 
 ### K4. ParrotActive(active)
 - **Pre:** none.
-- **Post:** `parrotActive` = active; TX state view refreshed; if active: Clear runs (D1/D2).
-- **Invariants:** logbook.
+- **Post:** `parrotActive` = active; TX state view refreshed; if active: `clearInput(VFO1)` runs (clears VFO1 only, preserves VFO2's in-progress QSO in SO2V).
+- **Invariants:** logbook; VFO2 input.
 
 ### K5. ParrotTimeLeft(d)
 - **Pre:** none.
 - **Post:** `parrotTimeLeft` = d; TX state view refreshed.
 - **Invariants:** input; parrotActive.
+
+### K6. TransmissionStarted(vfo)
+- **Pre:** emitted from `SendQuestion` and `NextESMStep` before keyer TX call.
+- **Post:** `TransmissionStartedListener`s notified with focused VFO. Parrot receives: ignores VFO1 (self-CQ or already stopped); interrupts on VFO2 (`keyer.Stop()`).
+- **Invariants:** input; logbook.
 
 ---
 
@@ -456,10 +461,20 @@ Embedded in I1's `nextUnclaimedSerial`.
 - **Post:** exchange field definitions replaced; per-VFO `myExchange`/`theirExchange` slices reallocated to new length; Clear runs (D2 since editing not changed; if editing, D1 — but contest changes are not expected mid-edit).
 - **Invariants:** station callsign; selected band/mode/freq.
 
-### L3. WorkmodeChanged
-- **Pre:** none.
-- **Post:** `workmode` = new value; ESM message recomputed.
-- **Invariants:** input; contest.
+### L3. WorkmodeChanged(vfo, workmode)
+- **Pre:** emitted by `workmode.Controller` per VFO.
+- **Post:** `vfoWorkmode[vfo]` stored; `view.SetVFOWorkmode(vfo, workmode)` called; if `vfo == focusedVFO`: `c.workmode` updated, ESM recomputed.
+- **Invariants:** input; contest; other VFO's workmode.
+
+### L3b. SO2V workmode semantics
+In SO2V (`vfo2Enabled == true`), workmode is per-VFO:
+- Global = **Run**: VFO1 = Run, VFO2 = S&P.
+- Global = **S&P**: both VFOs = S&P.
+- VFO2 is always S&P regardless of global toggle.
+
+`workmode.Controller` computes effective workmode via `EffectiveWorkmode(vfo)` and emits `WorkmodeChanged(vfo, workmode)` for each VFO on: global toggle change, focus change, radio change.
+
+VFO labels show effective workmode ("VFO 1 RUN" / "VFO 2 S&P"). Keyer tracks per-VFO workmode and switches macros on focus change — order-independent with `FocusChanged`.
 
 ### L4. LogbookLoaded
 - **Pre:** logbook loaded.

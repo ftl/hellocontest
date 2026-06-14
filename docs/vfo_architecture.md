@@ -355,15 +355,17 @@ Keyer := keyer.New(...)
 Keyer.Notify(Entry)          // Entry receives SerialSent from keyer
 Entry.Notify(Keyer)          // Keyer receives FocusChanged from Entry
 Workmode.Notify(Keyer)       // Keyer receives WorkmodeChanged(vfo, workmode)
-Entry.SetKeyer(Keyer)
+Entry.SetKeyer(Keyer)        // Keyer stores per-VFO workmode, switches macros on focus change
 
 Callinfo.Notify(Entry)  // CallinfoFrameChanged flows to entry
 Entry.SetCallinfo(Callinfo)
 
 VFOs[VFO1].Notify(QTCController) // VFO1-only
 
-Parrot = parrot.New(...)
-Entry.Notify(Parrot)         // Parrot receives CallsignEntered(vfo), TransmissionStarted(vfo), FocusChanged
+Parrot = parrot.New(Workmode, Keyer, Entry, asyncRunner)
+                             // Entry as VFOSwitcher: SetTXVFO with ignoreVFOChange guard
+                             // Keyer: SendWithWorkmode(Run, CQMessageIndex) — always Run macros
+Entry.Notify(Parrot)         // Parrot receives CallsignEntered(vfo), TransmissionStarted(vfo)
 Parrot.Notify(Entry)
 Workmode.Notify(Parrot)      // Parrot receives WorkmodeChanged(vfo, workmode)
 ```

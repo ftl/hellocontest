@@ -371,10 +371,33 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 	if c.singleVFO {
 		return
 	}
+
+	/*
+		This is how switching on SPLIT without changing the current VFO works with the IC-7610, YMMV:
+		Sub 1 Sub -> Main focus, Split on
+		Main 0 Main -> Main focus, Split off
+		Main 1 Main -> Sub focus, Split on
+		Sub 0 Sub -> Sub focus, Split off
+	*/
+
 	c.doInLoop(func() {
 		hlVFO := c.vfos[vfo]
 		enableSplit := vfo == core.VFO2
-		err := c.client.SetSplitVFO(hlVFO, enableSplit, hl.CurrVFO)
+		switch c.currentVFO {
+		case c.vfos[core.VFO1]:
+			if enableSplit {
+				hlVFO = c.vfos[core.VFO2]
+			} else {
+				hlVFO = c.vfos[core.VFO1]
+			}
+		case c.vfos[core.VFO2]:
+			if enableSplit {
+				hlVFO = c.vfos[core.VFO1]
+			} else {
+				hlVFO = c.vfos[core.VFO2]
+			}
+		}
+		err := c.client.SetSplitVFO(hlVFO, enableSplit, hlVFO)
 		if err != nil {
 			log.Printf("hamlib: cannot set TX VFO: %v", err)
 		}

@@ -267,7 +267,7 @@ func (c *Controller) Startup() {
 	c.Bandmap.Notify(c.Callinfo)
 	c.Logbook.Notify(c.Callinfo)
 
-	c.Parrot = parrot.New(c.Workmode, c.Keyer, c.Entry, c.asyncRunner)
+	c.Parrot = parrot.New(c.Workmode, c.Keyer, c.Radio, c.asyncRunner)
 	c.Keyer.SetParrot(c.Parrot)
 	c.Workmode.Notify(c.Parrot)
 	c.Entry.Notify(c.Parrot)

@@ -915,7 +915,7 @@ func (c *Controller) ParrotActive(active bool) {
 	c.parrotActive = active
 	c.updateTXState()
 	if active {
-		c.Clear()
+		c.clearInput(core.VFO1)
 	}
 }
 

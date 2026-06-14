@@ -23,6 +23,10 @@ type Keyer interface {
 	Stop()
 }
 
+type VFOSwitcher interface {
+	SetTXVFO(core.VFOID)
+}
+
 type ParrotActiveListener interface {
 	ParrotActive(active bool)
 }
@@ -35,12 +39,13 @@ type View interface {
 	SetParrotActive(active bool)
 }
 
-func New(workmodeController WorkmodeController, keyer Keyer, runAsync core.AsyncRunner) *Parrot {
+func New(workmodeController WorkmodeController, keyer Keyer, vfoSwitcher VFOSwitcher, runAsync core.AsyncRunner) *Parrot {
 	ticker := time.NewTicker(tickInterval)
 	ticker.Stop()
 	result := &Parrot{
 		workmodeController: workmodeController,
 		keyer:              keyer,
+		vfoSwitcher:        vfoSwitcher,
 		runAsync:           runAsync,
 		active:             false,
 		interval:           DefaultInterval,
@@ -58,6 +63,7 @@ type Parrot struct {
 	view               View
 	workmodeController WorkmodeController
 	keyer              Keyer
+	vfoSwitcher        VFOSwitcher
 	runAsync           core.AsyncRunner
 
 	active    bool
@@ -84,6 +90,7 @@ func (p *Parrot) run() {
 				p.emitParrotTimeLeft(remaining)
 			}
 			if remaining <= 0 {
+				p.vfoSwitcher.SetTXVFO(core.VFO1)
 				p.keyer.Send(CQMessageIndex)
 			}
 		})

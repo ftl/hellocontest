@@ -24,7 +24,7 @@ func (n *nullView) SetMyExchange(int, string)                      {}
 func (n *nullView) SetTheirExchange(core.VFOID, int, string)       {}
 func (n *nullView) SetMyExchangeFields([]core.ExchangeField)       {}
 func (n *nullView) SetTheirExchangeFields([]core.ExchangeField)    {}
-func (n *nullView) SetSerialClaim(core.VFOID, core.QSONumber)      {}
+func (n *nullView) SetSerialClaim(core.VFOID, core.QSONumber, bool) {}
 func (n *nullView) SetActiveVFO(core.VFOID)                        {}
 func (n *nullView) SetActiveField(core.VFOID, core.EntryField)     {}
 func (n *nullView) SelectText(core.VFOID, core.EntryField, string) {}

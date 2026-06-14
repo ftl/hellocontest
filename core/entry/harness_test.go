@@ -836,8 +836,8 @@ func (v *viewSpy) SetCallsign(vfo core.VFOID, s string) { v.record("SetCallsign"
 func (v *viewSpy) SetTheirExchange(vfo core.VFOID, index int, text string) {
 	v.record("SetTheirExchange", vfo, index, text)
 }
-func (v *viewSpy) SetSerialClaim(vfo core.VFOID, n core.QSONumber) {
-	v.record("SetSerialClaim", vfo, n)
+func (v *viewSpy) SetSerialClaim(vfo core.VFOID, n core.QSONumber, committed bool) {
+	v.record("SetSerialClaim", vfo, n, committed)
 }
 func (v *viewSpy) SetActiveVFO(vfo core.VFOID) {
 	v.record("SetActiveVFO", vfo)
@@ -1220,6 +1220,14 @@ func (s *Scenario) ParrotTimeLeft(d time.Duration) *Scenario {
 	return s
 }
 
+// SerialSent fires the serial-sent event.
+func (s *Scenario) SerialSent() *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.SerialSent()
+	return s
+}
+
 // StationChanged fires the station-changed event with the given callsign.
 func (s *Scenario) StationChanged(callsign string) *Scenario {
 	s.t.Helper()
@@ -1348,10 +1356,26 @@ func (s *Scenario) AssertVFOSwitcherCurrentCalled(vfo core.VFOID) *Scenario {
 	return s
 }
 
-// AssertSerialClaimView asserts view.SetSerialClaim(vfo, serial) was called.
-func (s *Scenario) AssertSerialClaimView(vfo core.VFOID, serial core.QSONumber) *Scenario {
+// AssertSerialClaimView asserts view.SetSerialClaim(vfo, serial, committed) was called.
+func (s *Scenario) AssertSerialClaimView(vfo core.VFOID, serial core.QSONumber, committed bool) *Scenario {
 	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetSerialClaim", vfo, serial)
+	s.view.assertCalledWith(s.t, "SetSerialClaim", vfo, serial, committed)
+	return s
+}
+
+// AssertSerialCommitted asserts the serial claim for vfo is committed.
+func (s *Scenario) AssertSerialCommitted(vfo core.VFOID) *Scenario {
+	s.t.Helper()
+	assert.True(s.t, s.controller.IsSerialCommitted(vfo),
+		"expected serial on VFO %d to be committed", vfo)
+	return s
+}
+
+// AssertSerialNotCommitted asserts the serial claim for vfo is not committed.
+func (s *Scenario) AssertSerialNotCommitted(vfo core.VFOID) *Scenario {
+	s.t.Helper()
+	assert.False(s.t, s.controller.IsSerialCommitted(vfo),
+		"expected serial on VFO %d to NOT be committed", vfo)
 	return s
 }
 

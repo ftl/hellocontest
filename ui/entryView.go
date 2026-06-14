@@ -297,7 +297,7 @@ func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	v.vfo[vfo].frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
 }
 
-func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber) {
+func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
 	label := v.vfo[vfo].serialClaimLabel
 	if label == nil {
 		return
@@ -306,7 +306,11 @@ func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber) {
 	if serial == 0 {
 		label.SetText("")
 	} else {
-		label.SetText(fmt.Sprintf("#%s", serial.String()))
+		text := fmt.Sprintf("#%s", serial.String())
+		if committed {
+			text = fmt.Sprintf("<b>%s</b>", text)
+		}
+		label.SetText(text)
 	}
 }
 

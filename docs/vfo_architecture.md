@@ -16,8 +16,9 @@ Last revised: 2026-06-14.
 | `core/entry` | Owns per-VFO state slices indexed by `VFOID`. A `focusedVFO` cursor routes all user-driven commands. Both VFOs hold independent pending QSOs simultaneously (aka. SO2V). |
 | `core/vfo` | One `VFO` struct per physical VFO. Emits events tagged with `id`; filters inbound events that don't match its `id`. Exposes audio control (`MuteAudio`, `UnmuteAudio`, `ToggleAudio`). |
 | `core/radio` | Single backend, single `activeRadio`. The `vfo.Client` interface and all backends are VFO-ID-aware. Emits `RadioChanged(name, singleVFO)` to notify downstream of backend capability. Implements `VFOSwitcher` (`SetCurrentVFO`, `SetTXVFO`) and audio control. |
+| `core/workmode` | Owns global workmode toggle and computes per-VFO effective workmode in SO2V. Receives `RadioChanged` and `FocusChanged`; emits `WorkmodeChanged(vfo, workmode)` for all VFOs. |
 | `core/callinfo` | Threaded with `VFOID`; maintains per-VFO `frames` and emits `CallinfoFrameChanged(vfo, frame)`. |
-| `ui` | `entryView` uses an `entryVFOWidgets` struct per VFO (indexed array `vfo [VFOCount]entryVFOWidgets`). VFO2 visibility driven by `SetVFOEnabled`. Active-VFO label styling driven by `SetActiveVFO`. |
+| `ui` | `entryView` uses an `entryVFOWidgets` struct per VFO (indexed array `vfo [VFOCount]entryVFOWidgets`). VFO2 visibility driven by `SetVFOEnabled`. Active-VFO label styling driven by `SetActiveVFO`. VFO labels show effective workmode ("VFO 1 RUN"). |
 
 ---
 
@@ -43,6 +44,9 @@ type RadioChangedListener interface {
 }
 
 type CurrentVFOListener interface { CurrentVFOChanged(VFOID) }
+type FocusChangedListener interface { FocusChanged(VFOID) }
+type CallsignEnteredListener interface { CallsignEntered(VFOID, string) }
+type TransmissionStartedListener interface { TransmissionStarted(VFOID) }
 
 // All five VFO event interfaces carry a leading VFOID:
 type VFOFrequencyListener interface { VFOFrequencyChanged(VFOID, Frequency) }
@@ -155,6 +159,7 @@ Per-VFO slices (length `core.VFOCount`, index = `VFOID`):
 | `esmState` | `[]core.ESMState` |
 | `esmMessage` | `[]string` |
 | `esmMacroIndex` | `[]int` |
+| `vfoWorkmode` | `[]core.Workmode` |
 
 Serial claims are managed by the `claims SerialClaims` struct (see §5.3).
 
@@ -292,7 +297,7 @@ Fully per-VFO: `esmState[focusedVFO]`, `esmMessage[focusedVFO]`, `esmMacroIndex[
 
 `updateSPMessage` / `updateRunMessage` return `(string, int)` — display text and macro index. Macro index is the keyer pattern slot (0–3); sentinel `-1` for non-macro states (callsign request `?`, `nr?`).
 
-`NextESMStep`: if `esmMacroIndex >= 0`, calls `keyer.Send(index)` (goes through template expansion, triggers `SerialSent` if pattern references serial); otherwise calls `keyer.SendText(literal)`. This ensures serial detection works for all ESM-driven transmissions.
+`NextESMStep`: emits `TransmissionStarted(focusedVFO)` before keyer TX. If `esmMacroIndex >= 0`, calls `keyer.Send(index)` (goes through template expansion, triggers `SerialSent` if pattern references serial); otherwise calls `keyer.SendText(literal)`. ESM uses `c.workmode` which tracks the focused VFO's effective workmode — in SO2V, VFO2 always uses S&P message mapping.
 
 ### 5.7 `Log()` (`entry.go:1002–1095`)
 
@@ -327,7 +332,12 @@ Radio := radio.NewController(...)
 Radio.Notify(ServiceStatus)
 Radio.Notify(Entry)         // Entry receives RadioChanged + is forwarded to hamlib listeners
 Radio.Notify(Callinfo)      // Callinfo receives RadioChanged
+Radio.Notify(Workmode)      // Workmode receives RadioChanged → tracks vfo2Enabled
 Entry.SetVFOSwitcher(Radio) // Entry can command rig VFO switch + TX VFO
+
+Workmode = workmode.NewController()
+Workmode.Notify(Entry)       // Entry receives WorkmodeChanged(vfo, workmode)
+Entry.Notify(Workmode)       // Workmode receives FocusChanged from Entry
 
 for vfoID in 0..VFOCount:
     v := vfo.NewVFO(vfoID, ...)
@@ -343,6 +353,8 @@ Radio.SelectKeyer(session.Keyer1())
 
 Keyer := keyer.New(...)
 Keyer.Notify(Entry)          // Entry receives SerialSent from keyer
+Entry.Notify(Keyer)          // Keyer receives FocusChanged from Entry
+Workmode.Notify(Keyer)       // Keyer receives WorkmodeChanged(vfo, workmode)
 Entry.SetKeyer(Keyer)
 
 Callinfo.Notify(Entry)  // CallinfoFrameChanged flows to entry
@@ -351,8 +363,9 @@ Entry.SetCallinfo(Callinfo)
 VFOs[VFO1].Notify(QTCController) // VFO1-only
 
 Parrot = parrot.New(...)
-Entry.Notify(Parrot)
+Entry.Notify(Parrot)         // Parrot receives CallsignEntered(vfo), TransmissionStarted(vfo), FocusChanged
 Parrot.Notify(Entry)
+Workmode.Notify(Parrot)      // Parrot receives WorkmodeChanged(vfo, workmode)
 ```
 
 **`DoAction` VFO cases** (`app.go:976–989, 1024–1035`):

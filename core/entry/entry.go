@@ -219,6 +219,14 @@ func (c *Controller) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
+func (c *Controller) emitFocusChanged(vfo core.VFOID) {
+	for _, l := range c.listeners {
+		if listener, ok := l.(core.FocusChangedListener); ok {
+			listener.FocusChanged(vfo)
+		}
+	}
+}
+
 func (c *Controller) emitCallsignEntered(callsign string) {
 	for _, l := range c.listeners {
 		if listener, ok := l.(core.CallsignEnteredListener); ok {
@@ -479,6 +487,7 @@ func (c *Controller) CurrentVFOChanged(vfo core.VFOID) {
 		return
 	}
 	c.focusedVFO = vfo
+	c.emitFocusChanged(c.focusedVFO)
 	c.refreshMyNumberInputs()
 	c.view.SetActiveVFO(c.focusedVFO)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
@@ -496,6 +505,7 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetCurrentVFO(c.focusedVFO)
 	c.ignoreVFOChange = false
+	c.emitFocusChanged(c.focusedVFO)
 	c.refreshMyNumberInputs()
 	c.view.SetActiveVFO(c.focusedVFO)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])

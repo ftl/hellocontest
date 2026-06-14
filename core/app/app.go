@@ -204,6 +204,7 @@ func (c *Controller) Startup() {
 
 	c.Workmode = workmode.NewController()
 	c.Workmode.Notify(c.Entry)
+	c.Entry.Notify(c.Workmode)
 	c.QSOList.Notify(c.Workmode)
 
 	c.Callinfo = callinfo.New(c.dxccFinder, c.scpFinder, c.callHistoryFinder, c.Logbook, c.Logbook, c.Logbook)
@@ -214,6 +215,7 @@ func (c *Controller) Startup() {
 	c.Radio.Notify(c.ServiceStatus)
 	c.Radio.Notify(c.Entry)
 	c.Radio.Notify(c.Callinfo)
+	c.Radio.Notify(c.Workmode)
 	c.Entry.SetVFOSwitcher(c.Radio)
 	c.Bandmap.Notify(c.Radio) // TODO implement Entry... in radio.Controller
 

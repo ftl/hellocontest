@@ -101,7 +101,6 @@ func TestFocusChanged_SO2V_EmitsWorkmodes(t *testing.T) {
 	l.reset()
 	c.FocusChanged(core.VFO2)
 
-	// Both VFOs emitted: keyer needs VFO2's workmode, entry needs it too
 	assert.Len(t, l.events, 2)
 	assert.Equal(t, workmodeEvent{core.VFO1, core.Run}, l.events[0])
 	assert.Equal(t, workmodeEvent{core.VFO2, core.SearchPounce}, l.events[1])

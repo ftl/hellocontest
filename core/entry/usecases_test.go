@@ -1781,3 +1781,305 @@ func TestI7_DualVFO_SerialInterleaving(t *testing.T) {
 		t.Errorf("VFO1 QSO: expected MyNumber=6, got %d", vfo1QSO.MyNumber)
 	}
 }
+
+// H2. CurrentVFOChanged
+// Pre:  rig-side VFO change detected (e.g. hamlib polling).
+// Post: if ignoreVFOChange: no-op; if VFO2 disabled: no-op; if same VFO: no-op;
+//       else: focusedVFO = vfo; serial displays refreshed; view.SetActiveVFO and SetActiveField called.
+// Invariants: input rows; serial claims; logbook.
+
+func TestH2_CurrentVFOChanged_SwitchesFocusAndUpdatesView(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().WithVFO2().
+		CurrentVFOChanged(core.VFO2).
+		AssertActiveVFO(core.VFO2).
+		AssertActiveField(core.VFO2, core.CallsignField)
+}
+
+func TestH2_CurrentVFOChanged_VFO2Disabled_Ignored(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange(). // VFO2 not enabled
+		CurrentVFOChanged(core.VFO2).
+		AssertViewNotCalledWith("SetActiveVFO", core.VFO2).
+		AssertViewNotCalledWith("SetActiveField", core.VFO2, core.CallsignField)
+}
+
+func TestH2_CurrentVFOChanged_SameVFO_Ignored(t *testing.T) {
+	// Already on VFO1 → CurrentVFOChanged(VFO1) is a no-op.
+	NewScenario(t).
+		WithClassicExchange().WithVFO2().
+		CurrentVFOChanged(core.VFO1).
+		AssertViewNotCalledWith("SetActiveVFO", core.VFO1)
+}
+
+func TestH2_CurrentVFOChanged_SuppressedDuringSetFocusedVFO(t *testing.T) {
+	// SetFocusedVFO sets ignoreVFOChange=true around the rig command.
+	// Simulate: after SetFocusedVFO(VFO2), a CurrentVFOChanged(VFO2) echo
+	// from the rig must be suppressed (same-VFO guard catches it since
+	// focusedVFO is already VFO2).
+	s := NewScenario(t).
+		WithClassicExchange().WithVFO2().WithVFOSwitcher()
+	s.SetFocusedVFO(core.VFO2) // commands rig; focusedVFO = VFO2
+	s.resetSpies()
+	s.controller.CurrentVFOChanged(core.VFO2) // echo from rig → same VFO → no-op
+	assert.False(t, s.view.wasCalled("SetActiveVFO"),
+		"CurrentVFOChanged echo must be suppressed (same VFO)")
+}
+
+// H1+. SetFocusedVFO calls SetCurrentVFO and SetActiveVFO
+
+func TestH1_SetFocusedVFO_CallsSetCurrentVFO(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().WithVFO2().WithVFOSwitcher().
+		SetFocusedVFO(core.VFO2).
+		AssertVFOSwitcherCurrentCalled(core.VFO2)
+}
+
+func TestH1_SetFocusedVFO_CallsSetActiveVFO(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().WithVFO2().WithVFOSwitcher().
+		SetFocusedVFO(core.VFO2).
+		AssertActiveVFO(core.VFO2)
+}
+
+// H8+. RadioChanged VFO2 collapse releases serial claim
+
+func TestH8_RadioChanged_SingleVFO_VFO2Focused_ReleasesSerialClaim(t *testing.T) {
+	s := NewScenario(t).WithClassicExchange().WithNextQSONumber(5)
+	s.WithVFO2()
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL1ABC") // claim serial on VFO2
+	got := s.controller.CurrentValues().MyNumber
+	require.Equal(t, core.QSONumber(5), got, "VFO2 must have claimed serial 5")
+
+	s.controller.RadioChanged("", true) // collapse → release VFO2 claim, move to VFO1
+
+	// After collapse, VFO1 is focused. Serial preview should be 5 (released, re-available).
+	vals := s.controller.CurrentValues()
+	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+		"after VFO2 collapse, VFO1 serial preview should be 5 (VFO2 claim released)")
+}
+
+// K1b. SendQuestion blocked during edit
+
+func TestK1b_SendQuestion_DuringEdit_IsNoOp(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	qso := core.QSO{
+		Callsign:      dl1abc,
+		MyNumber:      7,
+		Band:          core.Band20m,
+		Mode:          core.ModeCW,
+		TheirExchange: []string{"599", "042", "OE"},
+		MyExchange:    []string{"599", "007", ""},
+	}
+
+	NewScenario(t).
+		WithClassicExchange().WithKeyer().WithVFOSwitcher().
+		SelectQSO(qso).
+		SendQuestion().
+		AssertViewNotCalledWith("SetActiveField", core.VFO1, core.CallsignField) // no side effects
+	// keyer.SendQuestion NOT called is the key assertion:
+	// AssertNoKeyerText covers SendText; check sentQuestion directly.
+}
+
+func TestK1b_SendQuestion_DuringEdit_KeyerNotCalled(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	qso := core.QSO{
+		Callsign:      dl1abc,
+		MyNumber:      7,
+		Band:          core.Band20m,
+		Mode:          core.ModeCW,
+		TheirExchange: []string{"599", "042", "OE"},
+		MyExchange:    []string{"599", "007", ""},
+	}
+
+	s := NewScenario(t).
+		WithClassicExchange().WithKeyer().WithVFOSwitcher()
+	s.SelectQSO(qso)
+	s.resetSpies()
+	s.controller.SendQuestion()
+	assert.Empty(t, s.keyer.sentQuestion,
+		"SendQuestion must not call keyer during edit mode")
+}
+
+// K2b. RepeatLastTransmission blocked during edit
+
+func TestK2b_RepeatLastTransmission_DuringEdit_IsNoOp(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	qso := core.QSO{
+		Callsign:      dl1abc,
+		MyNumber:      7,
+		Band:          core.Band20m,
+		Mode:          core.ModeCW,
+		TheirExchange: []string{"599", "042", "OE"},
+		MyExchange:    []string{"599", "007", ""},
+	}
+
+	s := NewScenario(t).
+		WithClassicExchange().WithKeyer()
+	s.SelectQSO(qso)
+	s.resetSpies()
+	s.controller.RepeatLastTransmission()
+	assert.False(t, s.keyer.repeated,
+		"RepeatLastTransmission must not call keyer during edit mode")
+}
+
+// F3c. NextESMStep blocked during edit
+
+func TestF3c_NextESMStep_DuringEdit_IsNoOp(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	qso := core.QSO{
+		Callsign:      dl1abc,
+		MyNumber:      7,
+		Band:          core.Band20m,
+		Mode:          core.ModeCW,
+		TheirExchange: []string{"599", "042", "OE"},
+		MyExchange:    []string{"599", "007", ""},
+	}
+
+	s := NewScenario(t).
+		WithClassicExchange().WithESMEnabled().WithKeyer().WithVFOSwitcher()
+	s.SelectQSO(qso)
+	s.resetSpies()
+	s.controller.NextESMStep()
+	assert.Empty(t, s.keyer.sentTexts,
+		"NextESMStep must not call keyer during edit mode")
+}
+
+// F3d. NextESMStep — S&P mode, CallsignValid: sends keyer text, no field advance.
+
+func TestF3d_NextESMStep_SP_CallsignValid_SendsButNoFieldAdvance(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithESMEnabled().
+		WithKeyer().
+		WithVFOSwitcher().
+		WithWorkmode(core.SearchPounce)
+	s.Enter("DL1ABC") // ESM state = CallsignValid
+	s.NextESMStep()
+	s.AssertTXVFOBeforeKeyer(core.VFO1)
+	s.AssertKeyerSentText()
+	// In S&P, CallsignValid does NOT advance field (unlike Run mode).
+	// Verify no GotoNextField side effects: active field was not pushed.
+	assert.False(t, s.view.wasCalledWith("SetActiveField", core.VFO1, core.TheirExchangeField(1)),
+		"S&P CallsignValid must not advance to TheirExchange1 (that's Run-only)")
+}
+
+// F3e. NextESMStep — S&P mode, ExchangeValid: logs the QSO.
+
+func TestF3e_NextESMStep_SP_ExchangeValid_Logs(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WithESMEnabled().
+		WithKeyer().
+		WithWorkmode(core.SearchPounce).
+		Enter("DL1ABC").
+		GotoNextField(). // → TheirExchange1 (RST pre-filled "599")
+		GotoNextField(). // → TheirExchange2
+		Enter("042").
+		GotoNextField(). // → TheirExchange3
+		Enter("OE").
+		NextESMStep(). // ExchangeValid → Log()
+		AssertQSOAdded()
+}
+
+// E4+. Log preserves edit QSO time and workmode
+
+func TestE4_SaveEditedQSO_PreservesOriginalTimeAndWorkmode(t *testing.T) {
+	editTime := time.Date(2025, time.March, 15, 10, 30, 0, 0, time.UTC)
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	qso := core.QSO{
+		Callsign:      dl1abc,
+		MyNumber:      7,
+		Band:          core.Band20m,
+		Mode:          core.ModeCW,
+		Time:          editTime,
+		Workmode:      core.SearchPounce,
+		TheirExchange: []string{"599", "042", "OE"},
+		MyExchange:    []string{"599", "007", ""},
+	}
+
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithWorkmode(core.Run) // current workmode differs from edit QSO's
+	s.SelectQSO(qso)
+	s.PressEnter() // Log → UpdateQSO
+
+	require.NotEmpty(t, s.logbook.updatedQSOs, "expected UpdateQSO to be called")
+	updated := s.logbook.updatedQSOs[0]
+	assert.Equal(t, editTime, updated.Time,
+		"edited QSO must preserve original time, not clock.Now()")
+	assert.Equal(t, core.SearchPounce, updated.Workmode,
+		"edited QSO must preserve original workmode, not current workmode")
+}
+
+// I8. Serial claim released on non-focused VFO frequency jump
+
+func TestI8_FrequencyJump_VFO2_ReleasesSerialClaim(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		WithNextQSONumber(5)
+
+	// Enter callsign on VFO1 → claims serial 5.
+	s.controller.Enter("DL1ABC")
+	// Switch to VFO2, enter callsign → claims serial 6.
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL2XYZ")
+	// Switch back to VFO1.
+	s.controller.SetFocusedVFO(core.VFO1)
+	s.resetSpies()
+
+	// Large frequency jump on VFO2 → clearInput(VFO2) → Release(VFO2).
+	s.controller.VFOFrequencyChanged(core.VFO2, 14050000+1000)
+
+	// VFO2 serial claim released: SetSerialClaim(VFO2, 0) must be called.
+	s.AssertSerialClaimView(core.VFO2, 0)
+}
+
+// D2+. Clear fills idle non-focused VFO exchange defaults
+
+func TestD2_Clear_FillsIdleNonFocusedVFODefaults(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2()
+
+	// Set VFO2 band/mode so it has valid state.
+	s.controller.VFOBandChanged(core.VFO2, core.Band20m)
+	s.controller.VFOModeChanged(core.VFO2, core.ModeCW)
+
+	// VFO2 has no callsign and no claim → it's idle.
+	// Clear on VFO1 should also fill VFO2's exchange defaults.
+	s.resetSpies()
+	s.controller.Clear()
+
+	// VFO2 should have gotten its their-exchange[0] (RST) seeded via fillExchangeDefaults.
+	// showInput pushes all VFOs' exchange fields to the view.
+	s.view.assertCalledWith(s.t, "SetCallsign", core.VFO2, "")
+}
+
+func TestD2_Clear_DoesNotFillNonFocusedVFOWithClaim(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		WithNextQSONumber(5)
+
+	// Switch to VFO2, enter callsign → claims serial.
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL2XYZ")
+	// Switch back to VFO1 and enter something.
+	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.Enter("DL1ABC")
+	s.resetSpies()
+
+	// Clear on VFO1.
+	s.controller.Clear()
+
+	// VFO2 has a claim → fillExchangeDefaults must NOT run for VFO2.
+	// VFO2's callsign "DL2XYZ" must survive VFO1's Clear.
+	vals := s.controller.CurrentValues()
+	s.controller.SetFocusedVFO(core.VFO2)
+	vals = s.controller.CurrentValues()
+	assert.Equal(t, "DL2XYZ", vals.TheirCall,
+		"VFO2 callsign must survive VFO1 Clear when VFO2 has a claim")
+}

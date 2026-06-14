@@ -159,8 +159,8 @@ Exit edit modal.
 
 ### D3. Auto-clear on rig frequency jump
 - **Pre:** `VFOFrequencyChanged` fires; new frequency differs from stored by > `jumpThreshold`; `ignoreFrequencyJump` = false; not (vfo=VFO1 AND editing).
-- **Post:** `selectedFrequency[vfo]` updated; view frequency updated; Clear executed on focused VFO (D2 / D1 path); `ignoreFrequencyJump` reset to false; view active field reapplied.
-- **Invariants:** other VFO's input when other VFO not focused.
+- **Post:** `selectedFrequency[vfo]` updated; view frequency updated; `clearInput(vfo)` runs — releases serial claim for the event's VFO, resets that VFO's input (exchange defaults seeded), refreshes serial displays, clears callinfo/message for that VFO; if event's VFO = focused VFO: view active field reapplied; `ignoreFrequencyJump` reset to false.
+- **Invariants:** focused VFO identity (does not change even if event VFO differs); other VFO's input when not the event target.
 
 ### D4. Suppress jump-clear once
 - **Pre:** `ignoreFrequencyJump` = true (set by G2).
@@ -212,7 +212,11 @@ Exit edit modal.
 
 ### F3. NextESMStep
 - **Pre:** not editing (`canTransmit` true); keyer set.
-- **Post:** ESM state/message recomputed and message displayed; `keyer.SendText(esmMessage[focused])`; if state = `CallsignValid` AND workmode = Run: GotoNextField; if then on their-report: GotoNextField again; if state = `ExchangeValid`: Log (C1 path).
+- **Post:** `SetTXVFO(focused)` called (with `ignoreVFOChange` guard); ESM state/message recomputed and message displayed; `keyer.SendText(esmMessage[focused])`.
+  - **Run + CallsignValid:** GotoNextField; if then on their-report: GotoNextField again (skip RST).
+  - **S&P + CallsignValid:** keyer text sent, **no** field advance.
+  - **ExchangeValid (both modes):** Log (C1 path).
+  - **Editing:** no-op (`canTransmit` returns false).
 - **Invariants:** workmode; focused VFO (modulo Log's Clear effects).
 
 ### F4. ESM recompute on input/field/workmode change
@@ -264,11 +268,19 @@ Exit edit modal.
 ## H. VFO focus / dual-VFO
 
 ### H1. SetFocusedVFO
+User-initiated VFO focus change.
 - **Pre:** target ≠ VFO2 OR `vfo2Enabled` = true; target ≠ current focused VFO.
-- **Post:** `focusedVFO` = target; `vfoSwitcher.SetCurrentVFO(target)`; view active field reapplied for target.
+- **Post:** `focusedVFO` = target; `ignoreVFOChange` set true around rig commands; `vfoSwitcher.SetCurrentVFO(target)`; if `switchTXVFOOnFocus`: `vfoSwitcher.SetTXVFO(target)`; serial displays refreshed; `view.SetActiveVFO(target)`; view active field reapplied for target.
 - **Invariants:** input rows; serial claims; logbook.
 
-### H2. setFocusedVFOSilent
+### H2. CurrentVFOChanged
+Rig-side VFO change detected (e.g. hamlib polling sees operator changed VFO on radio). Implements `core.CurrentVFOListener`.
+- **Pre:** `ignoreVFOChange` = false; target ≠ VFO2 OR `vfo2Enabled` = true; target ≠ current focused VFO.
+- **Post:** `focusedVFO` = vfo; serial displays refreshed; `view.SetActiveVFO(vfo)`; `view.SetActiveField(vfo, activeField[vfo])`.
+- **Guards (no-op):** `ignoreVFOChange` true (prevents loop when `SetFocusedVFO` commands rig and rig echoes); VFO2 when disabled; same VFO.
+- **Invariants:** input rows; serial claims; logbook; rig not commanded.
+
+### H2i. setFocusedVFOSilent
 Used internally (edit mode, radio single-VFO collapse).
 - **Pre:** target ≠ current.
 - **Post:** `focusedVFO` = target; rig **not** commanded.
@@ -338,6 +350,16 @@ Embedded in I1's `nextUnclaimedSerial`.
 - **Post:** `claimedSerial[VFO1]` = `editQSO.MyNumber`; restored on leaveEditMode.
 - **Invariants:** other VFO's claim.
 
+### I8. Release on frequency jump (non-focused VFO)
+- **Pre:** D3 fires on a non-focused VFO (e.g. VFO2 frequency jump while VFO1 focused).
+- **Post:** `claimedSerial[eventVFO]` = 0 (via `clearInput` → `claims.Release`); serial previews refreshed on both VFOs; `view.SetSerialClaim(eventVFO, 0)`.
+- **Invariants:** focused VFO's claim; focused VFO identity.
+
+### I9. Release on RadioChanged VFO2 collapse
+- **Pre:** H8 fires with VFO2 focused.
+- **Post:** `claimedSerial[VFO2]` = 0 (via `releaseSerialClaimFor`); `input[VFO2]` zeroed; focused silently moved to VFO1.
+- **Invariants:** VFO1's claim.
+
 ---
 
 ## J. Incoming rig events
@@ -378,12 +400,14 @@ Embedded in I1's `nextUnclaimedSerial`.
 
 ### K1. SendQuestion
 - **Pre:** keyer set; `canTransmit` = true (not editing).
-- **Post:** if active field is their-exchange: `keyer.SendQuestion("nr")`; else: `keyer.SendQuestion(callsign)`.
+- **Post:** `SetTXVFO(focused)` called (with `ignoreVFOChange` guard); if active field is their-exchange: `keyer.SendQuestion("nr")`; else: `keyer.SendQuestion(callsign)`.
+- **Editing:** no-op (`canTransmit` false).
 - **Invariants:** input; logbook.
 
 ### K2. RepeatLastTransmission
 - **Pre:** keyer set; `canTransmit` = true.
-- **Post:** `keyer.Repeat()`.
+- **Post:** `keyer.Repeat()`. VFO switcher is **not** called (stay on last TX VFO).
+- **Editing:** no-op (`canTransmit` false).
 - **Invariants:** input.
 
 ### K3. StopTX

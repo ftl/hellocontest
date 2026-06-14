@@ -1149,6 +1149,14 @@ func (s *Scenario) RadioChanged(singleVFO bool) *Scenario {
 	return s
 }
 
+// CurrentVFOChanged fires the rig-side VFO change event.
+func (s *Scenario) CurrentVFOChanged(vfo core.VFOID) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.CurrentVFOChanged(vfo)
+	return s
+}
+
 // VFOXITChanged fires the XIT-changed event.
 func (s *Scenario) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) *Scenario {
 	s.t.Helper()
@@ -1313,6 +1321,38 @@ func (s *Scenario) AssertTXStateView(vfo core.VFOID, ptt bool, parrotActive bool
 func (s *Scenario) AssertMyCallView(call string) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetMyCall", call)
+	return s
+}
+
+// AssertActiveVFO asserts view.SetActiveVFO(vfo) was called.
+func (s *Scenario) AssertActiveVFO(vfo core.VFOID) *Scenario {
+	s.t.Helper()
+	s.view.assertCalledWith(s.t, "SetActiveVFO", vfo)
+	return s
+}
+
+// AssertVFOSwitcherCurrentCalled asserts vfoSwitcher.SetCurrentVFO(vfo) was called.
+func (s *Scenario) AssertVFOSwitcherCurrentCalled(vfo core.VFOID) *Scenario {
+	s.t.Helper()
+	if s.vfoSwitcher == nil {
+		s.t.Error("vfoSwitcher spy not wired (call WithVFOSwitcher() in setup)")
+		return s
+	}
+	found := false
+	for _, v := range s.vfoSwitcher.calledCurrentWith {
+		if v == vfo {
+			found = true
+			break
+		}
+	}
+	assert.True(s.t, found, "expected vfoSwitcher.SetCurrentVFO(%v) to be called", vfo)
+	return s
+}
+
+// AssertSerialClaimView asserts view.SetSerialClaim(vfo, serial) was called.
+func (s *Scenario) AssertSerialClaimView(vfo core.VFOID, serial core.QSONumber) *Scenario {
+	s.t.Helper()
+	s.view.assertCalledWith(s.t, "SetSerialClaim", vfo, serial)
 	return s
 }
 

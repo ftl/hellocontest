@@ -19,7 +19,7 @@ const (
 	EntryFieldStyle          = "QLineEdit { font-size: 24pt; font-family: monospace; }"
 	TXIndicatorActiveStyle   = "QLabel { color: red; font-weight: bold; }"
 	TXIndicatorInactiveStyle = ""
-	VFOActiveStyle           = "QLabel { padding-left: 5px; padding-right: 5px; background-color: palette(highlight); color: palette(highlighted-text); border: 1px solid palette(highlighted-text); border-radius: 10px; }"
+	VFOActiveStyle           = "QLabel { padding-left: 5px; padding-right: 5px; background-color: palette(highlight); color: palette(highlighted-text); border-radius: 10px; }"
 	VFOInactiveStyle         = "QLabel { padding-left: 6px; padding-right: 6px; }"
 
 	QTCPhaseActiveStyle   = "font-weight: bold; color: #1a65b1;"

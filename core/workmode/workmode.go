@@ -16,6 +16,8 @@ type Controller struct {
 
 	workmode            core.Workmode
 	operationModeSprint bool
+	vfo2Enabled         bool
+	focusedVFO          core.VFOID
 }
 
 // View represents the visual part of the workmode handling.
@@ -88,20 +90,54 @@ func (c *Controller) SetWorkmode(workmode core.Workmode) {
 		return
 	}
 	c.workmode = workmode
-	c.emitWorkmodeChanged(c.workmode)
+	if c.view != nil {
+		c.view.SetWorkmode(c.workmode)
+	}
+	c.emitAllWorkmodes()
+}
+
+// RadioChanged implements core.RadioChangedListener.
+func (c *Controller) RadioChanged(_ string, singleVFO bool) {
+	c.vfo2Enabled = !singleVFO
+	c.emitAllWorkmodes()
+}
+
+// FocusChanged implements core.FocusChangedListener.
+func (c *Controller) FocusChanged(vfo core.VFOID) {
+	if c.focusedVFO == vfo {
+		return
+	}
+	c.focusedVFO = vfo
+	c.emitAllWorkmodes()
+}
+
+// EffectiveWorkmode returns the workmode for a given VFO.
+// In SO2V (vfo2Enabled) with global=Run: VFO1=Run, VFO2=S&P.
+// Otherwise: both VFOs use the global workmode.
+func (c *Controller) EffectiveWorkmode(vfo core.VFOID) core.Workmode {
+	if c.vfo2Enabled && c.workmode == core.Run && vfo == core.VFO2 {
+		return core.SearchPounce
+	}
+	return c.workmode
 }
 
 func (c *Controller) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Controller) emitWorkmodeChanged(workmode core.Workmode) {
-	if c.view != nil {
-		c.view.SetWorkmode(workmode)
+// emitAllWorkmodes notifies listeners about the effective workmode for each VFO.
+// In single-VFO mode, only VFO1 is emitted. In SO2V, both VFOs are emitted.
+func (c *Controller) emitAllWorkmodes() {
+	c.emitWorkmodeChanged(core.VFO1, c.EffectiveWorkmode(core.VFO1))
+	if c.vfo2Enabled {
+		c.emitWorkmodeChanged(core.VFO2, c.EffectiveWorkmode(core.VFO2))
 	}
+}
+
+func (c *Controller) emitWorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
 	for _, listener := range c.listeners {
 		if workmodeChangedListener, ok := listener.(WorkmodeChangedListener); ok {
-			workmodeChangedListener.WorkmodeChanged(core.VFO1, workmode)
+			workmodeChangedListener.WorkmodeChanged(vfo, workmode)
 		}
 	}
 }

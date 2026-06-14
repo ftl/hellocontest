@@ -143,6 +143,17 @@ func (k *Keyer) setWorkmode(workmode core.Workmode) {
 	}
 }
 
+func (k *Keyer) getPatternsByWorkmode(workmode core.Workmode) map[int]string {
+	switch workmode {
+	case core.SearchPounce:
+		return k.spPatterns
+	case core.Run:
+		return k.runPatterns
+	default:
+		return nil
+	}
+}
+
 func (k *Keyer) getTemplatesByWorkmode(workmode core.Workmode) map[int]*template.Template {
 	switch workmode {
 	case core.SearchPounce:
@@ -553,13 +564,18 @@ func (k *Keyer) fillins() map[string]any {
 }
 
 func (k *Keyer) Send(index int) {
-	message, err := k.GetText(k.workmode, index)
+	k.SendWithWorkmode(k.workmode, index)
+}
+
+func (k *Keyer) SendWithWorkmode(workmode core.Workmode, index int) {
+	message, err := k.GetText(workmode, index)
 	if err != nil {
 		k.buttonView.ShowMessage(err)
 		return
 	}
 	k.send(message)
-	if k.patternHasSerial((*k.patterns)[index]) {
+	patterns := k.getPatternsByWorkmode(workmode)
+	if k.patternHasSerial(patterns[index]) {
 		k.emitSerialSent()
 	}
 }

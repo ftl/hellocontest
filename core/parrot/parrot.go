@@ -19,7 +19,7 @@ type WorkmodeController interface {
 }
 
 type Keyer interface {
-	Send(index int)
+	SendWithWorkmode(workmode core.Workmode, index int)
 	Stop()
 }
 
@@ -91,7 +91,7 @@ func (p *Parrot) run() {
 			}
 			if remaining <= 0 {
 				p.vfoSwitcher.SetTXVFO(core.VFO1)
-				p.keyer.Send(CQMessageIndex)
+				p.keyer.SendWithWorkmode(core.Run, CQMessageIndex)
 			}
 		})
 	}

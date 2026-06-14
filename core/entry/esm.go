@@ -59,6 +59,7 @@ func (c *Controller) NextESMStep() {
 	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetTXVFO(c.focusedVFO)
 	c.ignoreVFOChange = false
+	c.emitTransmissionStarted(c.focusedVFO)
 	if index := c.esmMacroIndex[c.focusedVFO]; index >= 0 {
 		c.keyer.Send(index)
 	} else {

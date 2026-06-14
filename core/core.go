@@ -1771,6 +1771,10 @@ type CallsignLoggedListener interface {
 	CallsignLogged(callsign string, frequency Frequency)
 }
 
+type TransmissionStartedListener interface {
+	TransmissionStarted(vfo VFOID)
+}
+
 func FormatTimestamp(ts time.Time) string {
 	return ts.UTC().Format("2006-01-02 15:04Z")
 }

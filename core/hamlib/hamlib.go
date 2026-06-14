@@ -15,6 +15,7 @@ import (
 
 const (
 	doBufferSize = 10
+	pttThreshold = 2 // number of consecutive PTT-off polls before emitting PTT-off
 )
 
 type Client struct {
@@ -36,6 +37,9 @@ type Client struct {
 	singleVFO  bool
 	lastState  []vfoState
 	audioLevel []float64
+
+	ptt         bool
+	pttOffCount int
 }
 
 type vfoState struct {
@@ -47,8 +51,6 @@ type vfoState struct {
 	xitActive    bool
 	xitOffset    core.Frequency
 	xitAvailable bool
-	ptt          bool
-	pttAvailable bool
 }
 
 func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
@@ -133,6 +135,8 @@ func (c *Client) run() {
 					c.emitChangeNotifications(vfo, c.lastState[vfo], currentState[vfo])
 					c.lastState[vfo] = currentState[vfo]
 				}
+
+				c.pollPTT(currentState)
 			}
 
 			select {
@@ -144,6 +148,47 @@ func (c *Client) run() {
 			}
 		}
 	}()
+}
+
+// pollPTT reads the radio-wide PTT state and applies debounce.
+// PTT-on is emitted immediately; PTT-off is emitted only after
+// pttThreshold consecutive polls read PTT=off.
+func (c *Client) pollPTT(currentState []vfoState) {
+	pttStatus, err := c.client.GetPTT(hl.CurrVFO)
+	if err != nil {
+		return
+	}
+	rawPTT := pttStatus != hl.PTTOff
+
+	if rawPTT {
+		c.pttOffCount = 0
+		if !c.ptt {
+			c.ptt = true
+			c.emitPTTChanged(c.txVFOID(currentState), true)
+		}
+		return
+	}
+
+	// rawPTT is false
+	if !c.ptt {
+		return
+	}
+	c.pttOffCount++
+	if c.pttOffCount >= pttThreshold {
+		c.ptt = false
+		c.pttOffCount = 0
+		c.emitPTTChanged(c.txVFOID(currentState), false)
+	}
+}
+
+// txVFOID returns the VFOID of the VFO currently designated for transmit.
+func (c *Client) txVFOID(state []vfoState) core.VFOID {
+	for vfo := range core.VFOCount {
+		if state[vfo].txVFO {
+			return core.VFOID(vfo)
+		}
+	}
+	return core.VFO1
 }
 
 // poll must only be called from the run goroutine!
@@ -251,13 +296,6 @@ func (c *Client) pollVFOAdditional(vfo hl.VFO, state vfoState) vfoState {
 		xitOffset = 0
 	}
 	result.xitOffset = core.Frequency(xitOffset)
-
-	pttStatus, err := c.client.GetPTT(vfo)
-	result.pttAvailable = (err == nil)
-	if err != nil {
-		pttStatus = hl.PTTOff
-	}
-	result.ptt = (pttStatus != hl.PTTOff)
 
 	return result
 }
@@ -547,9 +585,6 @@ func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState)
 		}
 		if (last.xitActive != current.xitActive) || (current.xitActive && (last.xitOffset != current.xitOffset)) {
 			c.emitXITChanged(vfo, current.xitActive, current.xitOffset)
-		}
-		if last.ptt != current.ptt {
-			c.emitPTTChanged(vfo, current.ptt)
 		}
 	}()
 }

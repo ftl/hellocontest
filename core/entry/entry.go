@@ -142,20 +142,20 @@ func (n *nullVFOSwitcher) SetCurrentVFO(core.VFOID) {}
 func (n *nullVFOSwitcher) SetTXVFO(core.VFOID)      {}
 
 type editSnapshot struct {
-	focusedVFO    core.VFOID
-	input         input
-	myReport      string
-	myNumber      string
-	myExchange    []string
-	claimedSerial    core.QSONumber
-	claimSnapshot    core.QSONumber
-	claimCommitted   bool
-	activeField      core.EntryField
-	errorField    core.EntryField
-	callinfoFrame core.CallinfoFrame
-	esmState      []core.ESMState
-	esmMessage    []string
-	esmMacroIndex []int
+	focusedVFO     core.VFOID
+	input          input
+	myReport       string
+	myNumber       string
+	myExchange     []string
+	claimedSerial  core.QSONumber
+	claimSnapshot  core.QSONumber
+	claimCommitted bool
+	activeField    core.EntryField
+	errorField     core.EntryField
+	callinfoFrame  core.CallinfoFrame
+	esmState       []core.ESMState
+	esmMessage     []string
+	esmMacroIndex  []int
 }
 
 type Controller struct {
@@ -212,10 +212,10 @@ type Controller struct {
 	parrotActive   bool
 	parrotTimeLeft time.Duration
 
-	esmEnabled     bool
-	esmState       []core.ESMState
-	esmMessage     []string
-	esmMacroIndex  []int
+	esmEnabled    bool
+	esmState      []core.ESMState
+	esmMessage    []string
+	esmMacroIndex []int
 }
 
 func (c *Controller) Notify(listener any) {
@@ -587,11 +587,6 @@ func (c *Controller) canTransmit() bool {
 
 // SetTXVFO commands the rig to switch the TX VFO, suppressing any rig-side
 // VFO change echo that might arrive from hamlib polling.
-func (c *Controller) SetTXVFO(vfo core.VFOID) {
-	c.ignoreVFOChange = true
-	c.vfoSwitcher.SetTXVFO(vfo)
-	c.ignoreVFOChange = false
-}
 
 // claimSerialFor reserves the next unclaimed serial for the given VFO if it has none yet.
 // Sticky: subsequent calls while a claim exists are no-ops.
@@ -653,20 +648,20 @@ func (c *Controller) writeMyNumberInput(serial core.QSONumber) {
 // and claims the QSO's existing serial for VFO1 for the duration of the edit.
 func (c *Controller) enterEditMode(qso core.QSO) {
 	c.editSnapshot = &editSnapshot{
-		focusedVFO:    c.focusedVFO,
-		input:         c.input[core.VFO1],
-		myReport:      c.myReport,
-		myNumber:      c.myNumber,
-		myExchange:    append([]string(nil), c.myExchange...),
+		focusedVFO:     c.focusedVFO,
+		input:          c.input[core.VFO1],
+		myReport:       c.myReport,
+		myNumber:       c.myNumber,
+		myExchange:     append([]string(nil), c.myExchange...),
 		claimedSerial:  c.claims.claimed[core.VFO1],
 		claimSnapshot:  c.claims.snapshot[core.VFO1],
 		claimCommitted: c.claims.committed[core.VFO1],
 		activeField:    c.activeField[core.VFO1],
-		errorField:    c.errorField[core.VFO1],
-		callinfoFrame: c.currentCallinfoFrame[core.VFO1],
-		esmState:      append([]core.ESMState(nil), c.esmState...),
-		esmMessage:    append([]string(nil), c.esmMessage...),
-		esmMacroIndex: append([]int(nil), c.esmMacroIndex...),
+		errorField:     c.errorField[core.VFO1],
+		callinfoFrame:  c.currentCallinfoFrame[core.VFO1],
+		esmState:       append([]core.ESMState(nil), c.esmState...),
+		esmMessage:     append([]string(nil), c.esmMessage...),
+		esmMacroIndex:  append([]int(nil), c.esmMacroIndex...),
 	}
 	c.setFocusedVFOSilent(core.VFO1)
 	c.editing = true

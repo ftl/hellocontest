@@ -238,6 +238,7 @@ func (c *Controller) Startup() {
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Keyer.Notify(c.Entry)
+	c.Entry.Notify(c.Keyer)
 	c.Workmode.Notify(c.Keyer)
 	c.Entry.SetKeyer(c.Keyer)
 

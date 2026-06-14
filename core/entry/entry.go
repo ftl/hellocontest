@@ -585,6 +585,14 @@ func (c *Controller) canTransmit() bool {
 	return !c.editing
 }
 
+// SetTXVFO commands the rig to switch the TX VFO, suppressing any rig-side
+// VFO change echo that might arrive from hamlib polling.
+func (c *Controller) SetTXVFO(vfo core.VFOID) {
+	c.ignoreVFOChange = true
+	c.vfoSwitcher.SetTXVFO(vfo)
+	c.ignoreVFOChange = false
+}
+
 // claimSerialFor reserves the next unclaimed serial for the given VFO if it has none yet.
 // Sticky: subsequent calls while a claim exists are no-ops.
 func (c *Controller) claimSerialFor(vfo core.VFOID) {

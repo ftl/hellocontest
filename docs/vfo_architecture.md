@@ -154,6 +154,7 @@ Per-VFO slices (length `core.VFOCount`, index = `VFOID`):
 | `currentCallinfoFrame` | `[]core.CallinfoFrame` |
 | `esmState` | `[]core.ESMState` |
 | `esmMessage` | `[]string` |
+| `esmMacroIndex` | `[]int` |
 
 Serial claims are managed by the `claims SerialClaims` struct (see §5.3).
 
@@ -209,16 +210,18 @@ Serial claim logic is encapsulated in the `SerialClaims` struct:
 
 ```go
 type SerialClaims struct {
-    claimed  []core.QSONumber // per-VFO reserved serial; 0 = unclaimed
-    snapshot []core.QSONumber // logbook.NextQSONumber() at claim time
+    claimed   []core.QSONumber // per-VFO reserved serial; 0 = unclaimed
+    snapshot  []core.QSONumber // logbook.NextQSONumber() at claim time
+    committed []bool           // per-VFO: serial was sent over air (UI-only)
 }
 ```
 
-A serial number can be in one of three states:
+A serial number transitions through three states:
 
-- **Claimed**: assigned to a VFO's pending (unlogged) QSO the moment a valid callsign is first parsed. Stored in `claimed[vfo]`. Sticky — re-parsing the same field with the same VFO does not re-claim.
-- **Taken**: logged into the logbook. Permanently unavailable.
 - **Unclaimed / preview**: next available serial, skipping the other VFO's claimed serial.
+- **Claimed**: reserved for a VFO's pending QSO. Recyclable on release.
+- **Committed**: serial was sent over the air (keyer emitted `SerialSent`). UI shows bold label. Still recyclable on release — committed state is visual-only.
+- **Taken**: logged into the logbook. Permanently unavailable.
 
 Key methods on `SerialClaims`:
 
@@ -227,7 +230,8 @@ nextUnclaimed(forVFO, base)        // walks from base, skips other VFO's claim
 DisplayedSerial(vfo, base)         // claimed || nextUnclaimed preview
 AllDisplayed(base)                 // displayed serial for every VFO
 ClaimNext(vfo, base)               // reserve next unclaimed serial; no-op if already claimed
-Release(vfo)                       // zero the claim and snapshot slots
+Commit(vfo)                        // mark claim as committed (sent over air)
+Release(vfo)                       // free claim; serial recyclable regardless of committed state
 ```
 
 Entry controller wrappers:
@@ -235,22 +239,25 @@ Entry controller wrappers:
 ```go
 claimSerialFor(vfo)                // delegates to claims.ClaimNext, then refreshMyNumberInputs
 releaseSerialClaimFor(vfo)         // delegates to claims.Release, then refreshMyNumberInputs
+SerialSent()                       // claims if unclaimed, then commits focused VFO's serial
 refreshMyNumberInputs()            // reads NextQSONumber once, writes focused VFO's myNumber,
                                    // then pushes view.SetSerialClaim for every VFO
 refreshMyNumberInput(vfo)          // single-VFO variant
 writeMyNumberInput(serial)         // writes serial into myNumber and exchange slot
 ```
 
+Entry implements `keyer.SerialSentListener`. Wired via `c.Keyer.Notify(c.Entry)` in app.go.
+
 ### 5.4 Edit-mode modal (`entry.go:606–653`)
 
 `enterEditMode(qso core.QSO)`:
-1. Snapshots VFO1 state into `editSnapshot` (focusedVFO, full `input[VFO1]`, `myReport`, `myNumber`, `myExchange`, `claims.claimed[VFO1]`, `claims.snapshot[VFO1]`, activeField, errorField, callinfoFrame, esmState[], esmMessage[]).
+1. Snapshots VFO1 state into `editSnapshot` (focusedVFO, full `input[VFO1]`, `myReport`, `myNumber`, `myExchange`, `claims.claimed[VFO1]`, `claims.snapshot[VFO1]`, `claims.committed[VFO1]`, activeField, errorField, callinfoFrame, esmState[], esmMessage[], esmMacroIndex[]).
 2. `setFocusedVFOSilent(VFO1)` — no rig command, no view cursor move.
 3. Sets `editing = true`, `editQSO = qso`.
-4. Claims `qso.MyNumber` for VFO1 for the duration (writes directly to `claims.claimed[VFO1]` and `claims.snapshot[VFO1]`).
+4. Claims `qso.MyNumber` for VFO1 for the duration (writes directly to `claims.claimed[VFO1]` and `claims.snapshot[VFO1]`). Sets `claims.committed[VFO1] = false` — edit claim is temporary, not a real claim.
 
 `leaveEditMode()` (called by `Clear()` when `editing == true`):
-1. Restores all snapshotted fields for VFO1 (including `myReport`, `myNumber`, `myExchange`).
+1. Restores all snapshotted fields for VFO1 (including `myReport`, `myNumber`, `myExchange`, `claims.committed[VFO1]`).
 2. Clears `editing`, `editQSO`, `editSnapshot`.
 3. `setFocusedVFOSilent(snap.focusedVFO)` — returns focus to where it was.
 4. **TODO**: call `c.view.SetVFOEnabled(core.VFO2, false/true)` around edit mode (VFO2 disable during edit not yet wired, see §11).
@@ -281,7 +288,11 @@ Same pattern for `VFOBandChanged`, `VFOModeChanged`, `VFOXITChanged`, `VFOPTTCha
 
 ### 5.6 ESM (`entry/esm.go`)
 
-Fully per-VFO: `esmState[focusedVFO]`, `esmMessage[focusedVFO]`. `NextESMStep` guards via `canTransmit()`. `updateESM` reads and writes the focused VFO's slots.
+Fully per-VFO: `esmState[focusedVFO]`, `esmMessage[focusedVFO]`, `esmMacroIndex[focusedVFO]`. `NextESMStep` guards via `canTransmit()`. `updateESM` reads and writes the focused VFO's slots.
+
+`updateSPMessage` / `updateRunMessage` return `(string, int)` — display text and macro index. Macro index is the keyer pattern slot (0–3); sentinel `-1` for non-macro states (callsign request `?`, `nr?`).
+
+`NextESMStep`: if `esmMacroIndex >= 0`, calls `keyer.Send(index)` (goes through template expansion, triggers `SerialSent` if pattern references serial); otherwise calls `keyer.SendText(literal)`. This ensures serial detection works for all ESM-driven transmissions.
 
 ### 5.7 `Log()` (`entry.go:1002–1095`)
 
@@ -331,6 +342,7 @@ Radio.SelectRadio(session.Radio1())
 Radio.SelectKeyer(session.Keyer1())
 
 Keyer := keyer.New(...)
+Keyer.Notify(Entry)          // Entry receives SerialSent from keyer
 Entry.SetKeyer(Keyer)
 
 Callinfo.Notify(Entry)  // CallinfoFrameChanged flows to entry

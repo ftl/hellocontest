@@ -2022,8 +2022,8 @@ func TestI8_FrequencyJump_VFO2_ReleasesSerialClaim(t *testing.T) {
 	// Large frequency jump on VFO2 → clearInput(VFO2) → Release(VFO2).
 	s.controller.VFOFrequencyChanged(core.VFO2, 14050000+1000)
 
-	// VFO2 serial claim released: SetSerialClaim(VFO2, 0) must be called.
-	s.AssertSerialClaimView(core.VFO2, 0)
+	// VFO2 serial claim released: SetSerialClaim(VFO2, 0, false) must be called.
+	s.AssertSerialClaimView(core.VFO2, 0, false)
 }
 
 // D2+. Clear fills idle non-focused VFO exchange defaults
@@ -2071,4 +2071,140 @@ func TestD2_Clear_DoesNotFillNonFocusedVFOWithClaim(t *testing.T) {
 	vals = s.controller.CurrentValues()
 	assert.Equal(t, "DL2XYZ", vals.TheirCall,
 		"VFO2 callsign must survive VFO1 Clear when VFO2 has a claim")
+}
+
+// I10. SerialSent — claims and commits serial for focused VFO
+
+func TestI10_SerialSent_ClaimsAndCommits(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WithNextQSONumber(5).
+		Enter("DL1ABC"). // claims serial 5
+		SerialSent().
+		AssertSerialCommitted(core.VFO1)
+}
+
+func TestI10_SerialSent_WithoutPriorClaim_ClaimsThenCommits(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithNextQSONumber(5)
+	// No callsign entered → no claim yet.
+	s.SerialSent()
+	s.AssertSerialClaimed()
+	s.AssertSerialCommitted(core.VFO1)
+}
+
+func TestI10_SerialSent_DoesNotAffectOtherVFO(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		WithNextQSONumber(5)
+	s.controller.Enter("DL1ABC") // VFO1 claims 5
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL2XYZ") // VFO2 claims 6
+	s.resetSpies()
+
+	s.controller.SerialSent() // commits VFO2 (focused)
+
+	assert.True(t, s.controller.IsSerialCommitted(core.VFO2),
+		"VFO2 serial must be committed")
+	assert.False(t, s.controller.IsSerialCommitted(core.VFO1),
+		"VFO1 serial must not be committed")
+}
+
+// I11. Committed serial recycled on Release — no burning
+
+func TestI11_CommittedSerial_RecycledOnClear(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithNextQSONumber(5)
+
+	// Claim and commit serial 5.
+	s.controller.Enter("DL1ABC")
+	s.controller.SerialSent()
+
+	// Clear without logging → serial 5 recycled (not burned).
+	s.controller.Clear()
+
+	// Enter new callsign → serial 5 reused.
+	s.controller.Enter("DL2XYZ")
+	vals := s.controller.CurrentValues()
+	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+		"committed serial 5 must be recycled after clear without logging")
+}
+
+func TestI11_UncommittedSerial_RecycledOnClear(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithNextQSONumber(5)
+
+	// Claim serial 5 but do NOT commit.
+	s.controller.Enter("DL1ABC")
+	assert.False(t, s.controller.IsSerialCommitted(core.VFO1))
+
+	// Clear without logging → release uncommitted serial 5.
+	s.controller.Clear()
+
+	// Enter new callsign → serial 5 reused.
+	s.controller.Enter("DL2XYZ")
+	vals := s.controller.CurrentValues()
+	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+		"uncommitted serial 5 must be recycled")
+}
+
+func TestI11_DualVFO_CommittedSerial_RecycledAfterClear(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		WithNextQSONumber(5)
+
+	// VFO1 claims 5, VFO2 claims 6. Both committed.
+	s.controller.Enter("DL1ABC")
+	s.controller.SerialSent()
+	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.Enter("DL2XYZ")
+	s.controller.SerialSent()
+
+	// Clear VFO1 without logging → serial 5 released.
+	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.Clear()
+
+	// VFO1 enters new callsign → gets 5 again (VFO2 holds 6, so 5 is free).
+	s.controller.Enter("DL3FOO")
+	vals := s.controller.CurrentValues()
+	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+		"released serial 5 must be recycled (VFO2 holds 6)")
+}
+
+// I12. Edit mode does not interact with committed state
+
+func TestI12_EditMode_CommittedNotAffected(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	qso := core.QSO{
+		Callsign:      dl1abc,
+		MyNumber:      3,
+		Band:          core.Band20m,
+		Mode:          core.ModeCW,
+		TheirExchange: []string{"599", "042", "OE"},
+		MyExchange:    []string{"599", "003", ""},
+	}
+
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithNextQSONumber(5)
+
+	// Claim and commit serial 5.
+	s.controller.Enter("DL9ZZZ")
+	s.controller.SerialSent()
+	assert.True(t, s.controller.IsSerialCommitted(core.VFO1))
+
+	// Enter edit mode → committed state saved, edit claim not committed.
+	s.controller.QSOSelected(qso)
+	assert.False(t, s.controller.IsSerialCommitted(core.VFO1),
+		"edit mode claim must not be committed")
+
+	// Leave edit mode → committed state restored.
+	s.controller.Clear()
+	assert.True(t, s.controller.IsSerialCommitted(core.VFO1),
+		"committed state must be restored after edit mode")
 }

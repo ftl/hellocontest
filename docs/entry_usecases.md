@@ -319,9 +319,11 @@ Thin wrappers over H1.
 
 ## I. Serial claim
 
+Claims transition through three states: **unclaimed** → **claimed** (reserved) → **committed** (sent over air). Both claimed and committed serials are recyclable on release. The committed flag is used only for UI visualization (bold serial label). Collision avoidance between VFOs (`nextUnclaimed` skipping other VFO's active claim) is the only reuse prevention.
+
 ### I1. Claim on callsign keystroke
 - **Pre:** not editing; current callsign parses; `claimedSerial[focused]` = 0.
-- **Post:** `claimedSerial[focused]` = `nextUnclaimedSerial(focused)`; `claimSnapshot[focused]` = current `NextQSONumber`; my-number inputs refreshed on both VFOs.
+- **Post:** `claimedSerial[focused]` = `nextUnclaimedSerial(focused)`; `claimSnapshot[focused]` = current `NextQSONumber`; `committed[focused]` = false; my-number inputs refreshed on both VFOs.
 - **Invariants:** other VFO's claim; logbook.
 
 ### I2. Claim sticky
@@ -337,7 +339,7 @@ Embedded in I1's `nextUnclaimedSerial`.
 
 ### I4. Release on Clear (not editing)
 - **Pre:** D2 entered.
-- **Post:** `claimedSerial[focused]` = 0; `claimSnapshot[focused]` = 0; both VFOs' my-number previews recomputed.
+- **Post:** `claimedSerial[focused]` = 0; `claimSnapshot[focused]` = 0; `committed[focused]` = false; both VFOs' my-number previews recomputed. Released serial is recyclable regardless of committed state.
 - **Invariants:** other VFO's claim slot.
 
 ### I5. Refresh previews after log
@@ -347,18 +349,33 @@ Embedded in I1's `nextUnclaimedSerial`.
 
 ### I6. Edit mode owns the serial slot
 - **Pre:** E1 fired.
-- **Post:** `claimedSerial[VFO1]` = `editQSO.MyNumber`; restored on leaveEditMode.
+- **Post:** `claimedSerial[VFO1]` = `editQSO.MyNumber`; `committed[VFO1]` = false (edit claim is temporary, not a real claim); previous committed state saved in snapshot; restored on leaveEditMode.
 - **Invariants:** other VFO's claim.
 
 ### I8. Release on frequency jump (non-focused VFO)
 - **Pre:** D3 fires on a non-focused VFO (e.g. VFO2 frequency jump while VFO1 focused).
-- **Post:** `claimedSerial[eventVFO]` = 0 (via `clearInput` → `claims.Release`); serial previews refreshed on both VFOs; `view.SetSerialClaim(eventVFO, 0)`.
+- **Post:** `claimedSerial[eventVFO]` = 0 (via `clearInput` → `claims.Release`); serial previews refreshed on both VFOs; `view.SetSerialClaim(eventVFO, 0, false)`.
 - **Invariants:** focused VFO's claim; focused VFO identity.
 
 ### I9. Release on RadioChanged VFO2 collapse
 - **Pre:** H8 fires with VFO2 focused.
 - **Post:** `claimedSerial[VFO2]` = 0 (via `releaseSerialClaimFor`); `input[VFO2]` zeroed; focused silently moved to VFO1.
 - **Invariants:** VFO1's claim.
+
+### I10. SerialSent — commit serial on transmission
+- **Pre:** keyer emits `SerialSent` (pattern contained `MyNumber` or `MyExchange`).
+- **Post:** if no claim on focused VFO: claim created first (I1); `committed[focused]` = true.
+- **Invariants:** other VFO's claim and committed state; logbook.
+
+### I11. Committed serial recycled on Release
+- **Pre:** `committed[vfo]` = true; Release called (Clear, frequency jump, collapse).
+- **Post:** serial released and recyclable. No burning — committed state is UI-only. Next `ClaimNext` can reissue the same serial if logbook and other VFO's claim allow it.
+- **Invariants:** logbook; other VFO's claim.
+
+### I12. Edit mode does not interact with committed state
+- **Pre:** operator selects QSO for editing.
+- **Post:** `committed[VFO1]` set false for duration of edit; restored from snapshot on leave. Committed state of pre-edit claim preserved across edit.
+- **Invariants:** highWaterMark; other VFO.
 
 ---
 

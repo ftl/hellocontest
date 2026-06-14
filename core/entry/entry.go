@@ -35,7 +35,7 @@ type View interface {
 	SetCallsign(core.VFOID, string)
 	SetTheirExchange(vfo core.VFOID, index int, text string)
 
-	SetSerialClaim(core.VFOID, core.QSONumber)
+	SetSerialClaim(core.VFOID, core.QSONumber, bool)
 	SetActiveVFO(core.VFOID)
 	SetActiveField(core.VFOID, core.EntryField)
 	SelectText(core.VFOID, core.EntryField, string)
@@ -145,9 +145,10 @@ type editSnapshot struct {
 	myReport      string
 	myNumber      string
 	myExchange    []string
-	claimedSerial core.QSONumber
-	claimSnapshot core.QSONumber
-	activeField   core.EntryField
+	claimedSerial    core.QSONumber
+	claimSnapshot    core.QSONumber
+	claimCommitted   bool
+	activeField      core.EntryField
 	errorField    core.EntryField
 	callinfoFrame core.CallinfoFrame
 	esmState      []core.ESMState
@@ -568,9 +569,23 @@ func (c *Controller) claimSerialFor(vfo core.VFOID) {
 }
 
 // releaseSerialClaimFor frees the claim slot for vfo.
+// If the serial was committed (sent over air), it is burned and cannot be reused.
 func (c *Controller) releaseSerialClaimFor(vfo core.VFOID) {
 	c.claims.Release(vfo)
 	c.refreshMyNumberInputs()
+}
+
+// SerialSent is called when the keyer transmits a message containing a serial number.
+// It claims the serial for the focused VFO (if not already claimed) and commits it.
+func (c *Controller) SerialSent() {
+	c.claimSerialFor(c.focusedVFO)
+	c.claims.Commit(c.focusedVFO)
+	c.refreshMyNumberInputs()
+}
+
+// IsSerialCommitted reports whether the serial claim for vfo has been committed (sent over air).
+func (c *Controller) IsSerialCommitted(vfo core.VFOID) bool {
+	return c.claims.committed[vfo]
 }
 
 // refreshMyNumberInputs syncs myNumber (and exchange serial slot) with the
@@ -580,7 +595,7 @@ func (c *Controller) refreshMyNumberInputs() {
 	base := c.logbook.NextQSONumber()
 	c.writeMyNumberInput(c.claims.DisplayedSerial(c.focusedVFO, base))
 	for vfo := range core.VFOCount {
-		c.view.SetSerialClaim(core.VFOID(vfo), c.claims.claimed[vfo])
+		c.view.SetSerialClaim(core.VFOID(vfo), c.claims.claimed[vfo], c.claims.committed[vfo])
 	}
 }
 
@@ -611,9 +626,10 @@ func (c *Controller) enterEditMode(qso core.QSO) {
 		myReport:      c.myReport,
 		myNumber:      c.myNumber,
 		myExchange:    append([]string(nil), c.myExchange...),
-		claimedSerial: c.claims.claimed[core.VFO1],
-		claimSnapshot: c.claims.snapshot[core.VFO1],
-		activeField:   c.activeField[core.VFO1],
+		claimedSerial:  c.claims.claimed[core.VFO1],
+		claimSnapshot:  c.claims.snapshot[core.VFO1],
+		claimCommitted: c.claims.committed[core.VFO1],
+		activeField:    c.activeField[core.VFO1],
 		errorField:    c.errorField[core.VFO1],
 		callinfoFrame: c.currentCallinfoFrame[core.VFO1],
 		esmState:      append([]core.ESMState(nil), c.esmState...),
@@ -625,6 +641,7 @@ func (c *Controller) enterEditMode(qso core.QSO) {
 	c.editQSO = qso
 	c.claims.claimed[core.VFO1] = qso.MyNumber
 	c.claims.snapshot[core.VFO1] = c.logbook.NextQSONumber()
+	c.claims.committed[core.VFO1] = false
 	// TODO step 6: c.view.SetVFOEnabled(core.VFO2, false)
 }
 
@@ -640,6 +657,7 @@ func (c *Controller) leaveEditMode() {
 	c.myExchange = append(c.myExchange[:0], snap.myExchange...)
 	c.claims.claimed[core.VFO1] = snap.claimedSerial
 	c.claims.snapshot[core.VFO1] = snap.claimSnapshot
+	c.claims.committed[core.VFO1] = snap.claimCommitted
 	c.activeField[core.VFO1] = snap.activeField
 	c.errorField[core.VFO1] = snap.errorField
 	c.currentCallinfoFrame[core.VFO1] = snap.callinfoFrame

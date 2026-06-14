@@ -447,6 +447,11 @@ Embedded in I1's `nextUnclaimedSerial`.
 - **Post:** `TransmissionStartedListener`s notified with focused VFO. Parrot receives: ignores VFO1 (self-CQ or already stopped); interrupts on VFO2 (`keyer.Stop()`).
 - **Invariants:** input; logbook.
 
+### K7. Parrot CQ transmission
+- **Pre:** Parrot active; tick interval elapsed.
+- **Post:** `Entry.SetTXVFO(VFO1)` called (with `ignoreVFOChange` guard to prevent focus switch); `keyer.SendWithWorkmode(Run, CQMessageIndex)` called — always uses Run macros regardless of focused VFO.
+- **Invariants:** focused VFO; VFO2 input; keyer workmode (not changed, Run used explicitly for this send only).
+
 ---
 
 ## L. Settings / contest / workmode

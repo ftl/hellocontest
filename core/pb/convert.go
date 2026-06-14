@@ -105,7 +105,6 @@ func ToContest(pbContest *Contest) (core.Contest, error) {
 	contest.Name = pbContest.Name
 	contest.StartTime = pbContest.StartTime.AsTime()
 	contest.OperationModeSprint = pbContest.SprintOperation
-	contest.SwitchTXVFOOnFocus = pbContest.SwitchTxVfoOnFocus
 	contest.CallHistoryFilename = pbContest.CallHistoryFilename
 	contest.CallHistoryFieldNames = pbContest.CallHistoryFieldNames
 
@@ -154,7 +153,6 @@ func ContestToPB(contest core.Contest) *Contest {
 		Name:                  contest.Name,
 		StartTime:             timestamppb.New(contest.StartTime),
 		SprintOperation:       contest.OperationModeSprint,
-		SwitchTxVfoOnFocus:    contest.SwitchTXVFOOnFocus,
 		CallHistoryFilename:   contest.CallHistoryFilename,
 		CallHistoryFieldNames: contest.CallHistoryFieldNames,
 		QsosGoal:              int32(contest.QSOsGoal),

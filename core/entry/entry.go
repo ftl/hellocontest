@@ -180,7 +180,6 @@ type Controller struct {
 	theirNumberExchangeField core.ExchangeField
 	generateSerialExchange   bool
 	generateReport           bool
-	switchTXVFOOnFocus       bool
 	defaultExchangeValues    []string
 	currentCallinfoFrame     []core.CallinfoFrame
 
@@ -481,7 +480,6 @@ func (c *Controller) CurrentVFOChanged(vfo core.VFOID) {
 }
 
 // SetFocusedVFO is the single funnel for changing focused VFO.
-// If SwitchTXVFOOnFocus is enabled, it also commands the rig to switch the TX VFO.
 func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 	if vfo == core.VFO2 && !c.vfo2Enabled {
 		return
@@ -492,9 +490,6 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 	c.focusedVFO = vfo
 	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetCurrentVFO(c.focusedVFO)
-	if c.switchTXVFOOnFocus {
-		c.vfoSwitcher.SetTXVFO(c.focusedVFO)
-	}
 	c.ignoreVFOChange = false
 	c.refreshMyNumberInputs()
 	c.view.SetActiveVFO(c.focusedVFO)
@@ -1366,7 +1361,6 @@ func (c *Controller) updateExchangeFields(contest core.Contest) {
 	c.theirNumberExchangeField = contest.TheirNumberExchangeField
 	c.generateSerialExchange = contest.GenerateSerialExchange
 	c.generateReport = contest.GenerateReport
-	c.switchTXVFOOnFocus = contest.SwitchTXVFOOnFocus
 	c.defaultExchangeValues = contest.ExchangeValues
 
 	c.myExchange = make([]string, len(contest.MyExchangeFields))

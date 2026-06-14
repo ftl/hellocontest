@@ -15,7 +15,7 @@ import (
 
 const (
 	doBufferSize = 10
-	pttThreshold = 2 // number of consecutive PTT-off polls before emitting PTT-off
+	pttThreshold = 4 // number of consecutive PTT-off polls before emitting PTT-off
 )
 
 type Client struct {

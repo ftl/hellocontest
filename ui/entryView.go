@@ -66,7 +66,8 @@ type entryView struct {
 
 	vfo [core.VFOCount]entryVFOWidgets
 
-	vfo2Enabled bool
+	vfo2Enabled    bool
+	onVFO2Enabled  func(bool) // callback to centralArea for layout add/remove
 
 	ignoreInput bool
 	isDuplicate bool
@@ -636,12 +637,24 @@ func (v *entryView) ClearMessage(vfo core.VFOID) {
 
 // SetVFOEnabled toggles the visibility/enabled state of a VFO's row of widgets.
 // VFO1 is always enabled. VFO2 widgets are shown/hidden as a group.
+// If onVFO2Enabled is set, it delegates to centralArea for layout add/remove first.
 func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	if vfo == core.VFO1 {
 		return
 	}
+	if v.vfo2Enabled == enabled {
+		return
+	}
+	if v.onVFO2Enabled != nil {
+		v.onVFO2Enabled(enabled)
+		return
+	}
+	v.setVFO2Enabled(enabled)
+}
+
+func (v *entryView) setVFO2Enabled(enabled bool) {
 	v.vfo2Enabled = enabled
-	widgets := v.vfo[vfo]
+	widgets := v.vfo[core.VFO2]
 	if widgets.vfoContainer != nil {
 		widgets.vfoContainer.SetVisible(enabled)
 	}

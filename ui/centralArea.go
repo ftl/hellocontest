@@ -63,6 +63,8 @@ func newCentralArea(entry *entryView, callinfo *callinfoView, esm *esmView, work
 	rootLayout.AddWidget(result.keyer.widget)
 	rootLayout.AddStretch()
 
+	entry.onVFO2Enabled = result.setVFO2Enabled
+
 	return result
 }
 
@@ -77,6 +79,16 @@ func (a *centralArea) SetExchangeFields(myExchangeFields, theirExchangeFields []
 	a.entry.SetSerialClaimLabelsVisible(generateSerialExchange)
 	a.callinfo.SetPredictedExchangeFields(theirExchangeFields)
 	a.addWidgetsToLayout()
+}
+
+func (a *centralArea) setVFO2Enabled(enabled bool) {
+	if enabled {
+		a.addVFOWidgetsToLayout(core.VFO2, 8)
+	} else {
+		a.removeVFOWidgetsFromLayout(core.VFO2)
+	}
+	a.entry.setVFO2Enabled(enabled)
+	a.callinfo.SetVFOEnabled(core.VFO2, enabled)
 }
 
 func (a *centralArea) addWidgetsToLayout() {

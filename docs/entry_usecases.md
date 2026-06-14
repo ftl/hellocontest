@@ -270,7 +270,7 @@ Exit edit modal.
 ### H1. SetFocusedVFO
 User-initiated VFO focus change.
 - **Pre:** target ≠ VFO2 OR `vfo2Enabled` = true; target ≠ current focused VFO.
-- **Post:** `focusedVFO` = target; `ignoreVFOChange` set true around rig commands; `vfoSwitcher.SetCurrentVFO(target)`; if `switchTXVFOOnFocus`: `vfoSwitcher.SetTXVFO(target)`; serial displays refreshed; `view.SetActiveVFO(target)`; view active field reapplied for target.
+- **Post:** `focusedVFO` = target; `ignoreVFOChange` set true around rig command; `vfoSwitcher.SetCurrentVFO(target)`; serial displays refreshed; `view.SetActiveVFO(target)`; view active field reapplied for target.
 - **Invariants:** input rows; serial claims; logbook.
 
 ### H2. CurrentVFOChanged

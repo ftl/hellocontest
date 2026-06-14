@@ -31,7 +31,6 @@ type SettingsController interface {
 	SetContestStartTimeToday()
 	SetContestStartTimeNow()
 	SetOperationModeSprint(bool)
-	SetSwitchTXVFOOnFocus(bool)
 	SetContestEnableQTCs(bool)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
@@ -70,7 +69,6 @@ type settingsView struct {
 	startTimeTodayBtn *qtlib.QPushButton
 	startTimeNowBtn   *qtlib.QPushButton
 	sprintMode          *qtlib.QCheckBox
-	switchTXVFOOnFocus  *qtlib.QCheckBox
 	enableQTCs          *qtlib.QCheckBox
 
 	exchangeGrid        *qtlib.QGridLayout
@@ -212,15 +210,6 @@ func (v *settingsView) buildContestGroup() *qtlib.QGroupBox {
 		v.controller.SetOperationModeSprint(checked)
 	})
 	form.AddRow3("Operation Mode:", v.sprintMode.QWidget)
-
-	v.switchTXVFOOnFocus = qtlib.NewQCheckBox3("Switch TX VFO when changing focus")
-	v.switchTXVFOOnFocus.OnToggled(func(checked bool) {
-		if v.ignoreChangedEvent {
-			return
-		}
-		v.controller.SetSwitchTXVFOOnFocus(checked)
-	})
-	form.AddRow3("SO2V:", v.switchTXVFOOnFocus.QWidget)
 
 	v.enableQTCs = qtlib.NewQCheckBox3("Enable QTCs")
 	v.enableQTCs.OnToggled(func(checked bool) {
@@ -553,10 +542,6 @@ func (v *settingsView) SetContestStartTime(value string) {
 
 func (v *settingsView) SetOperationModeSprint(value bool) {
 	v.doIgnore(func() { v.sprintMode.SetChecked(value) })
-}
-
-func (v *settingsView) SetSwitchTXVFOOnFocus(value bool) {
-	v.doIgnore(func() { v.switchTXVFOOnFocus.SetChecked(value) })
 }
 
 func (v *settingsView) SetContestCallHistoryFile(value string) {

@@ -1052,26 +1052,15 @@ func TestG6_CallinfoFrameChanged_FrameUsedInSubsequentPrediction(t *testing.T) {
 
 // H1. SetFocusedVFO
 // Pre:  target ≠ VFO2 OR vfo2Enabled = true; target ≠ current focused VFO.
-// Post: focusedVFO = target; view active field reapplied.
-//       vfoSwitcher is NOT called here — it fires only before keyer TX.
+// Post: focusedVFO = target; vfoSwitcher.SetCurrentVFO called; view active field reapplied.
 // Invariants: input rows; serial claims; logbook.
 
-func TestH1_SetFocusedVFO_ReappliesActiveField_NoVFOSwitch(t *testing.T) {
-	s := NewScenario(t).
-		WithClassicExchange().WithVFO2().WithVFOSwitcher()
-	s.SetFocusedVFO(core.VFO2).
-		AssertActiveField(core.VFO2, core.CallsignField)
-	assert.Empty(t, s.vfoSwitcher.calledTXWith,
-		"SetFocusedVFO must not call SetTXVFO")
-}
-
-func TestH1_SetFocusedVFO_WithSwitchTXVFOOnFocus_SwitchesTXVFO(t *testing.T) {
+func TestH1_SetFocusedVFO_ReappliesActiveField(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().WithVFOSwitcher().
-		WithSwitchTXVFOOnFocus().
 		SetFocusedVFO(core.VFO2).
-		AssertVFOSwitcherTXCalled(core.VFO2).
-		AssertActiveField(core.VFO2, core.CallsignField)
+		AssertActiveField(core.VFO2, core.CallsignField).
+		AssertVFOSwitcherCurrentCalled(core.VFO2)
 }
 
 func TestH1_SetFocusedVFO_VFO2Disabled_Ignored(t *testing.T) {

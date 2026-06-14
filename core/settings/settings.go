@@ -98,7 +98,6 @@ type View interface {
 	SetContestName(string)
 	SetContestStartTime(string)
 	SetOperationModeSprint(bool)
-	SetSwitchTXVFOOnFocus(bool)
 	SetContestCallHistoryFile(string)
 	SetContestCallHistoryFieldName(i int, value string)
 	SetContestAvailableCallHistoryFieldNames([]string)
@@ -293,7 +292,6 @@ func (s *Settings) showSettings() {
 	s.view.SetContestName(s.contest.Name)
 	s.view.SetContestStartTime(s.formattedContestStartTime())
 	s.view.SetOperationModeSprint(s.contest.OperationModeSprint)
-	s.view.SetSwitchTXVFOOnFocus(s.contest.SwitchTXVFOOnFocus)
 	s.view.SetContestEnableQTCs(s.contest.EnableQTCs)
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
 	s.view.SetQSOsGoal(strconv.Itoa(s.contest.QSOsGoal))
@@ -656,10 +654,6 @@ func (s *Settings) SetOperationModeSprint(value bool) {
 	s.contest.OperationModeSprint = value
 }
 
-func (s *Settings) SetSwitchTXVFOOnFocus(value bool) {
-	s.contest.SwitchTXVFOOnFocus = value
-}
-
 func (s *Settings) SetContestEnableQTCs(value bool) {
 	s.contest.EnableQTCs = value
 }
@@ -751,7 +745,6 @@ func (v *nullView) SetContestEnableQTCs(bool)                          {}
 func (v *nullView) SetContestName(string)                              {}
 func (v *nullView) SetContestStartTime(string)                         {}
 func (v *nullView) SetOperationModeSprint(bool)                        {}
-func (v *nullView) SetSwitchTXVFOOnFocus(bool)                         {}
 func (v *nullView) SetContestCallHistoryFile(string)                   {}
 func (v *nullView) SetContestCallHistoryFieldName(int, string)         {}
 func (v *nullView) SetContestAvailableCallHistoryFieldNames([]string)  {}

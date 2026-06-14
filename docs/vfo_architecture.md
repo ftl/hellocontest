@@ -13,7 +13,7 @@ Last revised: 2026-06-14.
 | Package | Role |
 |---------|------|
 | `core/app` | Composition root. Constructs `core.VFOCount` (=2) VFOs in a loop; wires `RadioChangedListener`, `VFOSwitcher`, and all `Notify` chains. Provides `MuteAudio`/`ToggleAudio` convenience methods that delegate to VFO objects. |
-| `core/entry` | Owns per-VFO state slices indexed by `VFOID`. A `focusedVFO` cursor routes all user-driven commands. Both VFOs hold independent pending QSOs simultaneously (aka. SO2V). Optionally switches TX VFO on focus change (`switchTXVFOOnFocus`). |
+| `core/entry` | Owns per-VFO state slices indexed by `VFOID`. A `focusedVFO` cursor routes all user-driven commands. Both VFOs hold independent pending QSOs simultaneously (aka. SO2V). |
 | `core/vfo` | One `VFO` struct per physical VFO. Emits events tagged with `id`; filters inbound events that don't match its `id`. Exposes audio control (`MuteAudio`, `UnmuteAudio`, `ToggleAudio`). |
 | `core/radio` | Single backend, single `activeRadio`. The `vfo.Client` interface and all backends are VFO-ID-aware. Emits `RadioChanged(name, singleVFO)` to notify downstream of backend capability. Implements `VFOSwitcher` (`SetCurrentVFO`, `SetTXVFO`) and audio control. |
 | `core/callinfo` | Threaded with `VFOID`; maintains per-VFO `frames` and emits `CallinfoFrameChanged(vfo, frame)`. |
@@ -157,7 +157,7 @@ Per-VFO slices (length `core.VFOCount`, index = `VFOID`):
 
 Serial claims are managed by the `claims SerialClaims` struct (see §5.3).
 
-Shared/single fields: `focusedVFO core.VFOID`, `vfo2Enabled bool`, `editing bool`, `editQSO core.QSO`, `editSnapshot *editSnapshot`, `ptt bool`, `parrotActive bool`, `parrotTimeLeft`, `esmEnabled bool`, `ignoreVFOChange bool`, `switchTXVFOOnFocus bool`.
+Shared/single fields: `focusedVFO core.VFOID`, `vfo2Enabled bool`, `editing bool`, `editQSO core.QSO`, `editSnapshot *editSnapshot`, `ptt bool`, `parrotActive bool`, `parrotTimeLeft`, `esmEnabled bool`, `ignoreVFOChange bool`.
 
 All per-VFO slices initialised in `NewController` (`entry.go:94–127`). `activeField` elements seeded to `core.CallsignField` so that a VFO focus switch always lands on a valid field.
 
@@ -174,16 +174,15 @@ type VFOSwitcher interface {
 
 **`CurrentVFOChanged(vfo VFOID)`** (`entry.go:467–481`) — implements `core.CurrentVFOListener`. Receives rig-side VFO changes (e.g. hamlib detects operator changed VFO on the rig). Guards: no-op if `ignoreVFOChange` (prevents loops when `SetFocusedVFO` itself commands the rig), no-op if VFO2 disabled, no-op if already focused. Updates `focusedVFO`, refreshes serial displays, and updates view.
 
-**`SetFocusedVFO(vfo VFOID)`** (`entry.go:485–501`) is the single funnel for user-initiated VFO changes:
+**`SetFocusedVFO(vfo VFOID)`** (`entry.go:483–499`) is the single funnel for user-initiated VFO changes:
 1. Guards: no-op if `vfo == VFO2 && !c.vfo2Enabled`; no-op if already focused.
 2. Updates `c.focusedVFO`.
 3. Sets `c.ignoreVFOChange = true` (prevents loop from rig echo).
 4. Calls `c.vfoSwitcher.SetCurrentVFO(vfo)` — commands rig to switch.
-5. If `c.switchTXVFOOnFocus`: calls `c.vfoSwitcher.SetTXVFO(vfo)` — commands rig to switch TX VFO (split on/off).
-6. Sets `c.ignoreVFOChange = false`.
-7. Calls `c.refreshMyNumberInputs()` — syncs serial displays.
-8. Calls `c.view.SetActiveVFO(c.focusedVFO)` — updates VFO label styling.
-9. Calls `c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])` — moves UI cursor.
+5. Sets `c.ignoreVFOChange = false`.
+6. Calls `c.refreshMyNumberInputs()` — syncs serial displays.
+7. Calls `c.view.SetActiveVFO(c.focusedVFO)` — updates VFO label styling.
+8. Calls `c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])` — moves UI cursor.
 
 `setFocusedVFOSilent` skips steps 3–9; used by edit-mode enter/leave to avoid rig command and unnecessary view churn.
 
@@ -422,10 +421,6 @@ F10 → focusVFO2Action  → Entry.FocusVFO2()
 
 Hotkey defaults also recorded in `cfg.Default.Keybindings` (`cfg/cfg.go`).
 
-### Settings UI
-
-`SwitchTXVFOOnFocus` is exposed as a checkbox in the contest settings dialog (`ui/settingsView.go:216`), labeled "Switch TX VFO when changing focus" under "SO2V:". The setting is stored in `core.Contest.SwitchTXVFOOnFocus` and propagated to Entry via `ContestChanged`.
-
 ---
 
 ## 9. Event flow diagram
@@ -449,7 +444,6 @@ hamlib goroutine                vfo.VFO (UI thread via asyncRunner)
                         ┌─────────────────────────────────┐
                         │ focusedVFO cursor                │
                         │ ignoreVFOChange loop guard       │
-                        │ switchTXVFOOnFocus option        │
                         │ per-VFO: input[], band[], mode[] │
                         │          activeField[], esmState[]│
                         │          claims (SerialClaims)    │
@@ -472,7 +466,6 @@ radio.Controller (main thread)
   SetFocusedVFO(vfo)
         │
         ├──► vfoSwitcher.SetCurrentVFO(vfo)  → rig command
-        └──► vfoSwitcher.SetTXVFO(vfo)       → rig split (if switchTXVFOOnFocus)
 ```
 
 ---

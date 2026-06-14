@@ -73,6 +73,7 @@ type QSOList interface {
 
 // Keyer functionality used for QSO entry.
 type Keyer interface {
+	Send(index int)
 	SendQuestion(q string)
 	GetText(workmode core.Workmode, index int) (string, error)
 	SendText(text string, args ...any)
@@ -114,6 +115,7 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 		claims:               newSerialClaims(),
 		esmState:             make([]core.ESMState, core.VFOCount),
 		esmMessage:           make([]string, core.VFOCount),
+		esmMacroIndex:        make([]int, core.VFOCount),
 
 		stationCallsign: settings.Station().Callsign.String(),
 	}
@@ -150,6 +152,7 @@ type editSnapshot struct {
 	callinfoFrame core.CallinfoFrame
 	esmState      []core.ESMState
 	esmMessage    []string
+	esmMacroIndex []int
 }
 
 type Controller struct {
@@ -205,9 +208,10 @@ type Controller struct {
 	parrotActive   bool
 	parrotTimeLeft time.Duration
 
-	esmEnabled bool
-	esmState   []core.ESMState
-	esmMessage []string
+	esmEnabled     bool
+	esmState       []core.ESMState
+	esmMessage     []string
+	esmMacroIndex  []int
 }
 
 func (c *Controller) Notify(listener any) {
@@ -614,6 +618,7 @@ func (c *Controller) enterEditMode(qso core.QSO) {
 		callinfoFrame: c.currentCallinfoFrame[core.VFO1],
 		esmState:      append([]core.ESMState(nil), c.esmState...),
 		esmMessage:    append([]string(nil), c.esmMessage...),
+		esmMacroIndex: append([]int(nil), c.esmMacroIndex...),
 	}
 	c.setFocusedVFOSilent(core.VFO1)
 	c.editing = true
@@ -640,6 +645,7 @@ func (c *Controller) leaveEditMode() {
 	c.currentCallinfoFrame[core.VFO1] = snap.callinfoFrame
 	copy(c.esmState, snap.esmState)
 	copy(c.esmMessage, snap.esmMessage)
+	copy(c.esmMacroIndex, snap.esmMacroIndex)
 	c.editing = false
 	c.editQSO = core.QSO{}
 	c.editSnapshot = nil

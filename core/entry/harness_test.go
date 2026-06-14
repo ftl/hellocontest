@@ -605,6 +605,14 @@ func (s *Scenario) AssertBandmapSpotSource(source core.SpotType) *Scenario {
 	return s
 }
 
+// AssertKeyerSentMacro asserts keyer.Send(index) was called with the given index.
+func (s *Scenario) AssertKeyerSentMacro(index int) *Scenario {
+	s.t.Helper()
+	assert.Contains(s.t, s.keyer.sentIndices, index,
+		"expected keyer.Send(%d) to be called", index)
+	return s
+}
+
 // AssertKeyerSentText asserts keyer.SendText was called at least once.
 func (s *Scenario) AssertKeyerSentText() *Scenario {
 	s.t.Helper()
@@ -942,6 +950,7 @@ func (e *esmViewSpy) SetMessage(msg string) { e.message = msg }
 
 type keyerSpy struct {
 	seq          *int // shared sequence counter (nil until WithKeyer+WithVFOSwitcher)
+	sentIndices  []int
 	sentTexts    []string
 	sentQuestion string
 	repeated     bool
@@ -950,6 +959,7 @@ type keyerSpy struct {
 }
 
 func (k *keyerSpy) reset() {
+	k.sentIndices = nil
 	k.sentTexts = nil
 	k.sentQuestion = ""
 	k.repeated = false
@@ -963,6 +973,13 @@ func (k *keyerSpy) nextSeq() int {
 	}
 	*k.seq++
 	return *k.seq
+}
+
+func (k *keyerSpy) Send(index int) {
+	k.sentIndices = append(k.sentIndices, index)
+	if k.txSeq == 0 {
+		k.txSeq = k.nextSeq()
+	}
 }
 
 func (k *keyerSpy) SendQuestion(q string) {

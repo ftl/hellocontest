@@ -887,7 +887,7 @@ func TestF3_NextESMStep_Run_CallsignValid_SendsAndAdvancesField(t *testing.T) {
 		Enter("DL1ABC"). // ESM state = CallsignValid
 		NextESMStep().
 		AssertTXVFOBeforeKeyer(core.VFO1).
-		AssertKeyerSentText().
+		AssertKeyerSentMacro(1).
 		AssertActiveField(core.VFO1, core.TheirExchangeField(2)) // skip RST → serial
 }
 
@@ -1947,7 +1947,7 @@ func TestF3d_NextESMStep_SP_CallsignValid_SendsButNoFieldAdvance(t *testing.T) {
 	s.Enter("DL1ABC") // ESM state = CallsignValid
 	s.NextESMStep()
 	s.AssertTXVFOBeforeKeyer(core.VFO1)
-	s.AssertKeyerSentText()
+	s.AssertKeyerSentMacro(0)
 	// In S&P, CallsignValid does NOT advance field (unlike Run mode).
 	// Verify no GotoNextField side effects: active field was not pushed.
 	assert.False(t, s.view.wasCalledWith("SetActiveField", core.VFO1, core.TheirExchangeField(1)),

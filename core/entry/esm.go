@@ -59,7 +59,11 @@ func (c *Controller) NextESMStep() {
 	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetTXVFO(c.focusedVFO)
 	c.ignoreVFOChange = false
-	c.keyer.SendText(c.esmMessage[c.focusedVFO])
+	if index := c.esmMacroIndex[c.focusedVFO]; index >= 0 {
+		c.keyer.Send(index)
+	} else {
+		c.keyer.SendText(c.esmMessage[c.focusedVFO])
+	}
 	switch {
 	case c.esmState[c.focusedVFO] == core.ESMCallsignValid && c.workmode == core.Run:
 		c.GotoNextField()
@@ -76,11 +80,12 @@ func (c *Controller) updateESM() {
 
 	switch c.workmode {
 	case core.SearchPounce:
-		c.esmMessage[c.focusedVFO] = c.updateSPMessage()
+		c.esmMessage[c.focusedVFO], c.esmMacroIndex[c.focusedVFO] = c.updateSPMessage()
 	case core.Run:
-		c.esmMessage[c.focusedVFO] = c.updateRunMessage()
+		c.esmMessage[c.focusedVFO], c.esmMacroIndex[c.focusedVFO] = c.updateRunMessage()
 	default:
 		c.esmMessage[c.focusedVFO] = ""
+		c.esmMacroIndex[c.focusedVFO] = -1
 	}
 	c.esmView.SetMessage(c.esmMessage[c.focusedVFO])
 }
@@ -106,35 +111,35 @@ func (c *Controller) currentESMState() core.ESMState {
 	return core.ESMUnknown
 }
 
-func (c *Controller) updateSPMessage() string {
+func (c *Controller) updateSPMessage() (string, int) {
 	switch c.esmState[c.focusedVFO] {
 	case core.ESMCallsignEmpty, core.ESMCallsignInvalid:
-		return callsignRequest(c.input[c.focusedVFO].callsign)
+		return callsignRequest(c.input[c.focusedVFO].callsign), -1
 	case core.ESMCallsignValid:
-		return c.getKeyerText(0)
+		return c.getKeyerText(0), 0
 	case core.ESMExchangeInvalid:
-		return "nr?"
+		return "nr?", -1
 	case core.ESMExchangeValid:
-		return c.getKeyerText(1)
+		return c.getKeyerText(1), 1
 	default:
-		return ""
+		return "", -1
 	}
 }
 
-func (c *Controller) updateRunMessage() string {
+func (c *Controller) updateRunMessage() (string, int) {
 	switch c.esmState[c.focusedVFO] {
 	case core.ESMCallsignEmpty:
-		return c.getKeyerText(0)
+		return c.getKeyerText(0), 0
 	case core.ESMCallsignInvalid:
-		return callsignRequest(c.input[c.focusedVFO].callsign)
+		return callsignRequest(c.input[c.focusedVFO].callsign), -1
 	case core.ESMCallsignValid:
-		return c.getKeyerText(1)
+		return c.getKeyerText(1), 1
 	case core.ESMExchangeInvalid:
-		return "nr?"
+		return "nr?", -1
 	case core.ESMExchangeValid:
-		return c.getKeyerText(2)
+		return c.getKeyerText(2), 2
 	default:
-		return ""
+		return "", -1
 	}
 }
 

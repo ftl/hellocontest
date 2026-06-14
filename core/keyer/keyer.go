@@ -53,6 +53,11 @@ type KeyerStoppedListener interface {
 	KeyerStopped()
 }
 
+// SerialSentListener is notified when the keyer transmits a message that contains a serial number.
+type SerialSentListener interface {
+	SerialSent()
+}
+
 type Parrot interface {
 	KeyerStoppedListener
 	SetInterval(time.Duration)
@@ -543,6 +548,9 @@ func (k *Keyer) Send(index int) {
 		return
 	}
 	k.send(message)
+	if k.patternHasSerial((*k.patterns)[index]) {
+		k.emitSerialSent()
+	}
 }
 
 func (k *Keyer) SendQuestion(q string) {
@@ -564,6 +572,9 @@ func (k *Keyer) SendTextWithTemplate(text string) error {
 		return err
 	}
 	k.send(buffer.String())
+	if k.patternHasSerial(text) {
+		k.emitSerialSent()
+	}
 	return nil
 }
 
@@ -598,6 +609,20 @@ func (k *Keyer) emitKeyerStopped() {
 			keyerStoppedListener.KeyerStopped()
 		}
 	}
+}
+
+func (k *Keyer) emitSerialSent() {
+	for _, listener := range k.listeners {
+		if serialSentListener, ok := listener.(SerialSentListener); ok {
+			serialSentListener.SerialSent()
+		}
+	}
+}
+
+// patternHasSerial reports whether a template pattern references serial-bearing
+// template variables (MyNumber or MyExchange/MyExchanges).
+func (k *Keyer) patternHasSerial(pattern string) bool {
+	return strings.Contains(pattern, "MyNumber") || strings.Contains(pattern, "MyExchange")
 }
 
 func parseTemplate(pattern string) (*template.Template, error) {

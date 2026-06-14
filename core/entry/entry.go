@@ -44,6 +44,7 @@ type View interface {
 	ShowMessage(core.VFOID, ...any)
 	ClearMessage(core.VFOID)
 	SetVFOEnabled(core.VFOID, bool)
+	SetVFOWorkmode(core.VFOID, core.Workmode)
 }
 
 type input struct {
@@ -118,6 +119,7 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 		esmMacroIndex:        make([]int, core.VFOCount),
 
 		stationCallsign: settings.Station().Callsign.String(),
+		vfoWorkmode:     make([]core.Workmode, core.VFOCount),
 	}
 	for vfo := range len(result.vfos) {
 		result.vfos[vfo] = new(nullVFO)
@@ -175,6 +177,7 @@ type Controller struct {
 
 	stationCallsign string
 	workmode        core.Workmode
+	vfoWorkmode     []core.Workmode
 
 	myExchangeFields         []core.ExchangeField
 	theirExchangeFields      []core.ExchangeField
@@ -254,6 +257,9 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
 	c.view.SetActiveVFO(c.focusedVFO)
+	for vfo := range core.VFOCount {
+		c.view.SetVFOWorkmode(core.VFOID(vfo), c.vfoWorkmode[vfo])
+	}
 	c.Clear()
 	c.refreshUTC()
 }
@@ -1381,9 +1387,13 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.updateExchangeFields(contest)
 }
 
-func (c *Controller) WorkmodeChanged(_ core.VFOID, workmode core.Workmode) {
-	c.workmode = workmode
-	c.updateESM()
+func (c *Controller) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+	c.vfoWorkmode[vfo] = workmode
+	if vfo == c.focusedVFO {
+		c.workmode = workmode
+		c.updateESM()
+	}
+	c.view.SetVFOWorkmode(vfo, workmode)
 }
 
 func (c *Controller) updateExchangeFields(contest core.Contest) {

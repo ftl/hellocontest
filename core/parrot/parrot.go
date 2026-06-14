@@ -149,8 +149,11 @@ func (p *Parrot) Stop() {
 	p.ticker.Stop()
 }
 
-func (p *Parrot) CallsignEntered(call string) {
+func (p *Parrot) CallsignEntered(vfo core.VFOID, call string) {
 	if !p.active {
+		return
+	}
+	if vfo != core.VFO1 {
 		return
 	}
 

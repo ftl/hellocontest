@@ -165,7 +165,10 @@ func (p *Parrot) KeyerStopped() {
 	p.Stop()
 }
 
-func (p *Parrot) WorkmodeChanged(workmode core.Workmode) {
+func (p *Parrot) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+	if vfo != core.VFO1 {
+		return
+	}
 	if p.active && workmode != core.Run {
 		p.keyer.Stop()
 	}

@@ -317,7 +317,7 @@ func (k *Keyer) showKeyerSettings() {
 	k.settingsView.SetParrotIntervalSeconds(k.parrotIntervalSeconds)
 }
 
-func (k *Keyer) WorkmodeChanged(workmode core.Workmode) {
+func (k *Keyer) WorkmodeChanged(_ core.VFOID, workmode core.Workmode) {
 	k.setWorkmode(workmode)
 	k.showPatterns()
 }

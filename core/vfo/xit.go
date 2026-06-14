@@ -40,7 +40,10 @@ func (x *XITControl) emitXITActiveChanged(active bool) {
 	}
 }
 
-func (x *XITControl) WorkmodeChanged(workmode core.Workmode) {
+func (x *XITControl) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+	if vfo != x.vfo.id {
+		return
+	}
 	x.workmode = workmode
 	if x.active {
 		x.activateOnVFO()

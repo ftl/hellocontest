@@ -160,6 +160,16 @@ func (p *Parrot) CallsignEntered(vfo core.VFOID, call string) {
 	p.keyer.Stop()
 }
 
+func (p *Parrot) TransmissionStarted(vfo core.VFOID) {
+	if !p.active {
+		return
+	}
+	if vfo == core.VFO1 {
+		return
+	}
+	p.keyer.Stop()
+}
+
 func (p *Parrot) KeyerStopped() {
 	if !p.active {
 		return

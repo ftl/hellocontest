@@ -230,6 +230,14 @@ func (c *Controller) emitFocusChanged(vfo core.VFOID) {
 	}
 }
 
+func (c *Controller) emitTransmissionStarted(vfo core.VFOID) {
+	for _, l := range c.listeners {
+		if listener, ok := l.(core.TransmissionStartedListener); ok {
+			listener.TransmissionStarted(vfo)
+		}
+	}
+}
+
 func (c *Controller) emitCallsignEntered(callsign string) {
 	for _, l := range c.listeners {
 		if listener, ok := l.(core.CallsignEnteredListener); ok {
@@ -931,6 +939,7 @@ func (c *Controller) SendQuestion() {
 	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetTXVFO(c.focusedVFO)
 	c.ignoreVFOChange = false
+	c.emitTransmissionStarted(c.focusedVFO)
 	switch {
 	case c.activeField[c.focusedVFO].IsTheirExchange():
 		c.keyer.SendQuestion("nr")

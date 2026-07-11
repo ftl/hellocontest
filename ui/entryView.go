@@ -10,7 +10,10 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
-const parrot = "🦜"
+const (
+	parrot         = "🦜"
+	txVFOIndicator = `<span style="color: red; font-size: 16pt;">&#x25CF;</span>`
+)
 
 // EntryController controls the entry of QSO data.
 type EntryController interface {
@@ -66,8 +69,11 @@ type entryView struct {
 
 	vfo [core.VFOCount]entryVFOWidgets
 
-	vfo2Enabled    bool
-	onVFO2Enabled  func(bool) // callback to centralArea for layout add/remove
+	vfoWorkmode [core.VFOCount]core.Workmode
+	txVFO       core.VFOID
+
+	vfo2Enabled   bool
+	onVFO2Enabled func(bool) // callback to centralArea for layout add/remove
 
 	ignoreInput bool
 	isDuplicate bool
@@ -488,19 +494,34 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 }
 
 func (v *entryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
+	v.vfoWorkmode[vfo] = workmode
+	v.updateVFOLabel(vfo)
+}
+
+func (v *entryView) SetTXVFO(vfo core.VFOID) {
+	v.txVFO = vfo
+	for id := core.VFOID(0); id < core.VFOCount; id++ {
+		v.updateVFOLabel(id)
+	}
+}
+
+func (v *entryView) updateVFOLabel(vfo core.VFOID) {
 	label := v.vfo[vfo].vfoLabel
 	if label == nil {
 		return
 	}
-	name := fmt.Sprintf("VFO %d", vfo+1)
-	switch workmode {
+	text := fmt.Sprintf("VFO %d", vfo+1)
+	switch v.vfoWorkmode[vfo] {
 	case core.Run:
-		label.SetText(name + " RUN")
+		text += " RUN"
 	case core.SearchPounce:
-		label.SetText(name + " S&P")
-	default:
-		label.SetText(name)
+		text += " S&amp;P"
 	}
+	if vfo == v.txVFO {
+		text += " " + txVFOIndicator
+	}
+	label.SetTextFormat(qtlib.RichText)
+	label.SetText(text)
 }
 
 func (v *entryView) SetActiveVFO(vfo core.VFOID) {

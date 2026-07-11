@@ -345,6 +345,13 @@ func (m *EntryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
 	m.Called(vfo, workmode)
 }
 
+func (m *EntryView) SetTXVFO(vfo core.VFOID) {
+	if !m.active {
+		return
+	}
+	m.Called(vfo)
+}
+
 type Clock struct {
 	mock.Mock
 }

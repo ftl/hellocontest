@@ -154,6 +154,12 @@ func (c *Client) emitPTTChanged(active bool) {
 	})
 }
 
+func (c *Client) emitTXVFOChanged(vfo core.VFOID) {
+	core.Emit(c.listeners, func(listener core.TXVFOListener) {
+		listener.TXVFOChanged(vfo)
+	})
+}
+
 func (c *Client) Speed(wpm int) {
 	err := c.client.SetCWMacrosSpeed(wpm)
 	if err != nil {
@@ -285,6 +291,7 @@ type trxListener struct {
 	xitActive bool
 	xitOffset core.Frequency
 	ptt       bool
+	split     bool
 }
 
 func (l *trxListener) Refresh() {
@@ -293,6 +300,14 @@ func (l *trxListener) Refresh() {
 	l.client.emitModeChanged(l.mode)
 	l.client.emitXITChanged(l.xitActive, l.xitOffset)
 	l.client.emitPTTChanged(l.ptt)
+	l.client.emitTXVFOChanged(l.txVFO())
+}
+
+func (l *trxListener) txVFO() core.VFOID {
+	if l.split && !l.client.singleVFO {
+		return core.VFO2
+	}
+	return core.VFO1
 }
 
 func (l *trxListener) Connected(connected bool) {
@@ -372,6 +387,18 @@ func (l *trxListener) SetTX(trx int, enable bool) {
 	l.ptt = enable
 	l.client.emitPTTChanged(l.ptt)
 	// log.Printf("incoming PTT %v", enable)
+}
+
+func (l *trxListener) SetSplitEnable(trx int, enabled bool) {
+	if trx != l.trx {
+		return
+	}
+	if enabled == l.split {
+		return
+	}
+	l.split = enabled
+	l.client.emitTXVFOChanged(l.txVFO())
+	// log.Printf("incoming split %v", enabled)
 }
 
 func toTCIVFO(vfo core.VFOID) client.VFO {

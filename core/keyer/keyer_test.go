@@ -38,7 +38,7 @@ func TestSend(t *testing.T) {
 	keyer.SetValues(values)
 	keyer.EnterPattern(0, "{{.MyCall}} {{.TheirCall}} {{.MyNumber}} {{.MyReport}} {{.MyXchange}}")
 
-	keyer.Send(0)
+	keyer.SendMacro(0)
 
 	cwClient.AssertExpectations(t)
 }
@@ -109,4 +109,48 @@ func (s *testSettings) Station() core.Station {
 
 func (s *testSettings) Contest() core.Contest {
 	return core.Contest{}
+}
+
+type vfoSwitcherSpy struct{ txVFOs []core.VFOID }
+
+func (s *vfoSwitcherSpy) SetTXVFO(vfo core.VFOID) { s.txVFOs = append(s.txVFOs, vfo) }
+
+type transmissionStartedSpy struct{ vfos []core.VFOID }
+
+func (s *transmissionStartedSpy) TransmissionStarted(vfo core.VFOID) { s.vfos = append(s.vfos, vfo) }
+
+func TestSend_SwitchesTXVFOToFocusedAndAnnounces(t *testing.T) {
+	keyerSettings := core.KeyerSettings{
+		WPM:       25,
+		SPMacros:  []string{"sp0", "", "", ""},
+		RunMacros: []string{"run0", "", "", ""},
+	}
+	view := new(mocked.KeyerView)
+	view.On("SetKeyerController", mock.Anything)
+	view.On("ShowMessage", mock.Anything)
+	view.On("SetSpeed", mock.Anything)
+	view.On("SetLabel", mock.Anything, mock.Anything)
+	view.On("SetPattern", mock.Anything, mock.Anything)
+	view.On("SetPresetNames", mock.Anything)
+	cwClient := new(mocked.CWClient)
+	cwClient.On("Send", mock.Anything)
+	vfoSw := &vfoSwitcherSpy{}
+	tx := &transmissionStartedSpy{}
+
+	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
+	k.SetView(view)
+	k.SetVFOSwitcher(vfoSw)
+	k.Notify(tx)
+
+	// An operator send switches the TX VFO to the focused VFO and announces it.
+	k.FocusChanged(core.VFO2)
+	k.SendMacro(0)
+	assert.Equal(t, []core.VFOID{core.VFO2}, vfoSw.txVFOs, "operator send switches TX to the focused VFO")
+	assert.Equal(t, []core.VFOID{core.VFO2}, tx.vfos, "operator send announces the transmission")
+
+	// An explicit-VFO send (parrot) targets the given VFO and does NOT announce
+	// (otherwise the parrot would stop on its own CQ).
+	k.SendWithWorkmodeOnVFO(core.VFO1, core.Run, 0)
+	assert.Equal(t, []core.VFOID{core.VFO2, core.VFO1}, vfoSw.txVFOs, "explicit send switches TX to the given VFO")
+	assert.Equal(t, []core.VFOID{core.VFO2}, tx.vfos, "explicit send must not announce")
 }

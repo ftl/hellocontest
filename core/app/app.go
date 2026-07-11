@@ -235,6 +235,7 @@ func (c *Controller) Startup() {
 	c.Radio.SelectKeyer(c.session.Keyer1())
 
 	c.Keyer = keyer.New(c.Settings, c.Radio, c.configuration.KeyerSettings(), c.Workmode.Workmode(), c.configuration.KeyerPresets())
+	c.Keyer.SetVFOSwitcher(c.Radio)
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Keyer.Notify(c.Entry)
@@ -267,8 +268,9 @@ func (c *Controller) Startup() {
 	c.Bandmap.Notify(c.Callinfo)
 	c.Logbook.Notify(c.Callinfo)
 
-	c.Parrot = parrot.New(c.Workmode, c.Keyer, c.Radio, c.asyncRunner)
+	c.Parrot = parrot.New(c.Workmode, c.Keyer, c.asyncRunner)
 	c.Keyer.SetParrot(c.Parrot)
+	c.Keyer.Notify(c.Parrot)
 	c.Workmode.Notify(c.Parrot)
 	c.Entry.Notify(c.Parrot)
 	c.Parrot.Notify(c.Entry)
@@ -1018,13 +1020,13 @@ func (c *Controller) DoAction(id string) error {
 	case core.ActionWindowShowSpots:
 		c.ShowSpots()
 	case core.ActionKeyerSendMacro1:
-		c.Keyer.Send(0)
+		c.Keyer.SendMacro(0)
 	case core.ActionKeyerSendMacro2:
-		c.Keyer.Send(1)
+		c.Keyer.SendMacro(1)
 	case core.ActionKeyerSendMacro3:
-		c.Keyer.Send(2)
+		c.Keyer.SendMacro(2)
 	case core.ActionKeyerSendMacro4:
-		c.Keyer.Send(3)
+		c.Keyer.SendMacro(3)
 	case core.ActionRadioMuteAudioVFO1:
 		c.MuteAudio(core.VFO1)
 	case core.ActionRadioMuteAudioVFO2:

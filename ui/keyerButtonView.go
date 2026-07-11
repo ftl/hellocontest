@@ -7,7 +7,7 @@ import (
 )
 
 type KeyerController interface {
-	Send(int)
+	SendMacro(int)
 	Stop()
 	EnterSpeed(int)
 	Save()
@@ -52,7 +52,7 @@ func newKeyerView() *keyerView {
 			if v.controller == nil {
 				return
 			}
-			v.controller.Send(idx)
+			v.controller.SendMacro(idx)
 		})
 	}
 

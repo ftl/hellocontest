@@ -863,6 +863,10 @@ func (v *viewSpy) SetVFOWorkmode(vfo core.VFOID, w core.Workmode) {
 	v.record("SetVFOWorkmode", vfo, w)
 }
 
+func (v *viewSpy) SetTXVFO(vfo core.VFOID) {
+	v.record("SetTXVFO", vfo)
+}
+
 // ---- logbookSpy -------------------------------------------------------------
 
 type logbookSpy struct {

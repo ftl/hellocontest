@@ -45,6 +45,7 @@ type View interface {
 	ClearMessage(core.VFOID)
 	SetVFOEnabled(core.VFOID, bool)
 	SetVFOWorkmode(core.VFOID, core.Workmode)
+	SetTXVFO(core.VFOID)
 }
 
 type input struct {
@@ -918,6 +919,7 @@ func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
 func (c *Controller) TXVFOChanged(vfo core.VFOID) {
 	c.asyncRunner(func() {
 		c.txVFO = vfo
+		c.view.SetTXVFO(vfo)
 	})
 }
 

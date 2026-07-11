@@ -1700,6 +1700,10 @@ type CurrentVFOListener interface {
 	CurrentVFOChanged(VFOID)
 }
 
+type TXVFOListener interface {
+	TXVFOChanged(VFOID)
+}
+
 type FocusChangedListener interface {
 	FocusChanged(VFOID)
 }

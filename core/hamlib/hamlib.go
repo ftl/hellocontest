@@ -657,7 +657,6 @@ func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
 
 func (c *Client) emitTXVFOChanged(vfo core.VFOID) {
 	go func() {
-		log.Printf("***** TX VFO changed: %d", vfo)
 		core.Emit(c.listeners, func(listener core.TXVFOListener) {
 			listener.TXVFOChanged(vfo)
 		})

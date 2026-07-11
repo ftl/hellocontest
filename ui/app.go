@@ -376,7 +376,7 @@ func (a *application) ShowFilename(filename string) {
 // SelectOpenFile implements app.View
 func (a *application) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {
 	filter := buildFileFilter(patterns)
-	dlg := qtlib.NewQFileDialog6(a.window.QWidget, title, dir, filter)
+	dlg := qtlib.NewQFileDialog6(nil, title, dir, filter)
 	dlg.SetAcceptMode(qtlib.QFileDialog__AcceptOpen)
 	dlg.SetFileMode(qtlib.QFileDialog__ExistingFile)
 	// Wayland: force a proper top-level window so the compositor lets the user
@@ -404,7 +404,7 @@ func (a *application) SelectSaveFile(title string, dir string, filename string, 
 	if filename != "" {
 		defaultPath = dir + "/" + filename
 	}
-	result := qtlib.QFileDialog_GetSaveFileName4(a.window.QWidget, title, defaultPath, filter)
+	result := qtlib.QFileDialog_GetSaveFileName4(nil, title, defaultPath, filter)
 	if result == "" {
 		return "", false, nil
 	}

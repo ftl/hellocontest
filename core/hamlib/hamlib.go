@@ -130,6 +130,7 @@ func (c *Client) run() {
 				lastVFO := c.currentVFO
 				c.currentVFO = currentVFO
 				c.emitCurrentVFOChanged(lastVFO, currentVFO)
+				c.updateTXVFO(currentState)
 
 				for vfo := range core.VFOCount {
 					c.emitChangeNotifications(vfo, c.lastState[vfo], currentState[vfo])
@@ -189,6 +190,18 @@ func (c *Client) txVFOID(state []vfoState) core.VFOID {
 		}
 	}
 	return core.VFO1
+}
+
+// updateTXVFO stores the TX VFO derived from the freshly polled state and emits
+// a change notification when it differs from the previously stored value.
+// Must only be called from the run goroutine.
+func (c *Client) updateTXVFO(state []vfoState) {
+	lastTXVFO := c.txVFOID(c.lastState)
+	currentTXVFO := c.txVFOID(state)
+
+	if lastTXVFO != currentTXVFO {
+		c.emitTXVFOChanged(currentTXVFO)
+	}
 }
 
 // poll must only be called from the run goroutine!
@@ -640,6 +653,15 @@ func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
 	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
 		listener.VFOPTTChanged(vfo, active)
 	})
+}
+
+func (c *Client) emitTXVFOChanged(vfo core.VFOID) {
+	go func() {
+		log.Printf("***** TX VFO changed: %d", vfo)
+		core.Emit(c.listeners, func(listener core.TXVFOListener) {
+			listener.TXVFOChanged(vfo)
+		})
+	}()
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

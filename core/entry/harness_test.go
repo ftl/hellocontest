@@ -605,11 +605,11 @@ func (s *Scenario) AssertBandmapSpotSource(source core.SpotType) *Scenario {
 	return s
 }
 
-// AssertKeyerSentMacro asserts keyer.Send(index) was called with the given index.
+// AssertKeyerSentMacro asserts keyer.SendMacro(index) was called with the given index.
 func (s *Scenario) AssertKeyerSentMacro(index int) *Scenario {
 	s.t.Helper()
 	assert.Contains(s.t, s.keyer.sentIndices, index,
-		"expected keyer.Send(%d) to be called", index)
+		"expected keyer.SendMacro(%d) to be called", index)
 	return s
 }
 
@@ -982,7 +982,7 @@ func (k *keyerSpy) nextSeq() int {
 	return *k.seq
 }
 
-func (k *keyerSpy) Send(index int) {
+func (k *keyerSpy) SendMacro(index int) {
 	k.sentIndices = append(k.sentIndices, index)
 	if k.txSeq == 0 {
 		k.txSeq = k.nextSeq()

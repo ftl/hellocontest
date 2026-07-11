@@ -41,6 +41,14 @@ type CWClient interface {
 	Abort()
 }
 
+type VFOSwitcher interface {
+	SetTXVFO(core.VFOID)
+}
+
+type nullVFOSwitcher struct{}
+
+func (*nullVFOSwitcher) SetTXVFO(core.VFOID) {}
+
 // KeyerValueProvider provides the variable values for the Keyer templates on demand.
 type KeyerValueProvider func() core.KeyerValues
 
@@ -78,6 +86,7 @@ func New(settings core.Settings, client CWClient, keyerSettings core.KeyerSettin
 		runTemplates:    make(map[int]*template.Template),
 		presets:         presets,
 		client:          client,
+		vfoSwitcher:     new(nullVFOSwitcher),
 		values:          noValues,
 	}
 	result.setWorkmode(workmode)
@@ -103,6 +112,7 @@ type Keyer struct {
 	buttonView     ButtonView
 	settingsView   SettingsView
 	client         CWClient
+	vfoSwitcher    VFOSwitcher
 	presets        []core.KeyerPreset
 	presetNames    []string
 	values         KeyerValueProvider
@@ -171,6 +181,14 @@ func (k *Keyer) SetWriter(writer Writer) {
 		return
 	}
 	k.writer = writer
+}
+
+func (k *Keyer) SetVFOSwitcher(vfoSwitcher VFOSwitcher) {
+	if vfoSwitcher == nil {
+		k.vfoSwitcher = new(nullVFOSwitcher)
+		return
+	}
+	k.vfoSwitcher = vfoSwitcher
 }
 
 func (k *Keyer) SetParrot(parrot Parrot) {
@@ -563,11 +581,28 @@ func (k *Keyer) fillins() map[string]any {
 	return result
 }
 
-func (k *Keyer) Send(index int) {
+// beginTransmission switches the rig's TX VFO to the focused VFO and announces
+// the transmission to listeners (e.g. the parrot stops repeating).
+func (k *Keyer) beginTransmission() {
+	k.vfoSwitcher.SetTXVFO(k.focusedVFO)
+	k.emitTransmissionStarted(k.focusedVFO)
+}
+
+func (k *Keyer) SendMacro(index int) {
 	k.SendWithWorkmode(k.workmode, index)
 }
 
 func (k *Keyer) SendWithWorkmode(workmode core.Workmode, index int) {
+	k.beginTransmission()
+	k.sendMessage(workmode, index)
+}
+
+func (k *Keyer) SendWithWorkmodeOnVFO(vfo core.VFOID, workmode core.Workmode, index int) {
+	k.vfoSwitcher.SetTXVFO(vfo)
+	k.sendMessage(workmode, index)
+}
+
+func (k *Keyer) sendMessage(workmode core.Workmode, index int) {
 	message, err := k.GetText(workmode, index)
 	if err != nil {
 		k.buttonView.ShowMessage(err)
@@ -581,11 +616,13 @@ func (k *Keyer) SendWithWorkmode(workmode core.Workmode, index int) {
 }
 
 func (k *Keyer) SendQuestion(q string) {
+	k.beginTransmission()
 	s := strings.TrimSpace(q) + "?"
 	k.send(s)
 }
 
 func (k *Keyer) SendText(text string, args ...any) {
+	k.beginTransmission()
 	k.send(fmt.Sprintf(text, args...))
 }
 
@@ -598,6 +635,7 @@ func (k *Keyer) SendTextWithTemplate(text string) error {
 	if err := template.Execute(buffer, k.fillins()); err != nil {
 		return err
 	}
+	k.beginTransmission()
 	k.send(buffer.String())
 	if k.patternHasSerial(text) {
 		k.emitSerialSent()
@@ -634,6 +672,14 @@ func (k *Keyer) emitKeyerStopped() {
 	for _, listener := range k.listeners {
 		if keyerStoppedListener, ok := listener.(KeyerStoppedListener); ok {
 			keyerStoppedListener.KeyerStopped()
+		}
+	}
+}
+
+func (k *Keyer) emitTransmissionStarted(vfo core.VFOID) {
+	for _, listener := range k.listeners {
+		if transmissionStartedListener, ok := listener.(core.TransmissionStartedListener); ok {
+			transmissionStartedListener.TransmissionStarted(vfo)
 		}
 	}
 }

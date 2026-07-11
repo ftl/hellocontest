@@ -873,8 +873,7 @@ func TestF2_ToggleESM_NotifiesListenerAndReappliesActiveField(t *testing.T) {
 
 // F3. NextESMStep — Run mode, CallsignValid: sends keyer text, advances past RST field.
 // Pre:  not editing; keyer set; ESM enabled.
-// Post: SetTXVFO(focused) called before keyer.SendText;
-//       ESM state/message recomputed; keyer.SendText called; if Run+CallsignValid: GotoNextField (skip report field).
+// Post: ESM state/message recomputed; keyer.SendText called; if Run+CallsignValid: GotoNextField (skip report field).
 
 func TestF3_NextESMStep_Run_CallsignValid_SendsAndAdvancesField(t *testing.T) {
 	// ClassicExchange: TheirExchange1=RST (theirReport field) → skipped → land on TheirExchange2.
@@ -886,7 +885,6 @@ func TestF3_NextESMStep_Run_CallsignValid_SendsAndAdvancesField(t *testing.T) {
 		WithWorkmode(core.Run).
 		Enter("DL1ABC"). // ESM state = CallsignValid
 		NextESMStep().
-		AssertTXVFOBeforeKeyer(core.VFO1).
 		AssertKeyerSentMacro(1).
 		AssertActiveField(core.VFO1, core.TheirExchangeField(2)) // skip RST → serial
 }
@@ -1498,15 +1496,13 @@ func TestJ6_VFOPTTChanged_VFO2_UpdatesTXStateForVFO2(t *testing.T) {
 
 // K1. SendQuestion
 // Pre:  keyer set; canTransmit = true.
-// Post: SetTXVFO(focused) called before keyer.SendQuestion;
-//       if active=their-exchange: keyer.SendQuestion("nr"); else: keyer.SendQuestion(callsign).
+// Post: if active=their-exchange: keyer.SendQuestion("nr"); else: keyer.SendQuestion(callsign).
 
 func TestK1_SendQuestion_CallsignField_SendsCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithKeyer().WithVFOSwitcher().
 		Enter("DL1ABC").
 		SendQuestion().
-		AssertTXVFOBeforeKeyer(core.VFO1).
 		AssertKeyerSentQuestion("DL1ABC")
 }
 
@@ -1516,7 +1512,6 @@ func TestK1_SendQuestion_TheirExchangeField_SendsNR(t *testing.T) {
 		Enter("DL1ABC").
 		GotoNextField(). // → TheirExchange1
 		SendQuestion().
-		AssertTXVFOBeforeKeyer(core.VFO1).
 		AssertKeyerSentQuestion("nr")
 }
 
@@ -1946,7 +1941,6 @@ func TestF3d_NextESMStep_SP_CallsignValid_SendsButNoFieldAdvance(t *testing.T) {
 		WithWorkmode(core.SearchPounce)
 	s.Enter("DL1ABC") // ESM state = CallsignValid
 	s.NextESMStep()
-	s.AssertTXVFOBeforeKeyer(core.VFO1)
 	s.AssertKeyerSentMacro(0)
 	// In S&P, CallsignValid does NOT advance field (unlike Run mode).
 	// Verify no GotoNextField side effects: active field was not pushed.

@@ -171,10 +171,10 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.aboutAction = a.makeTriggerAction(core.ActionHelpAbout, "&About", "Show the about dialog", "", controller.About)
 
 	// Other actions
-	a.sendMacro1Action = a.makeTriggerAction(core.ActionKeyerSendMacro1, "Send Macro 1", "Send the keyer macro #1", "F1", func() { controller.Keyer.Send(0) })
-	a.sendMacro2Action = a.makeTriggerAction(core.ActionKeyerSendMacro2, "Send Macro 2", "Send the keyer macro #2", "F2", func() { controller.Keyer.Send(1) })
-	a.sendMacro3Action = a.makeTriggerAction(core.ActionKeyerSendMacro3, "Send Macro 3", "Send the keyer macro #3", "F3", func() { controller.Keyer.Send(2) })
-	a.sendMacro4Action = a.makeTriggerAction(core.ActionKeyerSendMacro4, "Send Macro 4", "Send the keyer macro #4", "F4", func() { controller.Keyer.Send(3) })
+	a.sendMacro1Action = a.makeTriggerAction(core.ActionKeyerSendMacro1, "Send Macro 1", "Send the keyer macro #1", "F1", func() { controller.Keyer.SendMacro(0) })
+	a.sendMacro2Action = a.makeTriggerAction(core.ActionKeyerSendMacro2, "Send Macro 2", "Send the keyer macro #2", "F2", func() { controller.Keyer.SendMacro(1) })
+	a.sendMacro3Action = a.makeTriggerAction(core.ActionKeyerSendMacro3, "Send Macro 3", "Send the keyer macro #3", "F3", func() { controller.Keyer.SendMacro(2) })
+	a.sendMacro4Action = a.makeTriggerAction(core.ActionKeyerSendMacro4, "Send Macro 4", "Send the keyer macro #4", "F4", func() { controller.Keyer.SendMacro(3) })
 	a.selectBestMatchAction = a.makeTriggerAction(core.ActionEntrySelectBestMatch, "Select Best Match", "Select the best matching callsign", "Alt+Return", func() { controller.Entry.SelectBestMatchOnFrequency() })
 	a.nextESMStepAction = a.makeTriggerAction(core.ActionEntryNextESMStep, "Next ESM Step", "Execute the next ESM step", "", func() { controller.Entry.NextESMStep() })
 	a.toggleVFOAction = a.makeTriggerAction(core.ActionEntryToggleFocusedVFO, "Toggle Focused VFO", "Switch focus between VFO 1 and VFO 2", "F8", func() { controller.Entry.ToggleFocusedVFO() })

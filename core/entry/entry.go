@@ -75,7 +75,7 @@ type QSOList interface {
 
 // Keyer functionality used for QSO entry.
 type Keyer interface {
-	Send(index int)
+	SendMacro(index int)
 	SendQuestion(q string)
 	GetText(workmode core.Workmode, index int) (string, error)
 	SendText(text string, args ...any)
@@ -134,13 +134,11 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 // VFOSwitcher is implemented by something that can command the rig to make a given VFO the current one.
 type VFOSwitcher interface {
 	SetCurrentVFO(core.VFOID)
-	SetTXVFO(core.VFOID)
 }
 
 type nullVFOSwitcher struct{}
 
 func (n *nullVFOSwitcher) SetCurrentVFO(core.VFOID) {}
-func (n *nullVFOSwitcher) SetTXVFO(core.VFOID)      {}
 
 type editSnapshot struct {
 	focusedVFO     core.VFOID
@@ -228,14 +226,6 @@ func (c *Controller) emitFocusChanged(vfo core.VFOID) {
 	for _, l := range c.listeners {
 		if listener, ok := l.(core.FocusChangedListener); ok {
 			listener.FocusChanged(vfo)
-		}
-	}
-}
-
-func (c *Controller) emitTransmissionStarted(vfo core.VFOID) {
-	for _, l := range c.listeners {
-		if listener, ok := l.(core.TransmissionStartedListener); ok {
-			listener.TransmissionStarted(vfo)
 		}
 	}
 }
@@ -948,10 +938,6 @@ func (c *Controller) SendQuestion() {
 		return
 	}
 
-	c.ignoreVFOChange = true
-	c.vfoSwitcher.SetTXVFO(c.focusedVFO)
-	c.ignoreVFOChange = false
-	c.emitTransmissionStarted(c.focusedVFO)
 	switch {
 	case c.activeField[c.focusedVFO].IsTheirExchange():
 		c.keyer.SendQuestion("nr")

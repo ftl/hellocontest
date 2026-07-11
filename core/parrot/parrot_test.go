@@ -97,16 +97,16 @@ func TestParrot_TransmissionStarted_VFO2_StopsParrot(t *testing.T) {
 	assert.True(t, keyer.stopped, "VFO2 transmission must stop keyer")
 }
 
-func TestParrot_TransmissionStarted_VFO1_Ignored(t *testing.T) {
+func TestParrot_TransmissionStarted_VFO1_StopsKeyer(t *testing.T) {
 	p, keyer, _ := newTestParrot()
 
 	p.Start()
 
-	// VFO1 transmission must be ignored (self-CQ)
+	// Any manual transmission stops the parrot, incl. VFO1 (e.g. pressing '?')
 	keyer.reset()
 	p.TransmissionStarted(core.VFO1)
 
-	assert.False(t, keyer.stopped, "VFO1 transmission must not stop keyer")
+	assert.True(t, keyer.stopped, "VFO1 transmission must stop keyer")
 }
 
 func TestParrot_CallsignEntered_VFO1_StopsKeyer(t *testing.T) {

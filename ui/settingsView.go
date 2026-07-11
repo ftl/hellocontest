@@ -243,7 +243,7 @@ func (v *settingsView) buildCallHistoryGroup() *qtlib.QGroupBox {
 
 	v.callHistoryBrowseBtn = qtlib.NewQPushButton3("Browse…")
 	v.callHistoryBrowseBtn.OnClicked(func() {
-		dlg := qtlib.NewQFileDialog4(v.dialog.QWidget, "Select Call History File")
+		dlg := qtlib.NewQFileDialog4(nil, "Select Call History File")
 		dlg.SetAcceptMode(qtlib.QFileDialog__AcceptOpen)
 		dlg.SetFileMode(qtlib.QFileDialog__ExistingFile)
 		dlg.SetNameFilter("Call history files (*.txt *.csv);;All Files (*)")

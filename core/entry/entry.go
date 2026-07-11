@@ -195,6 +195,7 @@ type Controller struct {
 	myNumber            string
 	myExchange          []string
 	focusedVFO          core.VFOID
+	txVFO               core.VFOID
 	vfo2Enabled         bool
 	activeField         []core.EntryField
 	errorField          []core.EntryField
@@ -911,6 +912,12 @@ func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
 		}
 		c.ptt = active
 		c.updateTXState()
+	})
+}
+
+func (c *Controller) TXVFOChanged(vfo core.VFOID) {
+	c.asyncRunner(func() {
+		c.txVFO = vfo
 	})
 }
 

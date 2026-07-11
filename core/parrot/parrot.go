@@ -171,9 +171,6 @@ func (p *Parrot) TransmissionStarted(vfo core.VFOID) {
 	if !p.active {
 		return
 	}
-	if vfo == core.VFO1 {
-		return
-	}
 	p.keyer.Stop()
 }
 

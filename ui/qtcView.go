@@ -44,6 +44,7 @@ type qtcView struct {
 	root       *qtlib.QWidget
 	controller QTCController
 	mode       core.QTCMode
+	vfoName    string
 
 	theirCallLabel    *qtlib.QLabel
 	theirCallMessage  string
@@ -67,8 +68,8 @@ type qtcView struct {
 	qtcs []core.QTC
 }
 
-func newQTCView(controller QTCController, mode core.QTCMode) *qtcView {
-	v := &qtcView{controller: controller, mode: mode}
+func newQTCView(controller QTCController, mode core.QTCMode, vfoName string) *qtcView {
+	v := &qtcView{controller: controller, mode: mode, vfoName: vfoName}
 
 	var sendText string
 	var modeText string
@@ -207,6 +208,9 @@ func (v *qtcView) setHeader(theirCall core.Callsign, header core.QTCHeader) {
 		format = "Sending QTCs to %s"
 	} else {
 		format = "Receiving QTCs from %s"
+	}
+	if v.vfoName != "" {
+		format += " on " + v.vfoName
 	}
 	v.theirCallMessage = fmt.Sprintf(format, theirCall.String())
 	v.theirCallLabel.SetText(v.theirCallMessage)

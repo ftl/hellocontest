@@ -258,7 +258,6 @@ func (c *Controller) Startup() {
 	}
 
 	c.QTCController = qtc.NewController(c.clock, c, c.Logbook, c.QTCList, c.Entry, c.Keyer)
-	c.VFOs[core.VFO1].Notify(c.QTCController)
 
 	c.Rate = rate.NewCounter(c.clock, c.asyncRunner)
 	c.QSOList.Notify(logbook.QSOsClearedListenerFunc(c.Rate.Clear))

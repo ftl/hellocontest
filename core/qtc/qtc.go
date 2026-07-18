@@ -33,6 +33,8 @@ type QTCList interface {
 
 type EntryController interface {
 	CurrentQSOState() (core.Callsign, core.QSODataState)
+	CurrentVFOState() (core.Frequency, core.Band, core.Mode)
+	FocusedVFO() (string, bool)
 	Log()
 }
 
@@ -53,7 +55,7 @@ type View interface {
 	QuestionQTCCount(max int) (int, bool)
 	ShowFieldError(core.QTCField, string)
 	ClearFieldError()
-	Show(core.QTCMode, core.QTCSeries)
+	Show(core.QTCMode, core.QTCSeries, string)
 	UpdateQTC(int, core.QTC)
 	Close()
 	ClearDataInputs()
@@ -93,10 +95,6 @@ type Controller struct {
 	currentSeries core.QTCSeries
 	currentQTC    int
 	currentInput  map[core.QTCField]string
-
-	vfoFrequency core.Frequency
-	vfoBand      core.Band
-	vfoMode      core.Mode
 }
 
 func NewController(clock core.Clock, infoDialogs InfoDialogs, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
@@ -147,27 +145,6 @@ func (c *Controller) clearErrorMessage() {
 	c.view.ClearFieldError()
 }
 
-func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
-	if vfo != core.VFO1 {
-		return
-	}
-	c.vfoFrequency = frequency
-}
-
-func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
-	if vfo != core.VFO1 {
-		return
-	}
-	c.vfoBand = band
-}
-
-func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
-	if vfo != core.VFO1 {
-		return
-	}
-	c.vfoMode = mode
-}
-
 // OfferQTC initiates the QTC dialog with mode core.ProvideQTC.
 func (c *Controller) OfferQTC() {
 	// 1. find out their callsign
@@ -207,7 +184,15 @@ func (c *Controller) OfferQTC() {
 	c.sendQTCOffer()
 
 	// 6. show and run the QTC dialog
-	c.view.Show(c.currentMode, c.currentSeries)
+	c.view.Show(c.currentMode, c.currentSeries, c.so2vVFOName())
+}
+
+func (c *Controller) so2vVFOName() string {
+	name, so2v := c.entryController.FocusedVFO()
+	if !so2v {
+		return ""
+	}
+	return name
 }
 
 func (c *Controller) findOutTheirCallsign() (core.Callsign, bool) {
@@ -254,7 +239,7 @@ func (c *Controller) RequestQTC() {
 	c.setActivePhase(core.QTCStart)
 
 	// show and run the QTC dialog
-	c.view.Show(c.currentMode, c.currentSeries)
+	c.view.Show(c.currentMode, c.currentSeries, c.so2vVFOName())
 }
 
 // *****************************************************
@@ -464,9 +449,7 @@ func (c *Controller) sendCurrentQTC() {
 
 	// add transmission data and mark the QTC as transmitted
 	currentQTC.Timestamp = c.clock.Now()
-	currentQTC.Frequency = c.vfoFrequency
-	currentQTC.Band = c.vfoBand
-	currentQTC.Mode = c.vfoMode
+	currentQTC.Frequency, currentQTC.Band, currentQTC.Mode = c.entryController.CurrentVFOState()
 	c.currentSeries.QTCs[c.currentQTC] = currentQTC
 }
 
@@ -521,16 +504,16 @@ var _ View = &nullView{}
 
 type nullView struct{}
 
-func (*nullView) QuestionQTCCount(int) (int, bool)     { return 0, false }
-func (*nullView) ShowFieldError(core.QTCField, string) {}
-func (*nullView) ClearFieldError()                     {}
-func (*nullView) Show(core.QTCMode, core.QTCSeries)    {}
-func (*nullView) UpdateQTC(int, core.QTC)              {}
-func (*nullView) Close()                               {}
-func (*nullView) ClearDataInputs()                     {}
-func (*nullView) SetActivePhase(core.QTCWorkflowPhase) {}
-func (*nullView) SetActiveField(core.QTCField)         {}
-func (*nullView) SetActiveQTC(int)                     {}
+func (*nullView) QuestionQTCCount(int) (int, bool)          { return 0, false }
+func (*nullView) ShowFieldError(core.QTCField, string)      {}
+func (*nullView) ClearFieldError()                          {}
+func (*nullView) Show(core.QTCMode, core.QTCSeries, string) {}
+func (*nullView) UpdateQTC(int, core.QTC)                   {}
+func (*nullView) Close()                                    {}
+func (*nullView) ClearDataInputs()                          {}
+func (*nullView) SetActivePhase(core.QTCWorkflowPhase)      {}
+func (*nullView) SetActiveField(core.QTCField)              {}
+func (*nullView) SetActiveQTC(int)                          {}
 
 // nullWorkflow
 

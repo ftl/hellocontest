@@ -38,7 +38,7 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 	return max, true
 }
 
-func (d *qtcDialog) Show(mode core.QTCMode, series core.QTCSeries) {
+func (d *qtcDialog) Show(mode core.QTCMode, series core.QTCSeries, vfoName string) {
 	d.completed = false
 
 	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
@@ -55,7 +55,7 @@ func (d *qtcDialog) Show(mode core.QTCMode, series core.QTCSeries) {
 	d.stopKeyHandler = newStopKeyHandler(d.dialog.QWidget)
 	d.stopKeyHandler.SetStopKeyController(d.controller)
 
-	d.view = newQTCView(d.controller, mode)
+	d.view = newQTCView(d.controller, mode, vfoName)
 
 	root := qtlib.NewQVBoxLayout(d.dialog.QWidget)
 	root.AddWidget(d.view.root)

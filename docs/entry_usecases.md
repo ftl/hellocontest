@@ -543,3 +543,13 @@ VFO labels show effective workmode ("VFO 1 RUN" / "VFO 2 S&P"). Keyer tracks per
 - **Pre:** none.
 - **Post:** returns `KeyerValues` snapshot from focused VFO input (my report, my number, my-exchange full, my-exchange minus report/number, their callsign).
 - **Invariants:** same as N1.
+
+### N3. CurrentVFOState
+- **Pre:** none.
+- **Post:** returns `(frequency, band, mode)` of the focused VFO — the same radio state `Log` stamps on a QSO. Consumed by the QTC controller so QTC records match the VFO they were exchanged on in SO2V.
+- **Invariants:** same as N1.
+
+### N4. FocusedVFO
+- **Pre:** none.
+- **Post:** returns `(name, so2v)` of the focused VFO — `name` from `vfos[focusedVFO].Name()` ("VFO 1"/"VFO 2"), `so2v` = `vfo2Enabled`. The QTC controller reads it at dialog-open to label the QTC header with the focused VFO name in SO2V.
+- **Invariants:** same as N1.

@@ -25,10 +25,21 @@ func (l *fakeQTCList) SetQTCsEnabled(bool) {}
 type fakeEntryController struct {
 	currentCallsign core.Callsign
 	currentState    core.QSODataState
+	frequency       core.Frequency
+	band            core.Band
+	mode            core.Mode
+	vfoName         string
+	so2v            bool
 }
 
 func (c *fakeEntryController) CurrentQSOState() (core.Callsign, core.QSODataState) {
 	return c.currentCallsign, c.currentState
+}
+func (c *fakeEntryController) CurrentVFOState() (core.Frequency, core.Band, core.Mode) {
+	return c.frequency, c.band, c.mode
+}
+func (c *fakeEntryController) FocusedVFO() (string, bool) {
+	return c.vfoName, c.so2v
 }
 func (c *fakeEntryController) Log() {}
 
@@ -68,6 +79,7 @@ type fakeView struct {
 	activeQTCIndex int
 	errorMessage   string
 	errorField     core.QTCField
+	vfoName        string
 }
 
 func (v *fakeView) QuestionQTCCount(max int) (int, bool) {
@@ -81,10 +93,11 @@ func (v *fakeView) ClearFieldError() {
 	v.errorField = core.QTCNoneField
 	v.errorMessage = ""
 }
-func (v *fakeView) Show(mode core.QTCMode, series core.QTCSeries) {
+func (v *fakeView) Show(mode core.QTCMode, series core.QTCSeries, vfoName string) {
 	v.visible = true
 	v.mode = mode
 	v.series = series
+	v.vfoName = vfoName
 }
 func (v *fakeView) UpdateQTC(index int, qtc core.QTC) {
 	v.series.SetData(index, qtc)
@@ -165,6 +178,29 @@ func (b *controllerBuilder) WithCurrentQSOState(call core.Callsign, state core.Q
 		currentCallsign: call,
 		currentState:    state,
 	}
+	return b
+}
+
+func (b *controllerBuilder) WithVFOState(frequency core.Frequency, band core.Band, mode core.Mode) *controllerBuilder {
+	fake, ok := b.entryController.(*fakeEntryController)
+	if !ok {
+		fake = &fakeEntryController{}
+		b.entryController = fake
+	}
+	fake.frequency = frequency
+	fake.band = band
+	fake.mode = mode
+	return b
+}
+
+func (b *controllerBuilder) WithFocusedVFO(name string, so2v bool) *controllerBuilder {
+	fake, ok := b.entryController.(*fakeEntryController)
+	if !ok {
+		fake = &fakeEntryController{}
+		b.entryController = fake
+	}
+	fake.vfoName = name
+	fake.so2v = so2v
 	return b
 }
 

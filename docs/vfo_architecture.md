@@ -360,7 +360,10 @@ Entry.SetKeyer(Keyer)        // Keyer stores per-VFO workmode, switches macros o
 Callinfo.Notify(Entry)  // CallinfoFrameChanged flows to entry
 Entry.SetCallinfo(Callinfo)
 
-VFOs[VFO1].Notify(QTCController) // VFO1-only
+// QTCController is not a VFO listener; it reads focused-VFO state on demand
+// via entryController.CurrentVFOState() (stamps QTC records) and
+// entryController.FocusedVFO() (labels the QTC header with the VFO name in
+// SO2V). Both SO2V-correct.
 
 Parrot = parrot.New(Workmode, Keyer, Entry, asyncRunner)
                              // Entry as VFOSwitcher: SetTXVFO with ignoreVFOChange guard
@@ -517,6 +520,5 @@ radio.Controller (main thread)
 | `core/entry/entry.go:628` `enterEditMode` | `// TODO step 6: c.view.SetVFOEnabled(core.VFO2, false)` — edit mode does not yet hide VFO2 on enter. |
 | `core/entry/entry.go:652` `leaveEditMode` | `// TODO step 6: c.view.SetVFOEnabled(core.VFO2, true)` — complement of above; VFO2 stays visible and interactive during editing. |
 | `core/app/app.go:228–229` | `Bandmap.SetVFO`, `Workmode.Notify` intentionally VFO1-only. Decide if bandmap routing should follow `focusedVFO` or stay VFO1-only. |
-| `core/app/app.go:256` | `VFOs[VFO1].Notify(QTCController)` — QTC stays VFO1-only by design; confirm or expand. |
 | `ui/actions.go` | `LogVFO`/`ClearVFO` actions not wired as UI actions (keybinding slots exist in `cfg.go` with empty defaults but no `makeTriggerAction` in `actions.go`). |
 | Remote server | `LogVFO`/`ClearVFO` currently pass `VFOID` as a Go call only; verify remote HTTP surface encodes VFO identity if needed beyond action IDs. |

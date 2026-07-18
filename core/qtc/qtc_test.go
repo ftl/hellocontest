@@ -31,11 +31,9 @@ func TestOfferQTC_HappyPath(t *testing.T) {
 		WithClock(clock.Static(now)).
 		WithKeyer(keyer).
 		WithLogbook(logbook).
+		WithVFOState(7020000, core.Band40m, core.ModeCW).
 		Build()
 	c.SetView(view)
-	c.VFOFrequencyChanged(core.VFO1, 7020000)
-	c.VFOBandChanged(core.VFO1, core.Band40m)
-	c.VFOModeChanged(core.VFO1, core.ModeCW)
 
 	c.OfferQTC()
 	assert.Equal(t, "qtc", keyer.lastTransmission)
@@ -124,11 +122,9 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 		WithClock(clock.Static(now)).
 		WithKeyer(keyer).
 		WithLogbook(logbook).
+		WithVFOState(7020000, core.Band40m, core.ModeCW).
 		Build()
 	c.SetView(view)
-	c.VFOFrequencyChanged(core.VFO1, 7020000)
-	c.VFOBandChanged(core.VFO1, core.Band40m)
-	c.VFOModeChanged(core.VFO1, core.ModeCW)
 
 	c.RequestQTC()
 	assert.Equal(t, core.QTCStart, c.activePhase)
@@ -275,6 +271,68 @@ func TestRequestQTC_HappyPath(t *testing.T) {
 	}, logbook.loggedQTCs[1])
 }
 
+func TestOfferQTC_ShowsFocusedVFONameOnlyInSO2V(t *testing.T) {
+	theirCallsign := core.MustParseCallsign("DL1ABC")
+	newViewFor := func(so2v bool) *fakeView {
+		view := new(fakeView)
+		logbook := &fakeLogbook{
+			nextSeriesNumber: 1,
+			lastCallsign:     theirCallsign,
+			availableQTCs: qtcsFor(core.SentQTC, theirCallsign).
+				Add("0123", "DK1AB", 1).
+				Build(),
+		}
+		c := newController().
+			WithKeyer(new(fakeKeyer)).
+			WithLogbook(logbook).
+			WithFocusedVFO("VFO 2", so2v).
+			Build()
+		c.SetView(view)
+		c.OfferQTC()
+		return view
+	}
+
+	assert.Equal(t, "VFO 2", newViewFor(true).vfoName)
+	assert.Equal(t, "", newViewFor(false).vfoName)
+}
+
+func TestOfferQTC_SO2V_StampsFocusedVFOState(t *testing.T) {
+	now := time.Now()
+	view := new(fakeView)
+	keyer := new(fakeKeyer)
+	theirCallsign := core.MustParseCallsign("DL1ABC")
+	logbook := &fakeLogbook{
+		nextSeriesNumber: 1,
+		lastCallsign:     theirCallsign,
+		availableQTCs: qtcsFor(core.SentQTC, theirCallsign).
+			Add("0123", "DK1AB", 1).
+			Build(),
+	}
+	// the operator works the QTC series on the focused (sub) VFO, tuned to 15m
+	c := newController().
+		WithClock(clock.Static(now)).
+		WithKeyer(keyer).
+		WithLogbook(logbook).
+		WithVFOState(21020000, core.Band15m, core.ModeCW).
+		Build()
+	c.SetView(view)
+
+	c.OfferQTC()
+	c.ConfirmStart()
+	c.ConfirmHeader() // sends and stamps the first QTC
+	c.ConfirmData()
+
+	assert.Equal(t, core.Frequency(21020000), c.currentSeries.QTCs[0].Frequency)
+	assert.Equal(t, core.Band15m, c.currentSeries.QTCs[0].Band)
+	assert.Equal(t, core.ModeCW, c.currentSeries.QTCs[0].Mode)
+
+	c.CompleteQTCSeries()
+	assert.Equal(t, 1, len(logbook.loggedQTCs))
+	assert.Equal(t, core.Frequency(21020000), logbook.loggedQTCs[0].Frequency)
+	assert.Equal(t, core.Band15m, logbook.loggedQTCs[0].Band)
+	assert.Equal(t, core.ModeCW, logbook.loggedQTCs[0].Mode)
+}
+
 func TestRequestQTC_HeaderErrors(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -310,9 +368,6 @@ func TestRequestQTC_HeaderErrors(t *testing.T) {
 				WithLogbook(logbook).
 				Build()
 			c.SetView(view)
-			c.VFOFrequencyChanged(core.VFO1, 7020000)
-			c.VFOBandChanged(core.VFO1, core.Band40m)
-			c.VFOModeChanged(core.VFO1, core.ModeCW)
 			c.RequestQTC()
 			c.StartAction()
 			c.ConfirmStart()
@@ -399,9 +454,6 @@ func TestRequestQTC_DataErrors(t *testing.T) {
 				WithLogbook(logbook).
 				Build()
 			c.SetView(view)
-			c.VFOFrequencyChanged(core.VFO1, 7020000)
-			c.VFOBandChanged(core.VFO1, core.Band40m)
-			c.VFOModeChanged(core.VFO1, core.ModeCW)
 			c.RequestQTC()
 			c.StartAction()
 			c.ConfirmStart()

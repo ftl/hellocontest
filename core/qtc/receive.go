@@ -116,12 +116,13 @@ func (c *receive) GotoNextField() {
 
 func (c *receive) CompleteQTCSeries() {
 	// fill common data from the series and log the QTC series
+	frequency, band, mode := c.entryController.CurrentVFOState()
 	for i, qtc := range c.currentSeries.QTCs {
 		qtc.TheirCallsign = c.currentSeries.TheirCallsign
 		qtc.Header = c.currentSeries.Header
-		qtc.Frequency = c.vfoFrequency
-		qtc.Band = c.vfoBand
-		qtc.Mode = c.vfoMode
+		qtc.Frequency = frequency
+		qtc.Band = band
+		qtc.Mode = mode
 		c.currentSeries.QTCs[i] = qtc
 	}
 

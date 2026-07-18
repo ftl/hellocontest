@@ -1385,6 +1385,14 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 	return values
 }
 
+func (c *Controller) CurrentVFOState() (core.Frequency, core.Band, core.Mode) {
+	return c.selectedFrequency[c.focusedVFO], c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO]
+}
+
+func (c *Controller) FocusedVFO() (string, bool) {
+	return c.vfos[c.focusedVFO].Name(), c.vfo2Enabled
+}
+
 func (c *Controller) StationChanged(station core.Station) {
 	c.stationCallsign = station.Callsign.String()
 	c.view.SetMyCall(c.stationCallsign)

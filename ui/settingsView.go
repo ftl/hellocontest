@@ -62,6 +62,7 @@ type settingsView struct {
 	stationLocator     *qtlib.QLineEdit
 	stationBandplan    *qtlib.QComboBox
 	stationBandplanIDs []string
+	selectedBandplanID string
 
 	contestCombo *qtlib.QComboBox
 	contestIDs   []string
@@ -382,12 +383,18 @@ func (v *settingsView) SetStationBandplanOptions(ids, labels []string) {
 			v.stationBandplan.AddItem(l)
 		}
 	})
+	v.applyStationBandplan()
 }
 
 func (v *settingsView) SetStationBandplan(id string) {
+	v.selectedBandplanID = id
+	v.applyStationBandplan()
+}
+
+func (v *settingsView) applyStationBandplan() {
 	v.doIgnore(func() {
 		for i, candidate := range v.stationBandplanIDs {
-			if candidate == id {
+			if candidate == v.selectedBandplanID {
 				v.stationBandplan.SetCurrentIndex(i)
 				return
 			}

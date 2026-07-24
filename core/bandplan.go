@@ -9,9 +9,15 @@ func (id BandplanID) String() string {
 	return string(id)
 }
 
+const (
+	BandplanIARURegion1 BandplanID = "iaru-region-1"
+	BandplanIARURegion2 BandplanID = "iaru-region-2"
+	BandplanIARURegion3 BandplanID = "iaru-region-3"
+)
+
 // DefaultBandplanID is the bandplan used when none is selected, preserving the
 // historic behavior (IARU Region 1).
-const DefaultBandplanID BandplanID = "iaru-region-1"
+const DefaultBandplanID BandplanID = BandplanIARURegion1
 
 // bandplanRegion associates a persisted identifier and a display label with a
 // concrete bandplan.
@@ -24,9 +30,9 @@ type bandplanRegion struct {
 // bandplanRegions lists the selectable bandplans in display order. The first
 // entry is the default (see DefaultBandplanID).
 var bandplanRegions = []bandplanRegion{
-	{DefaultBandplanID, "IARU Region 1 (Europe, Africa, Middle East, North Asia)", bandplan.IARURegion1},
-	{"iaru-region-2", "IARU Region 2 (Americas)", bandplan.IARURegion2},
-	{"iaru-region-3", "IARU Region 3 (Asia-Pacific, Oceania)", bandplan.IARURegion3},
+	{BandplanIARURegion1, "IARU Region 1 (Europe, Africa, Middle East, North Asia)", bandplan.IARURegion1},
+	{BandplanIARURegion2, "IARU Region 2 (Americas)", bandplan.IARURegion2},
+	{BandplanIARURegion3, "IARU Region 3 (Asia-Pacific, Oceania)", bandplan.IARURegion3},
 }
 
 // BandplanByID returns the bandplan for the given identifier. An unknown or

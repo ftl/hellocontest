@@ -15,6 +15,7 @@ type SettingsController interface {
 	EnterStationCallsign(string)
 	EnterStationOperator(string)
 	EnterStationLocator(string)
+	EnterStationBandplan(string)
 
 	SelectContestIdentifier(string)
 	OpenContestRulesPage()
@@ -56,9 +57,11 @@ type settingsView struct {
 
 	root *qtlib.QWidget
 
-	stationCallsign *qtlib.QLineEdit
-	stationOperator *qtlib.QLineEdit
-	stationLocator  *qtlib.QLineEdit
+	stationCallsign    *qtlib.QLineEdit
+	stationOperator    *qtlib.QLineEdit
+	stationLocator     *qtlib.QLineEdit
+	stationBandplan    *qtlib.QComboBox
+	stationBandplanIDs []string
 
 	contestCombo *qtlib.QComboBox
 	contestIDs   []string
@@ -68,8 +71,8 @@ type settingsView struct {
 	contestStartTime  *qtlib.QLineEdit
 	startTimeTodayBtn *qtlib.QPushButton
 	startTimeNowBtn   *qtlib.QPushButton
-	sprintMode          *qtlib.QCheckBox
-	enableQTCs          *qtlib.QCheckBox
+	sprintMode        *qtlib.QCheckBox
+	enableQTCs        *qtlib.QCheckBox
 
 	exchangeGrid        *qtlib.QGridLayout
 	exchangeRows        []exchangeRow
@@ -155,6 +158,15 @@ func (v *settingsView) buildStationGroup() *qtlib.QGroupBox {
 		v.controller.EnterStationLocator(text)
 	})
 	form.AddRow3("Locator:", v.stationLocator.QWidget)
+
+	v.stationBandplan = qtlib.NewQComboBox2()
+	v.stationBandplan.OnActivated(func(index int) {
+		if v.ignoreChangedEvent || index < 0 || index >= len(v.stationBandplanIDs) {
+			return
+		}
+		v.controller.EnterStationBandplan(v.stationBandplanIDs[index])
+	})
+	form.AddRow3("Bandplan:", v.stationBandplan.QWidget)
 
 	return box
 }
@@ -357,6 +369,31 @@ func (v *settingsView) SetStationOperator(value string) {
 
 func (v *settingsView) SetStationLocator(value string) {
 	v.doIgnore(func() { v.stationLocator.SetText(value) })
+}
+
+func (v *settingsView) SetStationBandplanOptions(ids, labels []string) {
+	if len(ids) != len(labels) {
+		return
+	}
+	v.stationBandplanIDs = append(v.stationBandplanIDs[:0], ids...)
+	v.doIgnore(func() {
+		v.stationBandplan.Clear()
+		for _, l := range labels {
+			v.stationBandplan.AddItem(l)
+		}
+	})
+}
+
+func (v *settingsView) SetStationBandplan(id string) {
+	v.doIgnore(func() {
+		for i, candidate := range v.stationBandplanIDs {
+			if candidate == id {
+				v.stationBandplan.SetCurrentIndex(i)
+				return
+			}
+		}
+		v.stationBandplan.SetCurrentIndex(-1)
+	})
 }
 
 func (v *settingsView) SetContestIdentifiers(ids []string, texts []string) {

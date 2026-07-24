@@ -85,6 +85,8 @@ type View interface {
 	SetStationCallsign(string)
 	SetStationOperator(string)
 	SetStationLocator(string)
+	SetStationBandplanOptions(ids []string, labels []string)
+	SetStationBandplan(id string)
 
 	SetContestIdentifiers(ids []string, texts []string)
 	SelectContestIdentifier(string)
@@ -276,6 +278,12 @@ func (s *Settings) showSettings() {
 	s.view.SetStationCallsign(s.station.Callsign.String())
 	s.view.SetStationOperator(s.station.Operator.String())
 	s.view.SetStationLocator(s.station.Locator.String())
+	s.view.SetStationBandplanOptions(bandplanOptions())
+	bandplanID := s.station.Bandplan
+	if bandplanID == "" {
+		bandplanID = core.DefaultBandplanID
+	}
+	s.view.SetStationBandplan(bandplanID.String())
 
 	// contest definition
 	s.view.SetContestIdentifiers(s.ContestIdentifiers())
@@ -386,6 +394,21 @@ func (s *Settings) EnterStationLocator(value string) {
 	}
 	s.view.HideMessage()
 	s.station.Locator = loc
+}
+
+func (s *Settings) EnterStationBandplan(id string) {
+	s.station.Bandplan = core.BandplanID(id)
+}
+
+// bandplanOptions returns the selectable bandplan identifiers and labels as
+// plain strings for the view.
+func bandplanOptions() (ids []string, labels []string) {
+	bandplanIDs, labels := core.BandplanIDs()
+	ids = make([]string, len(bandplanIDs))
+	for i, id := range bandplanIDs {
+		ids[i] = id.String()
+	}
+	return ids, labels
 }
 
 func (s *Settings) SelectContestIdentifier(contestIdentifier string) {
@@ -734,6 +757,8 @@ func (v *nullView) Ready() bool                                        { return 
 func (v *nullView) SetStationCallsign(string)                          {}
 func (v *nullView) SetStationOperator(string)                          {}
 func (v *nullView) SetStationLocator(string)                           {}
+func (v *nullView) SetStationBandplanOptions(ids, labels []string)     {}
+func (v *nullView) SetStationBandplan(string)                          {}
 func (v *nullView) SetContestIdentifiers(ids []string, texts []string) {}
 func (v *nullView) SetContestPagesAvailable(bool, bool)                {}
 func (v *nullView) SelectContestIdentifier(string)                     {}

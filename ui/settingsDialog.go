@@ -98,6 +98,20 @@ func (d *settingsDialog) SetStationLocator(v string) {
 	d.view.SetStationLocator(v)
 }
 
+func (d *settingsDialog) SetStationBandplanOptions(ids, labels []string) {
+	if d.view == nil {
+		return
+	}
+	d.view.SetStationBandplanOptions(ids, labels)
+}
+
+func (d *settingsDialog) SetStationBandplan(id string) {
+	if d.view == nil {
+		return
+	}
+	d.view.SetStationBandplan(id)
+}
+
 func (d *settingsDialog) SetContestIdentifiers(ids []string, texts []string) {
 	if d.view == nil {
 		return

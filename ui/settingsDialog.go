@@ -13,27 +13,25 @@ type settingsDialog struct {
 	parent     *qtlib.QMainWindow
 	controller SettingsController
 
-	dialog  *qtlib.QDialog
-	view    *settingsView
-	created bool
+	dialog *qtlib.QDialog
+	view   *settingsView
 }
 
 func newSettingsDialog(parent *qtlib.QMainWindow, controller SettingsController) *settingsDialog {
-	return &settingsDialog{parent: parent, controller: controller}
+	d := &settingsDialog{parent: parent, controller: controller}
+	d.create()
+	return d
 }
 
 func (d *settingsDialog) Show() {
-	if !d.created {
-		d.create()
-		d.created = true
-	}
+	d.dialog.AdjustSize()
 	d.dialog.Show()
 	d.dialog.Raise()
 	d.dialog.ActivateWindow()
 }
 
 func (d *settingsDialog) Ready() bool {
-	return d.created && d.view != nil
+	return d.view != nil
 }
 
 func (d *settingsDialog) create() {
@@ -52,8 +50,6 @@ func (d *settingsDialog) create() {
 
 	layout := qtlib.NewQVBoxLayout(d.dialog.QWidget)
 	layout.AddWidget(d.view.root)
-
-	d.dialog.AdjustSize()
 
 	d.dialog.OnFinished(func(result int) {
 		d.controller.Save()

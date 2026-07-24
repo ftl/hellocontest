@@ -264,8 +264,8 @@ func (s *Settings) emitSettingsChanged() {
 }
 
 func (s *Settings) Show() {
-	s.view.Show()
 	s.showSettings()
+	s.view.Show()
 	s.view.HideMessage()
 }
 

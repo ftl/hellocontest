@@ -230,6 +230,12 @@ var spotColors = map[core.SpotType]client.ARGB{
 	core.ClusterSpot: client.NewARGB(255, 153, 255, 255),
 }
 
+// SetBandplan swaps the bandplan used for band lookups. Subsequent lookups use
+// the new plan.
+func (c *Client) SetBandplan(bandplan bandplan.Bandplan) {
+	c.bandplan = bandplan
+}
+
 func (c *Client) SetSendSpots(sendSpots bool) {
 	c.sendSpots = sendSpots
 	c.resetSpots()

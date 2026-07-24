@@ -453,6 +453,14 @@ func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
 	})
 }
 
+// SetBandplan swaps the bandplan used for band lookups. Applied inside the
+// client loop, matching how the loop reads the bandplan.
+func (c *Client) SetBandplan(bandplan bandplan.Bandplan) {
+	c.doInLoop(func() {
+		c.bandplan = bandplan
+	})
+}
+
 func (c *Client) SetXIT(active bool, offset core.Frequency) {
 	// TODO: add the VFOID to all VFO-related Setters
 	vfo := core.VFO1

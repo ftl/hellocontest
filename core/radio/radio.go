@@ -80,6 +80,22 @@ func NewController(radios []core.Radio, keyers []core.Keyer, bandplan bandplan.B
 	return result
 }
 
+// bandplanAware is implemented by radio clients that can swap their bandplan
+// while connected.
+type bandplanAware interface {
+	SetBandplan(bandplan.Bandplan)
+}
+
+// SetBandplan swaps the bandplan used for band lookups and pushes it into the
+// currently-connected radio client, if any. New connections read the updated
+// bandplan when they are created.
+func (c *Controller) SetBandplan(bandplan bandplan.Bandplan) {
+	c.bandplan = bandplan
+	if r, ok := c.activeRadio.(bandplanAware); ok {
+		r.SetBandplan(bandplan)
+	}
+}
+
 func (c *Controller) SetView(view View) {
 	c.view = view
 	c.doIgnoreUpdates(func() {

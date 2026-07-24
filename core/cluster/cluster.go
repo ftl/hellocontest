@@ -71,6 +71,15 @@ func isDemoSource(name string) bool {
 	return strings.ToLower(strings.TrimSpace(name)) == "demo"
 }
 
+// SetBandplan swaps the bandplan used for band lookups, including in the
+// already-created child clusters. Subsequent lookups use the new plan.
+func (c *Clusters) SetBandplan(bandplan bandplan.Bandplan) {
+	c.bandplan = bandplan
+	for _, cluster := range c.clusters {
+		cluster.bandplan = bandplan
+	}
+}
+
 func (c *Clusters) cluster(name string) *cluster {
 	normalizedName := strings.ToLower(name)
 	for _, cluster := range c.clusters {

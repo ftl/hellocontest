@@ -62,6 +62,12 @@ func NewVFO(id core.VFOID, name string, bandplan bandplan.Bandplan, logbook Logb
 	return result
 }
 
+// SetBandplan swaps the bandplan used for band lookups. Subsequent lookups use
+// the new plan.
+func (v *VFO) SetBandplan(bandplan bandplan.Bandplan) {
+	v.bandplan = bandplan
+}
+
 func (v *VFO) SetClient(client Client) {
 	v.client = client
 	if client != nil {

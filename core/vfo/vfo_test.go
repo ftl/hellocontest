@@ -9,6 +9,14 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+func TestSetBandplanSwapsThePlan(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, nil)
+	assert.Equal(t, 1810000.0, float64(v.bandplan[bandplan.Band160m].From))
+
+	v.SetBandplan(bandplan.IARURegion2)
+	assert.Equal(t, 1800000.0, float64(v.bandplan[bandplan.Band160m].From))
+}
+
 func TestBandNameConversion(t *testing.T) {
 	bndpln := bandplan.IARURegion1
 

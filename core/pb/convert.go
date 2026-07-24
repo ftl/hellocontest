@@ -88,6 +88,10 @@ func ToStation(pbStation *Station) (core.Station, error) {
 		log.Printf("Cannot parse station locator: %v", err)
 		station.Locator = locator.Locator{}
 	}
+	station.Bandplan = core.BandplanID(pbStation.Bandplan)
+	if station.Bandplan == "" {
+		station.Bandplan = core.DefaultBandplanID
+	}
 	return station, nil
 }
 
@@ -96,6 +100,7 @@ func StationToPB(station core.Station) *Station {
 		Callsign: station.Callsign.String(),
 		Operator: station.Operator.String(),
 		Locator:  station.Locator.String(),
+		Bandplan: station.Bandplan.String(),
 	}
 }
 

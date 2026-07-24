@@ -24,6 +24,7 @@ var Default = &Data{
 		Callsign: "DL0ABC",
 		Operator: "DL1ABC",
 		Locator:  "AA00xx",
+		Bandplan: core.DefaultBandplanID.String(),
 	},
 	Contest: &pb.Contest{
 		Name:       "Default",

@@ -625,6 +625,7 @@ type Station struct {
 	Callsign Callsign
 	Operator Callsign
 	Locator  locator.Locator
+	Bandplan BandplanID
 }
 
 type Contest struct {

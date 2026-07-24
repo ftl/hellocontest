@@ -48,6 +48,7 @@ message Station {
   string callsign = 1;
   string operator = 2;
   string locator = 3;
+  string bandplan = 4;
 }
 
 message Contest {

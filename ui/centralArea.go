@@ -134,7 +134,6 @@ func (a *centralArea) addVFOWidgetsToLayout(vfo core.VFOID, firstRow int) {
 
 func (a *centralArea) removeWidgetsFromLayout() {
 	// row 0: my data: call, exchange
-	a.entryLayout.RemoveWidget(a.entry.utcLabel.QWidget)
 	a.entryLayout.RemoveWidget(a.entry.myCallLabel.QWidget)
 	for i := range a.entry.myExchangeFields {
 		a.entryLayout.RemoveWidget(a.entry.myExchangeFields[i].QWidget)

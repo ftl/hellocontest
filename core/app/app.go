@@ -17,6 +17,7 @@ import (
 	"github.com/ftl/hellocontest/core/callhistory"
 	"github.com/ftl/hellocontest/core/callinfo"
 	"github.com/ftl/hellocontest/core/cfg"
+	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/core/cluster"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/core/entry"
@@ -79,6 +80,7 @@ type Controller struct {
 	QSOList                  *logbook.QSOList
 	QTCList                  *logbook.QTCList
 	Entry                    *entry.Controller
+	ClockView                *clock.Controller
 	ScoreController          *score.Controller
 	Workmode                 *workmode.Controller
 	Radio                    *radio.Controller
@@ -199,6 +201,8 @@ func (c *Controller) Startup() {
 	c.Bandmap.Notify(c.Entry)
 	c.Logbook.Notify(c.Entry)
 	c.QSOList.Notify(c.Entry)
+
+	c.ClockView = clock.NewController(c.clock, c.asyncRunner)
 
 	c.SummaryController = summary.NewController(c.Logbook)
 
@@ -334,7 +338,7 @@ func (c *Controller) Startup() {
 	c.Workmode.SetWorkmode(core.Run)
 	c.Workmode.SetWorkmode(core.SearchPounce)
 
-	c.Entry.StartAutoRefresh()
+	c.ClockView.StartAutoRefresh()
 	c.Rate.StartAutoRefresh()
 
 	err = c.openCurrentLog()
@@ -820,6 +824,11 @@ func (c *Controller) ShowSpots() {
 	c.view.BringToFront()
 }
 
+func (c *Controller) ShowClock() {
+	c.ClockView.Show()
+	c.view.BringToFront()
+}
+
 func (c *Controller) Refresh() {
 	c.Logbook.Refresh()
 }
@@ -1027,6 +1036,8 @@ func (c *Controller) DoAction(id string) error {
 		c.ShowRate()
 	case core.ActionWindowShowSpots:
 		c.ShowSpots()
+	case core.ActionWindowShowClock:
+		c.ShowClock()
 	case core.ActionKeyerSendMacro1:
 		c.Keyer.SendMacro(0)
 	case core.ActionKeyerSendMacro2:

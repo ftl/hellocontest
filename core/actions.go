@@ -57,6 +57,7 @@ const (
 	ActionWindowShowScoreTable = "window.show_score_table"
 	ActionWindowShowRate       = "window.show_rate"
 	ActionWindowShowSpots      = "window.show_spots"
+	ActionWindowShowClock      = "window.show_clock"
 
 	ActionHelpWiki     = "help.wiki"
 	ActionHelpSponsors = "help.sponsors"

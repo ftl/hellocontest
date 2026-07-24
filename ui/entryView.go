@@ -62,8 +62,6 @@ type entryVFOWidgets struct {
 type entryView struct {
 	root *qtlib.QWidget // root widget containing the grid layout
 
-	utcLabel *qtlib.QLabel // TODO: remove
-
 	myCallLabel      *qtlib.QLabel
 	myExchangeFields []*qtlib.QLineEdit
 
@@ -85,9 +83,7 @@ type entryView struct {
 func newEntryView() *entryView {
 	v := &entryView{}
 
-	// Row 0: UTC label, myCall label, myExchanges container (cols 2-3, span 2)
-	v.utcLabel = qtlib.NewQLabel3("00:00")
-
+	// Row 0: myCall label, myExchanges container (cols 2-3, span 2)
 	v.myCallLabel = qtlib.NewQLabel3("DL0ABC")
 
 	v.vfo[core.VFO1] = newEntryVFOWidgets("vfo1", "VFO 1")
@@ -290,10 +286,6 @@ func (v *entryView) handleKeyPress(super func(ev *qtlib.QKeyEvent), ev *qtlib.QK
 
 func (v *entryView) SetEntryController(controller EntryController) {
 	v.controller = controller
-}
-
-func (v *entryView) SetUTC(text string) {
-	v.utcLabel.SetText(text)
 }
 
 func (v *entryView) SetMyCall(text string) {

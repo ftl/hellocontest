@@ -88,6 +88,7 @@ func newMainMenu(
 	windowMenu.AddAction(a.showScoreTableAction)
 	windowMenu.AddAction(a.showRateAction)
 	windowMenu.AddAction(a.showSpotsAction)
+	windowMenu.AddAction(a.showClockAction)
 
 	// ── Help ─────────────────────────────────────────────────────────────
 	helpMenu := m.menuBar.AddMenuWithTitle("&Help")

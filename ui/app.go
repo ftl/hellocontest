@@ -91,6 +91,7 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 		a.scoreTableView.RepaintForThemeChange()
 		a.rateView.RepaintForThemeChange()
 		a.spotsView.RepaintForThemeChange()
+		a.clockView.RepaintForThemeChange()
 	})
 
 	if startupScript == nil {
@@ -154,6 +155,7 @@ type application struct {
 	scoreTableView *scoreTableView
 	spotsView      *spotsView
 	rateView       *rateView
+	clockView      *clockView
 
 	settingsDialog       *settingsDialog
 	keyerSettingsDialog  *keyerSettingsDialog
@@ -257,6 +259,10 @@ func (a *application) createViews(timebase core.Clock) {
 	}
 	a.controller.ScoreController.SetView(scoreComposite)
 
+	// setup clock dock
+	a.clockView = newClockView(a.window.QWidget)
+	a.controller.ClockView.SetView(a.clockView)
+
 	// setup spots dock
 	a.spotsView = newSpotsView(a.window.QWidget, a.controller.Bandmap, a.style)
 	a.controller.Bandmap.SetView(a.spotsView)
@@ -271,6 +277,7 @@ func (a *application) createViews(timebase core.Clock) {
 	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.rateView.Dock())
 	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreGraphView.Dock())
 	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreTableView.Dock())
+	a.window.AddDockWidget(qtlib.RightDockWidgetArea, a.clockView.Dock())
 	a.window.AddDockWidget(qtlib.RightDockWidgetArea, a.spotsView.Dock())
 }
 

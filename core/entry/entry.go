@@ -12,7 +12,6 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/parse"
-	"github.com/ftl/hellocontest/core/ticker"
 )
 
 const (
@@ -21,7 +20,6 @@ const (
 
 // View represents the visual part of the QSO data entry.
 type View interface {
-	SetUTC(string)
 	SetMyCall(string)
 	SetMyExchange(int, string)
 
@@ -126,7 +124,6 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 		result.vfos[vfo] = new(nullVFO)
 		result.activeField[vfo] = core.CallsignField
 	}
-	result.refreshTicker = ticker.New(clock, result.refreshUTC)
 	result.updateExchangeFields(settings.Contest())
 	return result
 }
@@ -170,9 +167,8 @@ type Controller struct {
 	bandmap         Bandmap
 	esmView         ESMView
 
-	asyncRunner   core.AsyncRunner
-	refreshTicker *ticker.Ticker
-	listeners     []any
+	asyncRunner core.AsyncRunner
+	listeners   []any
 
 	stationCallsign string
 	workmode        core.Workmode
@@ -261,7 +257,6 @@ func (c *Controller) SetView(view View) {
 		c.view.SetVFOWorkmode(core.VFOID(vfo), c.vfoWorkmode[vfo])
 	}
 	c.Clear()
-	c.refreshUTC()
 }
 
 func (c *Controller) LogbookLoaded() {
@@ -392,17 +387,6 @@ func (c *Controller) RefreshPrediction() {
 			c.setTheirExchangePrediction(i, c.currentCallinfoFrame[c.focusedVFO].PredictedExchange[i])
 		}
 	}
-}
-
-func (c *Controller) StartAutoRefresh() {
-	c.refreshTicker.Start()
-}
-
-func (c *Controller) refreshUTC() {
-	c.asyncRunner(func() {
-		utc := c.clock.Now().UTC()
-		c.view.SetUTC(utc.Format("15:04"))
-	})
 }
 
 func (c *Controller) RefreshView() {

@@ -69,6 +69,7 @@ type actions struct {
 	showScoreTableAction *qtlib.QAction
 	showRateAction       *qtlib.QAction
 	showSpotsAction      *qtlib.QAction
+	showClockAction      *qtlib.QAction
 
 	// Help menu
 	wikiAction     *qtlib.QAction
@@ -164,6 +165,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.showScoreTableAction = a.makeTriggerAction(core.ActionWindowShowScoreTable, "&Score Table", "Show the score table", "", controller.ShowScoreTable)
 	a.showRateAction = a.makeTriggerAction(core.ActionWindowShowRate, "&Rate", "Show the QSO rate", "", controller.ShowRate)
 	a.showSpotsAction = a.makeTriggerAction(core.ActionWindowShowSpots, "S&pots", "Show the spots table", "", controller.ShowSpots)
+	a.showClockAction = a.makeTriggerAction(core.ActionWindowShowClock, "&Clock", "Show the UTC clock", "", controller.ShowClock)
 
 	// Help menu
 	a.wikiAction = a.makeTriggerAction(core.ActionHelpWiki, "&Wiki", "Open the manual in the webbrowser", "", controller.OpenWiki)

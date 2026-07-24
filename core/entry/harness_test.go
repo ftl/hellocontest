@@ -815,7 +815,6 @@ func (v *viewSpy) assertCalledWith(t *testing.T, method string, args ...any) {
 		"expected %s(%v) to be called", method, args)
 }
 
-func (v *viewSpy) SetUTC(s string)               { v.record("SetUTC", s) }
 func (v *viewSpy) SetMyCall(s string)            { v.record("SetMyCall", s) }
 func (v *viewSpy) SetMyExchange(i int, s string) { v.record("SetMyExchange", i, s) }
 func (v *viewSpy) SetFrequency(vfo core.VFOID, f core.Frequency) {

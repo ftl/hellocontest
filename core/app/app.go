@@ -167,7 +167,7 @@ func (c *Controller) Startup() {
 	c.NewContestController = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
 	c.ExportCabrilloController = cabrillo.NewController()
 
-	c.bandplan = bandplan.IARURegion1 // TODO: make the bandplan configurable
+	c.bandplan = core.BandplanByID(c.configuration.Station().Bandplan)
 	c.dxccFinder = dxcc.New()
 	c.scpFinder = scp.New()
 	c.hamDXMap = hamdxmap.NewHamDXMap(c.configuration.HamDXMapPort())
@@ -294,6 +294,15 @@ func (c *Controller) Startup() {
 		if !c.Logbook.Valid() {
 			c.Logbook.Refresh()
 		}
+	}))
+	c.Settings.Notify(settings.StationListenerFunc(func(station core.Station) {
+		bp := core.BandplanByID(station.Bandplan)
+		for _, v := range c.VFOs {
+			v.SetBandplan(bp)
+		}
+		c.Radio.SetBandplan(bp)
+		c.Clusters.SetBandplan(bp)
+		c.Refresh()
 	}))
 
 	c.dxccFinder.WhenAvailable(func() {

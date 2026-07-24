@@ -101,11 +101,13 @@ func TestFileStore_V1StationRoundtrip(t *testing.T) {
 		Callsign: core.MustParseCallsign("DL0ABC"),
 		Operator: core.MustParseCallsign("DL1ABC"),
 		Locator:  loc,
+		Bandplan: core.DefaultBandplanID,
 	}
 	station2 := core.Station{
 		Callsign: core.MustParseCallsign("DL0ABC"),
 		Operator: core.MustParseCallsign("DL2ABC"),
 		Locator:  loc,
+		Bandplan: core.DefaultBandplanID,
 	}
 	err = fs.WriteStation(station1)
 	err = fs.WriteStation(station2)

@@ -171,9 +171,15 @@ func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
 	})
 }
 
-func (c *Client) emitXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
-	core.Emit(c.listeners, func(listener core.VFOXITListener) {
-		listener.VFOXITChanged(vfo, active, offset)
+func (c *Client) emitIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
+		listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
+	})
+}
+
+func (c *Client) emitIncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) {
+	core.Emit(c.listeners, func(listener core.IncrementalTuningAvailabilityListener) {
+		listener.IncrementalTuningAvailabilityChanged(vfo, kind, available)
 	})
 }
 
@@ -233,16 +239,23 @@ func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
 	}
 }
 
-func (c *Client) SetXIT(active bool, offset core.Frequency) {
-	err := c.client.SetXITEnable(c.toTCITRX(c.currentVFO), active)
+func (c *Client) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	setEnable := c.client.SetXITEnable
+	setOffset := c.client.SetXITOffset
+	if kind == core.RIT {
+		setEnable = c.client.SetRITEnable
+		setOffset = c.client.SetRITOffset
+	}
+
+	err := setEnable(c.toTCITRX(vfo), active)
 	if err != nil {
-		log.Printf("cannot enable XIT: %v", err)
+		log.Printf("cannot enable %s: %v", kind, err)
 		return
 	}
 
-	err = c.client.SetXITOffset(c.toTCITRX(c.currentVFO), int(offset))
+	err = setOffset(c.toTCITRX(vfo), int(offset))
 	if err != nil {
-		log.Printf("cannot set XIT offset: %v", err)
+		log.Printf("cannot set %s offset: %v", kind, err)
 		return
 	}
 }
@@ -329,6 +342,8 @@ type trxListener struct {
 	mode      core.Mode
 	xitActive bool
 	xitOffset core.Frequency
+	ritActive bool
+	ritOffset core.Frequency
 	ptt       bool
 }
 
@@ -336,7 +351,10 @@ func (l *trxListener) Refresh() {
 	l.client.emitFrequencyChanged(l.vfo, l.frequency)
 	l.client.emitBandChanged(l.vfo, l.band)
 	l.client.emitModeChanged(l.vfo, l.mode)
-	l.client.emitXITChanged(l.vfo, l.xitActive, l.xitOffset)
+	l.client.emitIncrementalTuningAvailabilityChanged(l.vfo, core.XIT, true)
+	l.client.emitIncrementalTuningAvailabilityChanged(l.vfo, core.RIT, true)
+	l.client.emitIncrementalTuningChanged(l.vfo, core.XIT, l.xitActive, l.xitOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, core.RIT, l.ritActive, l.ritOffset)
 	l.client.emitPTTChanged(l.vfo, l.ptt)
 }
 
@@ -394,8 +412,7 @@ func (l *trxListener) SetXITEnable(trx int, active bool) {
 		return
 	}
 	l.xitActive = incomingActive
-	l.client.emitXITChanged(l.vfo, l.xitActive, l.xitOffset)
-	// log.Printf("incoming XIT active %v", incomingActive)
+	l.client.emitIncrementalTuningChanged(l.vfo, core.XIT, l.xitActive, l.xitOffset)
 }
 
 func (l *trxListener) SetXITOffset(trx int, offset int) {
@@ -407,8 +424,30 @@ func (l *trxListener) SetXITOffset(trx int, offset int) {
 		return
 	}
 	l.xitOffset = incomingOffset
-	l.client.emitXITChanged(l.vfo, l.xitActive, l.xitOffset)
-	// log.Printf("incoming XIT offset %v", incomingOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, core.XIT, l.xitActive, l.xitOffset)
+}
+
+func (l *trxListener) SetRITEnable(trx int, active bool) {
+	if trx != l.trx {
+		return
+	}
+	if active == l.ritActive {
+		return
+	}
+	l.ritActive = active
+	l.client.emitIncrementalTuningChanged(l.vfo, core.RIT, l.ritActive, l.ritOffset)
+}
+
+func (l *trxListener) SetRITOffset(trx int, offset int) {
+	if trx != l.trx {
+		return
+	}
+	incomingOffset := core.Frequency(offset)
+	if incomingOffset == l.ritOffset {
+		return
+	}
+	l.ritOffset = incomingOffset
+	l.client.emitIncrementalTuningChanged(l.vfo, core.RIT, l.ritActive, l.ritOffset)
 }
 
 func (l *trxListener) SetTX(trx int, enable bool) {

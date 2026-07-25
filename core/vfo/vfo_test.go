@@ -43,12 +43,33 @@ func TestShiftFrequency(t *testing.T) {
 	assert.Equal(t, start, v.currentFrequency())
 }
 
-func TestShiftXITOffset(t *testing.T) {
+func TestShiftOffset(t *testing.T) {
 	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
 
-	v.ShiftXITOffset(100)
-	assert.Equal(t, core.Frequency(100), v.offset)
+	v.ShiftOffset(core.XIT, 100)
+	assert.Equal(t, core.Frequency(100), v.state[core.XIT].offset)
 
-	v.ShiftXITOffset(-30)
-	assert.Equal(t, core.Frequency(70), v.offset)
+	v.ShiftOffset(core.XIT, -30)
+	assert.Equal(t, core.Frequency(70), v.state[core.XIT].offset)
+
+	v.ShiftOffset(core.RIT, 40)
+	assert.Equal(t, core.Frequency(40), v.state[core.RIT].offset)
+	assert.Equal(t, core.Frequency(70), v.state[core.XIT].offset)
+}
+
+func TestWorkmodeGatesIncrementalTuning(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v.SetIncrementalTuningActive(core.XIT, true)
+	v.SetIncrementalTuningActive(core.RIT, true)
+
+	v.WorkmodeChanged(core.VFO1, core.SearchPounce)
+	assert.True(t, v.state[core.XIT].actualActive, "XIT active in S&P")
+	assert.False(t, v.state[core.RIT].actualActive, "RIT forced off in S&P")
+
+	v.WorkmodeChanged(core.VFO1, core.Run)
+	assert.False(t, v.state[core.XIT].actualActive, "XIT forced off in Run")
+	assert.True(t, v.state[core.RIT].actualActive, "RIT active in Run")
+
+	assert.True(t, v.IncrementalTuningActive(core.XIT), "XIT intent survives the round-trip")
+	assert.True(t, v.IncrementalTuningActive(core.RIT), "RIT intent survives the round-trip")
 }

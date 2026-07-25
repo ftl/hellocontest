@@ -53,6 +53,7 @@ type actions struct {
 
 	// Radio menu
 	xitActiveAction *qtlib.QAction
+	ritActiveAction *qtlib.QAction
 
 	// Bandmap menu
 	markBandmapAction    *qtlib.QAction
@@ -101,6 +102,8 @@ type actions struct {
 	frequencyDownAction   *qtlib.QAction
 	xitUpAction           *qtlib.QAction
 	xitDownAction         *qtlib.QAction
+	ritUpAction           *qtlib.QAction
+	ritDownAction         *qtlib.QAction
 	speedUpAction         *qtlib.QAction
 	speedDownAction       *qtlib.QAction
 }
@@ -154,7 +157,8 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.requestQTCAction = a.makeTriggerAction(core.ActionEntryRequestQTC, "Request QTC", "", "F6", controller.RequestQTC)
 
 	// Radio menu
-	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "Ctrl+Shift+X", controller.SetXITActive)
+	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "Ctrl+Shift+X", func(active bool) { controller.SetIncrementalTuningActive(core.XIT, active) })
+	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "Ctrl+Shift+R", func(active bool) { controller.SetIncrementalTuningActive(core.RIT, active) })
 
 	// Bandmap menu
 	a.markBandmapAction = a.makeTriggerAction(core.ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
@@ -198,6 +202,8 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.frequencyDownAction = a.makeTriggerAction(core.ActionRadioFrequencyDown, "Frequency Down", "Decrease the frequency of the focused VFO", "Alt+Down", func() { controller.FrequencyDown() })
 	a.xitUpAction = a.makeTriggerAction(core.ActionRadioXITUp, "XIT Up", "Increase the XIT offset", "Alt+Shift+Up", func() { controller.XITUp() })
 	a.xitDownAction = a.makeTriggerAction(core.ActionRadioXITDown, "XIT Down", "Decrease the XIT offset", "Alt+Shift+Down", func() { controller.XITDown() })
+	a.ritUpAction = a.makeTriggerAction(core.ActionRadioRITUp, "RIT Up", "Increase the RIT offset", "", func() { controller.RITUp() })
+	a.ritDownAction = a.makeTriggerAction(core.ActionRadioRITDown, "RIT Down", "Decrease the RIT offset", "", func() { controller.RITDown() })
 	a.speedUpAction = a.makeTriggerAction(core.ActionKeyerSpeedUp, "Speed Up", "Increase the keyer speed", "Ctrl+Alt+Up", func() { controller.KeyerSpeedUp() })
 	a.speedDownAction = a.makeTriggerAction(core.ActionKeyerSpeedDown, "Speed Down", "Decrease the keyer speed", "Ctrl+Alt+Down", func() { controller.KeyerSpeedDown() })
 	a.parent.AddActions([]*qtlib.QAction{
@@ -220,6 +226,8 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.frequencyDownAction,
 		a.xitUpAction,
 		a.xitDownAction,
+		a.ritUpAction,
+		a.ritDownAction,
 		a.speedUpAction,
 		a.speedDownAction,
 	})
@@ -299,7 +307,8 @@ func (a *actions) updateFromController() {
 	a.ignoreInput = true
 
 	a.esmAction.SetChecked(a.controller.ESMEnabled())
-	a.xitActiveAction.SetChecked(a.controller.XITActive())
+	a.xitActiveAction.SetChecked(a.controller.IncrementalTuningActive(core.XIT))
+	a.ritActiveAction.SetChecked(a.controller.IncrementalTuningActive(core.RIT))
 	a.sendSpotsToTciAction.SetChecked(a.controller.SendSpotsToTci())
 	switch a.controller.Workmode.Workmode() {
 	case core.SearchPounce:
@@ -424,9 +433,13 @@ func (a *actions) ESMEnabled(enabled bool) {
 	a.esmAction.SetChecked(enabled)
 }
 
-func (a *actions) XITActiveChanged(active bool) {
+func (a *actions) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
+	if kind == core.RIT {
+		a.ritActiveAction.SetChecked(active)
+		return
+	}
 	a.xitActiveAction.SetChecked(active)
 }
 

@@ -602,6 +602,6 @@ func (v *testVFO) SetFrequency(core.Frequency)   {}
 func (v *testVFO) ShiftFrequency(core.Frequency) {}
 func (v *testVFO) SetBand(core.Band)           {}
 func (v *testVFO) SetMode(core.Mode)           {}
-func (v *testVFO) SetXIT(bool, core.Frequency) {}
-func (v *testVFO) XITActive() bool             { return false }
-func (v *testVFO) SetXITActive(bool)           {}
+func (v *testVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
+func (v *testVFO) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
+func (v *testVFO) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}

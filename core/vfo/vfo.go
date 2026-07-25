@@ -18,7 +18,7 @@ type Client interface {
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(core.VFOID, core.Band)
 	SetMode(core.VFOID, core.Mode)
-	SetXIT(bool, core.Frequency)
+	SetIncrementalTuning(core.VFOID, core.IncrementalTuningKind, bool, core.Frequency)
 	MuteAudio(core.VFOID)
 	UnmuteAudio(core.VFOID)
 	ToggleAudio(core.VFOID)
@@ -30,7 +30,7 @@ type Logbook interface {
 }
 
 type VFO struct {
-	XITControl
+	IncrementalTuningControl
 
 	id   core.VFOID
 	name string
@@ -53,7 +53,7 @@ func NewVFO(id core.VFOID, name string, bandplan bandplan.Bandplan, logbook Logb
 		logbook:     logbook,
 		asyncRunner: asyncRunner,
 	}
-	result.XITControl = XITControl{
+	result.IncrementalTuningControl = IncrementalTuningControl{
 		vfo: result,
 	}
 	result.offlineClient = newOfflineClient(result)
@@ -136,11 +136,11 @@ func (v *VFO) SetMode(mode core.Mode) {
 	}
 }
 
-func (v *VFO) SetXIT(active bool, offset core.Frequency) {
+func (v *VFO) SetIncrementalTuning(kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	if v.online() {
-		v.client.SetXIT(active, offset)
+		v.client.SetIncrementalTuning(v.id, kind, active, offset)
 	} else {
-		v.offlineClient.SetXIT(active, offset)
+		v.offlineClient.SetIncrementalTuning(kind, active, offset)
 	}
 }
 
@@ -209,12 +209,12 @@ func (v *VFO) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 	v.offlineClient.SetMode(mode)
 }
 
-func (v *VFO) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
+func (v *VFO) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	if vfo != v.id {
 		return
 	}
-	v.XITControl.VFOXITChanged(vfo, active, offset)
-	v.offlineClient.SetXIT(active, offset)
+	v.IncrementalTuningControl.VFOIncrementalTuningChanged(vfo, kind, active, offset)
+	v.offlineClient.SetIncrementalTuning(kind, active, offset)
 }
 
 func (v *VFO) VFOPTTChanged(vfo core.VFOID, active bool) {
@@ -248,10 +248,10 @@ func (v *VFO) emitModeChanged(mode core.Mode) {
 	})
 }
 
-func (v *VFO) emitXITChanged(active bool, offset core.Frequency) {
-	core.Emit(v.listeners, func(listener core.VFOXITListener) {
+func (v *VFO) emitIncrementalTuningChanged(kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	core.Emit(v.listeners, func(listener core.VFOIncrementalTuningListener) {
 		v.asyncRunner(func() {
-			listener.VFOXITChanged(v.id, active, offset)
+			listener.VFOIncrementalTuningChanged(v.id, kind, active, offset)
 		})
 	})
 }
@@ -267,8 +267,8 @@ func (v *VFO) emitPTTChanged(active bool) {
 type bandState struct {
 	frequency core.Frequency
 	mode      core.Mode
-	xitActive bool
-	xitOffset core.Frequency
+	itActive  [2]bool
+	itOffset  [2]core.Frequency
 }
 
 type offlineClient struct {
@@ -374,15 +374,15 @@ func (c *offlineClient) SetMode(mode core.Mode) {
 	c.vfo.emitModeChanged(mode)
 }
 
-func (c *offlineClient) SetXIT(active bool, offset core.Frequency) {
+func (c *offlineClient) SetIncrementalTuning(kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	c.stateLock.Lock()
 	state := c.lastState(c.currentBand)
-	state.xitActive = active
-	state.xitOffset = offset
+	state.itActive[kind] = active
+	state.itOffset[kind] = offset
 	c.lastStates[c.currentBand] = state
 	c.stateLock.Unlock()
 
-	c.vfo.emitXITChanged(state.xitActive, state.xitOffset)
+	c.vfo.emitIncrementalTuningChanged(kind, state.itActive[kind], state.itOffset[kind])
 }
 
 func (c *offlineClient) SetPTT(active bool) {

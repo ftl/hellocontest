@@ -239,7 +239,7 @@ func (s *Scenario) PressEnter() *Scenario {
 func (s *Scenario) SetXITActive(active bool) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.SetXITActive(active)
+	s.controller.SetIncrementalTuningActive(core.XIT, active)
 	return s
 }
 
@@ -738,9 +738,11 @@ func (v *vfoSpy) SetFrequency(f core.Frequency)   { v.lastFreq = f }
 func (v *vfoSpy) ShiftFrequency(f core.Frequency) { v.lastFreq += f }
 func (v *vfoSpy) SetBand(b core.Band)           { v.lastBand = b }
 func (v *vfoSpy) SetMode(m core.Mode)           { v.lastMode = m }
-func (v *vfoSpy) SetXIT(bool, core.Frequency)   {}
-func (v *vfoSpy) XITActive() bool               { return v.xitActive }
-func (v *vfoSpy) SetXITActive(active bool)      { v.xitActive = active }
+func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
+func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return v.xitActive }
+func (v *vfoSpy) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	v.xitActive = active
+}
 
 // ---- qsoListSpy -------------------------------------------------------------
 
@@ -823,11 +825,11 @@ func (v *viewSpy) SetFrequency(vfo core.VFOID, f core.Frequency) {
 }
 func (v *viewSpy) SetBand(vfo core.VFOID, text string) { v.record("SetBand", vfo, text) }
 func (v *viewSpy) SetMode(vfo core.VFOID, text string) { v.record("SetMode", vfo, text) }
-func (v *viewSpy) SetXITActive(vfo core.VFOID, active bool) {
-	v.record("SetXITActive", vfo, active)
+func (v *viewSpy) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	v.record("SetIncrementalTuningActive", vfo, kind, active)
 }
-func (v *viewSpy) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {
-	v.record("SetXIT", vfo, active, offset)
+func (v *viewSpy) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	v.record("SetIncrementalTuning", vfo, kind, active, offset)
 }
 func (v *viewSpy) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	v.record("SetTXState", vfo, ptt, parrotActive, parrotTimeLeft)
@@ -1167,7 +1169,7 @@ func (s *Scenario) CurrentVFOChanged(vfo core.VFOID) *Scenario {
 func (s *Scenario) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.VFOXITChanged(vfo, active, offset)
+	s.controller.VFOIncrementalTuningChanged(vfo, core.XIT, active, offset)
 	return s
 }
 
@@ -1175,7 +1177,7 @@ func (s *Scenario) VFOXITChanged(vfo core.VFOID, active bool, offset core.Freque
 func (s *Scenario) XITActiveChanged(active bool) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.XITActiveChanged(active)
+	s.controller.IncrementalTuningActiveChanged(core.VFO1, core.XIT, active)
 	return s
 }
 
@@ -1313,14 +1315,14 @@ func (s *Scenario) AssertVFO2Enabled(enabled bool) *Scenario {
 // AssertXITView asserts view.SetXIT(vfo, active, offset) was called.
 func (s *Scenario) AssertXITView(vfo core.VFOID, active bool, offset core.Frequency) *Scenario {
 	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetXIT", vfo, active, offset)
+	s.view.assertCalledWith(s.t, "SetIncrementalTuning", vfo, core.XIT, active, offset)
 	return s
 }
 
-// AssertXITActiveView asserts view.SetXITActive(vfo, active) was called.
+// AssertXITActiveView asserts view.SetIncrementalTuningActive(vfo, XIT, active) was called.
 func (s *Scenario) AssertXITActiveView(vfo core.VFOID, active bool) *Scenario {
 	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetXITActive", vfo, active)
+	s.view.assertCalledWith(s.t, "SetIncrementalTuningActive", vfo, core.XIT, active)
 	return s
 }
 

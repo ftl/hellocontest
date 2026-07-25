@@ -26,8 +26,8 @@ type View interface {
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(vfo core.VFOID, text string)
 	SetMode(vfo core.VFOID, text string)
-	SetXITActive(vfo core.VFOID, active bool)
-	SetXIT(vfo core.VFOID, active bool, offset core.Frequency)
+	SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool)
+	SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency)
 	SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 
 	SetCallsign(core.VFOID, string)
@@ -737,8 +737,8 @@ func (c *Controller) bandEntered(band core.Band) {
 	c.vfos[c.focusedVFO].SetBand(band)
 }
 
-func (c *Controller) SetXITActive(active bool) {
-	c.vfos[core.VFO1].SetXITActive(active)
+func (c *Controller) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	c.vfos[core.VFO1].SetIncrementalTuningActive(kind, active)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 }
 
@@ -871,16 +871,15 @@ func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 	})
 }
 
-func (c *Controller) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
+func (c *Controller) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	c.asyncRunner(func() {
-		c.view.SetXIT(vfo, active, offset)
+		c.view.SetIncrementalTuning(vfo, kind, active, offset)
 	})
 }
 
-func (c *Controller) XITActiveChanged(active bool) {
-	// TODO: add VFO parameter to XITActiveChanged
+func (c *Controller) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
 	c.asyncRunner(func() {
-		c.view.SetXITActive(core.VFO1, active)
+		c.view.SetIncrementalTuningActive(vfo, kind, active)
 	})
 }
 

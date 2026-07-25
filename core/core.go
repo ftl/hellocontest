@@ -1672,9 +1672,9 @@ type BandmapWeights struct {
 	Quality    float64
 }
 
-type XITControl interface {
-	XITActive() bool
-	SetXITActive(bool)
+type IncrementalTuningControl interface {
+	IncrementalTuningActive(kind IncrementalTuningKind) bool
+	SetIncrementalTuningActive(kind IncrementalTuningKind, active bool)
 }
 
 type VFOID int
@@ -1687,7 +1687,7 @@ const (
 )
 
 type VFO interface {
-	XITControl
+	IncrementalTuningControl
 	Name() string
 	Notify(any)
 	Refresh()
@@ -1695,7 +1695,7 @@ type VFO interface {
 	ShiftFrequency(Frequency)
 	SetBand(Band)
 	SetMode(Mode)
-	SetXIT(bool, Frequency)
+	SetIncrementalTuning(IncrementalTuningKind, bool, Frequency)
 }
 
 type CurrentVFOListener interface {
@@ -1720,10 +1720,6 @@ type VFOBandListener interface {
 
 type VFOModeListener interface {
 	VFOModeChanged(VFOID, Mode)
-}
-
-type VFOXITListener interface {
-	VFOXITChanged(VFOID, bool, Frequency)
 }
 
 type IncrementalTuningKind int

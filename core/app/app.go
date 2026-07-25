@@ -882,24 +882,32 @@ func (c *Controller) RequestQTC() {
 	c.QTCController.RequestQTC()
 }
 
-func (c *Controller) XITActive() bool {
-	return c.VFOs[core.VFO1].XITActive()
+func (c *Controller) IncrementalTuningActive(kind core.IncrementalTuningKind) bool {
+	return c.VFOs[core.VFO1].IncrementalTuningActive(kind)
 }
 
-func (c *Controller) SetXITActive(active bool) {
-	c.VFOs[core.VFO1].SetXITActive(active)
+func (c *Controller) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	c.VFOs[core.VFO1].SetIncrementalTuningActive(kind, active)
 }
 
-func (c *Controller) ShiftXIT(delta core.Frequency) {
-	c.VFOs[core.VFO1].ShiftXITOffset(delta)
+func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
+	c.VFOs[core.VFO1].ShiftOffset(kind, delta)
 }
 
 func (c *Controller) XITUp() {
-	c.ShiftXIT(core.DefaultXITShift)
+	c.ShiftIncrementalTuning(core.XIT, core.DefaultXITShift)
 }
 
 func (c *Controller) XITDown() {
-	c.ShiftXIT(-core.DefaultXITShift)
+	c.ShiftIncrementalTuning(core.XIT, -core.DefaultXITShift)
+}
+
+func (c *Controller) RITUp() {
+	c.ShiftIncrementalTuning(core.RIT, core.DefaultRITShift)
+}
+
+func (c *Controller) RITDown() {
+	c.ShiftIncrementalTuning(core.RIT, -core.DefaultRITShift)
 }
 
 func (c *Controller) MuteAudio(vfo core.VFOID) {
@@ -1043,11 +1051,21 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		if err != nil {
 			return err
 		}
-		c.ShiftXIT(core.Frequency(amount))
+		c.ShiftIncrementalTuning(core.XIT, core.Frequency(amount))
 	case core.ActionRadioXITUp:
 		c.XITUp()
 	case core.ActionRadioXITDown:
 		c.XITDown()
+	case core.ActionRadioShiftRIT:
+		amount, err := shiftAmount(params, int(core.DefaultRITShift))
+		if err != nil {
+			return err
+		}
+		c.ShiftIncrementalTuning(core.RIT, core.Frequency(amount))
+	case core.ActionRadioRITUp:
+		c.RITUp()
+	case core.ActionRadioRITDown:
+		c.RITDown()
 	case core.ActionKeyerShiftSpeed:
 		amount, err := shiftAmount(params, core.DefaultSpeedShift)
 		if err != nil {

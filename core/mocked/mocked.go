@@ -233,18 +233,18 @@ func (m *EntryView) SetMode(vfo core.VFOID, text string) {
 	m.Called(vfo, text)
 }
 
-func (m *EntryView) SetXITActive(vfo core.VFOID, active bool) {
+func (m *EntryView) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
 	if !m.active {
 		return
 	}
-	m.Called(vfo, active)
+	m.Called(vfo, kind, active)
 }
 
-func (m *EntryView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {
+func (m *EntryView) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	if !m.active {
 		return
 	}
-	m.Called(vfo, active, offset)
+	m.Called(vfo, kind, active, offset)
 }
 
 func (m *EntryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {

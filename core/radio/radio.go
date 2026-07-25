@@ -55,7 +55,7 @@ type radio interface {
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(core.VFOID, core.Band)
 	SetMode(core.VFOID, core.Mode)
-	SetXIT(bool, core.Frequency)
+	SetIncrementalTuning(core.VFOID, core.IncrementalTuningKind, bool, core.Frequency)
 	MuteAudio(core.VFOID)
 	UnmuteAudio(core.VFOID)
 	ToggleAudio(core.VFOID)
@@ -344,11 +344,11 @@ func (c *Controller) SetMode(vfo core.VFOID, mode core.Mode) {
 	c.activeRadio.SetMode(vfo, mode)
 }
 
-func (c *Controller) SetXIT(active bool, offset core.Frequency) {
+func (c *Controller) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	if c.activeRadio == nil {
 		return
 	}
-	c.activeRadio.SetXIT(active, offset)
+	c.activeRadio.SetIncrementalTuning(vfo, kind, active, offset)
 }
 
 func (c *Controller) MuteAudio(vfo core.VFOID) {

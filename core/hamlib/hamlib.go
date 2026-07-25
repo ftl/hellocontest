@@ -51,6 +51,9 @@ type vfoState struct {
 	xitActive    bool
 	xitOffset    core.Frequency
 	xitAvailable bool
+	ritActive    bool
+	ritOffset    core.Frequency
+	ritAvailable bool
 }
 
 func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
@@ -289,28 +292,24 @@ func (c *Client) pollDualVFO(state []vfoState) (hl.VFO, []vfoState, error) {
 // pollVFOAdditional must only be called from the run goroutine!
 func (c *Client) pollVFOAdditional(vfo hl.VFO, state vfoState) vfoState {
 	result := state
-	var err error
-
-	result.xitAvailable = true
-	result.xitActive, err = c.client.GetFunc(vfo, hl.XITFunction)
-	if err != nil {
-		result.xitActive = false
-		result.xitAvailable = false
-	}
-	var xitOffset hl.Frequency
-	if result.xitActive {
-		xitOffset, err = c.client.GetXIT(vfo)
-		if err != nil {
-			result.xitActive = false
-			result.xitAvailable = false
-			xitOffset = 0
-		}
-	} else {
-		xitOffset = 0
-	}
-	result.xitOffset = core.Frequency(xitOffset)
-
+	result.xitActive, result.xitOffset, result.xitAvailable = c.pollIncrementalTuning(vfo, hl.XITFunction, c.client.GetXIT)
+	result.ritActive, result.ritOffset, result.ritAvailable = c.pollIncrementalTuning(vfo, hl.RITFunction, c.client.GetRIT)
 	return result
+}
+
+func (c *Client) pollIncrementalTuning(vfo hl.VFO, function hl.Function, getOffset func(hl.VFO) (hl.Frequency, error)) (bool, core.Frequency, bool) {
+	active, err := c.client.GetFunc(vfo, function)
+	if err != nil {
+		return false, 0, false
+	}
+	if !active {
+		return false, 0, true
+	}
+	offset, err := getOffset(vfo)
+	if err != nil {
+		return false, 0, false
+	}
+	return true, core.Frequency(offset), true
 }
 
 func (c *Client) doInLoop(f func()) {
@@ -461,26 +460,34 @@ func (c *Client) SetBandplan(bandplan bandplan.Bandplan) {
 	})
 }
 
-func (c *Client) SetXIT(active bool, offset core.Frequency) {
-	// TODO: add the VFOID to all VFO-related Setters
-	vfo := core.VFO1
+func (c *Client) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	function := hl.XITFunction
+	setOffset := c.client.SetXIT
+	if kind == core.RIT {
+		function = hl.RITFunction
+		setOffset = c.client.SetRIT
+	}
 	c.doInLoop(func() {
-		if active == c.lastState[vfo].xitActive && offset == c.lastState[vfo].xitOffset {
+		lastActive, lastOffset := c.lastState[vfo].xitActive, c.lastState[vfo].xitOffset
+		if kind == core.RIT {
+			lastActive, lastOffset = c.lastState[vfo].ritActive, c.lastState[vfo].ritOffset
+		}
+		if active == lastActive && offset == lastOffset {
 			return
 		}
 
-		if active != c.lastState[vfo].xitActive {
-			err := c.client.SetFunc(c.vfos[vfo], hl.XITFunction, active)
+		if active != lastActive {
+			err := c.client.SetFunc(c.vfos[vfo], function, active)
 			if err != nil {
-				log.Printf("hamlib: cannot set XIT function: %v", err)
+				log.Printf("hamlib: cannot set %s function: %v", kind, err)
 				return
 			}
 		}
 
-		if active && (offset != c.lastState[vfo].xitOffset) {
-			err := c.client.SetXIT(c.vfos[vfo], hl.Frequency(offset))
+		if active && (offset != lastOffset) {
+			err := setOffset(c.vfos[vfo], hl.Frequency(offset))
 			if err != nil {
-				log.Printf("hamlib: cannot set XIT offset: %v", err)
+				log.Printf("hamlib: cannot set %s offset: %v", kind, err)
 				return
 			}
 		}
@@ -627,10 +634,18 @@ func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState)
 		if last.mode != current.mode {
 			c.emitModeChanged(vfo, current.mode)
 		}
-		if (last.xitActive != current.xitActive) || (current.xitActive && (last.xitOffset != current.xitOffset)) {
-			c.emitXITChanged(vfo, current.xitActive, current.xitOffset)
-		}
+		c.emitIncrementalTuningChanges(vfo, core.XIT, last.xitActive, last.xitOffset, last.xitAvailable, current.xitActive, current.xitOffset, current.xitAvailable)
+		c.emitIncrementalTuningChanges(vfo, core.RIT, last.ritActive, last.ritOffset, last.ritAvailable, current.ritActive, current.ritOffset, current.ritAvailable)
 	}()
+}
+
+func (c *Client) emitIncrementalTuningChanges(vfo core.VFOID, kind core.IncrementalTuningKind, lastActive bool, lastOffset core.Frequency, lastAvailable bool, currentActive bool, currentOffset core.Frequency, currentAvailable bool) {
+	if lastAvailable != currentAvailable {
+		c.emitIncrementalTuningAvailabilityChanged(vfo, kind, currentAvailable)
+	}
+	if (lastActive != currentActive) || (currentActive && (lastOffset != currentOffset)) {
+		c.emitIncrementalTuningChanged(vfo, kind, currentActive, currentOffset)
+	}
 }
 
 func (c *Client) emitFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
@@ -651,9 +666,15 @@ func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
 	})
 }
 
-func (c *Client) emitXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
-	core.Emit(c.listeners, func(listener core.VFOXITListener) {
-		listener.VFOXITChanged(vfo, active, offset)
+func (c *Client) emitIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
+		listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
+	})
+}
+
+func (c *Client) emitIncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) {
+	core.Emit(c.listeners, func(listener core.IncrementalTuningAvailabilityListener) {
+		listener.IncrementalTuningAvailabilityChanged(vfo, kind, available)
 	})
 }
 

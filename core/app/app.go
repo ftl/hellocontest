@@ -910,6 +910,14 @@ func (c *Controller) RITDown() {
 	c.ShiftIncrementalTuning(core.RIT, -core.DefaultRITShift)
 }
 
+func (c *Controller) IncrementalTuningUp() {
+	c.Entry.IncrementalTuningUp()
+}
+
+func (c *Controller) IncrementalTuningDown() {
+	c.Entry.IncrementalTuningDown()
+}
+
 func (c *Controller) MuteAudio(vfo core.VFOID) {
 	c.VFOs[vfo].MuteAudio()
 }
@@ -1066,6 +1074,10 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.RITUp()
 	case core.ActionRadioRITDown:
 		c.RITDown()
+	case core.ActionIncrementalTuningUp:
+		c.IncrementalTuningUp()
+	case core.ActionIncrementalTuningDown:
+		c.IncrementalTuningDown()
 	case core.ActionKeyerShiftSpeed:
 		amount, err := shiftAmount(params, core.DefaultSpeedShift)
 		if err != nil {

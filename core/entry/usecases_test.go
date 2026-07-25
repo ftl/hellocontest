@@ -1496,6 +1496,32 @@ func TestJ5b_IncrementalTuningVisibility_AvailabilityAndWorkmode(t *testing.T) {
 		AssertIncrementalTuningVisible(core.VFO1, core.XIT, false)
 }
 
+// J5c. Combined incremental tuning up/down
+// Pre:  availability and workmode set for the focused VFO.
+// Post: the available kind for the focused VFO's workmode is shifted; nothing if none available.
+
+func TestJ5c_IncrementalTuningUp_ShiftsAvailableKind(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WorkmodeChanged(core.SearchPounce).
+		IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true).
+		IncrementalTuningUp().
+		AssertIncrementalTuningShifted(core.VFO1, core.XIT, core.DefaultXITShift)
+
+	NewScenario(t).
+		WithClassicExchange().
+		WorkmodeChanged(core.Run).
+		IncrementalTuningAvailabilityChanged(core.VFO1, core.RIT, true).
+		IncrementalTuningUp().
+		AssertIncrementalTuningShifted(core.VFO1, core.RIT, core.DefaultRITShift)
+
+	NewScenario(t).
+		WithClassicExchange().
+		WorkmodeChanged(core.SearchPounce).
+		IncrementalTuningUp().
+		AssertIncrementalTuningNotShifted()
+}
+
 // J6. VFOPTTChanged
 // Pre:  event for vfo.
 // Post: if VFO1: ptt updated, view.SetTXState; else: view.SetTXState(vfo, active, false, 0).

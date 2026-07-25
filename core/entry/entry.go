@@ -172,10 +172,10 @@ type Controller struct {
 	asyncRunner core.AsyncRunner
 	listeners   []any
 
-	stationCallsign  string
-	workmode         core.Workmode
-	vfoWorkmode      []core.Workmode
-	itAvailable      [][2]bool
+	stationCallsign string
+	workmode        core.Workmode
+	vfoWorkmode     []core.Workmode
+	itAvailable     [][2]bool
 
 	myExchangeFields         []core.ExchangeField
 	theirExchangeFields      []core.ExchangeField
@@ -1415,6 +1415,36 @@ func (c *Controller) updateIncrementalTuningVisibility(vfo core.VFOID) {
 			c.view.SetIncrementalTuningVisible(vfo, kind, visible)
 		})
 	}
+}
+
+func (c *Controller) availableIncrementalTuningKind(vfo core.VFOID) (core.IncrementalTuningKind, bool) {
+	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
+		if c.itAvailable[vfo][kind] && kind.Workmode() == c.vfoWorkmode[vfo] {
+			return kind, true
+		}
+	}
+	return 0, false
+}
+
+func (c *Controller) IncrementalTuningUp() {
+	c.shiftFocusedIncrementalTuning(1)
+}
+
+func (c *Controller) IncrementalTuningDown() {
+	c.shiftFocusedIncrementalTuning(-1)
+}
+
+func (c *Controller) shiftFocusedIncrementalTuning(sign core.Frequency) {
+	vfo := c.focusedVFO
+	kind, ok := c.availableIncrementalTuningKind(vfo)
+	if !ok {
+		return
+	}
+	step := core.DefaultXITShift
+	if kind == core.RIT {
+		step = core.DefaultRITShift
+	}
+	c.vfos[vfo].ShiftOffset(kind, sign*step)
 }
 
 func (c *Controller) updateExchangeFields(contest core.Contest) {

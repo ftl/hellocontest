@@ -296,6 +296,31 @@ func (s *Scenario) AssertIncrementalTuningVisible(vfo core.VFOID, kind core.Incr
 	return s
 }
 
+func (s *Scenario) IncrementalTuningUp() *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.IncrementalTuningUp()
+	return s
+}
+
+func (s *Scenario) AssertIncrementalTuningShifted(vfo core.VFOID, kind core.IncrementalTuningKind, delta core.Frequency) *Scenario {
+	s.t.Helper()
+	spy := s.vfo
+	if vfo == core.VFO2 {
+		spy = s.vfo2
+	}
+	assert.True(s.t, spy.shiftedOffset, "expected ShiftOffset to be called on VFO %d", vfo)
+	assert.Equal(s.t, kind, spy.shiftKind)
+	assert.Equal(s.t, delta, spy.shiftDelta)
+	return s
+}
+
+func (s *Scenario) AssertIncrementalTuningNotShifted() *Scenario {
+	s.t.Helper()
+	assert.False(s.t, s.vfo.shiftedOffset, "expected no ShiftOffset on VFO1")
+	return s
+}
+
 // EditLastQSO triggers controller.EditLastQSO.
 func (s *Scenario) EditLastQSO() *Scenario {
 	s.t.Helper()
@@ -725,12 +750,15 @@ func (s *scenarioSettings) Contest() core.Contest {
 // ---- vfoSpy -----------------------------------------------------------------
 
 type vfoSpy struct {
-	ctrl      *entry.Controller
-	vfoID     core.VFOID
-	lastBand  core.Band
-	lastMode  core.Mode
-	lastFreq  core.Frequency
-	xitActive bool
+	ctrl          *entry.Controller
+	vfoID         core.VFOID
+	lastBand      core.Band
+	lastMode      core.Mode
+	lastFreq      core.Frequency
+	xitActive     bool
+	shiftKind     core.IncrementalTuningKind
+	shiftDelta    core.Frequency
+	shiftedOffset bool
 }
 
 func (v *vfoSpy) reset() {
@@ -738,6 +766,9 @@ func (v *vfoSpy) reset() {
 	v.lastMode = core.NoMode
 	v.lastFreq = 0
 	v.xitActive = false
+	v.shiftedOffset = false
+	v.shiftKind = 0
+	v.shiftDelta = 0
 }
 
 func (v *vfoSpy) Name() string { return "STUB" }
@@ -752,6 +783,11 @@ func (v *vfoSpy) ShiftFrequency(f core.Frequency) { v.lastFreq += f }
 func (v *vfoSpy) SetBand(b core.Band)           { v.lastBand = b }
 func (v *vfoSpy) SetMode(m core.Mode)           { v.lastMode = m }
 func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
+func (v *vfoSpy) ShiftOffset(kind core.IncrementalTuningKind, delta core.Frequency) {
+	v.shiftKind = kind
+	v.shiftDelta = delta
+	v.shiftedOffset = true
+}
 func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return v.xitActive }
 func (v *vfoSpy) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
 	v.xitActive = active

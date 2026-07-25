@@ -50,6 +50,7 @@ func (n *nullVFO) ShiftFrequency(core.Frequency) {}
 func (n *nullVFO) SetBand(core.Band)             {}
 func (n *nullVFO) SetMode(core.Mode)             {}
 func (n *nullVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
+func (n *nullVFO) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
 func (n *nullVFO) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
 func (n *nullVFO) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}
 

@@ -1696,6 +1696,7 @@ type VFO interface {
 	SetBand(Band)
 	SetMode(Mode)
 	SetIncrementalTuning(IncrementalTuningKind, bool, Frequency)
+	ShiftOffset(IncrementalTuningKind, Frequency)
 }
 
 type CurrentVFOListener interface {

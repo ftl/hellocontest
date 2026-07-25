@@ -113,7 +113,7 @@ func (a *centralArea) addVFOWidgetsToLayout(vfo core.VFOID, firstRow int) {
 	if entry.serialClaimLabel != nil {
 		a.entryLayout.AddWidget2(entry.serialClaimLabel.QWidget, firstRow+1, 2)
 	}
-	a.entryLayout.AddWidget2(entry.rit.QWidget, firstRow+1, lastColumn-2)
+	a.entryLayout.AddWidget2(entry.rit.QWidget, firstRow+1, lastColumn-1)
 	a.entryLayout.AddWidget2(entry.xit.QWidget, firstRow+1, lastColumn-1)
 	a.entryLayout.AddWidget2(entry.txIndicator.QWidget, firstRow+1, lastColumn)
 	a.entryLayout.AddWidget2(callinfo.callsignLabel.QWidget, firstRow+2, 0)

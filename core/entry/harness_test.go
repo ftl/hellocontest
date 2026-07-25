@@ -283,6 +283,19 @@ func (s *Scenario) WorkmodeChanged(w core.Workmode) *Scenario {
 	return s
 }
 
+func (s *Scenario) IncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.IncrementalTuningAvailabilityChanged(vfo, kind, available)
+	return s
+}
+
+func (s *Scenario) AssertIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) *Scenario {
+	s.t.Helper()
+	s.view.assertCalledWith(s.t, "SetIncrementalTuningVisible", vfo, kind, visible)
+	return s
+}
+
 // EditLastQSO triggers controller.EditLastQSO.
 func (s *Scenario) EditLastQSO() *Scenario {
 	s.t.Helper()
@@ -830,6 +843,9 @@ func (v *viewSpy) SetIncrementalTuningActive(vfo core.VFOID, kind core.Increment
 }
 func (v *viewSpy) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	v.record("SetIncrementalTuning", vfo, kind, active, offset)
+}
+func (v *viewSpy) SetIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+	v.record("SetIncrementalTuningVisible", vfo, kind, visible)
 }
 func (v *viewSpy) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	v.record("SetTXState", vfo, ptt, parrotActive, parrotTimeLeft)

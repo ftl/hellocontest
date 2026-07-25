@@ -1740,6 +1740,13 @@ func (k IncrementalTuningKind) String() string {
 	}
 }
 
+func (k IncrementalTuningKind) Workmode() Workmode {
+	if k == RIT {
+		return Run
+	}
+	return SearchPounce
+}
+
 type VFOIncrementalTuningListener interface {
 	VFOIncrementalTuningChanged(vfo VFOID, kind IncrementalTuningKind, active bool, offset Frequency)
 }

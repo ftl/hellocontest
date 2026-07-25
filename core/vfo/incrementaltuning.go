@@ -21,13 +21,6 @@ type IncrementalTuningControl struct {
 	vfo *VFO
 }
 
-func kindForWorkmode(kind core.IncrementalTuningKind) core.Workmode {
-	if kind == core.RIT {
-		return core.Run
-	}
-	return core.SearchPounce
-}
-
 func (x *IncrementalTuningControl) IncrementalTuningActive(kind core.IncrementalTuningKind) bool {
 	return x.state[kind].intentActive
 }
@@ -63,7 +56,7 @@ func (x *IncrementalTuningControl) WorkmodeChanged(vfo core.VFOID, workmode core
 
 func (x *IncrementalTuningControl) activate() {
 	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
-		x.state[kind].actualActive = x.state[kind].intentActive && kindForWorkmode(kind) == x.workmode
+		x.state[kind].actualActive = x.state[kind].intentActive && kind.Workmode() == x.workmode
 		x.vfo.SetIncrementalTuning(kind, x.state[kind].actualActive, x.state[kind].offset)
 	}
 }

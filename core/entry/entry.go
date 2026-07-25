@@ -28,6 +28,7 @@ type View interface {
 	SetMode(vfo core.VFOID, text string)
 	SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool)
 	SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency)
+	SetIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool)
 	SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 
 	SetCallsign(core.VFOID, string)
@@ -119,6 +120,7 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 
 		stationCallsign: settings.Station().Callsign.String(),
 		vfoWorkmode:     make([]core.Workmode, core.VFOCount),
+		itAvailable:     make([][2]bool, core.VFOCount),
 	}
 	for vfo := range len(result.vfos) {
 		result.vfos[vfo] = new(nullVFO)
@@ -170,9 +172,10 @@ type Controller struct {
 	asyncRunner core.AsyncRunner
 	listeners   []any
 
-	stationCallsign string
-	workmode        core.Workmode
-	vfoWorkmode     []core.Workmode
+	stationCallsign  string
+	workmode         core.Workmode
+	vfoWorkmode      []core.Workmode
+	itAvailable      [][2]bool
 
 	myExchangeFields         []core.ExchangeField
 	theirExchangeFields      []core.ExchangeField
@@ -1397,6 +1400,21 @@ func (c *Controller) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
 		c.updateESM()
 	}
 	c.view.SetVFOWorkmode(vfo, workmode)
+	c.updateIncrementalTuningVisibility(vfo)
+}
+
+func (c *Controller) IncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) {
+	c.itAvailable[vfo][kind] = available
+	c.updateIncrementalTuningVisibility(vfo)
+}
+
+func (c *Controller) updateIncrementalTuningVisibility(vfo core.VFOID) {
+	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
+		visible := c.itAvailable[vfo][kind] && kind.Workmode() == c.vfoWorkmode[vfo]
+		c.asyncRunner(func() {
+			c.view.SetIncrementalTuningVisible(vfo, kind, visible)
+		})
+	}
 }
 
 func (c *Controller) updateExchangeFields(contest core.Contest) {

@@ -19,6 +19,8 @@ func (n *nullView) SetIncrementalTuningActive(vfo core.VFOID, kind core.Incremen
 }
 func (n *nullView) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 }
+func (n *nullView) SetIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+}
 func (n *nullView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 }
 func (n *nullView) SetMyExchange(int, string)                       {}

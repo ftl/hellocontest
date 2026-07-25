@@ -1476,6 +1476,26 @@ func TestJ5_XITActiveChanged_UpdatesView(t *testing.T) {
 		AssertXITActiveView(core.VFO1, true)
 }
 
+// J5b. Incremental tuning visibility
+// Pre:  availability and workmode events arrive.
+// Post: the widget matching the workmode (Run->RIT, S&P->XIT) is shown only when available.
+
+func TestJ5b_IncrementalTuningVisibility_AvailabilityAndWorkmode(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WorkmodeChanged(core.SearchPounce).
+		IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true).
+		AssertIncrementalTuningVisible(core.VFO1, core.XIT, true).
+		AssertIncrementalTuningVisible(core.VFO1, core.RIT, false)
+
+	NewScenario(t).
+		WithClassicExchange().
+		WorkmodeChanged(core.Run).
+		IncrementalTuningAvailabilityChanged(core.VFO1, core.RIT, true).
+		AssertIncrementalTuningVisible(core.VFO1, core.RIT, true).
+		AssertIncrementalTuningVisible(core.VFO1, core.XIT, false)
+}
+
 // J6. VFOPTTChanged
 // Pre:  event for vfo.
 // Post: if VFO1: ptt updated, view.SetTXState; else: view.SetTXState(vfo, active, false, 0).

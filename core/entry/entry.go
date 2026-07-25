@@ -292,6 +292,11 @@ func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
 	vfo.Notify(c)
 }
 
+// ShiftFrequency changes the frequency of the currently focused VFO by delta.
+func (c *Controller) ShiftFrequency(delta core.Frequency) {
+	c.vfos[c.focusedVFO].ShiftFrequency(delta)
+}
+
 func (c *Controller) GotoNextField() core.EntryField {
 	switch c.activeField[c.focusedVFO] {
 	case core.CallsignField:

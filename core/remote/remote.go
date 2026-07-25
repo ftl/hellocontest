@@ -9,7 +9,7 @@ import (
 )
 
 type ActionDispatcher interface {
-	DoAction(id string) error
+	DoAction(id string, params map[string]string) error
 }
 
 type Keyer interface {
@@ -80,14 +80,19 @@ func (s *Server) handleDo(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	action := r.URL.Query().Get("action")
+	query := r.URL.Query()
+	action := query.Get("action")
 	if action == "" {
 		http.Error(w, "missing action parameter", http.StatusBadRequest)
 		return
 	}
-	if err := s.runOnMainThread(func() error { return s.dispatcher.DoAction(action) }); err != nil {
+	params := make(map[string]string, len(query))
+	for key := range query {
+		params[key] = query.Get(key)
+	}
+	if err := s.runOnMainThread(func() error { return s.dispatcher.DoAction(action, params) }); err != nil {
 		log.Printf("remote action %s failed: %v", action, err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

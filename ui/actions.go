@@ -97,6 +97,12 @@ type actions struct {
 	unmuteAudioVFO2Action *qtlib.QAction
 	toggleAudioVFO1Action *qtlib.QAction
 	toggleAudioVFO2Action *qtlib.QAction
+	frequencyUpAction     *qtlib.QAction
+	frequencyDownAction   *qtlib.QAction
+	xitUpAction           *qtlib.QAction
+	xitDownAction         *qtlib.QAction
+	speedUpAction         *qtlib.QAction
+	speedDownAction       *qtlib.QAction
 }
 
 func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings map[string]string) *actions {
@@ -188,6 +194,12 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.unmuteAudioVFO2Action = a.makeTriggerAction(core.ActionRadioUnmuteAudioVFO2, "Unmute VFO 2", "Unmute audio on VFO 2", "", func() { controller.UnmuteAudio(core.VFO2) })
 	a.toggleAudioVFO1Action = a.makeTriggerAction(core.ActionRadioToggleAudioVFO1, "Toggle Audio VFO 1", "Toggle audio on VFO 1", "", func() { controller.ToggleAudio(core.VFO1) })
 	a.toggleAudioVFO2Action = a.makeTriggerAction(core.ActionRadioToggleAudioVFO2, "Toggle Audio VFO 2", "Toggle audio on VFO 2", "", func() { controller.ToggleAudio(core.VFO2) })
+	a.frequencyUpAction = a.makeTriggerAction(core.ActionRadioFrequencyUp, "Frequency Up", "Increase the frequency of the focused VFO", "Alt+Up", func() { controller.FrequencyUp() })
+	a.frequencyDownAction = a.makeTriggerAction(core.ActionRadioFrequencyDown, "Frequency Down", "Decrease the frequency of the focused VFO", "Alt+Down", func() { controller.FrequencyDown() })
+	a.xitUpAction = a.makeTriggerAction(core.ActionRadioXITUp, "XIT Up", "Increase the XIT offset", "Alt+Shift+Up", func() { controller.XITUp() })
+	a.xitDownAction = a.makeTriggerAction(core.ActionRadioXITDown, "XIT Down", "Decrease the XIT offset", "Alt+Shift+Down", func() { controller.XITDown() })
+	a.speedUpAction = a.makeTriggerAction(core.ActionKeyerSpeedUp, "Speed Up", "Increase the keyer speed", "Ctrl+Alt+Up", func() { controller.KeyerSpeedUp() })
+	a.speedDownAction = a.makeTriggerAction(core.ActionKeyerSpeedDown, "Speed Down", "Decrease the keyer speed", "Ctrl+Alt+Down", func() { controller.KeyerSpeedDown() })
 	a.parent.AddActions([]*qtlib.QAction{
 		a.sendMacro1Action,
 		a.sendMacro2Action,
@@ -204,6 +216,12 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.unmuteAudioVFO2Action,
 		a.toggleAudioVFO1Action,
 		a.toggleAudioVFO2Action,
+		a.frequencyUpAction,
+		a.frequencyDownAction,
+		a.xitUpAction,
+		a.xitDownAction,
+		a.speedUpAction,
+		a.speedDownAction,
 	})
 
 	// setup initial action state from controller

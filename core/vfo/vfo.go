@@ -105,6 +105,21 @@ func (v *VFO) SetFrequency(frequency core.Frequency) {
 	}
 }
 
+// ShiftFrequency changes the current frequency by delta (may be negative).
+func (v *VFO) ShiftFrequency(delta core.Frequency) {
+	v.SetFrequency(v.currentFrequency() + delta)
+}
+
+// currentFrequency returns the last known frequency of this VFO. The offline
+// client is kept in sync with the rig via VFOFrequencyChanged, so it holds the
+// current frequency in both online and offline mode.
+func (v *VFO) currentFrequency() core.Frequency {
+	c := v.offlineClient
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
+	return c.lastState(c.currentBand).frequency
+}
+
 func (v *VFO) SetBand(band core.Band) {
 	if v.online() {
 		v.client.SetBand(v.id, band)

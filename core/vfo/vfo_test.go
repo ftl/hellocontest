@@ -31,3 +31,24 @@ func TestBandNameConversion(t *testing.T) {
 	}
 
 }
+
+func TestShiftFrequency(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	start := v.currentFrequency()
+
+	v.ShiftFrequency(250)
+	assert.Equal(t, start+250, v.currentFrequency())
+
+	v.ShiftFrequency(-250)
+	assert.Equal(t, start, v.currentFrequency())
+}
+
+func TestShiftXITOffset(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+
+	v.ShiftXITOffset(100)
+	assert.Equal(t, core.Frequency(100), v.offset)
+
+	v.ShiftXITOffset(-30)
+	assert.Equal(t, core.Frequency(70), v.offset)
+}

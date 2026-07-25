@@ -1692,6 +1692,7 @@ type VFO interface {
 	Notify(any)
 	Refresh()
 	SetFrequency(Frequency)
+	ShiftFrequency(Frequency)
 	SetBand(Band)
 	SetMode(Mode)
 	SetXIT(bool, Frequency)

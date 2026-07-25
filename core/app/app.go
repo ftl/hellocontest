@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -889,12 +890,48 @@ func (c *Controller) SetXITActive(active bool) {
 	c.VFOs[core.VFO1].SetXITActive(active)
 }
 
+func (c *Controller) ShiftXIT(delta core.Frequency) {
+	c.VFOs[core.VFO1].ShiftXITOffset(delta)
+}
+
+func (c *Controller) XITUp() {
+	c.ShiftXIT(core.DefaultXITShift)
+}
+
+func (c *Controller) XITDown() {
+	c.ShiftXIT(-core.DefaultXITShift)
+}
+
 func (c *Controller) MuteAudio(vfo core.VFOID) {
 	c.VFOs[vfo].MuteAudio()
 }
 
 func (c *Controller) UnmuteAudio(vfo core.VFOID) {
 	c.VFOs[vfo].UnmuteAudio()
+}
+
+func (c *Controller) ShiftFrequency(delta core.Frequency) {
+	c.Entry.ShiftFrequency(delta)
+}
+
+func (c *Controller) FrequencyUp() {
+	c.ShiftFrequency(core.DefaultFrequencyShift)
+}
+
+func (c *Controller) FrequencyDown() {
+	c.ShiftFrequency(-core.DefaultFrequencyShift)
+}
+
+func (c *Controller) KeyerShiftSpeed(delta int) {
+	c.Keyer.ShiftSpeed(delta)
+}
+
+func (c *Controller) KeyerSpeedUp() {
+	c.KeyerShiftSpeed(core.DefaultSpeedShift)
+}
+
+func (c *Controller) KeyerSpeedDown() {
+	c.KeyerShiftSpeed(-core.DefaultSpeedShift)
 }
 
 func (c *Controller) ToggleAudio(vfo core.VFOID) {
@@ -978,8 +1015,49 @@ func (c *Controller) DoubleStop() {
 	c.Entry.Clear()
 }
 
-func (c *Controller) DoAction(id string) error {
+// shiftAmount reads the "amount" parameter and parses it into an int. It
+// returns def if the parameter is missing or empty, and an error if it is
+// present but cannot be parsed.
+func shiftAmount(params map[string]string, def int) (int, error) {
+	s, ok := params["amount"]
+	if !ok || s == "" {
+		return def, nil
+	}
+	return strconv.Atoi(s)
+}
+
+func (c *Controller) DoAction(id string, params map[string]string) error {
 	switch id {
+	case core.ActionRadioShiftFrequency:
+		amount, err := shiftAmount(params, int(core.DefaultFrequencyShift))
+		if err != nil {
+			return err
+		}
+		c.ShiftFrequency(core.Frequency(amount))
+	case core.ActionRadioFrequencyUp:
+		c.FrequencyUp()
+	case core.ActionRadioFrequencyDown:
+		c.FrequencyDown()
+	case core.ActionRadioShiftXIT:
+		amount, err := shiftAmount(params, int(core.DefaultXITShift))
+		if err != nil {
+			return err
+		}
+		c.ShiftXIT(core.Frequency(amount))
+	case core.ActionRadioXITUp:
+		c.XITUp()
+	case core.ActionRadioXITDown:
+		c.XITDown()
+	case core.ActionKeyerShiftSpeed:
+		amount, err := shiftAmount(params, core.DefaultSpeedShift)
+		if err != nil {
+			return err
+		}
+		c.KeyerShiftSpeed(amount)
+	case core.ActionKeyerSpeedUp:
+		c.KeyerSpeedUp()
+	case core.ActionKeyerSpeedDown:
+		c.KeyerSpeedDown()
 	case core.ActionEntryClear:
 		c.ClearEntryFields()
 	case core.ActionEntryGotoEntryField:

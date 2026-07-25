@@ -407,16 +407,17 @@ func (v *nullView) RevealEntry(core.BandmapEntry) {}
 
 type nullVFO struct{}
 
-func (n *nullVFO) Name() string                { return "" }
-func (n *nullVFO) Notify(any)                  {}
-func (n *nullVFO) Active() bool                { return false }
-func (n *nullVFO) Refresh()                    {}
-func (n *nullVFO) SetFrequency(core.Frequency) {}
-func (n *nullVFO) SetBand(core.Band)           {}
-func (n *nullVFO) SetMode(core.Mode)           {}
-func (n *nullVFO) SetXIT(bool, core.Frequency) {}
-func (n *nullVFO) XITActive() bool             { return false }
-func (n *nullVFO) SetXITActive(bool)           {}
+func (n *nullVFO) Name() string                  { return "" }
+func (n *nullVFO) Notify(any)                    {}
+func (n *nullVFO) Active() bool                  { return false }
+func (n *nullVFO) Refresh()                      {}
+func (n *nullVFO) SetFrequency(core.Frequency)   {}
+func (n *nullVFO) ShiftFrequency(core.Frequency) {}
+func (n *nullVFO) SetBand(core.Band)             {}
+func (n *nullVFO) SetMode(core.Mode)             {}
+func (n *nullVFO) SetXIT(bool, core.Frequency)   {}
+func (n *nullVFO) XITActive() bool               { return false }
+func (n *nullVFO) SetXITActive(bool)             {}
 
 type nullCallinfo struct{}
 

@@ -37,6 +37,12 @@ const (
 	ActionEntryClearVFO2         = "entry.clear_vfo2"
 
 	ActionRadioXITActive       = "radio.xit_active"
+	ActionRadioShiftFrequency  = "radio.shift_frequency"
+	ActionRadioShiftXIT        = "radio.shift_xit"
+	ActionRadioFrequencyUp     = "radio.frequency_up"
+	ActionRadioFrequencyDown   = "radio.frequency_down"
+	ActionRadioXITUp           = "radio.xit_up"
+	ActionRadioXITDown         = "radio.xit_down"
 	ActionRadioMuteAudioVFO1   = "radio.mute_audio_vfo1"
 	ActionRadioMuteAudioVFO2   = "radio.mute_audio_vfo2"
 	ActionRadioUnmuteAudioVFO1 = "radio.unmute_audio_vfo1"
@@ -67,4 +73,15 @@ const (
 	ActionKeyerSendMacro2 = "keyer.send_macro_2"
 	ActionKeyerSendMacro3 = "keyer.send_macro_3"
 	ActionKeyerSendMacro4 = "keyer.send_macro_4"
+	ActionKeyerShiftSpeed = "keyer.shift_speed"
+	ActionKeyerSpeedUp    = "keyer.speed_up"
+	ActionKeyerSpeedDown  = "keyer.speed_down"
+)
+
+// Default step sizes for the relative shift actions. Keyboard shortcuts use
+// these; the remote interface may override them via an explicit amount.
+const (
+	DefaultFrequencyShift = Frequency(10) // Hz
+	DefaultXITShift       = Frequency(10) // Hz
+	DefaultSpeedShift     = 1             // WPM
 )

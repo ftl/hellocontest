@@ -463,6 +463,15 @@ func (k *Keyer) EnterSpeed(speed int) {
 	k.client.Speed(k.wpm)
 }
 
+// ShiftSpeed changes the keyer speed by delta WPM (may be negative) and
+// reflects the new value in the button view.
+func (k *Keyer) ShiftSpeed(delta int) {
+	k.EnterSpeed(k.wpm + delta)
+	if k.buttonView != nil {
+		k.buttonView.SetSpeed(k.wpm)
+	}
+}
+
 func (k *Keyer) EnterParrotIntervalSeconds(interval int) {
 	log.Printf("parrot interval entered: %d", interval)
 	k.parrotIntervalSeconds = interval

@@ -30,6 +30,13 @@ func (x *XITControl) SetXITActive(active bool) {
 	x.emitXITActiveChanged(x.active)
 }
 
+// ShiftXITOffset changes the XIT offset by delta (may be negative), preserving
+// the current active state.
+func (x *XITControl) ShiftXITOffset(delta core.Frequency) {
+	x.offset += delta
+	x.vfo.SetXIT(x.activeOnVFO, x.offset)
+}
+
 func (x *XITControl) emitXITActiveChanged(active bool) {
 	for _, listener := range x.vfo.listeners {
 		if l, ok := listener.(XITActiveListener); ok {

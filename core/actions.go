@@ -37,12 +37,16 @@ const (
 	ActionEntryClearVFO2         = "entry.clear_vfo2"
 
 	ActionRadioXITActive       = "radio.xit_active"
+	ActionRadioRITActive       = "radio.rit_active"
 	ActionRadioShiftFrequency  = "radio.shift_frequency"
 	ActionRadioShiftXIT        = "radio.shift_xit"
+	ActionRadioShiftRIT        = "radio.shift_rit"
 	ActionRadioFrequencyUp     = "radio.frequency_up"
 	ActionRadioFrequencyDown   = "radio.frequency_down"
 	ActionRadioXITUp           = "radio.xit_up"
 	ActionRadioXITDown         = "radio.xit_down"
+	ActionRadioRITUp           = "radio.rit_up"
+	ActionRadioRITDown         = "radio.rit_down"
 	ActionRadioMuteAudioVFO1   = "radio.mute_audio_vfo1"
 	ActionRadioMuteAudioVFO2   = "radio.mute_audio_vfo2"
 	ActionRadioUnmuteAudioVFO1 = "radio.unmute_audio_vfo1"
@@ -83,5 +87,6 @@ const (
 const (
 	DefaultFrequencyShift = Frequency(10) // Hz
 	DefaultXITShift       = Frequency(10) // Hz
+	DefaultRITShift       = Frequency(10) // Hz
 	DefaultSpeedShift     = 1             // WPM
 )

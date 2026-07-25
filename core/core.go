@@ -1726,6 +1726,32 @@ type VFOXITListener interface {
 	VFOXITChanged(VFOID, bool, Frequency)
 }
 
+type IncrementalTuningKind int
+
+const (
+	RIT IncrementalTuningKind = iota
+	XIT
+)
+
+func (k IncrementalTuningKind) String() string {
+	switch k {
+	case RIT:
+		return "RIT"
+	case XIT:
+		return "XIT"
+	default:
+		return "unknown"
+	}
+}
+
+type VFOIncrementalTuningListener interface {
+	VFOIncrementalTuningChanged(vfo VFOID, kind IncrementalTuningKind, active bool, offset Frequency)
+}
+
+type IncrementalTuningAvailabilityListener interface {
+	IncrementalTuningAvailabilityChanged(vfo VFOID, kind IncrementalTuningKind, available bool)
+}
+
 type VFOPTTListener interface {
 	VFOPTTChanged(VFOID, bool)
 }

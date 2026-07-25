@@ -172,10 +172,11 @@ type Controller struct {
 	asyncRunner core.AsyncRunner
 	listeners   []any
 
-	stationCallsign string
-	workmode        core.Workmode
-	vfoWorkmode     []core.Workmode
-	itAvailable     [][2]bool
+	stationCallsign         string
+	workmode                core.Workmode
+	vfoWorkmode             []core.Workmode
+	itAvailable             [][2]bool
+	incrementalTuningPerVFO bool
 
 	myExchangeFields         []core.ExchangeField
 	theirExchangeFields      []core.ExchangeField
@@ -562,6 +563,10 @@ func (c *Controller) RadioChanged(_ string, singleVFO bool) {
 		c.setFocusedVFOSilent(core.VFO1)
 	}
 	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
+}
+
+func (c *Controller) IncrementalTuningPerVFOChanged(perVFO bool) {
+	c.incrementalTuningPerVFO = perVFO
 }
 
 // canTransmit reports whether the keyer is currently allowed to transmit. False during edit mode.
@@ -1435,7 +1440,10 @@ func (c *Controller) IncrementalTuningDown() {
 }
 
 func (c *Controller) shiftFocusedIncrementalTuning(sign core.Frequency) {
-	vfo := c.focusedVFO
+	vfo := core.VFO1
+	if c.incrementalTuningPerVFO {
+		vfo = c.focusedVFO
+	}
 	kind, ok := c.availableIncrementalTuningKind(vfo)
 	if !ok {
 		return

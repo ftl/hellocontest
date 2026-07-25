@@ -1756,6 +1756,10 @@ type IncrementalTuningAvailabilityListener interface {
 	IncrementalTuningAvailabilityChanged(vfo VFOID, kind IncrementalTuningKind, available bool)
 }
 
+type IncrementalTuningPerVFOListener interface {
+	IncrementalTuningPerVFOChanged(perVFO bool)
+}
+
 type VFOPTTListener interface {
 	VFOPTTChanged(VFOID, bool)
 }

@@ -1522,6 +1522,31 @@ func TestJ5c_IncrementalTuningUp_ShiftsAvailableKind(t *testing.T) {
 		AssertIncrementalTuningNotShifted()
 }
 
+// J5d. Combined incremental tuning honors the rit_xit_per_vfo flag
+// Pre:  VFO2 focused.
+// Post: main-VFO-only targets VFO1; per-VFO targets the focused VFO.
+
+func TestJ5d_CombinedIncrementalTuning_HonorsPerVFOFlag(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		WorkmodeChanged(core.SearchPounce).
+		IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true).
+		FocusVFO2().
+		IncrementalTuningUp().
+		AssertIncrementalTuningShifted(core.VFO1, core.XIT, core.DefaultXITShift)
+
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		IncrementalTuningPerVFOChanged(true).
+		WorkmodeChangedFor(core.VFO2, core.SearchPounce).
+		IncrementalTuningAvailabilityChanged(core.VFO2, core.XIT, true).
+		FocusVFO2().
+		IncrementalTuningUp().
+		AssertIncrementalTuningShifted(core.VFO2, core.XIT, core.DefaultXITShift)
+}
+
 // J6. VFOPTTChanged
 // Pre:  event for vfo.
 // Post: if VFO1: ptt updated, view.SetTXState; else: view.SetTXState(vfo, active, false, 0).

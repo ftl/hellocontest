@@ -321,6 +321,20 @@ func (s *Scenario) AssertIncrementalTuningNotShifted() *Scenario {
 	return s
 }
 
+func (s *Scenario) IncrementalTuningPerVFOChanged(perVFO bool) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.IncrementalTuningPerVFOChanged(perVFO)
+	return s
+}
+
+func (s *Scenario) WorkmodeChangedFor(vfo core.VFOID, w core.Workmode) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.WorkmodeChanged(vfo, w)
+	return s
+}
+
 // EditLastQSO triggers controller.EditLastQSO.
 func (s *Scenario) EditLastQSO() *Scenario {
 	s.t.Helper()

@@ -18,6 +18,8 @@ const (
 	hamlibVFO2Option = "vfo2"
 	tciTRXOption     = "trx"
 	tciTRX2Option    = "trx2"
+
+	incrementalTuningPerVFOOption = "rit_xit_per_vfo"
 )
 
 type View interface {
@@ -157,6 +159,13 @@ func (c *Controller) emitKeyerStatusChanged(available bool) {
 func (c *Controller) emitRadioChanged(name string, singleVFO bool) {
 	core.Emit(c.listeners, func(listener core.RadioChangedListener) {
 		listener.RadioChanged(name, singleVFO)
+	})
+	perVFO := false
+	if config, ok := c.radioConfig(name); ok {
+		perVFO = config.Options[incrementalTuningPerVFOOption] == "true"
+	}
+	core.Emit(c.listeners, func(listener core.IncrementalTuningPerVFOListener) {
+		listener.IncrementalTuningPerVFOChanged(perVFO)
 	})
 	if c.view != nil {
 		c.doIgnoreUpdates(func() {

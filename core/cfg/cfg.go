@@ -45,7 +45,7 @@ var Default = &Data{
 			Address: "localhost:40001",
 			Keyer:   "radio",
 			Options: map[string]string{
-				"single_vfo": "false",
+				"trx": "0",
 			},
 		},
 	},

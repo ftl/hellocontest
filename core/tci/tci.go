@@ -16,7 +16,7 @@ import (
 
 const retryInterval = 10 * time.Second
 
-func NewClient(address string, trx int, singleVFO bool, bandplan bandplan.Bandplan) (*Client, error) {
+func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan) (*Client, error) {
 	host, err := network.ParseTCPAddr(address)
 	if err != nil {
 		return nil, err
@@ -24,15 +24,27 @@ func NewClient(address string, trx int, singleVFO bool, bandplan bandplan.Bandpl
 
 	result := &Client{
 		bandplan:  bandplan,
-		singleVFO: singleVFO,
+		singleVFO: true,
 	}
 	result.trx = &trxListener{
 		client: result,
 		trx:    trx,
+		vfo:    core.VFO1,
+	}
+	if trx2 >= 0 && trx2 != trx {
+		result.singleVFO = false
+		result.trx2 = &trxListener{
+			client: result,
+			trx:    trx2,
+			vfo:    core.VFO2,
+		}
 	}
 	result.resetSpots()
 	result.client = client.KeepOpen(host, retryInterval, false)
 	result.client.Notify(result.trx)
+	if !result.singleVFO {
+		result.client.Notify(result.trx2)
+	}
 
 	return result, nil
 }
@@ -47,7 +59,11 @@ type Client struct {
 	lastHeardSpots map[string]time.Time
 
 	trx       *trxListener
+	trx2      *trxListener
 	connected bool
+
+	currentVFO core.VFOID
+	txVFO      core.VFOID
 
 	listeners []any
 }
@@ -75,15 +91,28 @@ func (c *Client) SingleVFO() bool {
 	return c.singleVFO
 }
 
+func (c *Client) toTCITRX(vfo core.VFOID) int {
+	if !c.singleVFO && vfo == core.VFO2 {
+		return c.trx2.trx
+	}
+	return c.trx.trx
+}
+
 func (c *Client) SetCurrentVFO(vfo core.VFOID) {
-	// ignore: there is no sense of a "focused" VFO in TCI
+	if c.singleVFO {
+		c.currentVFO = core.VFO1
+		return
+	}
+	c.currentVFO = vfo
 }
 
 func (c *Client) SetTXVFO(vfo core.VFOID) {
 	if c.singleVFO {
+		c.txVFO = core.VFO1
 		return
 	}
-	c.client.SetSplitEnable(c.trx.trx, vfo == core.VFO2)
+	c.txVFO = vfo
+	c.emitTXVFOChanged(vfo)
 }
 
 func (c *Client) MuteAudio(_ core.VFOID) {
@@ -124,33 +153,33 @@ func (c *Client) emitConnectionChanged(connected bool) {
 	})
 }
 
-func (c *Client) emitFrequencyChanged(frequency core.Frequency) {
+func (c *Client) emitFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
 	core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
-		listener.VFOFrequencyChanged(core.VFO1, frequency)
+		listener.VFOFrequencyChanged(vfo, frequency)
 	})
 }
 
-func (c *Client) emitBandChanged(band core.Band) {
+func (c *Client) emitBandChanged(vfo core.VFOID, band core.Band) {
 	core.Emit(c.listeners, func(listener core.VFOBandListener) {
-		listener.VFOBandChanged(core.VFO1, band)
+		listener.VFOBandChanged(vfo, band)
 	})
 }
 
-func (c *Client) emitModeChanged(mode core.Mode) {
+func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
 	core.Emit(c.listeners, func(listener core.VFOModeListener) {
-		listener.VFOModeChanged(core.VFO1, mode)
+		listener.VFOModeChanged(vfo, mode)
 	})
 }
 
-func (c *Client) emitXITChanged(active bool, offset core.Frequency) {
+func (c *Client) emitXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
 	core.Emit(c.listeners, func(listener core.VFOXITListener) {
-		listener.VFOXITChanged(core.VFO1, active, offset)
+		listener.VFOXITChanged(vfo, active, offset)
 	})
 }
 
-func (c *Client) emitPTTChanged(active bool) {
+func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
 	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
-		listener.VFOPTTChanged(core.VFO1, active)
+		listener.VFOPTTChanged(vfo, active)
 	})
 }
 
@@ -168,7 +197,7 @@ func (c *Client) Speed(wpm int) {
 }
 
 func (c *Client) Send(text string) {
-	err := c.client.SendCWMacro(c.trx.trx, text)
+	err := c.client.SendCWMacro(c.toTCITRX(c.txVFO), text)
 	if err != nil {
 		log.Printf("cannot send CW: %v", err)
 	}
@@ -182,7 +211,7 @@ func (c *Client) Abort() {
 }
 
 func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
-	err := c.client.SetVFOFrequency(c.trx.trx, toTCIVFO(vfo), int(frequency))
+	err := c.client.SetVFOFrequency(c.toTCITRX(c.currentVFO), client.VFOA, int(frequency))
 	if err != nil {
 		log.Printf("cannot set VFO frequency: %v", err)
 	}
@@ -191,27 +220,27 @@ func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 	bandplanBand := c.bandplan[toBandplanBandName(band)]
 	frequency := findModePortionCenter(c.bandplan, int(bandplanBand.Center()), toBandplanMode(c.trx.mode))
-	err := c.client.SetVFOFrequency(c.trx.trx, toTCIVFO(vfo), frequency)
+	err := c.client.SetVFOFrequency(c.toTCITRX(c.currentVFO), client.VFOA, frequency)
 	if err != nil {
 		log.Printf("cannot switch to band %s: %v", band, err)
 	}
 }
 
-func (c *Client) SetMode(_ core.VFOID, mode core.Mode) {
-	err := c.client.SetMode(c.trx.trx, toClientMode(mode))
+func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
+	err := c.client.SetMode(c.toTCITRX(vfo), toClientMode(mode))
 	if err != nil {
 		log.Printf("cannot set mode: %v", err)
 	}
 }
 
 func (c *Client) SetXIT(active bool, offset core.Frequency) {
-	err := c.client.SetXITEnable(c.trx.trx, active)
+	err := c.client.SetXITEnable(c.toTCITRX(c.currentVFO), active)
 	if err != nil {
 		log.Printf("cannot enable XIT: %v", err)
 		return
 	}
 
-	err = c.client.SetXITOffset(c.trx.trx, int(offset))
+	err = c.client.SetXITOffset(c.toTCITRX(c.currentVFO), int(offset))
 	if err != nil {
 		log.Printf("cannot set XIT offset: %v", err)
 		return
@@ -220,6 +249,9 @@ func (c *Client) SetXIT(active bool, offset core.Frequency) {
 
 func (c *Client) Refresh() {
 	c.trx.Refresh()
+	if !c.singleVFO {
+		c.trx2.Refresh()
+	}
 }
 
 var spotColors = map[core.SpotType]client.ARGB{
@@ -291,34 +323,30 @@ func isNotConnectedError(err error) bool {
 type trxListener struct {
 	client    *Client
 	trx       int
+	vfo       core.VFOID
 	frequency core.Frequency
 	band      core.Band
 	mode      core.Mode
 	xitActive bool
 	xitOffset core.Frequency
 	ptt       bool
-	split     bool
 }
 
 func (l *trxListener) Refresh() {
-	l.client.emitFrequencyChanged(l.frequency)
-	l.client.emitBandChanged(l.band)
-	l.client.emitModeChanged(l.mode)
-	l.client.emitXITChanged(l.xitActive, l.xitOffset)
-	l.client.emitPTTChanged(l.ptt)
-	l.client.emitTXVFOChanged(l.txVFO())
-}
-
-func (l *trxListener) txVFO() core.VFOID {
-	if l.split && !l.client.singleVFO {
-		return core.VFO2
-	}
-	return core.VFO1
+	l.client.emitFrequencyChanged(l.vfo, l.frequency)
+	l.client.emitBandChanged(l.vfo, l.band)
+	l.client.emitModeChanged(l.vfo, l.mode)
+	l.client.emitXITChanged(l.vfo, l.xitActive, l.xitOffset)
+	l.client.emitPTTChanged(l.vfo, l.ptt)
 }
 
 func (l *trxListener) Connected(connected bool) {
 	l.client.connected = connected
 	l.client.emitConnectionChanged(connected)
+}
+
+func (l *trxListener) SetTRXCount(count int) {
+	log.Printf("TCI TRX COUNT: %d", count)
 }
 
 func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
@@ -330,7 +358,7 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 		return
 	}
 	l.frequency = incomingFrequency
-	l.client.emitFrequencyChanged(l.frequency)
+	l.client.emitFrequencyChanged(l.vfo, l.frequency)
 	// log.Printf("incoming frequency: %s", l.frequency)
 
 	band := l.client.bandplan.ByFrequency(hamradio.Frequency(frequency))
@@ -340,7 +368,7 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 	}
 	l.band = incomingBand
 	l.client.resetSpots()
-	l.client.emitBandChanged(l.band)
+	l.client.emitBandChanged(l.vfo, l.band)
 	// log.Printf("incoming band: %v", l.band)
 }
 
@@ -353,7 +381,7 @@ func (l *trxListener) SetMode(trx int, mode client.Mode) {
 		return
 	}
 	l.mode = incomingMode
-	l.client.emitModeChanged(l.mode)
+	l.client.emitModeChanged(l.vfo, l.mode)
 	// log.Printf("incoming mode %v", incomingMode)
 }
 
@@ -366,7 +394,7 @@ func (l *trxListener) SetXITEnable(trx int, active bool) {
 		return
 	}
 	l.xitActive = incomingActive
-	l.client.emitXITChanged(l.xitActive, l.xitOffset)
+	l.client.emitXITChanged(l.vfo, l.xitActive, l.xitOffset)
 	// log.Printf("incoming XIT active %v", incomingActive)
 }
 
@@ -379,7 +407,7 @@ func (l *trxListener) SetXITOffset(trx int, offset int) {
 		return
 	}
 	l.xitOffset = incomingOffset
-	l.client.emitXITChanged(l.xitActive, l.xitOffset)
+	l.client.emitXITChanged(l.vfo, l.xitActive, l.xitOffset)
 	// log.Printf("incoming XIT offset %v", incomingOffset)
 }
 
@@ -391,27 +419,8 @@ func (l *trxListener) SetTX(trx int, enable bool) {
 		return
 	}
 	l.ptt = enable
-	l.client.emitPTTChanged(l.ptt)
+	l.client.emitPTTChanged(l.vfo, l.ptt)
 	// log.Printf("incoming PTT %v", enable)
-}
-
-func (l *trxListener) SetSplitEnable(trx int, enabled bool) {
-	if trx != l.trx {
-		return
-	}
-	if enabled == l.split {
-		return
-	}
-	l.split = enabled
-	l.client.emitTXVFOChanged(l.txVFO())
-	// log.Printf("incoming split %v", enabled)
-}
-
-func toTCIVFO(vfo core.VFOID) client.VFO {
-	if vfo == core.VFO2 {
-		return client.VFOB
-	}
-	return client.VFOA
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

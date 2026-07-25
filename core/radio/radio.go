@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	hamlibVFO1Option   = "vfo1"
-	hamlibVFO2Option   = "vfo2"
-	tciTRXOption       = "trx"
-	tciSingleVFOOption = "single_vfo"
+	hamlibVFO1Option = "vfo1"
+	hamlibVFO2Option = "vfo2"
+	tciTRXOption     = "trx"
+	tciTRX2Option    = "trx2"
 )
 
 type View interface {
@@ -279,15 +279,15 @@ func (c *Controller) newTCIClient(config core.Radio) (radio, error) {
 			return nil, fmt.Errorf("invalid trx option: %v", err)
 		}
 	}
-	singleVFO := false
-	singleVFOStr, ok := config.Options[tciSingleVFOOption]
+	trx2 := -1
+	trx2Str, ok := config.Options[tciTRX2Option]
 	if ok {
-		singleVFO, err = strconv.ParseBool(singleVFOStr)
+		trx2, err = strconv.Atoi(trx2Str)
 		if err != nil {
-			return nil, fmt.Errorf("invalid single_vfo option: %v", err)
+			return nil, fmt.Errorf("invalid trx2 option: %v", err)
 		}
 	}
-	tciClient, err := tci.NewClient(config.Address, trx, singleVFO, c.bandplan)
+	tciClient, err := tci.NewClient(config.Address, trx, trx2, c.bandplan)
 	if err != nil {
 		return nil, err
 	}

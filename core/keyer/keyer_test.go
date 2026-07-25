@@ -3,15 +3,16 @@ package keyer
 import (
 	"testing"
 
-	"github.com/ftl/hellocontest/core"
-	"github.com/ftl/hellocontest/core/mocked"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/mocked"
 )
 
 func TestSend(t *testing.T) {
 	keyerSettings := core.KeyerSettings{
-		WPM:       25,
+		WPM:       30,
 		SPMacros:  []string{"", "", "", ""},
 		RunMacros: []string{"", "", "", ""},
 	}
@@ -31,6 +32,7 @@ func TestSend(t *testing.T) {
 	view.On("SetPattern", mock.Anything, mock.Anything)
 	view.On("SetPresetNames", mock.Anything)
 	cwClient := new(mocked.CWClient)
+	cwClient.On("Speed", 30).Once()
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
 
 	keyer := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
@@ -133,6 +135,7 @@ func TestSend_SwitchesTXVFOToFocusedAndAnnounces(t *testing.T) {
 	view.On("SetPattern", mock.Anything, mock.Anything)
 	view.On("SetPresetNames", mock.Anything)
 	cwClient := new(mocked.CWClient)
+	cwClient.On("Speed", mock.Anything)
 	cwClient.On("Send", mock.Anything)
 	vfoSw := &vfoSwitcherSpy{}
 	tx := &transmissionStartedSpy{}

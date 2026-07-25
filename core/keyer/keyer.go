@@ -655,6 +655,7 @@ func (k *Keyer) SendTextWithTemplate(text string) error {
 func (k *Keyer) send(s string) {
 	log.Printf("sending %q", s)
 	k.lastTransmission = s
+	k.client.Speed(k.wpm)
 	k.client.Send(s)
 }
 

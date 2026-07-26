@@ -28,7 +28,6 @@ type EntryController interface {
 	SendQuestion()
 	RepeatLastTransmission()
 	StopTX()
-	SetIncrementalTuningActive(core.VFOID, core.IncrementalTuningKind, bool)
 
 	EnterPressed()
 	Log()
@@ -79,7 +78,12 @@ type entryView struct {
 	isDuplicate bool
 	isEditing   bool
 
-	controller EntryController
+	controller             EntryController
+	incrementalTuningInput IncrementalTuningController
+}
+
+type IncrementalTuningController interface {
+	SetIncrementalTuningActive(core.VFOID, core.IncrementalTuningKind, bool)
 }
 
 func newEntryView() *entryView {
@@ -121,23 +125,23 @@ func newEntryView() *entryView {
 		}
 	})
 	v.vfo[core.VFO1].xit.OnStateChanged(func(state int) {
-		if v.controller != nil {
-			v.controller.SetIncrementalTuningActive(core.VFO1, core.XIT, state != 0)
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO1, core.XIT, state != 0)
 		}
 	})
 	v.vfo[core.VFO2].xit.OnStateChanged(func(state int) {
-		if v.controller != nil {
-			v.controller.SetIncrementalTuningActive(core.VFO2, core.XIT, state != 0)
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO2, core.XIT, state != 0)
 		}
 	})
 	v.vfo[core.VFO1].rit.OnStateChanged(func(state int) {
-		if v.controller != nil {
-			v.controller.SetIncrementalTuningActive(core.VFO1, core.RIT, state != 0)
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO1, core.RIT, state != 0)
 		}
 	})
 	v.vfo[core.VFO2].rit.OnStateChanged(func(state int) {
-		if v.controller != nil {
-			v.controller.SetIncrementalTuningActive(core.VFO2, core.RIT, state != 0)
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO2, core.RIT, state != 0)
 		}
 	})
 
@@ -304,6 +308,10 @@ func (v *entryView) SetEntryController(controller EntryController) {
 	v.controller = controller
 }
 
+func (v *entryView) SetIncrementalTuningController(controller IncrementalTuningController) {
+	v.incrementalTuningInput = controller
+}
+
 func (v *entryView) SetMyCall(text string) {
 	v.myCallLabel.SetText(text)
 }
@@ -375,7 +383,7 @@ func (v *entryView) incrementalTuningWidget(vfo core.VFOID, kind core.Incrementa
 	return v.vfo[vfo].xit
 }
 
-func (v *entryView) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+func (v *entryView) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
 	widget := v.incrementalTuningWidget(vfo, kind)
 	if widget == nil {
 		return
@@ -386,7 +394,7 @@ func (v *entryView) SetIncrementalTuningActive(vfo core.VFOID, kind core.Increme
 	widget.SetChecked(active)
 }
 
-func (v *entryView) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (v *entryView) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	widget := v.incrementalTuningWidget(vfo, kind)
 	if widget == nil {
 		return
@@ -399,7 +407,7 @@ func (v *entryView) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTu
 	}
 }
 
-func (v *entryView) SetIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+func (v *entryView) IncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
 	v.itVisible[vfo][kind] = visible
 	v.applyIncrementalTuningVisibility(vfo, kind)
 }

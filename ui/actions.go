@@ -16,6 +16,7 @@ type actions struct {
 	controller  *app.Controller
 	keybindings map[string]string
 	ignoreInput bool
+	focusedVFO  core.VFOID
 	allInfos    []ActionInfo
 
 	// Action groups
@@ -443,6 +444,9 @@ func (a *actions) ESMEnabled(enabled bool) {
 }
 
 func (a *actions) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	if vfo != a.focusedVFO {
+		return
+	}
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
 	if kind == core.RIT {
@@ -450,6 +454,14 @@ func (a *actions) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.Incre
 		return
 	}
 	a.xitActiveAction.SetChecked(active)
+}
+
+func (a *actions) FocusChanged(vfo core.VFOID) {
+	a.focusedVFO = vfo
+	a.ignoreInput = true
+	defer func() { a.ignoreInput = false }()
+	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.XIT))
+	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.RIT))
 }
 
 func (a *actions) ContestPagesChanged(rulesAvailable, uploadAvailable bool) {

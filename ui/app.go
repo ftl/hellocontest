@@ -88,7 +88,9 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 	a.controller.Entry.Notify(a.actions)
 	a.controller.Workmode.Notify(a.actions)
 	a.controller.QTCList.Notify(a.actions)
-	a.controller.VFOs[core.VFO1].Notify(a.actions)
+	for _, v := range a.controller.VFOs {
+		v.Notify(a.actions)
+	}
 
 	a.createMenu()
 	a.createCentralWidget()
@@ -207,8 +209,12 @@ func (a *application) createCentralWidget() {
 	// setup entry view
 	a.entryView = newEntryView()
 	a.entryView.SetEntryController(a.controller.Entry)
+	a.entryView.SetIncrementalTuningController(a.controller)
 	a.controller.Entry.SetView(a.entryView)
 	a.controller.Entry.Notify(a.entryView)
+	for _, v := range a.controller.VFOs {
+		v.Notify(a.entryView)
+	}
 
 	// setup callinfo view
 	a.callinfoView = newCallinfoView()

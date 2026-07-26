@@ -26,9 +26,6 @@ type View interface {
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(vfo core.VFOID, text string)
 	SetMode(vfo core.VFOID, text string)
-	SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool)
-	SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency)
-	SetIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool)
 	SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 
 	SetCallsign(core.VFOID, string)
@@ -120,7 +117,6 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 
 		stationCallsign: settings.Station().Callsign.String(),
 		vfoWorkmode:     make([]core.Workmode, core.VFOCount),
-		itAvailable:     make([][2]bool, core.VFOCount),
 	}
 	for vfo := range len(result.vfos) {
 		result.vfos[vfo] = new(nullVFO)
@@ -172,11 +168,9 @@ type Controller struct {
 	asyncRunner core.AsyncRunner
 	listeners   []any
 
-	stationCallsign         string
-	workmode                core.Workmode
-	vfoWorkmode             []core.Workmode
-	itAvailable             [][2]bool
-	incrementalTuningPerVFO bool
+	stationCallsign string
+	workmode        core.Workmode
+	vfoWorkmode     []core.Workmode
 
 	myExchangeFields         []core.ExchangeField
 	theirExchangeFields      []core.ExchangeField
@@ -565,10 +559,6 @@ func (c *Controller) RadioChanged(_ string, singleVFO bool) {
 	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
 }
 
-func (c *Controller) IncrementalTuningPerVFOChanged(perVFO bool) {
-	c.incrementalTuningPerVFO = perVFO
-}
-
 // canTransmit reports whether the keyer is currently allowed to transmit. False during edit mode.
 func (c *Controller) canTransmit() bool {
 	return !c.editing
@@ -745,34 +735,6 @@ func (c *Controller) bandEntered(band core.Band) {
 	c.vfos[c.focusedVFO].SetBand(band)
 }
 
-func (c *Controller) incrementalTuningTargetVFO(vfo core.VFOID) core.VFOID {
-	if c.incrementalTuningPerVFO {
-		return vfo
-	}
-	return core.VFO1
-}
-
-func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-	c.vfos[c.incrementalTuningTargetVFO(vfo)].SetIncrementalTuningActive(kind, active)
-	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
-}
-
-func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
-	c.SetIncrementalTuningActive(c.focusedVFO, kind, active)
-}
-
-func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
-	return c.vfos[c.incrementalTuningTargetVFO(vfo)].IncrementalTuningActive(kind)
-}
-
-func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
-	return c.IncrementalTuningActive(c.focusedVFO, kind)
-}
-
-func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
-	c.vfos[c.incrementalTuningTargetVFO(c.focusedVFO)].ShiftOffset(kind, delta)
-}
-
 func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
 	c.asyncRunner(func() {
 		if vfo == core.VFO1 && c.editing {
@@ -899,18 +861,6 @@ func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 		c.input[vfo].mode = mode.String()
 
 		c.view.SetMode(vfo, c.input[vfo].mode)
-	})
-}
-
-func (c *Controller) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
-	c.asyncRunner(func() {
-		c.view.SetIncrementalTuning(vfo, kind, active, offset)
-	})
-}
-
-func (c *Controller) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-	c.asyncRunner(func() {
-		c.view.SetIncrementalTuningActive(vfo, kind, active)
 	})
 }
 
@@ -1428,60 +1378,6 @@ func (c *Controller) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
 		c.updateESM()
 	}
 	c.view.SetVFOWorkmode(vfo, workmode)
-	c.updateIncrementalTuningVisibility(vfo)
-}
-
-func (c *Controller) IncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) {
-	c.itAvailable[vfo][kind] = available
-	c.updateIncrementalTuningVisibility(vfo)
-}
-
-func (c *Controller) updateIncrementalTuningVisibility(vfo core.VFOID) {
-	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
-		visible := c.itAvailable[vfo][kind] && kind.Workmode() == c.vfoWorkmode[vfo]
-		c.asyncRunner(func() {
-			c.view.SetIncrementalTuningVisible(vfo, kind, visible)
-		})
-	}
-}
-
-func (c *Controller) availableIncrementalTuningKind(vfo core.VFOID) (core.IncrementalTuningKind, bool) {
-	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
-		if c.itAvailable[vfo][kind] && kind.Workmode() == c.vfoWorkmode[vfo] {
-			return kind, true
-		}
-	}
-	return 0, false
-}
-
-func (c *Controller) ToggleFocusedIncrementalTuning() {
-	vfo := c.incrementalTuningTargetVFO(c.focusedVFO)
-	kind, ok := c.availableIncrementalTuningKind(vfo)
-	if !ok {
-		return
-	}
-	c.SetFocusedIncrementalTuningActive(kind, !c.FocusedIncrementalTuningActive(kind))
-}
-
-func (c *Controller) IncrementalTuningUp() {
-	c.shiftFocusedIncrementalTuning(1)
-}
-
-func (c *Controller) IncrementalTuningDown() {
-	c.shiftFocusedIncrementalTuning(-1)
-}
-
-func (c *Controller) shiftFocusedIncrementalTuning(sign core.Frequency) {
-	vfo := c.incrementalTuningTargetVFO(c.focusedVFO)
-	kind, ok := c.availableIncrementalTuningKind(vfo)
-	if !ok {
-		return
-	}
-	step := core.DefaultXITShift
-	if kind == core.RIT {
-		step = core.DefaultRITShift
-	}
-	c.vfos[vfo].ShiftOffset(kind, sign*step)
 }
 
 func (c *Controller) updateExchangeFields(contest core.Contest) {

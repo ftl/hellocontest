@@ -15,12 +15,6 @@ func (n *nullView) SetFrequency(core.VFOID, core.Frequency)                   {}
 func (n *nullView) SetCallsign(core.VFOID, string)                            {}
 func (n *nullView) SetBand(vfo core.VFOID, text string)                       {}
 func (n *nullView) SetMode(vfo core.VFOID, text string)                       {}
-func (n *nullView) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-}
-func (n *nullView) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
-}
-func (n *nullView) SetIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
-}
 func (n *nullView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 }
 func (n *nullView) SetMyExchange(int, string)                       {}

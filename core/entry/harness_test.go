@@ -235,14 +235,6 @@ func (s *Scenario) PressEnter() *Scenario {
 	return s
 }
 
-// SetXITActive toggles XIT active state on VFO1.
-func (s *Scenario) SetXITActive(active bool) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.SetIncrementalTuningActive(core.VFO1, core.XIT, active)
-	return s
-}
-
 // Clear invokes controller.Clear().
 func (s *Scenario) Clear() *Scenario {
 	s.t.Helper()
@@ -280,82 +272,6 @@ func (s *Scenario) WorkmodeChanged(w core.Workmode) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.WorkmodeChanged(core.VFO1, w)
-	return s
-}
-
-func (s *Scenario) IncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.IncrementalTuningAvailabilityChanged(vfo, kind, available)
-	return s
-}
-
-func (s *Scenario) AssertIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) *Scenario {
-	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetIncrementalTuningVisible", vfo, kind, visible)
-	return s
-}
-
-func (s *Scenario) ToggleIncrementalTuning() *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.ToggleFocusedIncrementalTuning()
-	return s
-}
-
-func (s *Scenario) IncrementalTuningUp() *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.IncrementalTuningUp()
-	return s
-}
-
-func (s *Scenario) AssertIncrementalTuningShifted(vfo core.VFOID, kind core.IncrementalTuningKind, delta core.Frequency) *Scenario {
-	s.t.Helper()
-	spy := s.vfo
-	if vfo == core.VFO2 {
-		spy = s.vfo2
-	}
-	assert.True(s.t, spy.shiftedOffset, "expected ShiftOffset to be called on VFO %d", vfo)
-	assert.Equal(s.t, kind, spy.shiftKind)
-	assert.Equal(s.t, delta, spy.shiftDelta)
-	return s
-}
-
-func (s *Scenario) AssertIncrementalTuningNotShifted() *Scenario {
-	s.t.Helper()
-	assert.False(s.t, s.vfo.shiftedOffset, "expected no ShiftOffset on VFO1")
-	return s
-}
-
-func (s *Scenario) SetIncrementalTuningActiveFor(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.SetIncrementalTuningActive(vfo, kind, active)
-	return s
-}
-
-func (s *Scenario) AssertIncrementalTuningActiveCommandedOn(vfo core.VFOID, active bool) *Scenario {
-	s.t.Helper()
-	spy := s.vfo
-	if vfo == core.VFO2 {
-		spy = s.vfo2
-	}
-	assert.Equal(s.t, active, spy.xitActive, "expected VFO %d xitActive == %v", vfo, active)
-	return s
-}
-
-func (s *Scenario) IncrementalTuningPerVFOChanged(perVFO bool) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.IncrementalTuningPerVFOChanged(perVFO)
-	return s
-}
-
-func (s *Scenario) WorkmodeChangedFor(vfo core.VFOID, w core.Workmode) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.WorkmodeChanged(vfo, w)
 	return s
 }
 
@@ -590,14 +506,6 @@ func (s *Scenario) AssertVFOFrequency(freq core.Frequency) *Scenario {
 	return s
 }
 
-// AssertXITActiveCommanded asserts the VFO rig was commanded with the given XIT-active flag.
-func (s *Scenario) AssertXITActiveCommanded(active bool) *Scenario {
-	s.t.Helper()
-	assert.Equal(s.t, active, s.vfo.xitActive,
-		"expected VFO XIT-active to be commanded as %v", active)
-	return s
-}
-
 // AssertCallsignView asserts view.SetCallsign(vfo, text) was called.
 func (s *Scenario) AssertCallsignView(vfo core.VFOID, text string) *Scenario {
 	s.t.Helper()
@@ -788,25 +696,17 @@ func (s *scenarioSettings) Contest() core.Contest {
 // ---- vfoSpy -----------------------------------------------------------------
 
 type vfoSpy struct {
-	ctrl          *entry.Controller
-	vfoID         core.VFOID
-	lastBand      core.Band
-	lastMode      core.Mode
-	lastFreq      core.Frequency
-	xitActive     bool
-	shiftKind     core.IncrementalTuningKind
-	shiftDelta    core.Frequency
-	shiftedOffset bool
+	ctrl     *entry.Controller
+	vfoID    core.VFOID
+	lastBand core.Band
+	lastMode core.Mode
+	lastFreq core.Frequency
 }
 
 func (v *vfoSpy) reset() {
 	v.lastBand = core.NoBand
 	v.lastMode = core.NoMode
 	v.lastFreq = 0
-	v.xitActive = false
-	v.shiftedOffset = false
-	v.shiftKind = 0
-	v.shiftDelta = 0
 }
 
 func (v *vfoSpy) Name() string { return "STUB" }
@@ -821,17 +721,11 @@ func (v *vfoSpy) ShiftFrequency(f core.Frequency) { v.lastFreq += f }
 func (v *vfoSpy) SetBand(b core.Band)           { v.lastBand = b }
 func (v *vfoSpy) SetMode(m core.Mode)           { v.lastMode = m }
 func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
-func (v *vfoSpy) ShiftOffset(kind core.IncrementalTuningKind, delta core.Frequency) {
-	v.shiftKind = kind
-	v.shiftDelta = delta
-	v.shiftedOffset = true
-}
-func (v *vfoSpy) ToggleIncrementalTuning()                       {}
-func (v *vfoSpy) ShiftAvailableIncrementalTuning(core.Frequency) {}
-func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return v.xitActive }
-func (v *vfoSpy) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
-	v.xitActive = active
-}
+func (v *vfoSpy) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
+func (v *vfoSpy) ToggleIncrementalTuning()                                              {}
+func (v *vfoSpy) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
+func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
+func (v *vfoSpy) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}
 
 // ---- qsoListSpy -------------------------------------------------------------
 
@@ -914,15 +808,6 @@ func (v *viewSpy) SetFrequency(vfo core.VFOID, f core.Frequency) {
 }
 func (v *viewSpy) SetBand(vfo core.VFOID, text string) { v.record("SetBand", vfo, text) }
 func (v *viewSpy) SetMode(vfo core.VFOID, text string) { v.record("SetMode", vfo, text) }
-func (v *viewSpy) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-	v.record("SetIncrementalTuningActive", vfo, kind, active)
-}
-func (v *viewSpy) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
-	v.record("SetIncrementalTuning", vfo, kind, active, offset)
-}
-func (v *viewSpy) SetIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
-	v.record("SetIncrementalTuningVisible", vfo, kind, visible)
-}
 func (v *viewSpy) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	v.record("SetTXState", vfo, ptt, parrotActive, parrotTimeLeft)
 }
@@ -1257,22 +1142,6 @@ func (s *Scenario) CurrentVFOChanged(vfo core.VFOID) *Scenario {
 	return s
 }
 
-// VFOXITChanged fires the XIT-changed event.
-func (s *Scenario) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.VFOIncrementalTuningChanged(vfo, core.XIT, active, offset)
-	return s
-}
-
-// XITActiveChanged fires the XIT-active event.
-func (s *Scenario) XITActiveChanged(active bool) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.IncrementalTuningActiveChanged(core.VFO1, core.XIT, active)
-	return s
-}
-
 // VFOPTTChanged fires the PTT-changed event.
 func (s *Scenario) VFOPTTChanged(vfo core.VFOID, active bool) *Scenario {
 	s.t.Helper()
@@ -1401,20 +1270,6 @@ func (s *Scenario) AssertTXVFOBeforeKeyer(vfo core.VFOID) *Scenario {
 func (s *Scenario) AssertVFO2Enabled(enabled bool) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetVFOEnabled", core.VFO2, enabled)
-	return s
-}
-
-// AssertXITView asserts view.SetXIT(vfo, active, offset) was called.
-func (s *Scenario) AssertXITView(vfo core.VFOID, active bool, offset core.Frequency) *Scenario {
-	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetIncrementalTuning", vfo, core.XIT, active, offset)
-	return s
-}
-
-// AssertXITActiveView asserts view.SetIncrementalTuningActive(vfo, XIT, active) was called.
-func (s *Scenario) AssertXITActiveView(vfo core.VFOID, active bool) *Scenario {
-	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetIncrementalTuningActive", vfo, core.XIT, active)
 	return s
 }
 

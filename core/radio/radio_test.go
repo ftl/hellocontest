@@ -47,11 +47,11 @@ func TestIncrementalTuningRouting_MainVFOOnly(t *testing.T) {
 	c.SetCurrentVFO(core.VFO2)
 
 	c.SetIncrementalTuningActive(core.VFO2, core.XIT, true)
-	assert.True(t, v1.setActive, "explicit VFO2 collapses to VFO1 when flag is off")
+	assert.False(t, v1.setActive, "explicit setting on VFO2 is ignored")
 	assert.False(t, v2.setActive)
 
 	c.ToggleIncrementalTuning()
-	assert.True(t, v1.toggled, "focused action targets VFO1 regardless of current VFO")
+	assert.False(t, v1.toggled, "toggle on VFO2 is ignored")
 	assert.False(t, v2.toggled)
 }
 

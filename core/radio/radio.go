@@ -339,15 +339,15 @@ func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
 	c.vfos[id] = vfo
 }
 
-func (c *Controller) incrementalTuningTargetVFO(vfo core.VFOID) core.VFOID {
-	if c.incrementalTuningPerVFO {
-		return vfo
-	}
-	return core.VFO1
+func (c *Controller) incrementalTuningAvailableOnVFO(vfo core.VFOID) bool {
+	return (vfo == core.VFO1) || c.incrementalTuningPerVFO
 }
 
 func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-	c.vfos[c.incrementalTuningTargetVFO(vfo)].SetIncrementalTuningActive(kind, active)
+	if !c.incrementalTuningAvailableOnVFO(vfo) {
+		return
+	}
+	c.vfos[vfo].SetIncrementalTuningActive(kind, active)
 }
 
 func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
@@ -355,7 +355,10 @@ func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuni
 }
 
 func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
-	return c.vfos[c.incrementalTuningTargetVFO(vfo)].IncrementalTuningActive(kind)
+	if !c.incrementalTuningAvailableOnVFO(vfo) {
+		return false
+	}
+	return c.vfos[vfo].IncrementalTuningActive(kind)
 }
 
 func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
@@ -363,19 +366,31 @@ func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningK
 }
 
 func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
-	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ShiftOffset(kind, delta)
+	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
+		return
+	}
+	c.vfos[c.currentVFO].ShiftOffset(kind, delta)
 }
 
 func (c *Controller) ToggleIncrementalTuning() {
-	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ToggleIncrementalTuning()
+	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
+		return
+	}
+	c.vfos[c.currentVFO].ToggleIncrementalTuning()
 }
 
 func (c *Controller) IncrementalTuningUp() {
-	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ShiftAvailableIncrementalTuning(1)
+	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
+		return
+	}
+	c.vfos[c.currentVFO].ShiftAvailableIncrementalTuning(1)
 }
 
 func (c *Controller) IncrementalTuningDown() {
-	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ShiftAvailableIncrementalTuning(-1)
+	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
+		return
+	}
+	c.vfos[c.currentVFO].ShiftAvailableIncrementalTuning(-1)
 }
 
 func (c *Controller) SetTXVFO(vfo core.VFOID) {

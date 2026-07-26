@@ -62,7 +62,6 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.AssertExpectations(t)
 }
 
-
 func TestEntryController_EnterNewCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
@@ -598,10 +597,10 @@ func (v *testVFO) Refresh() {
 	v.controller.VFOBandChanged(core.VFO1, core.Band160m)
 	v.controller.VFOModeChanged(core.VFO1, core.ModeCW)
 }
-func (v *testVFO) SetFrequency(core.Frequency)   {}
-func (v *testVFO) ShiftFrequency(core.Frequency) {}
-func (v *testVFO) SetBand(core.Band)           {}
-func (v *testVFO) SetMode(core.Mode)           {}
+func (v *testVFO) SetFrequency(core.Frequency)                                           {}
+func (v *testVFO) ShiftFrequency(core.Frequency)                                         {}
+func (v *testVFO) SetBand(core.Band)                                                     {}
+func (v *testVFO) SetMode(core.Mode)                                                     {}
 func (v *testVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
 func (v *testVFO) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
 func (v *testVFO) ToggleIncrementalTuning()                                              {}

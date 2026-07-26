@@ -407,14 +407,14 @@ func (v *nullView) RevealEntry(core.BandmapEntry) {}
 
 type nullVFO struct{}
 
-func (n *nullVFO) Name() string                  { return "" }
-func (n *nullVFO) Notify(any)                    {}
-func (n *nullVFO) Active() bool                  { return false }
-func (n *nullVFO) Refresh()                      {}
-func (n *nullVFO) SetFrequency(core.Frequency)   {}
-func (n *nullVFO) ShiftFrequency(core.Frequency) {}
-func (n *nullVFO) SetBand(core.Band)             {}
-func (n *nullVFO) SetMode(core.Mode)             {}
+func (n *nullVFO) Name() string                                                          { return "" }
+func (n *nullVFO) Notify(any)                                                            {}
+func (n *nullVFO) Active() bool                                                          { return false }
+func (n *nullVFO) Refresh()                                                              {}
+func (n *nullVFO) SetFrequency(core.Frequency)                                           {}
+func (n *nullVFO) ShiftFrequency(core.Frequency)                                         {}
+func (n *nullVFO) SetBand(core.Band)                                                     {}
+func (n *nullVFO) SetMode(core.Mode)                                                     {}
 func (n *nullVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
 func (n *nullVFO) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
 func (n *nullVFO) ToggleIncrementalTuning()                                              {}

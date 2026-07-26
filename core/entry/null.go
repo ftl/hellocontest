@@ -10,11 +10,11 @@ import (
 
 type nullView struct{}
 
-func (n *nullView) SetMyCall(string)                                          {}
-func (n *nullView) SetFrequency(core.VFOID, core.Frequency)                   {}
-func (n *nullView) SetCallsign(core.VFOID, string)                            {}
-func (n *nullView) SetBand(vfo core.VFOID, text string)                       {}
-func (n *nullView) SetMode(vfo core.VFOID, text string)                       {}
+func (n *nullView) SetMyCall(string)                        {}
+func (n *nullView) SetFrequency(core.VFOID, core.Frequency) {}
+func (n *nullView) SetCallsign(core.VFOID, string)          {}
+func (n *nullView) SetBand(vfo core.VFOID, text string)     {}
+func (n *nullView) SetMode(vfo core.VFOID, text string)     {}
 func (n *nullView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 }
 func (n *nullView) SetMyExchange(int, string)                       {}
@@ -35,14 +35,14 @@ func (n *nullView) SetTXVFO(core.VFOID)                             {}
 
 type nullVFO struct{}
 
-func (n *nullVFO) Name() string                  { return "" }
-func (n *nullVFO) Notify(any)                    {}
-func (n *nullVFO) Active() bool                  { return false }
-func (n *nullVFO) Refresh()                      {}
-func (n *nullVFO) SetFrequency(core.Frequency)   {}
-func (n *nullVFO) ShiftFrequency(core.Frequency) {}
-func (n *nullVFO) SetBand(core.Band)             {}
-func (n *nullVFO) SetMode(core.Mode)             {}
+func (n *nullVFO) Name() string                                                          { return "" }
+func (n *nullVFO) Notify(any)                                                            {}
+func (n *nullVFO) Active() bool                                                          { return false }
+func (n *nullVFO) Refresh()                                                              {}
+func (n *nullVFO) SetFrequency(core.Frequency)                                           {}
+func (n *nullVFO) ShiftFrequency(core.Frequency)                                         {}
+func (n *nullVFO) SetBand(core.Band)                                                     {}
+func (n *nullVFO) SetMode(core.Mode)                                                     {}
 func (n *nullVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
 func (n *nullVFO) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
 func (n *nullVFO) ToggleIncrementalTuning()                                              {}

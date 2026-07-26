@@ -716,10 +716,10 @@ func (v *vfoSpy) Refresh() {
 	v.ctrl.VFOBandChanged(v.vfoID, core.Band20m)
 	v.ctrl.VFOModeChanged(v.vfoID, core.ModeCW)
 }
-func (v *vfoSpy) SetFrequency(f core.Frequency)   { v.lastFreq = f }
-func (v *vfoSpy) ShiftFrequency(f core.Frequency) { v.lastFreq += f }
-func (v *vfoSpy) SetBand(b core.Band)           { v.lastBand = b }
-func (v *vfoSpy) SetMode(m core.Mode)           { v.lastMode = m }
+func (v *vfoSpy) SetFrequency(f core.Frequency)                                         { v.lastFreq = f }
+func (v *vfoSpy) ShiftFrequency(f core.Frequency)                                       { v.lastFreq += f }
+func (v *vfoSpy) SetBand(b core.Band)                                                   { v.lastBand = b }
+func (v *vfoSpy) SetMode(m core.Mode)                                                   { v.lastMode = m }
 func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
 func (v *vfoSpy) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
 func (v *vfoSpy) ToggleIncrementalTuning()                                              {}

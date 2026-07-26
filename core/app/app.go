@@ -230,6 +230,7 @@ func (c *Controller) Startup() {
 		v.SetClient(c.Radio)
 		c.VFOs[vfoID] = v
 		c.Entry.SetVFO(core.VFOID(vfoID), v)
+		c.Radio.SetVFO(core.VFOID(vfoID), v)
 		c.Logbook.Notify(v)
 		c.Workmode.Notify(v)
 	}
@@ -883,23 +884,23 @@ func (c *Controller) RequestQTC() {
 }
 
 func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
-	return c.Entry.IncrementalTuningActive(vfo, kind)
+	return c.Radio.IncrementalTuningActive(vfo, kind)
 }
 
 func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
-	return c.Entry.FocusedIncrementalTuningActive(kind)
+	return c.Radio.FocusedIncrementalTuningActive(kind)
 }
 
 func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-	c.Entry.SetIncrementalTuningActive(vfo, kind, active)
+	c.Radio.SetIncrementalTuningActive(vfo, kind, active)
 }
 
 func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
-	c.Entry.SetFocusedIncrementalTuningActive(kind, active)
+	c.Radio.SetFocusedIncrementalTuningActive(kind, active)
 }
 
 func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
-	c.Entry.ShiftIncrementalTuning(kind, delta)
+	c.Radio.ShiftIncrementalTuning(kind, delta)
 }
 
 func (c *Controller) XITUp() {
@@ -919,15 +920,15 @@ func (c *Controller) RITDown() {
 }
 
 func (c *Controller) ToggleIncrementalTuning() {
-	c.Entry.ToggleFocusedIncrementalTuning()
+	c.Radio.ToggleIncrementalTuning()
 }
 
 func (c *Controller) IncrementalTuningUp() {
-	c.Entry.IncrementalTuningUp()
+	c.Radio.IncrementalTuningUp()
 }
 
 func (c *Controller) IncrementalTuningDown() {
-	c.Entry.IncrementalTuningDown()
+	c.Radio.IncrementalTuningDown()
 }
 
 func (c *Controller) MuteAudio(vfo core.VFOID) {

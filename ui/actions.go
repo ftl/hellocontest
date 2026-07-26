@@ -52,8 +52,9 @@ type actions struct {
 	requestQTCAction  *qtlib.QAction
 
 	// Radio menu
-	xitActiveAction *qtlib.QAction
-	ritActiveAction *qtlib.QAction
+	incrementalTuningToggleAction *qtlib.QAction
+	xitActiveAction               *qtlib.QAction
+	ritActiveAction               *qtlib.QAction
 
 	// Bandmap menu
 	markBandmapAction    *qtlib.QAction
@@ -159,7 +160,8 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.requestQTCAction = a.makeTriggerAction(core.ActionEntryRequestQTC, "Request QTC", "", "F6", controller.RequestQTC)
 
 	// Radio menu
-	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "Ctrl+Shift+X", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.XIT, active) })
+	a.incrementalTuningToggleAction = a.makeTriggerAction(core.ActionIncrementalTuningToggle, "Toggle Incremental Tuning", "Toggle the RIT or XIT of the focused VFO", "Ctrl+Shift+X", func() { controller.ToggleIncrementalTuning() })
+	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.XIT, active) })
 	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "Ctrl+Shift+R", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.RIT, active) })
 
 	// Bandmap menu
@@ -232,6 +234,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.xitDownAction,
 		a.ritUpAction,
 		a.ritDownAction,
+		a.incrementalTuningToggleAction,
 		a.incrementalTuningUpAction,
 		a.incrementalTuningDownAction,
 		a.speedUpAction,

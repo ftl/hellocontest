@@ -1454,6 +1454,15 @@ func (c *Controller) availableIncrementalTuningKind(vfo core.VFOID) (core.Increm
 	return 0, false
 }
 
+func (c *Controller) ToggleFocusedIncrementalTuning() {
+	vfo := c.incrementalTuningTargetVFO(c.focusedVFO)
+	kind, ok := c.availableIncrementalTuningKind(vfo)
+	if !ok {
+		return
+	}
+	c.SetFocusedIncrementalTuningActive(kind, !c.FocusedIncrementalTuningActive(kind))
+}
+
 func (c *Controller) IncrementalTuningUp() {
 	c.shiftFocusedIncrementalTuning(1)
 }

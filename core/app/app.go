@@ -918,6 +918,10 @@ func (c *Controller) RITDown() {
 	c.ShiftIncrementalTuning(core.RIT, -core.DefaultRITShift)
 }
 
+func (c *Controller) ToggleIncrementalTuning() {
+	c.Entry.ToggleFocusedIncrementalTuning()
+}
+
 func (c *Controller) IncrementalTuningUp() {
 	c.Entry.IncrementalTuningUp()
 }
@@ -1082,6 +1086,8 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.RITUp()
 	case core.ActionRadioRITDown:
 		c.RITDown()
+	case core.ActionIncrementalTuningToggle:
+		c.ToggleIncrementalTuning()
 	case core.ActionIncrementalTuningUp:
 		c.IncrementalTuningUp()
 	case core.ActionIncrementalTuningDown:

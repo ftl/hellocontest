@@ -296,6 +296,13 @@ func (s *Scenario) AssertIncrementalTuningVisible(vfo core.VFOID, kind core.Incr
 	return s
 }
 
+func (s *Scenario) ToggleIncrementalTuning() *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.ToggleFocusedIncrementalTuning()
+	return s
+}
+
 func (s *Scenario) IncrementalTuningUp() *Scenario {
 	s.t.Helper()
 	s.resetSpies()

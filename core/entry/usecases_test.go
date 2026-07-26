@@ -1568,6 +1568,25 @@ func TestJ5e_IncrementalTuningActive_HonorsPerVFOFlag(t *testing.T) {
 		AssertIncrementalTuningActiveCommandedOn(core.VFO1, false)
 }
 
+// J5f. Combined incremental tuning toggle
+// Pre:  availability and workmode set for the focused VFO.
+// Post: the available kind's active state is flipped; nothing if none available.
+
+func TestJ5f_ToggleIncrementalTuning_TogglesAvailableKind(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WorkmodeChanged(core.SearchPounce).
+		IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true).
+		ToggleIncrementalTuning().
+		AssertIncrementalTuningActiveCommandedOn(core.VFO1, true)
+
+	NewScenario(t).
+		WithClassicExchange().
+		WorkmodeChanged(core.SearchPounce).
+		ToggleIncrementalTuning().
+		AssertIncrementalTuningActiveCommandedOn(core.VFO1, false)
+}
+
 // J6. VFOPTTChanged
 // Pre:  event for vfo.
 // Post: if VFO1: ptt updated, view.SetTXState; else: view.SetTXState(vfo, active, false, 0).

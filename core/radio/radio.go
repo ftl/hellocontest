@@ -45,6 +45,10 @@ type Controller struct {
 	activeKeyerName string
 	radioAsKeyer    bool
 	sendSpotsToTci  bool
+
+	vfos                    []core.VFO
+	currentVFO              core.VFOID
+	incrementalTuningPerVFO bool
 }
 
 type radio interface {
@@ -160,13 +164,10 @@ func (c *Controller) emitRadioChanged(name string, singleVFO bool) {
 	core.Emit(c.listeners, func(listener core.RadioChangedListener) {
 		listener.RadioChanged(name, singleVFO)
 	})
-	perVFO := false
+	c.incrementalTuningPerVFO = false
 	if config, ok := c.radioConfig(name); ok {
-		perVFO = config.Options[incrementalTuningPerVFOOption] == "true"
+		c.incrementalTuningPerVFO = config.Options[incrementalTuningPerVFOOption] == "true"
 	}
-	core.Emit(c.listeners, func(listener core.IncrementalTuningPerVFOListener) {
-		listener.IncrementalTuningPerVFOChanged(perVFO)
-	})
 	if c.view != nil {
 		c.doIgnoreUpdates(func() {
 			c.view.SetRadioSelected(name)
@@ -234,6 +235,7 @@ func (c *Controller) SelectRadio(name string) error {
 		c.activeRadio.Notify(listener)
 	}
 	c.activeRadio.Notify(core.ConnectionChangedFunc(c.onRadioConnectionChanged))
+	c.activeRadio.Notify(core.CurrentVFOChangedFunc(c.onCurrentVFOChanged))
 	c.emitRadioChanged(config.Name, c.activeRadio.SingleVFO())
 	c.onRadioConnectionChanged(c.activeRadio.IsConnected())
 
@@ -319,10 +321,61 @@ func (c *Controller) SingleVFO() bool {
 }
 
 func (c *Controller) SetCurrentVFO(vfo core.VFOID) {
+	c.currentVFO = vfo
 	if c.activeRadio == nil {
 		return
 	}
 	c.activeRadio.SetCurrentVFO(vfo)
+}
+
+func (c *Controller) onCurrentVFOChanged(vfo core.VFOID) {
+	c.currentVFO = vfo
+}
+
+func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
+	if len(c.vfos) == 0 {
+		c.vfos = make([]core.VFO, core.VFOCount)
+	}
+	c.vfos[id] = vfo
+}
+
+func (c *Controller) incrementalTuningTargetVFO(vfo core.VFOID) core.VFOID {
+	if c.incrementalTuningPerVFO {
+		return vfo
+	}
+	return core.VFO1
+}
+
+func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	c.vfos[c.incrementalTuningTargetVFO(vfo)].SetIncrementalTuningActive(kind, active)
+}
+
+func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	c.SetIncrementalTuningActive(c.currentVFO, kind, active)
+}
+
+func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
+	return c.vfos[c.incrementalTuningTargetVFO(vfo)].IncrementalTuningActive(kind)
+}
+
+func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
+	return c.IncrementalTuningActive(c.currentVFO, kind)
+}
+
+func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
+	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ShiftOffset(kind, delta)
+}
+
+func (c *Controller) ToggleIncrementalTuning() {
+	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ToggleIncrementalTuning()
+}
+
+func (c *Controller) IncrementalTuningUp() {
+	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ShiftAvailableIncrementalTuning(1)
+}
+
+func (c *Controller) IncrementalTuningDown() {
+	c.vfos[c.incrementalTuningTargetVFO(c.currentVFO)].ShiftAvailableIncrementalTuning(-1)
 }
 
 func (c *Controller) SetTXVFO(vfo core.VFOID) {

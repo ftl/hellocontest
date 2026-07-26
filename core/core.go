@@ -1756,6 +1756,14 @@ type IncrementalTuningAvailabilityListener interface {
 	IncrementalTuningAvailabilityChanged(vfo VFOID, kind IncrementalTuningKind, available bool)
 }
 
+type IncrementalTuningActiveListener interface {
+	IncrementalTuningActiveChanged(vfo VFOID, kind IncrementalTuningKind, active bool)
+}
+
+type IncrementalTuningVisibilityListener interface {
+	IncrementalTuningVisibilityChanged(vfo VFOID, kind IncrementalTuningKind, visible bool)
+}
+
 type IncrementalTuningPerVFOListener interface {
 	IncrementalTuningPerVFOChanged(perVFO bool)
 }
@@ -1776,6 +1784,12 @@ type ConnectionChangedFunc func(bool)
 
 func (f ConnectionChangedFunc) ConnectionChanged(connected bool) {
 	f(connected)
+}
+
+type CurrentVFOChangedFunc func(VFOID)
+
+func (f CurrentVFOChangedFunc) CurrentVFOChanged(vfo VFOID) {
+	f(vfo)
 }
 
 type Service int

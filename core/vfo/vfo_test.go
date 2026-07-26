@@ -57,6 +57,51 @@ func TestShiftOffset(t *testing.T) {
 	assert.Equal(t, core.Frequency(70), v.state[core.XIT].offset)
 }
 
+type visibilitySpy struct {
+	visible map[core.IncrementalTuningKind]bool
+}
+
+func (s *visibilitySpy) IncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+	if s.visible == nil {
+		s.visible = make(map[core.IncrementalTuningKind]bool)
+	}
+	s.visible[kind] = visible
+}
+
+func TestIncrementalTuningVisibility(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	spy := &visibilitySpy{}
+	v.Notify(spy)
+
+	v.WorkmodeChanged(core.VFO1, core.SearchPounce)
+	v.IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true)
+	assert.True(t, spy.visible[core.XIT], "available XIT visible in S&P")
+	assert.False(t, spy.visible[core.RIT], "unavailable RIT hidden")
+
+	v.WorkmodeChanged(core.VFO1, core.Run)
+	assert.False(t, spy.visible[core.XIT], "XIT hidden in Run")
+}
+
+func TestToggleAndShiftAvailableIncrementalTuning(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v.WorkmodeChanged(core.VFO1, core.SearchPounce)
+	v.IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true)
+
+	kind, ok := v.AvailableIncrementalTuningKind()
+	assert.True(t, ok)
+	assert.Equal(t, core.XIT, kind)
+
+	v.ToggleIncrementalTuning()
+	assert.True(t, v.IncrementalTuningActive(core.XIT), "toggle enables the available kind")
+	v.ToggleIncrementalTuning()
+	assert.False(t, v.IncrementalTuningActive(core.XIT), "toggle again disables it")
+
+	v.ShiftAvailableIncrementalTuning(1)
+	assert.Equal(t, core.DefaultXITShift, v.state[core.XIT].offset)
+	v.ShiftAvailableIncrementalTuning(-1)
+	assert.Equal(t, core.Frequency(0), v.state[core.XIT].offset)
+}
+
 func TestWorkmodeGatesIncrementalTuning(t *testing.T) {
 	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
 	v.SetIncrementalTuningActive(core.XIT, true)

@@ -826,6 +826,8 @@ func (v *vfoSpy) ShiftOffset(kind core.IncrementalTuningKind, delta core.Frequen
 	v.shiftDelta = delta
 	v.shiftedOffset = true
 }
+func (v *vfoSpy) ToggleIncrementalTuning()                       {}
+func (v *vfoSpy) ShiftAvailableIncrementalTuning(core.Frequency) {}
 func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return v.xitActive }
 func (v *vfoSpy) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
 	v.xitActive = active

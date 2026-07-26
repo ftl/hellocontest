@@ -604,5 +604,7 @@ func (v *testVFO) SetBand(core.Band)           {}
 func (v *testVFO) SetMode(core.Mode)           {}
 func (v *testVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
 func (v *testVFO) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
+func (v *testVFO) ToggleIncrementalTuning()                                              {}
+func (v *testVFO) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
 func (v *testVFO) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
 func (v *testVFO) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}

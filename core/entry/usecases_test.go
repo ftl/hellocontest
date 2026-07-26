@@ -1547,6 +1547,27 @@ func TestJ5d_CombinedIncrementalTuning_HonorsPerVFOFlag(t *testing.T) {
 		AssertIncrementalTuningShifted(core.VFO2, core.XIT, core.DefaultXITShift)
 }
 
+// J5e. XIT/RIT active toggle honors the rit_xit_per_vfo flag
+// Pre:  VFO2's checkbox toggled.
+// Post: main-VFO-only commands VFO1; per-VFO commands VFO2.
+
+func TestJ5e_IncrementalTuningActive_HonorsPerVFOFlag(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		SetIncrementalTuningActiveFor(core.VFO2, core.XIT, true).
+		AssertIncrementalTuningActiveCommandedOn(core.VFO1, true).
+		AssertIncrementalTuningActiveCommandedOn(core.VFO2, false)
+
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		IncrementalTuningPerVFOChanged(true).
+		SetIncrementalTuningActiveFor(core.VFO2, core.XIT, true).
+		AssertIncrementalTuningActiveCommandedOn(core.VFO2, true).
+		AssertIncrementalTuningActiveCommandedOn(core.VFO1, false)
+}
+
 // J6. VFOPTTChanged
 // Pre:  event for vfo.
 // Post: if VFO1: ptt updated, view.SetTXState; else: view.SetTXState(vfo, active, false, 0).

@@ -28,7 +28,7 @@ type EntryController interface {
 	SendQuestion()
 	RepeatLastTransmission()
 	StopTX()
-	SetIncrementalTuningActive(core.IncrementalTuningKind, bool)
+	SetIncrementalTuningActive(core.VFOID, core.IncrementalTuningKind, bool)
 
 	EnterPressed()
 	Log()
@@ -122,24 +122,22 @@ func newEntryView() *entryView {
 	})
 	v.vfo[core.VFO1].xit.OnStateChanged(func(state int) {
 		if v.controller != nil {
-			v.controller.SetIncrementalTuningActive(core.XIT, state != 0)
+			v.controller.SetIncrementalTuningActive(core.VFO1, core.XIT, state != 0)
 		}
 	})
 	v.vfo[core.VFO2].xit.OnStateChanged(func(state int) {
 		if v.controller != nil {
-			// TODO: handle different VFOs
-			v.controller.SetIncrementalTuningActive(core.XIT, state != 0)
+			v.controller.SetIncrementalTuningActive(core.VFO2, core.XIT, state != 0)
 		}
 	})
 	v.vfo[core.VFO1].rit.OnStateChanged(func(state int) {
 		if v.controller != nil {
-			v.controller.SetIncrementalTuningActive(core.RIT, state != 0)
+			v.controller.SetIncrementalTuningActive(core.VFO1, core.RIT, state != 0)
 		}
 	})
 	v.vfo[core.VFO2].rit.OnStateChanged(func(state int) {
 		if v.controller != nil {
-			// TODO: handle different VFOs
-			v.controller.SetIncrementalTuningActive(core.RIT, state != 0)
+			v.controller.SetIncrementalTuningActive(core.VFO2, core.RIT, state != 0)
 		}
 	})
 

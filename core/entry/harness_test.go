@@ -239,7 +239,7 @@ func (s *Scenario) PressEnter() *Scenario {
 func (s *Scenario) SetXITActive(active bool) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.SetIncrementalTuningActive(core.XIT, active)
+	s.controller.SetIncrementalTuningActive(core.VFO1, core.XIT, active)
 	return s
 }
 
@@ -318,6 +318,23 @@ func (s *Scenario) AssertIncrementalTuningShifted(vfo core.VFOID, kind core.Incr
 func (s *Scenario) AssertIncrementalTuningNotShifted() *Scenario {
 	s.t.Helper()
 	assert.False(s.t, s.vfo.shiftedOffset, "expected no ShiftOffset on VFO1")
+	return s
+}
+
+func (s *Scenario) SetIncrementalTuningActiveFor(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.SetIncrementalTuningActive(vfo, kind, active)
+	return s
+}
+
+func (s *Scenario) AssertIncrementalTuningActiveCommandedOn(vfo core.VFOID, active bool) *Scenario {
+	s.t.Helper()
+	spy := s.vfo
+	if vfo == core.VFO2 {
+		spy = s.vfo2
+	}
+	assert.Equal(s.t, active, spy.xitActive, "expected VFO %d xitActive == %v", vfo, active)
 	return s
 }
 

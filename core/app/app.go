@@ -231,9 +231,9 @@ func (c *Controller) Startup() {
 		c.VFOs[vfoID] = v
 		c.Entry.SetVFO(core.VFOID(vfoID), v)
 		c.Logbook.Notify(v)
+		c.Workmode.Notify(v)
 	}
 	c.Bandmap.SetVFO(c.VFOs[core.VFO1])
-	c.Workmode.Notify(c.VFOs[core.VFO1])
 
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
 	c.Radio.SelectRadio(c.session.Radio1())
@@ -882,16 +882,24 @@ func (c *Controller) RequestQTC() {
 	c.QTCController.RequestQTC()
 }
 
-func (c *Controller) IncrementalTuningActive(kind core.IncrementalTuningKind) bool {
-	return c.VFOs[core.VFO1].IncrementalTuningActive(kind)
+func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
+	return c.Entry.IncrementalTuningActive(vfo, kind)
 }
 
-func (c *Controller) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
-	c.VFOs[core.VFO1].SetIncrementalTuningActive(kind, active)
+func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
+	return c.Entry.FocusedIncrementalTuningActive(kind)
+}
+
+func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	c.Entry.SetIncrementalTuningActive(vfo, kind, active)
+}
+
+func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	c.Entry.SetFocusedIncrementalTuningActive(kind, active)
 }
 
 func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
-	c.VFOs[core.VFO1].ShiftOffset(kind, delta)
+	c.Entry.ShiftIncrementalTuning(kind, delta)
 }
 
 func (c *Controller) XITUp() {

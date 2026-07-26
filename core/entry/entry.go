@@ -745,9 +745,32 @@ func (c *Controller) bandEntered(band core.Band) {
 	c.vfos[c.focusedVFO].SetBand(band)
 }
 
-func (c *Controller) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
-	c.vfos[core.VFO1].SetIncrementalTuningActive(kind, active)
+func (c *Controller) incrementalTuningTargetVFO(vfo core.VFOID) core.VFOID {
+	if c.incrementalTuningPerVFO {
+		return vfo
+	}
+	return core.VFO1
+}
+
+func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	c.vfos[c.incrementalTuningTargetVFO(vfo)].SetIncrementalTuningActive(kind, active)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
+}
+
+func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	c.SetIncrementalTuningActive(c.focusedVFO, kind, active)
+}
+
+func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
+	return c.vfos[c.incrementalTuningTargetVFO(vfo)].IncrementalTuningActive(kind)
+}
+
+func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
+	return c.IncrementalTuningActive(c.focusedVFO, kind)
+}
+
+func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
+	c.vfos[c.incrementalTuningTargetVFO(c.focusedVFO)].ShiftOffset(kind, delta)
 }
 
 func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
@@ -1440,10 +1463,7 @@ func (c *Controller) IncrementalTuningDown() {
 }
 
 func (c *Controller) shiftFocusedIncrementalTuning(sign core.Frequency) {
-	vfo := core.VFO1
-	if c.incrementalTuningPerVFO {
-		vfo = c.focusedVFO
-	}
+	vfo := c.incrementalTuningTargetVFO(c.focusedVFO)
 	kind, ok := c.availableIncrementalTuningKind(vfo)
 	if !ok {
 		return

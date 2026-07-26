@@ -159,8 +159,8 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.requestQTCAction = a.makeTriggerAction(core.ActionEntryRequestQTC, "Request QTC", "", "F6", controller.RequestQTC)
 
 	// Radio menu
-	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "Ctrl+Shift+X", func(active bool) { controller.SetIncrementalTuningActive(core.XIT, active) })
-	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "Ctrl+Shift+R", func(active bool) { controller.SetIncrementalTuningActive(core.RIT, active) })
+	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "Ctrl+Shift+X", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.XIT, active) })
+	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "Ctrl+Shift+R", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.RIT, active) })
 
 	// Bandmap menu
 	a.markBandmapAction = a.makeTriggerAction(core.ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
@@ -313,8 +313,8 @@ func (a *actions) updateFromController() {
 	a.ignoreInput = true
 
 	a.esmAction.SetChecked(a.controller.ESMEnabled())
-	a.xitActiveAction.SetChecked(a.controller.IncrementalTuningActive(core.XIT))
-	a.ritActiveAction.SetChecked(a.controller.IncrementalTuningActive(core.RIT))
+	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.XIT))
+	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.RIT))
 	a.sendSpotsToTciAction.SetChecked(a.controller.SendSpotsToTci())
 	switch a.controller.Workmode.Workmode() {
 	case core.SearchPounce:

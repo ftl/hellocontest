@@ -149,20 +149,6 @@ func newDockableView(parent, root *qtlib.QWidget, title, objectName string) *doc
 	dock.SetWidget(root)
 	dock.SetObjectName(*qtlib.NewQAnyStringView3(objectName))
 	dock.SetAllowedAreas(qtlib.AllDockWidgetAreas)
-	dock.OnTopLevelChanged(func(topLevel bool) {
-		if !topLevel {
-			return
-		}
-		dock.SetWindowFlags(
-			qtlib.Window |
-				qtlib.CustomizeWindowHint |
-				qtlib.WindowTitleHint |
-				qtlib.WindowCloseButtonHint |
-				qtlib.WindowMinimizeButtonHint |
-				qtlib.WindowMaximizeButtonHint,
-		)
-		dock.Show()
-	})
 
 	return &dockableView{
 		dock: dock,

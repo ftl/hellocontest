@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
+	"strings"
 	"time"
 
 	qtlib "github.com/mappu/miqt/qt6"
@@ -37,6 +39,11 @@ type Script interface {
 
 // Run starts the Qt6 application
 func Run(version string, sponsors string, startupScript Script, args []string) {
+	// enforce the use of XWayland to make docking work properly
+	if runtime.GOOS == "linux" && strings.Contains(strings.ToLower(os.Getenv("XDG_SESSION_TYPE")), "wayland") {
+		os.Setenv("QT_QPA_PLATFORM", "xcb")
+	}
+
 	qApp := qtlib.NewQApplication(os.Args)
 	style := NewStyle()
 	style.Apply(qApp)
@@ -50,6 +57,12 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 
 	a.window = qtlib.NewQMainWindow2()
 	a.window.SetWindowTitle("Hello Contest")
+	a.window.SetDockOptions(
+		qtlib.QMainWindow__AllowNestedDocks |
+			qtlib.QMainWindow__AllowTabbedDocks |
+			qtlib.QMainWindow__AnimatedDocks |
+			qtlib.QMainWindow__GroupedDragging,
+	)
 
 	a.stopKeyHandler = newStopKeyHandler(a.window.QWidget)
 

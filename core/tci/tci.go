@@ -177,12 +177,6 @@ func (c *Client) emitIncrementalTuningChanged(vfo core.VFOID, kind core.Incremen
 	})
 }
 
-func (c *Client) emitIncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) {
-	core.Emit(c.listeners, func(listener core.IncrementalTuningAvailabilityListener) {
-		listener.IncrementalTuningAvailabilityChanged(vfo, kind, available)
-	})
-}
-
 func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
 	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
 		listener.VFOPTTChanged(vfo, active)
@@ -351,8 +345,6 @@ func (l *trxListener) Refresh() {
 	l.client.emitFrequencyChanged(l.vfo, l.frequency)
 	l.client.emitBandChanged(l.vfo, l.band)
 	l.client.emitModeChanged(l.vfo, l.mode)
-	l.client.emitIncrementalTuningAvailabilityChanged(l.vfo, core.XIT, true)
-	l.client.emitIncrementalTuningAvailabilityChanged(l.vfo, core.RIT, true)
 	l.client.emitIncrementalTuningChanged(l.vfo, core.XIT, l.xitActive, l.xitOffset)
 	l.client.emitIncrementalTuningChanged(l.vfo, core.RIT, l.ritActive, l.ritOffset)
 	l.client.emitPTTChanged(l.vfo, l.ptt)

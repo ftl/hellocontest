@@ -1755,16 +1755,12 @@ type VFOIncrementalTuningListener interface {
 	VFOIncrementalTuningChanged(vfo VFOID, kind IncrementalTuningKind, active bool, offset Frequency)
 }
 
-type IncrementalTuningAvailabilityListener interface {
-	IncrementalTuningAvailabilityChanged(vfo VFOID, kind IncrementalTuningKind, available bool)
+type VFOIncrementalTuningActiveListener interface {
+	VFOIncrementalTuningActiveChanged(vfo VFOID, kind IncrementalTuningKind, active bool)
 }
 
-type IncrementalTuningActiveListener interface {
-	IncrementalTuningActiveChanged(vfo VFOID, kind IncrementalTuningKind, active bool)
-}
-
-type IncrementalTuningVisibilityListener interface {
-	IncrementalTuningVisibilityChanged(vfo VFOID, kind IncrementalTuningKind, visible bool)
+type VFOIncrementalTuningVisibilityListener interface {
+	VFOIncrementalTuningVisibilityChanged(vfo VFOID, kind IncrementalTuningKind, visible bool)
 }
 
 type VFOPTTListener interface {

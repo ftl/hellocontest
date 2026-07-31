@@ -43,17 +43,15 @@ type Client struct {
 }
 
 type vfoState struct {
-	vfo          hl.VFO
-	frequency    core.Frequency
-	band         core.Band
-	mode         core.Mode
-	txVFO        bool
-	xitActive    bool
-	xitOffset    core.Frequency
-	xitAvailable bool
-	ritActive    bool
-	ritOffset    core.Frequency
-	ritAvailable bool
+	vfo       hl.VFO
+	frequency core.Frequency
+	band      core.Band
+	mode      core.Mode
+	txVFO     bool
+	xitActive bool
+	xitOffset core.Frequency
+	ritActive bool
+	ritOffset core.Frequency
 }
 
 func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
@@ -292,24 +290,24 @@ func (c *Client) pollDualVFO(state []vfoState) (hl.VFO, []vfoState, error) {
 // pollVFOAdditional must only be called from the run goroutine!
 func (c *Client) pollVFOAdditional(vfo hl.VFO, state vfoState) vfoState {
 	result := state
-	result.xitActive, result.xitOffset, result.xitAvailable = c.pollIncrementalTuning(vfo, hl.XITFunction, c.client.GetXIT)
-	result.ritActive, result.ritOffset, result.ritAvailable = c.pollIncrementalTuning(vfo, hl.RITFunction, c.client.GetRIT)
+	result.xitActive, result.xitOffset = c.pollIncrementalTuning(vfo, hl.XITFunction, c.client.GetXIT)
+	result.ritActive, result.ritOffset = c.pollIncrementalTuning(vfo, hl.RITFunction, c.client.GetRIT)
 	return result
 }
 
-func (c *Client) pollIncrementalTuning(vfo hl.VFO, function hl.Function, getOffset func(hl.VFO) (hl.Frequency, error)) (bool, core.Frequency, bool) {
+func (c *Client) pollIncrementalTuning(vfo hl.VFO, function hl.Function, getOffset func(hl.VFO) (hl.Frequency, error)) (bool, core.Frequency) {
 	active, err := c.client.GetFunc(vfo, function)
 	if err != nil {
-		return false, 0, false
+		return false, 0
 	}
 	if !active {
-		return false, 0, true
+		return false, 0
 	}
 	offset, err := getOffset(vfo)
 	if err != nil {
-		return false, 0, false
+		return false, 0
 	}
-	return true, core.Frequency(offset), true
+	return true, core.Frequency(offset)
 }
 
 func (c *Client) doInLoop(f func()) {
@@ -634,15 +632,12 @@ func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState)
 		if last.mode != current.mode {
 			c.emitModeChanged(vfo, current.mode)
 		}
-		c.emitIncrementalTuningChanges(vfo, core.XIT, last.xitActive, last.xitOffset, last.xitAvailable, current.xitActive, current.xitOffset, current.xitAvailable)
-		c.emitIncrementalTuningChanges(vfo, core.RIT, last.ritActive, last.ritOffset, last.ritAvailable, current.ritActive, current.ritOffset, current.ritAvailable)
+		c.emitIncrementalTuningChanges(vfo, core.XIT, last.xitActive, last.xitOffset, current.xitActive, current.xitOffset)
+		c.emitIncrementalTuningChanges(vfo, core.RIT, last.ritActive, last.ritOffset, current.ritActive, current.ritOffset)
 	}()
 }
 
-func (c *Client) emitIncrementalTuningChanges(vfo core.VFOID, kind core.IncrementalTuningKind, lastActive bool, lastOffset core.Frequency, lastAvailable bool, currentActive bool, currentOffset core.Frequency, currentAvailable bool) {
-	if lastAvailable != currentAvailable {
-		c.emitIncrementalTuningAvailabilityChanged(vfo, kind, currentAvailable)
-	}
+func (c *Client) emitIncrementalTuningChanges(vfo core.VFOID, kind core.IncrementalTuningKind, lastActive bool, lastOffset core.Frequency, currentActive bool, currentOffset core.Frequency) {
 	if (lastActive != currentActive) || (currentActive && (lastOffset != currentOffset)) {
 		c.emitIncrementalTuningChanged(vfo, kind, currentActive, currentOffset)
 	}
@@ -669,12 +664,6 @@ func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
 func (c *Client) emitIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
 		listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
-	})
-}
-
-func (c *Client) emitIncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) {
-	core.Emit(c.listeners, func(listener core.IncrementalTuningAvailabilityListener) {
-		listener.IncrementalTuningAvailabilityChanged(vfo, kind, available)
 	})
 }
 

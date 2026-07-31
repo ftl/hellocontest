@@ -93,6 +93,8 @@ func (v *VFO) Refresh() {
 		return
 	}
 	v.client.Refresh()
+	v.emitIncrementalTuningVisibilityChanged(core.RIT)
+	v.emitIncrementalTuningVisibilityChanged(core.XIT)
 	v.refreshing = false
 }
 

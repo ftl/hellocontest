@@ -119,13 +119,6 @@ func (v *VFO) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalT
 	v.offlineClient.SetIncrementalTuning(kind, active, offset)
 }
 
-func (v *VFO) IncrementalTuningAvailabilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, available bool) {
-	if vfo != v.id {
-		return
-	}
-	v.emitIncrementalTuningVisibilityChanged(kind)
-}
-
 func (v *VFO) emitIncrementalTuningChanged(kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	core.Emit(v.listeners, func(listener core.VFOIncrementalTuningListener) {
 		v.asyncRunner(func() {
@@ -135,18 +128,18 @@ func (v *VFO) emitIncrementalTuningChanged(kind core.IncrementalTuningKind, acti
 }
 
 func (v *VFO) emitIncrementalTuningActiveChanged(kind core.IncrementalTuningKind, active bool) {
-	core.Emit(v.listeners, func(l core.IncrementalTuningActiveListener) {
+	core.Emit(v.listeners, func(l core.VFOIncrementalTuningActiveListener) {
 		v.asyncRunner(func() {
-			l.IncrementalTuningActiveChanged(v.id, kind, active)
+			l.VFOIncrementalTuningActiveChanged(v.id, kind, active)
 		})
 	})
 }
 
 func (v *VFO) emitIncrementalTuningVisibilityChanged(kind core.IncrementalTuningKind) {
 	visible := v.incrementalTuningVisible(kind)
-	core.Emit(v.listeners, func(l core.IncrementalTuningVisibilityListener) {
+	core.Emit(v.listeners, func(l core.VFOIncrementalTuningVisibilityListener) {
 		v.asyncRunner(func() {
-			l.IncrementalTuningVisibilityChanged(v.id, kind, visible)
+			l.VFOIncrementalTuningVisibilityChanged(v.id, kind, visible)
 		})
 	})
 }

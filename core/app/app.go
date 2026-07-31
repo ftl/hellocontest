@@ -231,7 +231,6 @@ func (c *Controller) Startup() {
 		v.SetClient(c.Radio)
 		c.VFOs[vfoID] = v
 		c.Entry.SetVFO(core.VFOID(vfoID), v)
-		c.Radio.SetVFO(core.VFOID(vfoID), v)
 		c.Logbook.Notify(v)
 		c.Workmode.Notify(v)
 	}
@@ -908,7 +907,7 @@ func (c *Controller) ShiftIncrementalTuning(vfo core.VFOID, kind core.Incrementa
 }
 
 func (c *Controller) ShiftFocusedIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
-	c.ShiftFocusedIncrementalTuning(kind, delta)
+	c.ShiftIncrementalTuning(c.focusedVFO, kind, delta)
 }
 
 func (c *Controller) XITUp() {

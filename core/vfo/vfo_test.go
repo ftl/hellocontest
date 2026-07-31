@@ -61,7 +61,7 @@ type visibilitySpy struct {
 	visible map[core.IncrementalTuningKind]bool
 }
 
-func (s *visibilitySpy) IncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+func (s *visibilitySpy) VFOIncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
 	if s.visible == nil {
 		s.visible = make(map[core.IncrementalTuningKind]bool)
 	}
@@ -74,7 +74,6 @@ func TestIncrementalTuningVisibility(t *testing.T) {
 	v.Notify(spy)
 
 	v.WorkmodeChanged(core.VFO1, core.SearchPounce)
-	v.IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true)
 	assert.True(t, spy.visible[core.XIT], "available XIT visible in S&P")
 	assert.False(t, spy.visible[core.RIT], "unavailable RIT hidden")
 
@@ -85,7 +84,6 @@ func TestIncrementalTuningVisibility(t *testing.T) {
 func TestToggleAndShiftAvailableIncrementalTuning(t *testing.T) {
 	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
 	v.WorkmodeChanged(core.VFO1, core.SearchPounce)
-	v.IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true)
 
 	kind, ok := v.availableIncrementalTuningKind()
 	assert.True(t, ok)

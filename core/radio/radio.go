@@ -46,8 +46,6 @@ type Controller struct {
 	radioAsKeyer    bool
 	sendSpotsToTci  bool
 
-	vfos                    []core.VFO
-	currentVFO              core.VFOID
 	incrementalTuningPerVFO bool
 }
 
@@ -235,7 +233,6 @@ func (c *Controller) SelectRadio(name string) error {
 		c.activeRadio.Notify(listener)
 	}
 	c.activeRadio.Notify(core.ConnectionChangedFunc(c.onRadioConnectionChanged))
-	c.activeRadio.Notify(core.CurrentVFOChangedFunc(c.onCurrentVFOChanged))
 	c.emitRadioChanged(config.Name, c.activeRadio.SingleVFO())
 	c.onRadioConnectionChanged(c.activeRadio.IsConnected())
 
@@ -321,22 +318,10 @@ func (c *Controller) SingleVFO() bool {
 }
 
 func (c *Controller) SetCurrentVFO(vfo core.VFOID) {
-	c.currentVFO = vfo
 	if c.activeRadio == nil {
 		return
 	}
 	c.activeRadio.SetCurrentVFO(vfo)
-}
-
-func (c *Controller) onCurrentVFOChanged(vfo core.VFOID) {
-	c.currentVFO = vfo
-}
-
-func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
-	if len(c.vfos) == 0 {
-		c.vfos = make([]core.VFO, core.VFOCount)
-	}
-	c.vfos[id] = vfo
 }
 
 func (c *Controller) SetTXVFO(vfo core.VFOID) {

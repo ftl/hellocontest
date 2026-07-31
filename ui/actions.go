@@ -443,7 +443,7 @@ func (a *actions) ESMEnabled(enabled bool) {
 	a.esmAction.SetChecked(enabled)
 }
 
-func (a *actions) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+func (a *actions) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
 	if vfo != a.focusedVFO {
 		return
 	}

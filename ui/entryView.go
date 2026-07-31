@@ -383,7 +383,7 @@ func (v *entryView) incrementalTuningWidget(vfo core.VFOID, kind core.Incrementa
 	return v.vfo[vfo].xit
 }
 
-func (v *entryView) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+func (v *entryView) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
 	widget := v.incrementalTuningWidget(vfo, kind)
 	if widget == nil {
 		return
@@ -407,7 +407,7 @@ func (v *entryView) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.Increm
 	}
 }
 
-func (v *entryView) IncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+func (v *entryView) VFOIncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
 	v.itVisible[vfo][kind] = visible
 	v.applyIncrementalTuningVisibility(vfo, kind)
 }

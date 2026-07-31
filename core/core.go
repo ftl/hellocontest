@@ -1781,12 +1781,6 @@ func (f ConnectionChangedFunc) ConnectionChanged(connected bool) {
 	f(connected)
 }
 
-type CurrentVFOChangedFunc func(VFOID)
-
-func (f CurrentVFOChangedFunc) CurrentVFOChanged(vfo VFOID) {
-	f(vfo)
-}
-
 type Service int
 
 const (

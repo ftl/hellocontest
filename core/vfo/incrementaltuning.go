@@ -104,6 +104,9 @@ func (v *VFO) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
 }
 
 func (v *VFO) activate() {
+	if !v.availableOnVFO() {
+		return
+	}
 	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
 		v.state[kind].actualActive = v.state[kind].intentActive && kind.Workmode() == v.workmode
 		v.setIncrementalTuning(kind, v.state[kind].actualActive, v.state[kind].offset)

@@ -1672,11 +1672,6 @@ type BandmapWeights struct {
 	Quality    float64
 }
 
-type XITControl interface {
-	XITActive() bool
-	SetXITActive(bool)
-}
-
 type VFOID int
 
 const (
@@ -1687,7 +1682,6 @@ const (
 )
 
 type VFO interface {
-	XITControl
 	Name() string
 	Notify(any)
 	Refresh()
@@ -1695,7 +1689,11 @@ type VFO interface {
 	ShiftFrequency(Frequency)
 	SetBand(Band)
 	SetMode(Mode)
-	SetXIT(bool, Frequency)
+	IncrementalTuningActive(kind IncrementalTuningKind) bool
+	SetIncrementalTuningActive(kind IncrementalTuningKind, active bool)
+	ShiftIncrementalTuning(IncrementalTuningKind, Frequency)
+	ToggleAvailableIncrementalTuning()
+	ShiftAvailableIncrementalTuning(Frequency)
 }
 
 type CurrentVFOListener interface {
@@ -1706,8 +1704,14 @@ type TXVFOListener interface {
 	TXVFOChanged(VFOID)
 }
 
-type FocusChangedListener interface {
-	FocusChanged(VFOID)
+type FocusedVFOListener interface {
+	FocusedVFOChanged(VFOID)
+}
+
+type FocusedVFOListenerFunc func(VFOID)
+
+func (f FocusedVFOListenerFunc) FocusedVFOChanged(vfo VFOID) {
+	f(vfo)
 }
 
 type VFOFrequencyListener interface {
@@ -1722,8 +1726,41 @@ type VFOModeListener interface {
 	VFOModeChanged(VFOID, Mode)
 }
 
-type VFOXITListener interface {
-	VFOXITChanged(VFOID, bool, Frequency)
+type IncrementalTuningKind int
+
+const (
+	RIT IncrementalTuningKind = iota
+	XIT
+)
+
+func (k IncrementalTuningKind) String() string {
+	switch k {
+	case RIT:
+		return "RIT"
+	case XIT:
+		return "XIT"
+	default:
+		return "unknown"
+	}
+}
+
+func (k IncrementalTuningKind) Workmode() Workmode {
+	if k == RIT {
+		return Run
+	}
+	return SearchPounce
+}
+
+type VFOIncrementalTuningListener interface {
+	VFOIncrementalTuningChanged(vfo VFOID, kind IncrementalTuningKind, active bool, offset Frequency)
+}
+
+type VFOIncrementalTuningActiveListener interface {
+	VFOIncrementalTuningActiveChanged(vfo VFOID, kind IncrementalTuningKind, active bool)
+}
+
+type VFOIncrementalTuningVisibilityListener interface {
+	VFOIncrementalTuningVisibilityChanged(vfo VFOID, kind IncrementalTuningKind, visible bool)
 }
 
 type VFOPTTListener interface {

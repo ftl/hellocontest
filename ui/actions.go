@@ -16,6 +16,7 @@ type actions struct {
 	controller  *app.Controller
 	keybindings map[string]string
 	ignoreInput bool
+	focusedVFO  core.VFOID
 	allInfos    []ActionInfo
 
 	// Action groups
@@ -52,7 +53,9 @@ type actions struct {
 	requestQTCAction  *qtlib.QAction
 
 	// Radio menu
-	xitActiveAction *qtlib.QAction
+	incrementalTuningToggleAction *qtlib.QAction
+	xitActiveAction               *qtlib.QAction
+	ritActiveAction               *qtlib.QAction
 
 	// Bandmap menu
 	markBandmapAction    *qtlib.QAction
@@ -82,27 +85,31 @@ type actions struct {
 	spotSourceActions map[string]*qtlib.QAction
 
 	// Other actions
-	sendMacro1Action      *qtlib.QAction
-	sendMacro2Action      *qtlib.QAction
-	sendMacro3Action      *qtlib.QAction
-	sendMacro4Action      *qtlib.QAction
-	selectBestMatchAction *qtlib.QAction
-	nextESMStepAction     *qtlib.QAction
-	toggleVFOAction       *qtlib.QAction
-	focusVFO1Action       *qtlib.QAction
-	focusVFO2Action       *qtlib.QAction
-	muteAudioVFO1Action   *qtlib.QAction
-	muteAudioVFO2Action   *qtlib.QAction
-	unmuteAudioVFO1Action *qtlib.QAction
-	unmuteAudioVFO2Action *qtlib.QAction
-	toggleAudioVFO1Action *qtlib.QAction
-	toggleAudioVFO2Action *qtlib.QAction
-	frequencyUpAction     *qtlib.QAction
-	frequencyDownAction   *qtlib.QAction
-	xitUpAction           *qtlib.QAction
-	xitDownAction         *qtlib.QAction
-	speedUpAction         *qtlib.QAction
-	speedDownAction       *qtlib.QAction
+	sendMacro1Action            *qtlib.QAction
+	sendMacro2Action            *qtlib.QAction
+	sendMacro3Action            *qtlib.QAction
+	sendMacro4Action            *qtlib.QAction
+	selectBestMatchAction       *qtlib.QAction
+	nextESMStepAction           *qtlib.QAction
+	toggleVFOAction             *qtlib.QAction
+	focusVFO1Action             *qtlib.QAction
+	focusVFO2Action             *qtlib.QAction
+	muteAudioVFO1Action         *qtlib.QAction
+	muteAudioVFO2Action         *qtlib.QAction
+	unmuteAudioVFO1Action       *qtlib.QAction
+	unmuteAudioVFO2Action       *qtlib.QAction
+	toggleAudioVFO1Action       *qtlib.QAction
+	toggleAudioVFO2Action       *qtlib.QAction
+	frequencyUpAction           *qtlib.QAction
+	frequencyDownAction         *qtlib.QAction
+	xitUpAction                 *qtlib.QAction
+	xitDownAction               *qtlib.QAction
+	ritUpAction                 *qtlib.QAction
+	ritDownAction               *qtlib.QAction
+	incrementalTuningUpAction   *qtlib.QAction
+	incrementalTuningDownAction *qtlib.QAction
+	speedUpAction               *qtlib.QAction
+	speedDownAction             *qtlib.QAction
 }
 
 func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings map[string]string) *actions {
@@ -154,7 +161,9 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.requestQTCAction = a.makeTriggerAction(core.ActionEntryRequestQTC, "Request QTC", "", "F6", controller.RequestQTC)
 
 	// Radio menu
-	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "Ctrl+Shift+X", controller.SetXITActive)
+	a.incrementalTuningToggleAction = a.makeTriggerAction(core.ActionIncrementalTuningToggle, "Toggle Incremental Tuning", "Toggle the RIT or XIT of the focused VFO", "Ctrl+Shift+X", func() { controller.ToggleIncrementalTuning() })
+	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.XIT, active) })
+	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.RIT, active) })
 
 	// Bandmap menu
 	a.markBandmapAction = a.makeTriggerAction(core.ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
@@ -196,8 +205,12 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.toggleAudioVFO2Action = a.makeTriggerAction(core.ActionRadioToggleAudioVFO2, "Toggle Audio VFO 2", "Toggle audio on VFO 2", "", func() { controller.ToggleAudio(core.VFO2) })
 	a.frequencyUpAction = a.makeTriggerAction(core.ActionRadioFrequencyUp, "Frequency Up", "Increase the frequency of the focused VFO", "Alt+Up", func() { controller.FrequencyUp() })
 	a.frequencyDownAction = a.makeTriggerAction(core.ActionRadioFrequencyDown, "Frequency Down", "Decrease the frequency of the focused VFO", "Alt+Down", func() { controller.FrequencyDown() })
-	a.xitUpAction = a.makeTriggerAction(core.ActionRadioXITUp, "XIT Up", "Increase the XIT offset", "Alt+Shift+Up", func() { controller.XITUp() })
-	a.xitDownAction = a.makeTriggerAction(core.ActionRadioXITDown, "XIT Down", "Decrease the XIT offset", "Alt+Shift+Down", func() { controller.XITDown() })
+	a.xitUpAction = a.makeTriggerAction(core.ActionRadioXITUp, "XIT Up", "Increase the XIT offset", "", func() { controller.XITUp() })
+	a.xitDownAction = a.makeTriggerAction(core.ActionRadioXITDown, "XIT Down", "Decrease the XIT offset", "", func() { controller.XITDown() })
+	a.ritUpAction = a.makeTriggerAction(core.ActionRadioRITUp, "RIT Up", "Increase the RIT offset", "", func() { controller.RITUp() })
+	a.ritDownAction = a.makeTriggerAction(core.ActionRadioRITDown, "RIT Down", "Decrease the RIT offset", "", func() { controller.RITDown() })
+	a.incrementalTuningUpAction = a.makeTriggerAction(core.ActionIncrementalTuningUp, "Incremental Tuning Up", "Increase the RIT or XIT offset of the focused VFO", "Alt+Shift+Up", func() { controller.IncrementalTuningUp() })
+	a.incrementalTuningDownAction = a.makeTriggerAction(core.ActionIncrementalTuningDown, "Incremental Tuning Down", "Decrease the RIT or XIT offset of the focused VFO", "Alt+Shift+Down", func() { controller.IncrementalTuningDown() })
 	a.speedUpAction = a.makeTriggerAction(core.ActionKeyerSpeedUp, "Speed Up", "Increase the keyer speed", "Ctrl+Alt+Up", func() { controller.KeyerSpeedUp() })
 	a.speedDownAction = a.makeTriggerAction(core.ActionKeyerSpeedDown, "Speed Down", "Decrease the keyer speed", "Ctrl+Alt+Down", func() { controller.KeyerSpeedDown() })
 	a.parent.AddActions([]*qtlib.QAction{
@@ -220,6 +233,11 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.frequencyDownAction,
 		a.xitUpAction,
 		a.xitDownAction,
+		a.ritUpAction,
+		a.ritDownAction,
+		a.incrementalTuningToggleAction,
+		a.incrementalTuningUpAction,
+		a.incrementalTuningDownAction,
 		a.speedUpAction,
 		a.speedDownAction,
 	})
@@ -299,7 +317,8 @@ func (a *actions) updateFromController() {
 	a.ignoreInput = true
 
 	a.esmAction.SetChecked(a.controller.ESMEnabled())
-	a.xitActiveAction.SetChecked(a.controller.XITActive())
+	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.XIT))
+	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.RIT))
 	a.sendSpotsToTciAction.SetChecked(a.controller.SendSpotsToTci())
 	switch a.controller.Workmode.Workmode() {
 	case core.SearchPounce:
@@ -424,10 +443,25 @@ func (a *actions) ESMEnabled(enabled bool) {
 	a.esmAction.SetChecked(enabled)
 }
 
-func (a *actions) XITActiveChanged(active bool) {
+func (a *actions) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	if vfo != a.focusedVFO {
+		return
+	}
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
+	if kind == core.RIT {
+		a.ritActiveAction.SetChecked(active)
+		return
+	}
 	a.xitActiveAction.SetChecked(active)
+}
+
+func (a *actions) FocusedVFOChanged(vfo core.VFOID) {
+	a.focusedVFO = vfo
+	a.ignoreInput = true
+	defer func() { a.ignoreInput = false }()
+	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.XIT))
+	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.RIT))
 }
 
 func (a *actions) ContestPagesChanged(rulesAvailable, uploadAvailable bool) {

@@ -64,7 +64,9 @@ func newMainMenu(
 
 	// ── Radio ────────────────────────────────────────────────────────────
 	radioSubmenu := m.menuBar.AddMenuWithTitle("&Radio")
+	radioSubmenu.AddAction(a.incrementalTuningToggleAction)
 	radioSubmenu.AddAction(a.xitActiveAction)
+	radioSubmenu.AddAction(a.ritActiveAction)
 	radioSubmenu.AddSeparator()
 	radioMenu.menu = radioSubmenu
 

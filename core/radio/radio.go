@@ -18,6 +18,8 @@ const (
 	hamlibVFO2Option = "vfo2"
 	tciTRXOption     = "trx"
 	tciTRX2Option    = "trx2"
+
+	incrementalTuningPerVFOOption = "rit_xit_per_vfo"
 )
 
 type View interface {
@@ -43,6 +45,8 @@ type Controller struct {
 	activeKeyerName string
 	radioAsKeyer    bool
 	sendSpotsToTci  bool
+
+	incrementalTuningPerVFO bool
 }
 
 type radio interface {
@@ -55,7 +59,7 @@ type radio interface {
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(core.VFOID, core.Band)
 	SetMode(core.VFOID, core.Mode)
-	SetXIT(bool, core.Frequency)
+	SetIncrementalTuning(core.VFOID, core.IncrementalTuningKind, bool, core.Frequency)
 	MuteAudio(core.VFOID)
 	UnmuteAudio(core.VFOID)
 	ToggleAudio(core.VFOID)
@@ -158,6 +162,10 @@ func (c *Controller) emitRadioChanged(name string, singleVFO bool) {
 	core.Emit(c.listeners, func(listener core.RadioChangedListener) {
 		listener.RadioChanged(name, singleVFO)
 	})
+	c.incrementalTuningPerVFO = false
+	if config, ok := c.radioConfig(name); ok {
+		c.incrementalTuningPerVFO = config.Options[incrementalTuningPerVFOOption] == "true"
+	}
 	if c.view != nil {
 		c.doIgnoreUpdates(func() {
 			c.view.SetRadioSelected(name)
@@ -344,11 +352,15 @@ func (c *Controller) SetMode(vfo core.VFOID, mode core.Mode) {
 	c.activeRadio.SetMode(vfo, mode)
 }
 
-func (c *Controller) SetXIT(active bool, offset core.Frequency) {
+func (c *Controller) IncrementalTuningPerVFO() bool {
+	return c.incrementalTuningPerVFO
+}
+
+func (c *Controller) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
 	if c.activeRadio == nil {
 		return
 	}
-	c.activeRadio.SetXIT(active, offset)
+	c.activeRadio.SetIncrementalTuning(vfo, kind, active, offset)
 }
 
 func (c *Controller) MuteAudio(vfo core.VFOID) {

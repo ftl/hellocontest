@@ -235,14 +235,6 @@ func (s *Scenario) PressEnter() *Scenario {
 	return s
 }
 
-// SetXITActive toggles XIT active state on VFO1.
-func (s *Scenario) SetXITActive(active bool) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.SetXITActive(active)
-	return s
-}
-
 // Clear invokes controller.Clear().
 func (s *Scenario) Clear() *Scenario {
 	s.t.Helper()
@@ -514,14 +506,6 @@ func (s *Scenario) AssertVFOFrequency(freq core.Frequency) *Scenario {
 	return s
 }
 
-// AssertXITActiveCommanded asserts the VFO rig was commanded with the given XIT-active flag.
-func (s *Scenario) AssertXITActiveCommanded(active bool) *Scenario {
-	s.t.Helper()
-	assert.Equal(s.t, active, s.vfo.xitActive,
-		"expected VFO XIT-active to be commanded as %v", active)
-	return s
-}
-
 // AssertCallsignView asserts view.SetCallsign(vfo, text) was called.
 func (s *Scenario) AssertCallsignView(vfo core.VFOID, text string) *Scenario {
 	s.t.Helper()
@@ -712,19 +696,17 @@ func (s *scenarioSettings) Contest() core.Contest {
 // ---- vfoSpy -----------------------------------------------------------------
 
 type vfoSpy struct {
-	ctrl      *entry.Controller
-	vfoID     core.VFOID
-	lastBand  core.Band
-	lastMode  core.Mode
-	lastFreq  core.Frequency
-	xitActive bool
+	ctrl     *entry.Controller
+	vfoID    core.VFOID
+	lastBand core.Band
+	lastMode core.Mode
+	lastFreq core.Frequency
 }
 
 func (v *vfoSpy) reset() {
 	v.lastBand = core.NoBand
 	v.lastMode = core.NoMode
 	v.lastFreq = 0
-	v.xitActive = false
 }
 
 func (v *vfoSpy) Name() string { return "STUB" }
@@ -734,13 +716,16 @@ func (v *vfoSpy) Refresh() {
 	v.ctrl.VFOBandChanged(v.vfoID, core.Band20m)
 	v.ctrl.VFOModeChanged(v.vfoID, core.ModeCW)
 }
-func (v *vfoSpy) SetFrequency(f core.Frequency)   { v.lastFreq = f }
-func (v *vfoSpy) ShiftFrequency(f core.Frequency) { v.lastFreq += f }
-func (v *vfoSpy) SetBand(b core.Band)           { v.lastBand = b }
-func (v *vfoSpy) SetMode(m core.Mode)           { v.lastMode = m }
-func (v *vfoSpy) SetXIT(bool, core.Frequency)   {}
-func (v *vfoSpy) XITActive() bool               { return v.xitActive }
-func (v *vfoSpy) SetXITActive(active bool)      { v.xitActive = active }
+func (v *vfoSpy) SetFrequency(f core.Frequency)                                         { v.lastFreq = f }
+func (v *vfoSpy) ShiftFrequency(f core.Frequency)                                       { v.lastFreq += f }
+func (v *vfoSpy) SetBand(b core.Band)                                                   { v.lastBand = b }
+func (v *vfoSpy) SetMode(m core.Mode)                                                   { v.lastMode = m }
+func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
+func (v *vfoSpy) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}
+func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
+func (v *vfoSpy) ShiftIncrementalTuning(core.IncrementalTuningKind, core.Frequency)     {}
+func (v *vfoSpy) ToggleAvailableIncrementalTuning()                                     {}
+func (v *vfoSpy) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
 
 // ---- qsoListSpy -------------------------------------------------------------
 
@@ -823,12 +808,6 @@ func (v *viewSpy) SetFrequency(vfo core.VFOID, f core.Frequency) {
 }
 func (v *viewSpy) SetBand(vfo core.VFOID, text string) { v.record("SetBand", vfo, text) }
 func (v *viewSpy) SetMode(vfo core.VFOID, text string) { v.record("SetMode", vfo, text) }
-func (v *viewSpy) SetXITActive(vfo core.VFOID, active bool) {
-	v.record("SetXITActive", vfo, active)
-}
-func (v *viewSpy) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {
-	v.record("SetXIT", vfo, active, offset)
-}
 func (v *viewSpy) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	v.record("SetTXState", vfo, ptt, parrotActive, parrotTimeLeft)
 }
@@ -1163,22 +1142,6 @@ func (s *Scenario) CurrentVFOChanged(vfo core.VFOID) *Scenario {
 	return s
 }
 
-// VFOXITChanged fires the XIT-changed event.
-func (s *Scenario) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.VFOXITChanged(vfo, active, offset)
-	return s
-}
-
-// XITActiveChanged fires the XIT-active event.
-func (s *Scenario) XITActiveChanged(active bool) *Scenario {
-	s.t.Helper()
-	s.resetSpies()
-	s.controller.XITActiveChanged(active)
-	return s
-}
-
 // VFOPTTChanged fires the PTT-changed event.
 func (s *Scenario) VFOPTTChanged(vfo core.VFOID, active bool) *Scenario {
 	s.t.Helper()
@@ -1307,20 +1270,6 @@ func (s *Scenario) AssertTXVFOBeforeKeyer(vfo core.VFOID) *Scenario {
 func (s *Scenario) AssertVFO2Enabled(enabled bool) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetVFOEnabled", core.VFO2, enabled)
-	return s
-}
-
-// AssertXITView asserts view.SetXIT(vfo, active, offset) was called.
-func (s *Scenario) AssertXITView(vfo core.VFOID, active bool, offset core.Frequency) *Scenario {
-	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetXIT", vfo, active, offset)
-	return s
-}
-
-// AssertXITActiveView asserts view.SetXITActive(vfo, active) was called.
-func (s *Scenario) AssertXITActiveView(vfo core.VFOID, active bool) *Scenario {
-	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetXITActive", vfo, active)
 	return s
 }
 

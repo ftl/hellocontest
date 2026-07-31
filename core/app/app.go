@@ -75,6 +75,7 @@ type Controller struct {
 	scpFinder         *scp.Finder
 	callHistoryFinder *callhistory.Finder
 	hamDXMap          *hamdxmap.HamDXMap
+	focusedVFO        core.VFOID
 
 	VFOs                     []*vfo.VFO
 	Logbook                  *logbook.Logbook
@@ -231,9 +232,12 @@ func (c *Controller) Startup() {
 		c.VFOs[vfoID] = v
 		c.Entry.SetVFO(core.VFOID(vfoID), v)
 		c.Logbook.Notify(v)
+		c.Workmode.Notify(v)
 	}
 	c.Bandmap.SetVFO(c.VFOs[core.VFO1])
-	c.Workmode.Notify(c.VFOs[core.VFO1])
+	c.Entry.Notify(core.FocusedVFOListenerFunc(func(vfo core.VFOID) {
+		c.focusedVFO = vfo
+	}))
 
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
 	c.Radio.SelectRadio(c.session.Radio1())
@@ -882,24 +886,56 @@ func (c *Controller) RequestQTC() {
 	c.QTCController.RequestQTC()
 }
 
-func (c *Controller) XITActive() bool {
-	return c.VFOs[core.VFO1].XITActive()
+func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
+	return c.VFOs[vfo].IncrementalTuningActive(kind)
 }
 
-func (c *Controller) SetXITActive(active bool) {
-	c.VFOs[core.VFO1].SetXITActive(active)
+func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
+	return c.IncrementalTuningActive(c.focusedVFO, kind)
 }
 
-func (c *Controller) ShiftXIT(delta core.Frequency) {
-	c.VFOs[core.VFO1].ShiftXITOffset(delta)
+func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	c.VFOs[vfo].SetIncrementalTuningActive(kind, active)
+}
+
+func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	c.SetIncrementalTuningActive(c.focusedVFO, kind, active)
+}
+
+func (c *Controller) ShiftIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, delta core.Frequency) {
+	c.VFOs[vfo].ShiftIncrementalTuning(kind, delta)
+}
+
+func (c *Controller) ShiftFocusedIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
+	c.ShiftIncrementalTuning(c.focusedVFO, kind, delta)
 }
 
 func (c *Controller) XITUp() {
-	c.ShiftXIT(core.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(core.XIT, core.DefaultXITShift)
 }
 
 func (c *Controller) XITDown() {
-	c.ShiftXIT(-core.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(core.XIT, -core.DefaultXITShift)
+}
+
+func (c *Controller) RITUp() {
+	c.ShiftFocusedIncrementalTuning(core.RIT, core.DefaultRITShift)
+}
+
+func (c *Controller) RITDown() {
+	c.ShiftFocusedIncrementalTuning(core.RIT, -core.DefaultRITShift)
+}
+
+func (c *Controller) ToggleIncrementalTuning() {
+	c.VFOs[c.focusedVFO].ToggleAvailableIncrementalTuning()
+}
+
+func (c *Controller) IncrementalTuningUp() {
+	c.VFOs[c.focusedVFO].ShiftAvailableIncrementalTuning(1)
+}
+
+func (c *Controller) IncrementalTuningDown() {
+	c.VFOs[c.focusedVFO].ShiftAvailableIncrementalTuning(-1)
 }
 
 func (c *Controller) MuteAudio(vfo core.VFOID) {
@@ -1043,11 +1079,27 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		if err != nil {
 			return err
 		}
-		c.ShiftXIT(core.Frequency(amount))
+		c.ShiftFocusedIncrementalTuning(core.XIT, core.Frequency(amount))
 	case core.ActionRadioXITUp:
 		c.XITUp()
 	case core.ActionRadioXITDown:
 		c.XITDown()
+	case core.ActionRadioShiftRIT:
+		amount, err := shiftAmount(params, int(core.DefaultRITShift))
+		if err != nil {
+			return err
+		}
+		c.ShiftFocusedIncrementalTuning(core.RIT, core.Frequency(amount))
+	case core.ActionRadioRITUp:
+		c.RITUp()
+	case core.ActionRadioRITDown:
+		c.RITDown()
+	case core.ActionIncrementalTuningToggle:
+		c.ToggleIncrementalTuning()
+	case core.ActionIncrementalTuningUp:
+		c.IncrementalTuningUp()
+	case core.ActionIncrementalTuningDown:
+		c.IncrementalTuningDown()
 	case core.ActionKeyerShiftSpeed:
 		amount, err := shiftAmount(params, core.DefaultSpeedShift)
 		if err != nil {

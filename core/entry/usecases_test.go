@@ -356,19 +356,6 @@ func TestB5_JumpToBandmapCall(t *testing.T) {
 		AssertNoLogbookWrite()
 }
 
-// B6. XIT active toggled by UI
-// Pre:  none.
-// Post: VFO1 rig commanded with new XIT-active flag; view active field reapplied.
-// Invariants: input values; VFO2 XIT.
-
-func TestB6_XITActive_Toggle(t *testing.T) {
-	NewScenario(t).
-		WithClassicExchange().
-		SetXITActive(true).
-		AssertXITActiveCommanded(true).
-		AssertActiveField(core.VFO1, core.CallsignField)
-}
-
 // C1. Log valid QSO
 // Pre:  input parses fully (callsign, band, mode, their-exchange complete and valid).
 // Post: AddQSO called; CallsignLogged listeners notified; row cleared (active=callsign).
@@ -1452,28 +1439,6 @@ func TestJ3b_VFOModeChanged_VFO2Event_DoesNotCorruptVFO1(t *testing.T) {
 		VFOModeChanged(core.VFO2, core.ModeSSB).
 		VFOModeChanged(core.VFO1, core.ModeCW). // resetSpies; must be no-op (same mode)
 		AssertViewNotCalledWith("SetMode", core.VFO1, "CW")
-}
-
-// J4. VFOXITChanged
-// Pre:  event for vfo.
-// Post: view.SetXIT(vfo, active, offset).
-
-func TestJ4_VFOXITChanged_UpdatesView(t *testing.T) {
-	NewScenario(t).
-		WithClassicExchange().
-		VFOXITChanged(core.VFO1, true, 500).
-		AssertXITView(core.VFO1, true, 500)
-}
-
-// J5. XITActiveChanged
-// Pre:  event arrives.
-// Post: view.SetXITActive(VFO1, active).
-
-func TestJ5_XITActiveChanged_UpdatesView(t *testing.T) {
-	NewScenario(t).
-		WithClassicExchange().
-		XITActiveChanged(true).
-		AssertXITActiveView(core.VFO1, true)
 }
 
 // J6. VFOPTTChanged

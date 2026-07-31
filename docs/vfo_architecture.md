@@ -44,7 +44,7 @@ type RadioChangedListener interface {
 }
 
 type CurrentVFOListener interface { CurrentVFOChanged(VFOID) }
-type FocusChangedListener interface { FocusChanged(VFOID) }
+type FocusedVFOListener interface { FocusedVFOChanged(VFOID) }
 type CallsignEnteredListener interface { CallsignEntered(VFOID, string) }
 type TransmissionStartedListener interface { TransmissionStarted(VFOID) }
 

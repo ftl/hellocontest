@@ -102,8 +102,8 @@ func (c *Controller) RadioChanged(_ string, singleVFO bool) {
 	c.emitAllWorkmodes()
 }
 
-// FocusChanged implements core.FocusChangedListener.
-func (c *Controller) FocusChanged(vfo core.VFOID) {
+// FocusedVFOChanged implements core.FocusedVFOListener.
+func (c *Controller) FocusedVFOChanged(vfo core.VFOID) {
 	if c.focusedVFO == vfo {
 		return
 	}
@@ -112,10 +112,10 @@ func (c *Controller) FocusChanged(vfo core.VFOID) {
 }
 
 // EffectiveWorkmode returns the workmode for a given VFO.
-// In SO2V (vfo2Enabled) with global=Run: VFO1=Run, VFO2=S&P.
-// Otherwise: both VFOs use the global workmode.
+// In SO2V (vfo2Enabled), VFO2 is always S&P; VFO1 uses the global workmode.
+// Otherwise both VFOs use the global workmode.
 func (c *Controller) EffectiveWorkmode(vfo core.VFOID) core.Workmode {
-	if c.vfo2Enabled && c.workmode == core.Run && vfo == core.VFO2 {
+	if c.vfo2Enabled && vfo == core.VFO2 {
 		return core.SearchPounce
 	}
 	return c.workmode

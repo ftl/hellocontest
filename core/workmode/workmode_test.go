@@ -99,7 +99,7 @@ func TestFocusChanged_SO2V_EmitsWorkmodes(t *testing.T) {
 	c.SetWorkmode(core.Run)
 
 	l.reset()
-	c.FocusChanged(core.VFO2)
+	c.FocusedVFOChanged(core.VFO2)
 
 	assert.Len(t, l.events, 2)
 	assert.Equal(t, workmodeEvent{core.VFO1, core.Run}, l.events[0])
@@ -112,7 +112,7 @@ func TestFocusChanged_SameVFO_NoEmit(t *testing.T) {
 	c.SetWorkmode(core.Run)
 
 	l.reset()
-	c.FocusChanged(core.VFO1) // already focused
+	c.FocusedVFOChanged(core.VFO1) // already focused
 
 	assert.Empty(t, l.events)
 }

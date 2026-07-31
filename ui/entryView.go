@@ -28,7 +28,6 @@ type EntryController interface {
 	SendQuestion()
 	RepeatLastTransmission()
 	StopTX()
-	SetXITActive(bool)
 
 	EnterPressed()
 	Log()
@@ -49,6 +48,7 @@ type entryVFOWidgets struct {
 
 	serialClaimLabel *qtlib.QLabel
 	xit              *qtlib.QCheckBox
+	rit              *qtlib.QCheckBox
 	txIndicator      *qtlib.QLabel
 
 	callsign            *qtlib.QLineEdit
@@ -68,6 +68,7 @@ type entryView struct {
 	vfo [core.VFOCount]entryVFOWidgets
 
 	vfoWorkmode [core.VFOCount]core.Workmode
+	itVisible   [core.VFOCount][2]bool
 	txVFO       core.VFOID
 
 	vfo2Enabled   bool
@@ -77,7 +78,12 @@ type entryView struct {
 	isDuplicate bool
 	isEditing   bool
 
-	controller EntryController
+	controller             EntryController
+	incrementalTuningInput IncrementalTuningController
+}
+
+type IncrementalTuningController interface {
+	SetIncrementalTuningActive(core.VFOID, core.IncrementalTuningKind, bool)
 }
 
 func newEntryView() *entryView {
@@ -119,14 +125,23 @@ func newEntryView() *entryView {
 		}
 	})
 	v.vfo[core.VFO1].xit.OnStateChanged(func(state int) {
-		if v.controller != nil {
-			v.controller.SetXITActive(state != 0)
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO1, core.XIT, state != 0)
 		}
 	})
 	v.vfo[core.VFO2].xit.OnStateChanged(func(state int) {
-		if v.controller != nil {
-			// TODO: handle different VFOs
-			v.controller.SetXITActive(state != 0)
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO2, core.XIT, state != 0)
+		}
+	})
+	v.vfo[core.VFO1].rit.OnStateChanged(func(state int) {
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO1, core.RIT, state != 0)
+		}
+	})
+	v.vfo[core.VFO2].rit.OnStateChanged(func(state int) {
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO2, core.RIT, state != 0)
 		}
 	})
 
@@ -165,6 +180,11 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 
 	w.xit = qtlib.NewQCheckBox3("XIT")
 	w.xit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "XIT"))
+	w.xit.SetVisible(false)
+
+	w.rit = qtlib.NewQCheckBox3("RIT")
+	w.rit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "RIT"))
+	w.rit.SetVisible(false)
 
 	w.txIndicator = qtlib.NewQLabel3("")
 	w.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "TX"))
@@ -288,6 +308,10 @@ func (v *entryView) SetEntryController(controller EntryController) {
 	v.controller = controller
 }
 
+func (v *entryView) SetIncrementalTuningController(controller IncrementalTuningController) {
+	v.incrementalTuningInput = controller
+}
+
 func (v *entryView) SetMyCall(text string) {
 	v.myCallLabel.SetText(text)
 }
@@ -352,8 +376,15 @@ func (v *entryView) SetMode(vfo core.VFOID, text string) {
 	}
 }
 
-func (v *entryView) SetXITActive(vfo core.VFOID, active bool) {
-	widget := v.vfo[vfo].xit
+func (v *entryView) incrementalTuningWidget(vfo core.VFOID, kind core.IncrementalTuningKind) *qtlib.QCheckBox {
+	if kind == core.RIT {
+		return v.vfo[vfo].rit
+	}
+	return v.vfo[vfo].xit
+}
+
+func (v *entryView) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+	widget := v.incrementalTuningWidget(vfo, kind)
 	if widget == nil {
 		return
 	}
@@ -363,17 +394,31 @@ func (v *entryView) SetXITActive(vfo core.VFOID, active bool) {
 	widget.SetChecked(active)
 }
 
-func (v *entryView) SetXIT(vfo core.VFOID, active bool, offset core.Frequency) {
-	widget := v.vfo[vfo].xit
+func (v *entryView) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	widget := v.incrementalTuningWidget(vfo, kind)
 	if widget == nil {
 		return
 	}
 
 	if active {
-		widget.SetText(fmt.Sprintf("XIT %s", offset))
+		widget.SetText(fmt.Sprintf("%s %s", kind, offset))
 	} else {
-		widget.SetText("XIT")
+		widget.SetText(kind.String())
 	}
+}
+
+func (v *entryView) VFOIncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+	v.itVisible[vfo][kind] = visible
+	v.applyIncrementalTuningVisibility(vfo, kind)
+}
+
+func (v *entryView) applyIncrementalTuningVisibility(vfo core.VFOID, kind core.IncrementalTuningKind) {
+	widget := v.incrementalTuningWidget(vfo, kind)
+	if widget == nil {
+		return
+	}
+	vfoEnabled := vfo == core.VFO1 || v.vfo2Enabled
+	widget.SetVisible(v.itVisible[vfo][kind] && vfoEnabled)
 }
 
 func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
@@ -671,9 +716,8 @@ func (v *entryView) setVFO2Enabled(enabled bool) {
 	if widgets.vfoContainer != nil {
 		widgets.vfoContainer.SetVisible(enabled)
 	}
-	if widgets.xit != nil {
-		widgets.xit.SetVisible(enabled)
-	}
+	v.applyIncrementalTuningVisibility(core.VFO2, core.XIT)
+	v.applyIncrementalTuningVisibility(core.VFO2, core.RIT)
 	if widgets.txIndicator != nil {
 		widgets.txIndicator.SetVisible(enabled)
 	}

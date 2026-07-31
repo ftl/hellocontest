@@ -26,8 +26,6 @@ type View interface {
 	SetFrequency(core.VFOID, core.Frequency)
 	SetBand(vfo core.VFOID, text string)
 	SetMode(vfo core.VFOID, text string)
-	SetXITActive(vfo core.VFOID, active bool)
-	SetXIT(vfo core.VFOID, active bool, offset core.Frequency)
 	SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 
 	SetCallsign(core.VFOID, string)
@@ -218,10 +216,10 @@ func (c *Controller) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Controller) emitFocusChanged(vfo core.VFOID) {
+func (c *Controller) emitFocusedVFOChanged(vfo core.VFOID) {
 	for _, l := range c.listeners {
-		if listener, ok := l.(core.FocusChangedListener); ok {
-			listener.FocusChanged(vfo)
+		if listener, ok := l.(core.FocusedVFOListener); ok {
+			listener.FocusedVFOChanged(vfo)
 		}
 	}
 }
@@ -482,7 +480,7 @@ func (c *Controller) CurrentVFOChanged(vfo core.VFOID) {
 		return
 	}
 	c.focusedVFO = vfo
-	c.emitFocusChanged(c.focusedVFO)
+	c.emitFocusedVFOChanged(c.focusedVFO)
 	c.refreshMyNumberInputs()
 	c.view.SetActiveVFO(c.focusedVFO)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
@@ -500,7 +498,7 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 	c.ignoreVFOChange = true
 	c.vfoSwitcher.SetCurrentVFO(c.focusedVFO)
 	c.ignoreVFOChange = false
-	c.emitFocusChanged(c.focusedVFO)
+	c.emitFocusedVFOChanged(c.focusedVFO)
 	c.refreshMyNumberInputs()
 	c.view.SetActiveVFO(c.focusedVFO)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
@@ -737,11 +735,6 @@ func (c *Controller) bandEntered(band core.Band) {
 	c.vfos[c.focusedVFO].SetBand(band)
 }
 
-func (c *Controller) SetXITActive(active bool) {
-	c.vfos[core.VFO1].SetXITActive(active)
-	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
-}
-
 func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
 	c.asyncRunner(func() {
 		if vfo == core.VFO1 && c.editing {
@@ -868,19 +861,6 @@ func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 		c.input[vfo].mode = mode.String()
 
 		c.view.SetMode(vfo, c.input[vfo].mode)
-	})
-}
-
-func (c *Controller) VFOXITChanged(vfo core.VFOID, active bool, offset core.Frequency) {
-	c.asyncRunner(func() {
-		c.view.SetXIT(vfo, active, offset)
-	})
-}
-
-func (c *Controller) XITActiveChanged(active bool) {
-	// TODO: add VFO parameter to XITActiveChanged
-	c.asyncRunner(func() {
-		c.view.SetXITActive(core.VFO1, active)
 	})
 }
 

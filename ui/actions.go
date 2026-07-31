@@ -163,7 +163,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	// Radio menu
 	a.incrementalTuningToggleAction = a.makeTriggerAction(core.ActionIncrementalTuningToggle, "Toggle Incremental Tuning", "Toggle the RIT or XIT of the focused VFO", "Ctrl+Shift+X", func() { controller.ToggleIncrementalTuning() })
 	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.XIT, active) })
-	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "Ctrl+Shift+R", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.RIT, active) })
+	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.RIT, active) })
 
 	// Bandmap menu
 	a.markBandmapAction = a.makeTriggerAction(core.ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
@@ -456,7 +456,7 @@ func (a *actions) IncrementalTuningActiveChanged(vfo core.VFOID, kind core.Incre
 	a.xitActiveAction.SetChecked(active)
 }
 
-func (a *actions) FocusChanged(vfo core.VFOID) {
+func (a *actions) FocusedVFOChanged(vfo core.VFOID) {
 	a.focusedVFO = vfo
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()

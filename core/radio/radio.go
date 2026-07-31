@@ -339,60 +339,6 @@ func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
 	c.vfos[id] = vfo
 }
 
-func (c *Controller) incrementalTuningAvailableOnVFO(vfo core.VFOID) bool {
-	return (vfo == core.VFO1) || c.incrementalTuningPerVFO
-}
-
-func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-	if !c.incrementalTuningAvailableOnVFO(vfo) {
-		return
-	}
-	c.vfos[vfo].SetIncrementalTuningActive(kind, active)
-}
-
-func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
-	c.SetIncrementalTuningActive(c.currentVFO, kind, active)
-}
-
-func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
-	if !c.incrementalTuningAvailableOnVFO(vfo) {
-		return false
-	}
-	return c.vfos[vfo].IncrementalTuningActive(kind)
-}
-
-func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
-	return c.IncrementalTuningActive(c.currentVFO, kind)
-}
-
-func (c *Controller) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
-	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
-		return
-	}
-	c.vfos[c.currentVFO].ShiftOffset(kind, delta)
-}
-
-func (c *Controller) ToggleIncrementalTuning() {
-	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
-		return
-	}
-	c.vfos[c.currentVFO].ToggleIncrementalTuning()
-}
-
-func (c *Controller) IncrementalTuningUp() {
-	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
-		return
-	}
-	c.vfos[c.currentVFO].ShiftAvailableIncrementalTuning(1)
-}
-
-func (c *Controller) IncrementalTuningDown() {
-	if !c.incrementalTuningAvailableOnVFO(c.currentVFO) {
-		return
-	}
-	c.vfos[c.currentVFO].ShiftAvailableIncrementalTuning(-1)
-}
-
 func (c *Controller) SetTXVFO(vfo core.VFOID) {
 	if c.activeRadio == nil {
 		return
@@ -419,6 +365,10 @@ func (c *Controller) SetMode(vfo core.VFOID, mode core.Mode) {
 		return
 	}
 	c.activeRadio.SetMode(vfo, mode)
+}
+
+func (c *Controller) IncrementalTuningPerVFO() bool {
+	return c.incrementalTuningPerVFO
 }
 
 func (c *Controller) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {

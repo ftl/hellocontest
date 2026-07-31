@@ -43,16 +43,16 @@ func TestShiftFrequency(t *testing.T) {
 	assert.Equal(t, start, v.currentFrequency())
 }
 
-func TestShiftOffset(t *testing.T) {
+func TestShiftIncrementalTuning(t *testing.T) {
 	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
 
-	v.ShiftOffset(core.XIT, 100)
+	v.ShiftIncrementalTuning(core.XIT, 100)
 	assert.Equal(t, core.Frequency(100), v.state[core.XIT].offset)
 
-	v.ShiftOffset(core.XIT, -30)
+	v.ShiftIncrementalTuning(core.XIT, -30)
 	assert.Equal(t, core.Frequency(70), v.state[core.XIT].offset)
 
-	v.ShiftOffset(core.RIT, 40)
+	v.ShiftIncrementalTuning(core.RIT, 40)
 	assert.Equal(t, core.Frequency(40), v.state[core.RIT].offset)
 	assert.Equal(t, core.Frequency(70), v.state[core.XIT].offset)
 }
@@ -87,13 +87,13 @@ func TestToggleAndShiftAvailableIncrementalTuning(t *testing.T) {
 	v.WorkmodeChanged(core.VFO1, core.SearchPounce)
 	v.IncrementalTuningAvailabilityChanged(core.VFO1, core.XIT, true)
 
-	kind, ok := v.AvailableIncrementalTuningKind()
+	kind, ok := v.availableIncrementalTuningKind()
 	assert.True(t, ok)
 	assert.Equal(t, core.XIT, kind)
 
-	v.ToggleIncrementalTuning()
+	v.ToggleAvailableIncrementalTuning()
 	assert.True(t, v.IncrementalTuningActive(core.XIT), "toggle enables the available kind")
-	v.ToggleIncrementalTuning()
+	v.ToggleAvailableIncrementalTuning()
 	assert.False(t, v.IncrementalTuningActive(core.XIT), "toggle again disables it")
 
 	v.ShiftAvailableIncrementalTuning(1)

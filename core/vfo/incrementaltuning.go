@@ -11,30 +11,57 @@ type incrementalTuningState struct {
 }
 
 type IncrementalTuningControl struct {
-	state     [2]incrementalTuningState
-	available [2]bool
-	workmode  core.Workmode
+	state    [2]incrementalTuningState
+	workmode core.Workmode
 
 	vfo *VFO
 }
 
+func (x *IncrementalTuningControl) availableOnVFO() bool {
+	if x.vfo.id == core.VFO1 {
+		return true
+	}
+	if x.vfo.online() {
+		return x.vfo.client.IncrementalTuningPerVFO()
+	} else {
+		return x.vfo.offlineClient.IncrementalTuningPerVFO()
+	}
+}
+
+func (x *IncrementalTuningControl) setIncrementalTuning(kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	if x.vfo.online() {
+		x.vfo.client.SetIncrementalTuning(x.vfo.id, kind, active, offset)
+	} else {
+		x.vfo.offlineClient.SetIncrementalTuning(kind, active, offset)
+	}
+}
+
 func (x *IncrementalTuningControl) IncrementalTuningActive(kind core.IncrementalTuningKind) bool {
+	if !x.availableOnVFO() {
+		return false
+	}
 	return x.state[kind].intentActive
 }
 
 func (x *IncrementalTuningControl) SetIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+	if !x.availableOnVFO() {
+		return
+	}
 	x.state[kind].intentActive = active
 	x.activate()
 	x.emitIncrementalTuningActiveChanged(kind, active)
 }
 
-func (x *IncrementalTuningControl) ShiftOffset(kind core.IncrementalTuningKind, delta core.Frequency) {
+func (x *IncrementalTuningControl) ShiftIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
+	if !x.availableOnVFO() {
+		return
+	}
 	x.state[kind].offset += delta
-	x.vfo.SetIncrementalTuning(kind, x.state[kind].actualActive, x.state[kind].offset)
+	x.vfo.setIncrementalTuning(kind, x.state[kind].actualActive, x.state[kind].offset)
 }
 
-func (x *IncrementalTuningControl) ToggleIncrementalTuning() {
-	kind, ok := x.AvailableIncrementalTuningKind()
+func (x *IncrementalTuningControl) ToggleAvailableIncrementalTuning() {
+	kind, ok := x.availableIncrementalTuningKind()
 	if !ok {
 		return
 	}
@@ -42,7 +69,7 @@ func (x *IncrementalTuningControl) ToggleIncrementalTuning() {
 }
 
 func (x *IncrementalTuningControl) ShiftAvailableIncrementalTuning(sign core.Frequency) {
-	kind, ok := x.AvailableIncrementalTuningKind()
+	kind, ok := x.availableIncrementalTuningKind()
 	if !ok {
 		return
 	}
@@ -50,20 +77,26 @@ func (x *IncrementalTuningControl) ShiftAvailableIncrementalTuning(sign core.Fre
 	if kind == core.RIT {
 		step = core.DefaultRITShift
 	}
-	x.ShiftOffset(kind, sign*step)
+	x.ShiftIncrementalTuning(kind, sign*step)
 }
 
-func (x *IncrementalTuningControl) AvailableIncrementalTuningKind() (core.IncrementalTuningKind, bool) {
+func (x *IncrementalTuningControl) availableIncrementalTuningKind() (core.IncrementalTuningKind, bool) {
+	if !x.availableOnVFO() {
+		return -1, false
+	}
 	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
-		if x.available[kind] && kind.Workmode() == x.workmode {
+		if kind.Workmode() == x.workmode {
 			return kind, true
 		}
 	}
-	return 0, false
+	return -1, false
 }
 
 func (x *IncrementalTuningControl) visible(kind core.IncrementalTuningKind) bool {
-	return x.available[kind] && kind.Workmode() == x.workmode
+	if !x.availableOnVFO() {
+		return false
+	}
+	return kind.Workmode() == x.workmode
 }
 
 func (x *IncrementalTuningControl) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
@@ -80,7 +113,7 @@ func (x *IncrementalTuningControl) WorkmodeChanged(vfo core.VFOID, workmode core
 func (x *IncrementalTuningControl) activate() {
 	for _, kind := range []core.IncrementalTuningKind{core.RIT, core.XIT} {
 		x.state[kind].actualActive = x.state[kind].intentActive && kind.Workmode() == x.workmode
-		x.vfo.SetIncrementalTuning(kind, x.state[kind].actualActive, x.state[kind].offset)
+		x.setIncrementalTuning(kind, x.state[kind].actualActive, x.state[kind].offset)
 	}
 }
 
@@ -96,27 +129,30 @@ func (x *IncrementalTuningControl) IncrementalTuningAvailabilityChanged(vfo core
 	if vfo != x.vfo.id {
 		return
 	}
-	x.available[kind] = available
 	x.emitIncrementalTuningVisibilityChanged(kind)
 }
 
+func (x *IncrementalTuningControl) emitIncrementalTuningChanged(kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+	core.Emit(x.vfo.listeners, func(listener core.VFOIncrementalTuningListener) {
+		x.vfo.asyncRunner(func() {
+			listener.VFOIncrementalTuningChanged(x.vfo.id, kind, active, offset)
+		})
+	})
+}
+
 func (x *IncrementalTuningControl) emitIncrementalTuningActiveChanged(kind core.IncrementalTuningKind, active bool) {
-	for _, listener := range x.vfo.listeners {
-		if l, ok := listener.(core.IncrementalTuningActiveListener); ok {
-			x.vfo.asyncRunner(func() {
-				l.IncrementalTuningActiveChanged(x.vfo.id, kind, active)
-			})
-		}
-	}
+	core.Emit(x.vfo.listeners, func(l core.IncrementalTuningActiveListener) {
+		x.vfo.asyncRunner(func() {
+			l.IncrementalTuningActiveChanged(x.vfo.id, kind, active)
+		})
+	})
 }
 
 func (x *IncrementalTuningControl) emitIncrementalTuningVisibilityChanged(kind core.IncrementalTuningKind) {
 	visible := x.visible(kind)
-	for _, listener := range x.vfo.listeners {
-		if l, ok := listener.(core.IncrementalTuningVisibilityListener); ok {
-			x.vfo.asyncRunner(func() {
-				l.IncrementalTuningVisibilityChanged(x.vfo.id, kind, visible)
-			})
-		}
-	}
+	core.Emit(x.vfo.listeners, func(l core.IncrementalTuningVisibilityListener) {
+		x.vfo.asyncRunner(func() {
+			l.IncrementalTuningVisibilityChanged(x.vfo.id, kind, visible)
+		})
+	})
 }

@@ -102,8 +102,8 @@ func (c *Controller) RadioChanged(_ string, singleVFO bool) {
 	c.emitAllWorkmodes()
 }
 
-// FocusChanged implements core.FocusChangedListener.
-func (c *Controller) FocusChanged(vfo core.VFOID) {
+// FocusedVFOChanged implements core.FocusedVFOListener.
+func (c *Controller) FocusedVFOChanged(vfo core.VFOID) {
 	if c.focusedVFO == vfo {
 		return
 	}

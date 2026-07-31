@@ -356,7 +356,7 @@ func (k *Keyer) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
 	}
 }
 
-func (k *Keyer) FocusChanged(vfo core.VFOID) {
+func (k *Keyer) FocusedVFOChanged(vfo core.VFOID) {
 	k.focusedVFO = vfo
 	k.setWorkmode(k.vfoWorkmode[vfo])
 	k.showPatterns()

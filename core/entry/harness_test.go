@@ -720,12 +720,12 @@ func (v *vfoSpy) SetFrequency(f core.Frequency)                                 
 func (v *vfoSpy) ShiftFrequency(f core.Frequency)                                       { v.lastFreq += f }
 func (v *vfoSpy) SetBand(b core.Band)                                                   { v.lastBand = b }
 func (v *vfoSpy) SetMode(m core.Mode)                                                   { v.lastMode = m }
-func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
-func (v *vfoSpy) ShiftOffset(core.IncrementalTuningKind, core.Frequency)                {}
-func (v *vfoSpy) ToggleIncrementalTuning()                                              {}
-func (v *vfoSpy) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
 func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
 func (v *vfoSpy) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}
+func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
+func (v *vfoSpy) ShiftIncrementalTuning(core.IncrementalTuningKind, core.Frequency)     {}
+func (v *vfoSpy) ToggleAvailableIncrementalTuning()                                     {}
+func (v *vfoSpy) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
 
 // ---- qsoListSpy -------------------------------------------------------------
 

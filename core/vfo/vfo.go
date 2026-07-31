@@ -31,8 +31,6 @@ type Logbook interface {
 }
 
 type VFO struct {
-	IncrementalTuningControl
-
 	id   core.VFOID
 	name string
 
@@ -42,6 +40,9 @@ type VFO struct {
 	offlineClient *offlineClient
 	refreshing    bool
 	asyncRunner   core.AsyncRunner
+
+	state    [2]incrementalTuningState
+	workmode core.Workmode
 
 	listeners []any
 }
@@ -53,9 +54,6 @@ func NewVFO(id core.VFOID, name string, bandplan bandplan.Bandplan, logbook Logb
 		bandplan:    bandplan,
 		logbook:     logbook,
 		asyncRunner: asyncRunner,
-	}
-	result.IncrementalTuningControl = IncrementalTuningControl{
-		vfo: result,
 	}
 	result.offlineClient = newOfflineClient(result)
 	result.SetClient(nil)
@@ -200,14 +198,6 @@ func (v *VFO) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 		return
 	}
 	v.offlineClient.SetMode(mode)
-}
-
-func (v *VFO) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
-	if vfo != v.id {
-		return
-	}
-	v.IncrementalTuningControl.VFOIncrementalTuningChanged(vfo, kind, active, offset)
-	v.offlineClient.SetIncrementalTuning(kind, active, offset)
 }
 
 func (v *VFO) VFOPTTChanged(vfo core.VFOID, active bool) {
@@ -367,7 +357,7 @@ func (c *offlineClient) SetIncrementalTuning(kind core.IncrementalTuningKind, ac
 	c.lastStates[c.currentBand] = state
 	c.stateLock.Unlock()
 
-	c.vfo.IncrementalTuningControl.emitIncrementalTuningChanged(kind, state.itActive[kind], state.itOffset[kind])
+	c.vfo.emitIncrementalTuningChanged(kind, state.itActive[kind], state.itOffset[kind])
 }
 
 func (c *offlineClient) SetPTT(active bool) {

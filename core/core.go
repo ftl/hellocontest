@@ -1672,14 +1672,6 @@ type BandmapWeights struct {
 	Quality    float64
 }
 
-type IncrementalTuningControl interface {
-	IncrementalTuningActive(kind IncrementalTuningKind) bool
-	SetIncrementalTuningActive(kind IncrementalTuningKind, active bool)
-	ShiftIncrementalTuning(IncrementalTuningKind, Frequency)
-	ToggleAvailableIncrementalTuning()
-	ShiftAvailableIncrementalTuning(Frequency)
-}
-
 type VFOID int
 
 const (
@@ -1690,7 +1682,6 @@ const (
 )
 
 type VFO interface {
-	IncrementalTuningControl
 	Name() string
 	Notify(any)
 	Refresh()
@@ -1698,6 +1689,11 @@ type VFO interface {
 	ShiftFrequency(Frequency)
 	SetBand(Band)
 	SetMode(Mode)
+	IncrementalTuningActive(kind IncrementalTuningKind) bool
+	SetIncrementalTuningActive(kind IncrementalTuningKind, active bool)
+	ShiftIncrementalTuning(IncrementalTuningKind, Frequency)
+	ToggleAvailableIncrementalTuning()
+	ShiftAvailableIncrementalTuning(Frequency)
 }
 
 type CurrentVFOListener interface {

@@ -25,6 +25,7 @@ type CallsignFinder interface {
 type CallHistoryFinder interface {
 	FindEntry(string) (core.AnnotatedCallsign, bool)
 	Find(string) ([]core.AnnotatedCallsign, error)
+	AvailableFor(fieldIndex int) bool
 }
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.

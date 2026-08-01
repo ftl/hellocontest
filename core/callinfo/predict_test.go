@@ -20,6 +20,18 @@ func TestPredictExchange(t *testing.T) {
 		Properties:       conval.ExchangeField{conval.NameProperty},
 		CanContainReport: true,
 	}
+	memberNoMemberField := core.ExchangeField{
+		Field:      "theirExchange_member",
+		Properties: conval.ExchangeField{conval.MemberNumberProperty, conval.NoMemberProperty},
+	}
+	noMemberMemberField := core.ExchangeField{
+		Field:      "theirExchange_member",
+		Properties: conval.ExchangeField{conval.NoMemberProperty, conval.MemberNumberProperty},
+	}
+	memberOnlyField := core.ExchangeField{
+		Field:      "theirExchange_member",
+		Properties: conval.ExchangeField{conval.MemberNumberProperty},
+	}
 
 	tests := []struct {
 		name                string
@@ -28,6 +40,7 @@ func TestPredictExchange(t *testing.T) {
 		qsos                []core.QSO
 		currentExchange     []string
 		historicExchange    []string
+		historyAvailable    []bool
 		expected            []string
 	}{
 		{
@@ -81,10 +94,75 @@ func TestPredictExchange(t *testing.T) {
 			historicExchange:    []string{"Flo"},
 			expected:            []string{"Flo"},
 		},
+		{
+			name:                "member, number found in history",
+			theirExchangeFields: []core.ExchangeField{memberNoMemberField},
+			currentExchange:     []string{""},
+			historicExchange:    []string{"1234"},
+			historyAvailable:    []bool{true},
+			expected:            []string{"1234"},
+		},
+		{
+			name:                "member, callsign found but member number blank, predicts nm",
+			theirExchangeFields: []core.ExchangeField{memberNoMemberField},
+			currentExchange:     []string{""},
+			historicExchange:    []string{""},
+			historyAvailable:    []bool{true},
+			expected:            []string{"nm"},
+		},
+		{
+			name:                "member, callsign not found but history available, predicts nm",
+			theirExchangeFields: []core.ExchangeField{memberNoMemberField},
+			currentExchange:     []string{""},
+			historicExchange:    nil,
+			historyAvailable:    []bool{true},
+			expected:            []string{"nm"},
+		},
+		{
+			name:                "member, order reversed, predicts nm",
+			theirExchangeFields: []core.ExchangeField{noMemberMemberField},
+			currentExchange:     []string{""},
+			historicExchange:    []string{""},
+			historyAvailable:    []bool{true},
+			expected:            []string{"nm"},
+		},
+		{
+			name:                "member, history not available, stays empty",
+			theirExchangeFields: []core.ExchangeField{memberNoMemberField},
+			currentExchange:     []string{""},
+			historicExchange:    []string{""},
+			historyAvailable:    []bool{false},
+			expected:            []string{""},
+		},
+		{
+			name:                "member, field unmapped in history, stays empty",
+			theirExchangeFields: []core.ExchangeField{memberNoMemberField},
+			currentExchange:     []string{""},
+			historicExchange:    []string{""},
+			historyAvailable:    nil,
+			expected:            []string{""},
+		},
+		{
+			name:                "member only, no nm property, stays empty",
+			theirExchangeFields: []core.ExchangeField{memberOnlyField},
+			currentExchange:     []string{""},
+			historicExchange:    []string{""},
+			historyAvailable:    []bool{true},
+			expected:            []string{""},
+		},
+		{
+			name:                "member, worked qso number over nm",
+			theirExchangeFields: []core.ExchangeField{memberNoMemberField},
+			qsos:                []core.QSO{{TheirExchange: []string{"5678"}}},
+			currentExchange:     []string{""},
+			historicExchange:    []string{""},
+			historyAvailable:    []bool{true},
+			expected:            []string{"5678"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := predictExchange(test.theirExchangeFields, test.dxcc, test.qsos, test.currentExchange, test.historicExchange)
+			actual := predictExchange(test.theirExchangeFields, test.dxcc, test.qsos, test.currentExchange, test.historicExchange, test.historyAvailable)
 			assert.Equal(t, test.expected, actual)
 		})
 	}

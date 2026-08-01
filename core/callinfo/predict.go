@@ -8,7 +8,7 @@ import (
 	"github.com/ftl/hellocontest/core/dxcc"
 )
 
-func predictExchange(theirExchangeFields []core.ExchangeField, dxccEntity dxcc.Prefix, workedQSOs []core.QSO, currentExchange []string, historicExchange []string) []string {
+func predictExchange(theirExchangeFields []core.ExchangeField, dxccEntity dxcc.Prefix, workedQSOs []core.QSO, currentExchange []string, historicExchange []string, historyAvailable []bool) []string {
 	result := make([]string, len(theirExchangeFields))
 	if len(currentExchange) > 0 {
 		copy(result, currentExchange)
@@ -24,11 +24,29 @@ func predictExchange(theirExchangeFields []core.ExchangeField, dxccEntity dxcc.P
 		historicExchange, foundInHistory := findExchangeInHistory(theirExchangeFields, i, historicExchange, dxccEntity)
 		if foundInHistory {
 			result[i] = historicExchange
-			// continue (for symmetry)
+			continue
+		}
+
+		if result[i] == "" && i < len(historyAvailable) && historyAvailable[i] && isNoMemberField(theirExchangeFields[i]) {
+			result[i] = string(conval.NoMemberProperty)
+			// continue // for symmetry
 		}
 	}
 
 	return result
+}
+
+func historyAvailability(history CallHistoryFinder, theirExchangeFields []core.ExchangeField) []bool {
+	result := make([]bool, len(theirExchangeFields))
+	for i := range result {
+		result[i] = history.AvailableFor(i)
+	}
+	return result
+}
+
+func isNoMemberField(field core.ExchangeField) bool {
+	return field.Properties.Contains(conval.MemberNumberProperty) &&
+		field.Properties.Contains(conval.NoMemberProperty)
 }
 
 func findExchangeInQSOs(exchangeIndex int, workedQSOs []core.QSO) (string, bool) {

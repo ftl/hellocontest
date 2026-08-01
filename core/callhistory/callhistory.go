@@ -120,6 +120,10 @@ func (f *Finder) SelectFieldNames(fieldNames []string) {
 	f.fieldNames = fieldNames
 }
 
+func (f *Finder) AvailableFor(fieldIndex int) bool {
+	return f.database != nil && fieldIndex < len(f.fieldNames) && f.fieldNames[fieldIndex] != ""
+}
+
 func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 	searchCallsign, err := core.ParseCallsign(s)
 	if err != nil {

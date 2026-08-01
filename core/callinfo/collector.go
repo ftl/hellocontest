@@ -188,7 +188,7 @@ func (c *Collector) addWorkedState(info *core.Callinfo, workedQSOs []core.QSO, d
 func (c *Collector) addPredictedExchange(info *core.Callinfo, workedQSOs []core.QSO, currentExchange []string) {
 	// ATTENTION: temporal coupling! addPredictedExchange relies on addHistoryData putting
 	// the historic exchange into the Callinfo.PredictedExchange field.
-	info.PredictedExchange = predictExchange(c.theirExchangeFields, info.DXCCEntity, workedQSOs, currentExchange, info.PredictedExchange)
+	info.PredictedExchange = predictExchange(c.theirExchangeFields, info.DXCCEntity, workedQSOs, currentExchange, info.PredictedExchange, historyAvailability(c.history, c.theirExchangeFields))
 	info.PredictedExchange = c.clearUnpredictableFields(info.PredictedExchange)
 }
 

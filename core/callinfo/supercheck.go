@@ -133,7 +133,7 @@ func (s *Supercheck) addInfos(annotatedCallsign *core.AnnotatedCallsign, normali
 	}
 
 	workedQSOs, duplicate := s.dupes.FindWorkedQSOs(annotatedCallsign.Callsign, band, mode)
-	predictedExchange := predictExchange(s.theirExchangeFields, dxccEntity, workedQSOs, nil, annotatedCallsign.PredictedExchange)
+	predictedExchange := predictExchange(s.theirExchangeFields, dxccEntity, workedQSOs, nil, annotatedCallsign.PredictedExchange, historyAvailability(s.history, s.theirExchangeFields))
 
 	var points, multis int
 	if entityFound {

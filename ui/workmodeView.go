@@ -11,12 +11,12 @@ type WorkmodeController interface {
 }
 
 type workmodeView struct {
-	widget             *qtlib.QWidget
-	searchPounceRadio  *qtlib.QRadioButton
-	runRadio           *qtlib.QRadioButton
-	operationModeLabel *qtlib.QLabel
-	controller         WorkmodeController
-	ignoreInput        bool
+	widget                 *qtlib.QWidget
+	searchPounceRadio      *qtlib.QRadioButton
+	runRadio               *qtlib.QRadioButton
+	operationModeHintLabel *qtlib.QLabel
+	controller             WorkmodeController
+	ignoreInput            bool
 }
 
 func newWorkmodeView() *workmodeView {
@@ -28,12 +28,12 @@ func newWorkmodeView() *workmodeView {
 	workmodeLabel := qtlib.NewQLabel3("Workmode:")
 	v.searchPounceRadio = qtlib.NewQRadioButton3("S&&P")
 	v.runRadio = qtlib.NewQRadioButton3("Run")
-	v.operationModeLabel = qtlib.NewQLabel2()
+	v.operationModeHintLabel = qtlib.NewQLabel2()
 
 	layout.AddWidget(workmodeLabel.QWidget)
 	layout.AddWidget(v.searchPounceRadio.QWidget)
 	layout.AddWidget(v.runRadio.QWidget)
-	layout.AddWidget(v.operationModeLabel.QWidget)
+	layout.AddWidget(v.operationModeHintLabel.QWidget)
 
 	v.searchPounceRadio.OnToggled(func(checked bool) {
 		if v.ignoreInput || !checked || v.controller == nil {
@@ -65,5 +65,5 @@ func (v *workmodeView) SetWorkmode(wm core.Workmode) {
 }
 
 func (v *workmodeView) SetOperationModeHint(hint string) {
-	v.operationModeLabel.SetText(hint)
+	v.operationModeHintLabel.SetText(hint)
 }

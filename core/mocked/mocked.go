@@ -415,6 +415,10 @@ func (m *KeyerView) SetPreset(name string) {
 	m.Called(name)
 }
 
+func (m *KeyerView) SetLastTransmission(s string) {
+	m.Called(s)
+}
+
 type DXCCFinder struct {
 	mock.Mock
 }

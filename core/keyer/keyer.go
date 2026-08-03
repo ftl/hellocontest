@@ -20,6 +20,7 @@ type ButtonView interface {
 	SetLabel(int, string)
 	SetPattern(int, string)
 	SetSpeed(int)
+	SetLastTransmission(string)
 }
 
 // SettingsView represents the visual parts to enter keyer macros.
@@ -59,6 +60,11 @@ type Writer interface {
 // KeyerStoppedListener is notified when the keyer was actively stopped by the user.
 type KeyerStoppedListener interface {
 	KeyerStopped()
+}
+
+// TransmissionListener is notified whenever the keyer transmits any text.
+type TransmissionListener interface {
+	KeyerTransmission(string)
 }
 
 // SerialSentListener is notified when the keyer transmits a message that contains a serial number.
@@ -244,6 +250,7 @@ func (k *Keyer) SetSettings(settings core.KeyerSettings, presetName string) {
 	k.showPatterns()
 	if k.buttonView != nil {
 		k.buttonView.SetSpeed(k.wpm)
+		k.buttonView.SetLastTransmission(k.lastTransmission)
 	}
 	k.showKeyerSettings()
 }
@@ -284,6 +291,7 @@ func (k *Keyer) SetView(view ButtonView) {
 	k.buttonView = view
 	k.showPatterns()
 	k.buttonView.SetSpeed(k.wpm)
+	k.buttonView.SetLastTransmission(k.lastTransmission)
 }
 
 func (k *Keyer) showPatterns() {
@@ -592,7 +600,7 @@ func (k *Keyer) fillins() map[string]any {
 
 // beginTransmission switches the rig's TX VFO to the focused VFO and announces
 // the transmission to listeners (e.g. the parrot stops repeating).
-func (k *Keyer) beginTransmission() {
+func (k *Keyer) ensureFocusedVFO() {
 	k.vfoSwitcher.SetTXVFO(k.focusedVFO)
 	k.emitTransmissionStarted(k.focusedVFO)
 }
@@ -602,7 +610,7 @@ func (k *Keyer) SendMacro(index int) {
 }
 
 func (k *Keyer) SendWithWorkmode(workmode core.Workmode, index int) {
-	k.beginTransmission()
+	k.ensureFocusedVFO()
 	k.sendMessage(workmode, index)
 }
 
@@ -625,13 +633,13 @@ func (k *Keyer) sendMessage(workmode core.Workmode, index int) {
 }
 
 func (k *Keyer) SendQuestion(q string) {
-	k.beginTransmission()
+	k.ensureFocusedVFO()
 	s := strings.TrimSpace(q) + "?"
 	k.send(s)
 }
 
 func (k *Keyer) SendText(text string, args ...any) {
-	k.beginTransmission()
+	k.ensureFocusedVFO()
 	k.send(fmt.Sprintf(text, args...))
 }
 
@@ -644,7 +652,7 @@ func (k *Keyer) SendTextWithTemplate(text string) error {
 	if err := template.Execute(buffer, k.fillins()); err != nil {
 		return err
 	}
-	k.beginTransmission()
+	k.ensureFocusedVFO()
 	k.send(buffer.String())
 	if k.patternHasSerial(text) {
 		k.emitSerialSent()
@@ -657,6 +665,11 @@ func (k *Keyer) send(s string) {
 	k.lastTransmission = s
 	k.client.Speed(k.wpm)
 	k.client.Send(s)
+
+	if k.buttonView != nil {
+		k.buttonView.SetLastTransmission(k.lastTransmission)
+	}
+	k.emitKeyerTransmission(k.lastTransmission)
 }
 
 func (k *Keyer) Repeat() {
@@ -679,27 +692,27 @@ func (k *Keyer) Notify(listener any) {
 }
 
 func (k *Keyer) emitKeyerStopped() {
-	for _, listener := range k.listeners {
-		if keyerStoppedListener, ok := listener.(KeyerStoppedListener); ok {
-			keyerStoppedListener.KeyerStopped()
-		}
-	}
+	core.Emit(k.listeners, func(l KeyerStoppedListener) {
+		l.KeyerStopped()
+	})
 }
 
 func (k *Keyer) emitTransmissionStarted(vfo core.VFOID) {
-	for _, listener := range k.listeners {
-		if transmissionStartedListener, ok := listener.(core.TransmissionStartedListener); ok {
-			transmissionStartedListener.TransmissionStarted(vfo)
-		}
-	}
+	core.Emit(k.listeners, func(l core.TransmissionStartedListener) {
+		l.TransmissionStarted(vfo)
+	})
+}
+
+func (k *Keyer) emitKeyerTransmission(s string) {
+	core.Emit(k.listeners, func(l TransmissionListener) {
+		l.KeyerTransmission(s)
+	})
 }
 
 func (k *Keyer) emitSerialSent() {
-	for _, listener := range k.listeners {
-		if serialSentListener, ok := listener.(SerialSentListener); ok {
-			serialSentListener.SerialSent()
-		}
-	}
+	core.Emit(k.listeners, func(l SerialSentListener) {
+		l.SerialSent()
+	})
 }
 
 // patternHasSerial reports whether a template pattern references serial-bearing

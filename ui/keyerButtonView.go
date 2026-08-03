@@ -21,6 +21,8 @@ type keyerView struct {
 	macrosBtn  *qtlib.QPushButton
 	speedSpin  *qtlib.QSpinBox
 
+	lastTransmissionLabel *qtlib.QLabel
+
 	cqLabelText  string
 	parrotActive bool
 	ignoreInput  bool
@@ -88,6 +90,10 @@ func newKeyerView() *keyerView {
 		}
 	})
 
+	v.lastTransmissionLabel = qtlib.NewQLabel3("")
+	v.lastTransmissionLabel.SetObjectName(*qtlib.NewQAnyStringView3("keyerLastTransmission"))
+	v.lastTransmissionLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+
 	return v
 }
 
@@ -130,4 +136,14 @@ func (v *keyerView) SetSpeed(wpm int) {
 func (v *keyerView) SetParrotActive(active bool) {
 	v.parrotActive = active
 	v.buttons[0].SetText(v.buildLabel(0, v.cqLabelText))
+}
+
+func (v *keyerView) SetLastTransmission(s string) {
+	var text string
+	if s == "" {
+		text = ""
+	} else {
+		text = fmt.Sprintf("Repeat: %s", s)
+	}
+	v.lastTransmissionLabel.SetText(text)
 }

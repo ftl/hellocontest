@@ -55,6 +55,8 @@ func newCentralArea(entry *entryView, callinfo *callinfoView, esm *esmView, work
 	esmWorkmodeLayout.SetContentsMargins(0, 0, 0, 0)
 	esmWorkmodeLayout.AddWidget(esm.widget)
 	esmWorkmodeLayout.AddStretch()
+	esmWorkmodeLayout.AddWidget(keyer.lastTransmissionLabel.QWidget)
+	esmWorkmodeLayout.AddStretch()
 	esmWorkmodeLayout.AddWidget(workmode.widget)
 
 	rootLayout.AddWidget(result.entryRoot)

@@ -2,7 +2,7 @@
 
 
 # Hello Contest
-A simple amateur radio contest log for Linux, written in Go using the Qt6 mapping [miqt](https://github.com/mappu/miqt) for the UI. The main focus is on CW contests on HF, but it should also work for SSB or RTTY contests.
+A simple amateur radio contest log for Linux with a strong bias towards CW on HF. *Hello Contest* is written in Go using the Qt6 mapping [miqt](https://github.com/mappu/miqt) for the UI.
 
 ![main window with qso data](https://github.com/ftl/hellocontest/blob/master/docs/screenshots/main_window_filled.png?raw=true)
 

@@ -1468,7 +1468,7 @@ func TestK1_SendQuestion_CallsignField_SendsCallsign(t *testing.T) {
 		WithClassicExchange().WithKeyer().WithVFOSwitcher().
 		Enter("DL1ABC").
 		SendQuestion().
-		AssertKeyerSentQuestion("DL1ABC")
+		AssertKeyerSentText("DL1ABC")
 }
 
 func TestK1_SendQuestion_TheirExchangeField_SendsNR(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ftl/conval"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
@@ -598,9 +599,10 @@ func (s *Scenario) AssertKeyerSentMacro(index int) *Scenario {
 }
 
 // AssertKeyerSentText asserts keyer.SendText was called at least once.
-func (s *Scenario) AssertKeyerSentText() *Scenario {
+func (s *Scenario) AssertKeyerSentText(text string) *Scenario {
 	s.t.Helper()
-	assert.NotEmpty(s.t, s.keyer.sentTexts, "expected keyer.SendText to be called")
+	require.Equal(s.t, 1, len(s.keyer.sentTexts))
+	assert.Equal(s.t, text, s.keyer.sentTexts[0], "expected keyer.SendText to be called")
 	return s
 }
 

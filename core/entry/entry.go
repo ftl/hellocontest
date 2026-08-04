@@ -914,7 +914,12 @@ func (c *Controller) SendQuestion() {
 	case c.activeField[c.focusedVFO].IsTheirExchange():
 		c.keyer.SendQuestion("nr")
 	default:
-		c.keyer.SendQuestion(c.input[c.focusedVFO].callsign)
+		callsign := c.input[c.focusedVFO].callsign
+		if callsign != "" {
+			c.keyer.SendText(callsign)
+		} else {
+			c.keyer.SendQuestion("")
+		}
 	}
 }
 
@@ -926,7 +931,6 @@ func (c *Controller) RepeatLastTransmission() {
 		return
 	}
 
-	// do not switch the VFO here, we want to explicitly stay on the same VFO that was used for the last transmission
 	c.keyer.Repeat()
 }
 

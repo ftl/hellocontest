@@ -114,6 +114,7 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 		esmState:             make([]core.ESMState, core.VFOCount),
 		esmMessage:           make([]string, core.VFOCount),
 		esmMacroIndex:        make([]int, core.VFOCount),
+		lastNumber:           make([]core.QSONumber, core.VFOCount),
 
 		stationCallsign: settings.Station().Callsign.String(),
 		vfoWorkmode:     make([]core.Workmode, core.VFOCount),
@@ -187,6 +188,8 @@ type Controller struct {
 	myReport            string
 	myNumber            string
 	myExchange          []string
+	lastNumber          []core.QSONumber
+	lastExchange        []string
 	focusedVFO          core.VFOID
 	txVFO               core.VFOID
 	vfo2Enabled         bool
@@ -1083,6 +1086,7 @@ func (c *Controller) Log() {
 	} else {
 		qso.Workmode = c.workmode
 		c.logbook.AddQSO(qso)
+		c.lastNumber[c.focusedVFO] = qso.MyNumber
 	}
 
 	// NextQSONumber may have advanced; refresh the other VFO's serial preview.
@@ -1350,6 +1354,7 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 	values.MyExchange = strings.Join(c.myExchange, " ")
 	values.MyExchanges = c.myExchange
 	values.TheirCall = c.input[c.focusedVFO].callsign
+	values.LastNumber = c.lastNumber[c.focusedVFO]
 
 	return values
 }

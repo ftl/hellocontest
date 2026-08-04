@@ -594,6 +594,7 @@ func (k *Keyer) fillins() map[string]any {
 		"MyExchange":  values.MyExchange,
 		"MyExchanges": values.MyExchanges,
 		"TheirCall":   values.TheirCall,
+		"LastNumber":  cutDefault(pad(3, values.LastNumber.String())),
 	}
 	return result
 }

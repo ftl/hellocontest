@@ -539,6 +539,7 @@ type KeyerValues struct {
 	MyXchange   string
 	MyExchange  string
 	MyExchanges []string
+	LastNumber  QSONumber
 }
 
 // FilterPlaceholder can be used as placeholder for a missed character in the callsign.

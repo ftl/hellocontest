@@ -1670,6 +1670,75 @@ func TestN2_CurrentValues_MyNumber_ReflectsClaimedSerial(t *testing.T) {
 	}
 }
 
+func logClassicQSO(s *Scenario, callsign string) {
+	s.controller.Enter(callsign)
+	s.controller.GotoNextField()
+	s.controller.Enter("599")
+	s.controller.GotoNextField()
+	s.controller.Enter("001")
+	s.controller.GotoNextField()
+	s.controller.Enter("XX")
+	s.controller.Log()
+}
+
+// N3. CurrentValues.LastNumber
+// Pre:  classic exchange.
+// Post: LastNumber is the serial of the most recently logged QSO on the focused
+//       VFO, held across the post-log serial advance; per-VFO; unaffected by edits.
+
+func TestN3_LastNumber_ZeroBeforeAnyQSOLogged(t *testing.T) {
+	s := NewScenario(t).WithClassicExchange().WithNextQSONumber(42)
+	s.Enter("DL1ABC")
+	assert.Equal(t, core.QSONumber(0), s.controller.CurrentValues().LastNumber,
+		"LastNumber must be 0 until a QSO is logged")
+}
+
+func TestN3_LastNumber_HoldsLoggedSerialAfterAdvance(t *testing.T) {
+	s := NewScenario(t).WithClassicExchange().WithNextQSONumber(42)
+	logClassicQSO(s, "DL1ABC")
+
+	s.logbook.nextQSONumber = 43
+	s.Enter("DL2XYZ")
+
+	vals := s.controller.CurrentValues()
+	assert.Equal(t, core.QSONumber(43), vals.MyNumber,
+		"MyNumber must reflect the advanced serial")
+	assert.Equal(t, core.QSONumber(42), vals.LastNumber,
+		"LastNumber must still hold the previously logged serial")
+}
+
+func TestN3_LastNumber_IsPerVFO(t *testing.T) {
+	s := NewScenario(t).WithClassicExchange().WithVFO2().WithNextQSONumber(6)
+	logClassicQSO(s, "DL1ABC")
+
+	assert.Equal(t, core.QSONumber(6), s.controller.CurrentValues().LastNumber,
+		"VFO1 must see its own logged serial")
+
+	s.controller.SetFocusedVFO(core.VFO2)
+	assert.Equal(t, core.QSONumber(0), s.controller.CurrentValues().LastNumber,
+		"VFO2 has logged nothing → LastNumber 0")
+}
+
+func TestN3_LastNumber_NotUpdatedByEdit(t *testing.T) {
+	dl2xyz, _ := core.ParseCallsign("DL2XYZ")
+	s := NewScenario(t).WithClassicExchange().WithNextQSONumber(6)
+	logClassicQSO(s, "DL1ABC")
+	require.Equal(t, core.QSONumber(6), s.controller.CurrentValues().LastNumber)
+
+	s.controller.QSOSelected(core.QSO{
+		Callsign:      dl2xyz,
+		MyNumber:      3,
+		Band:          core.Band20m,
+		Mode:          core.ModeCW,
+		TheirExchange: []string{"599", "042", "OE"},
+		MyExchange:    []string{"599", "003", ""},
+	})
+	s.controller.Log()
+
+	assert.Equal(t, core.QSONumber(6), s.controller.CurrentValues().LastNumber,
+		"edit must not overwrite LastNumber")
+}
+
 // I7. Dual-VFO serial interleaving
 // Pre:  classic exchange, nextQSONumber=6, VFO2 enabled.
 // Flow: VFO1 enters callsign (claims 6), tabs to exchange → VFO2 enters callsign

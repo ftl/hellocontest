@@ -2,7 +2,6 @@ package callinfo
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -67,9 +66,8 @@ func TestCollector_GetInfoForInput_normalizesInput(t *testing.T) {
 }
 
 func TestCollector_addDXCC(t *testing.T) {
-	dxccFinder := dxcc.New()
-	dxccFinder.WaitUntilAvailable(10 * time.Second)
-	require.True(t, dxccFinder.Available(), "DXCC database not available")
+	dxccFinder, err := dxcc.NewFromFile("testdata/cty.dat")
+	require.NoError(t, err)
 
 	tests := []struct {
 		input              string

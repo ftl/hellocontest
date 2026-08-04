@@ -17,11 +17,28 @@ func New() *Finder {
 
 	go func() {
 		result.entities = setupEntities()
+		if result.entities == nil {
+			log.Print("DXCC prefix database unavailable")
+			return
+		}
 		log.Print("DXCC prefix database available")
 		close(result.available)
 	}()
 
 	return result
+}
+
+func NewFromFile(filename string) (*Finder, error) {
+	entities, err := dxcc.LoadLocal(filename)
+	if err != nil {
+		return nil, err
+	}
+	result := &Finder{
+		entities:  entities,
+		available: make(chan struct{}),
+	}
+	close(result.available)
+	return result, nil
 }
 
 // Finder is thread-safe.

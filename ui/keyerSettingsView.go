@@ -57,9 +57,10 @@ func newKeyerSettingsView(dialog *qtlib.QDialog, controller KeyerSettingsControl
 <table>
 <tr><td>{{.MyCall}}</td><td>the station callsign</td></tr>
 <tr><td>{{.MyReport}}</td><td>my report</td></tr>
-<tr><td>{{.MyNumber}}</td><td>my QSOnumber (t=0, n=9)</td></tr>
+<tr><td>{{.MyNumber}}</td><td>my QSO number (t=0, n=9)</td></tr>
 <tr><td>{{.MyXchange}}</td><td>all exchange fields concatenated, except report and number</td></tr>
 <tr><td>{{.MyExchange}}</td><td>all exchange fields concatenated, including report and number</td></tr>
+<tr><td>{{.LastNumber}}</td><td>the QSO number of the last logged QSO (t=0, n=9)</td></tr>
 <tr><td>{{.TheirCall}}</td><td>their callsign</td></tr>
 </table>
 For more details see <a href="https://github.com/ftl/hellocontest/wiki/Main-Window#cw-macros">the wiki</a>.

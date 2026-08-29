@@ -132,7 +132,7 @@ var Default = &Data{
 		},
 	},
 	Keybindings: map[string]string{
-		"file.new":                        "Ctrl+N",
+		"file.new":                        "",
 		"file.open":                       "Ctrl+O",
 		"file.save_as":                    "",
 		"file.export_summary":             "",

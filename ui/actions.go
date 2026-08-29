@@ -131,7 +131,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.keyerGroup.SetExclusive(true)
 
 	// File menu
-	a.newFileAction = a.makeTriggerAction(core.ActionFileNew, "&New...", "Create a new contest log", "Ctrl+N", controller.New)
+	a.newFileAction = a.makeTriggerAction(core.ActionFileNew, "&New...", "Create a new contest log", "", controller.New)
 	a.openFileAction = a.makeTriggerAction(core.ActionFileOpen, "&Open...", "Open a contest log", "Ctrl+O", controller.Open)
 	a.saveAsAction = a.makeTriggerAction(core.ActionFileSaveAs, "Save &As...", "", "", controller.SaveAs)
 	a.exportSummaryAction = a.makeTriggerAction(core.ActionFileExportSummary, "&Summary...", "Export the contest summary", "", controller.ExportSummary)

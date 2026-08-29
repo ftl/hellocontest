@@ -26,6 +26,7 @@ import (
 	"github.com/ftl/hellocontest/core/export/cabrillo"
 	"github.com/ftl/hellocontest/core/export/csv"
 	"github.com/ftl/hellocontest/core/export/summary"
+	"github.com/ftl/hellocontest/core/hamdial"
 	"github.com/ftl/hellocontest/core/hamdxmap"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
@@ -98,6 +99,7 @@ type Controller struct {
 	Bandmap                  *bandmap.Bandmap
 	Clusters                 *cluster.Clusters
 	Parrot                   *parrot.Parrot
+	Dial                     *hamdial.Controller
 
 	remoteServer *remote.Server
 }
@@ -282,6 +284,8 @@ func (c *Controller) Startup() {
 	c.Workmode.Notify(c.Parrot)
 	c.Entry.Notify(c.Parrot)
 	c.Parrot.Notify(c.Entry)
+
+	c.Dial = hamdial.New(c, c.asyncRunner)
 
 	c.Settings.Notify(c.Entry)
 	c.Settings.Notify(c.Workmode)
@@ -884,6 +888,27 @@ func (c *Controller) OfferQTC() {
 
 func (c *Controller) RequestQTC() {
 	c.QTCController.RequestQTC()
+}
+
+func (c *Controller) SetHamDialActive(active bool) {
+	err := c.Dial.SetActive(active)
+	if err != nil {
+		c.ShowError("%v", err)
+	}
+}
+
+func (c *Controller) ActivateBestMatchOnFrequency() {
+	c.SwitchToSPWorkmode()
+	c.Entry.SelectBestMatchOnFrequency()
+	c.Entry.NextESMStep()
+}
+
+func (c *Controller) FocusVFO1() {
+	c.Entry.FocusVFO1()
+}
+
+func (c *Controller) FocusVFO2() {
+	c.Entry.FocusVFO2()
 }
 
 func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {

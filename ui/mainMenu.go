@@ -68,6 +68,8 @@ func newMainMenu(
 	radioSubmenu.AddAction(a.xitActiveAction)
 	radioSubmenu.AddAction(a.ritActiveAction)
 	radioSubmenu.AddSeparator()
+	radioSubmenu.AddAction(a.dialActiveAction)
+	radioSubmenu.AddSeparator()
 	radioMenu.menu = radioSubmenu
 
 	// ── Bandmap ──────────────────────────────────────────────────────────

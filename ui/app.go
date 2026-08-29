@@ -88,6 +88,7 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 	a.controller.Entry.Notify(a.actions)
 	a.controller.Workmode.Notify(a.actions)
 	a.controller.QTCList.Notify(a.actions)
+	a.controller.Dial.Notify(a.actions)
 	for _, v := range a.controller.VFOs {
 		v.Notify(a.actions)
 	}

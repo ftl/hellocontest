@@ -38,6 +38,7 @@ const (
 
 	ActionRadioXITActive          = "radio.xit_active"
 	ActionRadioRITActive          = "radio.rit_active"
+	ActionRadioDialActive         = "radio.dial_active"
 	ActionRadioShiftFrequency     = "radio.shift_frequency"
 	ActionRadioShiftXIT           = "radio.shift_xit"
 	ActionRadioShiftRIT           = "radio.shift_rit"

@@ -56,6 +56,7 @@ type actions struct {
 	incrementalTuningToggleAction *qtlib.QAction
 	xitActiveAction               *qtlib.QAction
 	ritActiveAction               *qtlib.QAction
+	dialActiveAction              *qtlib.QAction
 
 	// Bandmap menu
 	markBandmapAction    *qtlib.QAction
@@ -164,6 +165,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.incrementalTuningToggleAction = a.makeTriggerAction(core.ActionIncrementalTuningToggle, "Toggle Incremental Tuning", "Toggle the RIT or XIT of the focused VFO", "Ctrl+Shift+X", func() { controller.ToggleIncrementalTuning() })
 	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.XIT, active) })
 	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.RIT, active) })
+	a.dialActiveAction = a.makeCheckAction(core.ActionRadioDialActive, "HamDial", "Activate the HamDial device", "", func(active bool) { controller.SetHamDialActive(active) })
 
 	// Bandmap menu
 	a.markBandmapAction = a.makeTriggerAction(core.ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
@@ -462,6 +464,12 @@ func (a *actions) FocusedVFOChanged(vfo core.VFOID) {
 	defer func() { a.ignoreInput = false }()
 	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.XIT))
 	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.RIT))
+}
+
+func (a *actions) DialActiveChanged(active bool) {
+	a.ignoreInput = true
+	defer func() { a.ignoreInput = false }()
+	a.dialActiveAction.SetChecked(active)
 }
 
 func (a *actions) ContestPagesChanged(rulesAvailable, uploadAvailable bool) {

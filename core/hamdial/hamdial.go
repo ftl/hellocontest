@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/ftl/hamdial"
@@ -12,6 +13,13 @@ import (
 
 const (
 	longPressDuration = 500 * time.Millisecond
+
+	// tuning acceleration: the frequency delta per detent grows with the turn rate
+	baseTuningStep      = core.Frequency(10)     // delta per detent when turning slowly
+	maxTuningStep       = core.Frequency(500)    // delta per detent when turning at full speed
+	tuningStepIncrement = core.Frequency(10)     // the delta is rounded to a multiple of this value
+	slowTurnInterval    = 200 * time.Millisecond // detents further apart than this are considered slow
+	tuningAcceleration  = 2.0                    // exponent of the acceleration curve, > 1 means faster than linear
 )
 
 type DialActions interface {
@@ -49,6 +57,9 @@ type Controller struct {
 
 	button1Pressed      bool
 	button1PressedSince time.Time
+
+	lastTurn          time.Time
+	lastTurnDirection hamdial.Direction
 }
 
 func New(actions DialActions, asyncRunner core.AsyncRunner) *Controller {
@@ -171,8 +182,7 @@ func (c *Controller) DialTurned(direction hamdial.Direction) {
 			c.actions.GotoNextSpotDown()
 		}
 	} else {
-		delta := core.Frequency(direction) * 50 // TODO: calculate the delta based on the turn rate
-		c.actions.ShiftFrequency(delta)
+		c.actions.ShiftFrequency(c.turnDelta(direction, time.Now()))
 	}
 }
 
@@ -182,6 +192,24 @@ func (c *Controller) Disconnected() {
 	c.stopDial = nil
 	c.button1Pressed = false
 	c.emitActiveChanged()
+}
+
+// turnDelta returns the frequency delta for one detent, accelerated by the turn rate:
+// the shorter the interval since the preceding detent, the larger the delta.
+func (c *Controller) turnDelta(direction hamdial.Direction, now time.Time) core.Frequency {
+	interval := now.Sub(c.lastTurn)
+	sameDirection := direction == c.lastTurnDirection
+	c.lastTurn = now
+	c.lastTurnDirection = direction
+
+	step := baseTuningStep
+	if sameDirection && interval > 0 && interval < slowTurnInterval {
+		factor := math.Pow(float64(slowTurnInterval)/float64(interval), tuningAcceleration)
+		step = core.Frequency(math.Round(float64(baseTuningStep)*factor/float64(tuningStepIncrement))) * tuningStepIncrement
+		step = min(step, maxTuningStep)
+	}
+
+	return core.Frequency(direction) * step
 }
 
 func (c *Controller) spotMode() bool {

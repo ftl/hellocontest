@@ -3,6 +3,7 @@ package hamlib
 import (
 	"log"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -40,6 +41,10 @@ type Client struct {
 
 	ptt         bool
 	pttOffCount int
+
+	frequencyLock      sync.Mutex
+	pendingFrequency   []core.Frequency
+	frequencyScheduled []bool
 }
 
 type vfoState struct {
@@ -70,6 +75,9 @@ func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client 
 		singleVFO:       singleVFO,
 		lastState:       make([]vfoState, int(core.VFOCount)),
 		audioLevel:      make([]float64, int(core.VFOCount)),
+
+		pendingFrequency:   make([]core.Frequency, int(core.VFOCount)),
+		frequencyScheduled: make([]bool, int(core.VFOCount)),
 	}
 	result.client.Notify(result)
 	if singleVFO {
@@ -310,12 +318,15 @@ func (c *Client) pollIncrementalTuning(vfo hl.VFO, function hl.Function, getOffs
 	return true, core.Frequency(offset)
 }
 
-func (c *Client) doInLoop(f func()) {
+// doInLoop hands the given function over to the rig's command loop. It returns
+// false if the loop is not running and the function will not be executed.
+func (c *Client) doInLoop(f func()) bool {
 	loopRunning := c.loopRunning.Load()
 	if !loopRunning {
-		return
+		return false
 	}
 	c.do <- f
+	return true
 }
 
 func (c *Client) KeepOpen() {
@@ -414,13 +425,40 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 	})
 }
 
+// SetFrequency sets the frequency of the given VFO. Only one frequency command
+// per VFO is queued at a time, and it always uses the most recent frequency. A
+// rig that cannot keep up would otherwise work off a backlog of outdated
+// frequencies long after the tuning stopped.
 func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
-	c.doInLoop(func() {
-		err := c.client.SetFrequency(c.vfos[vfo], hl.Frequency(frequency))
+	c.frequencyLock.Lock()
+	c.pendingFrequency[vfo] = frequency
+	alreadyScheduled := c.frequencyScheduled[vfo]
+	c.frequencyScheduled[vfo] = true
+	c.frequencyLock.Unlock()
+
+	if alreadyScheduled {
+		return
+	}
+
+	scheduled := c.doInLoop(func() {
+		err := c.client.SetFrequency(c.vfos[vfo], hl.Frequency(c.takePendingFrequency(vfo)))
 		if err != nil {
 			log.Printf("hamlib: cannot set frequency: %v", err)
 		}
 	})
+	if !scheduled {
+		c.takePendingFrequency(vfo)
+	}
+}
+
+// takePendingFrequency returns the most recent frequency for the given VFO and
+// allows a new frequency command to be queued.
+func (c *Client) takePendingFrequency(vfo core.VFOID) core.Frequency {
+	c.frequencyLock.Lock()
+	defer c.frequencyLock.Unlock()
+
+	c.frequencyScheduled[vfo] = false
+	return c.pendingFrequency[vfo]
 }
 
 func (c *Client) SetBand(vfo core.VFOID, band core.Band) {

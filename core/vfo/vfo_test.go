@@ -2,6 +2,7 @@ package vfo
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/stretchr/testify/assert"
@@ -115,4 +116,69 @@ func TestWorkmodeGatesIncrementalTuning(t *testing.T) {
 
 	assert.True(t, v.IncrementalTuningActive(core.XIT), "XIT intent survives the round-trip")
 	assert.True(t, v.IncrementalTuningActive(core.RIT), "RIT intent survives the round-trip")
+}
+
+// laggingClient simulates a rig that does not report the commanded frequency back immediately.
+type laggingClient struct {
+	commanded []core.Frequency
+}
+
+func (c *laggingClient) Notify(any)                    {}
+func (c *laggingClient) Active() bool                  { return true }
+func (c *laggingClient) Refresh()                      {}
+func (c *laggingClient) SetCurrentVFO(core.VFOID)      {}
+func (c *laggingClient) SetTXVFO(core.VFOID)           {}
+func (c *laggingClient) SetBand(core.VFOID, core.Band) {}
+func (c *laggingClient) SetMode(core.VFOID, core.Mode) {}
+func (c *laggingClient) IncrementalTuningPerVFO() bool { return false }
+func (c *laggingClient) MuteAudio(core.VFOID)          {}
+func (c *laggingClient) UnmuteAudio(core.VFOID)        {}
+func (c *laggingClient) ToggleAudio(core.VFOID)        {}
+func (c *laggingClient) SetIncrementalTuning(core.VFOID, core.IncrementalTuningKind, bool, core.Frequency) {
+}
+
+func (c *laggingClient) SetFrequency(_ core.VFOID, frequency core.Frequency) {
+	c.commanded = append(c.commanded, frequency)
+}
+
+func TestShiftFrequencyAccumulatesWhileTheRigLags(t *testing.T) {
+	client := new(laggingClient)
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v.SetClient(client)
+	now := time.Now()
+	start := v.currentFrequency()
+
+	for i := range 5 {
+		v.shiftFrequency(100, now.Add(time.Duration(i)*10*time.Millisecond))
+	}
+
+	assert.Equal(t, []core.Frequency{start + 100, start + 200, start + 300, start + 400, start + 500}, client.commanded)
+}
+
+func TestShiftFrequencyUsesTheRigFrequencyAfterTheTimeout(t *testing.T) {
+	client := new(laggingClient)
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v.SetClient(client)
+	now := time.Now()
+	start := v.currentFrequency()
+
+	v.shiftFrequency(100, now)
+	v.shiftFrequency(100, now.Add(pendingFrequencyTimeout))
+
+	assert.Equal(t, []core.Frequency{start + 100, start + 100}, client.commanded)
+}
+
+func TestShiftFrequencyUsesTheRigFrequencyOnceItCaughtUp(t *testing.T) {
+	client := new(laggingClient)
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v.SetClient(client)
+	now := time.Now()
+	start := v.currentFrequency()
+
+	v.shiftFrequency(100, now)
+	v.VFOFrequencyChanged(core.VFO1, start+100)
+	v.VFOFrequencyChanged(core.VFO1, start+700) // the operator turned the knob at the rig
+	v.shiftFrequency(100, now.Add(10*time.Millisecond))
+
+	assert.Equal(t, []core.Frequency{start + 100, start + 800}, client.commanded)
 }

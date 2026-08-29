@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/ftl/hamdial"
@@ -60,6 +61,10 @@ type Controller struct {
 
 	lastTurn          time.Time
 	lastTurnDirection hamdial.Direction
+
+	shiftLock      sync.Mutex
+	pendingDelta   core.Frequency
+	shiftScheduled bool
 }
 
 func New(actions DialActions, asyncRunner core.AsyncRunner) *Controller {
@@ -73,15 +78,26 @@ func (c *Controller) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
+// runAction runs an action on the main thread. All events of the dial are
+// handled on the dial's own goroutine, but the actions modify the state of the
+// application and must therefore run on the main thread.
+func (c *Controller) runAction(action func()) {
+	c.asyncRunner(action)
+}
+
 func (c *Controller) emitActiveChanged() {
 	active := c.Active()
 	c.asyncRunner(func() {
-		for _, listener := range c.listeners {
-			if activeChangedListener, ok := listener.(ActiveChangedListener); ok {
-				activeChangedListener.DialActiveChanged(active)
-			}
-		}
+		c.notifyActiveChanged(active)
 	})
+}
+
+func (c *Controller) notifyActiveChanged(active bool) {
+	for _, listener := range c.listeners {
+		if activeChangedListener, ok := listener.(ActiveChangedListener); ok {
+			activeChangedListener.DialActiveChanged(active)
+		}
+	}
 }
 
 func (c *Controller) Active() bool {
@@ -145,17 +161,17 @@ func (c *Controller) ButtonPressed(button hamdial.Button) {
 		c.button1Pressed = true
 		c.button1PressedSince = time.Now()
 	case hamdial.Button2:
-		c.actions.ActivateBestMatchOnFrequency()
+		c.runAction(c.actions.ActivateBestMatchOnFrequency)
 	case hamdial.Button3:
-		c.actions.GotoNextSpotUp()
+		c.runAction(c.actions.GotoNextSpotUp)
 	case hamdial.Button4:
-		c.actions.MarkInBandmap()
+		c.runAction(c.actions.MarkInBandmap)
 	case hamdial.Button5:
-		c.actions.FocusVFO1()
+		c.runAction(c.actions.FocusVFO1)
 	case hamdial.Button6:
 	// TODO: observe in VFO2
 	case hamdial.Button7:
-		c.actions.FocusVFO2()
+		c.runAction(c.actions.FocusVFO2)
 	}
 }
 
@@ -163,7 +179,7 @@ func (c *Controller) ButtonReleased(button hamdial.Button) {
 	switch button {
 	case hamdial.Button1:
 		if !c.spotMode() {
-			c.actions.GotoNextSpotDown()
+			c.runAction(c.actions.GotoNextSpotDown)
 		}
 		c.button1Pressed = false
 		c.updateDetent()
@@ -177,21 +193,56 @@ func (c *Controller) DialTurned(direction hamdial.Direction) {
 	if c.spotMode() {
 		switch direction {
 		case hamdial.Clockwise:
-			c.actions.GotoNextSpotUp()
+			c.runAction(c.actions.GotoNextSpotUp)
 		case hamdial.CounterClockwise:
-			c.actions.GotoNextSpotDown()
+			c.runAction(c.actions.GotoNextSpotDown)
 		}
 	} else {
-		c.actions.ShiftFrequency(c.turnDelta(direction, time.Now()))
+		// the delta is calculated here, on the dial's goroutine, because it depends on the time between the turn events
+		c.shiftFrequency(c.turnDelta(direction, time.Now()))
+	}
+}
+
+// shiftFrequency accumulates the given delta and schedules its application on
+// the main thread, if that is not already pending.
+func (c *Controller) shiftFrequency(delta core.Frequency) {
+	c.shiftLock.Lock()
+	c.pendingDelta += delta
+	alreadyScheduled := c.shiftScheduled
+	c.shiftScheduled = true
+	c.shiftLock.Unlock()
+
+	if alreadyScheduled {
+		return
+	}
+	c.runAction(c.applyPendingShift)
+}
+
+// applyPendingShift applies all deltas that accumulated since the last run as
+// one single shift. Turning the dial faster than the rig can follow would
+// otherwise pile up shifts that keep changing the frequency long after the dial
+// stopped.
+func (c *Controller) applyPendingShift() {
+	c.shiftLock.Lock()
+	delta := c.pendingDelta
+	c.pendingDelta = 0
+	c.shiftScheduled = false
+	c.shiftLock.Unlock()
+
+	if delta != 0 {
+		c.actions.ShiftFrequency(delta)
 	}
 }
 
 func (c *Controller) Disconnected() {
 	log.Print("dial disconnected")
-	c.dial = nil
-	c.stopDial = nil
-	c.button1Pressed = false
-	c.emitActiveChanged()
+	// the state is modified on the main thread, where enable and disable modify it, too
+	c.runAction(func() {
+		c.dial = nil
+		c.stopDial = nil
+		c.button1Pressed = false
+		c.notifyActiveChanged(c.Active())
+	})
 }
 
 // turnDelta returns the frequency delta for one detent, accelerated by the turn rate:
@@ -217,7 +268,8 @@ func (c *Controller) spotMode() bool {
 }
 
 func (c *Controller) updateDetent() {
-	if c.dial == nil {
+	dial := c.dial
+	if dial == nil {
 		return
 	}
 	spotMode := c.spotMode()
@@ -225,5 +277,5 @@ func (c *Controller) updateDetent() {
 		return
 	}
 	c.detent = spotMode
-	c.dial.SetHapticFeedback(c.detent)
+	dial.SetHapticFeedback(c.detent)
 }

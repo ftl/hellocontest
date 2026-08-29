@@ -50,3 +50,61 @@ func TestTurnDeltaGrowsFasterThanLinear(t *testing.T) {
 	// halving the interval must more than double the delta
 	assert.Greater(t, deltaAt(slowTurnInterval/4), 2*deltaAt(slowTurnInterval/2))
 }
+
+// queuedRunner collects the functions to run on the main thread, so that a busy
+// main thread can be simulated.
+type queuedRunner struct {
+	queue []func()
+}
+
+func (r *queuedRunner) Run(f func()) {
+	r.queue = append(r.queue, f)
+}
+
+func (r *queuedRunner) RunAll() {
+	queue := r.queue
+	r.queue = nil
+	for _, f := range queue {
+		f()
+	}
+}
+
+type shiftRecorder struct {
+	DialActions
+	shifts []core.Frequency
+}
+
+func (a *shiftRecorder) ShiftFrequency(delta core.Frequency) {
+	a.shifts = append(a.shifts, delta)
+}
+
+func TestDialTurnedCoalescesShiftsWhileTheMainThreadIsBusy(t *testing.T) {
+	actions := new(shiftRecorder)
+	runner := new(queuedRunner)
+	controller := New(actions, runner.Run)
+
+	for range 5 {
+		controller.shiftFrequency(100)
+	}
+	assert.Empty(t, actions.shifts, "nothing must happen before the main thread is free")
+
+	runner.RunAll()
+	assert.Len(t, actions.shifts, 1, "all turns must be applied as one single shift")
+	assert.Equal(t, core.Frequency(500), actions.shifts[0])
+
+	runner.RunAll()
+	assert.Len(t, actions.shifts, 1, "the accumulated delta must not be applied twice")
+}
+
+func TestDialTurnedSchedulesAgainAfterTheShiftWasApplied(t *testing.T) {
+	actions := new(shiftRecorder)
+	runner := new(queuedRunner)
+	controller := New(actions, runner.Run)
+
+	controller.shiftFrequency(100)
+	runner.RunAll()
+	controller.shiftFrequency(100)
+	runner.RunAll()
+
+	assert.Len(t, actions.shifts, 2)
+}

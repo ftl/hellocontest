@@ -3,11 +3,17 @@ package vfo
 import (
 	"log"
 	"sync"
+	"time"
 
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/hellocontest/core"
 )
+
+// pendingFrequencyTimeout defines how long a commanded frequency is used as the
+// base for subsequent frequency changes while the rig has not yet confirmed it.
+// After this time without a new command, the rig is trusted again.
+const pendingFrequencyTimeout = 1 * time.Second
 
 type Client interface {
 	Notify(any)
@@ -43,6 +49,9 @@ type VFO struct {
 
 	state    [2]incrementalTuningState
 	workmode core.Workmode
+
+	pendingFrequency core.Frequency
+	pendingSince     time.Time
 
 	listeners []any
 }
@@ -99,6 +108,13 @@ func (v *VFO) Refresh() {
 }
 
 func (v *VFO) SetFrequency(frequency core.Frequency) {
+	v.setFrequency(frequency, time.Now())
+}
+
+func (v *VFO) setFrequency(frequency core.Frequency, now time.Time) {
+	v.pendingFrequency = frequency
+	v.pendingSince = now
+
 	if v.online() {
 		v.client.SetFrequency(v.id, frequency)
 	} else {
@@ -108,7 +124,29 @@ func (v *VFO) SetFrequency(frequency core.Frequency) {
 
 // ShiftFrequency changes the current frequency by delta (may be negative).
 func (v *VFO) ShiftFrequency(delta core.Frequency) {
-	v.SetFrequency(v.currentFrequency() + delta)
+	v.shiftFrequency(delta, time.Now())
+}
+
+func (v *VFO) shiftFrequency(delta core.Frequency, now time.Time) {
+	v.setFrequency(v.baseFrequency(now)+delta, now)
+}
+
+// baseFrequency returns the frequency that subsequent frequency changes are
+// based on. As long as the rig has not confirmed the last commanded frequency,
+// that frequency is used instead of the last frequency reported by the rig.
+// Otherwise a rig that cannot keep up with fast changes would make the
+// frequency jump back and forth.
+func (v *VFO) baseFrequency(now time.Time) core.Frequency {
+	if !v.pendingSince.IsZero() && now.Sub(v.pendingSince) < pendingFrequencyTimeout {
+		return v.pendingFrequency
+	}
+	return v.currentFrequency()
+}
+
+// clearPendingFrequency makes the next frequency change use the frequency
+// reported by the rig again.
+func (v *VFO) clearPendingFrequency() {
+	v.pendingSince = time.Time{}
 }
 
 // currentFrequency returns the last known frequency of this VFO. The offline
@@ -122,6 +160,7 @@ func (v *VFO) currentFrequency() core.Frequency {
 }
 
 func (v *VFO) SetBand(band core.Band) {
+	v.clearPendingFrequency()
 	if v.online() {
 		v.client.SetBand(v.id, band)
 	} else {
@@ -184,6 +223,9 @@ func (v *VFO) LogbookLoaded() {
 func (v *VFO) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
 	if vfo != v.id {
 		return
+	}
+	if frequency == v.pendingFrequency {
+		v.clearPendingFrequency()
 	}
 	v.offlineClient.SetFrequency(frequency)
 }

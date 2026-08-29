@@ -19,7 +19,7 @@ const (
 	baseTuningStep      = core.Frequency(10)     // delta per detent when turning slowly
 	maxTuningStep       = core.Frequency(500)    // delta per detent when turning at full speed
 	tuningStepIncrement = core.Frequency(10)     // the delta is rounded to a multiple of this value
-	slowTurnInterval    = 200 * time.Millisecond // detents further apart than this are considered slow
+	slowTurnInterval    = 175 * time.Millisecond // detents further apart than this are considered slow
 	tuningAcceleration  = 2.0                    // exponent of the acceleration curve, > 1 means faster than linear
 )
 

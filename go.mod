@@ -1,12 +1,13 @@
 module github.com/ftl/hellocontest
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/ftl/cabrillo v0.3.0
 	github.com/ftl/clusterix v0.1.0
 	github.com/ftl/conval v0.11.3
 	github.com/ftl/godxmap v1.0.1
+	github.com/ftl/hamdial v1.0.0
 	github.com/ftl/hamradio v0.3.0
 	github.com/ftl/hl-go v1.0.6
 	github.com/ftl/tci v0.3.2
@@ -26,6 +27,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

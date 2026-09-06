@@ -118,6 +118,7 @@ func (m *Bandmap) update() {
 	m.notifier.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
 
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
+	m.notifier.emitBandsChanged(bands)
 	entries := m.entries.Query(nil, m.entryVisible)
 	index := core.NewFrameIndex(entries)
 	frame := core.BandmapFrame{

@@ -105,6 +105,7 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 		a.scoreTableView.RepaintForThemeChange()
 		a.rateView.RepaintForThemeChange()
 		a.spotsView.RepaintForThemeChange()
+		a.bandMatrixView.RepaintForThemeChange()
 		a.spotWindow.RepaintForThemeChange()
 		a.clockView.RepaintForThemeChange()
 	})
@@ -169,6 +170,7 @@ type application struct {
 	radioMenu      *radioMenu
 	spotSourceMenu *spotSourceMenu
 
+	bandMatrixView *bandMatrixView
 	qsoTableView   *qsoTableView
 	qtcTableView   *qtcTableView
 	scoreGraphView *scoreGraphView
@@ -287,6 +289,10 @@ func (a *application) createViews(timebase core.Clock) {
 	a.clockView = newClockView(a.window.QWidget)
 	a.controller.ClockView.SetView(a.clockView)
 
+	// setup band matrix dock
+	a.bandMatrixView = newBandMatrixView(a.window.QWidget, a.controller.BandMatrix)
+	a.controller.BandMatrix.SetView(a.bandMatrixView)
+
 	// setup the spots view in its own window
 	a.spotsView = newSpotsView(a.controller.Bandmap, a.style)
 	a.spotWindow = newSpotWindow(a.spotsView.widget)
@@ -306,6 +312,7 @@ func (a *application) createViews(timebase core.Clock) {
 	a.dockManager.Add(a.scoreGraphView, qtlib.LeftDockWidgetArea)
 	a.dockManager.Add(a.scoreTableView, qtlib.LeftDockWidgetArea)
 	a.dockManager.Add(a.clockView, qtlib.RightDockWidgetArea)
+	a.dockManager.Add(a.bandMatrixView, qtlib.RightDockWidgetArea)
 }
 
 func (a *application) createDialogs() {

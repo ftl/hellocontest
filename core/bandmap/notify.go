@@ -24,6 +24,10 @@ type EntryOnFrequencyListener interface {
 	EntryOnFrequency(core.BandmapEntry, bool)
 }
 
+type BandsChangedListener interface {
+	BandsChanged([]core.BandSummary)
+}
+
 type Notifier struct {
 	listeners   []any
 	asyncRunner core.AsyncRunner
@@ -78,6 +82,16 @@ func (n *Notifier) emitEntryOnFrequency(e core.BandmapEntry, available bool) {
 		if nearestEntryListener, ok := listener.(EntryOnFrequencyListener); ok {
 			n.asyncRunner(func() {
 				nearestEntryListener.EntryOnFrequency(e, available)
+			})
+		}
+	}
+}
+
+func (n *Notifier) emitBandsChanged(bands []core.BandSummary) {
+	for _, listener := range n.listeners {
+		if bandsChangedListener, ok := listener.(BandsChangedListener); ok {
+			n.asyncRunner(func() {
+				bandsChangedListener.BandsChanged(bands)
 			})
 		}
 	}

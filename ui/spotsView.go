@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	qtlib "github.com/mappu/miqt/qt6"
 
@@ -42,11 +41,6 @@ type spotsView struct {
 
 	style *Style
 
-	bandGrid    *qtlib.QWidget
-	bandLayout  *qtlib.QHBoxLayout
-	bandButtons map[core.Band]*qtlib.QPushButton
-	bandsID     string
-
 	table *qtlib.QTableView
 	model *qtlib.QStandardItemModel
 	bold  *qtlib.QFont
@@ -60,9 +54,8 @@ type spotsView struct {
 
 func newSpotsView(controller SpotsController, style *Style) *spotsView {
 	v := &spotsView{
-		controller:  controller,
-		style:       style,
-		bandButtons: make(map[core.Band]*qtlib.QPushButton),
+		controller: controller,
+		style:      style,
 	}
 
 	v.bold = qtlib.NewQFont()
@@ -72,11 +65,6 @@ func newSpotsView(controller SpotsController, style *Style) *spotsView {
 	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("spotsView"))
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
-
-	v.bandGrid = qtlib.NewQWidget2()
-	v.bandLayout = qtlib.NewQHBoxLayout(v.bandGrid)
-	v.bandLayout.SetContentsMargins(0, 0, 0, 0)
-	layout.AddWidget3(v.bandGrid, 0, 0)
 
 	v.buildTable()
 	layout.AddWidget3(v.table.QAbstractScrollArea.QFrame.QWidget, 1, 0)
@@ -116,8 +104,6 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 	oldFrame := v.currentFrame
 	v.currentFrame = frame
 
-	v.setupBands(frame.Bands)
-	v.updateBands(frame.Bands)
 	v.setQTCsEnabled(frame.QTCsEnabled)
 
 	if bandChanged {
@@ -176,91 +162,6 @@ func (v *spotsView) buildTable() {
 		}
 		v.controller.SelectEntry(v.currentFrame.Entries[row].ID)
 	})
-}
-
-// --- Band grid -------------------------------------------------------------
-
-func (v *spotsView) setupBands(bands []core.BandSummary) {
-	id := toBandsID(bands)
-	if id == v.bandsID {
-		return
-	}
-	v.bandsID = id
-
-	for band, btn := range v.bandButtons {
-		v.bandLayout.RemoveWidget(btn.QWidget)
-		btn.QWidget.DeleteLater()
-		delete(v.bandButtons, band)
-	}
-
-	for _, bs := range bands {
-		v.createBandButton(bs.Band)
-	}
-}
-
-func toBandsID(bands []core.BandSummary) string {
-	var b strings.Builder
-	for _, bs := range bands {
-		b.WriteString(string(bs.Band))
-	}
-	return b.String()
-}
-
-func (v *spotsView) createBandButton(band core.Band) {
-	btn := qtlib.NewQPushButton2()
-	v.bandLayout.AddWidget(btn.QWidget)
-	v.bandButtons[band] = btn
-
-	state := &bandClickState{
-		timer: qtlib.NewQTimer2(btn.QWidget.QObject),
-	}
-	state.timer.SetSingleShot(true)
-	state.timer.OnTimeout(func() {
-		state.lastClickAt = time.Time{}
-		if v.controller != nil {
-			v.controller.SetVisibleBand(band)
-		}
-	})
-
-	btn.OnClicked(func() {
-		if v.controller == nil {
-			return
-		}
-		interval := time.Duration(qtlib.QApplication_DoubleClickInterval()) * time.Millisecond
-		if interval <= 0 {
-			interval = 400 * time.Millisecond
-		}
-		now := time.Now()
-		if !state.lastClickAt.IsZero() && now.Sub(state.lastClickAt) < interval {
-			state.timer.Stop()
-			state.lastClickAt = time.Time{}
-			v.controller.SetActiveBand(band)
-			return
-		}
-		state.lastClickAt = now
-		state.timer.Stop()
-		state.timer.Start(int(interval / time.Millisecond))
-	})
-}
-
-type bandClickState struct {
-	lastClickAt time.Time
-	timer       *qtlib.QTimer
-}
-
-func (v *spotsView) updateBands(bands []core.BandSummary) {
-	for _, bs := range bands {
-		btn, ok := v.bandButtons[bs.Band]
-		if !ok {
-			continue
-		}
-		v.styleBandButton(btn, bs)
-	}
-}
-
-func (v *spotsView) styleBandButton(btn *qtlib.QPushButton, bs core.BandSummary) {
-	btn.SetText(fmt.Sprintf("%s\n%dP  %dM", bs.Band, bs.Points, bs.Multis()))
-	btn.QWidget.SetStyleSheet(GetSpotsBandButtonStyle(bs.Active, bs.Visible, bs.MaxPoints || bs.MaxMultis))
 }
 
 // --- Table updates ---------------------------------------------------------

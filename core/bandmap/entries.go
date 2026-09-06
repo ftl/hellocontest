@@ -387,16 +387,13 @@ func (l *Entries) addToSummary(entry *Entry) {
 	if !ok {
 		summary = core.BandSummary{Band: entry.Band}
 	}
+	summary.SpotCount++
 	summary.Points += entry.Info.Points
 	summary.AddMultiValues(entry.Info.MultiValues)
 	l.summaries[entry.Band] = summary
 }
 
 func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
-	maxPointsIndex := 0
-	maxPoints := 0
-	maxMultisIndex := 0
-	maxMultis := 0
 	result := make([]core.BandSummary, len(l.bands))
 	for i, band := range l.bands {
 		summary, ok := l.summaries[band]
@@ -408,25 +405,28 @@ func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
 		result[i] = summary
 		result[i].Active = (summary.Band == active)
 		result[i].Visible = (summary.Band == visible)
-		if summary.Points > maxPoints {
-			maxPoints = summary.Points
-			maxPointsIndex = i
-		}
-		multis := summary.Multis()
-		if multis > maxMultis {
-			maxMultis = multis
-			maxMultisIndex = i
-		}
 	}
 
-	if maxPoints > 0 && maxPointsIndex < len(result) {
-		result[maxPointsIndex].MaxPoints = true
-	}
-	if maxMultis > 0 && maxMultisIndex < len(result) {
-		result[maxMultisIndex].MaxMultis = true
-	}
+	markMaximum(result, func(s core.BandSummary) int { return s.SpotCount }, func(s *core.BandSummary) { s.MaxSpots = true })
+	markMaximum(result, func(s core.BandSummary) int { return s.Points }, func(s *core.BandSummary) { s.MaxPoints = true })
+	markMaximum(result, func(s core.BandSummary) int { return s.Multis() }, func(s *core.BandSummary) { s.MaxMultis = true })
 
 	return result
+}
+
+func markMaximum(summaries []core.BandSummary, valueOf func(core.BandSummary) int, mark func(*core.BandSummary)) {
+	maximum := 0
+	maximumIndex := -1
+	for i, summary := range summaries {
+		value := valueOf(summary)
+		if value > maximum {
+			maximum = value
+			maximumIndex = i
+		}
+	}
+	if maximumIndex >= 0 {
+		mark(&summaries[maximumIndex])
+	}
 }
 
 func (l *Entries) DoOnEntry(id core.BandmapEntryID, f func(core.BandmapEntry)) {

@@ -97,6 +97,7 @@ type Controller struct {
 	QTCController            *qtc.Controller
 	Settings                 *settings.Settings
 	Bandmap                  *bandmap.Bandmap
+	BandMatrix               *bandmap.BandMatrix
 	Clusters                 *cluster.Clusters
 	Parrot                   *parrot.Parrot
 	Dial                     *hamdial.Controller
@@ -240,6 +241,14 @@ func (c *Controller) Startup() {
 	c.Entry.Notify(core.FocusedVFOListenerFunc(func(vfo core.VFOID) {
 		c.focusedVFO = vfo
 	}))
+
+	c.BandMatrix = bandmap.NewBandMatrix(&vfoBandSwitcher{vfos: c.VFOs}, c.Entry)
+	c.Bandmap.Notify(c.BandMatrix)
+	c.Radio.Notify(c.BandMatrix)
+	c.Entry.Notify(c.BandMatrix)
+	for _, v := range c.VFOs {
+		v.Notify(c.BandMatrix)
+	}
 
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
 	c.Radio.SelectRadio(c.session.Radio1())
@@ -1217,4 +1226,15 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		return fmt.Errorf("unknown action: %s", id)
 	}
 	return nil
+}
+
+type vfoBandSwitcher struct {
+	vfos []*vfo.VFO
+}
+
+func (s *vfoBandSwitcher) SetVFOBand(id core.VFOID, band core.Band) {
+	if int(id) < 0 || int(id) >= len(s.vfos) {
+		return
+	}
+	s.vfos[id].SetBand(band)
 }

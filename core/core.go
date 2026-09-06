@@ -1382,9 +1382,11 @@ func NewFrameIndex(entries []BandmapEntry) BandmapFrameIndex {
 
 type BandSummary struct {
 	Band        Band
+	SpotCount   int
 	Points      int
 	MultiValues map[conval.Property]map[string]bool
 
+	MaxSpots  bool
 	MaxPoints bool
 	MaxMultis bool
 	Active    bool
@@ -1411,6 +1413,13 @@ func (s *BandSummary) Multis() int {
 		result += len(values)
 	}
 	return result
+}
+
+type BandMatrixFrame struct {
+	Bands         []BandSummary
+	VFOBands      [VFOCount]Band
+	FocusedVFO    VFOID
+	VFO2Available bool
 }
 
 type Callinfo struct {

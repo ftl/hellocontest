@@ -292,11 +292,11 @@ func (s *Scenario) MarkInBandmap() *Scenario {
 	return s
 }
 
-// EntrySelected simulates a bandmap entry being selected.
-func (s *Scenario) EntrySelected(entry core.BandmapEntry) *Scenario {
+// EntrySelected simulates a bandmap entry being selected for the given VFO.
+func (s *Scenario) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.EntrySelected(entry)
+	s.controller.EntrySelected(vfo, entry)
 	return s
 }
 
@@ -504,6 +504,22 @@ func (s *Scenario) AssertVFOFrequency(freq core.Frequency) *Scenario {
 	s.t.Helper()
 	assert.Equal(s.t, freq, s.vfo.lastFreq,
 		"expected VFO to be commanded with frequency %v", freq)
+	return s
+}
+
+func (s *Scenario) AssertVFO2Frequency(freq core.Frequency) *Scenario {
+	s.t.Helper()
+	require.NotNil(s.t, s.vfo2, "the scenario needs WithVFO2")
+	assert.Equal(s.t, freq, s.vfo2.lastFreq,
+		"expected VFO2 to be commanded with frequency %v", freq)
+	return s
+}
+
+func (s *Scenario) AssertVFO2Mode(mode core.Mode) *Scenario {
+	s.t.Helper()
+	require.NotNil(s.t, s.vfo2, "the scenario needs WithVFO2")
+	assert.Equal(s.t, mode, s.vfo2.lastMode,
+		"expected VFO2 to be commanded with mode %v", mode)
 	return s
 }
 

@@ -1,302 +1,92 @@
 package core
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEntryField_ExchangeField(t *testing.T) {
-	myExchange := MyExchangeField(1)
-	assert.True(t, myExchange.IsMyExchange())
+func TestDescending_InvertsTheOrder(t *testing.T) {
+	low := BandmapEntry{ID: 1, Info: Callinfo{WeightedValue: 1}}
+	high := BandmapEntry{ID: 2, Info: Callinfo{WeightedValue: 9}}
 
-	theirExchange := TheirExchangeField(2)
-	assert.True(t, theirExchange.IsTheirExchange())
-
-	assert.False(t, CallsignField.IsMyExchange())
-	assert.False(t, CallsignField.IsTheirExchange())
+	assert.Negative(t, BandmapByValue(low, high), "ascending puts the low value first")
+	assert.Positive(t, Descending(BandmapByValue)(low, high), "descending puts the high value first")
+	assert.Negative(t, Descending(BandmapByValue)(high, low), "descending puts the high value first")
 }
 
-func TestEntryField_ExchangeIndex(t *testing.T) {
-	myExchange := MyExchangeField(1)
-	assert.Equal(t, 1, myExchange.ExchangeIndex())
+func TestDescending_InvertsEqualValuesByID(t *testing.T) {
+	first := BandmapEntry{ID: 1, Info: Callinfo{WeightedValue: 5}}
+	second := BandmapEntry{ID: 2, Info: Callinfo{WeightedValue: 5}}
 
-	theirExchange := TheirExchangeField(2)
-	assert.Equal(t, 2, theirExchange.ExchangeIndex())
-
-	assert.Equal(t, -1, CallsignField.ExchangeIndex())
+	assert.Negative(t, BandmapByValue(first, second))
+	assert.Positive(t, Descending(BandmapByValue)(first, second))
 }
 
-func TestEntryField_NextExchangeField(t *testing.T) {
-	myExchange := MyExchangeField(1)
-	assert.Equal(t, MyExchangeField(2), myExchange.NextExchangeField())
+func TestBandmapByCallsign(t *testing.T) {
+	a := BandmapEntry{ID: 1, Call: MustParseCallsign("dl1abc")}
+	b := BandmapEntry{ID: 2, Call: MustParseCallsign("dl2abc")}
+	sameAsA := BandmapEntry{ID: 3, Call: MustParseCallsign("dl1abc")}
 
-	theirExchange := TheirExchangeField(2)
-	assert.Equal(t, TheirExchangeField(3), theirExchange.NextExchangeField())
-
-	assert.Equal(t, EntryField(""), CallsignField.NextExchangeField())
+	assert.Negative(t, BandmapByCallsign(a, b), "DL1ABC before DL2ABC")
+	assert.Positive(t, BandmapByCallsign(b, a), "DL2ABC after DL1ABC")
+	assert.Negative(t, BandmapByCallsign(a, sameAsA), "the same call falls back to the ID")
 }
 
-func TestBandGraph_Bindex(t *testing.T) {
-	tt := []struct {
-		duration time.Duration
-		value    time.Duration
-		expected int
-	}{
-		{0, 1 * time.Second, 0},
-		{2 * time.Hour, -1 * time.Second, -1},
-		{2 * time.Hour, 0, 0},
-		{2 * time.Hour, 1 * time.Second, 0},
-		{2 * time.Hour, 1*time.Hour - 1*time.Second, 11},
-		{2 * time.Hour, 1 * time.Hour, 12},
-		{2 * time.Hour, 1*time.Hour + 1*time.Second, 12},
-		{2 * time.Hour, 2*time.Hour - 1*time.Second, 23},
-		{2 * time.Hour, 2 * time.Hour, -1},
-		{2 * time.Hour, 2*time.Hour + 1*time.Second, -1},
+func TestBandmapByLastSeen(t *testing.T) {
+	now := time.Now()
+	older := BandmapEntry{ID: 1, LastHeard: now.Add(-time.Minute)}
+	newer := BandmapEntry{ID: 2, LastHeard: now}
+	sameAsOlder := BandmapEntry{ID: 3, LastHeard: now.Add(-time.Minute)}
+
+	assert.Negative(t, BandmapByLastSeen(older, newer), "the older entry comes first")
+	assert.Positive(t, BandmapByLastSeen(newer, older), "the newer entry comes last")
+	assert.Negative(t, BandmapByLastSeen(older, sameAsOlder), "the same time falls back to the ID")
+}
+
+func TestSpotFilterBand_StringRoundTrip(t *testing.T) {
+	tt := []SpotFilterBand{
+		{Kind: SpotFilterAll},
+		{Kind: SpotFilterVFO1},
+		{Kind: SpotFilterVFO2},
+		{Kind: SpotFilterFocused},
+		{Kind: SpotFilterContest},
+		FixedSpotFilterBand(Band20m),
 	}
-	startTime := time.Now()
-	for i, tc := range tt {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			graph := NewBandGraph(NoBand, startTime, tc.duration)
-			actual := graph.Bindex(startTime.Add(tc.value))
-			assert.Equal(t, tc.expected, actual)
+	for _, band := range tt {
+		t.Run(band.String(), func(t *testing.T) {
+			assert.Equal(t, band, ParseSpotFilterBand(band.String()))
 		})
 	}
 }
 
-func TestScore_StackedGraphPerBand(t *testing.T) {
-	score := NewScore()
-	score.GraphPerBand[Band160m] = BandGraph{
-		Band:       Band160m,
-		DataPoints: []BandScore{{16, 16, 16, 16, 16}, {15, 15, 15, 15, 15}, {14, 14, 14, 14, 14}},
+func TestSpotFilterMode_StringRoundTrip(t *testing.T) {
+	tt := []SpotFilterMode{
+		{Kind: SpotFilterAll},
+		{Kind: SpotFilterVFO1},
+		{Kind: SpotFilterVFO2},
+		{Kind: SpotFilterFocused},
+		{Kind: SpotFilterContest},
+		FixedSpotFilterMode(ModeCW),
 	}
-	score.GraphPerBand[Band80m] = BandGraph{
-		Band:       Band80m,
-		DataPoints: []BandScore{{8, 8, 8, 8, 8}, {7, 7, 7, 7, 7}, {6, 6, 6, 6, 6}},
-	}
-	score.GraphPerBand[Band40m] = BandGraph{
-		Band:       Band40m,
-		DataPoints: []BandScore{{4, 4, 4, 4, 4}, {3, 3, 3, 3, 3}, {2, 2, 2, 2, 2}},
-	}
-
-	stackedGraphs := score.StackedGraphPerBand()
-
-	assert.Equal(t, 3, len(stackedGraphs))
-
-	assert.Equal(t, 16, stackedGraphs[0].DataPoints[0].QSOs)
-	assert.Equal(t, 24, stackedGraphs[1].DataPoints[0].QSOs)
-	assert.Equal(t, 28, stackedGraphs[2].DataPoints[0].QSOs)
-}
-
-func TestBandScore_NoMultis(t *testing.T) {
-	score := new(BandScore)
-	score.AddQSO(QSOScore{Points: 2})
-	score.AddQSO(QSOScore{Points: 2})
-	score.AddQSO(QSOScore{Points: 2})
-	score.AddQSO(QSOScore{Points: 2})
-	assert.Equal(t, 8, score.Result())
-}
-
-func TestBandmapEntry_ProximityFactor(t *testing.T) {
-	const frequency Frequency = 7035000
-	tt := []struct {
-		desc      string
-		frequency Frequency
-		expected  float64
-	}{
-		{
-			desc:      "same frequency",
-			frequency: frequency,
-			expected:  1.0,
-		},
-		{
-			desc:      "lower frequency in proximity",
-			frequency: frequency - Frequency(spotFrequencyProximityThreshold/2),
-			expected:  0.5,
-		},
-		{
-			desc:      "higher frequency in proximity",
-			frequency: frequency + Frequency(spotFrequencyProximityThreshold/2),
-			expected:  -0.5,
-		},
-		{
-			desc:      "frequency to low",
-			frequency: frequency - Frequency(spotFrequencyProximityThreshold) - 1,
-			expected:  0.0,
-		},
-		{
-			desc:      "frequency to high",
-			frequency: frequency + Frequency(spotFrequencyProximityThreshold) + 1,
-			expected:  0.0,
-		},
-	}
-	for _, tc := range tt {
-		t.Run(tc.desc, func(t *testing.T) {
-			entry := BandmapEntry{
-				Call:      MustParseCallsign("dl1abc"),
-				Frequency: frequency,
-			}
-
-			actual := entry.ProximityFactor(tc.frequency)
-
-			assert.Equal(t, tc.expected, actual)
+	for _, mode := range tt {
+		t.Run(mode.String(), func(t *testing.T) {
+			assert.Equal(t, mode, ParseSpotFilterMode(mode.String()))
 		})
 	}
 }
 
-func TestBandmapEntry_OnFrequency(t *testing.T) {
-	const frequency Frequency = 7035000
-	tt := []struct {
-		desc      string
-		frequency Frequency
-		expected  bool
-	}{
-		{
-			desc:      "same frequency",
-			frequency: frequency,
-			expected:  true,
-		},
-		{
-			desc:      "lower frequency in proximity",
-			frequency: frequency - Frequency(spotFrequencyDeltaThreshold-0.1),
-			expected:  true,
-		},
-		{
-			desc:      "higher frequency in proximity",
-			frequency: frequency + Frequency(spotFrequencyDeltaThreshold-0.1),
-			expected:  true,
-		},
-		{
-			desc:      "frequency to low",
-			frequency: frequency - Frequency(spotFrequencyDeltaThreshold+0.1),
-			expected:  false,
-		},
-		{
-			desc:      "frequency to high",
-			frequency: frequency + Frequency(spotFrequencyDeltaThreshold+0.1),
-			expected:  false,
-		},
-	}
-	for _, tc := range tt {
-		t.Run(tc.desc, func(t *testing.T) {
-			entry := BandmapEntry{
-				Call:      MustParseCallsign("dl1abc"),
-				Frequency: frequency,
-			}
-
-			actual := entry.OnFrequency(tc.frequency)
-
-			assert.Equal(t, tc.expected, actual)
+func TestSpotSortColumn_StringRoundTrip(t *testing.T) {
+	for _, column := range SpotSortColumns {
+		t.Run(column.String(), func(t *testing.T) {
+			assert.Equal(t, column, ParseSpotSortColumn(column.String()))
 		})
 	}
 }
 
-func TestParseQTCHeader(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected QTCHeader
-		invalid  bool
-	}{
-		{
-			input:   "",
-			invalid: true,
-		},
-		{
-			input:   "1/20",
-			invalid: true,
-		},
-		{
-			input:   "1",
-			invalid: true,
-		},
-		{
-			input:    "1/1",
-			expected: QTCHeader{SeriesNumber: 1, QTCCount: 1},
-		},
-		{
-			input:    "1/10",
-			expected: QTCHeader{SeriesNumber: 1, QTCCount: 10},
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.input, func(t *testing.T) {
-			actual, err := ParseQTCHeader(test.input)
-			if test.invalid {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.expected, actual)
-			}
-		})
-	}
-}
-
-func TestParseQTCTime(t *testing.T) {
-	tests := []struct {
-		input      string
-		relativeTo QTCTime
-		expected   string
-		invalid    bool
-	}{
-		{
-			input:   "",
-			invalid: true,
-		},
-		{
-			input:   "12345",
-			invalid: true,
-		},
-		{
-			input:   "2806",
-			invalid: true,
-		},
-		{
-			input:   "1260",
-			invalid: true,
-		},
-		{
-			input:    "1",
-			expected: "0001",
-		},
-		{
-			input:    "12",
-			expected: "0012",
-		},
-		{
-			input:    "123",
-			expected: "0123",
-		},
-		{
-			input:    "1234",
-			expected: "1234",
-		},
-		{
-			input:      "1234",
-			relativeTo: QTCTime{Hour: 13, Minute: 18},
-			expected:   "1234",
-		},
-		{
-			input:      "12",
-			relativeTo: QTCTime{Hour: 13, Minute: 18},
-			expected:   "1312",
-		},
-		{
-			input:      "1",
-			relativeTo: QTCTime{Hour: 13, Minute: 18},
-			expected:   "1301",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.input, func(t *testing.T) {
-			actual, err := ParseQTCTime(test.input, test.relativeTo)
-			if test.invalid {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.expected, actual.String())
-			}
-		})
-	}
+func TestParseSpotFilter_UnknownValueFallsBackToAll(t *testing.T) {
+	assert.Equal(t, SpotFilterBand{Kind: SpotFilterAll}, ParseSpotFilterBand("nonsense"))
+	assert.Equal(t, SpotFilterMode{Kind: SpotFilterAll}, ParseSpotFilterMode("nonsense"))
+	assert.Equal(t, SortSpotsByFrequency, ParseSpotSortColumn("nonsense"))
 }

@@ -19,6 +19,8 @@ type actions struct {
 	focusedVFO  core.VFOID
 	allInfos    []ActionInfo
 
+	windowActions []*qtlib.QAction
+
 	// Action groups
 	workModeGroup *qtlib.QActionGroup
 	radioGroup    *qtlib.QActionGroup
@@ -215,7 +217,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.incrementalTuningDownAction = a.makeTriggerAction(core.ActionIncrementalTuningDown, "Incremental Tuning Down", "Decrease the RIT or XIT offset of the focused VFO", "Alt+Shift+Down", func() { controller.IncrementalTuningDown() })
 	a.speedUpAction = a.makeTriggerAction(core.ActionKeyerSpeedUp, "Speed Up", "Increase the keyer speed", "Ctrl+Alt+Up", func() { controller.KeyerSpeedUp() })
 	a.speedDownAction = a.makeTriggerAction(core.ActionKeyerSpeedDown, "Speed Down", "Decrease the keyer speed", "Ctrl+Alt+Down", func() { controller.KeyerSpeedDown() })
-	a.parent.AddActions([]*qtlib.QAction{
+	a.windowActions = []*qtlib.QAction{
 		a.sendMacro1Action,
 		a.sendMacro2Action,
 		a.sendMacro3Action,
@@ -242,12 +244,20 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.incrementalTuningDownAction,
 		a.speedUpAction,
 		a.speedDownAction,
-	})
+	}
+	a.AddToWindow(a.parent)
 
 	// setup initial action state from controller
 	a.updateFromController()
 
 	return a
+}
+
+func (a *actions) AddToWindow(widget *qtlib.QWidget) {
+	// the shortcuts use the default context Qt::WindowShortcut, therefore every window
+	// that the user works in needs the actions. A dialog does not get them, so it keeps
+	// the keyboard for itself
+	widget.AddActions(a.windowActions)
 }
 
 func (a *actions) makeTriggerAction(id, text, tooltip, defaultShortcut string, handler func()) *qtlib.QAction {

@@ -238,7 +238,7 @@ func (a *application) createCentralWidget() {
 	a.workmodeView.SetWorkmodeController(a.controller.Workmode)
 	a.controller.Workmode.SetView(a.workmodeView)
 
-	a.keyerView = newKeyerView()
+	a.keyerView = newKeyerView(a.controller)
 	a.keyerView.SetKeyerController(a.controller.Keyer)
 	// TODO: replace with explicit type
 	keyerButtons := &keyerButtonAdapter{keyerView: a.keyerView, messenger: a.entryView}
@@ -290,13 +290,14 @@ func (a *application) createViews(timebase core.Clock) {
 	a.controller.ClockView.SetView(a.clockView)
 
 	// setup band matrix dock
-	a.bandMatrixView = newBandMatrixView(a.window.QWidget, a.controller.BandMatrix)
+	a.bandMatrixView = newBandMatrixView(a.window.QWidget, a.controller.BandMatrix, a.controller)
 	a.controller.BandMatrix.SetView(a.bandMatrixView)
 
 	// setup the spots view in its own window
-	a.spotsView = newSpotsView(a.controller.Bandmap, a.style)
+	a.spotsView = newSpotsView(a.controller.Bandmap, a.controller, a.style)
 	a.spotWindow = newSpotWindow(a.spotsView.widget)
 	a.spotsView.SetWindow(a.spotWindow)
+	a.actions.AddToWindow(a.spotWindow.window.QWidget)
 	a.spotWindow.Show() // visible by default, restoreSpotWindowState may hide it again
 	a.controller.Bandmap.SetView(a.spotsView)
 

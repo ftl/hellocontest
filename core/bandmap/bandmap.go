@@ -44,6 +44,7 @@ type Bandmap struct {
 	notifier  *Notifier
 	entries   *Entries
 	selection *Selection
+	filter    *SpotFilter
 
 	clock       core.Clock
 	view        View
@@ -56,6 +57,10 @@ type Bandmap struct {
 	activeBand      core.Band
 	visibleBand     core.Band
 
+	vfoBands       [core.VFOCount]core.Band
+	vfoModes       [core.VFOCount]core.Mode
+	vfoFrequencies [core.VFOCount]core.Frequency
+
 	updatePeriod time.Duration
 	maximumAge   time.Duration
 	weights      core.BandmapWeights
@@ -66,11 +71,11 @@ type Bandmap struct {
 	closed chan struct{}
 }
 
-func NewDefaultBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, asyncRunner core.AsyncRunner) *Bandmap {
-	return NewBandmap(clock, settings, dupeChecker, asyncRunner, DefaultUpdatePeriod, DefaultMaximumAge)
+func NewDefaultBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, filterStore SpotFilterStore, asyncRunner core.AsyncRunner) *Bandmap {
+	return NewBandmap(clock, settings, dupeChecker, filterStore, asyncRunner, DefaultUpdatePeriod, DefaultMaximumAge)
 }
 
-func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, asyncRunner core.AsyncRunner, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
+func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, filterStore SpotFilterStore, asyncRunner core.AsyncRunner, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
 		clock:       clock,
 		view:        new(nullView),
@@ -89,7 +94,13 @@ func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecke
 	}
 	result.entries = NewEntries(result.notifier, result.countEntryValue)
 	result.entries.SetBands(settings.Contest().Bands())
-	result.selection = NewSelection(result.entries, result.notifier, result.entryVisible)
+	result.filter = NewSpotFilter(MainSpotFilterID, filterStore)
+	result.filter.SetContestBandsAndModes(settings.Contest().Bands(), settings.Contest().Modes())
+	// the filter is only ever changed from inside the bandmap goroutine, therefore the
+	// update runs directly. Posting to the do channel would block the goroutine that
+	// drains it.
+	result.filter.OnChanged(result.update)
+	result.selection = NewSelection(result.entries, result.notifier, result)
 
 	go result.run()
 
@@ -114,15 +125,16 @@ func (m *Bandmap) run() {
 func (m *Bandmap) update() {
 	m.entries.CleanOut(m.maximumAge, m.clock.Now(), m.weights)
 
-	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 2, core.OnFrequency(m.activeFrequency))
+	focusedFrequency := m.focusedFrequency()
+	entryOnFrequency, entryOnFrequencyAvailable := m.nextVisibleEntryBy(core.BandmapByDistance(focusedFrequency), 2, core.OnFrequency(focusedFrequency))
 	m.notifier.emitEntryOnFrequency(entryOnFrequency, entryOnFrequencyAvailable)
 
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
 	m.notifier.emitBandsChanged(bands)
-	entries := m.entries.Query(nil, m.entryVisible)
+	entries := m.entries.Query(m.filter.Order(), m.filter.Matches)
 	index := core.NewFrameIndex(entries)
 	frame := core.BandmapFrame{
-		Frequency:   m.activeFrequency,
+		Frequency:   focusedFrequency,
 		ActiveBand:  m.activeBand,
 		VisibleBand: m.visibleBand,
 		Mode:        m.activeMode,
@@ -130,14 +142,15 @@ func (m *Bandmap) update() {
 		Entries:     entries,
 		Index:       index,
 		QTCsEnabled: m.qtcsEnabled,
+		Filter:      m.filter.Frame(),
 	}
 
 	selectedEntry, selected := m.selection.SelectedEntry()
-	if selected && m.entryVisible(selectedEntry) {
+	if selected && m.filter.Matches(selectedEntry) {
 		frame.SelectedEntry = selectedEntry
 	}
 
-	nearestEntry, nearestEntryFound := m.nextVisibleEntryBy(core.BandmapByDistance(m.activeFrequency), 0, core.Not(core.Or(core.OnFrequency(m.activeFrequency), core.IsWorkedSpot)))
+	nearestEntry, nearestEntryFound := m.nextVisibleEntryBy(core.BandmapByDistance(focusedFrequency), 0, core.Not(core.Or(core.OnFrequency(focusedFrequency), core.IsWorkedSpot)))
 	if nearestEntryFound {
 		frame.NearestEntry = nearestEntry
 	}
@@ -198,7 +211,7 @@ func (m *Bandmap) SetVFO(vfo core.VFO) {
 	} else {
 		m.vfo = vfo
 	}
-	vfo.Notify(m)
+	// the VFOs register themselves as listeners, see core/app
 }
 
 func (m *Bandmap) SetCallinfo(callinfo Callinfo) {
@@ -224,6 +237,7 @@ func (m *Bandmap) ContestChanged(contest core.Contest) {
 		}
 		m.qtcsEnabled = contest.EnableQTCs
 		m.entries.SetBands(contest.Bands())
+		m.filter.SetContestBandsAndModes(contest.Bands(), contest.Modes())
 		m.update()
 	}
 }
@@ -235,24 +249,28 @@ func (m *Bandmap) ScoreChanged(_ core.Score) {
 }
 
 func (m *Bandmap) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
-	if vfo != core.VFO1 {
-		return
-	}
 	m.do <- func() {
-		m.activeFrequency = frequency
+		if validVFO(vfo) {
+			m.vfoFrequencies[vfo] = frequency
+		}
+		if vfo == core.VFO1 {
+			m.activeFrequency = frequency
+		}
 		// the frame is not updated with every frequency change, this creates too much load
 	}
 }
 
 func (m *Bandmap) VFOBandChanged(vfo core.VFOID, band core.Band) {
-	if vfo != core.VFO1 {
-		return
-	}
 	m.do <- func() {
-		if band == m.activeBand {
+		if validVFO(vfo) {
+			m.vfoBands[vfo] = band
+		}
+		m.filter.VFOBandChanged(vfo, band)
+
+		// the active band and the visible band belong to VFO1
+		if vfo != core.VFO1 || band == m.activeBand {
 			return
 		}
-
 		if m.activeBand == m.visibleBand {
 			m.visibleBand = band
 		}
@@ -262,32 +280,91 @@ func (m *Bandmap) VFOBandChanged(vfo core.VFOID, band core.Band) {
 }
 
 func (m *Bandmap) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
-	if vfo != core.VFO1 {
-		return
-	}
 	m.do <- func() {
-		if m.activeMode == mode {
+		if validVFO(vfo) {
+			m.vfoModes[vfo] = mode
+		}
+		m.filter.VFOModeChanged(vfo, mode)
+
+		// the active mode belongs to VFO1
+		if vfo != core.VFO1 || m.activeMode == mode {
 			return
 		}
-
 		m.activeMode = mode
 		m.update()
 	}
 }
 
-func (m *Bandmap) SetVisibleBand(band core.Band) {
+func (m *Bandmap) FocusedVFOChanged(vfo core.VFOID) {
 	m.do <- func() {
-		m.visibleBand = band
+		m.filter.FocusedVFOChanged(vfo)
+		// the navigation and the marks in the frame follow the focused VFO
 		m.update()
 	}
 }
 
-func (m *Bandmap) SetActiveBand(band core.Band) {
-	m.vfo.SetBand(band)
+func (m *Bandmap) RadioChanged(name string, singleVFO bool) {
+	m.do <- func() {
+		m.filter.RadioChanged(name, singleVFO)
+	}
+}
+
+func (m *Bandmap) SetFilterBand(band core.SpotFilterBand) {
+	m.do <- func() {
+		m.filter.SetBand(band)
+	}
+}
+
+func (m *Bandmap) SetFilterMode(mode core.SpotFilterMode) {
+	m.do <- func() {
+		m.filter.SetMode(mode)
+	}
+}
+
+func (m *Bandmap) SetFilterSort(column core.SpotSortColumn, descending bool) {
+	m.do <- func() {
+		m.filter.SetSort(column, descending)
+	}
+}
+
+func (m *Bandmap) SetFilterFolded(folded bool) {
+	m.do <- func() {
+		m.filter.SetFolded(folded)
+	}
+}
+
+func (m *Bandmap) SelectableFilter() core.BandmapFilter {
+	return m.filter.Matches
+}
+
+func (m *Bandmap) NavigationFilter() core.BandmapFilter {
+	return m.entryVisible
+}
+
+func (m *Bandmap) TargetVFO(entry core.BandmapEntry) core.VFOID {
+	return m.filter.TargetVFO(entry)
+}
+
+func (m *Bandmap) FocusedVFO() core.VFOID {
+	return m.filter.FocusedVFO()
 }
 
 func (m *Bandmap) entryVisible(entry core.BandmapEntry) bool {
-	return (entry.Band == m.visibleBand) && (entry.Mode == m.activeMode)
+	// the keyboard navigation tunes the focused VFO, therefore it stays on the band and
+	// in the mode of that VFO
+	return (entry.Band == m.focusedBand()) && (entry.Mode == m.focusedMode())
+}
+
+func (m *Bandmap) focusedBand() core.Band {
+	return m.vfoBands[m.filter.FocusedVFO()]
+}
+
+func (m *Bandmap) focusedMode() core.Mode {
+	return m.vfoModes[m.filter.FocusedVFO()]
+}
+
+func (m *Bandmap) focusedFrequency() core.Frequency {
+	return m.vfoFrequencies[m.filter.FocusedVFO()]
 }
 
 func (m *Bandmap) countEntryValue(entry core.BandmapEntry) bool {
@@ -362,21 +439,21 @@ func (m *Bandmap) GotoHighestValueEntry() {
 
 func (m *Bandmap) GotoNearestEntry() {
 	m.do <- func() {
-		m.selection.SelectNearest(m.activeFrequency)
+		m.selection.SelectNearest(m.focusedFrequency())
 		m.update()
 	}
 }
 
 func (m *Bandmap) GotoNextEntryUp() {
 	m.do <- func() {
-		m.selection.SelectNextUp(m.activeFrequency)
+		m.selection.SelectNextUp(m.focusedFrequency())
 		m.update()
 	}
 }
 
 func (m *Bandmap) GotoNextEntryDown() {
 	m.do <- func() {
-		m.selection.SelectNextDown(m.activeFrequency)
+		m.selection.SelectNextDown(m.focusedFrequency())
 		m.update()
 	}
 }

@@ -1425,13 +1425,21 @@ func (c *Controller) MarkInBandmap() {
 	c.bandmap.Add(spot)
 }
 
-func (c *Controller) EntrySelected(entry core.BandmapEntry) {
-	// TODO: check if the entry's band is currently selected in one of the two VFOs
+func (c *Controller) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) {
+	// the bandmap decides which VFO works the spot, the focus follows that decision
+	c.SetFocusedVFO(vfo)
 
 	c.Clear()
 	c.ignoreFrequencyJump = true
+	// setting the frequency also moves the rig to the band of the spot
 	c.frequencyEntered(entry.Frequency)
+	if entry.Mode != core.NoMode && entry.Mode != c.selectedMode[c.focusedVFO] {
+		c.vfos[c.focusedVFO].SetMode(entry.Mode)
+	}
 	c.SetActiveField(core.CallsignField)
 	c.Enter(entry.Call.String())
 	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
+	// the spot list may live in another window, therefore the callsign field of the
+	// target VFO explicitly takes the keyboard focus
+	c.Activate()
 }

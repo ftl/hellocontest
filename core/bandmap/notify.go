@@ -17,7 +17,13 @@ type EntryRemovedListener interface {
 }
 
 type EntrySelectedListener interface {
-	EntrySelected(core.BandmapEntry)
+	EntrySelected(core.VFOID, core.BandmapEntry)
+}
+
+type EntrySelectedListenerFunc func(core.VFOID, core.BandmapEntry)
+
+func (f EntrySelectedListenerFunc) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) {
+	f(vfo, entry)
 }
 
 type EntryOnFrequencyListener interface {
@@ -67,11 +73,11 @@ func (n *Notifier) emitEntryRemoved(e core.BandmapEntry) {
 	}
 }
 
-func (n *Notifier) emitEntrySelected(e core.BandmapEntry) {
+func (n *Notifier) emitEntrySelected(vfo core.VFOID, e core.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
 			n.asyncRunner(func() {
-				entrySelectedListener.EntrySelected(e)
+				entrySelectedListener.EntrySelected(vfo, e)
 			})
 		}
 	}

@@ -61,6 +61,9 @@ func SelectTableRow(view *qtlib.QTableView, index int, model *qtlib.QStandardIte
 
 func ConfigureReadOnlyTable(view *qtlib.QTableView) {
 	view.SetEditTriggers(qtlib.QAbstractItemView__NoEditTriggers)
+	// a read-only table is a click target, never a keyboard target. Without this it
+	// swallows the keyboard focus on a click, and the entry fields go silent.
+	view.SetFocusPolicy(qtlib.NoFocus)
 	view.SetSelectionMode(qtlib.QAbstractItemView__SingleSelection)
 	view.SetSelectionBehavior(qtlib.QAbstractItemView__SelectRows)
 	view.SetAlternatingRowColors(true)
@@ -138,6 +141,10 @@ func KindToString(kind core.QTCKind) string {
 	default:
 		return "?"
 	}
+}
+
+type EntryFocuser interface {
+	GotoEntryFields()
 }
 
 type dockableView struct {

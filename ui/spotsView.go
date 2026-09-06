@@ -13,8 +13,7 @@ import (
 var _ bandmap.View = (*spotsView)(nil)
 
 type SpotsController interface {
-	SetVisibleBand(core.Band)
-	SetActiveBand(core.Band)
+	SpotFilterController
 	SelectEntry(core.BandmapEntryID)
 }
 
@@ -36,8 +35,9 @@ const (
 )
 
 type spotsView struct {
-	widget *qtlib.QWidget
-	window *spotWindow
+	widget     *qtlib.QWidget
+	window     *spotWindow
+	filterArea *spotFilterArea
 
 	style *Style
 
@@ -52,7 +52,7 @@ type spotsView struct {
 	suppressSelection bool
 }
 
-func newSpotsView(controller SpotsController, style *Style) *spotsView {
+func newSpotsView(controller SpotsController, focuser EntryFocuser, style *Style) *spotsView {
 	v := &spotsView{
 		controller: controller,
 		style:      style,
@@ -65,6 +65,9 @@ func newSpotsView(controller SpotsController, style *Style) *spotsView {
 	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("spotsView"))
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
+
+	v.filterArea = newSpotFilterArea(controller, focuser)
+	layout.AddWidget3(v.filterArea.Widget(), 0, 0)
 
 	v.buildTable()
 	layout.AddWidget3(v.table.QAbstractScrollArea.QFrame.QWidget, 1, 0)
@@ -91,19 +94,27 @@ func (v *spotsView) Hide() {
 }
 
 func (v *spotsView) RepaintForThemeChange() {
+	v.filterArea.RepaintForThemeChange()
 	v.widget.SetPalette(qtlib.QGuiApplication_Palette())
 	v.widget.Update()
 	repaintScrollBarsForThemeChange(v.table.QAbstractScrollArea)
 }
 
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
-	bandChanged := v.currentFrame.ActiveBand != frame.ActiveBand ||
+	// a new filter or a new order changes the position of every row, folding does not
+	filterChanged := v.currentFrame.Filter.Band != frame.Filter.Band ||
+		v.currentFrame.Filter.Mode != frame.Filter.Mode ||
+		v.currentFrame.Filter.SortBy != frame.Filter.SortBy ||
+		v.currentFrame.Filter.Descending != frame.Filter.Descending
+	bandChanged := filterChanged ||
+		v.currentFrame.ActiveBand != frame.ActiveBand ||
 		v.currentFrame.VisibleBand != frame.VisibleBand
 	selectionChanged := v.currentFrame.SelectedEntry.ID != frame.SelectedEntry.ID
 
 	oldFrame := v.currentFrame
 	v.currentFrame = frame
 
+	v.filterArea.ShowFrame(frame.Filter)
 	v.setQTCsEnabled(frame.QTCsEnabled)
 
 	if bandChanged {

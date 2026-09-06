@@ -188,7 +188,7 @@ func (c *Controller) Startup() {
 	c.Logbook.Notify(c.QTCList)
 	c.Logbook.Notify(c.ScoreController)
 
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.session, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Logbook.Notify(c.Bandmap)
 
 	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
@@ -241,6 +241,19 @@ func (c *Controller) Startup() {
 	c.Entry.Notify(core.FocusedVFOListenerFunc(func(vfo core.VFOID) {
 		c.focusedVFO = vfo
 	}))
+
+	c.Entry.Notify(c.Bandmap)
+	c.Radio.Notify(c.Bandmap)
+	c.Bandmap.Notify(bandmap.EntrySelectedListenerFunc(func(core.VFOID, core.BandmapEntry) {
+		// the spot list may live in its own window, therefore the main window with the
+		// entry fields comes to the front
+		if c.view != nil {
+			c.view.BringToFront()
+		}
+	}))
+	for _, v := range c.VFOs {
+		v.Notify(c.Bandmap)
+	}
 
 	c.BandMatrix = bandmap.NewBandMatrix(&vfoBandSwitcher{vfos: c.VFOs}, c.Entry)
 	c.Bandmap.Notify(c.BandMatrix)
@@ -856,6 +869,10 @@ func (c *Controller) ClearEntryFields() {
 }
 
 func (c *Controller) GotoEntryFields() {
+	// the entry fields may sit behind another window of the application
+	if c.view != nil {
+		c.view.BringToFront()
+	}
 	c.Entry.Activate()
 }
 

@@ -27,10 +27,11 @@ type keyerView struct {
 	parrotActive bool
 	ignoreInput  bool
 	controller   KeyerController
+	focuser      EntryFocuser
 }
 
-func newKeyerView() *keyerView {
-	v := &keyerView{}
+func newKeyerView(focuser EntryFocuser) *keyerView {
+	v := &keyerView{focuser: focuser}
 	v.widget = qtlib.NewQWidget2()
 	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("keyerButtons"))
 	layout := qtlib.NewQGridLayout(v.widget)
@@ -38,6 +39,7 @@ func newKeyerView() *keyerView {
 	layout.SetSpacing(5)
 
 	v.stopButton = qtlib.NewQPushButton3("ESC: Stop")
+	v.stopButton.SetFocusPolicy(qtlib.NoFocus)
 	layout.AddWidget2(v.stopButton.QWidget, 0, 0)
 	v.stopButton.OnClicked(func() {
 		if v.controller != nil {
@@ -48,6 +50,7 @@ func newKeyerView() *keyerView {
 	for i := range 4 {
 		idx := i
 		btn := qtlib.NewQPushButton3(fmt.Sprintf("F%d", i+1))
+		btn.SetFocusPolicy(qtlib.NoFocus)
 		v.buttons[i] = btn
 		layout.AddWidget2(btn.QWidget, 0, i+1)
 		btn.OnClicked(func() {
@@ -59,6 +62,7 @@ func newKeyerView() *keyerView {
 	}
 
 	v.macrosBtn = qtlib.NewQPushButton3("Macros...")
+	v.macrosBtn.SetFocusPolicy(qtlib.NoFocus)
 	v.macrosBtn.SetObjectName(*qtlib.NewQAnyStringView3("keyerSettingsButton"))
 	layout.AddWidget2(v.macrosBtn.QWidget, 1, 0)
 	v.macrosBtn.OnClicked(func() {
@@ -72,6 +76,12 @@ func newKeyerView() *keyerView {
 	layout.AddWidget2(speedLabel.QWidget, 1, 3)
 
 	v.speedSpin = qtlib.NewQSpinBox2()
+	v.speedSpin.OnEditingFinished(func() {
+		// the user works in the central area, the speed is only a short excursion
+		if v.focuser != nil {
+			v.focuser.GotoEntryFields()
+		}
+	})
 	v.speedSpin.SetObjectName(*qtlib.NewQAnyStringView3("keyerSpeed"))
 	v.speedSpin.SetMinimum(5)
 	v.speedSpin.SetMaximum(60)

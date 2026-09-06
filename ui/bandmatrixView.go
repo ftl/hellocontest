@@ -13,7 +13,7 @@ type bandMatrixView struct {
 	matrix *bandMatrix
 }
 
-func newBandMatrixView(parent *qtlib.QWidget, controller BandMatrixController) *bandMatrixView {
+func newBandMatrixView(parent *qtlib.QWidget, controller BandMatrixController, focuser EntryFocuser) *bandMatrixView {
 	v := &bandMatrixView{}
 	v.widget = qtlib.NewQWidget2()
 	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("bandMatrix"))
@@ -21,7 +21,7 @@ func newBandMatrixView(parent *qtlib.QWidget, controller BandMatrixController) *
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
 
-	v.matrix = newBandMatrix()
+	v.matrix = newBandMatrix(focuser)
 	v.matrix.SetController(controller)
 	layout.AddWidget3(v.matrix.widget.QAbstractScrollArea.QFrame.QWidget, 1, 0)
 

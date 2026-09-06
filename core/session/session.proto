@@ -8,4 +8,13 @@ message State {
     string radio1 = 3;
     string keyer1 = 4;
     bool esm = 5;
+    map<string, SpotFilterState> spot_filters = 6;
+}
+
+message SpotFilterState {
+    string band = 1;
+    string mode = 2;
+    string sort_by = 3;
+    bool descending = 4;
+    bool folded = 5;
 }

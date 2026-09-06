@@ -689,7 +689,7 @@ func TestD4_FrequencyJump_SuppressedByEntrySelected(t *testing.T) {
 
 	NewScenario(t).
 		WithClassicExchange().
-		EntrySelected(entry).
+		EntrySelected(core.VFO1, entry).
 		// ignoreFrequencyJump=true now; trigger a large jump
 		VFOFrequencyChanged(core.VFO1, 14200000).
 		// If Clear had fired, showInput → SetCallsign(VFO1,"") would be recorded.
@@ -960,7 +960,7 @@ func TestG2_EntrySelected_ClearsAndEntersCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL2XYZ"). // some other callsign in the row
-		EntrySelected(bEntry).
+		EntrySelected(core.VFO1, bEntry).
 		AssertCallsignView(core.VFO1, "DL1ABC").
 		AssertVFOFrequency(14200000).
 		AssertActiveField(core.VFO1, core.CallsignField)
@@ -2271,4 +2271,50 @@ func TestL3b_SO2V_WorkmodeLabel_CorrectAfterWorkmodeChanged(t *testing.T) {
 	s.controller.WorkmodeChanged(core.VFO1, core.Run)
 	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
 	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
+}
+
+// G7. A selected spot for the unfocused VFO moves the focus
+// Pre:  VFO2 available, focus on VFO1.
+// Act:  EntrySelected(VFO2, entry) with an SSB spot.
+// Post: focus on VFO2; VFO2 commanded with the frequency and the mode of the spot.
+// Invariants: the callsign lands in the row of VFO2.
+// Note: Clear() calls vfoSpy.Refresh(), which pins the rig to 14050000/20m/CW,
+// therefore an SSB spot is the case that commands a mode.
+func TestG7_EntrySelected_OnUnfocusedVFO_MovesTheFocus(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	entry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeSSB}
+
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		FocusVFO1().
+		EntrySelected(core.VFO2, entry).
+		AssertActiveVFO(core.VFO2).
+		AssertVFO2Frequency(14200000).
+		AssertVFO2Mode(core.ModeSSB).
+		AssertCallsignView(core.VFO2, "DL1ABC").
+		AssertActiveField(core.VFO2, core.CallsignField)
+}
+
+// G8. A selected spot commands the mode only when it differs
+// Pre:  the rig is in CW, see the note in G7.
+// Act:  EntrySelected(VFO1, entry) with an SSB spot, then with a CW spot.
+// Post: the SSB spot commands SSB; the CW spot commands no mode.
+// Invariants: the frequency is commanded in both cases.
+func TestG8_EntrySelected_CommandsTheModeOfTheSpot(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	ssbEntry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeSSB}
+	cwEntry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeCW}
+
+	NewScenario(t).
+		WithClassicExchange().
+		EntrySelected(core.VFO1, ssbEntry).
+		AssertVFOFrequency(14200000).
+		AssertVFOMode(core.ModeSSB)
+
+	NewScenario(t).
+		WithClassicExchange().
+		EntrySelected(core.VFO1, cwEntry).
+		AssertVFOFrequency(14200000).
+		AssertVFOMode(core.NoMode)
 }

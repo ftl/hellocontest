@@ -27,7 +27,9 @@ func newWorkmodeView() *workmodeView {
 
 	workmodeLabel := qtlib.NewQLabel3("Workmode:")
 	v.searchPounceRadio = qtlib.NewQRadioButton3("S&&P")
+	v.searchPounceRadio.SetFocusPolicy(qtlib.NoFocus)
 	v.runRadio = qtlib.NewQRadioButton3("Run")
+	v.runRadio.SetFocusPolicy(qtlib.NoFocus)
 	v.operationModeHintLabel = qtlib.NewQLabel2()
 
 	layout.AddWidget(workmodeLabel.QWidget)

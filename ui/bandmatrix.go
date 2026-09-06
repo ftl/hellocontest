@@ -40,11 +40,12 @@ type bandMatrix struct {
 	delegate *qtlib.QStyledItemDelegate
 
 	controller   BandMatrixController
+	focuser      EntryFocuser
 	currentFrame core.BandMatrixFrame
 }
 
-func newBandMatrix() *bandMatrix {
-	t := &bandMatrix{}
+func newBandMatrix(focuser EntryFocuser) *bandMatrix {
+	t := &bandMatrix{focuser: focuser}
 	t.model = qtlib.NewQStandardItemModel2(0, matrixColCount)
 	headers := []string{"Band  ", "VFO1", "VFO2", "S   ", "P   ", "M   "}
 	t.model.SetHorizontalHeaderLabels(headers)
@@ -120,7 +121,10 @@ func (t *bandMatrix) connectCellClicks() {
 			t.controller.SelectBand(core.VFO2, band)
 		case matrixColSpots, matrixColPoints, matrixColMultis:
 			t.controller.ActivateBand(band)
+		default:
+			return
 		}
+		t.returnFocus()
 	})
 }
 
@@ -134,8 +138,19 @@ func (t *bandMatrix) connectHeaderClicks() {
 			t.controller.FocusVFO(core.VFO1)
 		case matrixColVFO2:
 			t.controller.FocusVFO(core.VFO2)
+		default:
+			return
 		}
+		t.returnFocus()
 	})
+}
+
+func (t *bandMatrix) returnFocus() {
+	// the user works in the central area, the band matrix is only a short excursion
+	if t.focuser == nil {
+		return
+	}
+	t.focuser.GotoEntryFields()
 }
 
 func (t *bandMatrix) ShowFrame(frame core.BandMatrixFrame) {

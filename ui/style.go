@@ -1,9 +1,6 @@
 package ui
 
 import (
-	"fmt"
-	"strings"
-
 	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
@@ -128,20 +125,4 @@ func rgbQColor(rgb [3]int, alpha float32) *qtlib.QColor {
 	c := qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255)
 	c.SetAlphaF(alpha)
 	return c
-}
-
-func GetSpotsBandButtonStyle(active bool, visible bool, max bool) string {
-	properties := []string{}
-	switch {
-	case active:
-		properties = append(properties, "background-color: palette(highlight); color: palette(highlighted-text);")
-	case visible:
-		properties = append(properties, "background-color: palette(accent); color: palette(light);")
-	}
-
-	if max {
-		properties = append(properties, "font-weight: bold; border: 2px solid palette(highlight); ")
-	}
-
-	return fmt.Sprintf("QPushButton { %s }", strings.Join(properties, " "))
 }

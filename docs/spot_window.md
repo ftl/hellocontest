@@ -12,9 +12,9 @@ graph TD
     end
     subgraph spots["QMainWindow (spots)"]
         spotsCentral["central widget:<br/>spotsView.widget"]
-        spotsDocks["docks:<br/>(none yet)"]
+        spotsDocks["docks:<br/>the docks moved here"]
     end
-    main -. "no drag between the windows,<br/>AddDockWidget only" .-> spots
+    main -. "dockManager.MoveTo,<br/>no drag between the windows" .-> spots
 ```
 
 ## Qt constraint: docks cannot be dragged between main windows
@@ -45,8 +45,24 @@ spotWindow.window.AddDockWidget(qtlib.RightDockWidgetArea, view.Dock())
 ```
 
 `AddDockWidget` reparents the dock, and afterwards the dock drags normally *inside* its new
-main window. The planned UI for this is a Window menu entry per dockable view ("Move to Main
-Window" / "Move to Spot Window"), not drag & drop.
+main window.
+
+## Moving a dock between the windows
+
+`ui/dockManager.go` owns all dockable views and their current window. A right click on a
+dock opens a context menu with one entry, `Move to Spot Window` or `Move to Main Window`,
+depending on the window the dock is in.
+
+The dock, not the main window, carries the context menu: `SetContextMenuPolicy(CustomContextMenu)`
+plus `OnCustomContextMenuRequested`. A right click in the content widget also arrives at the
+dock, because a `QEvent::ContextMenu` event propagates to the parent widget if the child
+ignores it. A child with its own context menu, for example a `QLineEdit`, keeps the event.
+
+This replaces the automatic menu of `QMainWindow::createPopupMenu()`, which a right click on
+a dock title bar showed before.
+
+The move is a UI function only. It has no action ID in `core/actions.go`, therefore it has
+no keyboard shortcut and the remote interface cannot trigger it.
 
 ## Persisted state
 
@@ -58,11 +74,12 @@ Both windows store geometry and dock layout separately via `QSettings`
 | `ui/mainWindowGeometry`, `ui/mainWindowState` | main window, unchanged keys from before the split |
 | `ui/spotWindowGeometry`, `ui/spotWindowState` | spot window |
 | `ui/spotWindowVisible` | whether the spot window was open on exit |
+| `ui/dockTarget/<objectName>` | `main` or `spots` per dockable view (`ui/dockManager.go`) |
 
 `QMainWindow::restoreState()` only restores docks that are children of that window at the
-time of the call. Once docks can be assigned to either window, the assignment has to be
-stored separately and applied with `AddDockWidget` **before** `restoreState()` runs.
-`RestoreDockWidget()` covers docks that are created later.
+time of the call. Therefore `dockManager.Restore()` runs **before** both windows restore
+their state, so that every dock already belongs to its window. `RestoreDockWidget()` covers
+docks that are created later.
 
 ## Lifecycle
 

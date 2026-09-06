@@ -142,6 +142,7 @@ func KindToString(kind core.QTCKind) string {
 
 type dockableView struct {
 	dock *qtlib.QDockWidget
+	name string
 }
 
 func newDockableView(parent, root *qtlib.QWidget, title, objectName string) *dockableView {
@@ -152,6 +153,7 @@ func newDockableView(parent, root *qtlib.QWidget, title, objectName string) *doc
 
 	return &dockableView{
 		dock: dock,
+		name: objectName,
 	}
 }
 
@@ -164,10 +166,16 @@ func (v *dockableView) Dock() *qtlib.QDockWidget {
 	return v.dock
 }
 
+func (v *dockableView) Name() string {
+	return v.name
+}
+
 func (v *dockableView) Show() {
 	if v.dock == nil {
 		return
 	}
+	// the dock stays invisible if the window that contains it is hidden
+	v.dock.Window().SetVisible(true)
 	v.dock.SetVisible(true)
 	v.dock.Raise()
 }

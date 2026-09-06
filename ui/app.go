@@ -145,9 +145,10 @@ type application struct {
 
 	style *Style
 
-	window     *qtlib.QMainWindow
-	spotWindow *spotWindow
-	controller *app.Controller
+	window      *qtlib.QMainWindow
+	spotWindow  *spotWindow
+	dockManager *dockManager
+	controller  *app.Controller
 
 	stopKeyHandler *stopKeyHandler
 
@@ -298,12 +299,13 @@ func (a *application) createViews(timebase core.Clock) {
 	a.window.SetCorner(qtlib.BottomLeftCorner, qtlib.LeftDockWidgetArea)
 	a.window.SetCorner(qtlib.TopRightCorner, qtlib.RightDockWidgetArea)
 	a.window.SetCorner(qtlib.BottomRightCorner, qtlib.RightDockWidgetArea)
-	a.window.AddDockWidget(qtlib.TopDockWidgetArea, a.qsoTableView.Dock())
-	a.window.AddDockWidget(qtlib.TopDockWidgetArea, a.qtcTableView.Dock())
-	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.rateView.Dock())
-	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreGraphView.Dock())
-	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreTableView.Dock())
-	a.window.AddDockWidget(qtlib.RightDockWidgetArea, a.clockView.Dock())
+	a.dockManager = newDockManager(a.window, a.spotWindow)
+	a.dockManager.Add(a.qsoTableView, qtlib.TopDockWidgetArea)
+	a.dockManager.Add(a.qtcTableView, qtlib.TopDockWidgetArea)
+	a.dockManager.Add(a.rateView, qtlib.LeftDockWidgetArea)
+	a.dockManager.Add(a.scoreGraphView, qtlib.LeftDockWidgetArea)
+	a.dockManager.Add(a.scoreTableView, qtlib.LeftDockWidgetArea)
+	a.dockManager.Add(a.clockView, qtlib.RightDockWidgetArea)
 }
 
 func (a *application) createDialogs() {
@@ -347,12 +349,14 @@ func (a *application) restoreWindowStateFromString(windowState string) {
 		return
 	}
 	settings := qtlib.NewQSettings4(tmpName, qtlib.QSettings__IniFormat)
+	a.dockManager.Restore(settings)
 	restoreWindowState(settings, mainWindowSettingPrefix, a.window)
 	a.restoreSpotWindowState(settings)
 }
 
 func (a *application) restoreWindowState() {
 	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
+	a.dockManager.Restore(settings)
 	if !restoreWindowState(settings, mainWindowSettingPrefix, a.window) {
 		a.window.Resize(defaultMainWindowWidth, defaultMainWindowHeight)
 	}
@@ -389,6 +393,7 @@ func (a *application) storeWindowState() {
 	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
 	saveWindowState(settings, mainWindowSettingPrefix, a.window)
 	saveWindowState(settings, spotWindowSettingPrefix, a.spotWindow.window)
+	a.dockManager.Save(settings)
 	settings.SetValue(
 		*qtlib.NewQAnyStringView3(settingSpotWindowVisible),
 		qtlib.NewQVariant8(a.spotWindow.Visible()),

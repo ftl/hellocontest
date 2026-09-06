@@ -829,8 +829,8 @@ func (c *Controller) ShowRate() {
 }
 
 func (c *Controller) ShowSpots() {
-	c.Bandmap.Show()
 	c.view.BringToFront()
+	c.Bandmap.Show()
 }
 
 func (c *Controller) ShowClock() {

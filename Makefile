@@ -27,7 +27,7 @@ test:
 	go test -v -timeout=30s ./...
 
 build:
-	go build -trimpath -buildmode=pie -ldflags "-s -w -extldflags \"${LDFLAGS}\" -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
+	go build -trimpath -buildmode=pie -ldflags "-s -w -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}
 
 run: build
 	./${BINARY_NAME}

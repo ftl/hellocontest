@@ -37,8 +37,8 @@ const (
 )
 
 type spotsView struct {
-	*dockableView
 	widget *qtlib.QWidget
+	window *spotWindow
 
 	style *Style
 
@@ -58,7 +58,7 @@ type spotsView struct {
 	suppressSelection bool
 }
 
-func newSpotsView(parent *qtlib.QWidget, controller SpotsController, style *Style) *spotsView {
+func newSpotsView(controller SpotsController, style *Style) *spotsView {
 	v := &spotsView{
 		controller:  controller,
 		style:       style,
@@ -69,6 +69,7 @@ func newSpotsView(parent *qtlib.QWidget, controller SpotsController, style *Styl
 	v.bold.SetBold(true)
 
 	v.widget = qtlib.NewQWidget2()
+	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("spotsView"))
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
 
@@ -80,13 +81,28 @@ func newSpotsView(parent *qtlib.QWidget, controller SpotsController, style *Styl
 	v.buildTable()
 	layout.AddWidget3(v.table.QAbstractScrollArea.QFrame.QWidget, 1, 0)
 
-	v.dockableView = newDockableView(parent, v.widget, "Spots", "spotsDock")
-
 	return v
 }
 
+func (v *spotsView) SetWindow(window *spotWindow) {
+	v.window = window
+}
+
+func (v *spotsView) Show() {
+	if v.window == nil {
+		return
+	}
+	v.window.Show()
+}
+
+func (v *spotsView) Hide() {
+	if v.window == nil {
+		return
+	}
+	v.window.Hide()
+}
+
 func (v *spotsView) RepaintForThemeChange() {
-	v.dockableView.RepaintForThemeChange()
 	v.widget.SetPalette(qtlib.QGuiApplication_Palette())
 	v.widget.Update()
 	repaintScrollBarsForThemeChange(v.table.QAbstractScrollArea)

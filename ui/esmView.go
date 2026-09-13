@@ -23,6 +23,7 @@ func newESMView() *esmView {
 	layout := qtlib.NewQHBoxLayout(v.widget)
 
 	v.checkbox = qtlib.NewQCheckBox3("ESM")
+	v.checkbox.SetFocusPolicy(qtlib.NoFocus)
 	layout.AddWidget(v.checkbox.QWidget)
 
 	v.msgLabel = qtlib.NewQLabel2()

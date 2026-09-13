@@ -59,10 +59,13 @@ const (
 	ActionRadioToggleAudioVFO2    = "radio.toggle_audio_vfo2"
 
 	ActionBandmapMark                 = "bandmap.mark"
+	ActionBandmapDeleteMarker         = "bandmap.delete_marker"
 	ActionBandmapGotoHighestValueSpot = "bandmap.goto_highest_value_spot"
 	ActionBandmapGotoNearestSpot      = "bandmap.goto_nearest_spot"
 	ActionBandmapGotoNextSpotUp       = "bandmap.goto_next_spot_up"
 	ActionBandmapGotoNextSpotDown     = "bandmap.goto_next_spot_down"
+	ActionBandmapGotoCQFrequency      = "bandmap.goto_cq_frequency"
+	ActionBandmapGotoNumberedMarker   = "bandmap.goto_numbered_marker"
 	ActionBandmapSendSpotsToTci       = "bandmap.send_spots_to_tci"
 
 	ActionWindowShowQSOs       = "window.show_qsos"
@@ -71,6 +74,7 @@ const (
 	ActionWindowShowScoreTable = "window.show_score_table"
 	ActionWindowShowRate       = "window.show_rate"
 	ActionWindowShowSpots      = "window.show_spots"
+	ActionWindowShowBandMatrix = "window.show_band_matrix"
 	ActionWindowShowClock      = "window.show_clock"
 
 	ActionHelpWiki     = "help.wiki"

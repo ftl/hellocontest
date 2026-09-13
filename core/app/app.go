@@ -97,6 +97,7 @@ type Controller struct {
 	QTCController            *qtc.Controller
 	Settings                 *settings.Settings
 	Bandmap                  *bandmap.Bandmap
+	BandMatrix               *bandmap.BandMatrix
 	Clusters                 *cluster.Clusters
 	Parrot                   *parrot.Parrot
 	Dial                     *hamdial.Controller
@@ -187,10 +188,10 @@ func (c *Controller) Startup() {
 	c.Logbook.Notify(c.QTCList)
 	c.Logbook.Notify(c.ScoreController)
 
-	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
+	c.Bandmap = bandmap.NewBandmap(c.clock, c.Settings, c.Logbook, c.session, c.asyncRunner, bandmap.DefaultUpdatePeriod, c.configuration.SpotLifetime())
 	c.Logbook.Notify(c.Bandmap)
 
-	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock)
+	c.Clusters = cluster.NewClusters(c.configuration.SpotSources(), c.Bandmap, c.bandplan, c.dxccFinder, c.clock, c.configuration.SpotLifetime(), c.asyncRunner)
 	c.Entry = entry.NewController(
 		c.Settings,
 		c.clock,
@@ -221,7 +222,12 @@ func (c *Controller) Startup() {
 
 	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
 	c.Radio.Notify(c.ServiceStatus)
-	c.Radio.Notify(c.Entry)
+	// the entry controller gets the VFO events from the VFOs, not from the raw stream of
+	// the radio, because only the VFO knows whether the application commanded a change.
+	// Therefore it only gets the radio level events here.
+	c.Radio.Notify(core.RadioChangedListenerFunc(c.Entry.RadioChanged))
+	c.Radio.Notify(core.CurrentVFOListenerFunc(c.Entry.CurrentVFOChanged))
+	c.Radio.Notify(core.TXVFOListenerFunc(c.Entry.TXVFOChanged))
 	c.Radio.Notify(c.Callinfo)
 	c.Radio.Notify(c.Workmode)
 	c.Entry.SetVFOSwitcher(c.Radio)
@@ -233,6 +239,7 @@ func (c *Controller) Startup() {
 		v.SetClient(c.Radio)
 		c.VFOs[vfoID] = v
 		c.Entry.SetVFO(core.VFOID(vfoID), v)
+		v.Notify(c.Entry)
 		c.Logbook.Notify(v)
 		c.Workmode.Notify(v)
 	}
@@ -240,6 +247,33 @@ func (c *Controller) Startup() {
 	c.Entry.Notify(core.FocusedVFOListenerFunc(func(vfo core.VFOID) {
 		c.focusedVFO = vfo
 	}))
+
+	c.Entry.Notify(c.Bandmap)
+	c.Radio.Notify(c.Bandmap)
+	c.Bandmap.Notify(bandmap.CQMarkerSelectedListenerFunc(c.gotoCQMarker))
+	c.Bandmap.Notify(bandmap.MarkerSelectedListenerFunc(func(core.VFOID, core.BandmapMarker) {
+		if c.view != nil {
+			c.view.BringToFront()
+		}
+	}))
+	c.Bandmap.Notify(bandmap.EntrySelectedListenerFunc(func(core.VFOID, core.BandmapEntry) {
+		// the spot list may live in its own window, therefore the main window with the
+		// entry fields comes to the front
+		if c.view != nil {
+			c.view.BringToFront()
+		}
+	}))
+	for _, v := range c.VFOs {
+		v.Notify(c.Bandmap)
+	}
+
+	c.BandMatrix = bandmap.NewBandMatrix(&vfoBandSwitcher{vfos: c.VFOs}, c.Entry, c.asyncRunner)
+	c.Bandmap.Notify(c.BandMatrix)
+	c.Radio.Notify(c.BandMatrix)
+	c.Entry.Notify(c.BandMatrix)
+	for _, v := range c.VFOs {
+		v.Notify(c.BandMatrix)
+	}
 
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
 	c.Radio.SelectRadio(c.session.Radio1())
@@ -250,6 +284,7 @@ func (c *Controller) Startup() {
 	c.Keyer.SetValues(c.Entry.CurrentValues)
 	c.Keyer.Notify(c.ServiceStatus)
 	c.Keyer.Notify(c.Entry)
+	c.Keyer.Notify(c.Bandmap)
 	c.Entry.Notify(c.Keyer)
 	c.Workmode.Notify(c.Keyer)
 	c.Entry.SetKeyer(c.Keyer)
@@ -829,8 +864,15 @@ func (c *Controller) ShowRate() {
 }
 
 func (c *Controller) ShowSpots() {
-	c.Bandmap.Show()
 	c.view.BringToFront()
+	c.Bandmap.Show()
+}
+
+func (c *Controller) ShowBandMatrix() {
+	// the band matrix may live in the window of the spot list, therefore it comes to the
+	// front after the main window
+	c.view.BringToFront()
+	c.BandMatrix.Show()
 }
 
 func (c *Controller) ShowClock() {
@@ -847,6 +889,10 @@ func (c *Controller) ClearEntryFields() {
 }
 
 func (c *Controller) GotoEntryFields() {
+	// the entry fields may sit behind another window of the application
+	if c.view != nil {
+		c.view.BringToFront()
+	}
 	c.Entry.Activate()
 }
 
@@ -1003,12 +1049,35 @@ func (c *Controller) MarkInBandmap() {
 	c.Entry.MarkInBandmap()
 }
 
+func (c *Controller) DeleteMarker() {
+	c.Bandmap.DeleteMarkerOnFrequency()
+}
+
 func (c *Controller) GotoHighestValueSpot() {
 	c.Bandmap.GotoHighestValueEntry()
 }
 
 func (c *Controller) GotoNearestSpot() {
 	c.Bandmap.GotoNearestEntry()
+}
+
+func (c *Controller) GotoCQFrequency() {
+	c.Bandmap.GotoCQMarker()
+}
+
+func (c *Controller) GotoNumberedMarker(number int) {
+	c.Bandmap.GotoNumberedMarker(number)
+}
+
+func (c *Controller) gotoCQMarker(marker core.BandmapMarker) {
+	// only VFO1 works in the running workmode, therefore the CQ frequency always belongs
+	// to VFO1, no matter which VFO is focused
+	c.Entry.SetFocusedVFO(core.VFO1)
+	c.Workmode.SetWorkmode(core.Run)
+	c.Entry.MarkerSelected(core.VFO1, marker)
+	if c.view != nil {
+		c.view.BringToFront()
+	}
 }
 
 func (c *Controller) GotoNextSpotUp() {
@@ -1085,6 +1154,21 @@ func shiftAmount(params map[string]string, def int) (int, error) {
 		return def, nil
 	}
 	return strconv.Atoi(s)
+}
+
+func markerNumber(params map[string]string) (int, error) {
+	s, ok := params["number"]
+	if !ok || s == "" {
+		return 0, fmt.Errorf("missing number parameter")
+	}
+	number, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, err
+	}
+	if number < 1 {
+		return 0, fmt.Errorf("invalid marker number: %d", number)
+	}
+	return number, nil
 }
 
 func (c *Controller) DoAction(id string, params map[string]string) error {
@@ -1171,6 +1255,8 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.RequestQTC()
 	case core.ActionBandmapMark:
 		c.MarkInBandmap()
+	case core.ActionBandmapDeleteMarker:
+		c.DeleteMarker()
 	case core.ActionBandmapGotoHighestValueSpot:
 		c.GotoHighestValueSpot()
 	case core.ActionBandmapGotoNearestSpot:
@@ -1179,6 +1265,14 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.GotoNextSpotUp()
 	case core.ActionBandmapGotoNextSpotDown:
 		c.GotoNextSpotDown()
+	case core.ActionBandmapGotoCQFrequency:
+		c.GotoCQFrequency()
+	case core.ActionBandmapGotoNumberedMarker:
+		number, err := markerNumber(params)
+		if err != nil {
+			return err
+		}
+		c.GotoNumberedMarker(number)
 	case core.ActionWindowShowQSOs:
 		c.ShowQSOs()
 	case core.ActionWindowShowQTCs:
@@ -1191,6 +1285,8 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.ShowRate()
 	case core.ActionWindowShowSpots:
 		c.ShowSpots()
+	case core.ActionWindowShowBandMatrix:
+		c.ShowBandMatrix()
 	case core.ActionWindowShowClock:
 		c.ShowClock()
 	case core.ActionKeyerSendMacro1:
@@ -1217,4 +1313,15 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		return fmt.Errorf("unknown action: %s", id)
 	}
 	return nil
+}
+
+type vfoBandSwitcher struct {
+	vfos []*vfo.VFO
+}
+
+func (s *vfoBandSwitcher) SetVFOBand(id core.VFOID, band core.Band) {
+	if int(id) < 0 || int(id) >= len(s.vfos) {
+		return
+	}
+	s.vfos[id].SetBand(band)
 }

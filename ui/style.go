@@ -1,9 +1,6 @@
 package ui
 
 import (
-	"fmt"
-	"strings"
-
 	qtlib "github.com/mappu/miqt/qt6"
 
 	"github.com/ftl/hellocontest/core"
@@ -48,35 +45,19 @@ var (
 	axisRGB          = [3]int{0x20, 0x20, 0x20}
 	backgroundRGB    = [3]int{0xFF, 0xFF, 0xFF}
 	timeIndicatorRGB = [3]int{0x3D, 0xAE, 0xE9}
-)
 
-// Spot type RGBs transcribed from ui/style/contest.css.
-var spotTypeRGB = map[core.SpotType][3]int{
-	core.WorkedSpot:  {0x80, 0x80, 0x80},
-	core.ManualSpot:  {0xFF, 0xFF, 0xFF},
-	core.SkimmerSpot: {0xFF, 0x99, 0xFF},
-	core.RBNSpot:     {0xFF, 0xFF, 0x99},
-	core.ClusterSpot: {0x99, 0xFF, 0xFF},
-	core.UnknownSpot: {0xFF, 0xFF, 0xFF},
-}
+	genericMarkerRGB     = [3]int{0xAD, 0xD8, 0xE6}
+	genericMarkerTextRGB = [3]int{0x00, 0x00, 0x00}
+)
 
 type Style struct {
 	appStylesheet string
-
-	spotBrushes map[core.SpotType]*qtlib.QBrush
-	spotFgBrush *qtlib.QBrush
 }
 
 func NewStyle() *Style {
-	s := &Style{
+	return &Style{
 		appStylesheet: "QDockWidget::title { padding: 4px; }",
 	}
-	s.spotFgBrush = qtlib.NewQBrush3(qtlib.NewQColor11(0, 0, 0, 255))
-	s.spotBrushes = make(map[core.SpotType]*qtlib.QBrush, len(spotTypeRGB))
-	for t, rgb := range spotTypeRGB {
-		s.spotBrushes[t] = qtlib.NewQBrush3(newQColor(rgb))
-	}
-	return s
 }
 
 func (s *Style) Apply(app *qtlib.QApplication) {
@@ -100,15 +81,18 @@ func (s *Style) AxisColor() *qtlib.QColor          { return newQColor(axisRGB) }
 func (s *Style) BackgroundColor() *qtlib.QColor    { return newQColor(backgroundRGB) }
 func (s *Style) TimeIndicatorColor() *qtlib.QColor { return newQColor(timeIndicatorRGB) }
 
-func (s *Style) SpotBrush(src core.SpotType) *qtlib.QBrush {
-	if b, ok := s.spotBrushes[src]; ok {
-		return b
+func (s *Style) MarkerBrushes(kind core.BandmapMarkerKind) (background, foreground *qtlib.QBrush) {
+	if kind == core.CQMarker {
+		// the CQ marker inverts a normal row, therefore it is readable in every theme
+		palette := qtlib.QGuiApplication_Palette()
+		return palette.Text(), palette.Base()
 	}
-	return s.spotBrushes[core.UnknownSpot]
+	return qtlib.NewQBrush3(newQColor(genericMarkerRGB)), qtlib.NewQBrush3(newQColor(genericMarkerTextRGB))
 }
 
-func (s *Style) SpotForegroundBrush() *qtlib.QBrush {
-	return s.spotFgBrush
+func (s *Style) WorkedSpotBrush() *qtlib.QBrush {
+	// the palette follows the theme of the desktop, therefore the brush is taken freshly
+	return qtlib.QGuiApplication_Palette().Brush(qtlib.QPalette__Disabled, qtlib.QPalette__Text)
 }
 
 // Package-level helpers used by score graph and score table. They delegate to
@@ -128,20 +112,4 @@ func rgbQColor(rgb [3]int, alpha float32) *qtlib.QColor {
 	c := qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255)
 	c.SetAlphaF(alpha)
 	return c
-}
-
-func GetSpotsBandButtonStyle(active bool, visible bool, max bool) string {
-	properties := []string{}
-	switch {
-	case active:
-		properties = append(properties, "background-color: palette(highlight); color: palette(highlighted-text);")
-	case visible:
-		properties = append(properties, "background-color: palette(accent); color: palette(light);")
-	}
-
-	if max {
-		properties = append(properties, "font-weight: bold; border: 2px solid palette(highlight); ")
-	}
-
-	return fmt.Sprintf("QPushButton { %s }", strings.Join(properties, " "))
 }

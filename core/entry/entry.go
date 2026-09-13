@@ -15,6 +15,10 @@ import (
 )
 
 const (
+	commandPrefix     = "@"   // goes to a callsign, a numbered marker, or the CQ marker
+	cqCommand         = "@cq" // goes to the frequency of the CQ marker
+	textMarkerCommand = ":"   // followed by a text, marks the frequency with that text
+
 	jumpThreshold core.Frequency = 250 // Hz
 )
 
@@ -87,6 +91,11 @@ type Callinfo interface {
 type Bandmap interface {
 	Add(core.Spot)
 	SelectByCallsign(core.Callsign)
+	GotoCQMarker()
+	GotoNumberedMarker(int)
+	MarkWithNextNumber(core.Frequency, core.Band)
+	MarkWithNumber(int, core.Frequency, core.Band)
+	MarkWithText(string, core.Frequency, core.Band)
 }
 
 // NewController returns a new entry controller.
@@ -184,26 +193,25 @@ type Controller struct {
 	defaultExchangeValues    []string
 	currentCallinfoFrame     []core.CallinfoFrame
 
-	input               []input
-	myReport            string
-	myNumber            string
-	myExchange          []string
-	lastNumber          []core.QSONumber
-	lastExchange        []string
-	focusedVFO          core.VFOID
-	txVFO               core.VFOID
-	vfo2Enabled         bool
-	activeField         []core.EntryField
-	errorField          []core.EntryField
-	selectedFrequency   []core.Frequency
-	selectedBand        []core.Band
-	selectedMode        []core.Mode
-	claims              SerialClaims
-	editing             bool
-	editQSO             core.QSO
-	editSnapshot        *editSnapshot
-	ignoreQSOSelection  bool
-	ignoreFrequencyJump bool
+	input              []input
+	myReport           string
+	myNumber           string
+	myExchange         []string
+	lastNumber         []core.QSONumber
+	lastExchange       []string
+	focusedVFO         core.VFOID
+	txVFO              core.VFOID
+	vfo2Enabled        bool
+	activeField        []core.EntryField
+	errorField         []core.EntryField
+	selectedFrequency  []core.Frequency
+	selectedBand       []core.Band
+	selectedMode       []core.Mode
+	claims             SerialClaims
+	editing            bool
+	editQSO            core.QSO
+	editSnapshot       *editSnapshot
+	ignoreQSOSelection bool
 
 	ptt            bool
 	parrotActive   bool
@@ -746,15 +754,24 @@ func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequenc
 		if c.selectedFrequency[vfo] == frequency {
 			return
 		}
-		jump := math.Abs(float64(c.selectedFrequency[vfo]-frequency)) > float64(jumpThreshold)
 		c.selectedFrequency[vfo] = frequency
 
 		c.view.SetFrequency(vfo, frequency)
+	})
+}
 
-		if jump && !c.ignoreFrequencyJump {
-			c.clearInput(vfo)
+func (c *Controller) VFOTuned(vfo core.VFOID, frequency core.Frequency) {
+	c.asyncRunner(func() {
+		if vfo == core.VFO1 && c.editing {
+			return
 		}
-		c.ignoreFrequencyJump = false
+		// the operator left the frequency of the QSO in progress, therefore the input
+		// belongs to the previous frequency and gets cleared
+		if math.Abs(float64(c.selectedFrequency[vfo]-frequency)) <= float64(jumpThreshold) {
+			return
+		}
+		c.selectedFrequency[vfo] = frequency
+		c.clearInput(vfo)
 	})
 }
 
@@ -1128,12 +1145,34 @@ func (c *Controller) parseCallsignCommand() bool {
 		return true
 	}
 
+	if isCQCommand(c.input[c.focusedVFO].callsign) {
+		c.bandmap.GotoCQMarker()
+		return true
+	}
+
+	if number, ok := parseMarkerCommand(c.input[c.focusedVFO].callsign); ok {
+		c.bandmap.GotoNumberedMarker(number)
+		return true
+	}
+
+	if text, ok := parseTextMarkerCommand(c.input[c.focusedVFO].callsign); ok {
+		c.markFromText(text)
+		return true
+	}
+
 	if call, ok := parseBandmapCallsign(c.input[c.focusedVFO].callsign); ok {
 		c.bandmap.SelectByCallsign(call)
 		return true
 	}
 
-	return false
+	// a command without a target does nothing, it must not reach the ESM and start a
+	// transmission
+	return isCommand(c.input[c.focusedVFO].callsign)
+}
+
+func isCommand(s string) bool {
+	text := strings.TrimSpace(s)
+	return strings.HasPrefix(text, commandPrefix) || strings.HasPrefix(text, textMarkerCommand)
 }
 
 func parseKilohertz(s string) (core.Frequency, bool) {
@@ -1144,12 +1183,37 @@ func parseKilohertz(s string) (core.Frequency, bool) {
 	return core.Frequency(kHz * 1000), true
 }
 
+func isCQCommand(s string) bool {
+	return strings.EqualFold(strings.TrimSpace(s), cqCommand)
+}
+
+func parseMarkerCommand(s string) (int, bool) {
+	text, found := strings.CutPrefix(strings.TrimSpace(s), commandPrefix)
+	if !found {
+		return 0, false
+	}
+	return parseMarkerNumber(text)
+}
+
+func parseTextMarkerCommand(s string) (string, bool) {
+	text, found := strings.CutPrefix(strings.TrimSpace(s), textMarkerCommand)
+	if !found {
+		return "", false
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return "", false
+	}
+	return text, true
+}
+
 func parseBandmapCallsign(s string) (core.Callsign, bool) {
-	if !strings.HasPrefix(s, "@") {
+	text, found := strings.CutPrefix(strings.TrimSpace(s), commandPrefix)
+	if !found {
 		return core.Callsign{}, false
 	}
 
-	call, err := core.ParseCallsign(s[1:])
+	call, err := core.ParseCallsign(text)
 	if err != nil {
 		log.Printf("invalid bandmap callsign: %v", err)
 		return core.Callsign{}, false
@@ -1409,7 +1473,29 @@ func (c *Controller) updateExchangeFields(contest core.Contest) {
 }
 
 func (c *Controller) MarkInBandmap() {
-	call, err := core.ParseCallsign(c.input[c.focusedVFO].callsign)
+	callsign := strings.TrimSpace(c.input[c.focusedVFO].callsign)
+	frequency := c.selectedFrequency[c.focusedVFO]
+	band := c.selectedBand[c.focusedVFO]
+
+	// an empty callsign marks the frequency with the next available number
+	if callsign == "" {
+		c.bandmap.MarkWithNextNumber(frequency, band)
+		return
+	}
+
+	// a number marks the frequency with exactly that number
+	if number, ok := parseMarkerNumber(callsign); ok {
+		c.bandmap.MarkWithNumber(number, frequency, band)
+		c.clearCallsignInput()
+		return
+	}
+
+	if text, ok := parseTextMarkerCommand(callsign); ok {
+		c.markFromText(text)
+		return
+	}
+
+	call, err := core.ParseCallsign(callsign)
 	if err != nil {
 		log.Printf("Cannot mark invalid call: %v", err)
 		return
@@ -1425,13 +1511,59 @@ func (c *Controller) MarkInBandmap() {
 	c.bandmap.Add(spot)
 }
 
-func (c *Controller) EntrySelected(entry core.BandmapEntry) {
-	// TODO: check if the entry's band is currently selected in one of the two VFOs
+func parseMarkerNumber(s string) (int, bool) {
+	number, err := strconv.Atoi(s)
+	if err != nil || number < 1 {
+		return 0, false
+	}
+	return number, true
+}
+
+func (c *Controller) markFromText(text string) {
+	frequency := c.selectedFrequency[c.focusedVFO]
+	band := c.selectedBand[c.focusedVFO]
+
+	// a text that is a number marks the frequency with that number
+	if number, ok := parseMarkerNumber(text); ok {
+		c.bandmap.MarkWithNumber(number, frequency, band)
+	} else {
+		c.bandmap.MarkWithText(text, frequency, band)
+	}
+	c.clearCallsignInput()
+}
+
+func (c *Controller) clearCallsignInput() {
+	c.input[c.focusedVFO].callsign = ""
+	c.enterCallsign(c.input[c.focusedVFO].callsign)
+	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
+}
+
+func (c *Controller) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) {
+	// the bandmap decides which VFO goes to the marker, the focus follows that decision
+	c.SetFocusedVFO(vfo)
 
 	c.Clear()
-	c.ignoreFrequencyJump = true
+	// setting the frequency also moves the rig to the band of the marker. A marker names
+	// no callsign and no mode, therefore the input stays empty.
+	c.frequencyEntered(marker.Frequency)
+	c.SetActiveField(core.CallsignField)
+	c.Activate()
+}
+
+func (c *Controller) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) {
+	// the bandmap decides which VFO works the spot, the focus follows that decision
+	c.SetFocusedVFO(vfo)
+
+	c.Clear()
+	// setting the frequency also moves the rig to the band of the spot
 	c.frequencyEntered(entry.Frequency)
+	if entry.Mode != core.NoMode && entry.Mode != c.selectedMode[c.focusedVFO] {
+		c.vfos[c.focusedVFO].SetMode(entry.Mode)
+	}
 	c.SetActiveField(core.CallsignField)
 	c.Enter(entry.Call.String())
 	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
+	// the spot list may live in another window, therefore the callsign field of the
+	// target VFO explicitly takes the keyboard focus
+	c.Activate()
 }

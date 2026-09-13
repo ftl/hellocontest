@@ -670,6 +670,30 @@ func (c Contest) Bands() []Band {
 	return result
 }
 
+func (c Contest) Modes() []Mode {
+	if c.Definition == nil {
+		return nil
+	}
+	result := make([]Mode, 0, len(c.Definition.Modes))
+	for _, mode := range c.Definition.Modes {
+		switch mode {
+		case conval.ModeALL:
+			return Modes
+		case conval.ModeCW:
+			result = append(result, ModeCW)
+		case conval.ModeSSB:
+			result = append(result, ModeSSB)
+		case conval.ModeFM:
+			result = append(result, ModeFM)
+		case conval.ModeRTTY:
+			result = append(result, ModeRTTY)
+		case conval.ModeDigital:
+			result = append(result, ModeDigital)
+		}
+	}
+	return result
+}
+
 func (c Contest) Started(now time.Time) bool {
 	if c.StartTime.IsZero() {
 		return true
@@ -1320,14 +1344,24 @@ const (
 	OwnCountrySpotsOnly   SpotFilter = "country"
 )
 
+type SpotProtocol string
+
+const (
+	// ClusterixProtocol is the DX cluster telnet protocol, the default of every spot source
+	ClusterixProtocol SpotProtocol = ""
+	// SDRainerProtocol is the channel stream of SDRainer, over gRPC
+	SDRainerProtocol SpotProtocol = "sdrainer"
+)
+
 type SpotSource struct {
-	Name            string     `json:"name"`
-	Type            SpotType   `json:"type"`
-	HostAddress     string     `json:"host_address"`
-	Username        string     `json:"username"`
-	Password        string     `json:"password,omitempty"`
-	Filter          SpotFilter `json:"filter,omitempty"`
-	IgnoreTimestamp bool       `json:"ignore_timestamp,omitempty"`
+	Name            string       `json:"name"`
+	Type            SpotType     `json:"type"`
+	Protocol        SpotProtocol `json:"protocol,omitempty"`
+	HostAddress     string       `json:"host_address"`
+	Username        string       `json:"username"`
+	Password        string       `json:"password,omitempty"`
+	Filter          SpotFilter   `json:"filter,omitempty"`
+	IgnoreTimestamp bool         `json:"ignore_timestamp,omitempty"`
 }
 
 type Spot struct {
@@ -1337,10 +1371,87 @@ type Spot struct {
 	Mode      Mode
 	Time      time.Time
 	Source    SpotType
+	// Quality is the judgement of the source about its own spot. A source that reports no
+	// quality leaves this field at UnknownSpotQuality, and the bandmap judges by itself.
+	Quality SpotQuality
+	// SNR is the signal to noise ratio in dB that the source measured. A signal at the noise
+	// floor is no spot, therefore 0 means that the source reported no value.
+	SNR float64
 }
 
 func (s Spot) IsWorked() bool {
 	return s.Source == WorkedSpot
+}
+
+const CQMacroIndex = 0 // the F1 macro calls CQ
+
+type BandmapMarkerKind int
+
+const (
+	CQMarker BandmapMarkerKind = iota
+	NumberedMarker
+	TextMarker
+)
+
+type BandmapMarker struct {
+	ID        BandmapEntryID
+	Kind      BandmapMarkerKind
+	Text      string
+	Number    int
+	Frequency Frequency
+	Band      Band
+	CreatedAt time.Time
+}
+
+func (m BandmapMarker) ProximityFactor(frequency Frequency) float64 {
+	return proximityFactor(m.Frequency, frequency)
+}
+
+func (m BandmapMarker) OnFrequency(frequency Frequency) bool {
+	return math.Abs(m.ProximityFactor(frequency)) >= spotOnFrequencyThreshold
+}
+
+type BandmapRowKind int
+
+const (
+	SpotRow BandmapRowKind = iota
+	MarkerRow
+)
+
+type BandmapRow struct {
+	Kind   BandmapRowKind
+	Entry  BandmapEntry
+	Marker BandmapMarker
+}
+
+func SpotBandmapRow(entry BandmapEntry) BandmapRow {
+	return BandmapRow{Kind: SpotRow, Entry: entry}
+}
+
+func MarkerBandmapRow(marker BandmapMarker) BandmapRow {
+	return BandmapRow{Kind: MarkerRow, Marker: marker}
+}
+
+func (r BandmapRow) ID() BandmapEntryID {
+	if r.Kind == MarkerRow {
+		return r.Marker.ID
+	}
+	return r.Entry.ID
+}
+
+func (r BandmapRow) Frequency() Frequency {
+	if r.Kind == MarkerRow {
+		return r.Marker.Frequency
+	}
+	return r.Entry.Frequency
+}
+
+func (r BandmapRow) LastSeen() time.Time {
+	if r.Kind == MarkerRow {
+		// the creation time is the last seen value of a marker
+		return r.Marker.CreatedAt
+	}
+	return r.Entry.LastHeard
 }
 
 type BandmapFrame struct {
@@ -1349,12 +1460,13 @@ type BandmapFrame struct {
 	VisibleBand       Band
 	Mode              Mode
 	Bands             []BandSummary
-	Entries           []BandmapEntry
+	Rows              []BandmapRow
 	Index             BandmapFrameIndex
 	SelectedEntry     BandmapEntry
 	NearestEntry      BandmapEntry
 	HighestValueEntry BandmapEntry
 	QTCsEnabled       bool
+	Filter            SpotFilterFrame
 }
 
 func (f BandmapFrame) IndexOf(id BandmapEntryID) (int, bool) {
@@ -1362,29 +1474,39 @@ func (f BandmapFrame) IndexOf(id BandmapEntryID) (int, bool) {
 	return index, found
 }
 
-func (f BandmapFrame) EntryByID(id BandmapEntryID) (BandmapEntry, bool) {
-	index, found := f.IndexOf(id)
+func (f BandmapFrame) RowByID(id BandmapEntryID) (BandmapRow, bool) {
+	index, found := f.Index[id]
 	if !found {
+		return BandmapRow{}, false
+	}
+	return f.Rows[index], true
+}
+
+func (f BandmapFrame) EntryByID(id BandmapEntryID) (BandmapEntry, bool) {
+	row, found := f.RowByID(id)
+	if !found || row.Kind != SpotRow {
 		return BandmapEntry{}, false
 	}
-	return f.Entries[index], true
+	return row.Entry, true
 }
 
 type BandmapFrameIndex map[BandmapEntryID]int
 
-func NewFrameIndex(entries []BandmapEntry) BandmapFrameIndex {
-	result := make(BandmapFrameIndex, len(entries))
-	for i, entry := range entries {
-		result[entry.ID] = i
+func NewFrameIndex(rows []BandmapRow) BandmapFrameIndex {
+	result := make(BandmapFrameIndex, len(rows))
+	for i, row := range rows {
+		result[row.ID()] = i
 	}
 	return result
 }
 
 type BandSummary struct {
 	Band        Band
+	SpotCount   int
 	Points      int
 	MultiValues map[conval.Property]map[string]bool
 
+	MaxSpots  bool
 	MaxPoints bool
 	MaxMultis bool
 	Active    bool
@@ -1411,6 +1533,182 @@ func (s *BandSummary) Multis() int {
 		result += len(values)
 	}
 	return result
+}
+
+type SpotFilterKind int
+
+const (
+	SpotFilterAll SpotFilterKind = iota
+	SpotFilterVFO1
+	SpotFilterVFO2
+	SpotFilterFocused
+	SpotFilterContest
+	SpotFilterFixed
+)
+
+func (k SpotFilterKind) String() string {
+	switch k {
+	case SpotFilterVFO1:
+		return "vfo1"
+	case SpotFilterVFO2:
+		return "vfo2"
+	case SpotFilterFocused:
+		return "focused"
+	case SpotFilterContest:
+		return "contest"
+	case SpotFilterFixed:
+		return "fixed"
+	default:
+		return "all"
+	}
+}
+
+func ParseSpotFilterKind(s string) (SpotFilterKind, bool) {
+	switch s {
+	case "all":
+		return SpotFilterAll, true
+	case "vfo1":
+		return SpotFilterVFO1, true
+	case "vfo2":
+		return SpotFilterVFO2, true
+	case "focused":
+		return SpotFilterFocused, true
+	case "contest":
+		return SpotFilterContest, true
+	case "fixed":
+		return SpotFilterFixed, true
+	default:
+		return SpotFilterAll, false
+	}
+}
+
+type SpotFilterBand struct {
+	Kind SpotFilterKind
+	Band Band
+}
+
+func FixedSpotFilterBand(band Band) SpotFilterBand {
+	return SpotFilterBand{Kind: SpotFilterFixed, Band: band}
+}
+
+func (b SpotFilterBand) String() string {
+	if b.Kind == SpotFilterFixed {
+		return string(b.Band)
+	}
+	return b.Kind.String()
+}
+
+func ParseSpotFilterBand(s string) SpotFilterBand {
+	if kind, ok := ParseSpotFilterKind(s); ok && kind != SpotFilterFixed {
+		return SpotFilterBand{Kind: kind}
+	}
+	for _, band := range Bands {
+		if string(band) == s {
+			return FixedSpotFilterBand(band)
+		}
+	}
+	return SpotFilterBand{Kind: SpotFilterAll}
+}
+
+type SpotFilterMode struct {
+	Kind SpotFilterKind
+	Mode Mode
+}
+
+func FixedSpotFilterMode(mode Mode) SpotFilterMode {
+	return SpotFilterMode{Kind: SpotFilterFixed, Mode: mode}
+}
+
+func (m SpotFilterMode) String() string {
+	if m.Kind == SpotFilterFixed {
+		return string(m.Mode)
+	}
+	return m.Kind.String()
+}
+
+func ParseSpotFilterMode(s string) SpotFilterMode {
+	if kind, ok := ParseSpotFilterKind(s); ok && kind != SpotFilterFixed {
+		return SpotFilterMode{Kind: kind}
+	}
+	for _, mode := range Modes {
+		if string(mode) == s {
+			return FixedSpotFilterMode(mode)
+		}
+	}
+	return SpotFilterMode{Kind: SpotFilterAll}
+}
+
+type SpotSortColumn int
+
+const (
+	SortSpotsByFrequency SpotSortColumn = iota
+	SortSpotsByCallsign
+	SortSpotsByValue
+	SortSpotsByLastSeen
+)
+
+var SpotSortColumns = []SpotSortColumn{SortSpotsByFrequency, SortSpotsByCallsign, SortSpotsByValue, SortSpotsByLastSeen}
+
+func (c SpotSortColumn) String() string {
+	switch c {
+	case SortSpotsByCallsign:
+		return "callsign"
+	case SortSpotsByValue:
+		return "value"
+	case SortSpotsByLastSeen:
+		return "last_seen"
+	default:
+		return "frequency"
+	}
+}
+
+func (c SpotSortColumn) Label() string {
+	switch c {
+	case SortSpotsByCallsign:
+		return "Callsign"
+	case SortSpotsByValue:
+		return "Value"
+	case SortSpotsByLastSeen:
+		return "Last Seen"
+	default:
+		return "Frequency"
+	}
+}
+
+func ParseSpotSortColumn(s string) SpotSortColumn {
+	switch s {
+	case "callsign":
+		return SortSpotsByCallsign
+	case "value":
+		return SortSpotsByValue
+	case "last_seen":
+		return SortSpotsByLastSeen
+	default:
+		return SortSpotsByFrequency
+	}
+}
+
+type SpotFilterState struct {
+	Band       SpotFilterBand
+	Mode       SpotFilterMode
+	SortBy     SpotSortColumn
+	Descending bool
+	Folded     bool
+}
+
+type SpotFilterFrame struct {
+	SpotFilterState
+
+	Bands       []Band
+	Modes       []Mode
+	Description string
+}
+
+type BandMatrixFrame struct {
+	Bands         []BandSummary
+	VFOBands      [VFOCount]Band
+	FocusedVFO    VFOID
+	VFO2Available bool
 }
 
 type Callinfo struct {
@@ -1445,6 +1743,7 @@ type CallinfoFrame struct {
 	Distance            latlon.Km
 
 	CallsignOnFrequency AnnotatedCallsign
+	MarkerOnFrequency   string
 
 	PredictedExchange []string
 
@@ -1501,6 +1800,7 @@ type BandmapEntry struct {
 	Source    SpotType
 	SpotCount int
 	Quality   SpotQuality
+	SNR       float64
 
 	Info Callinfo
 }
@@ -1509,13 +1809,17 @@ type BandmapEntry struct {
 // 0.0 = not in proximity, 1.0 = exactly on frequency
 // the sign indiciates if the entry's frequency is above (>0) or below (<0) the reference frequency
 func (e BandmapEntry) ProximityFactor(frequency Frequency) float64 {
-	frequencyDelta := math.Abs(float64(e.Frequency - frequency))
+	return proximityFactor(e.Frequency, frequency)
+}
+
+func proximityFactor(ownFrequency Frequency, frequency Frequency) float64 {
+	frequencyDelta := math.Abs(float64(ownFrequency - frequency))
 	if frequencyDelta > spotFrequencyProximityThreshold {
 		return 0.0
 	}
 
 	result := 1.0 - (frequencyDelta / spotFrequencyProximityThreshold)
-	if e.Frequency < frequency {
+	if ownFrequency < frequency {
 		result *= -1.0
 	}
 
@@ -1544,7 +1848,7 @@ func Compare[T constraints.Ordered](a, b T) int {
 
 func Descending(o BandmapOrder) BandmapOrder {
 	return func(a, b BandmapEntry) int {
-		return o(b, a) * -1
+		return o(b, a)
 	}
 }
 
@@ -1566,15 +1870,21 @@ func BandmapByDistance(referenceFrequency Frequency) BandmapOrder {
 	}
 }
 
-func BandmapByDistanceAndDescendingID(referenceFrequency Frequency) BandmapOrder {
-	return func(a, b BandmapEntry) int {
-		deltaA := math.Abs(float64(a.Frequency - referenceFrequency))
-		deltaB := math.Abs(float64(b.Frequency - referenceFrequency))
-		if deltaA == deltaB {
-			return Compare(a.ID, b.ID) * -1
-		}
-		return Compare(deltaA, deltaB)
+func BandmapByCallsign(a, b BandmapEntry) int {
+	if a.Call.String() == b.Call.String() {
+		return Compare(a.ID, b.ID)
 	}
+	return Compare(a.Call.String(), b.Call.String())
+}
+
+func BandmapByLastSeen(a, b BandmapEntry) int {
+	if a.LastHeard.Equal(b.LastHeard) {
+		return Compare(a.ID, b.ID)
+	}
+	if a.LastHeard.Before(b.LastHeard) {
+		return -1
+	}
+	return 1
 }
 
 func BandmapByValue(a, b BandmapEntry) int {
@@ -1585,6 +1895,8 @@ func BandmapByValue(a, b BandmapEntry) int {
 }
 
 type BandmapFilter func(entry BandmapEntry) bool
+
+type BandmapMarkerFilter func(marker BandmapMarker) bool
 
 func And(filters ...BandmapFilter) BandmapFilter {
 	return func(entry BandmapEntry) bool {
@@ -1701,8 +2013,20 @@ type CurrentVFOListener interface {
 	CurrentVFOChanged(VFOID)
 }
 
+type CurrentVFOListenerFunc func(VFOID)
+
+func (f CurrentVFOListenerFunc) CurrentVFOChanged(vfo VFOID) {
+	f(vfo)
+}
+
 type TXVFOListener interface {
 	TXVFOChanged(VFOID)
+}
+
+type TXVFOListenerFunc func(VFOID)
+
+func (f TXVFOListenerFunc) TXVFOChanged(vfo VFOID) {
+	f(vfo)
 }
 
 type FocusedVFOListener interface {
@@ -1717,6 +2041,10 @@ func (f FocusedVFOListenerFunc) FocusedVFOChanged(vfo VFOID) {
 
 type VFOFrequencyListener interface {
 	VFOFrequencyChanged(VFOID, Frequency)
+}
+
+type VFOTunedListener interface {
+	VFOTuned(VFOID, Frequency)
 }
 
 type VFOBandListener interface {
@@ -1770,6 +2098,12 @@ type VFOPTTListener interface {
 
 type RadioChangedListener interface {
 	RadioChanged(name string, singleVFO bool)
+}
+
+type RadioChangedListenerFunc func(name string, singleVFO bool)
+
+func (f RadioChangedListenerFunc) RadioChanged(name string, singleVFO bool) {
+	f(name, singleVFO)
 }
 
 type ConnectionChangedListener interface {

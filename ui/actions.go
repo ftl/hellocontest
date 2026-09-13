@@ -19,6 +19,8 @@ type actions struct {
 	focusedVFO  core.VFOID
 	allInfos    []ActionInfo
 
+	windowActions []*qtlib.QAction
+
 	// Action groups
 	workModeGroup *qtlib.QActionGroup
 	radioGroup    *qtlib.QActionGroup
@@ -59,12 +61,14 @@ type actions struct {
 	dialActiveAction              *qtlib.QAction
 
 	// Bandmap menu
-	markBandmapAction    *qtlib.QAction
-	highestSpotAction    *qtlib.QAction
-	nearestSpotAction    *qtlib.QAction
-	nextSpotUpAction     *qtlib.QAction
-	nextSpotDownAction   *qtlib.QAction
-	sendSpotsToTciAction *qtlib.QAction
+	markBandmapAction     *qtlib.QAction
+	deleteMarkerAction    *qtlib.QAction
+	highestSpotAction     *qtlib.QAction
+	nearestSpotAction     *qtlib.QAction
+	gotoCQFrequencyAction *qtlib.QAction
+	nextSpotUpAction      *qtlib.QAction
+	nextSpotDownAction    *qtlib.QAction
+	sendSpotsToTciAction  *qtlib.QAction
 
 	// Window menu
 	showQSOsAction       *qtlib.QAction
@@ -73,6 +77,7 @@ type actions struct {
 	showScoreTableAction *qtlib.QAction
 	showRateAction       *qtlib.QAction
 	showSpotsAction      *qtlib.QAction
+	showBandMatrixAction *qtlib.QAction
 	showClockAction      *qtlib.QAction
 
 	// Help menu
@@ -169,8 +174,10 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 
 	// Bandmap menu
 	a.markBandmapAction = a.makeTriggerAction(core.ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
+	a.deleteMarkerAction = a.makeTriggerAction(core.ActionBandmapDeleteMarker, "Delete Marker", "Delete the marker on the frequency of the focused VFO", "Ctrl+Shift+D", controller.DeleteMarker)
 	a.highestSpotAction = a.makeTriggerAction(core.ActionBandmapGotoHighestValueSpot, "Goto Highest Value Spot", "Go to the spot with the highest predicted value", "Ctrl+Shift+N", controller.GotoHighestValueSpot)
 	a.nearestSpotAction = a.makeTriggerAction(core.ActionBandmapGotoNearestSpot, "Goto Nearest Spot", "Go to the spot closest to the current frequency", "Ctrl+N", controller.GotoNearestSpot)
+	a.gotoCQFrequencyAction = a.makeTriggerAction(core.ActionBandmapGotoCQFrequency, "Goto &CQ Frequency", "Go to the frequency of the CQ marker", "Ctrl+Shift+C", controller.GotoCQFrequency)
 	a.nextSpotUpAction = a.makeTriggerAction(core.ActionBandmapGotoNextSpotUp, "Goto Next Spot Up", "", "Ctrl+Up", controller.GotoNextSpotUp)
 	a.nextSpotDownAction = a.makeTriggerAction(core.ActionBandmapGotoNextSpotDown, "Goto Next Spot Down", "", "Ctrl+Down", controller.GotoNextSpotDown)
 	a.sendSpotsToTciAction = a.makeCheckAction(core.ActionBandmapSendSpotsToTci, "Send Spots to TCI", "", "", controller.SetSendSpotsToTci)
@@ -182,6 +189,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.showScoreTableAction = a.makeTriggerAction(core.ActionWindowShowScoreTable, "&Score Table", "Show the score table", "", controller.ShowScoreTable)
 	a.showRateAction = a.makeTriggerAction(core.ActionWindowShowRate, "&Rate", "Show the QSO rate", "", controller.ShowRate)
 	a.showSpotsAction = a.makeTriggerAction(core.ActionWindowShowSpots, "S&pots", "Show the spots table", "", controller.ShowSpots)
+	a.showBandMatrixAction = a.makeTriggerAction(core.ActionWindowShowBandMatrix, "Band &Matrix", "Show the band matrix", "", controller.ShowBandMatrix)
 	a.showClockAction = a.makeTriggerAction(core.ActionWindowShowClock, "&Clock", "Show the UTC clock", "", controller.ShowClock)
 
 	// Help menu
@@ -215,7 +223,7 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	a.incrementalTuningDownAction = a.makeTriggerAction(core.ActionIncrementalTuningDown, "Incremental Tuning Down", "Decrease the RIT or XIT offset of the focused VFO", "Alt+Shift+Down", func() { controller.IncrementalTuningDown() })
 	a.speedUpAction = a.makeTriggerAction(core.ActionKeyerSpeedUp, "Speed Up", "Increase the keyer speed", "Ctrl+Alt+Up", func() { controller.KeyerSpeedUp() })
 	a.speedDownAction = a.makeTriggerAction(core.ActionKeyerSpeedDown, "Speed Down", "Decrease the keyer speed", "Ctrl+Alt+Down", func() { controller.KeyerSpeedDown() })
-	a.parent.AddActions([]*qtlib.QAction{
+	a.windowActions = []*qtlib.QAction{
 		a.sendMacro1Action,
 		a.sendMacro2Action,
 		a.sendMacro3Action,
@@ -242,12 +250,20 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 		a.incrementalTuningDownAction,
 		a.speedUpAction,
 		a.speedDownAction,
-	})
+	}
+	a.AddToWindow(a.parent)
 
 	// setup initial action state from controller
 	a.updateFromController()
 
 	return a
+}
+
+func (a *actions) AddToWindow(widget *qtlib.QWidget) {
+	// the shortcuts use the default context Qt::WindowShortcut, therefore every window
+	// that the user works in needs the actions. A dialog does not get them, so it keeps
+	// the keyboard for itself
+	widget.AddActions(a.windowActions)
 }
 
 func (a *actions) makeTriggerAction(id, text, tooltip, defaultShortcut string, handler func()) *qtlib.QAction {

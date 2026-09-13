@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/cfg"
 )
 
@@ -87,6 +88,34 @@ func (s *Session) ESMEnabled(enabled bool) {
 	if err != nil {
 		log.Printf("cannot store ESM state in the session: %v", err)
 	}
+}
+
+func (s *Session) SpotFilter(id string) (core.SpotFilterState, bool) {
+	stored, ok := s.state.SpotFilters[id]
+	if !ok || stored == nil {
+		return core.SpotFilterState{}, false
+	}
+	return core.SpotFilterState{
+		Band:       core.ParseSpotFilterBand(stored.Band),
+		Mode:       core.ParseSpotFilterMode(stored.Mode),
+		SortBy:     core.ParseSpotSortColumn(stored.SortBy),
+		Descending: stored.Descending,
+		Folded:     stored.Folded,
+	}, true
+}
+
+func (s *Session) SetSpotFilter(id string, state core.SpotFilterState) error {
+	if s.state.SpotFilters == nil {
+		s.state.SpotFilters = make(map[string]*SpotFilterState)
+	}
+	s.state.SpotFilters[id] = &SpotFilterState{
+		Band:       state.Band.String(),
+		Mode:       state.Mode.String(),
+		SortBy:     state.SortBy.String(),
+		Descending: state.Descending,
+		Folded:     state.Folded,
+	}
+	return s.Store()
 }
 
 func (s *Session) Restore() error {

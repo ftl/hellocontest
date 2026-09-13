@@ -398,6 +398,7 @@ type tciRadioType interface {
 	EntryAdded(core.BandmapEntry)
 	EntryUpdated(core.BandmapEntry)
 	EntryRemoved(core.BandmapEntry)
+	MarkersChanged([]core.BandmapMarker)
 }
 
 func (c *Controller) SetSendSpotsToTci(value bool) {
@@ -432,6 +433,14 @@ func (c *Controller) EntryRemoved(entry core.BandmapEntry) {
 		return
 	}
 	tciRadio.EntryRemoved(entry)
+}
+
+func (c *Controller) MarkersChanged(markers []core.BandmapMarker) {
+	tciRadio, ok := c.activeRadio.(tciRadioType)
+	if !ok {
+		return
+	}
+	tciRadio.MarkersChanged(markers)
 }
 
 /* Keyer */

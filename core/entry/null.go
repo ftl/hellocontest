@@ -65,8 +65,13 @@ func (n *nullCallinfo) InputChanged(core.VFOID, string, core.Band, core.Mode, []
 
 type nullBandmap struct{}
 
-func (n *nullBandmap) Add(core.Spot)                  {}
-func (n *nullBandmap) SelectByCallsign(core.Callsign) {}
+func (n *nullBandmap) Add(core.Spot)                                  {}
+func (n *nullBandmap) SelectByCallsign(core.Callsign)                 {}
+func (n *nullBandmap) GotoCQMarker()                                  {}
+func (n *nullBandmap) GotoNumberedMarker(int)                         {}
+func (n *nullBandmap) MarkWithNextNumber(core.Frequency, core.Band)   {}
+func (n *nullBandmap) MarkWithNumber(int, core.Frequency, core.Band)  {}
+func (n *nullBandmap) MarkWithText(string, core.Frequency, core.Band) {}
 
 type nullESMView struct{}
 

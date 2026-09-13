@@ -52,6 +52,9 @@ type VFO struct {
 
 	pendingFrequency core.Frequency
 	pendingSince     time.Time
+	staleFrequency   core.Frequency
+	commandedSince   time.Time
+	awaitingSettle   bool
 
 	listeners []any
 }
@@ -112,6 +115,16 @@ func (v *VFO) SetFrequency(frequency core.Frequency) {
 }
 
 func (v *VFO) setFrequency(frequency core.Frequency, now time.Time) {
+	// the application jumps to another frequency, therefore the reports of the rig that
+	// follow belong to this command and are no tuning of the operator
+	v.staleFrequency = v.currentFrequency()
+	v.commandedSince = now
+	v.awaitingSettle = true
+
+	v.sendFrequency(frequency, now)
+}
+
+func (v *VFO) sendFrequency(frequency core.Frequency, now time.Time) {
 	v.pendingFrequency = frequency
 	v.pendingSince = now
 
@@ -128,7 +141,12 @@ func (v *VFO) ShiftFrequency(delta core.Frequency) {
 }
 
 func (v *VFO) shiftFrequency(delta core.Frequency, now time.Time) {
-	v.setFrequency(v.baseFrequency(now)+delta, now)
+	// a dial or the keyboard shifts the frequency, which is a tuning of the operator like
+	// turning the knob of the rig. It also ends a command that is still in flight.
+	v.commandedSince = time.Time{}
+	v.awaitingSettle = false
+
+	v.sendFrequency(v.baseFrequency(now)+delta, now)
 }
 
 // baseFrequency returns the frequency that subsequent frequency changes are
@@ -137,7 +155,7 @@ func (v *VFO) shiftFrequency(delta core.Frequency, now time.Time) {
 // Otherwise a rig that cannot keep up with fast changes would make the
 // frequency jump back and forth.
 func (v *VFO) baseFrequency(now time.Time) core.Frequency {
-	if !v.pendingSince.IsZero() && now.Sub(v.pendingSince) < pendingFrequencyTimeout {
+	if v.frequencyCommandPending(now) {
 		return v.pendingFrequency
 	}
 	return v.currentFrequency()
@@ -221,13 +239,55 @@ func (v *VFO) LogbookLoaded() {
 }
 
 func (v *VFO) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+	v.vfoFrequencyChanged(vfo, frequency, time.Now())
+}
+
+func (v *VFO) vfoFrequencyChanged(vfo core.VFOID, frequency core.Frequency, now time.Time) {
 	if vfo != v.id {
 		return
 	}
+
+	if v.staleReport(frequency, now) {
+		// a poll of the rig that started before the command. Reporting it would look
+		// like the operator tuned back to the old frequency.
+		return
+	}
+
 	if frequency == v.pendingFrequency {
+		// the rig caught up with the frequency that the application sent
 		v.clearPendingFrequency()
 	}
+
+	if v.awaitingCommandedChange(now) {
+		// the first report after the command is the rig that follows it. It may land next
+		// to the commanded frequency, because a rig rounds to its own raster. Every
+		// report after this one belongs to the operator again.
+		v.awaitingSettle = false
+		v.offlineClient.SetFrequency(frequency)
+		return
+	}
+
+	// the application commanded no change, therefore the operator tuned the VFO. The
+	// listeners learn about the tuning before they learn about the new frequency, so
+	// that they can still compare it with the frequency they know.
+	v.emitTuned(frequency)
 	v.offlineClient.SetFrequency(frequency)
+}
+
+func (v *VFO) staleReport(frequency core.Frequency, now time.Time) bool {
+	return frequency == v.staleFrequency && v.withinCommandTimeout(now)
+}
+
+func (v *VFO) awaitingCommandedChange(now time.Time) bool {
+	return v.awaitingSettle && v.withinCommandTimeout(now)
+}
+
+func (v *VFO) withinCommandTimeout(now time.Time) bool {
+	return !v.commandedSince.IsZero() && now.Sub(v.commandedSince) < pendingFrequencyTimeout
+}
+
+func (v *VFO) frequencyCommandPending(now time.Time) bool {
+	return !v.pendingSince.IsZero() && now.Sub(v.pendingSince) < pendingFrequencyTimeout
 }
 
 func (v *VFO) VFOBandChanged(vfo core.VFOID, band core.Band) {
@@ -255,6 +315,14 @@ func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
 	core.Emit(v.listeners, func(listener core.VFOFrequencyListener) {
 		v.asyncRunner(func() {
 			listener.VFOFrequencyChanged(v.id, frequency)
+		})
+	})
+}
+
+func (v *VFO) emitTuned(frequency core.Frequency) {
+	core.Emit(v.listeners, func(listener core.VFOTunedListener) {
+		v.asyncRunner(func() {
+			listener.VFOTuned(v.id, frequency)
 		})
 	})
 }

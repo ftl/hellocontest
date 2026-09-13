@@ -156,9 +156,28 @@ func (c *Callinfo) InputChanged(vfo core.VFOID, call string, band core.Band, mod
 	c.emitFrameChanged(vfo)
 }
 
-// EntryOnFrequency is driven by the bandmap, which is VFO1-only in this step. Updates VFO1's frame only.
-func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
-	frame := &c.frames[core.VFO1]
+func (c *Callinfo) MarkerOnFrequency(vfo core.VFOID, marker core.BandmapMarker, available bool) {
+	if int(vfo) < 0 || int(vfo) >= len(c.frames) {
+		return
+	}
+	frame := &c.frames[vfo]
+
+	text := ""
+	if available {
+		text = marker.Text
+	}
+	if frame.MarkerOnFrequency == text {
+		return
+	}
+	frame.MarkerOnFrequency = text
+	c.emitFrameChanged(vfo)
+}
+
+func (c *Callinfo) EntryOnFrequency(vfo core.VFOID, entry core.BandmapEntry, available bool) {
+	if int(vfo) < 0 || int(vfo) >= len(c.frames) {
+		return
+	}
+	frame := &c.frames[vfo]
 	last := frame.CallsignOnFrequency.Callsign.String()
 	if !available {
 		frame.CallsignOnFrequency = core.AnnotatedCallsign{}
@@ -180,7 +199,7 @@ func (c *Callinfo) EntryOnFrequency(entry core.BandmapEntry, available bool) {
 	}
 
 	if last != frame.CallsignOnFrequency.Callsign.String() {
-		c.emitFrameChanged(core.VFO1)
+		c.emitFrameChanged(vfo)
 	}
 }
 

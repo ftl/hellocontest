@@ -11,7 +11,7 @@ const (
 	DefaultInterval = 10 * time.Second
 	tickInterval    = 1 * time.Second
 
-	CQMessageIndex = 0
+	CQMessageIndex = core.CQMacroIndex
 )
 
 type WorkmodeController interface {

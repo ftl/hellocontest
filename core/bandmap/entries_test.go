@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ftl/conval"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -385,6 +386,171 @@ func TestEntries_QueryByFilters(t *testing.T) {
 	}
 }
 
+func TestEntry_ReportedQualityWins(t *testing.T) {
+	now := time.Now()
+	entry := NewEntry(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m, Time: now})
+	entry.applyReportedQuality()
+	require.Equal(t, core.UnknownSpotQuality, entry.Quality)
+
+	_, added := entry.Add(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now.Add(time.Minute), Source: core.SkimmerSpot, Quality: core.ValidSpotQuality,
+	})
+
+	require.True(t, added)
+	assert.Equal(t, core.ValidSpotQuality, entry.Quality, "one spot with a reported quality is enough")
+}
+
+func TestEntry_ReportedQualitySurvivesAnUpdate(t *testing.T) {
+	now := time.Now()
+	entry := NewEntry(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now, Source: core.SkimmerSpot, Quality: core.ValidSpotQuality,
+	})
+	entry.applyReportedQuality()
+
+	entry.update()
+
+	assert.Equal(t, 1, entry.SpotCount)
+	assert.Equal(t, core.ValidSpotQuality, entry.Quality, "the bandmap does not judge a reported quality")
+}
+
+func TestEntry_ReportedQualityOfTheSourceWithTheHighestPriority(t *testing.T) {
+	now := time.Now()
+	entry := NewEntry(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now, Source: core.RBNSpot, Quality: core.ValidSpotQuality,
+	})
+	entry.applyReportedQuality()
+
+	entry.Add(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now.Add(time.Minute), Source: core.SkimmerSpot, Quality: core.BustedSpotQuality,
+	})
+
+	assert.Equal(t, core.BustedSpotQuality, entry.Quality, "the skimmer is nearer than the RBN")
+}
+
+func TestEntry_LatestReportedQualityOfTheSameSource(t *testing.T) {
+	now := time.Now()
+	entry := NewEntry(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now, Source: core.SkimmerSpot, Quality: core.BustedSpotQuality,
+	})
+	entry.applyReportedQuality()
+
+	entry.Add(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now.Add(time.Minute), Source: core.SkimmerSpot, Quality: core.ValidSpotQuality,
+	})
+
+	assert.Equal(t, core.ValidSpotQuality, entry.Quality, "the source corrected itself")
+}
+
+func TestEntry_SNROfTheSourceWithTheHighestPriority(t *testing.T) {
+	now := time.Now()
+	entry := NewEntry(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now, Source: core.RBNSpot, SNR: 9,
+	})
+	entry.applyReportedSNR()
+	require.Equal(t, 9.0, entry.SNR)
+
+	entry.Add(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now.Add(time.Minute), Source: core.SkimmerSpot, SNR: 25,
+	})
+
+	assert.Equal(t, 25.0, entry.SNR, "the receiver of the nearest source decides")
+}
+
+func TestEntry_LatestSNROfTheSameSource(t *testing.T) {
+	now := time.Now()
+	entry := NewEntry(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now, Source: core.SkimmerSpot, SNR: 25,
+	})
+	entry.applyReportedSNR()
+
+	entry.Add(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now.Add(time.Minute), Source: core.SkimmerSpot, SNR: 12,
+	})
+
+	assert.Equal(t, 12.0, entry.SNR, "the signal changed")
+}
+
+func TestEntry_WithoutAReportedSNR(t *testing.T) {
+	now := time.Now()
+	entry := NewEntry(core.Spot{
+		Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m,
+		Time: now, Source: core.ClusterSpot,
+	})
+
+	entry.applyReportedSNR()
+
+	assert.Equal(t, 0.0, entry.SNR, "a cluster spot has no signal to noise ratio")
+}
+
+func TestEntries_Remove(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries(&Notifier{}, countAllEntries)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m, Time: now}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl2abc"), Frequency: 3540000, Band: core.Band80m, Time: now}, now, defaultWeights)
+
+	removed := entries.Remove(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m})
+
+	assert.True(t, removed)
+	require.Equal(t, 1, entries.Len())
+	assert.Equal(t, "DL2ABC", entries.entries[0].Call.String())
+}
+
+func TestEntries_Remove_OnlyOnTheBandOfTheSpot(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries(&Notifier{}, countAllEntries)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m, Time: now}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 14035000, Band: core.Band20m, Time: now}, now, defaultWeights)
+
+	removed := entries.Remove(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m})
+
+	assert.True(t, removed)
+	require.Equal(t, 1, entries.Len())
+	assert.Equal(t, core.Band20m, entries.entries[0].Band, "the same station runs on another band")
+}
+
+func TestEntries_Remove_OnAnotherFrequency(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries(&Notifier{}, countAllEntries)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m, Time: now}, now, defaultWeights)
+
+	removed := entries.Remove(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3545000, Band: core.Band80m})
+
+	assert.False(t, removed, "the entry is on another frequency")
+	assert.Equal(t, 1, entries.Len())
+}
+
+func TestEntries_Remove_NotifiesTheListeners(t *testing.T) {
+	now := time.Now()
+	notifier := &Notifier{asyncRunner: func(f func()) { f() }}
+	entries := NewEntries(notifier, countAllEntries)
+	listener := new(entryRemovedSpy)
+	notifier.Notify(listener)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m, Time: now}, now, defaultWeights)
+
+	entries.Remove(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m})
+
+	require.Len(t, listener.entries, 1)
+	assert.Equal(t, "DL1ABC", listener.entries[0].Call.String())
+}
+
+type entryRemovedSpy struct {
+	entries []core.BandmapEntry
+}
+
+func (s *entryRemovedSpy) EntryRemoved(entry core.BandmapEntry) {
+	s.entries = append(s.entries, entry)
+}
+
 func TestEntries_CleanOutOldEntries(t *testing.T) {
 	now := time.Now()
 	entries := NewEntries(&Notifier{}, countAllEntries)
@@ -603,4 +769,62 @@ func (t *testEntryListener) EntryRemoved(e core.BandmapEntry) {
 
 func countAllEntries(core.BandmapEntry) bool {
 	return true
+}
+
+func TestEntries_Bands_SummarizesSpotsPointsAndMultis(t *testing.T) {
+	now := time.Now()
+	entries := NewEntries(&Notifier{}, countAllEntries)
+	entries.SetBands([]core.Band{core.Band80m, core.Band40m})
+
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m, Time: now}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl2abc"), Frequency: 3545000, Band: core.Band80m, Time: now}, now, defaultWeights)
+	entries.Add(core.Spot{Call: core.MustParseCallsign("dl3abc"), Frequency: 7035000, Band: core.Band40m, Time: now}, now, defaultWeights)
+	setEntryInfo(t, entries, "DL1ABC", 2, "DL")
+	setEntryInfo(t, entries, "DL2ABC", 3, "DL")
+	setEntryInfo(t, entries, "DL3ABC", 10, "F")
+
+	entries.CleanOut(time.Hour, now, defaultWeights)
+	bands := entries.Bands(core.Band80m, core.Band80m)
+
+	require.Len(t, bands, 2)
+
+	assert.Equal(t, core.Band80m, bands[0].Band)
+	assert.Equal(t, 2, bands[0].SpotCount, "80m spots")
+	assert.Equal(t, 5, bands[0].Points, "80m points")
+	assert.Equal(t, 1, bands[0].Multis(), "80m multis")
+	assert.True(t, bands[0].MaxSpots, "80m has the most spots")
+	assert.False(t, bands[0].MaxPoints, "80m has not the most points")
+
+	assert.Equal(t, core.Band40m, bands[1].Band)
+	assert.Equal(t, 1, bands[1].SpotCount, "40m spots")
+	assert.Equal(t, 10, bands[1].Points, "40m points")
+	assert.True(t, bands[1].MaxPoints, "40m has the most points")
+	assert.False(t, bands[1].MaxSpots, "40m has not the most spots")
+}
+
+func TestEntries_Bands_NoMaximumWithoutValues(t *testing.T) {
+	entries := NewEntries(&Notifier{}, countAllEntries)
+	entries.SetBands([]core.Band{core.Band80m, core.Band40m})
+
+	bands := entries.Bands(core.Band80m, core.Band80m)
+
+	require.Len(t, bands, 2)
+	for _, band := range bands {
+		assert.False(t, band.MaxSpots, "no maximum of spots on %s", band.Band)
+		assert.False(t, band.MaxPoints, "no maximum of points on %s", band.Band)
+		assert.False(t, band.MaxMultis, "no maximum of multis on %s", band.Band)
+	}
+}
+
+func setEntryInfo(t *testing.T, entries *Entries, call string, points int, multiValue string) {
+	t.Helper()
+	for _, entry := range entries.entries {
+		if entry.Call.String() != call {
+			continue
+		}
+		entry.Info.Points = points
+		entry.Info.MultiValues = map[conval.Property]string{conval.DXCCEntityProperty: multiValue}
+		return
+	}
+	t.Fatalf("entry %s not found", call)
 }

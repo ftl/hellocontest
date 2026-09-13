@@ -3,6 +3,7 @@ package tci
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"time"
 
@@ -57,6 +58,7 @@ type Client struct {
 
 	sendSpots      bool
 	lastHeardSpots map[string]time.Time
+	sentMarkers    map[string]core.BandmapMarker
 
 	trx       *trxListener
 	trx2      *trxListener
@@ -211,7 +213,7 @@ func (c *Client) Abort() {
 }
 
 func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
-	err := c.client.SetVFOFrequency(c.toTCITRX(c.currentVFO), client.VFOA, int(frequency))
+	err := c.client.SetVFOFrequency(c.toTCITRX(vfo), client.VFOA, int(frequency))
 	if err != nil {
 		log.Printf("cannot set VFO frequency: %v", err)
 	}
@@ -219,11 +221,19 @@ func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 
 func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 	bandplanBand := c.bandplan[toBandplanBandName(band)]
-	frequency := findModePortionCenter(c.bandplan, int(bandplanBand.Center()), toBandplanMode(c.trx.mode))
-	err := c.client.SetVFOFrequency(c.toTCITRX(c.currentVFO), client.VFOA, frequency)
+	frequency := findModePortionCenter(c.bandplan, int(bandplanBand.Center()), toBandplanMode(c.modeOf(vfo)))
+	log.Printf("tci: switching TRX%d to %s at %d", c.toTCITRX(vfo), band, frequency)
+	err := c.client.SetVFOFrequency(c.toTCITRX(vfo), client.VFOA, frequency)
 	if err != nil {
 		log.Printf("cannot switch to band %s: %v", band, err)
 	}
+}
+
+func (c *Client) modeOf(vfo core.VFOID) core.Mode {
+	if !c.singleVFO && vfo == core.VFO2 {
+		return c.trx2.mode
+	}
+	return c.trx.mode
 }
 
 func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
@@ -264,9 +274,17 @@ func (c *Client) Refresh() {
 var spotColors = map[core.SpotType]client.ARGB{
 	core.WorkedSpot:  client.NewARGB(255, 128, 128, 128),
 	core.ManualSpot:  client.NewARGB(255, 255, 255, 255),
-	core.SkimmerSpot: client.NewARGB(255, 255, 153, 255),
-	core.RBNSpot:     client.NewARGB(255, 255, 255, 153),
-	core.ClusterSpot: client.NewARGB(255, 153, 255, 255),
+	core.SkimmerSpot: client.NewARGB(255, 255, 255, 255),
+	core.RBNSpot:     client.NewARGB(255, 255, 255, 255),
+	core.ClusterSpot: client.NewARGB(255, 255, 255, 255),
+}
+
+// a marker is no spot, therefore it has its own colors: the CQ frequency in dark red, the
+// numbered and text markers in the light blue of the spot list
+var markerColors = map[core.BandmapMarkerKind]client.ARGB{
+	core.CQMarker:       client.NewARGB(255, 139, 0, 0),
+	core.NumberedMarker: client.NewARGB(255, 173, 216, 230),
+	core.TextMarker:     client.NewARGB(255, 173, 216, 230),
 }
 
 // SetBandplan swaps the bandplan used for band lookups. Subsequent lookups use
@@ -280,8 +298,45 @@ func (c *Client) SetSendSpots(sendSpots bool) {
 	c.resetSpots()
 }
 
+// TCI shows the spots and the markers on the panorama of every TRX, therefore every TRX
+// that this client uses contributes its band and mode
+func (c *Client) activeTRXs() []*trxListener {
+	if c.singleVFO {
+		return []*trxListener{c.trx}
+	}
+	return []*trxListener{c.trx, c.trx2}
+}
+
+func (c *Client) activeBands() []core.Band {
+	trxs := c.activeTRXs()
+	result := make([]core.Band, 0, len(trxs))
+	for _, trx := range trxs {
+		result = append(result, trx.band)
+	}
+	return result
+}
+
+func (c *Client) trxOnBand(band core.Band) (*trxListener, bool) {
+	for _, trx := range c.activeTRXs() {
+		if trx.band == band {
+			return trx, true
+		}
+	}
+	return nil, false
+}
+
+func (c *Client) spotVisible(band core.Band, mode core.Mode) bool {
+	for _, trx := range c.activeTRXs() {
+		if trx.band == band && trx.mode == mode {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Client) resetSpots() {
 	c.lastHeardSpots = make(map[string]time.Time)
+	c.sentMarkers = make(map[string]core.BandmapMarker)
 }
 
 func (c *Client) EntryAdded(entry core.BandmapEntry) {
@@ -292,7 +347,7 @@ func (c *Client) EntryAdded(entry core.BandmapEntry) {
 		return
 	}
 
-	if entry.Band != c.trx.band || entry.Mode != c.trx.mode {
+	if !c.spotVisible(entry.Band, entry.Mode) {
 		return
 	}
 
@@ -306,6 +361,74 @@ func (c *Client) EntryAdded(entry core.BandmapEntry) {
 	if err != nil && !isNotConnectedError(err) {
 		log.Printf("TCI: cannot add spot: %v", err)
 	}
+}
+
+func (c *Client) MarkersChanged(markers []core.BandmapMarker) {
+	if !c.sendSpots {
+		return
+	}
+	if !c.client.Connected() {
+		return
+	}
+
+	currentMarkers, addedMarkers, removedMarkers := diffMarkers(c.sentMarkers, markers, c.activeBands())
+	c.addMarkers(addedMarkers)
+	c.deleteMarkers(removedMarkers)
+	c.sentMarkers = currentMarkers
+}
+
+func (c *Client) addMarkers(markers []core.BandmapMarker) {
+	for _, marker := range markers {
+		// a marker has no mode, therefore the mode of the TRX on that band decides
+		trx, onBand := c.trxOnBand(marker.Band)
+		if !onBand {
+			continue
+		}
+		err := c.client.AddSpot(marker.Text, toClientMode(trx.mode), int(marker.Frequency), markerColors[marker.Kind], "hellocontest")
+		if err != nil && !isNotConnectedError(err) {
+			log.Printf("TCI: cannot add marker: %v", err)
+		}
+	}
+}
+
+func (c *Client) deleteMarkers(texts []string) {
+	for _, text := range texts {
+		err := c.client.DeleteSpot(text)
+		if err != nil && !isNotConnectedError(err) {
+			log.Printf("TCI: cannot delete marker: %v", err)
+		}
+	}
+}
+
+// diffMarkers compares the markers on the bands of the TRXs with the markers that the
+// client sent before, therefore the client sends only the changes.
+func diffMarkers(sentMarkers map[string]core.BandmapMarker, markers []core.BandmapMarker, bands []core.Band) (map[string]core.BandmapMarker, []core.BandmapMarker, []string) {
+	currentMarkers := make(map[string]core.BandmapMarker, len(markers))
+	addedMarkers := make([]core.BandmapMarker, 0, len(markers))
+	for _, marker := range markers {
+		if !slices.Contains(bands, marker.Band) {
+			continue
+		}
+		currentMarkers[marker.Text] = marker
+
+		sentMarker, alreadySent := sentMarkers[marker.Text]
+		if alreadySent && sentMarker.Frequency == marker.Frequency {
+			continue
+		}
+		addedMarkers = append(addedMarkers, marker)
+	}
+
+	removedMarkers := make([]string, 0, len(sentMarkers))
+	for text := range sentMarkers {
+		_, stillThere := currentMarkers[text]
+		if stillThere {
+			continue
+		}
+		removedMarkers = append(removedMarkers, text)
+	}
+	slices.Sort(removedMarkers)
+
+	return currentMarkers, addedMarkers, removedMarkers
 }
 
 func (c *Client) EntryUpdated(entry core.BandmapEntry) {

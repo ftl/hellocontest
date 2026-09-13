@@ -75,10 +75,13 @@ func newMainMenu(
 	// ── Bandmap ──────────────────────────────────────────────────────────
 	bandmapMenu := m.menuBar.AddMenuWithTitle("&Bandmap")
 	bandmapMenu.AddAction(a.markBandmapAction)
+	bandmapMenu.AddAction(a.deleteMarkerAction)
 	bandmapMenu.AddAction(a.highestSpotAction)
 	bandmapMenu.AddAction(a.nearestSpotAction)
 	bandmapMenu.AddAction(a.nextSpotUpAction)
 	bandmapMenu.AddAction(a.nextSpotDownAction)
+	bandmapMenu.AddSeparator()
+	bandmapMenu.AddAction(a.gotoCQFrequencyAction)
 	bandmapMenu.AddSeparator()
 	bandmapMenu.AddAction(a.sendSpotsToTciAction)
 	bandmapMenu.AddSeparator()
@@ -92,6 +95,7 @@ func newMainMenu(
 	windowMenu.AddAction(a.showScoreTableAction)
 	windowMenu.AddAction(a.showRateAction)
 	windowMenu.AddAction(a.showSpotsAction)
+	windowMenu.AddAction(a.showBandMatrixAction)
 	windowMenu.AddAction(a.showClockAction)
 
 	// ── Help ─────────────────────────────────────────────────────────────

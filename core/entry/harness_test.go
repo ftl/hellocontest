@@ -252,6 +252,14 @@ func (s *Scenario) VFOFrequencyChanged(vfo core.VFOID, freq core.Frequency) *Sce
 	return s
 }
 
+// VFOTuned fires the event that the operator tuned the VFO.
+func (s *Scenario) VFOTuned(vfo core.VFOID, freq core.Frequency) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.VFOTuned(vfo, freq)
+	return s
+}
+
 // VFOBandChanged fires the rig band-change event.
 func (s *Scenario) VFOBandChanged(vfo core.VFOID, band core.Band) *Scenario {
 	s.t.Helper()
@@ -292,11 +300,19 @@ func (s *Scenario) MarkInBandmap() *Scenario {
 	return s
 }
 
-// EntrySelected simulates a bandmap entry being selected.
-func (s *Scenario) EntrySelected(entry core.BandmapEntry) *Scenario {
+// EntrySelected simulates a bandmap entry being selected for the given VFO.
+func (s *Scenario) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.EntrySelected(entry)
+	s.controller.EntrySelected(vfo, entry)
+	return s
+}
+
+// MarkerSelected simulates a marker of the spot list being selected for the given VFO.
+func (s *Scenario) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.MarkerSelected(vfo, marker)
 	return s
 }
 
@@ -504,6 +520,22 @@ func (s *Scenario) AssertVFOFrequency(freq core.Frequency) *Scenario {
 	s.t.Helper()
 	assert.Equal(s.t, freq, s.vfo.lastFreq,
 		"expected VFO to be commanded with frequency %v", freq)
+	return s
+}
+
+func (s *Scenario) AssertVFO2Frequency(freq core.Frequency) *Scenario {
+	s.t.Helper()
+	require.NotNil(s.t, s.vfo2, "the scenario needs WithVFO2")
+	assert.Equal(s.t, freq, s.vfo2.lastFreq,
+		"expected VFO2 to be commanded with frequency %v", freq)
+	return s
+}
+
+func (s *Scenario) AssertVFO2Mode(mode core.Mode) *Scenario {
+	s.t.Helper()
+	require.NotNil(s.t, s.vfo2, "the scenario needs WithVFO2")
+	assert.Equal(s.t, mode, s.vfo2.lastMode,
+		"expected VFO2 to be commanded with mode %v", mode)
 	return s
 }
 
@@ -748,13 +780,48 @@ func (q *qsoListSpy) SelectLastQSO() {
 // ---- bandmapSpy -------------------------------------------------------------
 
 type bandmapSpy struct {
-	selectedCallsigns []core.Callsign
-	addedSpots        []core.Spot
+	selectedCallsigns   []core.Callsign
+	addedSpots          []core.Spot
+	cqMarkerGotos       int
+	numberedMarkerGotos []int
+	marksWithNextNumber []markCall
+	marksWithNumber     []markCall
+	marksWithText       []markCall
 }
 
 func (b *bandmapSpy) reset() {
 	b.selectedCallsigns = nil
 	b.addedSpots = nil
+	b.cqMarkerGotos = 0
+	b.numberedMarkerGotos = nil
+	b.marksWithNextNumber = nil
+	b.marksWithNumber = nil
+	b.marksWithText = nil
+}
+
+func (b *bandmapSpy) GotoCQMarker() { b.cqMarkerGotos++ }
+
+func (b *bandmapSpy) GotoNumberedMarker(number int) {
+	b.numberedMarkerGotos = append(b.numberedMarkerGotos, number)
+}
+
+func (b *bandmapSpy) MarkWithNextNumber(frequency core.Frequency, band core.Band) {
+	b.marksWithNextNumber = append(b.marksWithNextNumber, markCall{frequency: frequency, band: band})
+}
+
+func (b *bandmapSpy) MarkWithNumber(number int, frequency core.Frequency, band core.Band) {
+	b.marksWithNumber = append(b.marksWithNumber, markCall{number: number, frequency: frequency, band: band})
+}
+
+func (b *bandmapSpy) MarkWithText(text string, frequency core.Frequency, band core.Band) {
+	b.marksWithText = append(b.marksWithText, markCall{text: text, frequency: frequency, band: band})
+}
+
+type markCall struct {
+	number    int
+	text      string
+	frequency core.Frequency
+	band      core.Band
 }
 
 func (b *bandmapSpy) Add(spot core.Spot) { b.addedSpots = append(b.addedSpots, spot) }

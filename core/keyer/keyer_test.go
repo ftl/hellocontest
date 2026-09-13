@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/mocked"
@@ -158,4 +159,53 @@ func TestSend_SwitchesTXVFOToFocusedAndAnnounces(t *testing.T) {
 	k.SendWithWorkmodeOnVFO(core.VFO1, core.Run, 0)
 	assert.Equal(t, []core.VFOID{core.VFO2, core.VFO1}, vfoSw.txVFOs, "explicit send switches TX to the given VFO")
 	assert.Equal(t, []core.VFOID{core.VFO2}, tx.vfos, "explicit send must not announce")
+}
+
+type macroSentCall struct {
+	vfo      core.VFOID
+	workmode core.Workmode
+	index    int
+}
+
+type macroSentSpy struct{ calls []macroSentCall }
+
+func (s *macroSentSpy) MacroSent(vfo core.VFOID, workmode core.Workmode, index int) {
+	s.calls = append(s.calls, macroSentCall{vfo: vfo, workmode: workmode, index: index})
+}
+
+func TestSend_AnnouncesTheMacroThatWentOut(t *testing.T) {
+	keyerSettings := core.KeyerSettings{
+		WPM:       25,
+		SPMacros:  []string{"sp0", "sp1", "", ""},
+		RunMacros: []string{"run0", "", "", ""},
+	}
+	view := new(mocked.KeyerView)
+	view.On("SetKeyerController", mock.Anything)
+	view.On("ShowMessage", mock.Anything)
+	view.On("SetSpeed", mock.Anything)
+	view.On("SetLabel", mock.Anything, mock.Anything)
+	view.On("SetPattern", mock.Anything, mock.Anything)
+	view.On("SetPresetNames", mock.Anything)
+	view.On("SetLastTransmission", mock.Anything)
+	cwClient := new(mocked.CWClient)
+	cwClient.On("Speed", mock.Anything)
+	cwClient.On("Send", mock.Anything)
+	sent := &macroSentSpy{}
+
+	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
+	k.SetView(view)
+	k.SetVFOSwitcher(&vfoSwitcherSpy{})
+	k.Notify(sent)
+
+	// the operator sends with the focused VFO and the workmode of that VFO
+	k.FocusedVFOChanged(core.VFO2)
+	k.WorkmodeChanged(core.VFO2, core.SearchPounce)
+	k.SendMacro(1)
+	require.Len(t, sent.calls, 1)
+	assert.Equal(t, macroSentCall{vfo: core.VFO2, workmode: core.SearchPounce, index: 1}, sent.calls[0])
+
+	// the parrot sends on the VFO that it names, in the running workmode
+	k.SendWithWorkmodeOnVFO(core.VFO1, core.Run, core.CQMacroIndex)
+	require.Len(t, sent.calls, 2)
+	assert.Equal(t, macroSentCall{vfo: core.VFO1, workmode: core.Run, index: core.CQMacroIndex}, sent.calls[1])
 }

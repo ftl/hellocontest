@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	qtlib "github.com/mappu/miqt/qt6"
@@ -103,7 +104,7 @@ func (v *callinfoView) refreshVFO(vfo core.VFOID) {
 	cur := &v.current[vfo]
 
 	best := cur.BestMatchOnFrequency()
-	w.callsignLabel.SetText(renderAnnotatedCallsignHTML(best))
+	w.callsignLabel.SetText(renderCallsignOnFrequencyHTML(best, cur.MarkerOnFrequency))
 	w.dxccLabel.SetText(renderDXCC(cur.DXCCEntity, cur.Azimuth, cur.Distance))
 	w.valueLabel.SetText(renderValue(cur.Points, cur.Multis, cur.Value))
 	w.qtcStatusLabel.SetText(renderQTCStatus(cur.SentQTCs, cur.ReceivedQTCs, v.qtcsEnabled))
@@ -158,6 +159,21 @@ func (v *callinfoView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	for _, lbl := range w.predictedExchangeLabels {
 		lbl.SetVisible(enabled)
 	}
+}
+
+const markerPrefix = "\U0001F782"
+
+func renderCallsignOnFrequencyHTML(cs core.AnnotatedCallsign, markerOnFrequency string) string {
+	callsign := renderAnnotatedCallsignHTML(cs)
+	if markerOnFrequency == "" {
+		return callsign
+	}
+
+	marker := markerPrefix + " " + html.EscapeString(markerOnFrequency)
+	if callsign == "" {
+		return marker
+	}
+	return marker + " | " + callsign
 }
 
 func renderAnnotatedCallsignHTML(cs core.AnnotatedCallsign) string {

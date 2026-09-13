@@ -3,6 +3,8 @@ package cluster
 import (
 	"log"
 	"net"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,6 +22,7 @@ const traceClusterix = false
 
 type Bandmap interface {
 	Add(core.Spot)
+	Remove(core.Spot)
 }
 
 type DXCCFinder interface {
@@ -38,6 +41,7 @@ type Clusters struct {
 	entities DXCCFinder
 
 	view          View
+	asyncRunner   core.AsyncRunner
 	ignoreUpdates bool
 
 	valid       bool
@@ -46,19 +50,26 @@ type Clusters struct {
 	myContinent string
 }
 
-func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, entities DXCCFinder, clock core.Clock) *Clusters {
+func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, entities DXCCFinder, clock core.Clock, spotLifetime time.Duration, asyncRunner core.AsyncRunner) *Clusters {
+	if asyncRunner == nil {
+		asyncRunner = func(f func()) { f() }
+	}
 	result := &Clusters{
-		clusters: make([]*cluster, 0, len(sources)),
-		bandmap:  bandmap,
-		bandplan: bandplan,
-		entities: entities,
+		clusters:    make([]*cluster, 0, len(sources)),
+		bandmap:     bandmap,
+		bandplan:    bandplan,
+		entities:    entities,
+		asyncRunner: asyncRunner,
 	}
 
 	for _, spotSource := range sources {
 		var cluster *cluster
-		if isDemoSource(spotSource.Name) {
+		switch {
+		case isDemoSource(spotSource.Name):
 			cluster = newDemoCluster(result, spotSource, bandmap, bandplan, clock)
-		} else {
+		case spotSource.Protocol == core.SDRainerProtocol:
+			cluster = newSDRainerCluster(result, spotSource, bandmap, bandplan, clock, spotLifetime)
+		default:
 			cluster = newClusterixCluster(result, spotSource, bandmap, bandplan, clock)
 		}
 		result.clusters = append(result.clusters, cluster)
@@ -110,11 +121,19 @@ func (c *Clusters) StationChanged(station core.Station) {
 
 func (c *Clusters) SetView(view View) {
 	c.view = view
-	c.doIgnoreUpdates(func() {
-		for _, cluster := range c.clusters {
-			view.AddSpotSourceEntry(cluster.source.Name)
-		}
+	c.onUIThread(func() {
+		c.doIgnoreUpdates(func() {
+			for _, cluster := range c.clusters {
+				view.AddSpotSourceEntry(cluster.source.Name)
+			}
+		})
 	})
+}
+
+// onUIThread runs the update of the view in the thread of the user interface. The clusters connect
+// and disconnect in their own goroutines, and a widget belongs to one thread.
+func (c *Clusters) onUIThread(f func()) {
+	c.asyncRunner(f)
 }
 
 func (c *Clusters) doIgnoreUpdates(f func()) {
@@ -150,8 +169,10 @@ func (c *Clusters) SetSpotSourceEnabled(name string, enabled bool) {
 	}
 
 	if err != nil && c.view != nil {
-		c.doIgnoreUpdates(func() {
-			c.view.SetSpotSourceEnabled(name, cluster.Active())
+		c.onUIThread(func() {
+			c.doIgnoreUpdates(func() {
+				c.view.SetSpotSourceEnabled(name, cluster.Active())
+			})
 		})
 	}
 }
@@ -166,8 +187,10 @@ func (c *Clusters) clusterConnected(name string, connected bool) {
 	log.Printf("Cluster %s %s", name, status)
 
 	if c.view != nil {
-		c.doIgnoreUpdates(func() {
-			c.view.SetSpotSourceEnabled(name, connected)
+		c.onUIThread(func() {
+			c.doIgnoreUpdates(func() {
+				c.view.SetSpotSourceEnabled(name, connected)
+			})
 		})
 	}
 }
@@ -199,6 +222,10 @@ type cluster struct {
 	clientMutex     *sync.RWMutex
 	openCluster     openClusterFunc
 	connectionState ConnectionState
+	hostAddress     *net.TCPAddr
+	// retryInterval repeats a connection attempt while the source is enabled. A source with no
+	// retry interval connects one time and needs a manual enable after a lost connection.
+	retryInterval time.Duration
 }
 
 func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock, openCluster openClusterFunc) *cluster {
@@ -233,34 +260,67 @@ func (c *cluster) Enable() error {
 	if err != nil {
 		return err
 	}
+	c.hostAddress = hostAddress
 	c.connectionState = ConnectionPending
 
-	go func() {
-		client, err := c.openCluster(hostAddress, c.source.Username, c.source.Password, traceClusterix)
-
-		c.clientMutex.Lock()
-		defer c.clientMutex.Unlock()
-
-		if err != nil {
-			log.Printf("Connection to cluster %s failed: %v", c.source.Name, err)
-			c.client = nil
-			c.connectionState = Disconnected
-			c.parent.clusterConnected(c.source.Name, false)
-			return
-		}
-		if c.connectionState == Disconnected {
-			log.Printf("Connection to cluster %s aborted", c.source.Name)
-			c.parent.clusterConnected(c.source.Name, false)
-			return
-		}
-
-		c.client = client
-		c.client.Notify(c)
-		c.connectionState = Connected
-		c.parent.clusterConnected(c.source.Name, true)
-	}()
+	go c.connect(hostAddress)
 
 	return nil
+}
+
+// connect tries to open the connection until it succeeds, the user disables the source, or the
+// source has no retry interval.
+func (c *cluster) connect(hostAddress *net.TCPAddr) {
+	for {
+		client, err := c.openCluster(hostAddress, c.source.Username, c.source.Password, traceClusterix)
+		if c.clientOpened(client, err) {
+			return
+		}
+
+		log.Printf("Retrying the connection to cluster %s in %v", c.source.Name, c.retryInterval)
+		time.Sleep(c.retryInterval)
+		if !c.retrying() {
+			return
+		}
+	}
+}
+
+// clientOpened takes the result of one connection attempt, and it says if the attempts stop. The
+// parent hears about the result after the lock is free, because it goes to the user interface.
+func (c *cluster) clientOpened(client clusterClient, err error) bool {
+	connected, stop := c.applyClientOpened(client, err)
+	c.parent.clusterConnected(c.source.Name, connected)
+	return stop
+}
+
+func (c *cluster) applyClientOpened(client clusterClient, err error) (bool, bool) {
+	c.clientMutex.Lock()
+	defer c.clientMutex.Unlock()
+
+	if err != nil {
+		log.Printf("Connection to cluster %s failed: %v", c.source.Name, err)
+		c.client = nil
+		if c.retryInterval == 0 {
+			c.connectionState = Disconnected
+		}
+		return false, c.retryInterval == 0
+	}
+	if c.connectionState == Disconnected {
+		log.Printf("Connection to cluster %s aborted", c.source.Name)
+		client.Disconnect()
+		return false, true
+	}
+
+	c.client = client
+	c.client.Notify(c)
+	c.connectionState = Connected
+	return true, true
+}
+
+func (c *cluster) retrying() bool {
+	c.clientMutex.RLock()
+	defer c.clientMutex.RUnlock()
+	return c.connectionState == ConnectionPending
 }
 
 func (c *cluster) Disable() error {
@@ -282,13 +342,28 @@ func (c *cluster) Disable() error {
 func (c *cluster) Connected(connected bool) {
 	go func() {
 		c.clientMutex.Lock()
+		reconnect := false
 		if connected {
 			c.connectionState = Connected
 		} else {
-			c.connectionState = Disconnected
 			c.client = nil
+			// a source with a retry interval waits for the next connection instead of
+			// waiting for the user
+			reconnect = c.retryInterval > 0 && c.connectionState == Connected
+			if reconnect {
+				c.connectionState = ConnectionPending
+			} else {
+				c.connectionState = Disconnected
+			}
 		}
+		hostAddress := c.hostAddress
 		c.clientMutex.Unlock()
+
+		// the retry runs in its own goroutine, so that it does not wait for the user
+		// interface
+		if reconnect {
+			go c.connect(hostAddress)
+		}
 
 		c.parent.clusterConnected(c.source.Name, connected)
 	}()
@@ -306,6 +381,7 @@ func (c *cluster) DX(msg clusterix.DXMessage) {
 		Mode:      c.inferCoreMode(msg),
 		Time:      msg.Time,
 		Source:    c.source.Type,
+		SNR:       parseSNR(msg.Text),
 	}
 	if c.source.IgnoreTimestamp {
 		spot.Time = c.clock.Now()
@@ -348,6 +424,23 @@ func (c *cluster) findSpotterRegion(spotter string) (string, string, bool) {
 		return "", "", false
 	}
 	return prefix.PrimaryPrefix, prefix.Continent, true
+}
+
+// snrExpression finds the signal to noise ratio in the comment of a spot. A skimmer writes it as
+// "CW 25 dB 24 WPM CQ".
+var snrExpression = regexp.MustCompile(`(?i)(-?\d+)\s*dB`)
+
+// parseSNR gives 0 when the comment holds no signal to noise ratio.
+func parseSNR(text string) float64 {
+	match := snrExpression.FindStringSubmatch(text)
+	if match == nil {
+		return 0
+	}
+	result, err := strconv.ParseFloat(match[1], 64)
+	if err != nil {
+		return 0
+	}
+	return result
 }
 
 func (c *cluster) inferCoreMode(msg clusterix.DXMessage) core.Mode {

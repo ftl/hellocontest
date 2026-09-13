@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	qtlib "github.com/mappu/miqt/qt6"
 
@@ -14,14 +13,14 @@ import (
 var _ bandmap.View = (*spotsView)(nil)
 
 type SpotsController interface {
-	SetVisibleBand(core.Band)
-	SetActiveBand(core.Band)
+	SpotFilterController
 	SelectEntry(core.BandmapEntryID)
+	SelectMarker(core.BandmapEntryID)
+	RemoveMarker(core.BandmapEntryID)
 }
 
 const (
-	spotColMark = iota
-	spotColFrequency
+	spotColFrequency = iota
 	spotColCallsign
 	spotColQualityTag
 	spotColExchange
@@ -29,6 +28,7 @@ const (
 	spotColMultis
 	spotColQTCs
 	spotColSpotCount
+	spotColSNR
 	spotColAge
 	spotColWeightedValue
 	spotColDXCC
@@ -37,15 +37,11 @@ const (
 )
 
 type spotsView struct {
-	*dockableView
-	widget *qtlib.QWidget
+	widget     *qtlib.QWidget
+	window     *spotWindow
+	filterArea *spotFilterArea
 
 	style *Style
-
-	bandGrid    *qtlib.QWidget
-	bandLayout  *qtlib.QHBoxLayout
-	bandButtons map[core.Band]*qtlib.QPushButton
-	bandsID     string
 
 	table *qtlib.QTableView
 	model *qtlib.QStandardItemModel
@@ -58,59 +54,85 @@ type spotsView struct {
 	suppressSelection bool
 }
 
-func newSpotsView(parent *qtlib.QWidget, controller SpotsController, style *Style) *spotsView {
+func newSpotsView(controller SpotsController, focuser EntryFocuser, style *Style) *spotsView {
 	v := &spotsView{
-		controller:  controller,
-		style:       style,
-		bandButtons: make(map[core.Band]*qtlib.QPushButton),
+		controller: controller,
+		style:      style,
 	}
 
 	v.bold = qtlib.NewQFont()
 	v.bold.SetBold(true)
 
 	v.widget = qtlib.NewQWidget2()
+	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("spotsView"))
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
 
-	v.bandGrid = qtlib.NewQWidget2()
-	v.bandLayout = qtlib.NewQHBoxLayout(v.bandGrid)
-	v.bandLayout.SetContentsMargins(0, 0, 0, 0)
-	layout.AddWidget3(v.bandGrid, 0, 0)
+	v.filterArea = newSpotFilterArea(controller, focuser)
+	layout.AddWidget3(v.filterArea.Widget(), 0, 0)
 
 	v.buildTable()
 	layout.AddWidget3(v.table.QAbstractScrollArea.QFrame.QWidget, 1, 0)
 
-	v.dockableView = newDockableView(parent, v.widget, "Spots", "spotsDock")
-
 	return v
 }
 
+func (v *spotsView) SetWindow(window *spotWindow) {
+	v.window = window
+}
+
+func (v *spotsView) Show() {
+	if v.window == nil {
+		return
+	}
+	v.window.Show()
+}
+
+func (v *spotsView) Hide() {
+	if v.window == nil {
+		return
+	}
+	v.window.Hide()
+}
+
 func (v *spotsView) RepaintForThemeChange() {
-	v.dockableView.RepaintForThemeChange()
+	v.filterArea.RepaintForThemeChange()
 	v.widget.SetPalette(qtlib.QGuiApplication_Palette())
 	v.widget.Update()
 	repaintScrollBarsForThemeChange(v.table.QAbstractScrollArea)
 }
 
 func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
-	bandChanged := v.currentFrame.ActiveBand != frame.ActiveBand ||
+	// a new filter or a new order changes the position of every row, folding does not
+	filterChanged := v.currentFrame.Filter.Band != frame.Filter.Band ||
+		v.currentFrame.Filter.Mode != frame.Filter.Mode ||
+		v.currentFrame.Filter.SortBy != frame.Filter.SortBy ||
+		v.currentFrame.Filter.Descending != frame.Filter.Descending
+	bandChanged := filterChanged ||
+		v.currentFrame.ActiveBand != frame.ActiveBand ||
 		v.currentFrame.VisibleBand != frame.VisibleBand
 	selectionChanged := v.currentFrame.SelectedEntry.ID != frame.SelectedEntry.ID
 
 	oldFrame := v.currentFrame
 	v.currentFrame = frame
 
-	v.setupBands(frame.Bands)
-	v.updateBands(frame.Bands)
+	v.filterArea.ShowFrame(frame.Filter)
 	v.setQTCsEnabled(frame.QTCsEnabled)
 
-	if bandChanged {
-		v.reloadTable(frame)
-	} else {
-		v.applyIncrementalDiff(oldFrame, frame)
-	}
+	// the table moves the selection when rows come and go, therefore those changes of the
+	// selection do not reach the controller
+	rowsRemoved := false
+	v.withSuppressedSelection(func() {
+		if bandChanged {
+			v.reloadTable(frame)
+		} else {
+			rowsRemoved = v.applyIncrementalDiff(oldFrame, frame)
+		}
+	})
 
-	if selectionChanged || bandChanged {
+	// a removed row makes the table select its neighbor, therefore the selection of the
+	// controller is applied again
+	if selectionChanged || bandChanged || rowsRemoved {
 		v.applySelection(frame)
 	}
 }
@@ -118,8 +140,8 @@ func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
 func (v *spotsView) buildTable() {
 	v.model = qtlib.NewQStandardItemModel2(0, spotColCount)
 	v.model.SetHorizontalHeaderLabels([]string{
-		"", "Frequency", "Callsign", "T", "Exchange",
-		"Pts", "Mult", "QTCs", "Spots", "Age", "Value", "DXCC",
+		"Frequency", "Callsign", "T", "Exchange",
+		"Pts", "Mult", "QTCs", "Spots", "SNR", "Age", "Value", "DXCC",
 	})
 
 	v.table = qtlib.NewQTableView2()
@@ -128,7 +150,6 @@ func (v *spotsView) buildTable() {
 	v.table.SetSortingEnabled(false)
 	v.table.HorizontalHeader().SetStretchLastSection(true)
 
-	SetColumnSampleWidth(v.table, spotColMark, "W")
 	SetColumnSampleWidth(v.table, spotColFrequency, "000000.00 kHz")
 	SetColumnSampleWidth(v.table, spotColCallsign, "WW0WWW/p")
 	SetColumnSampleWidth(v.table, spotColQualityTag, "W")
@@ -137,14 +158,28 @@ func (v *spotsView) buildTable() {
 	SetColumnSampleWidth(v.table, spotColMultis, "Mult")
 	SetColumnSampleWidth(v.table, spotColQTCs, "QTCs")
 	SetColumnSampleWidth(v.table, spotColSpotCount, "Spots")
+	SetColumnSampleWidth(v.table, spotColSNR, "-00")
 	SetColumnSampleWidth(v.table, spotColAge, "< 00m")
 	SetColumnSampleWidth(v.table, spotColWeightedValue, "0000.0")
 
 	v.table.SetColumnHidden(spotColQTCs, true)
 
+	// a right click opens the context menu, it selects no row: a selection tunes a VFO and
+	// brings the main window to the front, which fights with the open menu
+	v.table.OnMousePressEvent(func(super func(event *qtlib.QMouseEvent), event *qtlib.QMouseEvent) {
+		if event.Button() == qtlib.RightButton {
+			return
+		}
+		super(event)
+	})
+
+	v.table.SetContextMenuPolicy(qtlib.CustomContextMenu)
+	v.table.OnCustomContextMenuRequested(func(pos *qtlib.QPoint) {
+		v.showContextMenu(pos)
+	})
+
 	v.table.SelectionModel().OnSelectionChanged(func(selected, deselected *qtlib.QItemSelection) {
 		if v.suppressSelection {
-			v.suppressSelection = false
 			return
 		}
 		if v.controller == nil {
@@ -155,116 +190,68 @@ func (v *spotsView) buildTable() {
 			return
 		}
 		row := indexes[0].Row()
-		if row < 0 || row >= len(v.currentFrame.Entries) {
+		if row < 0 || row >= len(v.currentFrame.Rows) {
 			return
 		}
-		v.controller.SelectEntry(v.currentFrame.Entries[row].ID)
+		if v.currentFrame.Rows[row].Kind == core.MarkerRow {
+			v.controller.SelectMarker(v.currentFrame.Rows[row].Marker.ID)
+			return
+		}
+		v.controller.SelectEntry(v.currentFrame.Rows[row].Entry.ID)
 	})
 }
 
-// --- Band grid -------------------------------------------------------------
-
-func (v *spotsView) setupBands(bands []core.BandSummary) {
-	id := toBandsID(bands)
-	if id == v.bandsID {
+func (v *spotsView) showContextMenu(pos *qtlib.QPoint) {
+	if v.controller == nil {
 		return
 	}
-	v.bandsID = id
-
-	for band, btn := range v.bandButtons {
-		v.bandLayout.RemoveWidget(btn.QWidget)
-		btn.QWidget.DeleteLater()
-		delete(v.bandButtons, band)
+	// the scroll area forwards the position of the viewport, therefore the position needs
+	// no translation
+	row := v.table.IndexAt(pos).Row()
+	if row < 0 || row >= len(v.currentFrame.Rows) {
+		return
+	}
+	if v.currentFrame.Rows[row].Kind != core.MarkerRow {
+		return
+	}
+	marker := v.currentFrame.Rows[row].Marker
+	if marker.Kind == core.CQMarker {
+		return
 	}
 
-	for _, bs := range bands {
-		v.createBandButton(bs.Band)
+	menu := qtlib.NewQMenu2()
+	deleteAction := menu.AddActionWithText("Delete Marker")
+	// the menu holds the mouse grab and runs its own event loop, therefore the deletion
+	// happens after the menu closed
+	chosen := menu.ExecWithPos(v.table.Viewport().MapToGlobalWithQPoint(pos))
+	deleteChosen := chosen != nil && chosen.UnsafePointer() == deleteAction.UnsafePointer()
+	menu.Delete()
+
+	if deleteChosen {
+		v.controller.RemoveMarker(marker.ID)
 	}
-}
-
-func toBandsID(bands []core.BandSummary) string {
-	var b strings.Builder
-	for _, bs := range bands {
-		b.WriteString(string(bs.Band))
-	}
-	return b.String()
-}
-
-func (v *spotsView) createBandButton(band core.Band) {
-	btn := qtlib.NewQPushButton2()
-	v.bandLayout.AddWidget(btn.QWidget)
-	v.bandButtons[band] = btn
-
-	state := &bandClickState{
-		timer: qtlib.NewQTimer2(btn.QWidget.QObject),
-	}
-	state.timer.SetSingleShot(true)
-	state.timer.OnTimeout(func() {
-		state.lastClickAt = time.Time{}
-		if v.controller != nil {
-			v.controller.SetVisibleBand(band)
-		}
-	})
-
-	btn.OnClicked(func() {
-		if v.controller == nil {
-			return
-		}
-		interval := time.Duration(qtlib.QApplication_DoubleClickInterval()) * time.Millisecond
-		if interval <= 0 {
-			interval = 400 * time.Millisecond
-		}
-		now := time.Now()
-		if !state.lastClickAt.IsZero() && now.Sub(state.lastClickAt) < interval {
-			state.timer.Stop()
-			state.lastClickAt = time.Time{}
-			v.controller.SetActiveBand(band)
-			return
-		}
-		state.lastClickAt = now
-		state.timer.Stop()
-		state.timer.Start(int(interval / time.Millisecond))
-	})
-}
-
-type bandClickState struct {
-	lastClickAt time.Time
-	timer       *qtlib.QTimer
-}
-
-func (v *spotsView) updateBands(bands []core.BandSummary) {
-	for _, bs := range bands {
-		btn, ok := v.bandButtons[bs.Band]
-		if !ok {
-			continue
-		}
-		v.styleBandButton(btn, bs)
-	}
-}
-
-func (v *spotsView) styleBandButton(btn *qtlib.QPushButton, bs core.BandSummary) {
-	btn.SetText(fmt.Sprintf("%s\n%dP  %dM", bs.Band, bs.Points, bs.Multis()))
-	btn.QWidget.SetStyleSheet(GetSpotsBandButtonStyle(bs.Active, bs.Visible, bs.MaxPoints || bs.MaxMultis))
 }
 
 // --- Table updates ---------------------------------------------------------
 
-func (v *spotsView) applyIncrementalDiff(oldFrame, newFrame core.BandmapFrame) {
-	visited := make(map[core.BandmapEntryID]bool, len(newFrame.Entries))
+func (v *spotsView) applyIncrementalDiff(oldFrame, newFrame core.BandmapFrame) bool {
+	visited := make(map[core.BandmapEntryID]bool, len(newFrame.Rows))
 	var toInsert []core.BandmapEntryID
 
-	for _, entry := range newFrame.Entries {
-		visited[entry.ID] = true
-		if oldIdx, existed := oldFrame.IndexOf(entry.ID); existed {
-			v.updateRow(oldIdx, entry)
+	for _, row := range newFrame.Rows {
+		visited[row.ID()] = true
+		if oldIdx, existed := oldFrame.IndexOf(row.ID()); existed {
+			v.updateRow(oldIdx, row)
 		} else {
-			toInsert = append(toInsert, entry.ID)
+			toInsert = append(toInsert, row.ID())
 		}
 	}
 
-	for i := len(oldFrame.Entries) - 1; i >= 0; i-- {
-		if !visited[oldFrame.Entries[i].ID] {
+	rowsRemoved := false
+	for i := len(oldFrame.Rows) - 1; i >= 0; i-- {
+		if !visited[oldFrame.Rows[i].ID()] {
 			v.model.RemoveRows(i, 1, qtlib.NewQModelIndex())
+			rowsRemoved = true
 		}
 	}
 
@@ -273,32 +260,59 @@ func (v *spotsView) applyIncrementalDiff(oldFrame, newFrame core.BandmapFrame) {
 		if !ok {
 			continue
 		}
-		v.insertRow(idx, newFrame.Entries[idx])
+		v.insertRow(idx, newFrame.Rows[idx])
 	}
+
+	return rowsRemoved
 }
 
 func (v *spotsView) reloadTable(frame core.BandmapFrame) {
 	ClearTableRows(v.model)
-	for i, entry := range frame.Entries {
-		v.insertRow(i, entry)
+	for i, row := range frame.Rows {
+		v.insertRow(i, row)
 	}
 }
 
-func (v *spotsView) insertRow(idx int, entry core.BandmapEntry) {
-	v.model.InsertRow(idx, v.buildRow(entry))
+func (v *spotsView) insertRow(idx int, row core.BandmapRow) {
+	v.model.InsertRow(idx, v.buildRow(row))
 }
 
-func (v *spotsView) updateRow(idx int, entry core.BandmapEntry) {
-	items := v.buildRow(entry)
+func (v *spotsView) updateRow(idx int, row core.BandmapRow) {
+	items := v.buildRow(row)
 	for col, item := range items {
 		v.model.SetItem(idx, col, item)
 	}
 }
 
-func (v *spotsView) buildRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
+func (v *spotsView) buildRow(row core.BandmapRow) []*qtlib.QStandardItem {
+	if row.Kind == core.MarkerRow {
+		return v.buildMarkerRow(row.Marker)
+	}
+	return v.buildSpotRow(row.Entry)
+}
+
+func (v *spotsView) buildMarkerRow(marker core.BandmapMarker) []*qtlib.QStandardItem {
+	ageText, _ := FormatSpotAge(marker.CreatedAt)
+	cells := [spotColCount]string{
+		spotColFrequency: FormatSpotFrequency(marker.Frequency),
+		spotColCallsign:  marker.Text,
+		spotColAge:       ageText,
+	}
+	background, foreground := v.style.MarkerBrushes(marker.Kind)
+
+	items := make([]*qtlib.QStandardItem, spotColCount)
+	for i, text := range cells {
+		item := qtlib.NewQStandardItem2(text)
+		item.SetBackground(background)
+		item.SetForeground(foreground)
+		items[i] = item
+	}
+	return items
+}
+
+func (v *spotsView) buildSpotRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
 	ageText, ageBold := FormatSpotAge(entry.LastHeard)
-	bg := v.style.SpotBrush(entry.Source)
-	fg := v.style.SpotForegroundBrush()
+	worked := entry.Source == core.WorkedSpot
 
 	type cell struct {
 		text  string
@@ -307,7 +321,6 @@ func (v *spotsView) buildRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
 	}
 	const alignRight = qtlib.AlignRight | qtlib.AlignVCenter
 	cells := [spotColCount]cell{
-		spotColMark:          {FormatSpotMark(entry, v.currentFrame), false, 0},
 		spotColFrequency:     {FormatSpotFrequency(entry.Frequency), false, 0},
 		spotColCallsign:      {entry.Call.String(), false, 0},
 		spotColQualityTag:    {entry.Quality.Tag(), false, 0},
@@ -316,6 +329,7 @@ func (v *spotsView) buildRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
 		spotColMultis:        {PointsToString(entry.Info.Multis, entry.Info.Duplicate), entry.Info.Multis > 0 && !entry.Info.Duplicate, alignRight},
 		spotColQTCs:          {FormatQTCCount(entry.Info.SentQTCs, entry.Info.ReceivedQTCs), false, alignRight},
 		spotColSpotCount:     {fmt.Sprintf("%d", entry.SpotCount), false, alignRight},
+		spotColSNR:           {FormatSpotSNR(entry.SNR), false, alignRight},
 		spotColAge:           {ageText, ageBold, alignRight},
 		spotColWeightedValue: {fmt.Sprintf("%.1f", entry.Info.WeightedValue), false, alignRight},
 		spotColDXCC:          {getDXCCInformation(entry), false, 0},
@@ -324,8 +338,9 @@ func (v *spotsView) buildRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
 	items := make([]*qtlib.QStandardItem, spotColCount)
 	for i, c := range cells {
 		item := qtlib.NewQStandardItem2(c.text)
-		item.SetForeground(fg)
-		item.SetBackground(bg)
+		if worked {
+			item.SetForeground(v.style.WorkedSpotBrush())
+		}
 		if c.align != 0 {
 			item.SetTextAlignment(c.align)
 		}
@@ -338,22 +353,24 @@ func (v *spotsView) buildRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
 }
 
 func (v *spotsView) applySelection(frame core.BandmapFrame) {
-	v.suppressSelection = true
-	defer func() { v.suppressSelection = false }()
+	v.withSuppressedSelection(func() {
+		sel := v.table.SelectionModel()
+		idx, ok := frame.IndexOf(frame.SelectedEntry.ID)
+		if frame.SelectedEntry.ID == core.NoEntryID || !ok {
+			sel.ClearSelection()
+			return
+		}
+		modelIdx := v.model.Index(idx, 0, qtlib.NewQModelIndex())
+		sel.Select(modelIdx, qtlib.QItemSelectionModel__ClearAndSelect|qtlib.QItemSelectionModel__Rows)
+		v.table.ScrollTo(modelIdx, qtlib.QAbstractItemView__EnsureVisible)
+	})
+}
 
-	sel := v.table.SelectionModel()
-	if frame.SelectedEntry.ID == core.NoEntryID {
-		sel.ClearSelection()
-		return
-	}
-	idx, ok := frame.IndexOf(frame.SelectedEntry.ID)
-	if !ok {
-		sel.ClearSelection()
-		return
-	}
-	modelIdx := v.model.Index(idx, 0, qtlib.NewQModelIndex())
-	sel.Select(modelIdx, qtlib.QItemSelectionModel__ClearAndSelect|qtlib.QItemSelectionModel__Rows)
-	v.table.ScrollTo(modelIdx, qtlib.QAbstractItemView__EnsureVisible)
+func (v *spotsView) withSuppressedSelection(f func()) {
+	previous := v.suppressSelection
+	v.suppressSelection = true
+	defer func() { v.suppressSelection = previous }()
+	f()
 }
 
 func (v *spotsView) setQTCsEnabled(enabled bool) {

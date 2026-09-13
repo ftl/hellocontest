@@ -182,3 +182,206 @@ func TestShiftFrequencyUsesTheRigFrequencyOnceItCaughtUp(t *testing.T) {
 
 	assert.Equal(t, []core.Frequency{start + 100, start + 800}, client.commanded)
 }
+
+type frequencySpy struct {
+	reported []core.Frequency
+	tuned    []core.Frequency
+}
+
+func (s *frequencySpy) VFOFrequencyChanged(_ core.VFOID, frequency core.Frequency) {
+	s.reported = append(s.reported, frequency)
+}
+
+func (s *frequencySpy) VFOTuned(_ core.VFOID, frequency core.Frequency) {
+	s.tuned = append(s.tuned, frequency)
+}
+
+func TestVFOFrequencyChanged_WithoutCommand_IsATuning(t *testing.T) {
+	v, spy := setupFrequencySpy()
+
+	v.vfoFrequencyChanged(core.VFO1, 14100000, time.Now())
+
+	assert.Equal(t, []core.Frequency{14100000}, spy.tuned, "the operator tuned the VFO")
+	assert.Equal(t, []core.Frequency{14100000}, spy.reported, "the new frequency is reported")
+}
+
+func TestVFOFrequencyChanged_ConfirmingACommand_IsNoTuning(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.setFrequency(14200000, now)
+	spy.reported = nil // the offline client confirms the command on its own
+
+	v.vfoFrequencyChanged(core.VFO1, 14200000, now.Add(100*time.Millisecond))
+
+	assert.Empty(t, spy.tuned, "the application commanded this frequency")
+	assert.Equal(t, []core.Frequency{14200000}, spy.reported, "the new frequency is reported")
+}
+
+func TestVFOFrequencyChanged_StaleReportDuringACommand_IsIgnored(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now) // the rig is here before the command
+	v.setFrequency(14200000, now)
+	spy.reported = nil
+	spy.tuned = nil
+
+	// a poll that started before the command replies with the old frequency
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now.Add(100*time.Millisecond))
+
+	assert.Empty(t, spy.tuned, "a stale report is no tuning")
+	assert.Empty(t, spy.reported, "a stale report reaches nobody")
+}
+
+func TestVFOFrequencyChanged_StaleReportAfterTheConfirmation_IsIgnored(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+	v.setFrequency(14200000, now)
+	v.vfoFrequencyChanged(core.VFO1, 14200000, now.Add(100*time.Millisecond))
+	spy.reported = nil
+	spy.tuned = nil
+
+	// a poll that started before the command replies after the rig confirmed it
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now.Add(200*time.Millisecond))
+
+	assert.Empty(t, spy.tuned, "a stale report is no tuning")
+	assert.Empty(t, spy.reported, "a stale report reaches nobody")
+}
+
+func TestVFOFrequencyChanged_RoundedConfirmation_IsNoTuning(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+	v.setFrequency(14200000, now)
+	spy.reported = nil
+	spy.tuned = nil
+
+	// the rig rounds the commanded frequency to its own raster
+	v.vfoFrequencyChanged(core.VFO1, 14199990, now.Add(100*time.Millisecond))
+
+	assert.Empty(t, spy.tuned, "the rig follows the command")
+	assert.Equal(t, []core.Frequency{14199990}, spy.reported, "the frequency of the rig is reported")
+}
+
+func TestVFOFrequencyChanged_TuningAfterARoundedConfirmation_IsATuning(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+	v.setFrequency(14200000, now)
+	v.vfoFrequencyChanged(core.VFO1, 14199990, now.Add(100*time.Millisecond)) // rounded
+	spy.tuned = nil
+
+	// the operator tunes away after the rig settled
+	v.vfoFrequencyChanged(core.VFO1, 14205000, now.Add(2*time.Second))
+
+	assert.Equal(t, []core.Frequency{14205000}, spy.tuned, "the operator tuned the VFO")
+}
+
+func TestVFOFrequencyChanged_AfterTheTimeout_IsATuning(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.setFrequency(14200000, now)
+	spy.reported = nil // the offline client confirms the command on its own
+
+	// the rig did not follow the command within the timeout
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now.Add(pendingFrequencyTimeout+time.Millisecond))
+
+	assert.Equal(t, []core.Frequency{14050000}, spy.tuned, "the command timed out")
+}
+
+func TestVFOFrequencyChanged_TuningIsReportedBeforeTheFrequency(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	order := make([]string, 0, 2)
+	v.Notify(&orderSpy{order: &order})
+
+	v.vfoFrequencyChanged(core.VFO1, 14100000, time.Now())
+
+	// the listeners must be able to compare the new frequency with the one they know
+	assert.Equal(t, []string{"tuned", "frequency"}, order)
+}
+
+func TestVFOFrequencyChanged_OfAnotherVFO_IsIgnored(t *testing.T) {
+	v, spy := setupFrequencySpy()
+
+	v.vfoFrequencyChanged(core.VFO2, 14100000, time.Now())
+
+	assert.Empty(t, spy.tuned)
+	assert.Empty(t, spy.reported)
+}
+
+func setupFrequencySpy() (*VFO, *frequencySpy) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	spy := new(frequencySpy)
+	v.Notify(spy)
+	return v, spy
+}
+
+type orderSpy struct {
+	order *[]string
+}
+
+func (s *orderSpy) VFOFrequencyChanged(core.VFOID, core.Frequency) {
+	*s.order = append(*s.order, "frequency")
+}
+
+func (s *orderSpy) VFOTuned(core.VFOID, core.Frequency) {
+	*s.order = append(*s.order, "tuned")
+}
+
+func TestVFOFrequencyChanged_TuningRightAfterTheCommand_IsATuning(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+	v.setFrequency(14200000, now)
+	v.vfoFrequencyChanged(core.VFO1, 14200000, now.Add(100*time.Millisecond)) // the rig follows
+	spy.tuned = nil
+
+	// the operator tunes away immediately, well inside the command timeout
+	v.vfoFrequencyChanged(core.VFO1, 14205000, now.Add(200*time.Millisecond))
+
+	assert.Equal(t, []core.Frequency{14205000}, spy.tuned, "the rig settled, this is the operator")
+}
+
+func TestVFOFrequencyChanged_StaleReportAfterATuning_IsIgnored(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+	v.setFrequency(14200000, now)
+	v.vfoFrequencyChanged(core.VFO1, 14200000, now.Add(100*time.Millisecond))
+	v.vfoFrequencyChanged(core.VFO1, 14205000, now.Add(200*time.Millisecond)) // the operator
+	spy.tuned = nil
+	spy.reported = nil
+
+	// the late reply of a poll that started before the command
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now.Add(300*time.Millisecond))
+
+	assert.Empty(t, spy.tuned, "a stale report is no tuning")
+	assert.Empty(t, spy.reported, "a stale report reaches nobody")
+}
+
+func TestShiftFrequency_IsATuningOfTheOperator(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+	spy.tuned = nil
+
+	// a dial or the keyboard shifts the frequency, the rig follows
+	v.shiftFrequency(1000, now)
+	v.vfoFrequencyChanged(core.VFO1, 14051000, now.Add(100*time.Millisecond))
+
+	assert.Equal(t, []core.Frequency{14051000}, spy.tuned, "the operator tuned with the dial")
+}
+
+func TestShiftFrequency_EndsACommandInFlight(t *testing.T) {
+	v, spy := setupFrequencySpy()
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+	v.setFrequency(14200000, now) // a spot was selected
+	spy.tuned = nil
+
+	// the operator grabs the dial before the rig confirmed the commanded frequency
+	v.shiftFrequency(1000, now.Add(100*time.Millisecond))
+	v.vfoFrequencyChanged(core.VFO1, 14201000, now.Add(200*time.Millisecond))
+
+	assert.Equal(t, []core.Frequency{14201000}, spy.tuned, "the operator took over")
+}

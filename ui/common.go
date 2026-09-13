@@ -61,6 +61,9 @@ func SelectTableRow(view *qtlib.QTableView, index int, model *qtlib.QStandardIte
 
 func ConfigureReadOnlyTable(view *qtlib.QTableView) {
 	view.SetEditTriggers(qtlib.QAbstractItemView__NoEditTriggers)
+	// a read-only table is a click target, never a keyboard target. Without this it
+	// swallows the keyboard focus on a click, and the entry fields go silent.
+	view.SetFocusPolicy(qtlib.NoFocus)
 	view.SetSelectionMode(qtlib.QAbstractItemView__SingleSelection)
 	view.SetSelectionBehavior(qtlib.QAbstractItemView__SelectRows)
 	view.SetAlternatingRowColors(true)
@@ -96,6 +99,15 @@ func FormatQTCCount(sent, received int) string {
 	}
 }
 
+// FormatSpotSNR gives the signal to noise ratio in dB. A source that reported no value leaves the
+// cell empty.
+func FormatSpotSNR(snr float64) string {
+	if snr == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.0f", snr)
+}
+
 func FormatSpotAge(lastHeard time.Time) (string, bool) {
 	s := time.Since(lastHeard).Truncate(time.Minute).String()
 	if s == "0s" {
@@ -108,21 +120,6 @@ func FormatSpotAge(lastHeard time.Time) (string, bool) {
 		s = s[:len(s)-2]
 	}
 	return s, false
-}
-
-func FormatSpotMark(entry core.BandmapEntry, frame core.BandmapFrame) string {
-	switch {
-	case entry.ID == frame.HighestValueEntry.ID:
-		return "H"
-	case entry.ID == frame.SelectedEntry.ID:
-		return ">"
-	case entry.OnFrequency(frame.Frequency):
-		return "|"
-	case entry.ID == frame.NearestEntry.ID:
-		return "N"
-	default:
-		return ""
-	}
 }
 
 func FormatSpotFrequency(f core.Frequency) string {
@@ -140,8 +137,13 @@ func KindToString(kind core.QTCKind) string {
 	}
 }
 
+type EntryFocuser interface {
+	GotoEntryFields()
+}
+
 type dockableView struct {
 	dock *qtlib.QDockWidget
+	name string
 }
 
 func newDockableView(parent, root *qtlib.QWidget, title, objectName string) *dockableView {
@@ -152,6 +154,7 @@ func newDockableView(parent, root *qtlib.QWidget, title, objectName string) *doc
 
 	return &dockableView{
 		dock: dock,
+		name: objectName,
 	}
 }
 
@@ -164,10 +167,16 @@ func (v *dockableView) Dock() *qtlib.QDockWidget {
 	return v.dock
 }
 
+func (v *dockableView) Name() string {
+	return v.name
+}
+
 func (v *dockableView) Show() {
 	if v.dock == nil {
 		return
 	}
+	// the dock stays invisible if the window that contains it is hidden
+	v.dock.Window().SetVisible(true)
 	v.dock.SetVisible(true)
 	v.dock.Raise()
 }

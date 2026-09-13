@@ -101,8 +101,57 @@ func (e *Entry) Add(spot core.Spot) (core.SpotQuality, bool) {
 	if quality == core.ValidSpotQuality {
 		e.Quality = quality
 	}
+	e.applyReportedQuality()
+	e.applyReportedSNR()
 
 	return quality, true
+}
+
+// applyReportedQuality takes the quality that a source reports about its own spot. It wins over
+// the judgement of the bandmap, because a source that reports a quality knows the signal better.
+func (e *Entry) applyReportedQuality() bool {
+	spot, ok := bestSpot(e.spots, func(spot core.Spot) bool {
+		return spot.Quality != core.UnknownSpotQuality
+	})
+	if !ok {
+		return false
+	}
+	e.Quality = spot.Quality
+	return true
+}
+
+// applyReportedSNR takes the signal to noise ratio that a source measured. The sources measure at
+// different places with different receivers, therefore the nearest source wins.
+func (e *Entry) applyReportedSNR() {
+	spot, ok := bestSpot(e.spots, func(spot core.Spot) bool {
+		return spot.SNR != 0
+	})
+	if !ok {
+		e.SNR = 0
+		return
+	}
+	e.SNR = spot.SNR
+}
+
+// bestSpot gives the spot of the source with the highest priority. At the same priority the latest
+// spot wins.
+func bestSpot(spots []core.Spot, matches func(core.Spot) bool) (core.Spot, bool) {
+	var result core.Spot
+	found := false
+	for _, spot := range spots {
+		if !matches(spot) {
+			continue
+		}
+		if found && result.Source.Priority() < spot.Source.Priority() {
+			continue
+		}
+		if found && result.Source.Priority() == spot.Source.Priority() && spot.Time.Before(result.Time) {
+			continue
+		}
+		result = spot
+		found = true
+	}
+	return result, found
 }
 
 func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
@@ -138,6 +187,10 @@ func (e *Entry) update() {
 		e.Source = source
 	}
 	e.SpotCount = len(e.spots)
+	e.applyReportedSNR()
+	if e.applyReportedQuality() {
+		return
+	}
 	if e.SpotCount < spotValidThreshold && e.Quality == core.ValidSpotQuality {
 		e.Quality = core.UnknownSpotQuality
 	}
@@ -245,6 +298,8 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 
 	newEntry := NewEntry(spot)
 	newEntry.Quality = entryQuality
+	newEntry.applyReportedQuality()
+	newEntry.applyReportedSNR()
 	l.complementCallinfo(&newEntry, now, weights)
 	l.insert(&newEntry)
 	l.notifier.emitEntryAdded(newEntry.BandmapEntry)
@@ -312,6 +367,22 @@ func (l *Entries) MarkAsWorked(call core.Callsign, band core.Band, mode core.Mod
 		e.update()
 		l.notifier.emitEntryUpdated(e.BandmapEntry)
 	}
+}
+
+// Remove takes an entry back that a spot source gave up. The band and the frequency of the spot
+// decide which entry of that callsign goes, because the same station may run on more than one
+// band.
+func (l *Entries) Remove(spot core.Spot) bool {
+	removed := false
+	l.entries = filterSlice(l.entries, func(e *Entry) bool {
+		if e.Call != spot.Call || e.Band != spot.Band || !e.OnFrequency(spot.Frequency) {
+			return true
+		}
+		l.notifier.emitEntryRemoved(e.BandmapEntry)
+		removed = true
+		return false
+	})
+	return removed
 }
 
 func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core.BandmapWeights) {
@@ -387,16 +458,13 @@ func (l *Entries) addToSummary(entry *Entry) {
 	if !ok {
 		summary = core.BandSummary{Band: entry.Band}
 	}
+	summary.SpotCount++
 	summary.Points += entry.Info.Points
 	summary.AddMultiValues(entry.Info.MultiValues)
 	l.summaries[entry.Band] = summary
 }
 
 func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
-	maxPointsIndex := 0
-	maxPoints := 0
-	maxMultisIndex := 0
-	maxMultis := 0
 	result := make([]core.BandSummary, len(l.bands))
 	for i, band := range l.bands {
 		summary, ok := l.summaries[band]
@@ -408,25 +476,28 @@ func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
 		result[i] = summary
 		result[i].Active = (summary.Band == active)
 		result[i].Visible = (summary.Band == visible)
-		if summary.Points > maxPoints {
-			maxPoints = summary.Points
-			maxPointsIndex = i
-		}
-		multis := summary.Multis()
-		if multis > maxMultis {
-			maxMultis = multis
-			maxMultisIndex = i
-		}
 	}
 
-	if maxPoints > 0 && maxPointsIndex < len(result) {
-		result[maxPointsIndex].MaxPoints = true
-	}
-	if maxMultis > 0 && maxMultisIndex < len(result) {
-		result[maxMultisIndex].MaxMultis = true
-	}
+	markMaximum(result, func(s core.BandSummary) int { return s.SpotCount }, func(s *core.BandSummary) { s.MaxSpots = true })
+	markMaximum(result, func(s core.BandSummary) int { return s.Points }, func(s *core.BandSummary) { s.MaxPoints = true })
+	markMaximum(result, func(s core.BandSummary) int { return s.Multis() }, func(s *core.BandSummary) { s.MaxMultis = true })
 
 	return result
+}
+
+func markMaximum(summaries []core.BandSummary, valueOf func(core.BandSummary) int, mark func(*core.BandSummary)) {
+	maximum := 0
+	maximumIndex := -1
+	for i, summary := range summaries {
+		value := valueOf(summary)
+		if value > maximum {
+			maximum = value
+			maximumIndex = i
+		}
+	}
+	if maximumIndex >= 0 {
+		mark(&summaries[maximumIndex])
+	}
 }
 
 func (l *Entries) DoOnEntry(id core.BandmapEntryID, f func(core.BandmapEntry)) {

@@ -179,10 +179,12 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 	vfoContainerLayout.AddWidget(w.mode.QWidget)
 
 	w.xit = qtlib.NewQCheckBox3("XIT")
+	w.xit.SetFocusPolicy(qtlib.NoFocus)
 	w.xit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "XIT"))
 	w.xit.SetVisible(false)
 
 	w.rit = qtlib.NewQCheckBox3("RIT")
+	w.rit.SetFocusPolicy(qtlib.NoFocus)
 	w.rit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "RIT"))
 	w.rit.SetVisible(false)
 

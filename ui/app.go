@@ -20,10 +20,8 @@ import (
 )
 
 const (
-	settingsOrg        = "com.thecodingflow"
-	settingsApp        = "hellocontest"
-	settingGeometry    = "ui/mainWindowGeometry"
-	settingWindowState = "ui/mainWindowState"
+	settingsOrg = "com.thecodingflow"
+	settingsApp = "hellocontest"
 
 	defaultMainWindowWidth  = 400
 	defaultMainWindowHeight = 600
@@ -107,13 +105,16 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 		a.scoreTableView.RepaintForThemeChange()
 		a.rateView.RepaintForThemeChange()
 		a.spotsView.RepaintForThemeChange()
+		a.bandMatrixView.RepaintForThemeChange()
+		a.spotWindow.RepaintForThemeChange()
 		a.clockView.RepaintForThemeChange()
 	})
 
 	if startupScript == nil {
 		a.restoreWindowState()
 		a.window.OnCloseEvent(func(super func(event *qtlib.QCloseEvent), event *qtlib.QCloseEvent) {
-			a.storeWindowState()
+			a.storeWindowStateOnce()
+			a.spotWindow.Close()
 			event.Accept()
 		})
 	}
@@ -145,10 +146,14 @@ type application struct {
 
 	style *Style
 
-	window     *qtlib.QMainWindow
-	controller *app.Controller
+	window      *qtlib.QMainWindow
+	spotWindow  *spotWindow
+	dockManager *dockManager
+	controller  *app.Controller
 
 	stopKeyHandler *stopKeyHandler
+
+	windowStateStored bool
 
 	actions *actions
 
@@ -165,6 +170,7 @@ type application struct {
 	radioMenu      *radioMenu
 	spotSourceMenu *spotSourceMenu
 
+	bandMatrixView *bandMatrixView
 	qsoTableView   *qsoTableView
 	qtcTableView   *qtcTableView
 	scoreGraphView *scoreGraphView
@@ -232,7 +238,7 @@ func (a *application) createCentralWidget() {
 	a.workmodeView.SetWorkmodeController(a.controller.Workmode)
 	a.controller.Workmode.SetView(a.workmodeView)
 
-	a.keyerView = newKeyerView()
+	a.keyerView = newKeyerView(a.controller)
 	a.keyerView.SetKeyerController(a.controller.Keyer)
 	// TODO: replace with explicit type
 	keyerButtons := &keyerButtonAdapter{keyerView: a.keyerView, messenger: a.entryView}
@@ -283,8 +289,17 @@ func (a *application) createViews(timebase core.Clock) {
 	a.clockView = newClockView(a.window.QWidget)
 	a.controller.ClockView.SetView(a.clockView)
 
-	// setup spots dock
-	a.spotsView = newSpotsView(a.window.QWidget, a.controller.Bandmap, a.style)
+	// setup band matrix dock
+	a.bandMatrixView = newBandMatrixView(a.window.QWidget, a.controller.BandMatrix, a.controller)
+	a.controller.BandMatrix.SetView(a.bandMatrixView)
+
+	// setup the spots view in its own window
+	a.spotsView = newSpotsView(a.controller.Bandmap, a.controller, a.style)
+	a.spotWindow = newSpotWindow(a.spotsView.widget)
+	a.spotsView.SetWindow(a.spotWindow)
+	a.actions.AddToWindow(a.spotWindow.window.QWidget)
+	// the window stays hidden until the restore shows it: a window that is already visible
+	// keeps the position of the window manager, therefore the geometry comes first
 	a.controller.Bandmap.SetView(a.spotsView)
 
 	// setup the default positions for the dockable view components
@@ -292,13 +307,14 @@ func (a *application) createViews(timebase core.Clock) {
 	a.window.SetCorner(qtlib.BottomLeftCorner, qtlib.LeftDockWidgetArea)
 	a.window.SetCorner(qtlib.TopRightCorner, qtlib.RightDockWidgetArea)
 	a.window.SetCorner(qtlib.BottomRightCorner, qtlib.RightDockWidgetArea)
-	a.window.AddDockWidget(qtlib.TopDockWidgetArea, a.qsoTableView.Dock())
-	a.window.AddDockWidget(qtlib.TopDockWidgetArea, a.qtcTableView.Dock())
-	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.rateView.Dock())
-	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreGraphView.Dock())
-	a.window.AddDockWidget(qtlib.LeftDockWidgetArea, a.scoreTableView.Dock())
-	a.window.AddDockWidget(qtlib.RightDockWidgetArea, a.clockView.Dock())
-	a.window.AddDockWidget(qtlib.RightDockWidgetArea, a.spotsView.Dock())
+	a.dockManager = newDockManager(a.window, a.spotWindow)
+	a.dockManager.Add(a.qsoTableView, qtlib.TopDockWidgetArea)
+	a.dockManager.Add(a.qtcTableView, qtlib.TopDockWidgetArea)
+	a.dockManager.Add(a.rateView, qtlib.LeftDockWidgetArea)
+	a.dockManager.Add(a.scoreGraphView, qtlib.LeftDockWidgetArea)
+	a.dockManager.Add(a.scoreTableView, qtlib.LeftDockWidgetArea)
+	a.dockManager.Add(a.clockView, qtlib.RightDockWidgetArea)
+	a.dockManager.Add(a.bandMatrixView, qtlib.RightDockWidgetArea)
 }
 
 func (a *application) createDialogs() {
@@ -342,35 +358,68 @@ func (a *application) restoreWindowStateFromString(windowState string) {
 		return
 	}
 	settings := qtlib.NewQSettings4(tmpName, qtlib.QSettings__IniFormat)
-	if v := settings.Value(*qtlib.NewQAnyStringView3(settingGeometry), qtlib.NewQVariant()); v.IsValid() {
-		a.window.RestoreGeometry(v.ToByteArray())
-	}
-	if v := settings.Value(*qtlib.NewQAnyStringView3(settingWindowState), qtlib.NewQVariant()); v.IsValid() {
-		a.window.RestoreState(v.ToByteArray())
-	}
+	restoreWindowGeometry(settings, mainWindowSettingPrefix, a.window)
+	a.restoreWindowLayout(settings)
 }
 
 func (a *application) restoreWindowState() {
 	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
-	if v := settings.Value(*qtlib.NewQAnyStringView3(settingGeometry), qtlib.NewQVariant()); v.IsValid() {
-		a.window.RestoreGeometry(v.ToByteArray())
-	} else {
+	if !restoreWindowGeometry(settings, mainWindowSettingPrefix, a.window) {
 		a.window.Resize(defaultMainWindowWidth, defaultMainWindowHeight)
 	}
-	if v := settings.Value(*qtlib.NewQAnyStringView3(settingWindowState), qtlib.NewQVariant()); v.IsValid() {
-		a.window.RestoreState(v.ToByteArray())
+	a.restoreWindowLayout(settings)
+}
+
+// restoreWindowLayout works in the order that Qt needs: both windows get their geometry while they
+// are still hidden, then the docks find their window, and only then each window places its own
+// docks.
+func (a *application) restoreWindowLayout(settings *qtlib.QSettings) {
+	a.restoreSpotWindowGeometry(settings)
+	a.dockManager.Restore(settings)
+	restoreWindowLayout(settings, mainWindowSettingPrefix, a.window)
+	restoreWindowLayout(settings, spotWindowSettingPrefix, a.spotWindow.window)
+	a.applySpotWindowVisibility(settings)
+}
+
+func (a *application) restoreSpotWindowGeometry(settings *qtlib.QSettings) {
+	if restoreWindowGeometry(settings, spotWindowSettingPrefix, a.spotWindow.window) {
+		return
 	}
+
+	// without a stored geometry the window stands beside the main window
+	a.spotWindow.window.Resize(defaultSpotWindowWidth, defaultSpotWindowHeight)
+	mainGeometry := a.window.FrameGeometry()
+	a.spotWindow.window.Move(mainGeometry.X()+mainGeometry.Width(), mainGeometry.Y())
+}
+
+func (a *application) applySpotWindowVisibility(settings *qtlib.QSettings) {
+	visible := true
+	if v := settings.Value(*qtlib.NewQAnyStringView3(settingSpotWindowVisible), qtlib.NewQVariant()); v.IsValid() {
+		visible = v.ToBool()
+	}
+	if visible {
+		a.spotWindow.Show()
+	} else {
+		a.spotWindow.Hide()
+	}
+}
+
+func (a *application) storeWindowStateOnce() {
+	if a.windowStateStored || a.startupScript != nil {
+		return
+	}
+	a.windowStateStored = true
+	a.storeWindowState()
 }
 
 func (a *application) storeWindowState() {
 	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
+	saveWindowState(settings, mainWindowSettingPrefix, a.window)
+	saveWindowState(settings, spotWindowSettingPrefix, a.spotWindow.window)
+	a.dockManager.Save(settings)
 	settings.SetValue(
-		*qtlib.NewQAnyStringView3(settingGeometry),
-		qtlib.NewQVariant12(a.window.SaveGeometry()),
-	)
-	settings.SetValue(
-		*qtlib.NewQAnyStringView3(settingWindowState),
-		qtlib.NewQVariant12(a.window.SaveState()),
+		*qtlib.NewQAnyStringView3(settingSpotWindowVisible),
+		qtlib.NewQVariant8(a.spotWindow.Visible()),
 	)
 	settings.Sync()
 }
@@ -386,6 +435,8 @@ func (a *application) runAsync(f func()) {
 
 // Quit implements app.Quitter
 func (a *application) Quit() {
+	// store the state before quitting, because quitting closes all windows
+	a.storeWindowStateOnce()
 	qtlib.QCoreApplication_Quit()
 }
 

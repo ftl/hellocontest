@@ -661,38 +661,44 @@ func TestD2_Clear_SeedsMyExchangeFromLastExchange(t *testing.T) {
 		AssertMyExchangeView(3, "DX")
 }
 
-// D3. Auto-clear on rig frequency jump
-// Pre:  VFOFrequencyChanged fires; |Δ| > jumpThreshold (250 Hz); ignoreFrequencyJump = false.
-// Post: selectedFrequency updated; Clear runs on focused VFO; active field reapplied.
+// D3. Auto-clear when the operator tunes the rig away
+// Pre:  VFOTuned fires; |Δ| > jumpThreshold (250 Hz).
+// Post: selectedFrequency updated; Clear runs on that VFO; active field reapplied.
 
-func TestD3_VFOFrequencyChanged_LargeJump_TriggersAutoClear(t *testing.T) {
+func TestD3_VFOTuned_LargeJump_TriggersAutoClear(t *testing.T) {
 	// Initial frequency after setup = 14050000 Hz (from vfoSpy.Refresh).
 	// A jump of 1000 Hz far exceeds the 250 Hz threshold.
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		VFOFrequencyChanged(core.VFO1, 14050000+1000).
+		VFOTuned(core.VFO1, 14050000+1000).
 		AssertCallsignView(core.VFO1, ""). // row was cleared
 		AssertActiveField(core.VFO1, core.CallsignField)
 }
 
-// D4. Suppress jump-clear once
-// Pre:  ignoreFrequencyJump = true (set by G2 / EntrySelected).
-// Post: frequency updated, Clear NOT triggered; flag reset to false.
-// Invariants: row preserved.
+func TestD3_VFOTuned_SmallChange_KeepsTheInput(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		Enter("DL1ABC").
+		VFOTuned(core.VFO1, 14050000+100). // below the 250 Hz threshold
+		AssertViewNotCalledWith("SetCallsign", core.VFO1, "")
+}
 
-func TestD4_FrequencyJump_SuppressedByEntrySelected(t *testing.T) {
-	// EntrySelected: Clear + ignoreFrequencyJump=true + frequencyEntered(14200000) + Enter("DL1ABC").
-	// A subsequent large VFOFrequencyChanged must NOT clear the row.
+// D4. A reported frequency never clears the input
+// Pre:  a spot was selected, the rig reports the commanded frequency and stale values.
+// Post: the row survives, because only VFOTuned clears.
+// Invariants: core/vfo decides which report is a tuning, see vfo.vfoFrequencyChanged.
+
+func TestD4_FrequencyReports_NeverClearTheInput(t *testing.T) {
 	dl1abc, _ := core.ParseCallsign("DL1ABC")
 	entry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000}
 
 	NewScenario(t).
 		WithClassicExchange().
-		EntrySelected(entry).
-		// ignoreFrequencyJump=true now; trigger a large jump
-		VFOFrequencyChanged(core.VFO1, 14200000).
-		// If Clear had fired, showInput → SetCallsign(VFO1,"") would be recorded.
+		EntrySelected(core.VFO1, entry).
+		VFOFrequencyChanged(core.VFO1, 14200000). // the rig confirms the command
+		AssertViewNotCalledWith("SetCallsign", core.VFO1, "").
+		VFOFrequencyChanged(core.VFO1, 14050000). // a stale report of the old frequency
 		AssertViewNotCalledWith("SetCallsign", core.VFO1, "")
 }
 
@@ -960,7 +966,7 @@ func TestG2_EntrySelected_ClearsAndEntersCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL2XYZ"). // some other callsign in the row
-		EntrySelected(bEntry).
+		EntrySelected(core.VFO1, bEntry).
 		AssertCallsignView(core.VFO1, "DL1ABC").
 		AssertVFOFrequency(14200000).
 		AssertActiveField(core.VFO1, core.CallsignField)
@@ -1279,16 +1285,16 @@ func TestJ1_VFOFrequencyChanged_SmallJump_NoClear(t *testing.T) {
 		AssertViewNotCalledWith("SetCallsign", core.VFO1, "")
 }
 
-func TestJ1_VFOFrequencyChanged_LargeJump_ClearsEventVFO(t *testing.T) {
+func TestJ1_VFOTuned_LargeJump_ClearsEventVFO(t *testing.T) {
 	// Large jump on VFO1 clears VFO1 input.
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		VFOFrequencyChanged(core.VFO1, 14050000+1000). // large jump
-		AssertCallsignView(core.VFO1, "")              // VFO1 cleared
+		VFOTuned(core.VFO1, 14050000+1000). // large jump
+		AssertCallsignView(core.VFO1, "")   // VFO1 cleared
 }
 
-func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
+func TestJ1_VFOTuned_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
 	// Large jump on VFO2 must clear VFO2 input, not VFO1.
 	s := NewScenario(t).
 		WithClassicExchange().
@@ -1304,7 +1310,7 @@ func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
 	s.resetSpies()
 
 	// Large frequency jump on VFO2 while VFO1 is focused.
-	s.controller.VFOFrequencyChanged(core.VFO2, 14050000+1000)
+	s.controller.VFOTuned(core.VFO2, 14050000+1000)
 
 	// VFO2 input must be cleared.
 	s.view.assertCalledWith(s.t, "SetCallsign", core.VFO2, "")
@@ -1318,7 +1324,7 @@ func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
 		"focused VFO must still be VFO1")
 }
 
-func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsCallinfoAndMessage(t *testing.T) {
+func TestJ1_VFOTuned_VFO2LargeJump_ClearsCallinfoAndMessage(t *testing.T) {
 	// Regression: a frequency jump on VFO2 must clear VFO2's callinfo and message,
 	// not VFO1's. Focus must stay on VFO1.
 	s := NewScenario(t).
@@ -1335,7 +1341,7 @@ func TestJ1_VFOFrequencyChanged_VFO2LargeJump_ClearsCallinfoAndMessage(t *testin
 	s.resetSpies()
 
 	// Large frequency jump on VFO2.
-	s.controller.VFOFrequencyChanged(core.VFO2, 14050000+1000)
+	s.controller.VFOTuned(core.VFO2, 14050000+1000)
 
 	// VFO2 callinfo must be cleared (InputChanged with empty call for VFO2).
 	s.AssertCallinfoCleared(core.VFO2)
@@ -2048,7 +2054,7 @@ func TestI8_FrequencyJump_VFO2_ReleasesSerialClaim(t *testing.T) {
 	s.resetSpies()
 
 	// Large frequency jump on VFO2 → clearInput(VFO2) → Release(VFO2).
-	s.controller.VFOFrequencyChanged(core.VFO2, 14050000+1000)
+	s.controller.VFOTuned(core.VFO2, 14050000+1000)
 
 	// VFO2 serial claim released: SetSerialClaim(VFO2, 0, false) must be called.
 	s.AssertSerialClaimView(core.VFO2, 0, false)
@@ -2271,4 +2277,317 @@ func TestL3b_SO2V_WorkmodeLabel_CorrectAfterWorkmodeChanged(t *testing.T) {
 	s.controller.WorkmodeChanged(core.VFO1, core.Run)
 	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
 	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
+}
+
+// G7. A selected spot for the unfocused VFO moves the focus
+// Pre:  VFO2 available, focus on VFO1.
+// Act:  EntrySelected(VFO2, entry) with an SSB spot.
+// Post: focus on VFO2; VFO2 commanded with the frequency and the mode of the spot.
+// Invariants: the callsign lands in the row of VFO2.
+// Note: Clear() calls vfoSpy.Refresh(), which pins the rig to 14050000/20m/CW,
+// therefore an SSB spot is the case that commands a mode.
+func TestG7_EntrySelected_OnUnfocusedVFO_MovesTheFocus(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	entry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeSSB}
+
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		FocusVFO1().
+		EntrySelected(core.VFO2, entry).
+		AssertActiveVFO(core.VFO2).
+		AssertVFO2Frequency(14200000).
+		AssertVFO2Mode(core.ModeSSB).
+		AssertCallsignView(core.VFO2, "DL1ABC").
+		AssertActiveField(core.VFO2, core.CallsignField)
+}
+
+// G8. A selected spot commands the mode only when it differs
+// Pre:  the rig is in CW, see the note in G7.
+// Act:  EntrySelected(VFO1, entry) with an SSB spot, then with a CW spot.
+// Post: the SSB spot commands SSB; the CW spot commands no mode.
+// Invariants: the frequency is commanded in both cases.
+func TestG8_EntrySelected_CommandsTheModeOfTheSpot(t *testing.T) {
+	dl1abc, _ := core.ParseCallsign("DL1ABC")
+	ssbEntry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeSSB}
+	cwEntry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeCW}
+
+	NewScenario(t).
+		WithClassicExchange().
+		EntrySelected(core.VFO1, ssbEntry).
+		AssertVFOFrequency(14200000).
+		AssertVFOMode(core.ModeSSB)
+
+	NewScenario(t).
+		WithClassicExchange().
+		EntrySelected(core.VFO1, cwEntry).
+		AssertVFOFrequency(14200000).
+		AssertVFOMode(core.NoMode)
+}
+
+// G9. A selected marker tunes the VFO without a callsign
+// Pre:  VFO2 available, focus on VFO1.
+// Act:  MarkerSelected(VFO2, marker).
+// Post: focus on VFO2; VFO2 commanded with the frequency of the marker; the row stays empty.
+// Invariants: a marker names no callsign and no mode.
+func TestG9_MarkerSelected_TunesTheVFOWithoutACallsign(t *testing.T) {
+	marker := core.BandmapMarker{
+		Kind:      core.CQMarker,
+		Text:      "CQ",
+		Frequency: 14200000,
+		Band:      core.Band20m,
+	}
+
+	NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		FocusVFO1().
+		MarkerSelected(core.VFO2, marker).
+		AssertActiveVFO(core.VFO2).
+		AssertVFO2Frequency(14200000).
+		AssertVFO2Mode(core.NoMode).
+		AssertCallsignView(core.VFO2, "").
+		AssertActiveField(core.VFO2, core.CallsignField)
+}
+
+// G10. A selected marker clears the entry fields of the target VFO
+// Pre:  a callsign and an exchange are entered on the focused VFO1.
+// Act:  MarkerSelected(VFO1, marker).
+// Post: the row of VFO1 is empty again.
+func TestG10_MarkerSelected_ClearsTheEntryFields(t *testing.T) {
+	marker := core.BandmapMarker{Kind: core.CQMarker, Text: "CQ", Frequency: 3560000, Band: core.Band80m}
+
+	NewScenario(t).
+		WithClassicExchange().
+		Enter("DL1ABC").
+		GotoNextField().
+		Enter("599").
+		MarkerSelected(core.VFO1, marker).
+		AssertCallsignView(core.VFO1, "").
+		AssertVFOFrequency(3560000).
+		AssertActiveField(core.VFO1, core.CallsignField)
+}
+
+// G11. The command @cq goes to the CQ frequency
+// Pre:  the callsign field is the active field.
+// Act:  Enter("@cq") and press enter.
+// Post: the bandmap goes to the CQ marker; the callsign field is empty again.
+// Invariants: the command works with every spelling and on every VFO.
+func TestG11_CQCommand_GoesToTheCQFrequency(t *testing.T) {
+	for _, command := range []string{"@cq", "@CQ", "@Cq"} {
+		t.Run(command, func(t *testing.T) {
+			s := NewScenario(t).
+				WithClassicExchange().
+				Enter(command).
+				PressEnter()
+
+			assert.Equal(t, 1, s.bandmap.cqMarkerGotos, "the command goes to the CQ frequency")
+			s.AssertCallsignView(core.VFO1, "")
+		})
+	}
+}
+
+func TestG11_CQCommand_OnTheSecondVFO(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		FocusVFO2().
+		Enter("@cq").
+		PressEnter()
+
+	assert.Equal(t, 1, s.bandmap.cqMarkerGotos, "the command works on every callsign field")
+	s.AssertCallsignView(core.VFO2, "")
+}
+
+func TestG11_CQCommand_DoesNotLogAQSO(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		Enter("@cq").
+		PressEnter()
+
+	s.AssertNoQSOAdded()
+}
+
+// G14. The command @number goes to the marker with this number
+// Pre:  the callsign field is the active field.
+// Act:  Enter("@3") and press enter.
+// Post: the bandmap goes to the numbered marker; the callsign field is empty again.
+func TestG14_MarkerCommand_GoesToTheNumberedMarker(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		Enter("@3").
+		PressEnter()
+
+	assert.Equal(t, []int{3}, s.bandmap.numberedMarkerGotos, "the command goes to the marker with this number")
+	s.AssertCallsignView(core.VFO1, "")
+	s.AssertNoQSOAdded()
+}
+
+func TestG14_MarkerCommand_OnTheSecondVFO(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		FocusVFO2().
+		Enter("@12").
+		PressEnter()
+
+	assert.Equal(t, []int{12}, s.bandmap.numberedMarkerGotos, "the command works on every callsign field")
+	s.AssertCallsignView(core.VFO2, "")
+}
+
+func TestG14_MarkerCommand_WithoutAValidNumber(t *testing.T) {
+	for _, command := range []string{"@0", "@-1"} {
+		t.Run(command, func(t *testing.T) {
+			s := NewScenario(t).
+				WithClassicExchange().
+				Enter(command).
+				PressEnter()
+
+			assert.Empty(t, s.bandmap.numberedMarkerGotos, "there is no marker with this number")
+		})
+	}
+}
+
+// G15. A command without a target does nothing
+// Pre:  ESM is enabled, the callsign field is the active field.
+// Act:  Enter("@nonsense") and press enter.
+// Post: nothing happens: no QSO, no message to the keyer.
+func TestG15_CommandWithoutATarget_DoesNothing(t *testing.T) {
+	for _, command := range []string{"@", "@0", "@nonsense", "@dl1abc/"} {
+		t.Run(command, func(t *testing.T) {
+			s := NewScenario(t).
+				WithClassicExchange().
+				WithESMEnabled().
+				Enter(command).
+				PressEnter()
+
+			s.AssertNoQSOAdded().
+				AssertNoKeyerText()
+			assert.Empty(t, s.keyer.sentIndices, "a command must not start a transmission")
+			assert.Empty(t, s.bandmap.numberedMarkerGotos)
+			assert.Equal(t, 0, s.bandmap.cqMarkerGotos)
+		})
+	}
+}
+
+// G12. Mark in bandmap with an empty callsign marks the frequency with the next number
+// Pre:  the callsign field is empty, the rig is on a frequency.
+// Act:  MarkInBandmap().
+// Post: the bandmap marks the frequency of the focused VFO with the next number.
+func TestG12_MarkInBandmap_WithoutACallsign(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		MarkInBandmap()
+
+	require.Len(t, s.bandmap.marksWithNextNumber, 1)
+	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithNextNumber[0].frequency)
+	assert.Equal(t, core.Band80m, s.bandmap.marksWithNextNumber[0].band)
+	assert.Empty(t, s.bandmap.addedSpots, "an empty callsign is no spot")
+}
+
+// G13. Mark in bandmap with a number marks the frequency with that number
+// Pre:  the callsign field holds a number.
+// Act:  MarkInBandmap().
+// Post: the bandmap marks the frequency with that number; the callsign field is empty again.
+func TestG13_MarkInBandmap_WithANumber(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		Enter("3").
+		MarkInBandmap()
+
+	require.Len(t, s.bandmap.marksWithNumber, 1)
+	assert.Equal(t, 3, s.bandmap.marksWithNumber[0].number)
+	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithNumber[0].frequency)
+	assert.Empty(t, s.bandmap.addedSpots, "a number is no callsign")
+	s.AssertCallsignView(core.VFO1, "")
+}
+
+// G16. The command :text marks the frequency with that text
+// Pre:  the callsign field is the active field, the rig is on a frequency.
+// Act:  Enter(":beacon") and press enter.
+// Post: the bandmap marks the frequency with the text; the callsign field is empty again.
+func TestG16_TextMarkerCommand_MarksTheFrequency(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		Enter(":beacon").
+		PressEnter()
+
+	require.Len(t, s.bandmap.marksWithText, 1)
+	assert.Equal(t, "beacon", s.bandmap.marksWithText[0].text)
+	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithText[0].frequency)
+	assert.Equal(t, core.Band80m, s.bandmap.marksWithText[0].band)
+	s.AssertCallsignView(core.VFO1, "").
+		AssertNoQSOAdded()
+}
+
+func TestG16_TextMarkerCommand_OnTheSecondVFO(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		FocusVFO2().
+		Enter(":dx").
+		PressEnter()
+
+	require.Len(t, s.bandmap.marksWithText, 1)
+	assert.Equal(t, "dx", s.bandmap.marksWithText[0].text, "the command works on every callsign field")
+	s.AssertCallsignView(core.VFO2, "")
+}
+
+func TestG16_TextMarkerCommand_WithTheMarkInBandmapAction(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		Enter(":beacon").
+		MarkInBandmap()
+
+	require.Len(t, s.bandmap.marksWithText, 1)
+	assert.Equal(t, "beacon", s.bandmap.marksWithText[0].text)
+	assert.Empty(t, s.bandmap.addedSpots, "a marker text is no callsign")
+	s.AssertCallsignView(core.VFO1, "")
+}
+
+func TestG16_TextMarkerCommand_WithANumber(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		Enter(":3").
+		PressEnter()
+
+	require.Len(t, s.bandmap.marksWithNumber, 1, "a number creates a numbered marker")
+	assert.Equal(t, 3, s.bandmap.marksWithNumber[0].number)
+	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithNumber[0].frequency)
+	assert.Empty(t, s.bandmap.marksWithText)
+	s.AssertCallsignView(core.VFO1, "")
+}
+
+func TestG16_TextMarkerCommand_WithoutAText(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithESMEnabled().
+		Enter(":").
+		PressEnter()
+
+	assert.Empty(t, s.bandmap.marksWithText, "a command without a text is ignored")
+	s.AssertNoQSOAdded().
+		AssertNoKeyerText()
+	assert.Empty(t, s.keyer.sentIndices, "a command must not start a transmission")
+}
+
+func TestG13_MarkInBandmap_WithACallsign(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		Enter("DL1ABC").
+		MarkInBandmap()
+
+	s.AssertBandmapAddedCallsign("DL1ABC")
+	assert.Empty(t, s.bandmap.marksWithNextNumber, "a callsign is no marker")
+	assert.Empty(t, s.bandmap.marksWithNumber)
 }

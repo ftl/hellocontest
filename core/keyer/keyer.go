@@ -72,6 +72,10 @@ type SerialSentListener interface {
 	SerialSent()
 }
 
+type MacroSentListener interface {
+	MacroSent(vfo core.VFOID, workmode core.Workmode, index int)
+}
+
 type Parrot interface {
 	KeyerStoppedListener
 	SetInterval(time.Duration)
@@ -612,15 +616,15 @@ func (k *Keyer) SendMacro(index int) {
 
 func (k *Keyer) SendWithWorkmode(workmode core.Workmode, index int) {
 	k.ensureFocusedVFO()
-	k.sendMessage(workmode, index)
+	k.sendMessage(k.focusedVFO, workmode, index)
 }
 
 func (k *Keyer) SendWithWorkmodeOnVFO(vfo core.VFOID, workmode core.Workmode, index int) {
 	k.vfoSwitcher.SetTXVFO(vfo)
-	k.sendMessage(workmode, index)
+	k.sendMessage(vfo, workmode, index)
 }
 
-func (k *Keyer) sendMessage(workmode core.Workmode, index int) {
+func (k *Keyer) sendMessage(vfo core.VFOID, workmode core.Workmode, index int) {
 	message, err := k.GetText(workmode, index)
 	if err != nil {
 		k.buttonView.ShowMessage(err)
@@ -631,6 +635,7 @@ func (k *Keyer) sendMessage(workmode core.Workmode, index int) {
 	if k.patternHasSerial(patterns[index]) {
 		k.emitSerialSent()
 	}
+	k.emitMacroSent(vfo, workmode, index)
 }
 
 func (k *Keyer) SendQuestion(q string) {
@@ -707,6 +712,12 @@ func (k *Keyer) emitTransmissionStarted(vfo core.VFOID) {
 func (k *Keyer) emitKeyerTransmission(s string) {
 	core.Emit(k.listeners, func(l TransmissionListener) {
 		l.KeyerTransmission(s)
+	})
+}
+
+func (k *Keyer) emitMacroSent(vfo core.VFOID, workmode core.Workmode, index int) {
+	core.Emit(k.listeners, func(l MacroSentListener) {
+		l.MacroSent(vfo, workmode, index)
 	})
 }
 

@@ -470,6 +470,7 @@ func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 
 	c.doInLoop(func() {
 		frequency := findModePortionCenter(c.bandplan, int(outgoingBand.Center()), toBandplanMode(c.lastState[vfo].mode))
+		log.Printf("hamlib: switching %s to %s at %v", c.vfos[vfo], band, frequency)
 		err := c.client.SetFrequency(c.vfos[vfo], hl.Frequency(frequency))
 		if err != nil {
 			log.Printf("hamlib: cannot switch to band: %v", err)

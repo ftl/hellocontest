@@ -1511,6 +1511,10 @@ func (c *Controller) MarkInBandmap() {
 	c.bandmap.Add(spot)
 }
 
+func (c *Controller) MarkWithNumberInBandmap(number int) {
+	c.bandmap.MarkWithNumber(number, c.selectedFrequency[c.focusedVFO], c.selectedBand[c.focusedVFO])
+}
+
 func parseMarkerNumber(s string) (int, bool) {
 	number, err := strconv.Atoi(s)
 	if err != nil || number < 1 {

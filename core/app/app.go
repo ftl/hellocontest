@@ -1049,6 +1049,10 @@ func (c *Controller) MarkInBandmap() {
 	c.Entry.MarkInBandmap()
 }
 
+func (c *Controller) MarkWithNumberInBandmap(number int) {
+	c.Entry.MarkWithNumberInBandmap(number)
+}
+
 func (c *Controller) DeleteMarker() {
 	c.Bandmap.DeleteMarkerOnFrequency()
 }
@@ -1255,6 +1259,12 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.RequestQTC()
 	case core.ActionBandmapMark:
 		c.MarkInBandmap()
+	case core.ActionBandmapMarkWithNumber:
+		number, err := markerNumber(params)
+		if err != nil {
+			return err
+		}
+		c.MarkWithNumberInBandmap(number)
 	case core.ActionBandmapDeleteMarker:
 		c.DeleteMarker()
 	case core.ActionBandmapGotoHighestValueSpot:

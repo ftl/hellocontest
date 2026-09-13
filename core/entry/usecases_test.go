@@ -2591,3 +2591,23 @@ func TestG13_MarkInBandmap_WithACallsign(t *testing.T) {
 	assert.Empty(t, s.bandmap.marksWithNextNumber, "a callsign is no marker")
 	assert.Empty(t, s.bandmap.marksWithNumber)
 }
+
+// G17. Mark with a number marks the frequency of the focused VFO with that number
+// Pre:  the second VFO is focused and on a frequency.
+// Act:  MarkWithNumberInBandmap(5).
+// Post: the bandmap marks the frequency of the focused VFO with that number.
+func TestG17_MarkWithNumberInBandmap(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		WithVFO2().
+		FocusVFO2().
+		VFOFrequencyChanged(core.VFO2, 7025000).
+		VFOBandChanged(core.VFO2, core.Band40m).
+		MarkWithNumberInBandmap(5)
+
+	require.Len(t, s.bandmap.marksWithNumber, 1)
+	assert.Equal(t, 5, s.bandmap.marksWithNumber[0].number)
+	assert.Equal(t, core.Frequency(7025000), s.bandmap.marksWithNumber[0].frequency)
+	assert.Equal(t, core.Band40m, s.bandmap.marksWithNumber[0].band)
+	assert.Empty(t, s.bandmap.addedSpots, "a marker is no spot")
+}

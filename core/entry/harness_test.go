@@ -300,6 +300,14 @@ func (s *Scenario) MarkInBandmap() *Scenario {
 	return s
 }
 
+// MarkWithNumberInBandmap marks the frequency of the focused VFO with the given number.
+func (s *Scenario) MarkWithNumberInBandmap(number int) *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.MarkWithNumberInBandmap(number)
+	return s
+}
+
 // EntrySelected simulates a bandmap entry being selected for the given VFO.
 func (s *Scenario) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) *Scenario {
 	s.t.Helper()

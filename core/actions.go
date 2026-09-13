@@ -59,6 +59,7 @@ const (
 	ActionRadioToggleAudioVFO2    = "radio.toggle_audio_vfo2"
 
 	ActionBandmapMark                 = "bandmap.mark"
+	ActionBandmapMarkWithNumber       = "bandmap.mark_with_number"
 	ActionBandmapDeleteMarker         = "bandmap.delete_marker"
 	ActionBandmapGotoHighestValueSpot = "bandmap.goto_highest_value_spot"
 	ActionBandmapGotoNearestSpot      = "bandmap.goto_nearest_spot"

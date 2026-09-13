@@ -23,7 +23,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ftl/localcopy v0.0.0-20190616142648-8915fb81f0d9 // indirect
-	github.com/gorilla/websocket v1.5.1 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

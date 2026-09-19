@@ -93,57 +93,10 @@ func newEntryView() *entryView {
 	v.myCallLabel = qtlib.NewQLabel3("DL0ABC")
 
 	v.vfo[core.VFO1] = newEntryVFOWidgets("vfo1", "VFO 1")
+	v.registerVFOWidgets(core.VFO1, &v.vfo[core.VFO1])
+
 	v.vfo[core.VFO2] = newEntryVFOWidgets("vfo2", "VFO 2")
-
-	// Connect signals for static widgets
-	v.connectEditSignals(v.vfo[core.VFO1].callsign, core.VFO1, core.CallsignField, true)
-	v.connectEditSignals(v.vfo[core.VFO2].callsign, core.VFO2, core.CallsignField, true)
-	v.connectComboSignals(v.vfo[core.VFO1].band, core.VFO1, core.BandField)
-	v.connectComboSignals(v.vfo[core.VFO2].band, core.VFO2, core.BandField)
-	v.connectComboSignals(v.vfo[core.VFO1].mode, core.VFO1, core.ModeField)
-	v.connectComboSignals(v.vfo[core.VFO2].mode, core.VFO2, core.ModeField)
-
-	// Connect button/checkbox signals
-	v.vfo[core.VFO1].logButton.OnClicked(func() {
-		if v.controller != nil {
-			v.controller.LogVFO(core.VFO1)
-		}
-	})
-	v.vfo[core.VFO2].logButton.OnClicked(func() {
-		if v.controller != nil {
-			v.controller.LogVFO(core.VFO2)
-		}
-	})
-	v.vfo[core.VFO1].clearButton.OnClicked(func() {
-		if v.controller != nil {
-			v.controller.ClearVFO(core.VFO1)
-		}
-	})
-	v.vfo[core.VFO2].clearButton.OnClicked(func() {
-		if v.controller != nil {
-			v.controller.ClearVFO(core.VFO2)
-		}
-	})
-	v.vfo[core.VFO1].xit.OnStateChanged(func(state int) {
-		if v.incrementalTuningInput != nil {
-			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO1, core.XIT, state != 0)
-		}
-	})
-	v.vfo[core.VFO2].xit.OnStateChanged(func(state int) {
-		if v.incrementalTuningInput != nil {
-			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO2, core.XIT, state != 0)
-		}
-	})
-	v.vfo[core.VFO1].rit.OnStateChanged(func(state int) {
-		if v.incrementalTuningInput != nil {
-			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO1, core.RIT, state != 0)
-		}
-	})
-	v.vfo[core.VFO2].rit.OnStateChanged(func(state int) {
-		if v.incrementalTuningInput != nil {
-			v.incrementalTuningInput.SetIncrementalTuningActive(core.VFO2, core.RIT, state != 0)
-		}
-	})
+	v.registerVFOWidgets(core.VFO2, &v.vfo[core.VFO2])
 
 	return v
 }
@@ -211,6 +164,32 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 func (v *entryView) setRootWidget(root *qtlib.QWidget) {
 	v.root = root
 	v.root.SetObjectName(*qtlib.NewQAnyStringView3("entryWidget"))
+}
+
+func (v *entryView) registerVFOWidgets(vfo core.VFOID, widgets *entryVFOWidgets) {
+	v.connectEditSignals(widgets.callsign, vfo, core.CallsignField, true)
+	v.connectComboSignals(widgets.band, vfo, core.BandField)
+	v.connectComboSignals(widgets.mode, vfo, core.ModeField)
+	widgets.logButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.LogVFO(vfo)
+		}
+	})
+	widgets.clearButton.OnClicked(func() {
+		if v.controller != nil {
+			v.controller.ClearVFO(vfo)
+		}
+	})
+	widgets.xit.OnStateChanged(func(state int) {
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(vfo, core.XIT, state != 0)
+		}
+	})
+	widgets.rit.OnStateChanged(func(state int) {
+		if v.incrementalTuningInput != nil {
+			v.incrementalTuningInput.SetIncrementalTuningActive(vfo, core.RIT, state != 0)
+		}
+	})
 }
 
 func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, vfo core.VFOID, field core.EntryField) {

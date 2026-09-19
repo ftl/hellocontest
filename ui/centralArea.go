@@ -77,8 +77,7 @@ func (a *centralArea) RepaintForThemeChange() {
 
 func (a *centralArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, generateSerialExchange bool) {
 	a.removeWidgetsFromLayout()
-	a.entry.SetExchangeFields(myExchangeFields, theirExchangeFields)
-	a.entry.SetSerialClaimLabelsVisible(generateSerialExchange)
+	a.entry.SetExchangeFields(myExchangeFields, theirExchangeFields, generateSerialExchange)
 	a.callinfo.SetPredictedExchangeFields(theirExchangeFields)
 	a.addWidgetsToLayout()
 }

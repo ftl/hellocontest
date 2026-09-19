@@ -472,31 +472,11 @@ func (v *entryView) SetTheirExchange(vfo core.VFOID, index int, text string) {
 	fields[i].SetText(text)
 }
 
-func (v *entryView) SetSerialClaimLabelsVisible(visible bool) {
-	for vfo := range core.VFOCount {
-		widget := v.vfo[vfo].serialClaimLabel
-		prefix := fmt.Sprintf("vfo%d", vfo+1)
-		if visible && v.vfo2Enabled {
-			if widget == nil {
-				widget = qtlib.NewQLabel3("")
-				widget.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "SerialClaim"))
-				widget.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-				v.vfo[vfo].serialClaimLabel = widget
-			}
-		} else {
-			if widget != nil {
-				widget.SetParent(nil)
-				widget.Delete()
-				v.vfo[vfo].serialClaimLabel = nil
-			}
-		}
-	}
-}
-
-func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
+func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, generateSerialExchange bool) {
 	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false, core.VFO1)
 	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO1].theirExchangeFields, true, core.VFO1)
 	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO2].theirExchangeFields, true, core.VFO2)
+	v.setSerialClaimLabelsVisible(generateSerialExchange)
 }
 
 func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool, vfo core.VFOID) {
@@ -529,6 +509,27 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 
 		v.connectEditSignals(editField, vfo, core.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
+	}
+}
+
+func (v *entryView) setSerialClaimLabelsVisible(visible bool) {
+	for vfo := range core.VFOCount {
+		widget := v.vfo[vfo].serialClaimLabel
+		prefix := fmt.Sprintf("vfo%d", vfo+1)
+		if visible && v.vfo2Enabled {
+			if widget == nil {
+				widget = qtlib.NewQLabel3("")
+				widget.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "SerialClaim"))
+				widget.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+				v.vfo[vfo].serialClaimLabel = widget
+			}
+		} else {
+			if widget != nil {
+				widget.SetParent(nil)
+				widget.Delete()
+				v.vfo[vfo].serialClaimLabel = nil
+			}
+		}
 	}
 }
 

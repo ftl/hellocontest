@@ -16,11 +16,11 @@ const (
 	longPressDuration = 500 * time.Millisecond
 
 	// tuning acceleration: the frequency delta per detent grows with the turn rate
-	baseTuningStep      = core.Frequency(10)     // delta per detent when turning slowly
-	maxTuningStep       = core.Frequency(500)    // delta per detent when turning at full speed
-	tuningStepIncrement = core.Frequency(10)     // the delta is rounded to a multiple of this value
-	slowTurnInterval    = 175 * time.Millisecond // detents further apart than this are considered slow
-	tuningAcceleration  = 2.0                    // exponent of the acceleration curve, > 1 means faster than linear
+	baseTuningStep      = core.Frequency(10)    // delta per detent when turning slowly
+	maxTuningStep       = core.Frequency(300)   // delta per detent when turning at full speed
+	tuningStepIncrement = core.Frequency(10)    // the delta is rounded to a multiple of this value
+	slowTurnInterval    = 75 * time.Millisecond // detents further apart than this are considered slow
+	tuningAcceleration  = 1.6                   // exponent of the acceleration curve, > 1 means faster than linear
 )
 
 type DialActions interface {

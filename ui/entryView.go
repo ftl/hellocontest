@@ -52,9 +52,6 @@ type entryVFOWidgets struct {
 	rit              *qtlib.QCheckBox
 	txIndicator      *qtlib.QLabel
 
-	// serial claim
-	serialClaimLabel *qtlib.QLabel
-
 	// QSO
 	callsign            *qtlib.QLineEdit
 	theirExchangeFields []*qtlib.QLineEdit
@@ -80,7 +77,8 @@ type entryView struct {
 	parrotActive [core.VFOCount]bool
 
 	vfo2Enabled   bool
-	onVFO2Enabled func(bool) // callback to centralArea for layout add/remove
+	onVFO2Enabled func(bool)                             // callback to centralArea for layout add/remove
+	onSerialClaim func(core.VFOID, core.QSONumber, bool) // callback to the callinfo view
 
 	ignoreInput bool
 	isDuplicate bool
@@ -326,20 +324,10 @@ func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 }
 
 func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
-	label := v.vfo[vfo].serialClaimLabel
-	if label == nil {
+	if v.onSerialClaim == nil {
 		return
 	}
-
-	if serial == 0 {
-		label.SetText("")
-	} else {
-		text := fmt.Sprintf("%s claimed", serial.String())
-		if committed {
-			text = fmt.Sprintf("<b>%s committed</b>", serial.String())
-		}
-		label.SetText(text)
-	}
+	v.onSerialClaim(vfo, serial, committed)
 }
 
 func (v *entryView) SetCallsign(vfo core.VFOID, text string) {
@@ -477,7 +465,6 @@ func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []co
 	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false, core.VFO1)
 	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO1].theirExchangeFields, true, core.VFO1)
 	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO2].theirExchangeFields, true, core.VFO2)
-	v.setSerialClaimLabelsVisible(generateSerialExchange)
 }
 
 func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool, vfo core.VFOID) {
@@ -510,27 +497,6 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 
 		v.connectEditSignals(editField, vfo, core.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
-	}
-}
-
-func (v *entryView) setSerialClaimLabelsVisible(visible bool) {
-	for vfo := range core.VFOCount {
-		widget := v.vfo[vfo].serialClaimLabel
-		prefix := fmt.Sprintf("vfo%d", vfo+1)
-		if visible && v.vfo2Enabled {
-			if widget == nil {
-				widget = qtlib.NewQLabel3("")
-				widget.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "SerialClaim"))
-				widget.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-				v.vfo[vfo].serialClaimLabel = widget
-			}
-		} else {
-			if widget != nil {
-				widget.SetParent(nil)
-				widget.Delete()
-				v.vfo[vfo].serialClaimLabel = nil
-			}
-		}
 	}
 }
 
@@ -737,9 +703,6 @@ func (v *entryView) setVFO2Enabled(enabled bool) {
 	v.applyIncrementalTuningVisibility(core.VFO2, core.RIT)
 	v.applyTXIndicatorVisibility()
 	v.applyActiveVFOStyle()
-	if widgets.serialClaimLabel != nil {
-		widgets.serialClaimLabel.SetVisible(enabled)
-	}
 	if widgets.callsign != nil {
 		widgets.callsign.SetVisible(enabled)
 		widgets.callsign.SetEnabled(enabled)

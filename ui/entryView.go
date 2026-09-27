@@ -42,14 +42,15 @@ type entryVFOWidgets struct {
 	topSeparator *qtlib.QFrame
 
 	// radio
-	vfoContainer   *qtlib.QWidget
-	vfoLabel       *qtlib.QLabel
-	frequencyLabel *qtlib.QLabel
-	band           *qtlib.QComboBox
-	mode           *qtlib.QComboBox
-	xit            *qtlib.QCheckBox
-	rit            *qtlib.QCheckBox
-	txIndicator    *qtlib.QLabel
+	vfoContainer     *qtlib.QWidget
+	vfoContainerName string
+	vfoLabel         *qtlib.QLabel
+	frequencyLabel   *qtlib.QLabel
+	band             *qtlib.QComboBox
+	mode             *qtlib.QComboBox
+	xit              *qtlib.QCheckBox
+	rit              *qtlib.QCheckBox
+	txIndicator      *qtlib.QLabel
 
 	// serial claim
 	serialClaimLabel *qtlib.QLabel
@@ -74,6 +75,9 @@ type entryView struct {
 	vfoWorkmode [core.VFOCount]core.Workmode
 	itVisible   [core.VFOCount][2]bool
 	txVFO       core.VFOID
+	activeVFO   core.VFOID
+
+	parrotActive [core.VFOCount]bool
 
 	vfo2Enabled   bool
 	onVFO2Enabled func(bool) // callback to centralArea for layout add/remove
@@ -115,7 +119,8 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 	w.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	w.vfoContainer = qtlib.NewQWidget2()
-	w.vfoContainer.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "VFOContainer"))
+	w.vfoContainerName = prefix + "VFOContainer"
+	w.vfoContainer.SetObjectName(*qtlib.NewQAnyStringView3(w.vfoContainerName))
 	w.vfoContainer.SetAttribute(qtlib.WA_StyledBackground)
 	// w.vfoContainer.SetStyleSheet(fmt.Sprintf("QWidget#%sVFOContainer { background-color: red; }", prefix))
 	vfoContainerLayout := qtlib.NewQHBoxLayout(w.vfoContainer)
@@ -329,9 +334,9 @@ func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber, commit
 	if serial == 0 {
 		label.SetText("")
 	} else {
-		text := fmt.Sprintf("#%s", serial.String())
+		text := fmt.Sprintf("%s claimed", serial.String())
 		if committed {
-			text = fmt.Sprintf("<b>%s</b>", text)
+			text = fmt.Sprintf("<b>%s committed</b>", serial.String())
 		}
 		label.SetText(text)
 	}
@@ -427,6 +432,9 @@ func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parr
 		return
 	}
 
+	v.parrotActive[vfo] = parrotActive
+	v.applyTXIndicatorVisibility()
+
 	text := txIndicatorText
 	if parrotActive {
 		text = parrot
@@ -514,7 +522,6 @@ func (v *entryView) setSerialClaimLabelsVisible(visible bool) {
 				widget = qtlib.NewQLabel3("")
 				widget.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "SerialClaim"))
 				widget.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-				widget.SetStyleSheet(fmt.Sprintf("QWidget#%sSerialClaim { background-color: blue; }", prefix))
 				v.vfo[vfo].serialClaimLabel = widget
 			}
 		} else {
@@ -543,7 +550,7 @@ func (v *entryView) applyTXIndicatorVisibility() {
 		if widget == nil {
 			continue
 		}
-		widget.SetVisible(v.vfo2Enabled && id == v.txVFO)
+		widget.SetVisible((v.vfo2Enabled && id == v.txVFO) || v.parrotActive[id])
 	}
 }
 
@@ -564,14 +571,22 @@ func (v *entryView) updateVFOLabel(vfo core.VFOID) {
 }
 
 func (v *entryView) SetActiveVFO(vfo core.VFOID) {
+	v.activeVFO = vfo
+	v.applyActiveVFOStyle()
+}
+
+func (v *entryView) applyActiveVFOStyle() {
 	// TODO: use a property with a selective style
-	switch vfo {
-	case core.VFO1:
-		v.vfo[core.VFO1].vfoLabel.SetStyleSheet(VFOActiveStyle)
-		v.vfo[core.VFO2].vfoLabel.SetStyleSheet(VFOInactiveStyle)
-	case core.VFO2:
-		v.vfo[core.VFO1].vfoLabel.SetStyleSheet(VFOInactiveStyle)
-		v.vfo[core.VFO2].vfoLabel.SetStyleSheet(VFOActiveStyle)
+	for id := core.VFOID(0); id < core.VFOCount; id++ {
+		widgets := v.vfo[id]
+		if widgets.vfoContainer == nil {
+			continue
+		}
+		style := VFOInactiveStyle
+		if v.vfo2Enabled && id == v.activeVFO {
+			style = fmt.Sprintf(VFOActiveStyle, widgets.vfoContainerName)
+		}
+		widgets.vfoContainer.SetStyleSheet(style)
 	}
 }
 
@@ -721,6 +736,7 @@ func (v *entryView) setVFO2Enabled(enabled bool) {
 	v.applyIncrementalTuningVisibility(core.VFO2, core.XIT)
 	v.applyIncrementalTuningVisibility(core.VFO2, core.RIT)
 	v.applyTXIndicatorVisibility()
+	v.applyActiveVFOStyle()
 	if widgets.serialClaimLabel != nil {
 		widgets.serialClaimLabel.SetVisible(enabled)
 	}

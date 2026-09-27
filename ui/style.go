@@ -16,8 +16,8 @@ const (
 	EntryFieldStyle          = "QLineEdit { font-size: 24pt; font-family: monospace; }"
 	TXIndicatorActiveStyle   = "QLabel { padding-left: 5px; padding-right: 5px; background-color: red; color: white; border: 1px solid white; border-radius: 10px; font-weight: bold; }"
 	TXIndicatorInactiveStyle = "QLabel { padding-left: 5px; padding-right: 5px; color: palette(text); border: 1px solid palette(text); border-radius: 10px; }"
-	VFOActiveStyle           = "QLabel { padding-left: 5px; padding-right: 5px; background-color: palette(highlight); color: palette(highlighted-text); border-radius: 10px; }"
-	VFOInactiveStyle         = "QLabel { padding-left: 6px; padding-right: 6px; }"
+	VFOActiveStyle           = "QWidget#%s { background-color: palette(highlight); } QLabel { color: palette(highlighted-text); }"
+	VFOInactiveStyle         = ""
 
 	RoundedLabelPadding = 10
 

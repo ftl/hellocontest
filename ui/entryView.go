@@ -119,7 +119,7 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 	w.frequencyLabel = qtlib.NewQLabel3("- kHz")
 	w.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "FrequencyLabel"))
 	w.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
-	vfoContainerLayout.AddWidget2(w.frequencyLabel.QWidget, 2)
+	vfoContainerLayout.AddWidget(w.frequencyLabel.QWidget)
 
 	w.band = qtlib.NewQComboBox2()
 	w.band.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "BandCombo"))
@@ -135,14 +135,17 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 	w.xit.SetFocusPolicy(qtlib.NoFocus)
 	w.xit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "XIT"))
 	w.xit.SetVisible(false)
+	vfoContainerLayout.AddWidget(w.xit.QWidget)
 
 	w.rit = qtlib.NewQCheckBox3("RIT")
 	w.rit.SetFocusPolicy(qtlib.NoFocus)
 	w.rit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "RIT"))
 	w.rit.SetVisible(false)
+	vfoContainerLayout.AddWidget(w.rit.QWidget)
 
 	w.txIndicator = qtlib.NewQLabel3("")
 	w.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "TX"))
+	vfoContainerLayout.AddWidget(w.txIndicator.QWidget)
 
 	w.callsign = qtlib.NewQLineEdit2()
 	w.callsign.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "CallsignEntry"))

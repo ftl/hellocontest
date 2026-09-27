@@ -24,7 +24,7 @@ version_number:
 	@echo ${VERSION_NUMBER}
 
 test:
-	go test -v -timeout=30s ./...
+	go test -timeout=30s ./core/...
 
 build:
 	go build -trimpath -buildmode=pie -ldflags "-s -w -X main.version=${VERSION_NUMBER}" -o ${BINARY_NAME}

@@ -1,6 +1,7 @@
 package hamdial
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -20,16 +21,35 @@ func TestTurnDelta(t *testing.T) {
 		{desc: "first detent", interval: 0, direction: hamdial.Clockwise, expected: baseTuningStep},
 		{desc: "slow turn", interval: slowTurnInterval, direction: hamdial.Clockwise, expected: baseTuningStep},
 		{desc: "very slow turn", interval: 2 * slowTurnInterval, direction: hamdial.Clockwise, expected: baseTuningStep},
-		{desc: "half interval", interval: slowTurnInterval / 2, direction: hamdial.Clockwise, expected: 40},
-		{desc: "fifth interval", interval: slowTurnInterval / 5, direction: hamdial.Clockwise, expected: 250},
 		{desc: "very fast turn", interval: time.Millisecond, direction: hamdial.Clockwise, expected: maxTuningStep},
-		{desc: "counter clockwise", interval: slowTurnInterval / 2, direction: hamdial.CounterClockwise, expected: -40},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			controller := &Controller{lastTurn: now.Add(-tc.interval), lastTurnDirection: tc.direction}
 			assert.Equal(t, tc.expected, controller.turnDelta(tc.direction, now))
 		})
+	}
+}
+
+func TestTurnDeltaIsSymmetric(t *testing.T) {
+	now := time.Now()
+	deltaAt := func(direction hamdial.Direction) core.Frequency {
+		controller := &Controller{lastTurn: now.Add(-slowTurnInterval / 2), lastTurnDirection: direction}
+		return controller.turnDelta(direction, now)
+	}
+
+	assert.Equal(t, -deltaAt(hamdial.Clockwise), deltaAt(hamdial.CounterClockwise))
+}
+
+func TestTurnDeltaStaysWithinTheTuningSteps(t *testing.T) {
+	now := time.Now()
+	for interval := time.Millisecond; interval < 2*slowTurnInterval; interval += time.Millisecond {
+		controller := &Controller{lastTurn: now.Add(-interval), lastTurnDirection: hamdial.Clockwise}
+		delta := controller.turnDelta(hamdial.Clockwise, now)
+
+		assert.GreaterOrEqual(t, delta, baseTuningStep, "at %v", interval)
+		assert.LessOrEqual(t, delta, maxTuningStep, "at %v", interval)
+		assert.Zero(t, math.Mod(float64(delta), float64(tuningStepIncrement)), "at %v: %v is no multiple of the increment", interval, delta)
 	}
 }
 

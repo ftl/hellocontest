@@ -137,16 +137,5 @@ func convalToCabrilloTransmitter(category conval.Category) cabrillo.CategoryTran
 }
 
 func convertOverlay(overlay conval.Overlay) cabrillo.CategoryOverlay {
-	switch overlay {
-	case conval.ClassicOverlay:
-		return cabrillo.ClassicOverlay
-	case conval.ThreeBandAndWiresOverlay:
-		return cabrillo.TBWiresOverlay
-	case conval.RookieOverlay:
-		return cabrillo.RookieOverlay
-	case conval.YouthOverlay:
-		return cabrillo.YouthOverlay
-	default:
-		return cabrillo.CategoryOverlay(strings.ToUpper(string(overlay)))
-	}
+	return cabrillo.CategoryOverlay(strings.ToUpper(strings.ReplaceAll(string(overlay), "_", "-")))
 }

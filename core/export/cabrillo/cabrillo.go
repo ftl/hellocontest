@@ -333,10 +333,17 @@ func (c *Controller) CategoryOverlays() []string {
 			string(cabrillo.ClassicOverlay),
 			string(cabrillo.RookieOverlay),
 			string(cabrillo.TBWiresOverlay),
+			string(cabrillo.WireOnlyOverlay),
 			string(cabrillo.YouthOverlay),
 			string(cabrillo.NoviceTechOverlay),
 			string(cabrillo.Over50Overlay),
 			string(cabrillo.YLOverlay),
+			string(cabrillo.YNOverlay),
+			string(cabrillo.TeenOverlay),
+			string(cabrillo.NewcomerOverlay),
+			string(cabrillo.DXpeditionOverlay),
+			string(cabrillo.SingleElementOverlay),
+			string(cabrillo.TwelveHourOverlay),
 		}
 	}
 

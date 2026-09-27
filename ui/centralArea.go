@@ -66,6 +66,7 @@ func newCentralArea(entry *entryView, callinfo *callinfoView, esm *esmView, work
 	rootLayout.AddStretch()
 
 	entry.onVFO2Enabled = result.setVFO2Enabled
+	entry.onSerialClaim = callinfo.SetSerialClaim
 
 	return result
 }
@@ -110,10 +111,7 @@ func (a *centralArea) addVFOWidgetsToLayout(vfo core.VFOID, firstRow int) {
 	lastColumn := 3 + len(entry.theirExchangeFields)
 
 	a.entryLayout.AddWidget3(entry.topSeparator.QWidget, firstRow+0, 0, 1, -1)
-	a.entryLayout.AddWidget3(entry.vfoContainer, firstRow+1, 0, 1, 2)
-	if entry.serialClaimLabel != nil {
-		a.entryLayout.AddWidget2(entry.serialClaimLabel.QWidget, firstRow+1, 2)
-	}
+	a.entryLayout.AddWidget3(entry.vfoContainer, firstRow+1, 0, 1, -1)
 	a.entryLayout.AddWidget2(callinfo.callsignLabel.QWidget, firstRow+2, 0)
 	for i := range callinfo.predictedExchangeLabels {
 		a.entryLayout.AddWidget2(callinfo.predictedExchangeLabels[i].QWidget, firstRow+2, i+1)
@@ -151,9 +149,6 @@ func (a *centralArea) removeVFOWidgetsFromLayout(vfo core.VFOID) {
 	a.entryLayout.RemoveWidget(entry.vfoLabel.QWidget)
 	a.entryLayout.RemoveWidget(entry.frequencyLabel.QWidget)
 	a.entryLayout.RemoveWidget(entry.vfoContainer)
-	if entry.serialClaimLabel != nil {
-		a.entryLayout.RemoveWidget(entry.serialClaimLabel.QWidget)
-	}
 	a.entryLayout.RemoveWidget(entry.rit.QWidget)
 	a.entryLayout.RemoveWidget(entry.xit.QWidget)
 	a.entryLayout.RemoveWidget(entry.txIndicator.QWidget)

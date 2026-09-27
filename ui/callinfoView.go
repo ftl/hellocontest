@@ -24,11 +24,19 @@ type callinfoVFOWidgets struct {
 	predictedExchangeLabels []*qtlib.QLabel
 }
 
+type serialClaim struct {
+	serial    core.QSONumber
+	committed bool
+}
+
 type callinfoView struct {
 	vfo [core.VFOCount]callinfoVFOWidgets
 
 	qtcsEnabled bool
 	vfo2Enabled bool
+
+	serialFieldIndex int
+	serialClaims     [core.VFOCount]serialClaim
 
 	current [core.VFOCount]core.CallinfoFrame
 }
@@ -76,7 +84,9 @@ func newCallinfoVFOWidgets(prefix string) callinfoVFOWidgets {
 }
 
 func newCallinfoView() *callinfoView {
-	v := &callinfoView{}
+	v := &callinfoView{
+		serialFieldIndex: -1,
+	}
 
 	v.vfo[core.VFO1] = newCallinfoVFOWidgets("vfo1")
 	v.vfo[core.VFO2] = newCallinfoVFOWidgets("vfo2")
@@ -118,9 +128,24 @@ func (v *callinfoView) refreshVFO(vfo core.VFOID) {
 			lbl.SetText("-")
 		}
 	}
+	v.refreshSerialClaim(vfo)
+}
+
+func (v *callinfoView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
+	v.serialClaims[vfo] = serialClaim{serial: serial, committed: committed}
+	v.refreshSerialClaim(vfo)
+}
+
+func (v *callinfoView) refreshSerialClaim(vfo core.VFOID) {
+	w := &v.vfo[vfo]
+	if v.serialFieldIndex < 0 || v.serialFieldIndex >= len(w.predictedExchangeLabels) {
+		return
+	}
+	w.predictedExchangeLabels[v.serialFieldIndex].SetText(renderSerialClaim(v.serialClaims[vfo]))
 }
 
 func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {
+	v.serialFieldIndex = serialFieldIndex(fields)
 	for vfo := range core.VFOCount {
 		w := &v.vfo[vfo]
 		for _, label := range w.predictedExchangeLabels {
@@ -142,6 +167,27 @@ func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {
 			}
 			w.predictedExchangeLabels = append(w.predictedExchangeLabels, valueLabel)
 		}
+		v.refreshSerialClaim(vfo)
+	}
+}
+
+func serialFieldIndex(fields []core.ExchangeField) int {
+	for i, field := range fields {
+		if field.CanContainSerial {
+			return i
+		}
+	}
+	return -1
+}
+
+func renderSerialClaim(claim serialClaim) string {
+	switch {
+	case claim.serial == 0:
+		return ""
+	case claim.committed:
+		return fmt.Sprintf("<b>%s committed</b>", claim.serial.String())
+	default:
+		return fmt.Sprintf("%s claimed", claim.serial.String())
 	}
 }
 

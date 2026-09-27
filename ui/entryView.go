@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	parrot         = "🦜"
-	txVFOIndicator = `<span style="color: red; font-size: 16pt;">&#x25CF;</span>`
+	parrot                 = "🦜"
+	txIndicatorText        = "TX"
+	txIndicatorWidthSample = parrot + ": 10m0s"
 )
 
 // EntryController controls the entry of QSO data.
@@ -40,17 +41,20 @@ type EntryController interface {
 type entryVFOWidgets struct {
 	topSeparator *qtlib.QFrame
 
+	// radio
 	vfoContainer   *qtlib.QWidget
 	vfoLabel       *qtlib.QLabel
 	frequencyLabel *qtlib.QLabel
 	band           *qtlib.QComboBox
 	mode           *qtlib.QComboBox
+	xit            *qtlib.QCheckBox
+	rit            *qtlib.QCheckBox
+	txIndicator    *qtlib.QLabel
 
+	// serial claim
 	serialClaimLabel *qtlib.QLabel
-	xit              *qtlib.QCheckBox
-	rit              *qtlib.QCheckBox
-	txIndicator      *qtlib.QLabel
 
+	// QSO
 	callsign            *qtlib.QLineEdit
 	theirExchangeFields []*qtlib.QLineEdit
 	logButton           *qtlib.QPushButton
@@ -98,6 +102,8 @@ func newEntryView() *entryView {
 	v.vfo[core.VFO2] = newEntryVFOWidgets("vfo2", "VFO 2")
 	v.registerVFOWidgets(core.VFO2, &v.vfo[core.VFO2])
 
+	v.SetTXVFO(core.VFO1)
+
 	return v
 }
 
@@ -109,16 +115,28 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 	w.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	w.vfoContainer = qtlib.NewQWidget2()
+	w.vfoContainer.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "VFOContainer"))
+	w.vfoContainer.SetAttribute(qtlib.WA_StyledBackground)
+	// w.vfoContainer.SetStyleSheet(fmt.Sprintf("QWidget#%sVFOContainer { background-color: red; }", prefix))
 	vfoContainerLayout := qtlib.NewQHBoxLayout(w.vfoContainer)
-
 	w.vfoLabel = qtlib.NewQLabel3(vfoName)
 	w.vfoLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "Label"))
-	w.vfoLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+	w.vfoLabel.SetAlignment(qtlib.AlignLeading | qtlib.AlignVCenter)
+	setFixedTextWidth(w.vfoLabel.QWidget, "VFO 2 S&P", RoundedLabelPadding)
 	vfoContainerLayout.AddWidget(w.vfoLabel.QWidget)
+
+	w.txIndicator = qtlib.NewQLabel3(txIndicatorText)
+	w.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "TX"))
+	w.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
+	w.txIndicator.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+	setFixedBoldTextWidth(w.txIndicator.QWidget, txIndicatorWidthSample, RoundedLabelPadding)
+	retainSizeWhenHidden(w.txIndicator.QWidget)
+	vfoContainerLayout.AddWidget(w.txIndicator.QWidget)
 
 	w.frequencyLabel = qtlib.NewQLabel3("- kHz")
 	w.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "FrequencyLabel"))
 	w.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
+	setFixedTextWidth(w.frequencyLabel.QWidget, "999999.99 kHz", 0)
 	vfoContainerLayout.AddWidget(w.frequencyLabel.QWidget)
 
 	w.band = qtlib.NewQComboBox2()
@@ -143,9 +161,7 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 	w.rit.SetVisible(false)
 	vfoContainerLayout.AddWidget(w.rit.QWidget)
 
-	w.txIndicator = qtlib.NewQLabel3("")
-	w.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "TX"))
-	vfoContainerLayout.AddWidget(w.txIndicator.QWidget)
+	vfoContainerLayout.AddStretch()
 
 	w.callsign = qtlib.NewQLineEdit2()
 	w.callsign.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "CallsignEntry"))
@@ -411,17 +427,12 @@ func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parr
 		return
 	}
 
-	var text string
-	switch {
-	case parrotActive:
+	text := txIndicatorText
+	if parrotActive {
 		text = parrot
 		if parrotTimeLeft > 0 {
 			text += fmt.Sprintf(": %v", parrotTimeLeft)
 		}
-	case ptt:
-		text = "On Air"
-	default:
-		text = ""
 	}
 
 	// TODO: use a property with a selective style
@@ -503,6 +514,7 @@ func (v *entryView) setSerialClaimLabelsVisible(visible bool) {
 				widget = qtlib.NewQLabel3("")
 				widget.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "SerialClaim"))
 				widget.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
+				widget.SetStyleSheet(fmt.Sprintf("QWidget#%sSerialClaim { background-color: blue; }", prefix))
 				v.vfo[vfo].serialClaimLabel = widget
 			}
 		} else {
@@ -522,8 +534,16 @@ func (v *entryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
 
 func (v *entryView) SetTXVFO(vfo core.VFOID) {
 	v.txVFO = vfo
+	v.applyTXIndicatorVisibility()
+}
+
+func (v *entryView) applyTXIndicatorVisibility() {
 	for id := core.VFOID(0); id < core.VFOCount; id++ {
-		v.updateVFOLabel(id)
+		widget := v.vfo[id].txIndicator
+		if widget == nil {
+			continue
+		}
+		widget.SetVisible(v.vfo2Enabled && id == v.txVFO)
 	}
 }
 
@@ -537,12 +557,9 @@ func (v *entryView) updateVFOLabel(vfo core.VFOID) {
 	case core.Run:
 		text += " RUN"
 	case core.SearchPounce:
-		text += " S&amp;P"
+		text += " S&P"
 	}
-	if vfo == v.txVFO {
-		text += " " + txVFOIndicator
-	}
-	label.SetTextFormat(qtlib.RichText)
+	label.SetTextFormat(qtlib.PlainText)
 	label.SetText(text)
 }
 
@@ -703,9 +720,7 @@ func (v *entryView) setVFO2Enabled(enabled bool) {
 	}
 	v.applyIncrementalTuningVisibility(core.VFO2, core.XIT)
 	v.applyIncrementalTuningVisibility(core.VFO2, core.RIT)
-	if widgets.txIndicator != nil {
-		widgets.txIndicator.SetVisible(enabled)
-	}
+	v.applyTXIndicatorVisibility()
 	if widgets.serialClaimLabel != nil {
 		widgets.serialClaimLabel.SetVisible(enabled)
 	}

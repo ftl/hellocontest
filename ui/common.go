@@ -37,6 +37,22 @@ func setupModeCombo(combo *qtlib.QComboBox) {
 	combo.SetCurrentIndex(0)
 }
 
+func setFixedTextWidth(widget *qtlib.QWidget, sample string, padding int) {
+	widget.SetFixedWidth(widget.FontMetrics().HorizontalAdvance(sample) + 2*padding)
+}
+
+func setFixedBoldTextWidth(widget *qtlib.QWidget, sample string, padding int) {
+	font := qtlib.NewQFont5(widget.Font())
+	font.SetBold(true)
+	widget.SetFixedWidth(qtlib.NewQFontMetrics(font).HorizontalAdvance(sample) + 2*padding)
+}
+
+func retainSizeWhenHidden(widget *qtlib.QWidget) {
+	sizePolicy := widget.SizePolicy()
+	sizePolicy.SetRetainSizeWhenHidden(true)
+	widget.SetSizePolicy(*sizePolicy)
+}
+
 func SetColumnSampleWidth(widget *qtlib.QTableView, column int, sample string) {
 	width := widget.FontMetrics().HorizontalAdvance(sample) + 6
 	widget.HorizontalHeader().SetSectionResizeMode2(column, qtlib.QHeaderView__Interactive)

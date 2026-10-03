@@ -110,23 +110,22 @@ func (a *centralArea) addVFOWidgetsToLayout(vfo core.VFOID, firstRow int) {
 	callinfo := a.callinfo.vfo[vfo]
 	lastColumn := 3 + len(entry.theirExchangeFields)
 
-	a.entryLayout.AddWidget3(entry.topSeparator.QWidget, firstRow+0, 0, 1, -1)
-	a.entryLayout.AddWidget3(entry.vfoContainer, firstRow+1, 0, 1, -1)
-	a.entryLayout.AddWidget2(callinfo.callsignLabel.QWidget, firstRow+2, 0)
+	a.entryLayout.AddWidget3(entry.vfoContainer, firstRow+0, 0, 1, -1)
+	a.entryLayout.AddWidget2(callinfo.callsignLabel.QWidget, firstRow+1, 0)
 	for i := range callinfo.predictedExchangeLabels {
-		a.entryLayout.AddWidget2(callinfo.predictedExchangeLabels[i].QWidget, firstRow+2, i+1)
+		a.entryLayout.AddWidget2(callinfo.predictedExchangeLabels[i].QWidget, firstRow+1, i+1)
 	}
-	a.entryLayout.AddWidget2(callinfo.valueLabel.QWidget, firstRow+2, lastColumn-1)
-	a.entryLayout.AddWidget2(callinfo.qtcStatusLabel.QWidget, firstRow+2, lastColumn)
-	a.entryLayout.AddWidget2(entry.callsign.QWidget, firstRow+3, 0)
+	a.entryLayout.AddWidget2(callinfo.valueLabel.QWidget, firstRow+1, lastColumn-1)
+	a.entryLayout.AddWidget2(callinfo.qtcStatusLabel.QWidget, firstRow+1, lastColumn)
+	a.entryLayout.AddWidget2(entry.callsign.QWidget, firstRow+2, 0)
 	for i := range entry.theirExchangeFields {
-		a.entryLayout.AddWidget2(entry.theirExchangeFields[i].QWidget, firstRow+3, i+1)
+		a.entryLayout.AddWidget2(entry.theirExchangeFields[i].QWidget, firstRow+2, i+1)
 	}
-	a.entryLayout.AddWidget2(entry.logButton.QWidget, firstRow+3, lastColumn-1)
-	a.entryLayout.AddWidget2(entry.clearButton.QWidget, firstRow+3, lastColumn)
-	a.entryLayout.AddWidget3(callinfo.supercheckLabel.QWidget, firstRow+4, 0, 1, -1)
-	a.entryLayout.AddWidget3(callinfo.infoContainer, firstRow+5, 0, 1, -1)
-	a.entryLayout.AddWidget3(entry.messageLabel.QWidget, firstRow+5, 0, 1, -1)
+	a.entryLayout.AddWidget2(entry.logButton.QWidget, firstRow+2, lastColumn-1)
+	a.entryLayout.AddWidget2(entry.clearButton.QWidget, firstRow+2, lastColumn)
+	a.entryLayout.AddWidget3(callinfo.supercheckLabel.QWidget, firstRow+3, 0, 1, -1)
+	a.entryLayout.AddWidget3(callinfo.infoContainer, firstRow+4, 0, 1, -1)
+	a.entryLayout.AddWidget3(entry.messageLabel.QWidget, firstRow+4, 0, 1, -1)
 }
 
 func (a *centralArea) removeWidgetsFromLayout() {
@@ -145,7 +144,6 @@ func (a *centralArea) removeVFOWidgetsFromLayout(vfo core.VFOID) {
 	entry := a.entry.vfo[vfo]
 	callinfo := a.callinfo.vfo[vfo]
 
-	a.entryLayout.RemoveWidget(entry.topSeparator.QWidget)
 	a.entryLayout.RemoveWidget(entry.vfoLabel.QWidget)
 	a.entryLayout.RemoveWidget(entry.frequencyLabel.QWidget)
 	a.entryLayout.RemoveWidget(entry.vfoContainer)

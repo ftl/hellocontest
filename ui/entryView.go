@@ -39,8 +39,6 @@ type EntryController interface {
 }
 
 type entryVFOWidgets struct {
-	topSeparator *qtlib.QFrame
-
 	// radio
 	vfoContainer     *qtlib.QWidget
 	vfoContainerName string
@@ -111,10 +109,6 @@ func newEntryView() *entryView {
 
 func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 	w := entryVFOWidgets{}
-
-	w.topSeparator = qtlib.NewQFrame2()
-	w.topSeparator.SetFrameShape(qtlib.QFrame__HLine)
-	w.topSeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	w.vfoContainer = qtlib.NewQWidget2()
 	w.vfoContainerName = prefix + "VFOContainer"

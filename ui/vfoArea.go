@@ -8,6 +8,11 @@ import (
 	"github.com/ftl/hellocontest/core"
 )
 
+const (
+	infoPage = iota
+	messagePage
+)
+
 // vfoArea handles the visible UI related to core/entry and core/callinfo for a specific VFO. It takes care of visibility, layout and style of the related widgets.
 type vfoArea struct {
 	vfo          core.VFOID
@@ -23,6 +28,7 @@ type vfoArea struct {
 	vfoContainer     *qtlib.QWidget
 	vfoContainerName string
 	infoContainer    *qtlib.QWidget
+	infoStack        *qtlib.QStackedWidget
 
 	txVFO        bool
 	parrotActive bool
@@ -53,6 +59,7 @@ func newVFOArea(vfo core.VFOID, widgetPrefix string, entry *entryVFOWidgets, cal
 	result.setupEntryWidgets()
 	result.setupCallinfoWidgets()
 	result.applyStyle()
+	result.setMessageVisible(false)
 
 	return result
 }
@@ -82,6 +89,10 @@ func (a *vfoArea) setupInfoContainer() {
 	layout.SetContentsMargins(0, 0, 0, 0)
 	layout.AddWidget(a.callinfo.dxccLabel.QWidget)
 	layout.AddWidget(a.callinfo.userInfoLabel.QWidget)
+
+	a.infoStack = qtlib.NewQStackedWidget2()
+	a.infoStack.AddWidget(a.infoContainer)
+	a.infoStack.AddWidget(a.entry.messageLabel.QWidget)
 }
 
 func (a *vfoArea) setupEntryWidgets() {
@@ -93,6 +104,7 @@ func (a *vfoArea) setupEntryWidgets() {
 	a.entry.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
 	a.entry.txIndicator.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
 	setFixedBoldTextWidth(a.entry.txIndicator.QWidget, txIndicatorWidthSample, RoundedLabelPadding)
+	setFixedSampleHeight(a.entry.txIndicator, "<b>"+txIndicatorWidthSample+"</b>")
 	retainSizeWhenHidden(a.entry.txIndicator.QWidget)
 
 	a.entry.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "FrequencyLabel"))
@@ -110,23 +122,29 @@ func (a *vfoArea) setupEntryWidgets() {
 	a.entry.callsign.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "CallsignEntry"))
 	a.entry.callsign.SetStyleSheet(EntryFieldStyle)
 	setFixedTextWidth(a.entry.callsign.QWidget, callsignFieldWidthSample, exchangeFieldPadding)
+
+	a.entry.messageLabel.SetStyleSheet(BoldSectionStyle)
 }
 
 func (a *vfoArea) setupCallinfoWidgets() {
 	a.callinfo.callsignLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "predictedBestMatch"))
 	a.callinfo.callsignLabel.SetTextFormat(qtlib.RichText)
+	setFixedSampleHeight(a.callinfo.callsignLabel, richLineHeightSample)
 
 	a.callinfo.valueLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "predictedValue"))
 	a.callinfo.valueLabel.SetTextFormat(qtlib.RichText)
+	setFixedSampleHeight(a.callinfo.valueLabel, richLineHeightSample)
 
 	a.callinfo.qtcStatusLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "qtcStatus"))
 	a.callinfo.qtcStatusLabel.SetTextFormat(qtlib.RichText)
 	a.callinfo.qtcStatusLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
+	setFixedSampleHeight(a.callinfo.qtcStatusLabel, richLineHeightSample)
 
 	a.callinfo.supercheckLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "supercheckLabel"))
 	a.callinfo.supercheckLabel.SetTextFormat(qtlib.RichText)
 	a.callinfo.supercheckLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
 	a.callinfo.supercheckLabel.SetMinimumWidth(0)
+	setFixedSampleHeight(a.callinfo.supercheckLabel, renderSupercheckHTML([]core.AnnotatedCallsign{{}}))
 
 	a.callinfo.dxccLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "dxccLabel"))
 	a.callinfo.dxccLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
@@ -149,6 +167,9 @@ func (a *vfoArea) setupExchangeFields(fields []core.ExchangeField) {
 		setFixedTextWidth(editField.QWidget, exchangeFieldWidthSample, exchangeFieldPadding)
 	}
 
+	for _, label := range a.callinfo.predictedExchangeLabels {
+		setFixedSampleHeight(label, richLineHeightSample)
+	}
 	if len(a.callinfo.predictedExchangeLabels) > 0 {
 		a.callinfo.predictedExchangeLabels[0].SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "predictedExchange"))
 	}
@@ -188,6 +209,14 @@ func (a *vfoArea) setTXState(ptt bool, parrotActive bool) {
 
 func (a *vfoArea) applyTXIndicatorVisibility() {
 	a.entry.txIndicator.SetVisible(a.txVFO || a.parrotActive)
+}
+
+func (a *vfoArea) setMessageVisible(visible bool) {
+	if visible {
+		a.infoStack.SetCurrentIndex(messagePage)
+		return
+	}
+	a.infoStack.SetCurrentIndex(infoPage)
 }
 
 func (a *vfoArea) setDuplicateMarker(duplicate bool) {
@@ -253,8 +282,7 @@ func (a *vfoArea) addWidgetsToLayout() {
 	a.entryLayout.AddWidget2(a.entry.logButton.QWidget, 2, lastColumn-1)
 	a.entryLayout.AddWidget2(a.entry.clearButton.QWidget, 2, lastColumn)
 	a.entryLayout.AddWidget3(a.callinfo.supercheckLabel.QWidget, 3, 0, 1, -1)
-	a.entryLayout.AddWidget3(a.infoContainer, 4, 0, 1, -1)
-	a.entryLayout.AddWidget3(a.entry.messageLabel.QWidget, 4, 0, 1, -1)
+	a.entryLayout.AddWidget3(a.infoStack.QWidget, 4, 0, 1, -1)
 }
 
 func (a *vfoArea) setFillerColumn(column int) {
@@ -279,6 +307,5 @@ func (a *vfoArea) removeWidgetsFromLayout() {
 	a.entryLayout.RemoveWidget(a.entry.logButton.QWidget)
 	a.entryLayout.RemoveWidget(a.entry.clearButton.QWidget)
 	a.entryLayout.RemoveWidget(a.callinfo.supercheckLabel.QWidget)
-	a.entryLayout.RemoveWidget(a.infoContainer)
-	a.entryLayout.RemoveWidget(a.entry.messageLabel.QWidget)
+	a.entryLayout.RemoveWidget(a.infoStack.QWidget)
 }

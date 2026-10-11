@@ -17,6 +17,9 @@ type entryArea struct {
 	myDataLabel     *qtlib.QLabel
 
 	vfoArea map[core.VFOID]*vfoArea
+
+	vfo2Enabled bool
+	activeVFO   core.VFOID
 }
 
 func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
@@ -58,10 +61,11 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	rootLayout.AddWidget(result.vfoArea[core.VFO2].root)
 
 	result.vfoArea[core.VFO2].setEnabled(false)
+	result.applyActiveVFOStyle()
 
 	entry.setRootWidget(result.root)
-	entry.onVFO2Enabled = result.setVFO2Enabled
-	entry.onSerialClaim = callinfo.SetSerialClaim
+	entry.area = result
+	callinfo.area = result
 
 	return result
 }
@@ -72,15 +76,54 @@ func (a *entryArea) newVFOArea(vfo core.VFOID, widgetPrefix string, vfoName stri
 
 func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, generateSerialExchange bool) {
 	a.removeWidgetsFromLayout()
+
 	a.entry.SetExchangeFields(myExchangeFields, theirExchangeFields, generateSerialExchange)
 	a.callinfo.SetPredictedExchangeFields(theirExchangeFields)
+
+	a.setupMyExchangeFields(myExchangeFields)
+	for _, vfoArea := range a.vfoArea {
+		vfoArea.setupExchangeFields(theirExchangeFields)
+	}
+
 	a.addWidgetsToLayout()
 }
 
+func (a *entryArea) setupMyExchangeFields(fields []core.ExchangeField) {
+	for i, field := range fields {
+		if i >= len(a.entry.myExchangeFields) {
+			break
+		}
+		editField := a.entry.myExchangeFields[i]
+		editField.SetObjectName(*qtlib.NewQAnyStringView3(string(field.Field)))
+		setFixedTextWidth(editField.QWidget, exchangeFieldWidthSample, exchangeFieldPadding)
+	}
+}
+
 func (a *entryArea) setVFO2Enabled(enabled bool) {
+	if a.vfo2Enabled == enabled {
+		return
+	}
+	a.vfo2Enabled = enabled
+
 	a.vfoArea[core.VFO2].setEnabled(enabled)
+	a.applyActiveVFOStyle()
+
 	a.entry.setVFO2Enabled(enabled)
-	a.callinfo.SetVFOEnabled(core.VFO2, enabled)
+}
+
+func (a *entryArea) setActiveVFO(vfo core.VFOID) {
+	a.activeVFO = vfo
+	a.applyActiveVFOStyle()
+}
+
+func (a *entryArea) applyActiveVFOStyle() {
+	for vfo, vfoArea := range a.vfoArea {
+		vfoArea.setActive(a.vfo2Enabled && vfo == a.activeVFO)
+	}
+}
+
+func (a *entryArea) setSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
+	a.callinfo.SetSerialClaim(vfo, serial, committed)
 }
 
 func (a *entryArea) addWidgetsToLayout() {

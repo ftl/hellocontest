@@ -17,7 +17,6 @@ type callinfoVFOWidgets struct {
 	callsignLabel           *qtlib.QLabel
 	valueLabel              *qtlib.QLabel
 	qtcStatusLabel          *qtlib.QLabel
-	infoContainer           *qtlib.QWidget
 	dxccLabel               *qtlib.QLabel
 	userInfoLabel           *qtlib.QLabel
 	supercheckLabel         *qtlib.QLabel
@@ -34,7 +33,8 @@ type callinfoView struct {
 	vfo [core.VFOCount]callinfoVFOWidgets
 
 	qtcsEnabled bool
-	vfo2Enabled bool
+
+	area *entryArea
 
 	serialFieldIndex int
 	serialClaims     [core.VFOCount]serialClaim
@@ -42,44 +42,15 @@ type callinfoView struct {
 	current [core.VFOCount]core.CallinfoFrame
 }
 
-func newCallinfoVFOWidgets(prefix string) callinfoVFOWidgets {
+func newCallinfoVFOWidgets() callinfoVFOWidgets {
 	w := callinfoVFOWidgets{}
 
 	w.callsignLabel = qtlib.NewQLabel2()
-	w.callsignLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "predictedBestMatch"))
-	w.callsignLabel.SetTextFormat(qtlib.RichText)
-
 	w.valueLabel = qtlib.NewQLabel2()
-	w.valueLabel.SetTextFormat(qtlib.RichText)
-	w.valueLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "predictedValue"))
-
 	w.qtcStatusLabel = qtlib.NewQLabel2()
-	w.qtcStatusLabel.SetTextFormat(qtlib.RichText)
-	w.qtcStatusLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "qtcStatus"))
-	w.qtcStatusLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
-
 	w.supercheckLabel = qtlib.NewQLabel2()
-	w.supercheckLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "supercheckLabel"))
-	w.supercheckLabel.SetTextFormat(qtlib.RichText)
-	w.supercheckLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
-	w.supercheckLabel.SetMinimumWidth(0)
-
 	w.dxccLabel = qtlib.NewQLabel2()
-	w.dxccLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "dxccLabel"))
-	w.dxccLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
-	w.dxccLabel.SetMinimumWidth(0)
-
 	w.userInfoLabel = qtlib.NewQLabel2()
-	w.userInfoLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "userInfoLabel"))
-	w.userInfoLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
-	w.userInfoLabel.SetMinimumWidth(0)
-	w.userInfoLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
-
-	w.infoContainer = qtlib.NewQWidget2()
-	infoLayout := qtlib.NewQHBoxLayout(w.infoContainer)
-	infoLayout.SetContentsMargins(0, 0, 0, 0)
-	infoLayout.AddWidget(w.dxccLabel.QWidget)
-	infoLayout.AddWidget(w.userInfoLabel.QWidget)
 
 	return w
 }
@@ -89,11 +60,8 @@ func newCallinfoView() *callinfoView {
 		serialFieldIndex: -1,
 	}
 
-	v.vfo[core.VFO1] = newCallinfoVFOWidgets("vfo1")
-	v.vfo[core.VFO2] = newCallinfoVFOWidgets("vfo2")
-
-	// VFO2 widgets initially hidden
-	v.SetVFOEnabled(core.VFO2, false)
+	v.vfo[core.VFO1] = newCallinfoVFOWidgets()
+	v.vfo[core.VFO2] = newCallinfoVFOWidgets()
 
 	return v
 }
@@ -154,19 +122,8 @@ func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {
 		}
 		w.predictedExchangeLabels = nil
 
-		prefix := "vfo1"
-		if vfo == core.VFO2 {
-			prefix = "vfo2"
-		}
-		for i := range fields {
-			valueLabel := qtlib.NewQLabel2()
-			if i == 0 {
-				valueLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "predictedExchange"))
-			}
-			if vfo == core.VFO2 {
-				valueLabel.SetVisible(v.vfo2Enabled)
-			}
-			w.predictedExchangeLabels = append(w.predictedExchangeLabels, valueLabel)
+		for range fields {
+			w.predictedExchangeLabels = append(w.predictedExchangeLabels, qtlib.NewQLabel2())
 		}
 		v.refreshSerialClaim(vfo)
 	}
@@ -196,16 +153,7 @@ func (v *callinfoView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	if vfo == core.VFO1 {
 		return
 	}
-	v.vfo2Enabled = enabled
-	w := &v.vfo[core.VFO2]
-	w.callsignLabel.SetVisible(enabled)
-	w.valueLabel.SetVisible(enabled)
-	w.qtcStatusLabel.SetVisible(enabled)
-	w.infoContainer.SetVisible(enabled)
-	w.supercheckLabel.SetVisible(enabled)
-	for _, lbl := range w.predictedExchangeLabels {
-		lbl.SetVisible(enabled)
-	}
+	v.area.setVFO2Enabled(enabled)
 }
 
 const markerPrefix = "\U0001F782"

@@ -191,13 +191,6 @@ func (m *EntryView) SetUTC(utc string) {
 	m.Called(utc)
 }
 
-func (m *EntryView) SetMyCall(mycall string) {
-	if !m.active {
-		return
-	}
-	m.Called(mycall)
-}
-
 func (m *EntryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	if !m.active {
 		return

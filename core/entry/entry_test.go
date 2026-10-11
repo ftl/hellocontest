@@ -47,7 +47,6 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.On("SetMyExchange", 1, "599").Once()
 	view.On("SetMyExchange", 2, "001").Once()
 	view.On("SetMyExchange", 3, "").Once()
-	view.On("SetMyCall", "DL0ABC").Once()
 	view.On("SetFrequency", mock.Anything, mock.Anything)
 	view.On("SetCallsign", mock.Anything, mock.Anything)
 	view.On("SetBand", mock.Anything, mock.Anything)

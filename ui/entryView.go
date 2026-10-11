@@ -14,6 +14,9 @@ const (
 	parrot                 = "🦜"
 	txIndicatorText        = "TX"
 	txIndicatorWidthSample = parrot + ": 10m0s"
+
+	exchangeFieldWidthSample = "MMMMMMM"
+	exchangeFieldPadding     = 5
 )
 
 // EntryController controls the entry of QSO data.
@@ -63,7 +66,6 @@ type entryVFOWidgets struct {
 type entryView struct {
 	root *qtlib.QWidget // TODO: remove from here, this is handled by entryArea (root widget containing the grid layout)
 
-	myCallLabel      *qtlib.QLabel
 	myExchangeFields []*qtlib.QLineEdit
 
 	vfo [core.VFOCount]entryVFOWidgets
@@ -93,9 +95,6 @@ type IncrementalTuningController interface {
 
 func newEntryView() *entryView {
 	v := &entryView{}
-
-	// Row 0: myCall label, myExchanges container (cols 2-3, span 2)
-	v.myCallLabel = qtlib.NewQLabel3("DL0ABC")
 
 	v.vfo[core.VFO1] = newEntryVFOWidgets("vfo1", "VFO 1")
 	v.registerVFOWidgets(core.VFO1, &v.vfo[core.VFO1])
@@ -311,10 +310,6 @@ func (v *entryView) SetIncrementalTuningController(controller IncrementalTuningC
 	v.incrementalTuningInput = controller
 }
 
-func (v *entryView) SetMyCall(text string) {
-	v.myCallLabel.SetText(text)
-}
-
 func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	v.vfo[vfo].frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
 }
@@ -484,6 +479,8 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 
 		if isTheirRow {
 			editField.SetStyleSheet(EntryFieldStyle)
+		} else {
+			setFixedTextWidth(editField.QWidget, exchangeFieldWidthSample, exchangeFieldPadding)
 		}
 
 		if vfo == core.VFO2 && !v.vfo2Enabled {

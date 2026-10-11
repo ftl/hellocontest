@@ -1539,17 +1539,6 @@ func TestK5_ParrotTimeLeft_UpdatesTXState(t *testing.T) {
 		AssertTXStateView(core.VFO1, false, false, 5*time.Second)
 }
 
-// L1. StationChanged
-// Pre:  none.
-// Post: stationCallsign = new value; view.SetMyCall.
-
-func TestL1_StationChanged_UpdatesMyCallView(t *testing.T) {
-	NewScenario(t).
-		WithClassicExchange().
-		StationChanged("DL1XYZ").
-		AssertMyCallView("DL1XYZ")
-}
-
 // L2. ContestChanged
 // Pre:  contest definition supplied.
 // Post: exchange fields replaced; Clear runs (active = callsign).

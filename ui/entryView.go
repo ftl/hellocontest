@@ -16,6 +16,7 @@ const (
 	txIndicatorWidthSample = parrot + ": 10m0s"
 
 	exchangeFieldWidthSample = "MMMMMMM"
+	callsignFieldWidthSample = "MMMMMMMMMMMM"
 	exchangeFieldPadding     = 5
 )
 
@@ -43,15 +44,13 @@ type EntryController interface {
 
 type entryVFOWidgets struct {
 	// radio control
-	vfoContainer     *qtlib.QWidget
-	vfoContainerName string
-	vfoLabel         *qtlib.QLabel
-	frequencyLabel   *qtlib.QLabel
-	band             *qtlib.QComboBox
-	mode             *qtlib.QComboBox
-	xit              *qtlib.QCheckBox
-	rit              *qtlib.QCheckBox
-	txIndicator      *qtlib.QLabel
+	vfoLabel       *qtlib.QLabel
+	frequencyLabel *qtlib.QLabel
+	band           *qtlib.QComboBox
+	mode           *qtlib.QComboBox
+	xit            *qtlib.QCheckBox
+	rit            *qtlib.QCheckBox
+	txIndicator    *qtlib.QLabel
 
 	// QSO entry
 	callsign            *qtlib.QLineEdit
@@ -73,13 +72,12 @@ type entryView struct {
 	vfoWorkmode [core.VFOCount]core.Workmode
 	itVisible   [core.VFOCount][2]bool
 	txVFO       core.VFOID
-	activeVFO   core.VFOID
 
 	parrotActive [core.VFOCount]bool
 
-	vfo2Enabled   bool
-	onVFO2Enabled func(bool)                             // callback to centralArea for layout add/remove
-	onSerialClaim func(core.VFOID, core.QSONumber, bool) // callback to the callinfo view
+	vfo2Enabled bool
+
+	area *entryArea
 
 	ignoreInput bool
 	isDuplicate bool
@@ -96,10 +94,10 @@ type IncrementalTuningController interface {
 func newEntryView() *entryView {
 	v := &entryView{}
 
-	v.vfo[core.VFO1] = newEntryVFOWidgets("vfo1", "VFO 1")
+	v.vfo[core.VFO1] = newEntryVFOWidgets("VFO 1")
 	v.registerVFOWidgets(core.VFO1, &v.vfo[core.VFO1])
 
-	v.vfo[core.VFO2] = newEntryVFOWidgets("vfo2", "VFO 2")
+	v.vfo[core.VFO2] = newEntryVFOWidgets("VFO 2")
 	v.registerVFOWidgets(core.VFO2, &v.vfo[core.VFO2])
 
 	v.SetTXVFO(core.VFO1)
@@ -107,63 +105,27 @@ func newEntryView() *entryView {
 	return v
 }
 
-func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
+func newEntryVFOWidgets(vfoName string) entryVFOWidgets {
 	w := entryVFOWidgets{}
 
-	w.vfoContainer = qtlib.NewQWidget2()
-	w.vfoContainerName = prefix + "VFOContainer"
-	w.vfoContainer.SetObjectName(*qtlib.NewQAnyStringView3(w.vfoContainerName))
-	w.vfoContainer.SetAttribute(qtlib.WA_StyledBackground)
-	// w.vfoContainer.SetStyleSheet(fmt.Sprintf("QWidget#%sVFOContainer { background-color: red; }", prefix))
-	vfoContainerLayout := qtlib.NewQHBoxLayout(w.vfoContainer)
 	w.vfoLabel = qtlib.NewQLabel3(vfoName)
-	w.vfoLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "Label"))
-	w.vfoLabel.SetAlignment(qtlib.AlignLeading | qtlib.AlignVCenter)
-	setFixedTextWidth(w.vfoLabel.QWidget, "VFO 2 S&P", RoundedLabelPadding)
-	vfoContainerLayout.AddWidget(w.vfoLabel.QWidget)
-
 	w.txIndicator = qtlib.NewQLabel3(txIndicatorText)
-	w.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "TX"))
-	w.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
-	w.txIndicator.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
-	setFixedBoldTextWidth(w.txIndicator.QWidget, txIndicatorWidthSample, RoundedLabelPadding)
-	retainSizeWhenHidden(w.txIndicator.QWidget)
-	vfoContainerLayout.AddWidget(w.txIndicator.QWidget)
-
 	w.frequencyLabel = qtlib.NewQLabel3("- kHz")
-	w.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "FrequencyLabel"))
-	w.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
-	setFixedTextWidth(w.frequencyLabel.QWidget, "999999.99 kHz", 0)
-	vfoContainerLayout.AddWidget(w.frequencyLabel.QWidget)
 
 	w.band = qtlib.NewQComboBox2()
-	w.band.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "BandCombo"))
 	setupBandCombo(w.band)
-	vfoContainerLayout.AddWidget(w.band.QWidget)
 
 	w.mode = qtlib.NewQComboBox2()
-	w.mode.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "ModeCombo"))
 	setupModeCombo(w.mode)
-	vfoContainerLayout.AddWidget(w.mode.QWidget)
 
 	w.xit = qtlib.NewQCheckBox3("XIT")
 	w.xit.SetFocusPolicy(qtlib.NoFocus)
-	w.xit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "XIT"))
-	w.xit.SetVisible(false)
-	vfoContainerLayout.AddWidget(w.xit.QWidget)
 
 	w.rit = qtlib.NewQCheckBox3("RIT")
 	w.rit.SetFocusPolicy(qtlib.NoFocus)
-	w.rit.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "RIT"))
-	w.rit.SetVisible(false)
-	vfoContainerLayout.AddWidget(w.rit.QWidget)
-
-	vfoContainerLayout.AddStretch()
 
 	w.callsign = qtlib.NewQLineEdit2()
-	w.callsign.SetObjectName(*qtlib.NewQAnyStringView3(prefix + "CallsignEntry"))
 	w.callsign.SetPlaceholderText("Call")
-	w.callsign.SetStyleSheet(EntryFieldStyle)
 
 	w.logButton = qtlib.NewQPushButton3("Log")
 	w.logButton.SetFocusPolicy(qtlib.NoFocus)
@@ -315,10 +277,7 @@ func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 }
 
 func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
-	if v.onSerialClaim == nil {
-		return
-	}
-	v.onSerialClaim(vfo, serial, committed)
+	v.area.setSerialClaim(vfo, serial, committed)
 }
 
 func (v *entryView) SetCallsign(vfo core.VFOID, text string) {
@@ -469,24 +428,8 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 	*editFields = make([]*qtlib.QLineEdit, len(fields))
 	for i, field := range fields {
 		editField := qtlib.NewQLineEdit2()
-		objName := string(field.Field)
-		if vfo == core.VFO2 {
-			objName = "vfo2_" + objName
-		}
-		editField.SetObjectName(*qtlib.NewQAnyStringView3(objName))
 		editField.SetPlaceholderText(field.Short)
 		editField.SetEnabled(!field.ReadOnly)
-
-		if isTheirRow {
-			editField.SetStyleSheet(EntryFieldStyle)
-		} else {
-			setFixedTextWidth(editField.QWidget, exchangeFieldWidthSample, exchangeFieldPadding)
-		}
-
-		if vfo == core.VFO2 && !v.vfo2Enabled {
-			editField.SetVisible(false)
-			editField.SetEnabled(false)
-		}
 
 		v.connectEditSignals(editField, vfo, core.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
@@ -530,23 +473,7 @@ func (v *entryView) updateVFOLabel(vfo core.VFOID) {
 }
 
 func (v *entryView) SetActiveVFO(vfo core.VFOID) {
-	v.activeVFO = vfo
-	v.applyActiveVFOStyle()
-}
-
-func (v *entryView) applyActiveVFOStyle() {
-	// TODO: use a property with a selective style
-	for id := core.VFOID(0); id < core.VFOCount; id++ {
-		widgets := v.vfo[id]
-		if widgets.vfoContainer == nil {
-			continue
-		}
-		style := VFOInactiveStyle
-		if v.vfo2Enabled && id == v.activeVFO {
-			style = fmt.Sprintf(VFOActiveStyle, widgets.vfoContainerName)
-		}
-		widgets.vfoContainer.SetStyleSheet(style)
-	}
+	v.area.setActiveVFO(vfo)
 }
 
 func (v *entryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
@@ -669,9 +596,6 @@ func (v *entryView) ClearMessage(vfo core.VFOID) {
 	widget.SetText("")
 }
 
-// SetVFOEnabled toggles the visibility/enabled state of a VFO's row of widgets.
-// VFO1 is always enabled. VFO2 widgets are shown/hidden as a group.
-// If onVFO2Enabled is set, it delegates to centralArea for layout add/remove first.
 func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	if vfo == core.VFO1 {
 		return
@@ -679,38 +603,12 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	if v.vfo2Enabled == enabled {
 		return
 	}
-	if v.onVFO2Enabled != nil {
-		v.onVFO2Enabled(enabled)
-		return
-	}
-	v.setVFO2Enabled(enabled)
+	v.area.setVFO2Enabled(enabled)
 }
 
 func (v *entryView) setVFO2Enabled(enabled bool) {
 	v.vfo2Enabled = enabled
-	widgets := v.vfo[core.VFO2]
-	if widgets.vfoContainer != nil {
-		widgets.vfoContainer.SetVisible(enabled)
-	}
 	v.applyIncrementalTuningVisibility(core.VFO2, core.XIT)
 	v.applyIncrementalTuningVisibility(core.VFO2, core.RIT)
 	v.applyTXIndicatorVisibility()
-	v.applyActiveVFOStyle()
-	if widgets.callsign != nil {
-		widgets.callsign.SetVisible(enabled)
-		widgets.callsign.SetEnabled(enabled)
-	}
-	for _, f := range widgets.theirExchangeFields {
-		f.SetVisible(enabled)
-		f.SetEnabled(enabled)
-	}
-	if widgets.logButton != nil {
-		widgets.logButton.SetVisible(enabled)
-	}
-	if widgets.clearButton != nil {
-		widgets.clearButton.SetVisible(enabled)
-	}
-	if widgets.messageLabel != nil {
-		widgets.messageLabel.SetVisible(enabled)
-	}
 }

@@ -38,10 +38,12 @@ func setupModeCombo(combo *qtlib.QComboBox) {
 }
 
 func setFixedTextWidth(widget *qtlib.QWidget, sample string, padding int) {
+	widget.EnsurePolished()
 	widget.SetFixedWidth(widget.FontMetrics().HorizontalAdvance(sample) + 2*padding)
 }
 
 func setFixedBoldTextWidth(widget *qtlib.QWidget, sample string, padding int) {
+	widget.EnsurePolished()
 	font := qtlib.NewQFont5(widget.Font())
 	font.SetBold(true)
 	widget.SetFixedWidth(qtlib.NewQFontMetrics(font).HorizontalAdvance(sample) + 2*padding)

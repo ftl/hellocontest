@@ -213,39 +213,43 @@ func (a *application) createMenu() {
 }
 
 func (a *application) createCentralWidget() {
-	// setup entry view
+	// create the views
 	a.entryView = newEntryView()
 	a.entryView.SetEntryController(a.controller.Entry)
 	a.entryView.SetIncrementalTuningController(a.controller)
+
+	a.callinfoView = newCallinfoView()
+
+	a.esmView = newESMView()
+	a.esmView.SetESMController(a.controller.Entry)
+
+	a.workmodeView = newWorkmodeView()
+	a.workmodeView.SetWorkmodeController(a.controller.Workmode)
+
+	a.keyerView = newKeyerView(a.controller)
+	a.keyerView.SetKeyerController(a.controller.Keyer)
+
+	// assemble the central area: the views need their area before the core pushes any state
+	a.centralArea = newCentralArea(a.entryView, a.callinfoView, a.esmView, a.workmodeView, a.keyerView)
+
+	// connect the views to the core
 	a.controller.Entry.SetView(a.entryView)
 	a.controller.Entry.Notify(a.entryView)
 	for _, v := range a.controller.VFOs {
 		v.Notify(a.entryView)
 	}
 
-	// setup callinfo view
-	a.callinfoView = newCallinfoView()
 	a.callinfoView.SetQTCsEnabled(a.controller.QTCList.QTCsEnabled())
 	a.controller.Callinfo.SetView(a.callinfoView)
 	a.controller.QTCList.Notify(a.callinfoView)
 
-	// setup remaining center parts
-	a.esmView = newESMView()
-	a.esmView.SetESMController(a.controller.Entry)
 	a.controller.Entry.SetESMView(a.esmView)
-
-	a.workmodeView = newWorkmodeView()
-	a.workmodeView.SetWorkmodeController(a.controller.Workmode)
 	a.controller.Workmode.SetView(a.workmodeView)
 
-	a.keyerView = newKeyerView(a.controller)
-	a.keyerView.SetKeyerController(a.controller.Keyer)
 	// TODO: replace with explicit type
 	keyerButtons := &keyerButtonAdapter{keyerView: a.keyerView, messenger: a.entryView}
 	a.controller.Keyer.SetView(keyerButtons)
 	a.controller.Parrot.SetView(a.keyerView)
-
-	a.centralArea = newCentralArea(a.entryView, a.callinfoView, a.esmView, a.workmodeView, a.keyerView)
 
 	a.window.SetCentralWidget(a.centralArea.root)
 }

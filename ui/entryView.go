@@ -11,13 +11,8 @@ import (
 )
 
 const (
-	parrot                 = "🦜"
-	txIndicatorText        = "TX"
-	txIndicatorWidthSample = parrot + ": 10m0s"
-
-	exchangeFieldWidthSample = "MMMMMMM"
-	callsignFieldWidthSample = "MMMMMMMMMMMM"
-	exchangeFieldPadding     = 5
+	parrot          = "🦜"
+	txIndicatorText = "TX"
 )
 
 // EntryController controls the entry of QSO data.
@@ -511,7 +506,9 @@ func (v *entryView) ShowMessage(vfo core.VFOID, args ...any) {
 	if widget == nil {
 		return
 	}
-	widget.SetText(fmt.Sprint(args...))
+	text := fmt.Sprint(args...)
+	widget.SetText(text)
+	v.area.setMessageVisible(vfo, text != "")
 }
 
 func (v *entryView) ClearMessage(vfo core.VFOID) {
@@ -520,6 +517,7 @@ func (v *entryView) ClearMessage(vfo core.VFOID) {
 		return
 	}
 	widget.SetText("")
+	v.area.setMessageVisible(vfo, false)
 }
 
 func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {

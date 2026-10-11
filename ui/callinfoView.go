@@ -156,7 +156,10 @@ func (v *callinfoView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	v.area.setVFO2Enabled(enabled)
 }
 
-const markerPrefix = "\U0001F782"
+const (
+	markerPrefix         = "\U0001F782"
+	supercheckSpacerCell = "<td>&nbsp;&nbsp;&nbsp;</td>"
+)
 
 func renderCallsignOnFrequencyHTML(cs core.AnnotatedCallsign, markerOnFrequency string) string {
 	callsign := renderAnnotatedCallsignHTML(cs)
@@ -235,7 +238,7 @@ func renderSupercheckHTML(matches []core.AnnotatedCallsign) string {
 
 		entries = append(entries, entry)
 	}
-	return fmt.Sprintf(`<table border="0" cellspacing="10" cellpadding="0"><tr>%s</tr></table>`, strings.Join(entries, "  "))
+	return fmt.Sprintf(`<table border="0" cellspacing="0" cellpadding="0"><tr>%s</tr></table>`, strings.Join(entries, supercheckSpacerCell))
 }
 
 func renderValue(points int, multis int, value int) string {

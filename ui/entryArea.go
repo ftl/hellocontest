@@ -149,6 +149,10 @@ func (a *entryArea) setEditingMarker(vfo core.VFOID, editing bool) {
 	a.vfoArea[vfo].setEditingMarker(editing)
 }
 
+func (a *entryArea) setMessageVisible(vfo core.VFOID, visible bool) {
+	a.vfoArea[vfo].setMessageVisible(visible)
+}
+
 func (a *entryArea) setSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
 	a.callinfo.SetSerialClaim(vfo, serial, committed)
 }

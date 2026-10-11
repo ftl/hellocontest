@@ -27,6 +27,12 @@ const (
 
 	RoundedLabelPadding = 10
 
+	txIndicatorWidthSample   = parrot + ": 10m0s"
+	richLineHeightSample     = "<b><i>M</i></b>"
+	exchangeFieldWidthSample = "MMMMMMM"
+	callsignFieldWidthSample = "MMMMMMMMMMMM"
+	exchangeFieldPadding     = 5
+
 	QTCPhaseActiveStyle   = "font-weight: bold; color: #1a65b1;"
 	QTCPhaseInactiveStyle = "font-weight: bold;"
 	QTCFieldErrorStyle    = "color: #b00020; font-weight: bold;"

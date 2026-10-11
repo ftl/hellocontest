@@ -49,6 +49,15 @@ func setFixedBoldTextWidth(widget *qtlib.QWidget, sample string, padding int) {
 	widget.SetFixedWidth(qtlib.NewQFontMetrics(font).HorizontalAdvance(sample) + 2*padding)
 }
 
+func setFixedSampleHeight(label *qtlib.QLabel, sample string) {
+	label.EnsurePolished()
+	text := label.Text()
+	label.SetText(sample)
+	height := label.SizeHint().Height()
+	label.SetText(text)
+	label.SetFixedHeight(height)
+}
+
 func retainSizeWhenHidden(widget *qtlib.QWidget) {
 	sizePolicy := widget.SizePolicy()
 	sizePolicy.SetRetainSizeWhenHidden(true)

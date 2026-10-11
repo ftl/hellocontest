@@ -18,6 +18,7 @@ type vfoArea struct {
 	callinfo *callinfoVFOWidgets
 
 	root        *qtlib.QWidget
+	rootName    string
 	entryLayout *qtlib.QGridLayout
 
 	vfoContainer     *qtlib.QWidget
@@ -26,6 +27,9 @@ type vfoArea struct {
 
 	txVFO        bool
 	parrotActive bool
+	active       bool
+	isDuplicate  bool
+	isEditing    bool
 }
 
 func newVFOArea(vfo core.VFOID, widgetPrefix string, vfoName string, entry *entryVFOWidgets, callinfo *callinfoVFOWidgets) *vfoArea {
@@ -37,18 +41,20 @@ func newVFOArea(vfo core.VFOID, widgetPrefix string, vfoName string, entry *entr
 		callinfo:     callinfo,
 	}
 
+	result.rootName = widgetPrefix + "VFOArea"
 	result.root = qtlib.NewQWidget2()
-	result.root.SetObjectName(*qtlib.NewQAnyStringView3(widgetPrefix + "VFOArea"))
+	result.root.SetObjectName(*qtlib.NewQAnyStringView3(result.rootName))
 	result.root.SetAttribute(qtlib.WA_StyledBackground)
 
 	result.entryLayout = qtlib.NewQGridLayout(result.root)
-	result.entryLayout.SetContentsMargins(0, 0, 0, 0)
+	result.entryLayout.SetContentsMargins(VFOAreaBorderWidth, VFOAreaBorderWidth, VFOAreaBorderWidth, VFOAreaBorderWidth)
 	result.entryLayout.SetSpacing(5)
 
 	result.setupVFOContainer()
 	result.setupInfoContainer()
 	result.setupEntryWidgets()
 	result.setupCallinfoWidgets()
+	result.applyStyle()
 
 	return result
 }
@@ -186,13 +192,49 @@ func (a *vfoArea) applyTXIndicatorVisibility() {
 	a.entry.txIndicator.SetVisible(a.txVFO || a.parrotActive)
 }
 
+func (a *vfoArea) setDuplicateMarker(duplicate bool) {
+	a.isDuplicate = duplicate
+	a.applyStyle()
+}
+
+func (a *vfoArea) setEditingMarker(editing bool) {
+	a.isEditing = editing
+	a.applyStyle()
+}
+
 func (a *vfoArea) setActive(active bool) {
+	a.active = active
+	a.applyStyle()
+}
+
+func (a *vfoArea) applyStyle() {
 	// TODO: use a property with a selective style
-	style := VFOInactiveStyle
-	if active {
-		style = fmt.Sprintf(VFOActiveStyle, a.vfoContainerName)
+	a.root.SetStyleSheet(fmt.Sprintf(a.rootStyle(), a.rootName))
+	a.vfoContainer.SetStyleSheet(fmt.Sprintf(a.vfoContainerStyle(), a.vfoContainerName))
+}
+
+func (a *vfoArea) rootStyle() string {
+	switch {
+	case a.isDuplicate:
+		return VFOAreaDuplicateStyle
+	case a.isEditing:
+		return VFOAreaEditingStyle
+	default:
+		return VFOAreaNormalStyle
 	}
-	a.vfoContainer.SetStyleSheet(style)
+}
+
+func (a *vfoArea) vfoContainerStyle() string {
+	switch {
+	case a.isDuplicate:
+		return VFOContainerDuplicateStyle
+	case a.isEditing:
+		return VFOContainerEditingStyle
+	case a.active:
+		return VFOContainerActiveStyle
+	default:
+		return VFOContainerInactiveStyle
+	}
 }
 
 func (a *vfoArea) addWidgetsToLayout() {

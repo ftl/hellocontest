@@ -63,8 +63,6 @@ type entryVFOWidgets struct {
 
 // entryView handles interaction and content related to core/entry. It owns all related widgets.
 type entryView struct {
-	root *qtlib.QWidget // TODO: remove from here, this is handled by entryArea (root widget containing the grid layout)
-
 	myExchangeFields []*qtlib.QLineEdit
 
 	vfo [core.VFOCount]entryVFOWidgets
@@ -74,8 +72,6 @@ type entryView struct {
 	area *entryArea
 
 	ignoreInput bool
-	isDuplicate bool
-	isEditing   bool
 
 	controller             EntryController
 	incrementalTuningInput IncrementalTuningController
@@ -128,13 +124,6 @@ func newEntryVFOWidgets(vfoName string) entryVFOWidgets {
 	w.messageLabel = qtlib.NewQLabel3("")
 
 	return w
-}
-
-// setRootWidgets sets the widget that is used to show the duplicate and editing marks
-func (v *entryView) setRootWidget(root *qtlib.QWidget) {
-	v.root = root
-	// TDDO: remove when entryArea is used
-	v.root.SetObjectName(*qtlib.NewQAnyStringView3("entryArea"))
 }
 
 func (v *entryView) registerVFOWidgets(vfo core.VFOID, widgets *entryVFOWidgets) {
@@ -510,37 +499,11 @@ func (v *entryView) fieldToEntry(vfo core.VFOID, field core.EntryField) *qtlib.Q
 }
 
 func (v *entryView) SetDuplicateMarker(vfo core.VFOID, duplicate bool) {
-	// TODO step 6 follow-up: per-VFO duplicate marker. For now, only VFO1 drives the root style.
-	if vfo != core.VFO1 {
-		return
-	}
-	v.isDuplicate = duplicate
-	v.updateMarkerStyle()
+	v.area.setDuplicateMarker(vfo, duplicate)
 }
 
 func (v *entryView) SetEditingMarker(vfo core.VFOID, editing bool) {
-	if vfo != core.VFO1 {
-		return
-	}
-	v.isEditing = editing
-	v.updateMarkerStyle()
-}
-
-func (v *entryView) updateMarkerStyle() {
-	if v.root == nil {
-		return
-	}
-
-	switch {
-	case v.isDuplicate && v.isEditing:
-		v.root.SetStyleSheet(EntryDuplicateStyle)
-	case v.isDuplicate:
-		v.root.SetStyleSheet(EntryDuplicateStyle)
-	case v.isEditing:
-		v.root.SetStyleSheet(EntryEditingStyle)
-	default:
-		v.root.SetStyleSheet(EntryNormalStyle)
-	}
+	v.area.setEditingMarker(vfo, editing)
 }
 
 func (v *entryView) ShowMessage(vfo core.VFOID, args ...any) {

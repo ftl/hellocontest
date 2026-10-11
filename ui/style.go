@@ -13,17 +13,14 @@ const (
 	EntryAreaStyle           = "QWidget#entryArea { background-color: palette(window); }"
 	EntryFieldStyle          = "QLineEdit { font-size: 24pt; font-family: monospace; }"
 	TXIndicatorActiveStyle   = "QLabel { padding-left: 5px; padding-right: 5px; background-color: red; color: white; border: 1px solid white; border-radius: 10px; font-weight: bold; }"
-	TXIndicatorInactiveStyle = "QLabel { padding-left: 5px; padding-right: 5px; color: palette(text); border: 1px solid palette(text); border-radius: 10px; }"
+	TXIndicatorInactiveStyle = "QLabel { padding-left: 5px; padding-right: 5px; color: %[1]s; border: 1px solid %[1]s; border-radius: 10px; }"
 
 	VFOAreaNormalStyle    = "QWidget#%s { border: 4px solid transparent; }"
 	VFOAreaDuplicateStyle = "QWidget#%s { border: 4px solid red; }"
 	VFOAreaEditingStyle   = "QWidget#%s { border: 4px solid palette(accent); }"
 	VFOAreaBorderWidth    = 4
 
-	VFOContainerInactiveStyle  = "QWidget#%s { background-color: palette(window); }"
-	VFOContainerActiveStyle    = "QWidget#%s { background-color: palette(highlight); } QLabel { color: palette(highlighted-text); }"
-	VFOContainerDuplicateStyle = "QWidget#%s { background-color: red; } QLabel { color: white; }"
-	VFOContainerEditingStyle   = "QWidget#%s { background-color: palette(accent); } QLabel { color: palette(highlighted-text); }"
+	VFOContainerStyle = "QWidget#%s { background-color: %s; } QLabel { color: %s; }"
 
 	RoundedLabelPadding = 10
 
@@ -39,6 +36,18 @@ const (
 
 	BoldSectionStyle = "font-weight: bold;"
 	MutedTextStyle   = "color: palette(mid);"
+)
+
+type vfoContainerColors struct {
+	background string
+	text       string
+}
+
+var (
+	vfoContainerInactive  = vfoContainerColors{"palette(window)", "palette(text)"}
+	vfoContainerActive    = vfoContainerColors{"palette(highlight)", "palette(highlighted-text)"}
+	vfoContainerDuplicate = vfoContainerColors{"red", "white"}
+	vfoContainerEditing   = vfoContainerColors{"palette(accent)", "palette(highlighted-text)"}
 )
 
 // Band RGBs transcribed from ui/style/contest.css. Do not change without

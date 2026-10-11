@@ -70,12 +70,6 @@ type entryView struct {
 	vfo [core.VFOCount]entryVFOWidgets
 
 	vfoWorkmode [core.VFOCount]core.Workmode
-	itVisible   [core.VFOCount][2]bool
-	txVFO       core.VFOID
-
-	parrotActive [core.VFOCount]bool
-
-	vfo2Enabled bool
 
 	area *entryArea
 
@@ -99,8 +93,6 @@ func newEntryView() *entryView {
 
 	v.vfo[core.VFO2] = newEntryVFOWidgets("VFO 2")
 	v.registerVFOWidgets(core.VFO2, &v.vfo[core.VFO2])
-
-	v.SetTXVFO(core.VFO1)
 
 	return v
 }
@@ -319,15 +311,15 @@ func (v *entryView) SetMode(vfo core.VFOID, text string) {
 	}
 }
 
-func (v *entryView) incrementalTuningWidget(vfo core.VFOID, kind core.IncrementalTuningKind) *qtlib.QCheckBox {
+func incrementalTuningWidget(widgets *entryVFOWidgets, kind core.IncrementalTuningKind) *qtlib.QCheckBox {
 	if kind == core.RIT {
-		return v.vfo[vfo].rit
+		return widgets.rit
 	}
-	return v.vfo[vfo].xit
+	return widgets.xit
 }
 
 func (v *entryView) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
-	widget := v.incrementalTuningWidget(vfo, kind)
+	widget := incrementalTuningWidget(&v.vfo[vfo], kind)
 	if widget == nil {
 		return
 	}
@@ -338,7 +330,7 @@ func (v *entryView) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.
 }
 
 func (v *entryView) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
-	widget := v.incrementalTuningWidget(vfo, kind)
+	widget := incrementalTuningWidget(&v.vfo[vfo], kind)
 	if widget == nil {
 		return
 	}
@@ -351,17 +343,7 @@ func (v *entryView) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.Increm
 }
 
 func (v *entryView) VFOIncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
-	v.itVisible[vfo][kind] = visible
-	v.applyIncrementalTuningVisibility(vfo, kind)
-}
-
-func (v *entryView) applyIncrementalTuningVisibility(vfo core.VFOID, kind core.IncrementalTuningKind) {
-	widget := v.incrementalTuningWidget(vfo, kind)
-	if widget == nil {
-		return
-	}
-	vfoEnabled := vfo == core.VFO1 || v.vfo2Enabled
-	widget.SetVisible(v.itVisible[vfo][kind] && vfoEnabled)
+	v.area.setIncrementalTuningVisible(vfo, kind, visible)
 }
 
 func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
@@ -370,9 +352,6 @@ func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parr
 		return
 	}
 
-	v.parrotActive[vfo] = parrotActive
-	v.applyTXIndicatorVisibility()
-
 	text := txIndicatorText
 	if parrotActive {
 		text = parrot
@@ -380,14 +359,9 @@ func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parr
 			text += fmt.Sprintf(": %v", parrotTimeLeft)
 		}
 	}
-
-	// TODO: use a property with a selective style
-	if ptt {
-		widget.SetStyleSheet(TXIndicatorActiveStyle)
-	} else {
-		widget.SetStyleSheet(TXIndicatorInactiveStyle)
-	}
 	widget.SetText(text)
+
+	v.area.setTXState(vfo, ptt, parrotActive)
 }
 
 func (v *entryView) SetMyExchange(index int, text string) {
@@ -442,18 +416,7 @@ func (v *entryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
 }
 
 func (v *entryView) SetTXVFO(vfo core.VFOID) {
-	v.txVFO = vfo
-	v.applyTXIndicatorVisibility()
-}
-
-func (v *entryView) applyTXIndicatorVisibility() {
-	for id := core.VFOID(0); id < core.VFOCount; id++ {
-		widget := v.vfo[id].txIndicator
-		if widget == nil {
-			continue
-		}
-		widget.SetVisible((v.vfo2Enabled && id == v.txVFO) || v.parrotActive[id])
-	}
+	v.area.setTXVFO(vfo)
 }
 
 func (v *entryView) updateVFOLabel(vfo core.VFOID) {
@@ -600,15 +563,5 @@ func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
 	if vfo == core.VFO1 {
 		return
 	}
-	if v.vfo2Enabled == enabled {
-		return
-	}
 	v.area.setVFO2Enabled(enabled)
-}
-
-func (v *entryView) setVFO2Enabled(enabled bool) {
-	v.vfo2Enabled = enabled
-	v.applyIncrementalTuningVisibility(core.VFO2, core.XIT)
-	v.applyIncrementalTuningVisibility(core.VFO2, core.RIT)
-	v.applyTXIndicatorVisibility()
 }

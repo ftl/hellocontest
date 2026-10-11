@@ -20,6 +20,7 @@ type entryArea struct {
 
 	vfo2Enabled bool
 	activeVFO   core.VFOID
+	txVFO       core.VFOID
 }
 
 func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
@@ -62,6 +63,7 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 
 	result.vfoArea[core.VFO2].setEnabled(false)
 	result.applyActiveVFOStyle()
+	result.applyTXIndicatorVisibility()
 
 	entry.setRootWidget(result.root)
 	entry.area = result
@@ -107,8 +109,7 @@ func (a *entryArea) setVFO2Enabled(enabled bool) {
 
 	a.vfoArea[core.VFO2].setEnabled(enabled)
 	a.applyActiveVFOStyle()
-
-	a.entry.setVFO2Enabled(enabled)
+	a.applyTXIndicatorVisibility()
 }
 
 func (a *entryArea) setActiveVFO(vfo core.VFOID) {
@@ -120,6 +121,25 @@ func (a *entryArea) applyActiveVFOStyle() {
 	for vfo, vfoArea := range a.vfoArea {
 		vfoArea.setActive(a.vfo2Enabled && vfo == a.activeVFO)
 	}
+}
+
+func (a *entryArea) setTXVFO(vfo core.VFOID) {
+	a.txVFO = vfo
+	a.applyTXIndicatorVisibility()
+}
+
+func (a *entryArea) applyTXIndicatorVisibility() {
+	for vfo, vfoArea := range a.vfoArea {
+		vfoArea.setTXVFO(a.vfo2Enabled && vfo == a.txVFO)
+	}
+}
+
+func (a *entryArea) setTXState(vfo core.VFOID, ptt bool, parrotActive bool) {
+	a.vfoArea[vfo].setTXState(ptt, parrotActive)
+}
+
+func (a *entryArea) setIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+	a.vfoArea[vfo].setIncrementalTuningVisible(kind, visible)
 }
 
 func (a *entryArea) setSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {

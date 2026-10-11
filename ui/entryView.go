@@ -39,7 +39,7 @@ type EntryController interface {
 }
 
 type entryVFOWidgets struct {
-	// radio
+	// radio control
 	vfoContainer     *qtlib.QWidget
 	vfoContainerName string
 	vfoLabel         *qtlib.QLabel
@@ -50,7 +50,7 @@ type entryVFOWidgets struct {
 	rit              *qtlib.QCheckBox
 	txIndicator      *qtlib.QLabel
 
-	// QSO
+	// QSO entry
 	callsign            *qtlib.QLineEdit
 	theirExchangeFields []*qtlib.QLineEdit
 	logButton           *qtlib.QPushButton
@@ -59,8 +59,9 @@ type entryVFOWidgets struct {
 	messageLabel *qtlib.QLabel
 }
 
+// entryView handles interaction and content related to core/entry. It owns all related widgets.
 type entryView struct {
-	root *qtlib.QWidget // root widget containing the grid layout
+	root *qtlib.QWidget // TODO: remove from here, this is handled by entryArea (root widget containing the grid layout)
 
 	myCallLabel      *qtlib.QLabel
 	myExchangeFields []*qtlib.QLineEdit
@@ -179,7 +180,8 @@ func newEntryVFOWidgets(prefix string, vfoName string) entryVFOWidgets {
 // setRootWidgets sets the widget that is used to show the duplicate and editing marks
 func (v *entryView) setRootWidget(root *qtlib.QWidget) {
 	v.root = root
-	v.root.SetObjectName(*qtlib.NewQAnyStringView3("entryWidget"))
+	// TDDO: remove when entryArea is used
+	v.root.SetObjectName(*qtlib.NewQAnyStringView3("entryArea"))
 }
 
 func (v *entryView) registerVFOWidgets(vfo core.VFOID, widgets *entryVFOWidgets) {

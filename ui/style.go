@@ -10,14 +10,20 @@ import (
 // be duplicated across the ui/qt/ package.
 const (
 	CentralAreaStyle         = "QWidget#centralArea { background-color: palette(alternate-base); }"
-	EntryDuplicateStyle      = "QWidget#entryArea { background-color: palette(window); border: 4px solid red; }"
-	EntryEditingStyle        = "QWidget#entryArea { background-color: palette(window); border: 4px solid palette(accent); }"
-	EntryNormalStyle         = "QWidget#entryArea { background-color: palette(window); }"
+	EntryAreaStyle           = "QWidget#entryArea { background-color: palette(window); }"
 	EntryFieldStyle          = "QLineEdit { font-size: 24pt; font-family: monospace; }"
 	TXIndicatorActiveStyle   = "QLabel { padding-left: 5px; padding-right: 5px; background-color: red; color: white; border: 1px solid white; border-radius: 10px; font-weight: bold; }"
 	TXIndicatorInactiveStyle = "QLabel { padding-left: 5px; padding-right: 5px; color: palette(text); border: 1px solid palette(text); border-radius: 10px; }"
-	VFOActiveStyle           = "QWidget#%s { background-color: palette(highlight); } QLabel { color: palette(highlighted-text); }"
-	VFOInactiveStyle         = ""
+
+	VFOAreaNormalStyle    = "QWidget#%s { border: 4px solid transparent; }"
+	VFOAreaDuplicateStyle = "QWidget#%s { border: 4px solid red; }"
+	VFOAreaEditingStyle   = "QWidget#%s { border: 4px solid palette(accent); }"
+	VFOAreaBorderWidth    = 4
+
+	VFOContainerInactiveStyle  = "QWidget#%s { background-color: palette(window); }"
+	VFOContainerActiveStyle    = "QWidget#%s { background-color: palette(highlight); } QLabel { color: palette(highlighted-text); }"
+	VFOContainerDuplicateStyle = "QWidget#%s { background-color: red; } QLabel { color: white; }"
+	VFOContainerEditingStyle   = "QWidget#%s { background-color: palette(accent); } QLabel { color: palette(highlighted-text); }"
 
 	RoundedLabelPadding = 10
 

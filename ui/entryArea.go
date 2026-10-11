@@ -37,7 +37,7 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	result.root = entryFrame.QWidget
 	result.root.SetObjectName(*qtlib.NewQAnyStringView3("entryArea"))
 	result.root.SetAttribute(qtlib.WA_StyledBackground)
-	result.root.SetStyleSheet(CentralAreaStyle) // TODO: do we need a separate style?
+	result.root.SetStyleSheet(EntryAreaStyle)
 
 	rootLayout := qtlib.NewQVBoxLayout(result.root)
 	rootLayout.SetContentsMargins(5, 5, 5, 5)
@@ -65,7 +65,6 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	result.applyActiveVFOStyle()
 	result.applyTXIndicatorVisibility()
 
-	entry.setRootWidget(result.root)
 	entry.area = result
 	callinfo.area = result
 
@@ -140,6 +139,14 @@ func (a *entryArea) setTXState(vfo core.VFOID, ptt bool, parrotActive bool) {
 
 func (a *entryArea) setIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
 	a.vfoArea[vfo].setIncrementalTuningVisible(kind, visible)
+}
+
+func (a *entryArea) setDuplicateMarker(vfo core.VFOID, duplicate bool) {
+	a.vfoArea[vfo].setDuplicateMarker(duplicate)
+}
+
+func (a *entryArea) setEditingMarker(vfo core.VFOID, editing bool) {
+	a.vfoArea[vfo].setEditingMarker(editing)
 }
 
 func (a *entryArea) setSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {

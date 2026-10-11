@@ -878,7 +878,6 @@ func (v *viewSpy) assertCalledWith(t *testing.T, method string, args ...any) {
 		"expected %s(%v) to be called", method, args)
 }
 
-func (v *viewSpy) SetMyCall(s string)            { v.record("SetMyCall", s) }
 func (v *viewSpy) SetMyExchange(i int, s string) { v.record("SetMyExchange", i, s) }
 func (v *viewSpy) SetFrequency(vfo core.VFOID, f core.Frequency) {
 	v.record("SetFrequency", vfo, f)
@@ -1354,13 +1353,6 @@ func (s *Scenario) AssertVFO2Enabled(enabled bool) *Scenario {
 func (s *Scenario) AssertTXStateView(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetTXState", vfo, ptt, parrotActive, parrotTimeLeft)
-	return s
-}
-
-// AssertMyCallView asserts view.SetMyCall(call) was called.
-func (s *Scenario) AssertMyCallView(call string) *Scenario {
-	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetMyCall", call)
 	return s
 }
 

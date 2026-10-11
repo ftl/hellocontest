@@ -30,12 +30,16 @@ func newVFOArea(vfo core.VFOID, widgetPrefix string, vfoName string, entry *entr
 	result.root = qtlib.NewQWidget2()
 	result.root.SetObjectName(*qtlib.NewQAnyStringView3(widgetPrefix + "VFOArea"))
 	result.root.SetAttribute(qtlib.WA_StyledBackground)
-	result.root.SetStyleSheet(CentralAreaStyle) // TODO: do we need a separate style?
 
-	rootLayout := qtlib.NewQVBoxLayout(result.root)
-	rootLayout.SetContentsMargins(0, 0, 0, 0)
+	result.entryLayout = qtlib.NewQGridLayout(result.root)
+	result.entryLayout.SetContentsMargins(0, 0, 0, 0)
+	result.entryLayout.SetSpacing(5)
 
 	return result
+}
+
+func (a *vfoArea) setEnabled(enabled bool) {
+	a.root.SetVisible(enabled)
 }
 
 func (a *vfoArea) addWidgetsToLayout() {
@@ -49,7 +53,6 @@ func (a *vfoArea) addWidgetsToLayout() {
 	a.entryLayout.AddWidget2(a.callinfo.valueLabel.QWidget, 1, lastColumn-1)
 	a.entryLayout.AddWidget2(a.callinfo.qtcStatusLabel.QWidget, 1, lastColumn)
 	a.entryLayout.AddWidget2(a.entry.callsign.QWidget, 2, 0)
-	// TODO: handle the serial claim here
 	for i := range a.entry.theirExchangeFields {
 		a.entryLayout.AddWidget2(a.entry.theirExchangeFields[i].QWidget, 2, i+1)
 	}
@@ -61,12 +64,7 @@ func (a *vfoArea) addWidgetsToLayout() {
 }
 
 func (a *vfoArea) removeWidgetsFromLayout() {
-	a.entryLayout.RemoveWidget(a.entry.vfoLabel.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.frequencyLabel.QWidget)
 	a.entryLayout.RemoveWidget(a.entry.vfoContainer)
-	a.entryLayout.RemoveWidget(a.entry.rit.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.xit.QWidget)
-	a.entryLayout.RemoveWidget(a.entry.txIndicator.QWidget)
 	a.entryLayout.RemoveWidget(a.callinfo.callsignLabel.QWidget)
 	for i := range a.callinfo.predictedExchangeLabels {
 		a.entryLayout.RemoveWidget(a.callinfo.predictedExchangeLabels[i].QWidget)
@@ -74,7 +72,6 @@ func (a *vfoArea) removeWidgetsFromLayout() {
 	a.entryLayout.RemoveWidget(a.callinfo.valueLabel.QWidget)
 	a.entryLayout.RemoveWidget(a.callinfo.qtcStatusLabel.QWidget)
 	a.entryLayout.RemoveWidget(a.entry.callsign.QWidget)
-	// TODO: handle the serial claim here
 	for i := range a.entry.theirExchangeFields {
 		a.entryLayout.RemoveWidget(a.entry.theirExchangeFields[i].QWidget)
 	}

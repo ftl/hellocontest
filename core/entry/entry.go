@@ -24,7 +24,6 @@ const (
 
 // View represents the visual part of the QSO data entry.
 type View interface {
-	SetMyCall(string)
 	SetMyExchange(int, string)
 
 	SetFrequency(core.VFOID, core.Frequency)
@@ -1294,7 +1293,6 @@ func (c *Controller) Clear() {
 	if c.editing {
 		c.leaveEditMode()
 		c.showInput()
-		c.view.SetMyCall(c.stationCallsign)
 		c.view.SetFrequency(c.focusedVFO, c.selectedFrequency[c.focusedVFO])
 		c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 		c.view.SetDuplicateMarker(c.focusedVFO, false)
@@ -1334,7 +1332,6 @@ func (c *Controller) Clear() {
 	c.updateESM()
 
 	c.showInput()
-	c.view.SetMyCall(c.stationCallsign)
 	c.view.SetFrequency(c.focusedVFO, c.selectedFrequency[c.focusedVFO])
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 	c.view.SetDuplicateMarker(c.focusedVFO, false)
@@ -1437,7 +1434,6 @@ func (c *Controller) FocusedVFO() (string, bool) {
 
 func (c *Controller) StationChanged(station core.Station) {
 	c.stationCallsign = station.Callsign.String()
-	c.view.SetMyCall(c.stationCallsign)
 }
 
 func (c *Controller) ContestChanged(contest core.Contest) {

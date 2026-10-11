@@ -10,7 +10,6 @@ import (
 
 type nullView struct{}
 
-func (n *nullView) SetMyCall(string)                        {}
 func (n *nullView) SetFrequency(core.VFOID, core.Frequency) {}
 func (n *nullView) SetCallsign(core.VFOID, string)          {}
 func (n *nullView) SetBand(vfo core.VFOID, text string)     {}

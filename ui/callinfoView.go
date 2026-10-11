@@ -29,6 +29,7 @@ type serialClaim struct {
 	committed bool
 }
 
+// callinfoView handles interaction and content related to core/callinfo. It owns all related widgets.
 type callinfoView struct {
 	vfo [core.VFOCount]callinfoVFOWidgets
 

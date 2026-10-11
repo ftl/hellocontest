@@ -10,9 +10,9 @@ import (
 // be duplicated across the ui/qt/ package.
 const (
 	CentralAreaStyle         = "QWidget#centralArea { background-color: palette(alternate-base); }"
-	EntryDuplicateStyle      = "QWidget#entryWidget { background-color: palette(window); border: 4px solid red; }"
-	EntryEditingStyle        = "QWidget#entryWidget { background-color: palette(window); border: 4px solid palette(accent); }"
-	EntryNormalStyle         = "QWidget#entryWidget { background-color: palette(window); }"
+	EntryDuplicateStyle      = "QWidget#entryArea { background-color: palette(window); border: 4px solid red; }"
+	EntryEditingStyle        = "QWidget#entryArea { background-color: palette(window); border: 4px solid palette(accent); }"
+	EntryNormalStyle         = "QWidget#entryArea { background-color: palette(window); }"
 	EntryFieldStyle          = "QLineEdit { font-size: 24pt; font-family: monospace; }"
 	TXIndicatorActiveStyle   = "QLabel { padding-left: 5px; padding-right: 5px; background-color: red; color: white; border: 1px solid white; border-radius: 10px; font-weight: bold; }"
 	TXIndicatorInactiveStyle = "QLabel { padding-left: 5px; padding-right: 5px; color: palette(text); border: 1px solid palette(text); border-radius: 10px; }"

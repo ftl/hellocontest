@@ -23,6 +23,9 @@ type vfoArea struct {
 	vfoContainer     *qtlib.QWidget
 	vfoContainerName string
 	infoContainer    *qtlib.QWidget
+
+	txVFO        bool
+	parrotActive bool
 }
 
 func newVFOArea(vfo core.VFOID, widgetPrefix string, vfoName string, entry *entryVFOWidgets, callinfo *callinfoVFOWidgets) *vfoArea {
@@ -156,6 +159,31 @@ func (a *vfoArea) exchangeFieldName(field core.ExchangeField) string {
 
 func (a *vfoArea) setEnabled(enabled bool) {
 	a.root.SetVisible(enabled)
+}
+
+func (a *vfoArea) setIncrementalTuningVisible(kind core.IncrementalTuningKind, visible bool) {
+	incrementalTuningWidget(a.entry, kind).SetVisible(visible)
+}
+
+func (a *vfoArea) setTXVFO(txVFO bool) {
+	a.txVFO = txVFO
+	a.applyTXIndicatorVisibility()
+}
+
+func (a *vfoArea) setTXState(ptt bool, parrotActive bool) {
+	a.parrotActive = parrotActive
+	a.applyTXIndicatorVisibility()
+
+	// TODO: use a property with a selective style
+	style := TXIndicatorInactiveStyle
+	if ptt {
+		style = TXIndicatorActiveStyle
+	}
+	a.entry.txIndicator.SetStyleSheet(style)
+}
+
+func (a *vfoArea) applyTXIndicatorVisibility() {
+	a.entry.txIndicator.SetVisible(a.txVFO || a.parrotActive)
 }
 
 func (a *vfoArea) setActive(active bool) {

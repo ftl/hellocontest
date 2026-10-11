@@ -374,7 +374,7 @@ func (v *entryView) SetTheirExchange(vfo core.VFOID, index int, text string) {
 	fields[i].SetText(text)
 }
 
-func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, generateSerialExchange bool) {
+func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
 	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false, core.VFO1)
 	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO1].theirExchangeFields, true, core.VFO1)
 	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO2].theirExchangeFields, true, core.VFO2)

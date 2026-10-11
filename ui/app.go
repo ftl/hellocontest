@@ -120,10 +120,10 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 	}
 
 	a.controller.Settings.Notify(settings.ContestListenerFunc(func(c core.Contest) {
-		a.SetExchangeFields(c.MyExchangeFields, c.TheirExchangeFields, c.GenerateSerialExchange)
+		a.SetExchangeFields(c.MyExchangeFields, c.TheirExchangeFields)
 	}))
 	contest := a.controller.Settings.Contest()
-	a.SetExchangeFields(contest.MyExchangeFields, contest.TheirExchangeFields, contest.GenerateSerialExchange)
+	a.SetExchangeFields(contest.MyExchangeFields, contest.TheirExchangeFields)
 
 	a.window.Show()
 	a.controller.Refresh()
@@ -428,8 +428,8 @@ func (a *application) storeWindowState() {
 	settings.Sync()
 }
 
-func (a *application) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, generateSerialExchange bool) {
-	a.centralArea.SetExchangeFields(myExchangeFields, theirExchangeFields, generateSerialExchange)
+func (a *application) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
+	a.centralArea.SetExchangeFields(myExchangeFields, theirExchangeFields)
 }
 
 // runAsync posts a function to run on the Qt main thread (implements core.AsyncRunner)

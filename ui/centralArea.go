@@ -53,6 +53,6 @@ func (a *centralArea) RepaintForThemeChange() {
 	a.root.Update()
 }
 
-func (a *centralArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, generateSerialExchange bool) {
-	a.entryArea.SetExchangeFields(myExchangeFields, theirExchangeFields, generateSerialExchange)
+func (a *centralArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
+	a.entryArea.SetExchangeFields(myExchangeFields, theirExchangeFields)
 }

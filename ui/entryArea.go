@@ -54,8 +54,8 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	result.myDataLayout.AddWidget(result.myDataLabel.QWidget)
 	result.myDataLayout.AddStretch()
 
-	result.vfoArea[core.VFO1] = result.newVFOArea(core.VFO1, "vfo1", "VFO 1")
-	result.vfoArea[core.VFO2] = result.newVFOArea(core.VFO2, "vfo2", "VFO 2")
+	result.vfoArea[core.VFO1] = result.newVFOArea(core.VFO1, "vfo1")
+	result.vfoArea[core.VFO2] = result.newVFOArea(core.VFO2, "vfo2")
 
 	rootLayout.AddWidget(result.myDataContainer)
 	rootLayout.AddWidget(result.vfoArea[core.VFO1].root)
@@ -71,14 +71,14 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	return result
 }
 
-func (a *entryArea) newVFOArea(vfo core.VFOID, widgetPrefix string, vfoName string) *vfoArea {
-	return newVFOArea(vfo, widgetPrefix, vfoName, &a.entry.vfo[vfo], &a.callinfo.vfo[vfo])
+func (a *entryArea) newVFOArea(vfo core.VFOID, widgetPrefix string) *vfoArea {
+	return newVFOArea(vfo, widgetPrefix, &a.entry.vfo[vfo], &a.callinfo.vfo[vfo])
 }
 
-func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, generateSerialExchange bool) {
+func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
 	a.removeWidgetsFromLayout()
 
-	a.entry.SetExchangeFields(myExchangeFields, theirExchangeFields, generateSerialExchange)
+	a.entry.SetExchangeFields(myExchangeFields, theirExchangeFields)
 	a.callinfo.SetPredictedExchangeFields(theirExchangeFields)
 
 	a.setupMyExchangeFields(myExchangeFields)

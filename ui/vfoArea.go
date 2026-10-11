@@ -12,7 +12,6 @@ import (
 type vfoArea struct {
 	vfo          core.VFOID
 	widgetPrefix string
-	vfoName      string
 
 	entry    *entryVFOWidgets
 	callinfo *callinfoVFOWidgets
@@ -32,11 +31,10 @@ type vfoArea struct {
 	isEditing    bool
 }
 
-func newVFOArea(vfo core.VFOID, widgetPrefix string, vfoName string, entry *entryVFOWidgets, callinfo *callinfoVFOWidgets) *vfoArea {
+func newVFOArea(vfo core.VFOID, widgetPrefix string, entry *entryVFOWidgets, callinfo *callinfoVFOWidgets) *vfoArea {
 	result := &vfoArea{
 		vfo:          vfo,
 		widgetPrefix: widgetPrefix,
-		vfoName:      vfoName,
 		entry:        entry,
 		callinfo:     callinfo,
 	}

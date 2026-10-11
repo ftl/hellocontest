@@ -32,6 +32,7 @@ type vfoArea struct {
 
 	txVFO        bool
 	parrotActive bool
+	ptt          bool
 	active       bool
 	isDuplicate  bool
 	isEditing    bool
@@ -101,7 +102,7 @@ func (a *vfoArea) setupEntryWidgets() {
 	setFixedTextWidth(a.entry.vfoLabel.QWidget, "VFO 2 S&P", RoundedLabelPadding)
 
 	a.entry.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "TX"))
-	a.entry.txIndicator.SetStyleSheet(TXIndicatorInactiveStyle)
+	a.entry.txIndicator.SetStyleSheet(fmt.Sprintf(TXIndicatorInactiveStyle, vfoContainerInactive.text))
 	a.entry.txIndicator.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
 	setFixedBoldTextWidth(a.entry.txIndicator.QWidget, txIndicatorWidthSample, RoundedLabelPadding)
 	setFixedSampleHeight(a.entry.txIndicator, "<b>"+txIndicatorWidthSample+"</b>")
@@ -196,15 +197,10 @@ func (a *vfoArea) setTXVFO(txVFO bool) {
 }
 
 func (a *vfoArea) setTXState(ptt bool, parrotActive bool) {
+	a.ptt = ptt
 	a.parrotActive = parrotActive
 	a.applyTXIndicatorVisibility()
-
-	// TODO: use a property with a selective style
-	style := TXIndicatorInactiveStyle
-	if ptt {
-		style = TXIndicatorActiveStyle
-	}
-	a.entry.txIndicator.SetStyleSheet(style)
+	a.applyStyle()
 }
 
 func (a *vfoArea) applyTXIndicatorVisibility() {
@@ -236,8 +232,17 @@ func (a *vfoArea) setActive(active bool) {
 
 func (a *vfoArea) applyStyle() {
 	// TODO: use a property with a selective style
+	colors := a.vfoContainerColors()
 	a.root.SetStyleSheet(fmt.Sprintf(a.rootStyle(), a.rootName))
-	a.vfoContainer.SetStyleSheet(fmt.Sprintf(a.vfoContainerStyle(), a.vfoContainerName))
+	a.vfoContainer.SetStyleSheet(fmt.Sprintf(VFOContainerStyle, a.vfoContainerName, colors.background, colors.text))
+	a.entry.txIndicator.SetStyleSheet(a.txIndicatorStyle(colors.text))
+}
+
+func (a *vfoArea) txIndicatorStyle(textColor string) string {
+	if a.ptt {
+		return TXIndicatorActiveStyle
+	}
+	return fmt.Sprintf(TXIndicatorInactiveStyle, textColor)
 }
 
 func (a *vfoArea) rootStyle() string {
@@ -251,16 +256,16 @@ func (a *vfoArea) rootStyle() string {
 	}
 }
 
-func (a *vfoArea) vfoContainerStyle() string {
+func (a *vfoArea) vfoContainerColors() vfoContainerColors {
 	switch {
 	case a.isDuplicate:
-		return VFOContainerDuplicateStyle
+		return vfoContainerDuplicate
 	case a.isEditing:
-		return VFOContainerEditingStyle
+		return vfoContainerEditing
 	case a.active:
-		return VFOContainerActiveStyle
+		return vfoContainerActive
 	default:
-		return VFOContainerInactiveStyle
+		return vfoContainerInactive
 	}
 }
 

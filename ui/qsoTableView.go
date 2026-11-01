@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	_ logbook.QSOAddedListener       = (*qsoTableView)(nil)
-	_ logbook.QSOsClearedListener    = (*qsoTableView)(nil)
-	_ logbook.QSORowSelectedListener = (*qsoTableView)(nil)
+	_ logbook.QSOAddedListener              = (*qsoTableView)(nil)
+	_ logbook.QSOsClearedListener           = (*qsoTableView)(nil)
+	_ logbook.QSORowSelectedListener        = (*qsoTableView)(nil)
+	_ logbook.ExchangeFieldsChangedListener = (*qsoTableView)(nil)
 )
 
 type qsoTableView struct {
@@ -41,6 +42,10 @@ func (v *qsoTableView) RepaintForThemeChange() {
 	v.widget.SetPalette(qtlib.QGuiApplication_Palette())
 	v.widget.Update()
 	repaintScrollBarsForThemeChange(v.table.table.QAbstractScrollArea)
+}
+
+func (v *qsoTableView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+	v.table.ExchangeFieldsChanged(myExchangeFields, theirExchangeFields)
 }
 
 func (v *qsoTableView) QSOAdded(qso core.QSO) {

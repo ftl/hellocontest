@@ -30,6 +30,17 @@ func newQSOTable() *qsoTable {
 	v.table = qtlib.NewQTableView2()
 	v.table.SetModel(v.model.QAbstractItemModel)
 	ConfigureReadOnlyTable(v.table)
+
+	v.table.SelectionModel().OnSelectionChanged(func(selected *qtlib.QItemSelection, deselected *qtlib.QItemSelection) {
+		indexes := v.table.SelectionModel().SelectedRows()
+		if len(indexes) > 0 {
+			row := indexes[0].Row()
+			if v.controller != nil {
+				v.controller.SelectRow(row)
+			}
+		}
+	})
+
 	return v
 }
 
@@ -78,7 +89,7 @@ func (t *qsoTable) rebuildColumns() {
 
 	headers = append(headers, "Pts", "Mult", "D", "WM")
 
-	t.model.Clear()
+	t.model.SetColumnCount(len(headers))
 	t.model.SetHorizontalHeaderLabels(headers)
 
 	pointsColumn := len(headers) - 4
@@ -97,16 +108,6 @@ func (t *qsoTable) rebuildColumns() {
 	for _, col := range narrowColumns {
 		SetColumnSampleWidth(t.table, col, headers[col])
 	}
-
-	t.table.SelectionModel().OnSelectionChanged(func(selected *qtlib.QItemSelection, deselected *qtlib.QItemSelection) {
-		indexes := t.table.SelectionModel().SelectedRows()
-		if len(indexes) > 0 {
-			row := indexes[0].Row()
-			if t.controller != nil {
-				t.controller.SelectRow(row)
-			}
-		}
-	})
 }
 
 func (t *qsoTable) QSOAdded(qso core.QSO) {

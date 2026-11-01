@@ -75,11 +75,11 @@ func (a *entryArea) newVFOArea(vfo core.VFOID, widgetPrefix string) *vfoArea {
 	return newVFOArea(vfo, widgetPrefix, &a.entry.vfo[vfo], &a.callinfo.vfo[vfo])
 }
 
-func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
+func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, showSerialExchangeIndicator bool) {
 	a.removeWidgetsFromLayout()
 
 	a.entry.SetExchangeFields(myExchangeFields, theirExchangeFields)
-	a.callinfo.SetPredictedExchangeFields(theirExchangeFields)
+	a.callinfo.SetPredictedExchangeFields(theirExchangeFields, showSerialExchangeIndicator)
 
 	a.setupMyExchangeFields(myExchangeFields)
 	for _, vfoArea := range a.vfoArea {

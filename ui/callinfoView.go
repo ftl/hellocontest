@@ -113,8 +113,11 @@ func (v *callinfoView) refreshSerialClaim(vfo core.VFOID) {
 	w.predictedExchangeLabels[v.serialFieldIndex].SetText(renderSerialClaim(v.serialClaims[vfo]))
 }
 
-func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField) {
-	v.serialFieldIndex = serialFieldIndex(fields)
+func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField, showSerialExchangeIndicator bool) {
+	v.serialFieldIndex = -1
+	if showSerialExchangeIndicator {
+		v.serialFieldIndex = serialFieldIndex(fields)
+	}
 	for vfo := range core.VFOCount {
 		w := &v.vfo[vfo]
 		for _, label := range w.predictedExchangeLabels {

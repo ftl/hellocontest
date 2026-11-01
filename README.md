@@ -24,7 +24,9 @@ Here are some highlights:
 You can find the detailed documentation of all features in the [wiki](https://github.com/ftl/hellocontest/wiki).
 
 ## Install
-See also the [installation](https://github.com/ftl/hellocontest/wiki/Installation) wiki page for more details.
+See also the [installation](https://github.com/ftl/hellocontest/wiki/01-%E2%80%90-Installation) wiki page for more details.
+
+When using Hamlib to connect your radio, you need to install Hamlib version 4.6 or later.
 
 ### AppImage
 Download the AppImage of the latest release [here](https://github.com/ftl/hellocontest/releases/latest/).

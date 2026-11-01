@@ -13,7 +13,7 @@ import (
 func makeFilterableCombo() *qtlib.QComboBox {
 	combo := qtlib.NewQComboBox2()
 	combo.SetEditable(true)
-	completer := qtlib.NewQCompleter2(combo.Model())
+	completer := qtlib.NewQCompleter5(combo.Model(), combo.QObject)
 	completer.SetCompletionMode(qtlib.QCompleter__PopupCompletion)
 	completer.SetFilterMode(qtlib.MatchContains)
 	completer.SetCaseSensitivity(qtlib.CaseInsensitive)

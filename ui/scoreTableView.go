@@ -17,7 +17,7 @@ type scoreTableView struct {
 func newScoreTableView(parent *qtlib.QWidget) *scoreTableView {
 	v := &scoreTableView{}
 	v.widget = qtlib.NewQWidget2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("scoreTable"))
+	setObjectName(v.widget, "scoreTable")
 
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)

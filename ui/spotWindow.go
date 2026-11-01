@@ -18,7 +18,7 @@ func newSpotWindow(central *qtlib.QWidget) *spotWindow {
 		window: qtlib.NewQMainWindow2(),
 	}
 	w.window.SetWindowTitle("Hello Contest - Spots")
-	w.window.SetObjectName(*qtlib.NewQAnyStringView3("spotWindow"))
+	setObjectName(w.window, "spotWindow")
 	w.window.SetDockOptions(
 		qtlib.QMainWindow__AllowNestedDocks |
 			qtlib.QMainWindow__AllowTabbedDocks |

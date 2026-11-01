@@ -12,20 +12,14 @@ const (
 )
 
 func saveWindowState(settings *qtlib.QSettings, prefix string, window *qtlib.QMainWindow) {
-	settings.SetValue(
-		*qtlib.NewQAnyStringView3(prefix + "Geometry"),
-		gc(qtlib.NewQVariant12(window.SaveGeometry())),
-	)
-	settings.SetValue(
-		*qtlib.NewQAnyStringView3(prefix + "State"),
-		gc(qtlib.NewQVariant12(window.SaveState())),
-	)
+	setSettingsBytes(settings, prefix+"Geometry", window.SaveGeometry())
+	setSettingsBytes(settings, prefix+"State", window.SaveState())
 }
 
 // restoreWindowGeometry gives the window its size and its position. A window that is already
 // visible keeps the position of the window manager, therefore this comes before the first show.
 func restoreWindowGeometry(settings *qtlib.QSettings, prefix string, window *qtlib.QMainWindow) bool {
-	v := settings.Value(*qtlib.NewQAnyStringView3(prefix + "Geometry"), gc(qtlib.NewQVariant()))
+	v := settingsValue(settings, prefix+"Geometry")
 	if !v.IsValid() {
 		return false
 	}
@@ -36,7 +30,7 @@ func restoreWindowGeometry(settings *qtlib.QSettings, prefix string, window *qtl
 // restoreWindowLayout puts the docks of the window into their areas. QMainWindow places only the
 // docks that belong to it, therefore this comes after the docks found their window.
 func restoreWindowLayout(settings *qtlib.QSettings, prefix string, window *qtlib.QMainWindow) {
-	v := settings.Value(*qtlib.NewQAnyStringView3(prefix + "State"), gc(qtlib.NewQVariant()))
+	v := settingsValue(settings, prefix+"State")
 	if !v.IsValid() {
 		return
 	}

@@ -37,7 +37,7 @@ func newSpotFilterArea(controller SpotFilterController, focuser EntryFocuser) *s
 	a := &spotFilterArea{controller: controller, focuser: focuser}
 
 	a.widget = qtlib.NewQWidget2()
-	a.widget.SetObjectName(*qtlib.NewQAnyStringView3("spotFilter"))
+	setObjectName(a.widget, "spotFilter")
 	layout := qtlib.NewQVBoxLayout(a.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
 	layout.SetSpacing(2)

@@ -64,7 +64,7 @@ func newSpotsView(controller SpotsController, focuser EntryFocuser, style *Style
 	v.bold.SetBold(true)
 
 	v.widget = qtlib.NewQWidget2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("spotsView"))
+	setObjectName(v.widget, "spotsView")
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
 

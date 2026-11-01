@@ -28,7 +28,7 @@ func newClockView(parent *qtlib.QWidget) *clockView {
 	}
 
 	v.widget = qtlib.NewQWidget2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("clock"))
+	setObjectName(v.widget, "clock")
 	v.widget.SetMinimumWidth(120)
 	v.widget.SetMinimumHeight(40)
 	v.widget.OnPaintEvent(func(super func(ev *qtlib.QPaintEvent), ev *qtlib.QPaintEvent) {

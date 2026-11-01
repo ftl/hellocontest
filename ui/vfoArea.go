@@ -49,7 +49,7 @@ func newVFOArea(vfo core.VFOID, widgetPrefix string, entry *entryVFOWidgets, cal
 
 	result.rootName = widgetPrefix + "VFOArea"
 	result.root = qtlib.NewQWidget2()
-	result.root.SetObjectName(*qtlib.NewQAnyStringView3(result.rootName))
+	setObjectName(result.root, result.rootName)
 	result.root.SetAttribute(qtlib.WA_StyledBackground)
 
 	rootLayout := qtlib.NewQVBoxLayout(result.root)
@@ -78,7 +78,7 @@ func (a *vfoArea) setupVFOContainer() {
 	a.vfoContainerName = a.widgetPrefix + "VFOContainer"
 
 	a.vfoContainer = qtlib.NewQWidget2()
-	a.vfoContainer.SetObjectName(*qtlib.NewQAnyStringView3(a.vfoContainerName))
+	setObjectName(a.vfoContainer, a.vfoContainerName)
 	a.vfoContainer.SetAttribute(qtlib.WA_StyledBackground)
 
 	layout := qtlib.NewQHBoxLayout(a.vfoContainer)
@@ -106,30 +106,30 @@ func (a *vfoArea) setupInfoContainer() {
 }
 
 func (a *vfoArea) setupEntryWidgets() {
-	a.entry.vfoLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "Label"))
+	setObjectName(a.entry.vfoLabel, a.widgetPrefix+"Label")
 	a.entry.vfoLabel.SetAlignment(qtlib.AlignLeading | qtlib.AlignVCenter)
 	setFixedTextWidth(a.entry.vfoLabel.QWidget, "VFO 2 S&P", RoundedLabelPadding)
 
-	a.entry.txIndicator.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "TX"))
+	setObjectName(a.entry.txIndicator, a.widgetPrefix+"TX")
 	a.entry.txIndicator.SetStyleSheet(fmt.Sprintf(TXIndicatorInactiveStyle, vfoContainerInactive.text))
 	a.entry.txIndicator.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
 	setFixedBoldTextWidth(a.entry.txIndicator.QWidget, txIndicatorWidthSample, RoundedLabelPadding)
 	setFixedSampleHeight(a.entry.txIndicator, "<b>"+txIndicatorWidthSample+"</b>")
 	retainSizeWhenHidden(a.entry.txIndicator.QWidget)
 
-	a.entry.frequencyLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "FrequencyLabel"))
+	setObjectName(a.entry.frequencyLabel, a.widgetPrefix+"FrequencyLabel")
 	a.entry.frequencyLabel.SetAlignment(qtlib.AlignTrailing | qtlib.AlignVCenter)
 	setFixedTextWidth(a.entry.frequencyLabel.QWidget, "999999.99 kHz", 0)
 
-	a.entry.band.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "BandCombo"))
-	a.entry.mode.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "ModeCombo"))
+	setObjectName(a.entry.band, a.widgetPrefix+"BandCombo")
+	setObjectName(a.entry.mode, a.widgetPrefix+"ModeCombo")
 
-	a.entry.xit.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "XIT"))
+	setObjectName(a.entry.xit, a.widgetPrefix+"XIT")
 	a.entry.xit.SetVisible(false)
-	a.entry.rit.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "RIT"))
+	setObjectName(a.entry.rit, a.widgetPrefix+"RIT")
 	a.entry.rit.SetVisible(false)
 
-	a.entry.callsign.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "CallsignEntry"))
+	setObjectName(a.entry.callsign, a.widgetPrefix+"CallsignEntry")
 	a.entry.callsign.SetStyleSheet(EntryFieldStyle)
 	setFixedTextWidth(a.entry.callsign.QWidget, callsignFieldWidthSample, exchangeFieldPadding)
 
@@ -137,30 +137,30 @@ func (a *vfoArea) setupEntryWidgets() {
 }
 
 func (a *vfoArea) setupCallinfoWidgets() {
-	a.callinfo.callsignLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "predictedBestMatch"))
+	setObjectName(a.callinfo.callsignLabel, a.widgetPrefix+"predictedBestMatch")
 	a.callinfo.callsignLabel.SetTextFormat(qtlib.RichText)
 	setFixedSampleHeight(a.callinfo.callsignLabel, richLineHeightSample)
 
-	a.callinfo.valueLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "predictedValue"))
+	setObjectName(a.callinfo.valueLabel, a.widgetPrefix+"predictedValue")
 	a.callinfo.valueLabel.SetTextFormat(qtlib.RichText)
 	setFixedSampleHeight(a.callinfo.valueLabel, richLineHeightSample)
 
-	a.callinfo.qtcStatusLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "qtcStatus"))
+	setObjectName(a.callinfo.qtcStatusLabel, a.widgetPrefix+"qtcStatus")
 	a.callinfo.qtcStatusLabel.SetTextFormat(qtlib.RichText)
 	a.callinfo.qtcStatusLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
 	setFixedSampleHeight(a.callinfo.qtcStatusLabel, richLineHeightSample)
 
-	a.callinfo.supercheckLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "supercheckLabel"))
+	setObjectName(a.callinfo.supercheckLabel, a.widgetPrefix+"supercheckLabel")
 	a.callinfo.supercheckLabel.SetTextFormat(qtlib.RichText)
 	a.callinfo.supercheckLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
 	a.callinfo.supercheckLabel.SetMinimumWidth(0)
 	setFixedSampleHeight(a.callinfo.supercheckLabel, renderSupercheckHTML([]core.AnnotatedCallsign{{}}))
 
-	a.callinfo.dxccLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "dxccLabel"))
+	setObjectName(a.callinfo.dxccLabel, a.widgetPrefix+"dxccLabel")
 	a.callinfo.dxccLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
 	a.callinfo.dxccLabel.SetMinimumWidth(0)
 
-	a.callinfo.userInfoLabel.SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "userInfoLabel"))
+	setObjectName(a.callinfo.userInfoLabel, a.widgetPrefix+"userInfoLabel")
 	a.callinfo.userInfoLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
 	a.callinfo.userInfoLabel.SetMinimumWidth(0)
 	a.callinfo.userInfoLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
@@ -172,7 +172,7 @@ func (a *vfoArea) setupExchangeFields(fields []core.ExchangeField) {
 			break
 		}
 		editField := a.entry.theirExchangeFields[i]
-		editField.SetObjectName(*qtlib.NewQAnyStringView3(a.exchangeFieldName(field)))
+		setObjectName(editField, a.exchangeFieldName(field))
 		editField.SetStyleSheet(EntryFieldStyle)
 		setFixedTextWidth(editField.QWidget, exchangeFieldWidthSample, exchangeFieldPadding)
 	}
@@ -181,7 +181,7 @@ func (a *vfoArea) setupExchangeFields(fields []core.ExchangeField) {
 		setFixedSampleHeight(label, richLineHeightSample)
 	}
 	if len(a.callinfo.predictedExchangeLabels) > 0 {
-		a.callinfo.predictedExchangeLabels[0].SetObjectName(*qtlib.NewQAnyStringView3(a.widgetPrefix + "predictedExchange"))
+		setObjectName(a.callinfo.predictedExchangeLabels[0], a.widgetPrefix+"predictedExchange")
 	}
 }
 

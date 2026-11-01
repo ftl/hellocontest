@@ -35,7 +35,7 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	entryFrame.SetFrameShadow(qtlib.QFrame__Plain)
 
 	result.root = entryFrame.QWidget
-	result.root.SetObjectName(*qtlib.NewQAnyStringView3("entryArea"))
+	setObjectName(result.root, "entryArea")
 	result.root.SetAttribute(qtlib.WA_StyledBackground)
 	result.root.SetStyleSheet(EntryAreaStyle)
 
@@ -44,13 +44,13 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	rootLayout.SetSpacing(5)
 
 	result.myDataContainer = qtlib.NewQWidget2()
-	result.myDataContainer.SetObjectName(*qtlib.NewQAnyStringView3("myDataContainer"))
+	setObjectName(result.myDataContainer, "myDataContainer")
 	result.myDataLayout = qtlib.NewQHBoxLayout(result.myDataContainer)
 	result.myDataLayout.SetContentsMargins(0, 0, 0, 0)
 	result.myDataLayout.SetSpacing(5)
 
 	result.myDataLabel = qtlib.NewQLabel3("My Data:")
-	result.myDataLabel.SetObjectName(*qtlib.NewQAnyStringView3("myDataLabel"))
+	setObjectName(result.myDataLabel, "myDataLabel")
 	result.myDataLayout.AddWidget(result.myDataLabel.QWidget)
 	result.myDataLayout.AddStretch()
 
@@ -95,7 +95,7 @@ func (a *entryArea) setupMyExchangeFields(fields []core.ExchangeField) {
 			break
 		}
 		editField := a.entry.myExchangeFields[i]
-		editField.SetObjectName(*qtlib.NewQAnyStringView3(string(field.Field)))
+		setObjectName(editField, string(field.Field))
 		setFixedTextWidth(editField.QWidget, exchangeFieldWidthSample, exchangeFieldPadding)
 	}
 }

@@ -37,6 +37,41 @@ func setupModeCombo(combo *qtlib.QComboBox) {
 	combo.SetCurrentIndex(0)
 }
 
+type objectNamer interface {
+	SetObjectName(name qtlib.QAnyStringView)
+}
+
+// the view must stay alive until the call that uses it returns
+func setObjectName(object objectNamer, name string) {
+	view := qtlib.NewQAnyStringView3(name)
+	defer view.Delete()
+	object.SetObjectName(*view)
+}
+
+func settingsValue(settings *qtlib.QSettings, key string) *qtlib.QVariant {
+	view := qtlib.NewQAnyStringView3(key)
+	defer view.Delete()
+	return settings.Value(*view, gc(qtlib.NewQVariant()))
+}
+
+func setSettingsBool(settings *qtlib.QSettings, key string, value bool) {
+	setSettingsValue(settings, key, gc(qtlib.NewQVariant8(value)))
+}
+
+func setSettingsString(settings *qtlib.QSettings, key string, value string) {
+	setSettingsValue(settings, key, gc(qtlib.NewQVariant14(value)))
+}
+
+func setSettingsBytes(settings *qtlib.QSettings, key string, value []byte) {
+	setSettingsValue(settings, key, gc(qtlib.NewQVariant12(value)))
+}
+
+func setSettingsValue(settings *qtlib.QSettings, key string, value *qtlib.QVariant) {
+	view := qtlib.NewQAnyStringView3(key)
+	defer view.Delete()
+	settings.SetValue(*view, value)
+}
+
 func gc[T interface{ GoGC() }](object T) T {
 	object.GoGC()
 	return object
@@ -181,7 +216,7 @@ type dockableView struct {
 func newDockableView(parent, root *qtlib.QWidget, title, objectName string) *dockableView {
 	dock := qtlib.NewQDockWidget4(title, parent)
 	dock.SetWidget(root)
-	dock.SetObjectName(*qtlib.NewQAnyStringView3(objectName))
+	setObjectName(dock, objectName)
 	dock.SetAllowedAreas(qtlib.AllDockWidgetAreas)
 
 	return &dockableView{

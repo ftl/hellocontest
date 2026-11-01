@@ -22,7 +22,7 @@ func newRateView(parent *qtlib.QWidget) *rateView {
 	}
 
 	v.widget = qtlib.NewQFrame2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("rate"))
+	setObjectName(v.widget, "rate")
 	v.widget.SetFrameShape(qtlib.QFrame__StyledPanel)
 	v.widget.SetFrameShadow(qtlib.QFrame__Plain)
 

@@ -96,10 +96,7 @@ func (m *dockManager) Save(settings *qtlib.QSettings) {
 		if dock.target == dockTargetSpots {
 			value = dockTargetValueSpots
 		}
-		settings.SetValue(
-			*qtlib.NewQAnyStringView3(dockTargetSettingPrefix + dock.name),
-			gc(qtlib.NewQVariant14(value)),
-		)
+		setSettingsString(settings, dockTargetSettingPrefix+dock.name, value)
 	}
 }
 
@@ -107,7 +104,7 @@ func (m *dockManager) Restore(settings *qtlib.QSettings) {
 	// this must run before the windows restore their state, because
 	// QMainWindow.restoreState only positions the docks that belong to that window
 	for _, dock := range m.docks {
-		value := settings.Value(*qtlib.NewQAnyStringView3(dockTargetSettingPrefix + dock.name), gc(qtlib.NewQVariant()))
+		value := settingsValue(settings, dockTargetSettingPrefix+dock.name)
 		if !value.IsValid() {
 			continue
 		}

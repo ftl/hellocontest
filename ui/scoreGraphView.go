@@ -22,7 +22,7 @@ type scoreGraphView struct {
 func newScoreGraphView(parent *qtlib.QWidget, clock core.Clock) *scoreGraphView {
 	v := &scoreGraphView{}
 	v.widget = qtlib.NewQFrame2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("scoreGraph"))
+	setObjectName(v.widget, "scoreGraph")
 	v.widget.SetFrameShape(qtlib.QFrame__StyledPanel)
 	v.widget.SetFrameShadow(qtlib.QFrame__Plain)
 

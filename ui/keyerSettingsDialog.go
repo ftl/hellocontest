@@ -34,7 +34,7 @@ func (d *keyerSettingsDialog) Show() {
 
 func (d *keyerSettingsDialog) create() {
 	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
-	d.dialog.SetObjectName(*qtlib.NewQAnyStringView3("keyerSettingsDialog"))
+	setObjectName(d.dialog, "keyerSettingsDialog")
 	d.dialog.SetWindowTitle("Keyer Macros")
 	d.dialog.SetModal(false)
 	d.dialog.SetMinimumWidth(600)

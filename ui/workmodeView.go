@@ -22,7 +22,7 @@ type workmodeView struct {
 func newWorkmodeView() *workmodeView {
 	v := &workmodeView{}
 	v.widget = qtlib.NewQWidget2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("workmode"))
+	setObjectName(v.widget, "workmode")
 	layout := qtlib.NewQHBoxLayout(v.widget)
 
 	workmodeLabel := qtlib.NewQLabel3("Workmode:")

@@ -33,7 +33,7 @@ type keyerView struct {
 func newKeyerView(focuser EntryFocuser) *keyerView {
 	v := &keyerView{focuser: focuser}
 	v.widget = qtlib.NewQWidget2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("keyerButtons"))
+	setObjectName(v.widget, "keyerButtons")
 	layout := qtlib.NewQGridLayout(v.widget)
 	layout.SetContentsMargins(4, 5, 4, 5)
 	layout.SetSpacing(5)
@@ -63,7 +63,7 @@ func newKeyerView(focuser EntryFocuser) *keyerView {
 
 	v.macrosBtn = qtlib.NewQPushButton3("Macros...")
 	v.macrosBtn.SetFocusPolicy(qtlib.NoFocus)
-	v.macrosBtn.SetObjectName(*qtlib.NewQAnyStringView3("keyerSettingsButton"))
+	setObjectName(v.macrosBtn, "keyerSettingsButton")
 	layout.AddWidget2(v.macrosBtn.QWidget, 1, 0)
 	v.macrosBtn.OnClicked(func() {
 		if v.controller != nil {
@@ -82,7 +82,7 @@ func newKeyerView(focuser EntryFocuser) *keyerView {
 			v.focuser.GotoEntryFields()
 		}
 	})
-	v.speedSpin.SetObjectName(*qtlib.NewQAnyStringView3("keyerSpeed"))
+	setObjectName(v.speedSpin, "keyerSpeed")
 	v.speedSpin.SetMinimum(5)
 	v.speedSpin.SetMaximum(60)
 	v.speedSpin.SetSuffix(" WPM")
@@ -101,7 +101,7 @@ func newKeyerView(focuser EntryFocuser) *keyerView {
 	})
 
 	v.lastTransmissionLabel = qtlib.NewQLabel3("")
-	v.lastTransmissionLabel.SetObjectName(*qtlib.NewQAnyStringView3("keyerLastTransmission"))
+	setObjectName(v.lastTransmissionLabel, "keyerLastTransmission")
 	v.lastTransmissionLabel.SetAlignment(qtlib.AlignCenter | qtlib.AlignVCenter)
 
 	return v

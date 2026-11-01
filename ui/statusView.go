@@ -27,7 +27,7 @@ type statusView struct {
 func newStatusView() *statusView {
 	v := &statusView{labels: make(map[core.Service]*qtlib.QLabel)}
 	v.statusBar = qtlib.NewQStatusBar2()
-	v.statusBar.SetObjectName(*qtlib.NewQAnyStringView3("statusBar"))
+	setObjectName(v.statusBar, "statusBar")
 	for _, s := range statusServiceOrder {
 		lbl := qtlib.NewQLabel3(s.name)
 		v.applyStyle(lbl, false)

@@ -19,7 +19,7 @@ type esmView struct {
 func newESMView() *esmView {
 	v := &esmView{}
 	v.widget = qtlib.NewQWidget2()
-	v.widget.SetObjectName(*qtlib.NewQAnyStringView3("esm"))
+	setObjectName(v.widget, "esm")
 	layout := qtlib.NewQHBoxLayout(v.widget)
 
 	v.checkbox = qtlib.NewQCheckBox3("ESM")

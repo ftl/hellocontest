@@ -36,7 +36,7 @@ func (d *settingsDialog) Ready() bool {
 
 func (d *settingsDialog) create() {
 	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
-	d.dialog.SetObjectName(*qtlib.NewQAnyStringView3("settingsDialog"))
+	setObjectName(d.dialog, "settingsDialog")
 	d.dialog.SetWindowTitle("Contest Settings")
 	d.dialog.SetModal(false)
 	d.dialog.SetWindowFlags(

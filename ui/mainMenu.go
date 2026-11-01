@@ -22,7 +22,7 @@ func newMainMenu(
 
 	// ── File ─────────────────────────────────────────────────────────────
 	m.fileMenu = m.menuBar.AddMenuWithTitle("&File")
-	m.fileMenu.SetObjectName(*qtlib.NewQAnyStringView3("fileMenu"))
+	setObjectName(m.fileMenu, "fileMenu")
 	fileMenu := m.fileMenu
 	fileMenu.AddAction(a.newFileAction)
 	fileMenu.AddAction(a.openFileAction)
@@ -45,7 +45,7 @@ func newMainMenu(
 
 	// ── Edit ─────────────────────────────────────────────────────────────
 	m.editMenu = m.menuBar.AddMenuWithTitle("&Edit")
-	m.editMenu.SetObjectName(*qtlib.NewQAnyStringView3("editMenu"))
+	setObjectName(m.editMenu, "editMenu")
 	editMenu := m.editMenu
 	editMenu.AddAction(a.clearEntryAction)
 	editMenu.AddAction(a.gotoEntryAction)

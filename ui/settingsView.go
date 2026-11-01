@@ -238,7 +238,7 @@ func (v *settingsView) buildContestGroup() *qtlib.QGroupBox {
 
 func (v *settingsView) buildExchangeGroup() *qtlib.QGroupBox {
 	box := qtlib.NewQGroupBox3("My Exchange")
-	box.SetObjectName(*qtlib.NewQAnyStringView3("myExchangeGroup"))
+	setObjectName(box, "myExchangeGroup")
 	v.exchangeGrid = qtlib.NewQGridLayout(box.QWidget)
 	return box
 }

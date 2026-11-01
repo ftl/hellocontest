@@ -19,7 +19,7 @@ func newCentralArea(entry *entryView, callinfo *callinfoView, esm *esmView, work
 	}
 
 	result.root = qtlib.NewQWidget2()
-	result.root.SetObjectName(*qtlib.NewQAnyStringView3("centralArea"))
+	setObjectName(result.root, "centralArea")
 	result.root.SetAttribute(qtlib.WA_StyledBackground)
 	result.root.SetStyleSheet(CentralAreaStyle)
 	rootLayout := qtlib.NewQVBoxLayout(result.root)
@@ -30,7 +30,7 @@ func newCentralArea(entry *entryView, callinfo *callinfoView, esm *esmView, work
 	entrySeparator.SetFrameShadow(qtlib.QFrame__Sunken)
 
 	result.esmWorkmodeContainer = qtlib.NewQWidget2()
-	result.esmWorkmodeContainer.SetObjectName(*qtlib.NewQAnyStringView3("esmWorkmode"))
+	setObjectName(result.esmWorkmodeContainer, "esmWorkmode")
 	esmWorkmodeLayout := qtlib.NewQHBoxLayout(result.esmWorkmodeContainer)
 	esmWorkmodeLayout.SetContentsMargins(0, 0, 0, 0)
 	esmWorkmodeLayout.AddWidget(esm.widget)

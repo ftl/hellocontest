@@ -22,8 +22,9 @@ const (
 type Client struct {
 	client *hl.RigClient
 
-	bandplan bandplan.Bandplan
-	vfos     []hl.VFO
+	bandplan    bandplan.Bandplan
+	vfos        []hl.VFO
+	asyncRunner core.AsyncRunner
 
 	listeners []any
 
@@ -59,12 +60,16 @@ type vfoState struct {
 	ritOffset core.Frequency
 }
 
-func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string) *Client {
+func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string, asyncRunner core.AsyncRunner) *Client {
+	if asyncRunner == nil {
+		asyncRunner = func(f func()) { f() }
+	}
 	vfos, singleVFO := sanitizeVFOs(vfo1, vfo2)
 	result := &Client{
 		client:          hl.NewRigClient(address),
 		bandplan:        bandplan,
 		vfos:            vfos,
+		asyncRunner:     asyncRunner,
 		pollingInterval: 500 * time.Millisecond,
 		requestTimeout:  500 * time.Millisecond,
 		do:              make(chan func(), doBufferSize),
@@ -653,15 +658,15 @@ func (c *Client) emitCurrentVFOChanged(last, current hl.VFO) {
 	}
 	log.Printf("current vfo changed: %d = %s", vfoID, c.vfos[vfoID])
 
-	go func() {
+	c.asyncRunner(func() {
 		core.Emit(c.listeners, func(listener core.CurrentVFOListener) {
 			listener.CurrentVFOChanged(vfoID)
 		})
-	}()
+	})
 }
 
 func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState) {
-	go func() {
+	c.asyncRunner(func() {
 		if last.frequency != current.frequency {
 			c.emitFrequencyChanged(vfo, current.frequency)
 		}
@@ -673,7 +678,7 @@ func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState)
 		}
 		c.emitIncrementalTuningChanges(vfo, core.XIT, last.xitActive, last.xitOffset, current.xitActive, current.xitOffset)
 		c.emitIncrementalTuningChanges(vfo, core.RIT, last.ritActive, last.ritOffset, current.ritActive, current.ritOffset)
-	}()
+	})
 }
 
 func (c *Client) emitIncrementalTuningChanges(vfo core.VFOID, kind core.IncrementalTuningKind, lastActive bool, lastOffset core.Frequency, currentActive bool, currentOffset core.Frequency) {
@@ -713,11 +718,11 @@ func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
 }
 
 func (c *Client) emitTXVFOChanged(vfo core.VFOID) {
-	go func() {
+	c.asyncRunner(func() {
 		core.Emit(c.listeners, func(listener core.TXVFOListener) {
 			listener.TXVFOChanged(vfo)
 		})
-	}()
+	})
 }
 
 func toCoreBand(bandName bandplan.BandName) core.Band {

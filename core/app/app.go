@@ -220,7 +220,7 @@ func (c *Controller) Startup() {
 	c.Entry.SetCallinfo(c.Callinfo)
 	c.Callinfo.Notify(c.Entry)
 
-	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan)
+	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan, c.asyncRunner)
 	c.Radio.Notify(c.ServiceStatus)
 	// the entry controller gets the VFO events from the VFOs, not from the raw stream of
 	// the radio, because only the VFO knows whether the application commanded a change.

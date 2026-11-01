@@ -89,3 +89,52 @@ func TestDiffMarkers_CurrentMarkersAreTheNextSentMarkers(t *testing.T) {
 
 	assert.Equal(t, map[string]core.BandmapMarker{"1": one}, current, "only the markers on the band of the TRX")
 }
+
+func TestEmitUsesTheAsyncRunner(t *testing.T) {
+	testCases := []struct {
+		desc string
+		emit func(c *Client)
+	}{
+		{
+			desc: "connection changed",
+			emit: func(c *Client) { c.emitConnectionChanged(true) },
+		},
+		{
+			desc: "frequency changed",
+			emit: func(c *Client) { c.emitFrequencyChanged(core.VFO1, 3500000) },
+		},
+		{
+			desc: "band changed",
+			emit: func(c *Client) { c.emitBandChanged(core.VFO1, core.Band80m) },
+		},
+		{
+			desc: "mode changed",
+			emit: func(c *Client) { c.emitModeChanged(core.VFO1, core.ModeCW) },
+		},
+		{
+			desc: "incremental tuning changed",
+			emit: func(c *Client) { c.emitIncrementalTuningChanged(core.VFO1, core.RIT, true, 100) },
+		},
+		{
+			desc: "PTT changed",
+			emit: func(c *Client) { c.emitPTTChanged(core.VFO1, true) },
+		},
+		{
+			desc: "TX VFO changed",
+			emit: func(c *Client) { c.emitTXVFOChanged(core.VFO1) },
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			runCount := 0
+			c := &Client{asyncRunner: func(f func()) {
+				runCount++
+				f()
+			}}
+
+			tc.emit(c)
+
+			assert.Equal(t, 1, runCount, "the listeners must be notified through the async runner")
+		})
+	}
+}

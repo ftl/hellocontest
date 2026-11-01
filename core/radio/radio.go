@@ -31,10 +31,11 @@ type View interface {
 }
 
 type Controller struct {
-	radios    []core.Radio
-	keyers    []core.Keyer
-	bandplan  bandplan.Bandplan
-	listeners []any
+	radios      []core.Radio
+	keyers      []core.Keyer
+	bandplan    bandplan.Bandplan
+	listeners   []any
+	asyncRunner core.AsyncRunner
 
 	view          View
 	ignoreUpdates bool
@@ -75,11 +76,12 @@ type keyer interface {
 	Notify(any)
 }
 
-func NewController(radios []core.Radio, keyers []core.Keyer, bandplan bandplan.Bandplan) *Controller {
+func NewController(radios []core.Radio, keyers []core.Keyer, bandplan bandplan.Bandplan, asyncRunner core.AsyncRunner) *Controller {
 	result := &Controller{
-		radios:   radios,
-		keyers:   keyers,
-		bandplan: bandplan,
+		radios:      radios,
+		keyers:      keyers,
+		bandplan:    bandplan,
+		asyncRunner: asyncRunner,
 	}
 	return result
 }
@@ -272,7 +274,7 @@ func (c *Controller) newHamlibClient(config core.Radio) radio {
 	if !ok {
 		vfo2 = ""
 	}
-	hamlibClient := hamlib.New(config.Address, c.bandplan, vfo1, vfo2)
+	hamlibClient := hamlib.New(config.Address, c.bandplan, vfo1, vfo2, c.asyncRunner)
 	hamlibClient.KeepOpen()
 	return hamlibClient
 }
@@ -295,7 +297,7 @@ func (c *Controller) newTCIClient(config core.Radio) (radio, error) {
 			return nil, fmt.Errorf("invalid trx2 option: %v", err)
 		}
 	}
-	tciClient, err := tci.NewClient(config.Address, trx, trx2, c.bandplan)
+	tciClient, err := tci.NewClient(config.Address, trx, trx2, c.bandplan, c.asyncRunner)
 	if err != nil {
 		return nil, err
 	}

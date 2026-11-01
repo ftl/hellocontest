@@ -17,15 +17,19 @@ import (
 
 const retryInterval = 10 * time.Second
 
-func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan) (*Client, error) {
+func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan, asyncRunner core.AsyncRunner) (*Client, error) {
 	host, err := network.ParseTCPAddr(address)
 	if err != nil {
 		return nil, err
 	}
+	if asyncRunner == nil {
+		asyncRunner = func(f func()) { f() }
+	}
 
 	result := &Client{
-		bandplan:  bandplan,
-		singleVFO: true,
+		bandplan:    bandplan,
+		singleVFO:   true,
+		asyncRunner: asyncRunner,
 	}
 	result.trx = &trxListener{
 		client: result,
@@ -51,8 +55,9 @@ func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan) (*
 }
 
 type Client struct {
-	client   *client.Client
-	bandplan bandplan.Bandplan
+	client      *client.Client
+	bandplan    bandplan.Bandplan
+	asyncRunner core.AsyncRunner
 
 	singleVFO bool
 
@@ -150,44 +155,58 @@ func (c *Client) Notify(listener any) {
 }
 
 func (c *Client) emitConnectionChanged(connected bool) {
-	core.Emit(c.listeners, func(listener core.ConnectionChangedListener) {
-		listener.ConnectionChanged(connected)
+	c.asyncRunner(func() {
+		core.Emit(c.listeners, func(listener core.ConnectionChangedListener) {
+			listener.ConnectionChanged(connected)
+		})
 	})
 }
 
 func (c *Client) emitFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
-	core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
-		listener.VFOFrequencyChanged(vfo, frequency)
+	c.asyncRunner(func() {
+		core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
+			listener.VFOFrequencyChanged(vfo, frequency)
+		})
 	})
 }
 
 func (c *Client) emitBandChanged(vfo core.VFOID, band core.Band) {
-	core.Emit(c.listeners, func(listener core.VFOBandListener) {
-		listener.VFOBandChanged(vfo, band)
+	c.asyncRunner(func() {
+		core.Emit(c.listeners, func(listener core.VFOBandListener) {
+			listener.VFOBandChanged(vfo, band)
+		})
 	})
 }
 
 func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
-	core.Emit(c.listeners, func(listener core.VFOModeListener) {
-		listener.VFOModeChanged(vfo, mode)
+	c.asyncRunner(func() {
+		core.Emit(c.listeners, func(listener core.VFOModeListener) {
+			listener.VFOModeChanged(vfo, mode)
+		})
 	})
 }
 
 func (c *Client) emitIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
-	core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
-		listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
+	c.asyncRunner(func() {
+		core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
+			listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
+		})
 	})
 }
 
 func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
-	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
-		listener.VFOPTTChanged(vfo, active)
+	c.asyncRunner(func() {
+		core.Emit(c.listeners, func(listener core.VFOPTTListener) {
+			listener.VFOPTTChanged(vfo, active)
+		})
 	})
 }
 
 func (c *Client) emitTXVFOChanged(vfo core.VFOID) {
-	core.Emit(c.listeners, func(listener core.TXVFOListener) {
-		listener.TXVFOChanged(vfo)
+	c.asyncRunner(func() {
+		core.Emit(c.listeners, func(listener core.TXVFOListener) {
+			listener.TXVFOChanged(vfo)
+		})
 	})
 }
 

@@ -297,6 +297,7 @@ func (s *screenshotter) Annotate(p Pixmap, markers []Marker) error {
 		}
 
 		painter := qtlib.NewQPainter2(img.pm.QPaintDevice)
+		defer painter.Delete()
 		defer painter.End()
 		painter.SetRenderHint2(qtlib.QPainter__Antialiasing, true)
 		painter.SetRenderHint2(qtlib.QPainter__TextAntialiasing, true)

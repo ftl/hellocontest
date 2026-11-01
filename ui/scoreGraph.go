@@ -155,6 +155,7 @@ func (g *scoreGraph) calculateLayout(painter *qtlib.QPainter, valueCount int) gr
 
 func (g *scoreGraph) paint() {
 	painter := qtlib.NewQPainter2(g.widget.QPaintDevice)
+	defer painter.Delete()
 	defer painter.End()
 	painter.SetRenderHint(qtlib.QPainter__Antialiasing)
 
@@ -175,7 +176,7 @@ func (g *scoreGraph) paint() {
 		(bgRGB[2] + fgRGB[2]) / 2,
 	}
 
-	font := qtlib.NewQFont()
+	font := gc(qtlib.NewQFont())
 	font.SetPixelSize(scoreGraphFontSize)
 	painter.SetFont(font)
 
@@ -198,17 +199,17 @@ func (g *scoreGraph) paint() {
 }
 
 func (g *scoreGraph) fillBackground(painter *qtlib.QPainter, layout graphLayout, bgRGB [3]int) {
-	brush := qtlib.NewQBrush3(qtlib.NewQColor11(bgRGB[0], bgRGB[1], bgRGB[2], 255))
+	brush := gc(qtlib.NewQBrush3(gc(qtlib.NewQColor11(bgRGB[0], bgRGB[1], bgRGB[2], 255))))
 	painter.FillRect2(0, 0, int(layout.width), int(layout.height), brush)
 }
 
 func (g *scoreGraph) drawZeroLine(painter *qtlib.QPainter, layout graphLayout, fgRGB [3]int) {
-	pen := qtlib.NewQPen()
-	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	pen := gc(qtlib.NewQPen())
+	pen.SetColor(gc(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255)))
 	pen.SetWidthF(layout.axisLineWidth)
 	painter.SetPenWithPen(pen)
 
-	painter.DrawLine(qtlib.NewQLineF3(layout.leftLegendWidth, layout.zeroY, layout.width, layout.zeroY))
+	painter.DrawLine(gc(qtlib.NewQLineF3(layout.leftLegendWidth, layout.zeroY, layout.width, layout.zeroY)))
 
 	g.drawYLegendAt(painter, layout, layout.zeroY, "0", fgRGB)
 }
@@ -220,28 +221,28 @@ func (g *scoreGraph) drawYLegendAt(painter *qtlib.QPainter, layout graphLayout, 
 	left := layout.leftLegendWidth - textWidth - 2.0
 	bottom := y + textHeight/2.0
 
-	pen := qtlib.NewQPen()
-	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	pen := gc(qtlib.NewQPen())
+	pen.SetColor(gc(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255)))
 	painter.SetPenWithPen(pen)
-	painter.DrawText(qtlib.NewQPointF3(left, bottom), text)
+	painter.DrawText(gc(qtlib.NewQPointF3(left, bottom)), text)
 }
 
 func (g *scoreGraph) drawTimeDivisions(painter *qtlib.QPainter, layout graphLayout, fgRGB [3]int) {
-	pen := qtlib.NewQPen()
-	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	pen := gc(qtlib.NewQPen())
+	pen.SetColor(gc(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255)))
 	pen.SetWidthF(layout.divisionLineWidth)
 	painter.SetPenWithPen(pen)
 
-	painter.DrawLine(qtlib.NewQLineF3(
+	painter.DrawLine(gc(qtlib.NewQLineF3(
 		layout.leftLegendWidth, layout.zeroY-layout.maxHeight,
 		layout.leftLegendWidth, layout.zeroY+layout.maxHeight,
-	))
+	)))
 
 	for _, x := range layout.divX {
-		painter.DrawLine(qtlib.NewQLineF3(
+		painter.DrawLine(gc(qtlib.NewQLineF3(
 			x+layout.leftLegendWidth, layout.zeroY-layout.maxHeight,
 			x+layout.leftLegendWidth, layout.zeroY+layout.maxHeight,
-		))
+		)))
 	}
 }
 
@@ -261,14 +262,14 @@ func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayo
 	top := bottom - layout.timeIndicatorHeight
 
 	if right > left {
-		indicatorColor := qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255)
+		indicatorColor := gc(qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255))
 		indicatorColor.SetAlphaF(scoreGraphBorderAlpha)
-		brush := qtlib.NewQBrush3(indicatorColor)
+		brush := gc(qtlib.NewQBrush3(indicatorColor))
 		painter.FillRect2(int(left), int(top), int(right-left), int(bottom-top), brush)
 	}
 
-	pen := qtlib.NewQPen()
-	pen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	pen := gc(qtlib.NewQPen())
+	pen.SetColor(gc(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255)))
 	painter.SetPenWithPen(pen)
 
 	elapsedTimeText := formatQtDuration(elapsedTime)
@@ -277,17 +278,17 @@ func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayo
 
 	// Center text vertically in the progress bar
 	centerY := layout.height - 1.0 - textHeight
-	painter.DrawText(qtlib.NewQPointF3(1, centerY), elapsedTimeText)
+	painter.DrawText(gc(qtlib.NewQPointF3(1, centerY)), elapsedTimeText)
 
 	for i, x := range layout.divX {
 		if i%2 == 1 && len(g.graphs) > 0 {
 			percent := float64(i+1) / float64(len(layout.divX)+1)
 			text := formatQtDuration(g.graphs[0].PercentAsDuration(percent))
 			textWidth := float64(fm.HorizontalAdvance(text))
-			painter.DrawText(qtlib.NewQPointF3(
+			painter.DrawText(gc(qtlib.NewQPointF3(
 				x+layout.leftLegendWidth-textWidth/2.0,
 				centerY,
-			), text)
+			)), text)
 		}
 	}
 
@@ -295,15 +296,15 @@ func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayo
 		startX := float64(g.timeFrameIndex)*layout.binWidth + layout.leftLegendWidth
 		endX := float64(g.timeFrameIndex+1)*layout.binWidth + layout.leftLegendWidth
 
-		framePen := qtlib.NewQPen()
-		frameColor := qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255)
+		framePen := gc(qtlib.NewQPen())
+		frameColor := gc(qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255))
 		frameColor.SetAlphaF(scoreGraphBorderAlpha)
 		framePen.SetColor(frameColor)
 		framePen.SetWidthF(layout.divisionLineWidth)
 		painter.SetPenWithPen(framePen)
-		painter.SetBrush(qtlib.NewQBrush())
+		painter.SetBrush(gc(qtlib.NewQBrush()))
 
-		path := qtlib.NewQPainterPath()
+		path := gc(qtlib.NewQPainterPath())
 		path.MoveTo2(startX, layout.zeroY-layout.maxHeight)
 		path.LineTo2(endX, layout.zeroY-layout.maxHeight)
 		path.LineTo2(endX, layout.zeroY+layout.maxHeight)
@@ -314,23 +315,23 @@ func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayo
 }
 
 func (g *scoreGraph) drawLowZone(painter *qtlib.QPainter, layout graphLayout, lowZoneRGB [3]int, fgRGB [3]int) {
-	fillColor := qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255)
+	fillColor := gc(qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255))
 	fillColor.SetAlphaF(scoreGraphAreaAlpha)
-	fillBrush := qtlib.NewQBrush3(fillColor)
+	fillBrush := gc(qtlib.NewQBrush3(fillColor))
 
 	top := layout.zeroY - layout.pointsLowZoneHeight
 	bottom := layout.zeroY + layout.multisLowZoneHeight
 	painter.FillRect2(int(layout.leftLegendWidth), int(top), int(layout.width-layout.leftLegendWidth), int(bottom-top), fillBrush)
 
-	borderColor := qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255)
+	borderColor := gc(qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255))
 	borderColor.SetAlphaF(scoreGraphBorderAlpha)
-	pen := qtlib.NewQPen()
+	pen := gc(qtlib.NewQPen())
 	pen.SetColor(borderColor)
 	pen.SetWidthF(layout.divisionLineWidth)
 	painter.SetPenWithPen(pen)
-	painter.SetBrush(qtlib.NewQBrush())
+	painter.SetBrush(gc(qtlib.NewQBrush()))
 
-	path := qtlib.NewQPainterPath()
+	path := gc(qtlib.NewQPainterPath())
 	path.MoveTo2(layout.leftLegendWidth, top)
 	path.LineTo2(layout.width, top)
 	path.LineTo2(layout.width, bottom)
@@ -351,9 +352,9 @@ func (g *scoreGraph) drawBand(painter *qtlib.QPainter, layout graphLayout, graph
 
 	fill := bandQColor(graph.Band)
 	fill.SetAlphaF(scoreGraphAreaAlpha)
-	brush := qtlib.NewQBrush3(fill)
+	brush := gc(qtlib.NewQBrush3(fill))
 
-	path := qtlib.NewQPainterPath()
+	path := gc(qtlib.NewQPainterPath())
 	path.MoveTo2(layout.leftLegendWidth, layout.zeroY)
 
 	var valueScaling float64

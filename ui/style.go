@@ -90,7 +90,7 @@ func (s *Style) Apply(app *qtlib.QApplication) {
 }
 
 func newQColor(rgb [3]int) *qtlib.QColor {
-	return qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255)
+	return gc(qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255))
 }
 
 func (s *Style) BandColor(band core.Band) *qtlib.QColor {

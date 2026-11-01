@@ -240,6 +240,7 @@ func (ri *rateIndicator) SetGoals(qsos, points, multis int) {
 
 func (ri *rateIndicator) paint() {
 	painter := qtlib.NewQPainter2(ri.widget.QPaintDevice)
+	defer painter.Delete()
 	defer painter.End()
 	painter.SetRenderHint(qtlib.QPainter__Antialiasing)
 
@@ -285,7 +286,7 @@ func (ri *rateIndicator) paint() {
 	ri.drawTriangle(painter, [3]point{ri.qAxis.value1Point, ri.pAxis.value1Point, ri.mAxis.value1Point}, achievementColor, rateAreaAlpha, rateBorderAlpha)
 
 	// Set up font for text
-	font := qtlib.NewQFont()
+	font := gc(qtlib.NewQFont())
 	font.SetPixelSize(rateFontSize)
 	painter.SetFont(font)
 
@@ -357,23 +358,23 @@ func (ri *rateIndicator) prepareGeometry(painter *qtlib.QPainter, center point, 
 
 func (ri *rateIndicator) fillBackground(painter *qtlib.QPainter, w, h float64) {
 	color := newQColor(backgroundRGB)
-	brush := qtlib.NewQBrush3(color)
+	brush := gc(qtlib.NewQBrush3(color))
 	painter.FillRect2(0, 0, int(w), int(h), brush)
 }
 
 func (ri *rateIndicator) fillBackgroundWithColor(painter *qtlib.QPainter, w, h float64, bgRGB [3]int) {
-	color := qtlib.NewQColor11(bgRGB[0], bgRGB[1], bgRGB[2], 255)
-	brush := qtlib.NewQBrush3(color)
+	color := gc(qtlib.NewQColor11(bgRGB[0], bgRGB[1], bgRGB[2], 255))
+	brush := gc(qtlib.NewQBrush3(color))
 	painter.FillRect2(0, 0, int(w), int(h), brush)
 }
 
 func (ri *rateIndicator) drawTriangle(painter *qtlib.QPainter, points [3]point, rgb [3]int, fillAlpha, borderAlpha float32) {
 	// Fill
-	fillColor := qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255)
+	fillColor := gc(qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255))
 	fillColor.SetAlphaF(fillAlpha)
-	fillBrush := qtlib.NewQBrush3(fillColor)
+	fillBrush := gc(qtlib.NewQBrush3(fillColor))
 
-	path := qtlib.NewQPainterPath()
+	path := gc(qtlib.NewQPainterPath())
 	path.MoveTo2(points[0].x, points[0].y)
 	path.LineTo2(points[1].x, points[1].y)
 	path.LineTo2(points[2].x, points[2].y)
@@ -381,52 +382,52 @@ func (ri *rateIndicator) drawTriangle(painter *qtlib.QPainter, points [3]point, 
 	painter.FillPath(path, fillBrush)
 
 	// Border
-	borderColor := qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255)
+	borderColor := gc(qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255))
 	borderColor.SetAlphaF(borderAlpha)
-	pen := qtlib.NewQPen()
+	pen := gc(qtlib.NewQPen())
 	pen.SetColor(borderColor)
 	painter.SetPenWithPen(pen)
-	painter.SetBrush(qtlib.NewQBrush())
+	painter.SetBrush(gc(qtlib.NewQBrush()))
 	painter.DrawPath(path)
 }
 
 func (ri *rateIndicator) drawAxis(painter *qtlib.QPainter, axis *rateAxis, center point, fgRGB [3]int, axisRGB [3]int) {
 	// Axis line
-	axisPen := qtlib.NewQPen()
-	axisPen.SetColor(qtlib.NewQColor11(axisRGB[0], axisRGB[1], axisRGB[2], 255))
+	axisPen := gc(qtlib.NewQPen())
+	axisPen.SetColor(gc(qtlib.NewQColor11(axisRGB[0], axisRGB[1], axisRGB[2], 255)))
 	axisPen.SetWidthF(rateAxisLineWidth)
 	painter.SetPenWithPen(axisPen)
-	painter.DrawLine(qtlib.NewQLineF3(center.x, center.y, axis.axisEndPt.x, axis.axisEndPt.y))
+	painter.DrawLine(gc(qtlib.NewQLineF3(center.x, center.y, axis.axisEndPt.x, axis.axisEndPt.y)))
 
 	// Label text
-	fontPen := qtlib.NewQPen()
-	fontPen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	fontPen := gc(qtlib.NewQPen())
+	fontPen.SetColor(gc(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255)))
 	painter.SetPenWithPen(fontPen)
 	fm := painter.FontMetrics()
-	painter.DrawText(qtlib.NewQPointF3(axis.labelPoint.x, axis.labelPoint.y+float64(fm.Height())), axis.LabelText())
+	painter.DrawText(gc(qtlib.NewQPointF3(axis.labelPoint.x, axis.labelPoint.y+float64(fm.Height()))), axis.LabelText())
 
 	// Filled dot at value1Point (5-min rate)
 	dotColor := interpRGB(rateGradient, axis.achievement)
-	dotQColor := qtlib.NewQColor11(dotColor[0], dotColor[1], dotColor[2], 255)
-	dotBrush := qtlib.NewQBrush3(dotQColor)
+	dotQColor := gc(qtlib.NewQColor11(dotColor[0], dotColor[1], dotColor[2], 255))
+	dotBrush := gc(qtlib.NewQBrush3(dotQColor))
 	painter.SetBrush(dotBrush)
-	painter.SetPenWithPen(qtlib.NewQPen())
+	painter.SetPenWithPen(gc(qtlib.NewQPen()))
 
 	// Draw dot as filled circle using path with arc
 	// Draw filled circle as an ellipse path
-	dotPath := qtlib.NewQPainterPath()
-	rectF := qtlib.NewQRectF4(axis.value1Point.x-rateValueDotRadius, axis.value1Point.y-rateValueDotRadius, rateValueDotRadius*2, rateValueDotRadius*2)
+	dotPath := gc(qtlib.NewQPainterPath())
+	rectF := gc(qtlib.NewQRectF4(axis.value1Point.x-rateValueDotRadius, axis.value1Point.y-rateValueDotRadius, rateValueDotRadius*2, rateValueDotRadius*2))
 	dotPath.ArcMoveTo(rectF, 0.0)
 	dotPath.ArcTo(rectF, 0.0, 360.0)
 	dotPath.CloseSubpath()
 	painter.FillPath(dotPath, dotBrush)
 
 	// Line from value2Point to value1Point (last-hour to 5-min)
-	linePen := qtlib.NewQPen()
+	linePen := gc(qtlib.NewQPen())
 	linePen.SetColor(dotQColor)
 	linePen.SetWidthF(rateValueLineWidth)
 	painter.SetPenWithPen(linePen)
-	painter.DrawLine(qtlib.NewQLineF3(axis.value2Point.x, axis.value2Point.y, axis.value1Point.x, axis.value1Point.y))
+	painter.DrawLine(gc(qtlib.NewQLineF3(axis.value2Point.x, axis.value2Point.y, axis.value1Point.x, axis.value1Point.y)))
 }
 
 func (ri *rateIndicator) drawTimeIndicator(painter *qtlib.QPainter, center point, axisLength float64, fgRGB [3]int) {
@@ -436,14 +437,14 @@ func (ri *rateIndicator) drawTimeIndicator(painter *qtlib.QPainter, center point
 
 	// Arc color from gradient
 	arcColor := interpRGB(timeGradient, ri.timeIndicator.achievement)
-	arcQColor := qtlib.NewQColor11(arcColor[0], arcColor[1], arcColor[2], 255)
+	arcQColor := gc(qtlib.NewQColor11(arcColor[0], arcColor[1], arcColor[2], 255))
 
 	// Draw arc
-	arcPen := qtlib.NewQPen()
+	arcPen := gc(qtlib.NewQPen())
 	arcPen.SetColor(arcQColor)
 	arcPen.SetWidthF(rateTimeLineWidth)
 	painter.SetPenWithPen(arcPen)
-	painter.SetBrush(qtlib.NewQBrush())
+	painter.SetBrush(gc(qtlib.NewQBrush()))
 
 	// Cairo uses angleRotation (3π/2) starting from 12 o'clock, spanning clockwise
 	// Qt's ArcTo uses degrees: 0° = 3 o'clock, counter-clockwise positive
@@ -452,8 +453,8 @@ func (ri *rateIndicator) drawTimeIndicator(painter *qtlib.QPainter, center point
 	span := (1 - ri.timeIndicator.achievement) * 2 * math.Pi
 	spanDeg := -span * 180 / math.Pi
 
-	rect := qtlib.NewQRectF4(center.x-radius, center.y-radius, radius*2, radius*2)
-	path := qtlib.NewQPainterPath()
+	rect := gc(qtlib.NewQRectF4(center.x-radius, center.y-radius, radius*2, radius*2))
+	path := gc(qtlib.NewQPainterPath())
 	path.ArcMoveTo(rect, 90.0)
 	path.ArcTo(rect, 90.0, spanDeg)
 	painter.DrawPath(path)
@@ -465,8 +466,8 @@ func (ri *rateIndicator) drawTimeIndicator(painter *qtlib.QPainter, center point
 	labelX := center.x - labelWidth/2
 	labelY := center.y + radius/2 + labelHeight
 
-	fontPen := qtlib.NewQPen()
-	fontPen.SetColor(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255))
+	fontPen := gc(qtlib.NewQPen())
+	fontPen.SetColor(gc(qtlib.NewQColor11(fgRGB[0], fgRGB[1], fgRGB[2], 255)))
 	painter.SetPenWithPen(fontPen)
-	painter.DrawText(qtlib.NewQPointF3(labelX, labelY), ri.timeIndicator.labelText)
+	painter.DrawText(gc(qtlib.NewQPointF3(labelX, labelY)), ri.timeIndicator.labelText)
 }

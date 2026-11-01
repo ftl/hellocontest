@@ -54,13 +54,15 @@ func (v *clockView) SetTime(text string) {
 
 func (v *clockView) paint() {
 	painter := qtlib.NewQPainter2(v.widget.QPaintDevice)
+	defer painter.Delete()
 	defer painter.End()
 	painter.SetRenderHint(qtlib.QPainter__Antialiasing)
 
-	fgColor := qtlib.QGuiApplication_Palette().ColorWithCr(qtlib.QPalette__WindowText)
+	palette := qtlib.QGuiApplication_Palette()
+	fgColor := palette.ColorWithCr(qtlib.QPalette__WindowText)
 	painter.SetPen(fgColor)
 
-	font := qtlib.NewQFont()
+	font := gc(qtlib.NewQFont())
 	font.SetFamily("monospace")
 	font.SetStyleHint(qtlib.QFont__TypeWriter)
 	font.SetFixedPitch(true)
@@ -92,5 +94,6 @@ func (v *clockView) paint() {
 	x := (v.widget.Width() - textW) / 2
 	// DrawText's y is the baseline; center the text box vertically.
 	y := (v.widget.Height()-fm.Height())/2 + fm.Ascent()
-	painter.DrawText(qtlib.NewQPointF3(float64(x), float64(y)), v.text)
+	baseline := gc(qtlib.NewQPointF3(float64(x), float64(y)))
+	painter.DrawText(baseline, v.text)
 }

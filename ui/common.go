@@ -37,6 +37,11 @@ func setupModeCombo(combo *qtlib.QComboBox) {
 	combo.SetCurrentIndex(0)
 }
 
+func gc[T interface{ GoGC() }](object T) T {
+	object.GoGC()
+	return object
+}
+
 func setFixedTextWidth(widget *qtlib.QWidget, sample string, padding int) {
 	widget.EnsurePolished()
 	widget.SetFixedWidth(widget.FontMetrics().HorizontalAdvance(sample) + 2*padding)

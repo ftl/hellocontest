@@ -459,6 +459,7 @@ func (a *application) ShowFilename(filename string) {
 func (a *application) SelectOpenFile(title string, dir string, patterns ...string) (string, bool, error) {
 	filter := buildFileFilter(patterns)
 	dlg := qtlib.NewQFileDialog6(nil, title, dir, filter)
+	defer dlg.DeleteLater()
 	dlg.SetAcceptMode(qtlib.QFileDialog__AcceptOpen)
 	dlg.SetFileMode(qtlib.QFileDialog__ExistingFile)
 	// Wayland: force a proper top-level window so the compositor lets the user

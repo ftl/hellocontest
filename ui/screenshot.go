@@ -92,7 +92,7 @@ func (s *screenshotter) Capture(req ScreenshotRequest) (Pixmap, error) {
 			if pmFull == nil {
 				return errors.New("Grab returned nil")
 			}
-			parentGlobal := parent.MapToGlobalWithQPoint(qtlib.NewQPoint2(0, 0))
+			parentGlobal := parent.MapToGlobalWithQPoint(gc(qtlib.NewQPoint2(0, 0)))
 			parentSize := parent.Size()
 			parentW, parentH := parentSize.Width(), parentSize.Height()
 
@@ -112,7 +112,7 @@ func (s *screenshotter) Capture(req ScreenshotRequest) (Pixmap, error) {
 					if w == nil {
 						return fmt.Errorf("widget %q not found", name)
 					}
-					tlGlobal := w.MapToGlobalWithQPoint(qtlib.NewQPoint2(0, 0))
+					tlGlobal := w.MapToGlobalWithQPoint(gc(qtlib.NewQPoint2(0, 0)))
 					sz := w.Size()
 					lx := tlGlobal.X() - parentGlobal.X()
 					ly := tlGlobal.Y() - parentGlobal.Y()
@@ -220,7 +220,7 @@ func (s *screenshotter) ShowMenu(name string) error {
 			return fmt.Errorf("menu %q not found", name)
 		}
 		bar := s.app.mainMenu.menuBar
-		pos := bar.MapToGlobalWithQPoint(qtlib.NewQPoint2(0, bar.Height()))
+		pos := bar.MapToGlobalWithQPoint(gc(qtlib.NewQPoint2(0, bar.Height())))
 		menu.Popup(pos)
 		return nil
 	})
@@ -282,14 +282,14 @@ func (s *screenshotter) Annotate(p Pixmap, markers []Marker) error {
 	}
 	return runOnMainSync(func() error {
 		resolved := make([]Marker, 0, len(markers))
-		rootGlobal := img.root.MapToGlobalWithQPoint(qtlib.NewQPoint2(0, 0))
+		rootGlobal := img.root.MapToGlobalWithQPoint(gc(qtlib.NewQPoint2(0, 0)))
 		for _, m := range markers {
 			if m.WidgetName != "" {
 				w := findWidgetByObjectName(m.WidgetName)
 				if w == nil {
 					return fmt.Errorf("marker widget %q not found", m.WidgetName)
 				}
-				g := w.MapToGlobalWithQPoint(qtlib.NewQPoint2(m.DX, m.DY))
+				g := w.MapToGlobalWithQPoint(gc(qtlib.NewQPoint2(m.DX, m.DY)))
 				m.X = g.X() - rootGlobal.X() - img.originX
 				m.Y = g.Y() - rootGlobal.Y() - img.originY
 			}
@@ -302,14 +302,14 @@ func (s *screenshotter) Annotate(p Pixmap, markers []Marker) error {
 		painter.SetRenderHint2(qtlib.QPainter__Antialiasing, true)
 		painter.SetRenderHint2(qtlib.QPainter__TextAntialiasing, true)
 
-		circleColor := qtlib.NewQColor11(markerR, markerG, markerB, 230)
-		textColor := qtlib.NewQColor11(255, 255, 255, 255)
-		outlineColor := qtlib.NewQColor11(255, 255, 255, 255)
-		outlinePen := qtlib.NewQPen3(outlineColor)
+		circleColor := gc(qtlib.NewQColor11(markerR, markerG, markerB, 230))
+		textColor := gc(qtlib.NewQColor11(255, 255, 255, 255))
+		outlineColor := gc(qtlib.NewQColor11(255, 255, 255, 255))
+		outlinePen := gc(qtlib.NewQPen3(outlineColor))
 		outlinePen.SetWidthF(markerLineWidth)
-		fillBrush := qtlib.NewQBrush3(circleColor)
-		textPen := qtlib.NewQPen3(textColor)
-		font := qtlib.NewQFont7("Sans", markerFontSize, int(qtlib.QFont__Bold))
+		fillBrush := gc(qtlib.NewQBrush3(circleColor))
+		textPen := gc(qtlib.NewQPen3(textColor))
+		font := gc(qtlib.NewQFont7("Sans", markerFontSize, int(qtlib.QFont__Bold)))
 
 		for _, m := range resolved {
 			painter.SetPenWithPen(outlinePen)
@@ -320,10 +320,10 @@ func (s *screenshotter) Annotate(p Pixmap, markers []Marker) error {
 			)
 			painter.SetPenWithPen(textPen)
 			painter.SetFont(font)
-			rect := qtlib.NewQRect4(
+			rect := gc(qtlib.NewQRect4(
 				m.X-markerDiameter/2, m.Y-markerDiameter/2,
 				markerDiameter, markerDiameter,
-			)
+			))
 			painter.DrawText6(rect, int(qtlib.AlignCenter), fmt.Sprintf("%d", m.Number))
 		}
 		return nil

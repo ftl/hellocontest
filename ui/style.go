@@ -112,7 +112,7 @@ func (s *Style) MarkerBrushes(kind core.BandmapMarkerKind) (background, foregrou
 		palette := qtlib.QGuiApplication_Palette()
 		return palette.Text(), palette.Base()
 	}
-	return qtlib.NewQBrush3(newQColor(genericMarkerRGB)), qtlib.NewQBrush3(newQColor(genericMarkerTextRGB))
+	return gc(qtlib.NewQBrush3(newQColor(genericMarkerRGB))), gc(qtlib.NewQBrush3(newQColor(genericMarkerTextRGB)))
 }
 
 func (s *Style) WorkedSpotBrush() *qtlib.QBrush {
@@ -134,7 +134,7 @@ func bandBGQColor() *qtlib.QColor {
 }
 
 func rgbQColor(rgb [3]int, alpha float32) *qtlib.QColor {
-	c := qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255)
+	c := gc(qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255))
 	c.SetAlphaF(alpha)
 	return c
 }

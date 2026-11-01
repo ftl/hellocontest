@@ -60,7 +60,7 @@ func newSpotsView(controller SpotsController, focuser EntryFocuser, style *Style
 		style:      style,
 	}
 
-	v.bold = qtlib.NewQFont()
+	v.bold = gc(qtlib.NewQFont())
 	v.bold.SetBold(true)
 
 	v.widget = qtlib.NewQWidget2()
@@ -250,7 +250,7 @@ func (v *spotsView) applyIncrementalDiff(oldFrame, newFrame core.BandmapFrame) b
 	rowsRemoved := false
 	for i := len(oldFrame.Rows) - 1; i >= 0; i-- {
 		if !visited[oldFrame.Rows[i].ID()] {
-			v.model.RemoveRows(i, 1, qtlib.NewQModelIndex())
+			v.model.RemoveRows(i, 1, gc(qtlib.NewQModelIndex()))
 			rowsRemoved = true
 		}
 	}
@@ -360,7 +360,7 @@ func (v *spotsView) applySelection(frame core.BandmapFrame) {
 			sel.ClearSelection()
 			return
 		}
-		modelIdx := v.model.Index(idx, 0, qtlib.NewQModelIndex())
+		modelIdx := v.model.Index(idx, 0, gc(qtlib.NewQModelIndex()))
 		sel.Select(modelIdx, qtlib.QItemSelectionModel__ClearAndSelect|qtlib.QItemSelectionModel__Rows)
 		v.table.ScrollTo(modelIdx, qtlib.QAbstractItemView__EnsureVisible)
 	})

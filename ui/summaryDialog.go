@@ -77,7 +77,7 @@ func (d *summaryDialog) Show() bool {
 	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
 	d.dialog.SetWindowTitle("Summary")
 	d.dialog.SetModal(true)
-	d.dialog.SetMinimumSize(qtlib.NewQSize2(700, 500))
+	d.dialog.SetMinimumSize(gc(qtlib.NewQSize2(700, 500)))
 	d.dialog.SetWindowFlags(
 		qtlib.Window |
 			qtlib.CustomizeWindowHint |

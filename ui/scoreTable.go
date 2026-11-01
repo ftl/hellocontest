@@ -52,7 +52,7 @@ func newScoreTable() *scoreTable {
 		SetColumnSampleWidth(t.widget, i, header)
 	}
 
-	t.bold = qtlib.NewQFont()
+	t.bold = gc(qtlib.NewQFont())
 	t.bold.SetBold(true)
 
 	t.widget.SetColumnHidden(colQTCs, true)
@@ -98,11 +98,11 @@ func (t *scoreTable) appendRow(bandLabel string, bs core.BandScore, total bool) 
 			continue
 		}
 		if i == colBand {
-			item.SetForeground(qtlib.NewQBrush3(bandQColor(core.Band(bandLabel))))
-			item.SetBackground(qtlib.NewQBrush3(bandBGQColor()))
+			item.SetForeground(gc(qtlib.NewQBrush3(bandQColor(core.Band(bandLabel)))))
+			item.SetBackground(gc(qtlib.NewQBrush3(bandBGQColor())))
 		}
 	}
-	rowIdx := t.model.RowCount(qtlib.NewQModelIndex())
+	rowIdx := t.model.RowCount(gc(qtlib.NewQModelIndex()))
 	for col, item := range cells {
 		t.model.SetItem(rowIdx, col, item)
 	}

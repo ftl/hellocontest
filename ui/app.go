@@ -398,7 +398,7 @@ func (a *application) restoreSpotWindowGeometry(settings *qtlib.QSettings) {
 
 func (a *application) applySpotWindowVisibility(settings *qtlib.QSettings) {
 	visible := true
-	if v := settings.Value(*qtlib.NewQAnyStringView3(settingSpotWindowVisible), qtlib.NewQVariant()); v.IsValid() {
+	if v := settings.Value(*qtlib.NewQAnyStringView3(settingSpotWindowVisible), gc(qtlib.NewQVariant())); v.IsValid() {
 		visible = v.ToBool()
 	}
 	if visible {
@@ -423,7 +423,7 @@ func (a *application) storeWindowState() {
 	a.dockManager.Save(settings)
 	settings.SetValue(
 		*qtlib.NewQAnyStringView3(settingSpotWindowVisible),
-		qtlib.NewQVariant8(a.spotWindow.Visible()),
+		gc(qtlib.NewQVariant8(a.spotWindow.Visible())),
 	)
 	settings.Sync()
 }

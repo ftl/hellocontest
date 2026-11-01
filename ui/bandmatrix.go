@@ -191,7 +191,7 @@ func (t *bandMatrix) appendRow(summary core.BandSummary, frame core.BandMatrixFr
 		}
 	}
 
-	row := t.model.RowCount(qtlib.NewQModelIndex())
+	row := t.model.RowCount(gc(qtlib.NewQModelIndex()))
 	for column, item := range cells {
 		t.model.SetItem(row, column, item)
 	}
@@ -222,7 +222,7 @@ func markMaxValue(item *qtlib.QStandardItem, max bool) {
 	if !max {
 		return
 	}
-	item.SetData(qtlib.NewQVariant8(true), roleMaxValue)
+	item.SetData(gc(qtlib.NewQVariant8(true)), roleMaxValue)
 }
 
 func drawSelectionMarker(painter *qtlib.QPainter, rect *qtlib.QRect, palette *qtlib.QPalette) {

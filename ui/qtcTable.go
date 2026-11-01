@@ -34,7 +34,7 @@ func newQTCTable() *qtcTable {
 }
 
 func (t *qtcTable) QTCAdded(qtc core.QTC) {
-	row := t.model.RowCount(qtlib.NewQModelIndex())
+	row := t.model.RowCount(gc(qtlib.NewQModelIndex()))
 	items := []*qtlib.QStandardItem{
 		qtlib.NewQStandardItem2(qtc.Timestamp.In(time.UTC).Format("15:04")),
 		qtlib.NewQStandardItem2(qtc.TheirCallsign.String()),
@@ -50,7 +50,7 @@ func (t *qtcTable) QTCAdded(qtc core.QTC) {
 		t.model.SetItem(row, col, item)
 	}
 
-	index := t.model.Index(row, 0, qtlib.NewQModelIndex())
+	index := t.model.Index(row, 0, gc(qtlib.NewQModelIndex()))
 	t.widget.ScrollTo(index, qtlib.QAbstractItemView__EnsureVisible)
 }
 

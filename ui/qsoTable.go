@@ -111,7 +111,7 @@ func (t *qsoTable) rebuildColumns() {
 }
 
 func (t *qsoTable) QSOAdded(qso core.QSO) {
-	row := t.model.RowCount(qtlib.NewQModelIndex())
+	row := t.model.RowCount(gc(qtlib.NewQModelIndex()))
 
 	items := []*qtlib.QStandardItem{
 		qtlib.NewQStandardItem2(qso.Time.In(time.UTC).Format("15:04")),
@@ -139,7 +139,7 @@ func (t *qsoTable) QSOAdded(qso core.QSO) {
 		t.model.SetItem(row, col, item)
 	}
 
-	index := t.model.Index(row, 0, qtlib.NewQModelIndex())
+	index := t.model.Index(row, 0, gc(qtlib.NewQModelIndex()))
 	t.table.ScrollTo(index, qtlib.QAbstractItemView__EnsureVisible)
 }
 

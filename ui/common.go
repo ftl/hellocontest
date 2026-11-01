@@ -49,7 +49,7 @@ func setFixedTextWidth(widget *qtlib.QWidget, sample string, padding int) {
 
 func setFixedBoldTextWidth(widget *qtlib.QWidget, sample string, padding int) {
 	widget.EnsurePolished()
-	font := qtlib.NewQFont5(widget.Font())
+	font := gc(qtlib.NewQFont5(widget.Font()))
 	font.SetBold(true)
 	widget.SetFixedWidth(qtlib.NewQFontMetrics(font).HorizontalAdvance(sample) + 2*padding)
 }
@@ -76,18 +76,18 @@ func SetColumnSampleWidth(widget *qtlib.QTableView, column int, sample string) {
 }
 
 func ClearTableRows(model *qtlib.QStandardItemModel) {
-	rowCount := model.RowCount(qtlib.NewQModelIndex())
+	rowCount := model.RowCount(gc(qtlib.NewQModelIndex()))
 	if rowCount > 0 {
-		model.RemoveRows(0, rowCount, qtlib.NewQModelIndex())
+		model.RemoveRows(0, rowCount, gc(qtlib.NewQModelIndex()))
 	}
 }
 
 func SelectTableRow(view *qtlib.QTableView, index int, model *qtlib.QStandardItemModel) {
-	if index < 0 || index >= model.RowCount(qtlib.NewQModelIndex()) {
+	if index < 0 || index >= model.RowCount(gc(qtlib.NewQModelIndex())) {
 		return
 	}
 	view.SelectRow(index)
-	modelIndex := model.Index(index, 0, qtlib.NewQModelIndex())
+	modelIndex := model.Index(index, 0, gc(qtlib.NewQModelIndex()))
 	view.ScrollTo(modelIndex, qtlib.QAbstractItemView__EnsureVisible)
 }
 

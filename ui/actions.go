@@ -309,7 +309,7 @@ func (a *actions) makeAction(text, shortcut, tooltip string) *qtlib.QAction {
 	action := qtlib.NewQAction()
 	action.SetText(text)
 	if shortcut != "" {
-		action.SetShortcut(qtlib.NewQKeySequence2(shortcut))
+		action.SetShortcut(gc(qtlib.NewQKeySequence2(shortcut)))
 	}
 	if tooltip != "" {
 		action.SetToolTip(tooltip)

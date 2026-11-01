@@ -44,7 +44,7 @@ func (d *qtcDialog) Show(mode core.QTCMode, series core.QTCSeries, vfoName strin
 	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
 	d.dialog.SetWindowTitle("QTC")
 	d.dialog.SetModal(true)
-	d.dialog.SetMinimumSize(qtlib.NewQSize2(600, 500))
+	d.dialog.SetMinimumSize(gc(qtlib.NewQSize2(600, 500)))
 	d.dialog.SetWindowFlags(
 		qtlib.Window |
 			qtlib.CustomizeWindowHint |

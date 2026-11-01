@@ -47,6 +47,10 @@ func (v *scoreTableView) SetGoals(points, multis int) {
 	// Table doesn't display goals - no-op
 }
 
+func (v *scoreTableView) SetBands(bands []core.Band) {
+	v.table.SetBands(bands)
+}
+
 func (v *scoreTableView) SetQTCsEnabled(enabled bool) {
 	v.table.SetQTCsEnabled(enabled)
 }

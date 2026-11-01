@@ -52,20 +52,18 @@ var (
 	vfoContainerEditing   = vfoContainerColors{"palette(accent)", "palette(highlighted-text)"}
 )
 
-// Band RGBs transcribed from ui/style/contest.css. Do not change without
-// changing the CSS too.
+// The band colors connect the score graph with the band column of the score table and the band matrix.
 var bandRGB = map[core.Band][3]int{
-	core.Band160m: {0x7F, 0x00, 0x7F},
-	core.Band80m:  {0x00, 0x00, 0x7F},
-	core.Band40m:  {0x00, 0xFF, 0x00},
-	core.Band20m:  {0xFF, 0xFF, 0x00},
-	core.Band15m:  {0xFF, 0x7F, 0x00},
-	core.Band10m:  {0xFF, 0x00, 0x00},
+	core.Band160m: {0, 150, 170},
+	core.Band80m:  {0, 102, 204},
+	core.Band40m:  {0, 136, 68},
+	core.Band20m:  {230, 115, 0},
+	core.Band15m:  {147, 51, 234},
+	core.Band10m:  {230, 30, 130},
 }
 
 var (
 	defaultBandRGB   = [3]int{0x80, 0x80, 0x80}
-	bandBGRGB        = [3]int{0x88, 0x88, 0x88}
 	lowZoneRGB       = [3]int{0xCC, 0xCC, 0xCC}
 	axisRGB          = [3]int{0x20, 0x20, 0x20}
 	backgroundRGB    = [3]int{0xFF, 0xFF, 0xFF}
@@ -89,6 +87,15 @@ func (s *Style) Apply(app *qtlib.QApplication) {
 	app.SetStyleSheet(s.appStylesheet)
 }
 
+func blendRGB(base [3]int, overlay [3]int, overlayPart float64) [3]int {
+	basePart := 1 - overlayPart
+	return [3]int{
+		int(float64(base[0])*basePart + float64(overlay[0])*overlayPart),
+		int(float64(base[1])*basePart + float64(overlay[1])*overlayPart),
+		int(float64(base[2])*basePart + float64(overlay[2])*overlayPart),
+	}
+}
+
 func newQColor(rgb [3]int) *qtlib.QColor {
 	return gc(qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255))
 }
@@ -100,7 +107,6 @@ func (s *Style) BandColor(band core.Band) *qtlib.QColor {
 	return newQColor(defaultBandRGB)
 }
 
-func (s *Style) BandBGColor() *qtlib.QColor        { return newQColor(bandBGRGB) }
 func (s *Style) LowZoneColor() *qtlib.QColor       { return newQColor(lowZoneRGB) }
 func (s *Style) AxisColor() *qtlib.QColor          { return newQColor(axisRGB) }
 func (s *Style) BackgroundColor() *qtlib.QColor    { return newQColor(backgroundRGB) }
@@ -127,10 +133,6 @@ func bandQColor(band core.Band) *qtlib.QColor {
 		return newQColor(rgb)
 	}
 	return newQColor(defaultBandRGB)
-}
-
-func bandBGQColor() *qtlib.QColor {
-	return newQColor(bandBGRGB)
 }
 
 func rgbQColor(rgb [3]int, alpha float32) *qtlib.QColor {

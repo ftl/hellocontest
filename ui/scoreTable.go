@@ -26,8 +26,9 @@ type scoreTable struct {
 	widget *qtlib.QTableView
 	model  *qtlib.QStandardItemModel
 
-	qtcsEnabled bool
-	bold        *qtlib.QFont
+	qtcsEnabled  bool
+	bold         *qtlib.QFont
+	contestBands []core.Band
 }
 
 func newScoreTable() *scoreTable {
@@ -60,6 +61,10 @@ func newScoreTable() *scoreTable {
 	return t
 }
 
+func (t *scoreTable) SetBands(bands []core.Band) {
+	t.contestBands = bands
+}
+
 func (t *scoreTable) SetQTCsEnabled(enabled bool) {
 	t.qtcsEnabled = enabled
 	t.widget.SetColumnHidden(colQTCs, !enabled)
@@ -68,14 +73,26 @@ func (t *scoreTable) SetQTCsEnabled(enabled bool) {
 func (t *scoreTable) ShowScore(score core.Score) {
 	ClearTableRows(t.model)
 
-	for _, band := range core.Bands {
-		bs, ok := score.ScorePerBand[band]
-		if !ok {
-			continue
-		}
-		t.appendRow(string(band), bs, false)
+	for _, band := range t.bandsToShow(score) {
+		t.appendRow(string(band), score.ScorePerBand[band], false)
 	}
 	t.appendRow("Total", score.Result(), true)
+}
+
+func (t *scoreTable) bandsToShow(score core.Score) []core.Band {
+	contestBands := make(map[core.Band]bool, len(t.contestBands))
+	for _, band := range t.contestBands {
+		contestBands[band] = true
+	}
+
+	result := make([]core.Band, 0, len(core.Bands))
+	for _, band := range core.Bands {
+		_, scored := score.ScorePerBand[band]
+		if contestBands[band] || scored {
+			result = append(result, band)
+		}
+	}
+	return result
 }
 
 func (t *scoreTable) appendRow(bandLabel string, bs core.BandScore, total bool) {
@@ -99,7 +116,6 @@ func (t *scoreTable) appendRow(bandLabel string, bs core.BandScore, total bool) 
 		}
 		if i == colBand {
 			item.SetForeground(gc(qtlib.NewQBrush3(bandQColor(core.Band(bandLabel)))))
-			item.SetBackground(gc(qtlib.NewQBrush3(bandBGQColor())))
 		}
 	}
 	rowIdx := t.model.RowCount(gc(qtlib.NewQModelIndex()))

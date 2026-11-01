@@ -121,9 +121,11 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 
 	a.controller.Settings.Notify(settings.ContestListenerFunc(func(c core.Contest) {
 		a.SetExchangeFields(c.MyExchangeFields, c.TheirExchangeFields, c.GenerateSerialExchange)
+		a.scoreTableView.SetBands(c.Bands())
 	}))
 	contest := a.controller.Settings.Contest()
 	a.SetExchangeFields(contest.MyExchangeFields, contest.TheirExchangeFields, contest.GenerateSerialExchange)
+	a.scoreTableView.SetBands(contest.Bands())
 
 	a.window.Show()
 	a.controller.Refresh()

@@ -183,7 +183,6 @@ func (t *bandMatrix) appendRow(summary core.BandSummary, frame core.BandMatrixFr
 		case matrixColBand:
 			item.SetTextAlignment(qtlib.AlignLeft | qtlib.AlignVCenter)
 			item.SetForeground(gc(qtlib.NewQBrush3(bandQColor(summary.Band))))
-			item.SetBackground(gc(qtlib.NewQBrush3(bandBGQColor())))
 		case matrixColVFO1, matrixColVFO2:
 			item.SetTextAlignment(qtlib.AlignCenter)
 		default:

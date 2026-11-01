@@ -11,16 +11,16 @@ import (
 )
 
 const (
-	scoreGraphFontSize    = 15
-	scoreGraphAreaAlpha   = 0.4
-	scoreGraphBorderAlpha = 0.8
-	scoreGraphMarginY     = 10.0
-	scoreGraphAxisWidth   = 1.0
-	scoreGraphDivWidth    = 0.5
-	scoreGraphDivCount    = 8
-	scoreGraphDefaultGoal = 60
-	scoreGraphMinWidth    = 320
-	scoreGraphMinHeight   = 160
+	scoreGraphFontSize           = 15
+	scoreGraphLowZoneBlend       = 0.2
+	scoreGraphLowZoneBorderBlend = 0.4
+	scoreGraphMarginY            = 10.0
+	scoreGraphAxisWidth          = 1.0
+	scoreGraphDivWidth           = 0.5
+	scoreGraphDivCount           = 8
+	scoreGraphDefaultGoal        = 60
+	scoreGraphMinWidth           = 320
+	scoreGraphMinHeight          = 160
 )
 
 type scoreGraph struct {
@@ -169,12 +169,9 @@ func (g *scoreGraph) paint() {
 	fgRGB := [3]int{fgColor.Red(), fgColor.Green(), fgColor.Blue()}
 	selectionRGB := [3]int{selectionColor.Red(), selectionColor.Green(), selectionColor.Blue()}
 
-	// Derive low zone color as mid-tone between bg and fg
-	lowZoneRGB := [3]int{
-		(bgRGB[0] + fgRGB[0]) / 2,
-		(bgRGB[1] + fgRGB[1]) / 2,
-		(bgRGB[2] + fgRGB[2]) / 2,
-	}
+	// the low zone blends the foreground into the background instead of using transparency
+	lowZoneRGB := blendRGB(bgRGB, fgRGB, scoreGraphLowZoneBlend)
+	lowZoneBorderRGB := blendRGB(bgRGB, fgRGB, scoreGraphLowZoneBorderBlend)
 
 	font := gc(qtlib.NewQFont())
 	font.SetPixelSize(scoreGraphFontSize)
@@ -187,7 +184,7 @@ func (g *scoreGraph) paint() {
 	layout := g.calculateLayout(painter, valueCount)
 
 	g.fillBackground(painter, layout, bgRGB)
-	g.drawLowZone(painter, layout, lowZoneRGB, fgRGB)
+	g.drawLowZone(painter, layout, lowZoneRGB, lowZoneBorderRGB, fgRGB)
 
 	for i := len(g.graphs) - 1; i >= 0; i-- {
 		g.drawBand(painter, layout, g.graphs[i])
@@ -263,7 +260,6 @@ func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayo
 
 	if right > left {
 		indicatorColor := gc(qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255))
-		indicatorColor.SetAlphaF(scoreGraphBorderAlpha)
 		brush := gc(qtlib.NewQBrush3(indicatorColor))
 		painter.FillRect2(int(left), int(top), int(right-left), int(bottom-top), brush)
 	}
@@ -298,7 +294,6 @@ func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayo
 
 		framePen := gc(qtlib.NewQPen())
 		frameColor := gc(qtlib.NewQColor11(selectionRGB[0], selectionRGB[1], selectionRGB[2], 255))
-		frameColor.SetAlphaF(scoreGraphBorderAlpha)
 		framePen.SetColor(frameColor)
 		framePen.SetWidthF(layout.divisionLineWidth)
 		painter.SetPenWithPen(framePen)
@@ -314,17 +309,15 @@ func (g *scoreGraph) drawTimeIndicator(painter *qtlib.QPainter, layout graphLayo
 	}
 }
 
-func (g *scoreGraph) drawLowZone(painter *qtlib.QPainter, layout graphLayout, lowZoneRGB [3]int, fgRGB [3]int) {
+func (g *scoreGraph) drawLowZone(painter *qtlib.QPainter, layout graphLayout, lowZoneRGB [3]int, lowZoneBorderRGB [3]int, fgRGB [3]int) {
 	fillColor := gc(qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255))
-	fillColor.SetAlphaF(scoreGraphAreaAlpha)
 	fillBrush := gc(qtlib.NewQBrush3(fillColor))
 
 	top := layout.zeroY - layout.pointsLowZoneHeight
 	bottom := layout.zeroY + layout.multisLowZoneHeight
 	painter.FillRect2(int(layout.leftLegendWidth), int(top), int(layout.width-layout.leftLegendWidth), int(bottom-top), fillBrush)
 
-	borderColor := gc(qtlib.NewQColor11(lowZoneRGB[0], lowZoneRGB[1], lowZoneRGB[2], 255))
-	borderColor.SetAlphaF(scoreGraphBorderAlpha)
+	borderColor := gc(qtlib.NewQColor11(lowZoneBorderRGB[0], lowZoneBorderRGB[1], lowZoneBorderRGB[2], 255))
 	pen := gc(qtlib.NewQPen())
 	pen.SetColor(borderColor)
 	pen.SetWidthF(layout.divisionLineWidth)
@@ -350,9 +343,7 @@ func (g *scoreGraph) drawBand(painter *qtlib.QPainter, layout graphLayout, graph
 		return
 	}
 
-	fill := bandQColor(graph.Band)
-	fill.SetAlphaF(scoreGraphAreaAlpha)
-	brush := gc(qtlib.NewQBrush3(fill))
+	brush := gc(qtlib.NewQBrush3(bandQColor(graph.Band)))
 
 	path := gc(qtlib.NewQPainterPath())
 	path.MoveTo2(layout.leftLegendWidth, layout.zeroY)

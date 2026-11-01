@@ -15,10 +15,12 @@ const (
 	TXIndicatorActiveStyle   = "QLabel { padding-left: 5px; padding-right: 5px; background-color: red; color: white; border: 1px solid white; border-radius: 10px; font-weight: bold; }"
 	TXIndicatorInactiveStyle = "QLabel { padding-left: 5px; padding-right: 5px; color: %[1]s; border: 1px solid %[1]s; border-radius: 10px; }"
 
-	VFOAreaNormalStyle    = "QWidget#%s { border: 4px solid transparent; }"
-	VFOAreaDuplicateStyle = "QWidget#%s { border: 4px solid red; }"
-	VFOAreaEditingStyle   = "QWidget#%s { border: 4px solid palette(accent); }"
-	VFOAreaBorderWidth    = 4
+	VFOAreaNormalStyle    = "QWidget#%s { border: 1px solid transparent; }"
+	VFOAreaActiveStyle    = "QWidget#%s { border: 1px solid palette(highlight); }"
+	VFOAreaDuplicateStyle = "QWidget#%s { border: 1px solid red; }"
+	VFOAreaEditingStyle   = "QWidget#%s { border: 1px solid palette(accent); }"
+	VFOAreaBorderWidth    = 1
+	VFOAreaBorderGap      = 5
 
 	VFOContainerStyle = "QWidget#%s { background-color: %s; } QLabel { color: %s; }"
 

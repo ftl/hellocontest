@@ -23,6 +23,7 @@ type vfoArea struct {
 
 	root        *qtlib.QWidget
 	rootName    string
+	content     *qtlib.QWidget
 	entryLayout *qtlib.QGridLayout
 
 	vfoContainer     *qtlib.QWidget
@@ -51,11 +52,19 @@ func newVFOArea(vfo core.VFOID, widgetPrefix string, entry *entryVFOWidgets, cal
 	result.root.SetObjectName(*qtlib.NewQAnyStringView3(result.rootName))
 	result.root.SetAttribute(qtlib.WA_StyledBackground)
 
-	result.entryLayout = qtlib.NewQGridLayout(result.root)
-	result.entryLayout.SetContentsMargins(VFOAreaBorderWidth, VFOAreaBorderWidth, VFOAreaBorderWidth, VFOAreaBorderWidth)
+	rootLayout := qtlib.NewQVBoxLayout(result.root)
+	rootLayout.SetContentsMargins(VFOAreaBorderWidth, VFOAreaBorderWidth, VFOAreaBorderWidth, VFOAreaBorderWidth)
+	rootLayout.SetSpacing(5)
+
+	result.content = qtlib.NewQWidget2()
+	result.entryLayout = qtlib.NewQGridLayout(result.content)
+	result.entryLayout.SetContentsMargins(VFOAreaBorderGap, 0, VFOAreaBorderGap, VFOAreaBorderGap)
 	result.entryLayout.SetSpacing(5)
 
 	result.setupVFOContainer()
+	rootLayout.AddWidget(result.vfoContainer)
+	rootLayout.AddWidget(result.content)
+
 	result.setupInfoContainer()
 	result.setupEntryWidgets()
 	result.setupCallinfoWidgets()
@@ -251,6 +260,8 @@ func (a *vfoArea) rootStyle() string {
 		return VFOAreaDuplicateStyle
 	case a.isEditing:
 		return VFOAreaEditingStyle
+	case a.active:
+		return VFOAreaActiveStyle
 	default:
 		return VFOAreaNormalStyle
 	}
@@ -273,21 +284,20 @@ func (a *vfoArea) addWidgetsToLayout() {
 	lastColumn := 3 + len(a.entry.theirExchangeFields)
 	a.setFillerColumn(lastColumn - 2)
 
-	a.entryLayout.AddWidget3(a.vfoContainer, 0, 0, 1, -1)
-	a.entryLayout.AddWidget2(a.callinfo.callsignLabel.QWidget, 1, 0)
+	a.entryLayout.AddWidget2(a.callinfo.callsignLabel.QWidget, 0, 0)
 	for i := range a.callinfo.predictedExchangeLabels {
-		a.entryLayout.AddWidget2(a.callinfo.predictedExchangeLabels[i].QWidget, 1, i+1)
+		a.entryLayout.AddWidget2(a.callinfo.predictedExchangeLabels[i].QWidget, 0, i+1)
 	}
-	a.entryLayout.AddWidget2(a.callinfo.valueLabel.QWidget, 1, lastColumn-1)
-	a.entryLayout.AddWidget2(a.callinfo.qtcStatusLabel.QWidget, 1, lastColumn)
-	a.entryLayout.AddWidget2(a.entry.callsign.QWidget, 2, 0)
+	a.entryLayout.AddWidget2(a.callinfo.valueLabel.QWidget, 0, lastColumn-1)
+	a.entryLayout.AddWidget2(a.callinfo.qtcStatusLabel.QWidget, 0, lastColumn)
+	a.entryLayout.AddWidget2(a.entry.callsign.QWidget, 1, 0)
 	for i := range a.entry.theirExchangeFields {
-		a.entryLayout.AddWidget2(a.entry.theirExchangeFields[i].QWidget, 2, i+1)
+		a.entryLayout.AddWidget2(a.entry.theirExchangeFields[i].QWidget, 1, i+1)
 	}
-	a.entryLayout.AddWidget2(a.entry.logButton.QWidget, 2, lastColumn-1)
-	a.entryLayout.AddWidget2(a.entry.clearButton.QWidget, 2, lastColumn)
-	a.entryLayout.AddWidget3(a.callinfo.supercheckLabel.QWidget, 3, 0, 1, -1)
-	a.entryLayout.AddWidget3(a.infoStack.QWidget, 4, 0, 1, -1)
+	a.entryLayout.AddWidget2(a.entry.logButton.QWidget, 1, lastColumn-1)
+	a.entryLayout.AddWidget2(a.entry.clearButton.QWidget, 1, lastColumn)
+	a.entryLayout.AddWidget3(a.callinfo.supercheckLabel.QWidget, 2, 0, 1, -1)
+	a.entryLayout.AddWidget3(a.infoStack.QWidget, 3, 0, 1, -1)
 }
 
 func (a *vfoArea) setFillerColumn(column int) {
@@ -298,7 +308,6 @@ func (a *vfoArea) setFillerColumn(column int) {
 }
 
 func (a *vfoArea) removeWidgetsFromLayout() {
-	a.entryLayout.RemoveWidget(a.vfoContainer)
 	a.entryLayout.RemoveWidget(a.callinfo.callsignLabel.QWidget)
 	for i := range a.callinfo.predictedExchangeLabels {
 		a.entryLayout.RemoveWidget(a.callinfo.predictedExchangeLabels[i].QWidget)

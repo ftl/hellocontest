@@ -86,7 +86,7 @@ func setFixedBoldTextWidth(widget *qtlib.QWidget, sample string, padding int) {
 	widget.EnsurePolished()
 	font := gc(qtlib.NewQFont5(widget.Font()))
 	font.SetBold(true)
-	widget.SetFixedWidth(qtlib.NewQFontMetrics(font).HorizontalAdvance(sample) + 2*padding)
+	widget.SetFixedWidth(gc(qtlib.NewQFontMetrics(font)).HorizontalAdvance(sample) + 2*padding)
 }
 
 func setFixedSampleHeight(label *qtlib.QLabel, sample string) {

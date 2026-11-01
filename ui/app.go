@@ -362,12 +362,14 @@ func (a *application) restoreWindowStateFromString(windowState string) {
 		return
 	}
 	settings := qtlib.NewQSettings4(tmpName, qtlib.QSettings__IniFormat)
+	defer settings.Delete()
 	restoreWindowGeometry(settings, mainWindowSettingPrefix, a.window)
 	a.restoreWindowLayout(settings)
 }
 
 func (a *application) restoreWindowState() {
 	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
+	defer settings.Delete()
 	if !restoreWindowGeometry(settings, mainWindowSettingPrefix, a.window) {
 		a.window.Resize(defaultMainWindowWidth, defaultMainWindowHeight)
 	}
@@ -418,6 +420,7 @@ func (a *application) storeWindowStateOnce() {
 
 func (a *application) storeWindowState() {
 	settings := qtlib.NewQSettings7(settingsOrg, settingsApp)
+	defer settings.Delete()
 	saveWindowState(settings, mainWindowSettingPrefix, a.window)
 	saveWindowState(settings, spotWindowSettingPrefix, a.spotWindow.window)
 	a.dockManager.Save(settings)

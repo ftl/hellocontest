@@ -649,7 +649,6 @@ func (m *Bandmap) QTCAdded(qtc core.QTC) {
 	}
 }
 
-// Remove takes a spot back, for a source that knows that the station is gone.
 func (m *Bandmap) Remove(spot core.Spot) {
 	m.do <- func() {
 		if !m.entries.Remove(spot) {

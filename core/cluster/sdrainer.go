@@ -122,8 +122,9 @@ func (c *sdrainerClient) run(events chan any, refresh <-chan time.Time) {
 type sdrainerChannel struct {
 	channel           sdrainer.Channel
 	lastCharacterTime time.Time
-	// lastSpot is the spot that this client made of the channel. It takes that spot back when
-	// SDRainer destroys the channel or corrects its callsign.
+	// lastSpot is the spot that this client made of the channel. It tells when the channel was
+	// spotted the last time, and with which callsign. This client takes that spot back when
+	// SDRainer corrects the callsign of the channel.
 	lastSpot core.Spot
 }
 
@@ -187,11 +188,11 @@ func (c *sdrainerClient) channelSeen(channel sdrainer.Channel) {
 	c.spot(id)
 }
 
-// channelGone takes the spot of a channel back. SDRainer holds a channel as long as it hears the
-// station, therefore a destroyed channel means that the station is gone.
+// channelGone forgets a channel, so that refreshSpots renews its spot no more. The spot itself
+// stays in the bandmap and ages out with the configured spot lifetime, like the spots of all
+// other sources.
 func (c *sdrainerClient) channelGone(channel sdrainer.Channel) {
 	id := string(channel.ID)
-	c.removeLastSpot(id)
 	delete(c.channels, id)
 }
 

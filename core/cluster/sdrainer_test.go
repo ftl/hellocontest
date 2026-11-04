@@ -250,16 +250,15 @@ func TestSDRainerClient_RefreshesOnTheTick(t *testing.T) {
 	<-done
 }
 
-func TestSDRainerClient_TakesTheSpotOfADestroyedChannelBack(t *testing.T) {
+func TestSDRainerClient_KeepsTheSpotOfADestroyedChannel(t *testing.T) {
 	client, bandmap, _ := setupSDRainerClient()
 	client.handleEvent(sdrainer.ChannelRunningCallsignDetected{Channel: testChannel("1", 3560000, "dl1abc")})
 
 	client.handleEvent(sdrainer.ChannelDestroyed{Channel: testChannel("1", 3560000, "dl1abc")})
 
-	require.Len(t, bandmap.RemovedSpots(), 1, "SDRainer hears the station no more")
-	assert.Equal(t, core.MustParseCallsign("DL1ABC"), bandmap.RemovedSpots()[0].Call)
-	assert.Equal(t, core.Frequency(3560000), bandmap.RemovedSpots()[0].Frequency)
-	assert.Empty(t, client.channels, "the channel is gone")
+	assert.Empty(t, bandmap.RemovedSpots(), "the spot ages out with the spot lifetime")
+	assert.Len(t, bandmap.Spots(), 1)
+	assert.Empty(t, client.channels, "the channel is gone, its spot is not renewed anymore")
 }
 
 func TestSDRainerClient_TakesTheSpotOfACorrectedCallsignBack(t *testing.T) {
@@ -275,27 +274,29 @@ func TestSDRainerClient_TakesTheSpotOfACorrectedCallsignBack(t *testing.T) {
 	assert.Equal(t, core.MustParseCallsign("DL1ABD"), bandmap.Spots()[1].Call)
 }
 
-func TestSDRainerClient_TakesNoSpotBackWithoutASpot(t *testing.T) {
-	client, bandmap, _ := setupSDRainerClient()
-	client.handleEvent(sdrainer.ChannelCreated{Channel: testChannel("1", 3560000, "")})
-
-	client.handleEvent(sdrainer.ChannelDestroyed{Channel: testChannel("1", 3560000, "")})
-
-	assert.Empty(t, bandmap.RemovedSpots(), "this channel made no spot")
-}
-
-func TestSDRainerClient_TakesASpotBackOnlyOneTime(t *testing.T) {
+func TestSDRainerClient_TakesEachSpotBackOnlyOneTime(t *testing.T) {
 	client, bandmap, clock := setupSDRainerClient()
 	client.handleEvent(sdrainer.ChannelRunningCallsignDetected{Channel: testChannel("1", 3560000, "dl1abc")})
 	clock.Add(time.Second)
 	client.handleEvent(sdrainer.ChannelRunningCallsignDetected{Channel: testChannel("1", 3560000, "dl1abd")})
+	clock.Add(time.Second)
 
-	client.handleEvent(sdrainer.ChannelDestroyed{Channel: testChannel("1", 3560000, "dl1abd")})
+	client.handleEvent(sdrainer.ChannelRunningCallsignDetected{Channel: testChannel("1", 3560000, "dl1abe")})
 
 	removed := bandmap.RemovedSpots()
 	require.Len(t, removed, 2)
 	assert.Equal(t, core.MustParseCallsign("DL1ABC"), removed[0].Call)
 	assert.Equal(t, core.MustParseCallsign("DL1ABD"), removed[1].Call, "each spot goes back one time")
+}
+
+func TestSDRainerClient_TakesNoSpotBackWithoutASpot(t *testing.T) {
+	client, bandmap, _ := setupSDRainerClient()
+	client.handleEvent(sdrainer.ChannelCreated{Channel: testChannel("1", 3560000, "")})
+
+	client.handleEvent(sdrainer.ChannelRunningCallsignDetected{Channel: testChannel("1", 3560000, "dl1abc")})
+
+	assert.Empty(t, bandmap.RemovedSpots(), "this channel made no spot before")
+	assert.Len(t, bandmap.Spots(), 1)
 }
 
 func TestSDRainerClient_ReportsTheEndOfTheStream(t *testing.T) {

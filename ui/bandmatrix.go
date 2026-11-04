@@ -37,6 +37,7 @@ type bandMatrix struct {
 	widget   *qtlib.QTableView
 	model    *qtlib.QStandardItemModel
 	header   *qtlib.QHeaderView
+	headers  []string
 	delegate *qtlib.QStyledItemDelegate
 
 	controller   BandMatrixController
@@ -47,8 +48,8 @@ type bandMatrix struct {
 func newBandMatrix(focuser EntryFocuser) *bandMatrix {
 	t := &bandMatrix{focuser: focuser}
 	t.model = qtlib.NewQStandardItemModel2(0, matrixColCount)
-	headers := []string{"Band  ", "VFO1", "VFO2", "S   ", "P   ", "M   "}
-	t.model.SetHorizontalHeaderLabels(headers)
+	t.headers = []string{"Band  ", "VFO1", "VFO2", "S   ", "P   ", "M   "}
+	t.model.SetHorizontalHeaderLabels(t.headers)
 
 	t.widget = qtlib.NewQTableView2()
 	t.widget.SetModel(t.model.QAbstractItemModel)
@@ -67,7 +68,7 @@ func newBandMatrix(focuser EntryFocuser) *bandMatrix {
 	t.header.SetDefaultAlignment(qtlib.AlignLeft | qtlib.AlignVCenter)
 	t.header.SetSectionsClickable(true)
 
-	for i, header := range headers {
+	for i, header := range t.headers {
 		SetColumnSampleWidth(t.widget, i, header)
 	}
 
@@ -86,22 +87,23 @@ func (t *bandMatrix) SetController(controller BandMatrixController) {
 func (t *bandMatrix) installMaxValueDelegate() {
 	t.delegate = qtlib.NewQStyledItemDelegate()
 	t.delegate.OnPaint(func(super func(painter *qtlib.QPainter, option *qtlib.QStyleOptionViewItem, index *qtlib.QModelIndex), painter *qtlib.QPainter, option *qtlib.QStyleOptionViewItem, index *qtlib.QModelIndex) {
-		super(painter, option, index)
-		if !index.DataWithRole(roleMaxValue).ToBool() {
-			return
+		if index.DataWithRole(roleMaxValue).ToBool() {
+			// the style paints a selected item with the selection background and the matching
+			// text color, State_Active selects the colors of an active window
+			option.SetState(option.State() | qtlib.QStyle__State_Selected | qtlib.QStyle__State_Active)
 		}
-		drawSelectionMarker(painter, option.Rect(), option.Palette())
+		super(painter, option, index)
 	})
 	t.widget.SetItemDelegate(t.delegate.QAbstractItemDelegate)
 }
 
 func (t *bandMatrix) installFocusedVFOHeader() {
 	t.header.OnPaintSection(func(super func(painter *qtlib.QPainter, rect *qtlib.QRect, logicalIndex int), painter *qtlib.QPainter, rect *qtlib.QRect, logicalIndex int) {
-		super(painter, rect, logicalIndex)
 		if logicalIndex != t.columnOfVFO(t.currentFrame.FocusedVFO) {
+			super(painter, rect, logicalIndex)
 			return
 		}
-		drawSelectionMarker(painter, rect, qtlib.QGuiApplication_Palette())
+		t.drawSelectedSection(painter, rect, logicalIndex)
 	})
 }
 
@@ -224,12 +226,21 @@ func markMaxValue(item *qtlib.QStandardItem, max bool) {
 	item.SetData(gc(qtlib.NewQVariant8(true)), roleMaxValue)
 }
 
-func drawSelectionMarker(painter *qtlib.QPainter, rect *qtlib.QRect, palette *qtlib.QPalette) {
+func (t *bandMatrix) drawSelectedSection(painter *qtlib.QPainter, rect *qtlib.QRect, logicalIndex int) {
+	// QHeaderView offers no style option to mark a section as selected, therefore the
+	// section is painted here completely instead of calling the default implementation
+	if logicalIndex < 0 || logicalIndex >= len(t.headers) {
+		return
+	}
+
 	painter.Save()
 	defer painter.Restore()
 
-	painter.SetRenderHint(qtlib.QPainter__Antialiasing)
-	painter.SetPen(palette.Highlight().Color())
-	painter.SetBrushWithStyle(qtlib.NoBrush)
-	painter.DrawRoundedRect2(rect.X()+1, rect.Y()+1, rect.Width()-3, rect.Height()-3, markerRadius, markerRadius)
+	palette := qtlib.QGuiApplication_Palette()
+	painter.FillRect3(rect, palette.Highlight())
+	painter.SetPen(palette.HighlightedText().Color())
+
+	margin := t.widget.Style().PixelMetric(qtlib.QStyle__PM_HeaderMargin, nil, t.header.QWidget)
+	textRect := gc(qtlib.NewQRect4(rect.X()+margin, rect.Y(), rect.Width()-2*margin, rect.Height()))
+	painter.DrawText6(textRect, int(qtlib.AlignLeft|qtlib.AlignVCenter), t.headers[logicalIndex])
 }

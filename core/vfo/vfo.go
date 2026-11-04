@@ -37,6 +37,7 @@ type VFO struct {
 	id   core.VFOID
 	name string
 
+	clock         core.Clock
 	bandplan      bandplan.Bandplan
 	logbook       Logbook
 	client        Client
@@ -56,10 +57,11 @@ type VFO struct {
 	listeners []any
 }
 
-func NewVFO(id core.VFOID, name string, bandplan bandplan.Bandplan, logbook Logbook, asyncRunner core.AsyncRunner) *VFO {
+func NewVFO(id core.VFOID, name string, clock core.Clock, bandplan bandplan.Bandplan, logbook Logbook, asyncRunner core.AsyncRunner) *VFO {
 	result := &VFO{
 		id:          id,
 		name:        name,
+		clock:       clock,
 		bandplan:    bandplan,
 		logbook:     logbook,
 		asyncRunner: asyncRunner,
@@ -108,8 +110,14 @@ func (v *VFO) Refresh() {
 	v.emitIncrementalTuningVisibilityChanged(core.XIT)
 }
 
+func (v *VFO) Frequency() core.Frequency {
+	// a command that the rig did not confirm yet already names the frequency of the
+	// operator, therefore the base frequency answers this question
+	return v.baseFrequency(v.clock.Now())
+}
+
 func (v *VFO) SetFrequency(frequency core.Frequency) {
-	v.setFrequency(frequency, time.Now())
+	v.setFrequency(frequency, v.clock.Now())
 }
 
 func (v *VFO) setFrequency(frequency core.Frequency, now time.Time) {
@@ -135,7 +143,7 @@ func (v *VFO) sendFrequency(frequency core.Frequency, now time.Time) {
 
 // ShiftFrequency changes the current frequency by delta (may be negative).
 func (v *VFO) ShiftFrequency(delta core.Frequency) {
-	v.shiftFrequency(delta, time.Now())
+	v.shiftFrequency(delta, v.clock.Now())
 }
 
 func (v *VFO) shiftFrequency(delta core.Frequency, now time.Time) {
@@ -213,7 +221,7 @@ func (v *VFO) LogbookLoaded() {
 }
 
 func (v *VFO) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
-	v.vfoFrequencyChanged(vfo, frequency, time.Now())
+	v.vfoFrequencyChanged(vfo, frequency, v.clock.Now())
 }
 
 func (v *VFO) vfoFrequencyChanged(vfo core.VFOID, frequency core.Frequency, now time.Time) {

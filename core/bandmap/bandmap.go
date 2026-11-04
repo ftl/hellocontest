@@ -689,9 +689,9 @@ func (m *Bandmap) GotoHighestValueEntry() {
 	}
 }
 
-func (m *Bandmap) GotoNearestEntry() {
+func (m *Bandmap) GotoNearestEntry(frequency core.Frequency) {
 	m.do <- func() {
-		m.selection.SelectNearest(m.focusedFrequency())
+		m.selection.SelectNearest(frequency)
 		m.update()
 	}
 }

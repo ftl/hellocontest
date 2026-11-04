@@ -42,7 +42,6 @@ func TestSelection_RowNavigation_EmitsTheTargetVFO(t *testing.T) {
 		{desc: "next up", action: func(s *Selection) { s.SelectNextUp(3000000) }},
 		{desc: "next down", action: func(s *Selection) { s.SelectNextDown(4000000) }},
 		{desc: "highest value", action: func(s *Selection) { s.SelectHighestValue() }},
-		{desc: "nearest", action: func(s *Selection) { s.SelectNearest(3500000) }},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -56,6 +55,17 @@ func TestSelection_RowNavigation_EmitsTheTargetVFO(t *testing.T) {
 			assert.Equal(t, core.VFO2, listener.selections[0].vfo, "the same rules apply as when clicking the row")
 		})
 	}
+}
+
+func TestSelection_SelectNearest_EmitsTheFocusedVFO(t *testing.T) {
+	selection, listener, context := setupSelection(t)
+	context.targetVFO = core.VFO2
+	context.focusedVFO = core.VFO1
+
+	selection.SelectNearest(3500000)
+
+	require.Len(t, listener.selections, 1)
+	assert.Equal(t, core.VFO1, listener.selections[0].vfo, "the operator searches from the frequency of the focused VFO, therefore that VFO goes to the spot")
 }
 
 func TestSelection_Navigation_IncludesTheMarkers(t *testing.T) {

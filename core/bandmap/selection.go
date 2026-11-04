@@ -54,7 +54,8 @@ func (s *Selection) clear() {
 }
 
 // findAndSelectRow navigates through the rows that the spots table shows, therefore the
-// operator reaches a marker with the same actions as a spot.
+// operator reaches a marker with the same actions as a spot. The focused VFO goes to the
+// row, because the operator searches from the frequency of that VFO.
 func (s *Selection) findAndSelectRow(frequency core.Frequency, descendingID bool, matches func(core.BandmapRow) bool) {
 	rows := make([]core.BandmapRow, 0)
 	for _, row := range navigableRows(s.context.VisibleRows()) {
@@ -74,7 +75,7 @@ func (s *Selection) findAndSelectRow(frequency core.Frequency, descendingID bool
 		return applyDirection(core.Compare(a.ID(), b.ID()), descendingID)
 	})
 
-	s.selectRowOnTargetVFO(rows[0])
+	s.selectRowOnFocusedVFO(rows[0])
 }
 
 func distance(row core.BandmapRow, frequency core.Frequency) core.Frequency {
@@ -219,6 +220,15 @@ func (s *Selection) selectRowOnTargetVFO(row core.BandmapRow) {
 		return
 	}
 	s.selectEntry(s.context.TargetVFO(row.Entry), row.Entry)
+}
+
+func (s *Selection) selectRowOnFocusedVFO(row core.BandmapRow) {
+	vfo := s.context.FocusedVFO()
+	if row.Kind == core.MarkerRow {
+		s.selectMarker(vfo, row.Marker)
+		return
+	}
+	s.selectEntry(vfo, row.Entry)
 }
 
 func rowOnFrequency(row core.BandmapRow, frequency core.Frequency) bool {

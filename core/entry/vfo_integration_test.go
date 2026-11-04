@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/core/vfo"
 )
 
@@ -56,7 +57,7 @@ func setupEntryWithVFO(t *testing.T) (*Scenario, *vfo.VFO, *rigStub) {
 	s := NewScenario(t).WithClassicExchange()
 
 	rig := new(rigStub)
-	v := vfo.NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := vfo.NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	rig.vfo = v
 	v.SetClient(rig)
 	v.Notify(s.controller)

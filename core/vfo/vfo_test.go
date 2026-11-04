@@ -8,10 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/clock"
 )
 
 func TestSetBandplanSwapsThePlan(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, nil)
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, nil)
 	assert.Equal(t, 1810000.0, float64(v.bandplan[bandplan.Band160m].From))
 
 	v.SetBandplan(bandplan.IARURegion2)
@@ -34,7 +35,7 @@ func TestBandNameConversion(t *testing.T) {
 }
 
 func TestShiftFrequency(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	start := v.currentFrequency()
 
 	v.ShiftFrequency(250)
@@ -45,7 +46,7 @@ func TestShiftFrequency(t *testing.T) {
 }
 
 func TestShiftIncrementalTuning(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 
 	v.ShiftIncrementalTuning(core.XIT, 100)
 	assert.Equal(t, core.Frequency(100), v.state[core.XIT].offset)
@@ -70,7 +71,7 @@ func (s *visibilitySpy) VFOIncrementalTuningVisibilityChanged(vfo core.VFOID, ki
 }
 
 func TestIncrementalTuningVisibility(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	spy := &visibilitySpy{}
 	v.Notify(spy)
 
@@ -83,7 +84,7 @@ func TestIncrementalTuningVisibility(t *testing.T) {
 }
 
 func TestToggleAndShiftAvailableIncrementalTuning(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	v.WorkmodeChanged(core.VFO1, core.SearchPounce)
 
 	kind, ok := v.availableIncrementalTuningKind()
@@ -102,7 +103,7 @@ func TestToggleAndShiftAvailableIncrementalTuning(t *testing.T) {
 }
 
 func TestWorkmodeGatesIncrementalTuning(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	v.SetIncrementalTuningActive(core.XIT, true)
 	v.SetIncrementalTuningActive(core.RIT, true)
 
@@ -143,7 +144,7 @@ func (c *laggingClient) SetFrequency(_ core.VFOID, frequency core.Frequency) {
 
 func TestShiftFrequencyAccumulatesWhileTheRigLags(t *testing.T) {
 	client := new(laggingClient)
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	v.SetClient(client)
 	now := time.Now()
 	start := v.currentFrequency()
@@ -157,7 +158,7 @@ func TestShiftFrequencyAccumulatesWhileTheRigLags(t *testing.T) {
 
 func TestShiftFrequencyUsesTheRigFrequencyAfterTheTimeout(t *testing.T) {
 	client := new(laggingClient)
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	v.SetClient(client)
 	now := time.Now()
 	start := v.currentFrequency()
@@ -170,7 +171,7 @@ func TestShiftFrequencyUsesTheRigFrequencyAfterTheTimeout(t *testing.T) {
 
 func TestShiftFrequencyUsesTheRigFrequencyOnceItCaughtUp(t *testing.T) {
 	client := new(laggingClient)
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	v.SetClient(client)
 	now := time.Now()
 	start := v.currentFrequency()
@@ -290,7 +291,7 @@ func TestVFOFrequencyChanged_AfterTheTimeout_IsATuning(t *testing.T) {
 }
 
 func TestVFOFrequencyChanged_TuningIsReportedBeforeTheFrequency(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	order := make([]string, 0, 2)
 	v.Notify(&orderSpy{order: &order})
 
@@ -310,7 +311,7 @@ func TestVFOFrequencyChanged_OfAnotherVFO_IsIgnored(t *testing.T) {
 }
 
 func setupFrequencySpy() (*VFO, *frequencySpy) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	spy := new(frequencySpy)
 	v.Notify(spy)
 	return v, spy
@@ -408,7 +409,7 @@ func (l *logbookStub) LastMode() core.Mode { return l.mode }
 
 func TestLogbookLoadedRefreshesTheOnlineRigWithoutRetuningIt(t *testing.T) {
 	logbook := &logbookStub{band: core.Band160m, mode: core.ModeCW}
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, logbook, nil)
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, logbook, nil)
 	client := &refreshSpy{}
 	v.SetClient(client)
 	client.refreshCount = 0
@@ -429,7 +430,7 @@ func (s *bandSpy) VFOBandChanged(_ core.VFOID, band core.Band) {
 }
 
 func TestRefreshDoesNotLeaveTheVFOInRefreshingState(t *testing.T) {
-	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
 	spy := new(bandSpy)
 	v.Notify(spy)
 
@@ -440,4 +441,29 @@ func TestRefreshDoesNotLeaveTheVFOInRefreshingState(t *testing.T) {
 	v.SetBand(currentBand)
 
 	assert.Empty(t, spy.bands, "setting the band that is already selected must not emit a change")
+}
+
+func TestFrequencyIsTheCommandedFrequencyWhileTheRigLags(t *testing.T) {
+	client := new(laggingClient)
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
+	v.SetClient(client)
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+
+	// a spot was selected, the rig did not report the new frequency yet
+	v.setFrequency(14200000, now)
+
+	assert.Equal(t, core.Frequency(14200000), v.baseFrequency(now.Add(100*time.Millisecond)), "the VFO is on its way to the commanded frequency")
+}
+
+func TestFrequencyIsTheRigFrequencyAfterTheTimeout(t *testing.T) {
+	client := new(laggingClient)
+	v := NewVFO(core.VFO1, "VFO 1", clock.New(), bandplan.IARURegion1, nil, func(f func()) { f() })
+	v.SetClient(client)
+	now := time.Now()
+	v.vfoFrequencyChanged(core.VFO1, 14050000, now)
+
+	v.setFrequency(14200000, now)
+
+	assert.Equal(t, core.Frequency(14050000), v.baseFrequency(now.Add(pendingFrequencyTimeout+time.Millisecond)), "the rig did not follow the command")
 }

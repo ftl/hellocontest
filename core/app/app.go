@@ -235,7 +235,7 @@ func (c *Controller) Startup() {
 
 	c.VFOs = make([]*vfo.VFO, core.VFOCount)
 	for vfoID := range len(c.VFOs) {
-		v := vfo.NewVFO(core.VFOID(vfoID), fmt.Sprintf("VFO %d", vfoID+1), c.bandplan, c.Logbook, c.asyncRunner)
+		v := vfo.NewVFO(core.VFOID(vfoID), fmt.Sprintf("VFO %d", vfoID+1), c.clock, c.bandplan, c.Logbook, c.asyncRunner)
 		v.SetClient(c.Radio)
 		c.VFOs[vfoID] = v
 		c.Entry.SetVFO(core.VFOID(vfoID), v)
@@ -1050,7 +1050,9 @@ func (c *Controller) GotoHighestValueSpot() {
 }
 
 func (c *Controller) GotoNearestSpot() {
-	c.Bandmap.GotoNearestEntry()
+	// the rig reports a frequency change with a delay, therefore the active VFO knows the
+	// current frequency better than the bandmap
+	c.Bandmap.GotoNearestEntry(c.VFOs[c.focusedVFO].Frequency())
 }
 
 func (c *Controller) GotoCQFrequency() {

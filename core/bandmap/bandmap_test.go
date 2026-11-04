@@ -920,3 +920,35 @@ func TestBandmap_ValueFilter_DropsASpotThatLostItsValue(t *testing.T) {
 	frame = waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 0 })
 	assert.Empty(t, frame.Rows, "the spot lost its value, therefore the table shows it no more")
 }
+
+func TestBandmap_GotoNearestEntry_KeepsTheFocusedVFOActive(t *testing.T) {
+	bandmap, frames := setupRunningBandmap(t)
+	defer bandmap.Close()
+	selections := make(chan core.VFOID, 10)
+	bandmap.Notify(EntrySelectedListenerFunc(func(vfo core.VFOID, _ core.BandmapEntry) {
+		selections <- vfo
+	}))
+
+	bandmap.RadioChanged("radio", false)
+	bandmap.SetFilterBand(core.SpotFilterBand{Kind: core.SpotFilterAll})
+	bandmap.SetFilterMode(core.SpotFilterMode{Kind: core.SpotFilterAll})
+	bandmap.VFOBandChanged(core.VFO1, core.Band20m)
+	bandmap.VFOFrequencyChanged(core.VFO1, 14023000)
+	bandmap.VFOBandChanged(core.VFO2, core.Band40m)
+	bandmap.VFOFrequencyChanged(core.VFO2, 7030000)
+	bandmap.FocusedVFOChanged(core.VFO2)
+	// the table shows no spot on the band of VFO2, therefore the nearest spot belongs to
+	// the band of VFO1
+	bandmap.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 14023000, Band: core.Band20m, Mode: core.ModeCW, Time: time.Now()})
+	bandmap.Add(core.Spot{Call: core.MustParseCallsign("dl2abc"), Frequency: 14025000, Band: core.Band20m, Mode: core.ModeCW, Time: time.Now()})
+	waitForFrame(t, frames)
+
+	bandmap.GotoNearestEntry(7030000)
+
+	select {
+	case vfo := <-selections:
+		assert.Equal(t, core.VFO2, vfo, "the focused VFO goes to the nearest spot, it stays the active one")
+	case <-time.After(2 * time.Second):
+		require.Fail(t, "the bandmap selected no entry")
+	}
+}

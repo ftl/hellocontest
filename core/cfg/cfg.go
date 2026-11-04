@@ -72,7 +72,7 @@ var Default = &Data{
 			},
 			SPLabels: []string{"MyCall", "R Exch", "TU GL", "Exch AGN"},
 			RunMacros: []string{
-				"cq {{.MyCall}} test",
+				"cq {{.MyCall}} {{.MyCall}} test",
 				"{{.TheirCall}} {{.MyReport}} {{.MyNumber}} {{.MyXchange}}",
 				"tu {{.MyCall}} test",
 				"{{.TheirCall}} tu",
@@ -89,7 +89,7 @@ var Default = &Data{
 			},
 			SPLabels: []string{"MyCall", "R Exch", "TU GL", "Exch AGN"},
 			RunMacros: []string{
-				"cq {{.MyCall}} test",
+				"cq {{.MyCall}} {{.MyCall}} test",
 				"{{.TheirCall}} {{.MyReport}} {{.MyNumber}}",
 				"tu  {{.MyCall}} test",
 				"{{.TheirCall}} tu",
@@ -106,7 +106,7 @@ var Default = &Data{
 			},
 			SPLabels: []string{"MyCall", "R Exch", "TU GL", "Exch AGN"},
 			RunMacros: []string{
-				"cq {{.MyCall}} test",
+				"cq {{.MyCall}} {{.MyCall}} test",
 				"{{.TheirCall}} {{.MyReport}} {{.MyXchange}}",
 				"tu  {{.MyCall}} test",
 				"{{.TheirCall}} tu",
@@ -123,7 +123,7 @@ var Default = &Data{
 			},
 			SPLabels: []string{"MyCall", "R Exch", "TU GL", "Exch AGN"},
 			RunMacros: []string{
-				"cq {{.MyCall}} test",
+				"cq {{.MyCall}} {{.MyCall}} test",
 				"{{.TheirCall}} {{.MyReport}} {{index .MyExchanges 1 | cut}}",
 				"tu  {{.MyCall}} test",
 				"{{.TheirCall}} tu",
@@ -161,10 +161,6 @@ var Default = &Data{
 		"entry.toggle_focused_vfo":        "F8",
 		"entry.focus_vfo1":                "F9",
 		"entry.focus_vfo2":                "F10",
-		"entry.log_vfo1":                  "",
-		"entry.log_vfo2":                  "",
-		"entry.clear_vfo1":                "",
-		"entry.clear_vfo2":                "",
 		"radio.incremental_tuning_toggle": "Ctrl+Shift+X",
 		"radio.incremental_tuning_up":     "Alt+Shift+Up",
 		"radio.incremental_tuning_down":   "Alt+Shift+Down",

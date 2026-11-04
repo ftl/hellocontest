@@ -39,3 +39,20 @@ Use [flameshot](https://flameshot.org) to take the screenshots. Use the light mo
   - only the band selection bar
   - only an excerpt of the table, showing the spot indiciators (`|`, `H`, `N`) in the first column
   - only the table with the colored demo spots
+
+## Keybindings
+
+The wiki contains a table with all configurable actions and their default shortcuts. The
+application generates this table:
+
+```
+make keybindings
+```
+
+Copy the output into the wiki page. Generate the table again when you add an action, when you
+remove an action, or when you change the name, the tooltip, or the default shortcut of an
+action. The table contains all actions that `ui/actions.go` registers. Actions that need a
+parameter, for example `radio.shift_frequency`, are not in the table, because the user cannot
+bind them to a key.
+
+The default configuration in `core/cfg/cfg.go` must contain the same actions as the table.

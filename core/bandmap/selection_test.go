@@ -1,6 +1,8 @@
 package bandmap
 
 import (
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,8 +41,6 @@ func TestSelection_Navigation_EmitsTheFocusedVFO(t *testing.T) {
 	}{
 		{desc: "highest value", action: func(s *Selection) { s.SelectHighestValue() }},
 		{desc: "nearest", action: func(s *Selection) { s.SelectNearest(3500000) }},
-		{desc: "next up", action: func(s *Selection) { s.SelectNextUp(3000000) }},
-		{desc: "next down", action: func(s *Selection) { s.SelectNextDown(4000000) }},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -56,6 +56,28 @@ func TestSelection_Navigation_EmitsTheFocusedVFO(t *testing.T) {
 	}
 }
 
+func TestSelection_RowNavigation_EmitsTheTargetVFO(t *testing.T) {
+	tt := []struct {
+		desc   string
+		action func(*Selection)
+	}{
+		{desc: "next up", action: func(s *Selection) { s.SelectNextUp(3000000) }},
+		{desc: "next down", action: func(s *Selection) { s.SelectNextDown(4000000) }},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			selection, listener, context := setupSelection(t)
+			context.targetVFO = core.VFO2
+			context.focusedVFO = core.VFO1
+
+			tc.action(selection)
+
+			require.Len(t, listener.selections, 1)
+			assert.Equal(t, core.VFO2, listener.selections[0].vfo, "the same rules apply as when clicking the row")
+		})
+	}
+}
+
 func TestSelection_Navigation_IncludesTheMarkers(t *testing.T) {
 	tt := []struct {
 		desc       string
@@ -64,10 +86,8 @@ func TestSelection_Navigation_IncludesTheMarkers(t *testing.T) {
 	}{
 		{desc: "the nearest is the marker", action: func(s *Selection) { s.SelectNearest(3525000) }, wantMarker: true},
 		{desc: "the nearest is the spot", action: func(s *Selection) { s.SelectNearest(3533000) }},
-		{desc: "the next up is the marker", action: func(s *Selection) { s.SelectNextUp(3510000) }, wantMarker: true},
-		{desc: "the next up is the spot", action: func(s *Selection) { s.SelectNextUp(3525000) }},
-		{desc: "the next down is the marker", action: func(s *Selection) { s.SelectNextDown(3530000) }, wantMarker: true},
-		{desc: "the next down is the spot", action: func(s *Selection) { s.SelectNextDown(3540000) }},
+		{desc: "the row nearest to the marker", action: func(s *Selection) { s.SelectNextUp(3510000) }, wantMarker: true},
+		{desc: "the row nearest to the spot", action: func(s *Selection) { s.SelectNextDown(3540000) }},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -131,7 +151,7 @@ func setupSelection(t *testing.T) (*Selection, *selectionListenerSpy, *selection
 
 	markers := NewMarkers(entries)
 
-	context := &selectionContextStub{}
+	context := &selectionContextStub{entries: entries, markers: markers}
 	selection := NewSelection(entries, markers, notifier, context)
 
 	listener := new(selectionListenerSpy)
@@ -154,11 +174,34 @@ func onlyEntryID(t *testing.T, selection *Selection) core.BandmapEntryID {
 }
 
 type selectionContextStub struct {
+	entries          *Entries
+	markers          *Markers
+	rows             []core.BandmapRow
 	selectable       core.BandmapFilter
 	navigation       core.BandmapFilter
 	markerNavigation core.BandmapMarkerFilter
 	targetVFO        core.VFOID
 	focusedVFO       core.VFOID
+}
+
+// VisibleRows returns the rows of the spots table. Without an explicit setup it returns all
+// markers and entries ordered by frequency, like the default sorting of the table.
+func (s *selectionContextStub) VisibleRows() []core.BandmapRow {
+	if s.rows != nil {
+		return s.rows
+	}
+
+	result := make([]core.BandmapRow, 0)
+	for _, marker := range s.markers.Ordered(func(core.BandmapMarker) bool { return true }, core.SortSpotsByFrequency, false) {
+		result = append(result, core.MarkerBandmapRow(marker))
+	}
+	for _, entry := range s.entries.Query(core.BandmapByFrequency) {
+		result = append(result, core.SpotBandmapRow(entry))
+	}
+	slices.SortStableFunc(result, func(a, b core.BandmapRow) int {
+		return core.Compare(a.Frequency(), b.Frequency())
+	})
+	return result
 }
 
 func (s *selectionContextStub) SelectableFilter() core.BandmapFilter {
@@ -215,4 +258,82 @@ func (s *selectionListenerSpy) EntrySelected(vfo core.VFOID, entry core.BandmapE
 
 func (s *selectionListenerSpy) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) {
 	s.markerSelections = append(s.markerSelections, markerSelectionCall{vfo: vfo, marker: marker})
+}
+
+func TestSelection_RowNavigation_FollowsTheOrderOfTheTable(t *testing.T) {
+	selection, listener, context := setupSelection(t)
+	context.focusedVFO = core.VFO1
+	// the table sorts by value, therefore the rows are in no frequency order
+	context.rows = []core.BandmapRow{
+		testRow(t, selection, "dl1abc", 14020000, core.Band20m),
+		testRow(t, selection, "dl2xyz", 7015000, core.Band40m),
+		testRow(t, selection, "dl3qrs", 21300000, core.Band15m),
+	}
+
+	selection.SelectEntry(context.rows[1].Entry.ID)
+	selection.SelectNextUp(0)
+
+	require.Len(t, listener.selections, 2)
+	assert.Equal(t, "DL1ABC", listener.selections[1].entry.Call.String(), "up goes to the row above, on another band")
+
+	selection.SelectNextDown(0)
+
+	require.Len(t, listener.selections, 3)
+	assert.Equal(t, "DL2XYZ", listener.selections[2].entry.Call.String(), "down goes to the row below")
+}
+
+func TestSelection_RowNavigation_StartsAtTheRowNearestToTheVFO(t *testing.T) {
+	selection, listener, context := setupSelection(t)
+	context.focusedVFO = core.VFO1
+	context.rows = []core.BandmapRow{
+		testRow(t, selection, "dl1abc", 14020000, core.Band20m),
+		testRow(t, selection, "dl2xyz", 7015000, core.Band40m),
+	}
+
+	selection.SelectNextUp(7016000)
+
+	require.Len(t, listener.selections, 1)
+	assert.Equal(t, "DL2XYZ", listener.selections[0].entry.Call.String())
+}
+
+func TestSelection_RowNavigation_StopsAtTheEndsOfTheTable(t *testing.T) {
+	selection, listener, context := setupSelection(t)
+	context.focusedVFO = core.VFO1
+	context.rows = []core.BandmapRow{
+		testRow(t, selection, "dl1abc", 14020000, core.Band20m),
+		testRow(t, selection, "dl2xyz", 7015000, core.Band40m),
+	}
+
+	selection.SelectEntry(context.rows[0].Entry.ID)
+	selection.SelectNextUp(0)
+
+	assert.Len(t, listener.selections, 1, "the first row is the end of the table")
+
+	selection.SelectEntry(context.rows[1].Entry.ID)
+	selection.SelectNextDown(0)
+
+	assert.Len(t, listener.selections, 2, "the last row is the end of the table")
+}
+
+func testRow(t *testing.T, selection *Selection, call string, frequency core.Frequency, band core.Band) core.BandmapRow {
+	t.Helper()
+	selection.entries.Add(core.Spot{
+		Call:      core.MustParseCallsign(call),
+		Frequency: frequency,
+		Band:      band,
+		Time:      time.Now(),
+	}, time.Now(), defaultWeights)
+
+	var result core.BandmapRow
+	found := false
+	selection.entries.ForEach(func(entry core.BandmapEntry) bool {
+		if entry.Call.String() != strings.ToUpper(call) {
+			return false
+		}
+		result = core.SpotBandmapRow(entry)
+		found = true
+		return true
+	})
+	require.True(t, found, "the scenario needs the entry of %s", call)
+	return result
 }

@@ -7,6 +7,7 @@ import (
 )
 
 type SelectionContext interface {
+	VisibleRows() []core.BandmapRow
 	SelectableFilter() core.BandmapFilter
 	NavigationFilter() core.BandmapFilter
 	MarkerNavigationFilter() core.BandmapMarkerFilter
@@ -154,17 +155,78 @@ func (s *Selection) SelectNearest(frequency core.Frequency) {
 }
 
 func (s *Selection) SelectNextUp(frequency core.Frequency) {
-	s.findAndSelectRow(frequency, false, func(row core.BandmapRow) bool {
-		return (row.Frequency() > frequency) ||
-			(s.selected && row.Frequency() == frequency && row.ID() > s.selectedRow.ID())
-	})
+	s.selectRowByOffset(frequency, -1)
 }
 
 func (s *Selection) SelectNextDown(frequency core.Frequency) {
-	s.findAndSelectRow(frequency, true, func(row core.BandmapRow) bool {
-		return (row.Frequency() < frequency) ||
-			(s.selected && row.Frequency() == frequency && row.ID() < s.selectedRow.ID())
-	})
+	s.selectRowByOffset(frequency, 1)
+}
+
+// selectRowByOffset moves the selection through the rows that the spots table shows, in the
+// order of the table. Without a selection it starts at the row that is closest to frequency,
+// and it stops at both ends of the table.
+func (s *Selection) selectRowByOffset(frequency core.Frequency, offset int) {
+	rows := navigableRows(s.context.VisibleRows())
+	if len(rows) == 0 {
+		return
+	}
+
+	index := s.indexOfSelectedRow(rows)
+	if index < 0 {
+		index = indexOfNearestRow(rows, frequency)
+	} else {
+		index += offset
+	}
+	if index < 0 || index >= len(rows) {
+		return
+	}
+
+	s.selectRowOnTargetVFO(rows[index])
+}
+
+// navigableRows removes the CQ marker, because the CQ frequency has its own action and the
+// navigation does not stop there.
+func navigableRows(rows []core.BandmapRow) []core.BandmapRow {
+	result := make([]core.BandmapRow, 0, len(rows))
+	for _, row := range rows {
+		if row.Kind == core.MarkerRow && row.Marker.Kind == core.CQMarker {
+			continue
+		}
+		result = append(result, row)
+	}
+	return result
+}
+
+func (s *Selection) indexOfSelectedRow(rows []core.BandmapRow) int {
+	if !s.selected {
+		return -1
+	}
+	for i, row := range rows {
+		if row.Kind == s.selectedRow.Kind && row.ID() == s.selectedRow.ID() {
+			return i
+		}
+	}
+	return -1
+}
+
+func indexOfNearestRow(rows []core.BandmapRow, frequency core.Frequency) int {
+	result := 0
+	for i, row := range rows {
+		if distance(row, frequency) < distance(rows[result], frequency) {
+			result = i
+		}
+	}
+	return result
+}
+
+// selectRowOnTargetVFO selects a row with the same rules that apply when the operator clicks
+// the row in the spots table: the target VFO works the spot, also on another band.
+func (s *Selection) selectRowOnTargetVFO(row core.BandmapRow) {
+	if row.Kind == core.MarkerRow {
+		s.selectMarker(s.context.TargetVFOForMarker(row.Marker.Band), row.Marker)
+		return
+	}
+	s.selectEntry(s.context.TargetVFO(row.Entry), row.Entry)
 }
 
 func rowOnFrequency(row core.BandmapRow, frequency core.Frequency) bool {

@@ -408,6 +408,10 @@ func (m *Bandmap) SetFilterFolded(folded bool) {
 	}
 }
 
+func (m *Bandmap) VisibleRows() []core.BandmapRow {
+	return m.rows()
+}
+
 func (m *Bandmap) SelectableFilter() core.BandmapFilter {
 	return m.filter.Matches
 }

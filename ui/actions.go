@@ -8,6 +8,11 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/app"
+	"github.com/ftl/hellocontest/core/workmode"
+)
+
+var (
+	_ workmode.WorkmodeChangedListener = (*actions)(nil)
 )
 
 type actions struct {
@@ -444,10 +449,15 @@ func (a *actions) SetSpotSourceEnabled(name string, enabled bool) {
 
 // Listener-side state updates
 
-func (a *actions) WorkmodeChanged(wm core.Workmode) {
+func (a *actions) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+	// the menu shows the global workmode, which VFO1 carries: in SO2V VFO2 is always S&P
+	if vfo != core.VFO1 {
+		return
+	}
+
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
-	switch wm {
+	switch workmode {
 	case core.SearchPounce:
 		a.spAction.SetChecked(true)
 	case core.Run:

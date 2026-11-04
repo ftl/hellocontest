@@ -106,6 +106,20 @@ func (s *Scenario) WithClassicExchange() *Scenario {
 	return s
 }
 
+// WithExchangeWithoutReport configures an exchange without a report field, like the CWT contest.
+func (s *Scenario) WithExchangeWithoutReport() *Scenario {
+	contest := core.Contest{
+		Definition: scenarioFieldDefinition(
+			conval.ExchangeField{conval.NameProperty},
+			conval.ExchangeField{conval.GenericTextProperty},
+		),
+		ExchangeValues: []string{"", ""},
+	}
+	contest.UpdateExchangeFields()
+	s.controller.ContestChanged(contest)
+	return s
+}
+
 // WithDuplicateQSO makes the logbook spy return qso for any FindDuplicateQSOs call.
 func (s *Scenario) WithDuplicateQSO(qso core.QSO) *Scenario {
 	s.logbook.duplicates = append(s.logbook.duplicates, qso)
@@ -193,6 +207,14 @@ func (s *Scenario) GotoNextField() *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.GotoNextField()
+	return s
+}
+
+// GotoNextFieldSkippingReport advances the active field like the space bar does.
+func (s *Scenario) GotoNextFieldSkippingReport() *Scenario {
+	s.t.Helper()
+	s.resetSpies()
+	s.controller.GotoNextFieldSkippingReport()
 	return s
 }
 

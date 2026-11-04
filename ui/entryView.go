@@ -18,6 +18,7 @@ const (
 // EntryController controls the entry of QSO data.
 type EntryController interface {
 	GotoNextField() core.EntryField
+	GotoNextFieldSkippingReport() core.EntryField
 	GotoNextPlaceholder()
 	SetFocusedVFO(core.VFOID)
 	SetActiveField(core.EntryField)
@@ -224,7 +225,7 @@ func (v *entryView) handleKeyPress(super func(ev *qtlib.QKeyEvent), ev *qtlib.QK
 	case key == int(qtlib.Key_Space) && ctrl:
 		v.controller.GotoNextPlaceholder()
 	case key == int(qtlib.Key_Space):
-		v.controller.GotoNextField()
+		v.controller.GotoNextFieldSkippingReport()
 	case key == int(qtlib.Key_Return) || key == int(qtlib.Key_Enter):
 		if !(alt || ctrl) {
 			v.controller.EnterPressed()

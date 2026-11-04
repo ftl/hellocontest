@@ -2600,3 +2600,41 @@ func TestG17_MarkWithNumberInBandmap(t *testing.T) {
 	assert.Equal(t, core.Band40m, s.bandmap.marksWithNumber[0].band)
 	assert.Empty(t, s.bandmap.addedSpots, "a marker is no spot")
 }
+
+// A3b. GotoNextFieldSkippingReport (space bar)
+// Pre:  any active field.
+// Post: like A3, but a their-report field is skipped, because the report is generated.
+// Invariants: input values; per-VFO data other than active field; focused VFO.
+
+func TestA3b_GotoNextFieldSkippingReport_Callsign_SkipsTheReport(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange(). // RST, serial, text
+		Enter("DL1ABC").
+		GotoNextFieldSkippingReport().
+		AssertActiveField(core.VFO1, core.TheirExchangeField(2))
+}
+
+func TestA3b_GotoNextFieldSkippingReport_WithoutReport_GoesToTheirExchange1(t *testing.T) {
+	NewScenario(t).
+		WithExchangeWithoutReport(). // name, text
+		Enter("DL1ABC").
+		GotoNextFieldSkippingReport().
+		AssertActiveField(core.VFO1, core.TheirExchangeField(1))
+}
+
+func TestA3b_GotoNextField_DoesNotSkipTheReport(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		Enter("DL1ABC").
+		GotoNextField().
+		AssertActiveField(core.VFO1, core.TheirExchangeField(1))
+}
+
+func TestA3b_GotoNextFieldSkippingReport_TheirExchange2_GoesToTheirExchange3(t *testing.T) {
+	NewScenario(t).
+		WithClassicExchange().
+		Enter("DL1ABC").
+		GotoNextFieldSkippingReport(). // → TheirExchange2, the report is skipped
+		GotoNextFieldSkippingReport().
+		AssertActiveField(core.VFO1, core.TheirExchangeField(3))
+}

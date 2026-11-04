@@ -306,6 +306,14 @@ func (c *Controller) ShiftFrequency(delta core.Frequency) {
 }
 
 func (c *Controller) GotoNextField() core.EntryField {
+	return c.gotoNextField(false)
+}
+
+func (c *Controller) GotoNextFieldSkippingReport() core.EntryField {
+	return c.gotoNextField(true)
+}
+
+func (c *Controller) gotoNextField(skipReport bool) core.EntryField {
 	switch c.activeField[c.focusedVFO] {
 	case core.CallsignField:
 		c.leaveCallsignField()
@@ -329,14 +337,23 @@ func (c *Controller) GotoNextField() core.EntryField {
 		}
 	}
 
-	nextField := transitions[c.activeField[c.focusedVFO]]
-	if nextField == "" {
-		nextField = core.CallsignField
+	nextField := nextFieldOf(transitions, c.activeField[c.focusedVFO])
+	reportField := c.theirReportExchangeField.Field
+	if skipReport && reportField != "" && nextField == reportField {
+		nextField = nextFieldOf(transitions, nextField)
 	}
 
 	c.SetActiveField(nextField)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 	return c.activeField[c.focusedVFO]
+}
+
+func nextFieldOf(transitions map[core.EntryField]core.EntryField, field core.EntryField) core.EntryField {
+	next := transitions[field]
+	if next == "" {
+		return core.CallsignField
+	}
+	return next
 }
 
 func (c *Controller) GotoNextPlaceholder() {

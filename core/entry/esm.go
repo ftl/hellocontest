@@ -63,10 +63,7 @@ func (c *Controller) NextESMStep() {
 	}
 	switch {
 	case c.esmState[c.focusedVFO] == core.ESMCallsignValid && c.workmode == core.Run:
-		c.GotoNextField()
-		if c.activeField[c.focusedVFO] == c.theirReportExchangeField.Field {
-			c.GotoNextField()
-		}
+		c.GotoNextFieldSkippingReport()
 	case c.esmState[c.focusedVFO] == core.ESMExchangeValid:
 		c.Log()
 	}

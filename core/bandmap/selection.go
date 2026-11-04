@@ -47,39 +47,17 @@ func (s *Selection) selectMarker(vfo core.VFOID, marker core.BandmapMarker) {
 	s.notifier.emitMarkerSelected(vfo, marker)
 }
 
-func (s *Selection) selectRow(vfo core.VFOID, row core.BandmapRow) {
-	if row.Kind == core.MarkerRow {
-		s.selectMarker(vfo, row.Marker)
-		return
-	}
-	s.selectEntry(vfo, row.Entry)
-}
-
 func (s *Selection) clear() {
 	s.selectedRow = core.BandmapRow{}
 	s.selected = false
 	// TODO??? s.notifier.emitEntrySelected(s.selectedRow.Entry)
 }
 
-func (s *Selection) findAndSelect(order core.BandmapOrder, filters ...core.BandmapFilter) {
-	entries := s.entries.Query(order, filters...)
-	if len(entries) > 0 {
-		s.selectEntry(s.context.FocusedVFO(), entries[0])
-	}
-}
-
-// findAndSelectRow navigates through the spots and the markers together, therefore the
+// findAndSelectRow navigates through the rows that the spots table shows, therefore the
 // operator reaches a marker with the same actions as a spot.
 func (s *Selection) findAndSelectRow(frequency core.Frequency, descendingID bool, matches func(core.BandmapRow) bool) {
 	rows := make([]core.BandmapRow, 0)
-	for _, entry := range s.entries.Query(core.BandmapByFrequency, s.context.NavigationFilter()) {
-		row := core.SpotBandmapRow(entry)
-		if matches(row) {
-			rows = append(rows, row)
-		}
-	}
-	for _, marker := range s.markers.Ordered(s.context.MarkerNavigationFilter(), core.SortSpotsByFrequency, false) {
-		row := core.MarkerBandmapRow(marker)
+	for _, row := range navigableRows(s.context.VisibleRows()) {
 		if matches(row) {
 			rows = append(rows, row)
 		}
@@ -96,7 +74,7 @@ func (s *Selection) findAndSelectRow(frequency core.Frequency, descendingID bool
 		return applyDirection(core.Compare(a.ID(), b.ID()), descendingID)
 	})
 
-	s.selectRow(s.context.FocusedVFO(), rows[0])
+	s.selectRowOnTargetVFO(rows[0])
 }
 
 func distance(row core.BandmapRow, frequency core.Frequency) core.Frequency {
@@ -140,12 +118,26 @@ func (s *Selection) SelectByCallsign(call core.Callsign) {
 	})
 }
 
+// SelectHighestValue takes all spots that the spots table shows into account, on every band,
+// and the target VFO works the spot, with the same rules as when the operator clicks a row.
 func (s *Selection) SelectHighestValue() {
-	s.findAndSelect(
-		core.Descending(core.BandmapByValue),
-		s.context.NavigationFilter(),
-		core.Not(core.IsWorkedSpot),
-	)
+	var best core.BandmapRow
+	found := false
+	for _, row := range navigableRows(s.context.VisibleRows()) {
+		if row.Kind != core.SpotRow || core.IsWorkedSpot(row.Entry) {
+			continue
+		}
+		if found && core.BandmapByValue(row.Entry, best.Entry) <= 0 {
+			continue
+		}
+		best = row
+		found = true
+	}
+	if !found {
+		return
+	}
+
+	s.selectRowOnTargetVFO(best)
 }
 
 func (s *Selection) SelectNearest(frequency core.Frequency) {

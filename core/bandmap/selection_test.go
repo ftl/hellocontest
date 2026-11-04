@@ -34,28 +34,6 @@ func TestSelection_SelectByCallsign_EmitsTheTargetVFO(t *testing.T) {
 	assert.Equal(t, core.VFO2, listener.selections[0].vfo)
 }
 
-func TestSelection_Navigation_EmitsTheFocusedVFO(t *testing.T) {
-	tt := []struct {
-		desc   string
-		action func(*Selection)
-	}{
-		{desc: "highest value", action: func(s *Selection) { s.SelectHighestValue() }},
-		{desc: "nearest", action: func(s *Selection) { s.SelectNearest(3500000) }},
-	}
-	for _, tc := range tt {
-		t.Run(tc.desc, func(t *testing.T) {
-			selection, listener, context := setupSelection(t)
-			context.targetVFO = core.VFO2
-			context.focusedVFO = core.VFO1
-
-			tc.action(selection)
-
-			require.Len(t, listener.selections, 1)
-			assert.Equal(t, core.VFO1, listener.selections[0].vfo, "the keyboard actions tune the focused VFO")
-		})
-	}
-}
-
 func TestSelection_RowNavigation_EmitsTheTargetVFO(t *testing.T) {
 	tt := []struct {
 		desc   string
@@ -63,6 +41,8 @@ func TestSelection_RowNavigation_EmitsTheTargetVFO(t *testing.T) {
 	}{
 		{desc: "next up", action: func(s *Selection) { s.SelectNextUp(3000000) }},
 		{desc: "next down", action: func(s *Selection) { s.SelectNextDown(4000000) }},
+		{desc: "highest value", action: func(s *Selection) { s.SelectHighestValue() }},
+		{desc: "nearest", action: func(s *Selection) { s.SelectNearest(3500000) }},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -101,7 +81,7 @@ func TestSelection_Navigation_IncludesTheMarkers(t *testing.T) {
 			if tc.wantMarker {
 				require.Len(t, listener.markerSelections, 1, "the navigation stops at the marker")
 				assert.Equal(t, core.Frequency(3520000), listener.markerSelections[0].marker.Frequency)
-				assert.Equal(t, core.VFO1, listener.markerSelections[0].vfo, "the navigation tunes the focused VFO")
+				assert.Equal(t, core.VFO1, listener.markerSelections[0].vfo, "the target VFO of the marker works it")
 				assert.Empty(t, listener.selections)
 			} else {
 				require.Len(t, listener.selections, 1, "the spot is closer than the marker")
@@ -114,8 +94,9 @@ func TestSelection_Navigation_IncludesTheMarkers(t *testing.T) {
 func TestSelection_Navigation_IgnoresAnInvisibleMarker(t *testing.T) {
 	selection, listener, context := setupSelection(t)
 	context.focusedVFO = core.VFO1
-	context.markerNavigation = func(core.BandmapMarker) bool { return false }
 	selection.markers.AddNumbered(1, 3520000, core.Band80m, time.Now())
+	// the table shows only the spot, therefore the marker is no navigation target
+	context.rows = []core.BandmapRow{testRow(t, selection, "dl9zzz", 3535000, core.Band80m)}
 
 	selection.SelectNearest(3525000)
 
@@ -336,4 +317,39 @@ func testRow(t *testing.T, selection *Selection, call string, frequency core.Fre
 	})
 	require.True(t, found, "the scenario needs the entry of %s", call)
 	return result
+}
+
+func TestSelection_SelectHighestValue_TakesTheSpotsOfEveryBand(t *testing.T) {
+	selection, listener, context := setupSelection(t)
+	context.focusedVFO = core.VFO1
+	rows := []core.BandmapRow{
+		testRow(t, selection, "dl1abc", 14020000, core.Band20m),
+		testRow(t, selection, "dl2xyz", 7015000, core.Band40m),
+	}
+	rows[0].Entry.Info.WeightedValue = 10
+	rows[1].Entry.Info.WeightedValue = 20
+	context.rows = rows
+
+	selection.SelectHighestValue()
+
+	require.Len(t, listener.selections, 1)
+	assert.Equal(t, "DL2XYZ", listener.selections[0].entry.Call.String(), "the spot on the other band has the highest value")
+}
+
+func TestSelection_SelectHighestValue_IgnoresTheWorkedSpots(t *testing.T) {
+	selection, listener, context := setupSelection(t)
+	context.focusedVFO = core.VFO1
+	rows := []core.BandmapRow{
+		testRow(t, selection, "dl1abc", 14020000, core.Band20m),
+		testRow(t, selection, "dl2xyz", 7015000, core.Band40m),
+	}
+	rows[0].Entry.Info.WeightedValue = 10
+	rows[1].Entry.Info.WeightedValue = 20
+	rows[1].Entry.Source = core.WorkedSpot
+	context.rows = rows
+
+	selection.SelectHighestValue()
+
+	require.Len(t, listener.selections, 1)
+	assert.Equal(t, "DL1ABC", listener.selections[0].entry.Call.String(), "a worked spot is no goal")
 }

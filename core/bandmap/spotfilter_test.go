@@ -493,3 +493,56 @@ func (s *spotFilterStoreStub) SetSpotFilter(id string, state core.SpotFilterStat
 	s.states[id] = state
 	return nil
 }
+
+func TestSpotFilter_Value(t *testing.T) {
+	scoringEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+	scoringEntry.Info.Value = 40
+
+	multiEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+	multiEntry.Info.Value = 25
+	multiEntry.Info.Multis = 1
+
+	worthlessEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+
+	duplicateEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+	duplicateEntry.Info.Value = 40
+	duplicateEntry.Info.Multis = 1
+	duplicateEntry.Info.Duplicate = true
+
+	tt := []struct {
+		desc          string
+		value         core.SpotFilterValue
+		wantScoring   bool
+		wantMulti     bool
+		wantWorthless bool
+		wantDuplicate bool
+	}{
+		{desc: "all", value: core.SpotFilterAnyValue, wantScoring: true, wantMulti: true, wantWorthless: true, wantDuplicate: true},
+		{desc: "scoring", value: core.SpotFilterScoring, wantScoring: true, wantMulti: true},
+		{desc: "multi", value: core.SpotFilterMulti, wantMulti: true},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			filter := NewSpotFilter(MainSpotFilterID, nil)
+			filter.SetBand(core.SpotFilterBand{Kind: core.SpotFilterAll})
+			filter.SetMode(core.SpotFilterMode{Kind: core.SpotFilterAll})
+
+			filter.SetValue(tc.value)
+
+			assert.Equal(t, tc.wantScoring, filter.Matches(scoringEntry), "the spot with points")
+			assert.Equal(t, tc.wantMulti, filter.Matches(multiEntry), "the multiplier")
+			assert.Equal(t, tc.wantWorthless, filter.Matches(worthlessEntry), "the spot without value")
+			assert.Equal(t, tc.wantDuplicate, filter.Matches(duplicateEntry), "the spot that was worked already")
+		})
+	}
+}
+
+func TestSpotFilter_ValueInTheDescription(t *testing.T) {
+	filter := NewSpotFilter(MainSpotFilterID, nil)
+
+	assert.NotContains(t, filter.Frame().Description, "Multi", "the description names no value filter when it shows all spots")
+
+	filter.SetValue(core.SpotFilterMulti)
+
+	assert.Contains(t, filter.Frame().Description, "Multi > 0")
+}

@@ -79,6 +79,15 @@ func (f *SpotFilter) SetMode(mode core.SpotFilterMode) {
 	f.emitChanged()
 }
 
+func (f *SpotFilter) SetValue(value core.SpotFilterValue) {
+	if f.state.Value == value {
+		return
+	}
+	f.state.Value = value
+	f.storeState()
+	f.emitChanged()
+}
+
 func (f *SpotFilter) SetSort(column core.SpotSortColumn, descending bool) {
 	if f.state.SortBy == column && f.state.Descending == descending {
 		return
@@ -138,7 +147,7 @@ func (f *SpotFilter) SetContestBandsAndModes(bands []core.Band, modes []core.Mod
 }
 
 func (f *SpotFilter) Matches(entry core.BandmapEntry) bool {
-	return f.bandMatches(entry.Band) && f.modeMatches(entry.Mode)
+	return f.bandMatches(entry.Band) && f.modeMatches(entry.Mode) && f.state.Value.Matches(entry)
 }
 
 func (f *SpotFilter) MatchesMarker(marker core.BandmapMarker) bool {
@@ -300,11 +309,15 @@ func (f *SpotFilter) description() string {
 	if f.state.Descending {
 		direction = "↓"
 	}
-	return strings.Join([]string{
+	parts := []string{
 		f.bandDescription(),
 		f.modeDescription(),
-		fmt.Sprintf("by %s %s", f.state.SortBy.Label(), direction),
-	}, " · ")
+	}
+	if f.state.Value != core.SpotFilterAnyValue {
+		parts = append(parts, f.state.Value.Label())
+	}
+	parts = append(parts, fmt.Sprintf("by %s %s", f.state.SortBy.Label(), direction))
+	return strings.Join(parts, " · ")
 }
 
 func (f *SpotFilter) bandDescription() string {

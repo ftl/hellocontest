@@ -396,6 +396,12 @@ func (m *Bandmap) SetFilterMode(mode core.SpotFilterMode) {
 	}
 }
 
+func (m *Bandmap) SetFilterValue(value core.SpotFilterValue) {
+	m.do <- func() {
+		m.filter.SetValue(value)
+	}
+}
+
 func (m *Bandmap) SetFilterSort(column core.SpotSortColumn, descending bool) {
 	m.do <- func() {
 		m.filter.SetSort(column, descending)

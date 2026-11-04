@@ -98,6 +98,7 @@ func (s *Session) SpotFilter(id string) (core.SpotFilterState, bool) {
 	return core.SpotFilterState{
 		Band:       core.ParseSpotFilterBand(stored.Band),
 		Mode:       core.ParseSpotFilterMode(stored.Mode),
+		Value:      core.ParseSpotFilterValue(stored.Value),
 		SortBy:     core.ParseSpotSortColumn(stored.SortBy),
 		Descending: stored.Descending,
 		Folded:     stored.Folded,
@@ -111,6 +112,7 @@ func (s *Session) SetSpotFilter(id string, state core.SpotFilterState) error {
 	s.state.SpotFilters[id] = &SpotFilterState{
 		Band:       state.Band.String(),
 		Mode:       state.Mode.String(),
+		Value:      state.Value.String(),
 		SortBy:     state.SortBy.String(),
 		Descending: state.Descending,
 		Folded:     state.Folded,

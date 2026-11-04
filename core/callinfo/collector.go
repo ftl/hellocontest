@@ -92,7 +92,9 @@ func (c *Collector) UpdateValue(info *core.Callinfo, band core.Band, mode core.M
 		return false
 	}
 
-	workedQSOs, _ := c.dupes.FindWorkedQSOs(info.Call, band, mode)
+	workedQSOs, duplicate := c.dupes.FindWorkedQSOs(info.Call, band, mode)
+	// a QSO that was logged after the last update makes the station a duplicate
+	c.addWorkedState(info, workedQSOs, duplicate)
 	c.dataLock.RLock()
 	c.addPredictedExchange(info, workedQSOs, nil)
 	c.dataLock.RUnlock()

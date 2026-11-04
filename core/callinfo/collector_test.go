@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ftl/conval"
+
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
 )
@@ -94,4 +96,44 @@ func TestCollector_addDXCC(t *testing.T) {
 			}
 		})
 	}
+}
+
+type dupeCheckerStub struct {
+	workedQSOs []core.QSO
+	duplicate  bool
+}
+
+func (s *dupeCheckerStub) FindWorkedQSOs(core.Callsign, core.Band, core.Mode) ([]core.QSO, bool) {
+	return s.workedQSOs, s.duplicate
+}
+
+func (s *dupeCheckerStub) Find(string) ([]core.AnnotatedCallsign, error) {
+	return nil, nil
+}
+
+type valuerStub struct {
+	points int
+	multis int
+}
+
+func (s *valuerStub) Value(core.Callsign, dxcc.Prefix, core.Band, core.Mode, []string) (int, int, map[conval.Property]string) {
+	return s.points, s.multis, nil
+}
+
+func TestCollector_UpdateValue_RefreshesTheDuplicateState(t *testing.T) {
+	dupes := &dupeCheckerStub{}
+	collector := NewCollector(new(dxcc.Finder), nil, nil, dupes, &valuerStub{points: 2}, nil)
+	info := core.Callinfo{Call: core.MustParseCallsign("DL1ABC")}
+
+	require.True(t, collector.UpdateValue(&info, core.Band80m, core.ModeCW))
+	require.False(t, info.Duplicate, "the station was not worked yet")
+
+	// the QSO is logged
+	dupes.duplicate = true
+	dupes.workedQSOs = []core.QSO{{Callsign: core.MustParseCallsign("DL1ABC")}}
+
+	require.True(t, collector.UpdateValue(&info, core.Band80m, core.ModeCW))
+
+	assert.True(t, info.Duplicate, "the update of the value sees the logged QSO")
+	assert.True(t, info.Worked)
 }

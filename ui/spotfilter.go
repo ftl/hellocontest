@@ -9,6 +9,7 @@ import (
 type SpotFilterController interface {
 	SetFilterBand(core.SpotFilterBand)
 	SetFilterMode(core.SpotFilterMode)
+	SetFilterValue(core.SpotFilterValue)
 	SetFilterSort(core.SpotSortColumn, bool)
 	SetFilterFolded(bool)
 }
@@ -19,14 +20,16 @@ type spotFilterArea struct {
 	summary *qtlib.QLabel
 	body    *qtlib.QWidget
 
-	bandCombo *qtlib.QComboBox
-	modeCombo *qtlib.QComboBox
-	sortCombo *qtlib.QComboBox
-	direction *qtlib.QToolButton
+	bandCombo  *qtlib.QComboBox
+	modeCombo  *qtlib.QComboBox
+	valueCombo *qtlib.QComboBox
+	sortCombo  *qtlib.QComboBox
+	direction  *qtlib.QToolButton
 
-	bandItems []core.SpotFilterBand
-	modeItems []core.SpotFilterMode
-	sortItems []core.SpotSortColumn
+	bandItems  []core.SpotFilterBand
+	modeItems  []core.SpotFilterMode
+	valueItems []core.SpotFilterValue
+	sortItems  []core.SpotSortColumn
 
 	controller SpotFilterController
 	focuser    EntryFocuser
@@ -85,6 +88,7 @@ func (a *spotFilterArea) buildBody() {
 
 	a.buildBandCombo(layout)
 	a.buildModeCombo(layout)
+	a.buildValueCombo(layout)
 	a.buildSortControls(layout)
 
 	layout.AddStretch()
@@ -116,6 +120,20 @@ func (a *spotFilterArea) buildModeCombo(layout *qtlib.QHBoxLayout) {
 	})
 	layout.AddWidget(qtlib.NewQLabel3("Mode").QFrame.QWidget)
 	layout.AddWidget(a.modeCombo.QWidget)
+}
+
+func (a *spotFilterArea) buildValueCombo(layout *qtlib.QHBoxLayout) {
+	a.valueCombo = qtlib.NewQComboBox2()
+	a.valueCombo.SetSizeAdjustPolicy(qtlib.QComboBox__AdjustToContents)
+	a.valueCombo.OnCurrentIndexChanged(func(index int) {
+		if a.updating || a.controller == nil || index < 0 || index >= len(a.valueItems) {
+			return
+		}
+		a.controller.SetFilterValue(a.valueItems[index])
+		a.returnFocus()
+	})
+	layout.AddWidget(qtlib.NewQLabel3("Value").QFrame.QWidget)
+	layout.AddWidget(a.valueCombo.QWidget)
 }
 
 func (a *spotFilterArea) buildSortControls(layout *qtlib.QHBoxLayout) {
@@ -164,10 +182,12 @@ func (a *spotFilterArea) ShowFrame(frame core.SpotFilterFrame) {
 
 	a.fillBands(frame.Bands)
 	a.fillModes(frame.Modes)
+	a.fillValues()
 	a.fillSortColumns()
 
 	a.bandCombo.SetCurrentIndex(indexOfBand(a.bandItems, frame.Band))
 	a.modeCombo.SetCurrentIndex(indexOfMode(a.modeItems, frame.Mode))
+	a.valueCombo.SetCurrentIndex(indexOfValue(a.valueItems, frame.Value))
 	a.sortCombo.SetCurrentIndex(indexOfSortColumn(a.sortItems, frame.SortBy))
 
 	a.direction.SetChecked(frame.Descending)
@@ -247,6 +267,19 @@ func (a *spotFilterArea) fillModes(modes []core.Mode) {
 	a.modeCombo.AddItems(labels)
 }
 
+func (a *spotFilterArea) fillValues() {
+	if len(a.valueItems) == len(core.SpotFilterValues) {
+		return
+	}
+	a.valueItems = core.SpotFilterValues
+	labels := make([]string, 0, len(core.SpotFilterValues))
+	for _, value := range core.SpotFilterValues {
+		labels = append(labels, value.Label())
+	}
+	a.valueCombo.Clear()
+	a.valueCombo.AddItems(labels)
+}
+
 func (a *spotFilterArea) fillSortColumns() {
 	if len(a.sortItems) == len(core.SpotSortColumns) {
 		return
@@ -295,6 +328,15 @@ func indexOfBand(items []core.SpotFilterBand, band core.SpotFilterBand) int {
 func indexOfMode(items []core.SpotFilterMode, mode core.SpotFilterMode) int {
 	for i, item := range items {
 		if item == mode {
+			return i
+		}
+	}
+	return 0
+}
+
+func indexOfValue(items []core.SpotFilterValue, value core.SpotFilterValue) int {
+	for i, item := range items {
+		if item == value {
 			return i
 		}
 	}

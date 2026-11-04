@@ -1688,9 +1688,67 @@ func ParseSpotSortColumn(s string) SpotSortColumn {
 	}
 }
 
+// SpotFilterValue selects the spots by their predicted contribution to the score.
+type SpotFilterValue int
+
+const (
+	SpotFilterAnyValue SpotFilterValue = iota
+	SpotFilterScoring
+	SpotFilterMulti
+)
+
+var SpotFilterValues = []SpotFilterValue{SpotFilterAnyValue, SpotFilterScoring, SpotFilterMulti}
+
+func (v SpotFilterValue) String() string {
+	switch v {
+	case SpotFilterScoring:
+		return "scoring"
+	case SpotFilterMulti:
+		return "multi"
+	default:
+		return "all"
+	}
+}
+
+func (v SpotFilterValue) Label() string {
+	switch v {
+	case SpotFilterScoring:
+		return "Score > 0"
+	case SpotFilterMulti:
+		return "Multi > 0"
+	default:
+		return "All"
+	}
+}
+
+func ParseSpotFilterValue(s string) SpotFilterValue {
+	switch s {
+	case "scoring":
+		return SpotFilterScoring
+	case "multi":
+		return SpotFilterMulti
+	default:
+		return SpotFilterAnyValue
+	}
+}
+
+// Matches indicates if the entry contributes as much to the score as this filter requires.
+// A duplicate contributes nothing, although the contest rules still name points for the QSO.
+func (v SpotFilterValue) Matches(entry BandmapEntry) bool {
+	switch v {
+	case SpotFilterScoring:
+		return !entry.Info.Duplicate && entry.Info.Value > 0
+	case SpotFilterMulti:
+		return !entry.Info.Duplicate && entry.Info.Multis > 0
+	default:
+		return true
+	}
+}
+
 type SpotFilterState struct {
 	Band       SpotFilterBand
 	Mode       SpotFilterMode
+	Value      SpotFilterValue
 	SortBy     SpotSortColumn
 	Descending bool
 	Folded     bool

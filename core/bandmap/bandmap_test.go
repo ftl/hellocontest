@@ -879,3 +879,44 @@ func (v *bandmapViewStub) ShowFrame(frame core.BandmapFrame) {
 	default:
 	}
 }
+
+// callinfoStub reports the value that the test sets, like the collector does after a QSO
+// was logged and the spot became a duplicate.
+type callinfoStub struct {
+	value     int
+	multis    int
+	duplicate bool
+}
+
+func (s *callinfoStub) GetInfo(call core.Callsign, _ core.Band, _ core.Mode, _ []string) core.Callinfo {
+	return core.Callinfo{Call: call, Value: s.value, Multis: s.multis, Duplicate: s.duplicate}
+}
+
+func (s *callinfoStub) UpdateValue(info *core.Callinfo, _ core.Band, _ core.Mode) bool {
+	info.Value = s.value
+	info.Multis = s.multis
+	info.Duplicate = s.duplicate
+	return true
+}
+
+func TestBandmap_ValueFilter_DropsASpotThatLostItsValue(t *testing.T) {
+	// the periodic update recomputes the values of the entries
+	bandmap, frames := setupRunningBandmapWithPeriod(t, 10*time.Millisecond)
+	defer bandmap.Close()
+	callinfo := &callinfoStub{value: 40}
+	bandmap.SetCallinfo(callinfo)
+	bandmap.SetFilterBand(core.SpotFilterBand{Kind: core.SpotFilterAll})
+	bandmap.SetFilterMode(core.SpotFilterMode{Kind: core.SpotFilterAll})
+	bandmap.SetFilterValue(core.SpotFilterScoring)
+	bandmap.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 3535000, Band: core.Band80m, Mode: core.ModeCW, Time: time.Now()})
+
+	frame := waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 1 })
+	require.Len(t, frame.Rows, 1, "the spot scores, therefore the table shows it")
+
+	// the QSO is logged: the contest rules still name points for the QSO, but the duplicate
+	// adds nothing to the score
+	callinfo.duplicate = true
+
+	frame = waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 0 })
+	assert.Empty(t, frame.Rows, "the spot lost its value, therefore the table shows it no more")
+}

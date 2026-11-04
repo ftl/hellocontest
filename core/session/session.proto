@@ -17,4 +17,5 @@ message SpotFilterState {
     string sort_by = 3;
     bool descending = 4;
     bool folded = 5;
+    string value = 6;
 }

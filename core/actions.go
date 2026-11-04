@@ -51,12 +51,6 @@ const (
 	ActionIncrementalTuningToggle = "radio.incremental_tuning_toggle"
 	ActionIncrementalTuningUp     = "radio.incremental_tuning_up"
 	ActionIncrementalTuningDown   = "radio.incremental_tuning_down"
-	ActionRadioMuteAudioVFO1      = "radio.mute_audio_vfo1"
-	ActionRadioMuteAudioVFO2      = "radio.mute_audio_vfo2"
-	ActionRadioUnmuteAudioVFO1    = "radio.unmute_audio_vfo1"
-	ActionRadioUnmuteAudioVFO2    = "radio.unmute_audio_vfo2"
-	ActionRadioToggleAudioVFO1    = "radio.toggle_audio_vfo1"
-	ActionRadioToggleAudioVFO2    = "radio.toggle_audio_vfo2"
 
 	ActionBandmapMark                 = "bandmap.mark"
 	ActionBandmapMarkWithNumber       = "bandmap.mark_with_number"

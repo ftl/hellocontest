@@ -1009,14 +1009,6 @@ func (c *Controller) IncrementalTuningDown() {
 	c.VFOs[c.focusedVFO].ShiftAvailableIncrementalTuning(-1)
 }
 
-func (c *Controller) MuteAudio(vfo core.VFOID) {
-	c.VFOs[vfo].MuteAudio()
-}
-
-func (c *Controller) UnmuteAudio(vfo core.VFOID) {
-	c.VFOs[vfo].UnmuteAudio()
-}
-
 func (c *Controller) ShiftFrequency(delta core.Frequency) {
 	c.Entry.ShiftFrequency(delta)
 }
@@ -1039,10 +1031,6 @@ func (c *Controller) KeyerSpeedUp() {
 
 func (c *Controller) KeyerSpeedDown() {
 	c.KeyerShiftSpeed(-core.DefaultSpeedShift)
-}
-
-func (c *Controller) ToggleAudio(vfo core.VFOID) {
-	c.VFOs[vfo].ToggleAudio()
 }
 
 func (c *Controller) MarkInBandmap() {
@@ -1307,18 +1295,6 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.Keyer.SendMacro(2)
 	case core.ActionKeyerSendMacro4:
 		c.Keyer.SendMacro(3)
-	case core.ActionRadioMuteAudioVFO1:
-		c.MuteAudio(core.VFO1)
-	case core.ActionRadioMuteAudioVFO2:
-		c.MuteAudio(core.VFO2)
-	case core.ActionRadioUnmuteAudioVFO1:
-		c.UnmuteAudio(core.VFO1)
-	case core.ActionRadioUnmuteAudioVFO2:
-		c.UnmuteAudio(core.VFO2)
-	case core.ActionRadioToggleAudioVFO1:
-		c.ToggleAudio(core.VFO1)
-	case core.ActionRadioToggleAudioVFO2:
-		c.ToggleAudio(core.VFO2)
 	default:
 		return fmt.Errorf("unknown action: %s", id)
 	}

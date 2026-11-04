@@ -26,9 +26,6 @@ type Client interface {
 	SetMode(core.VFOID, core.Mode)
 	IncrementalTuningPerVFO() bool
 	SetIncrementalTuning(core.VFOID, core.IncrementalTuningKind, bool, core.Frequency)
-	MuteAudio(core.VFOID)
-	UnmuteAudio(core.VFOID)
-	ToggleAudio(core.VFOID)
 }
 
 type Logbook interface {
@@ -192,30 +189,6 @@ func (v *VFO) SetMode(mode core.Mode) {
 		v.client.SetMode(v.id, mode)
 	} else {
 		v.offlineClient.SetMode(mode)
-	}
-}
-
-func (v *VFO) MuteAudio() {
-	if v.online() {
-		v.client.MuteAudio(v.id)
-	} else {
-		v.offlineClient.MuteAudio()
-	}
-}
-
-func (v *VFO) UnmuteAudio() {
-	if v.online() {
-		v.client.UnmuteAudio(v.id)
-	} else {
-		v.offlineClient.UnmuteAudio()
-	}
-}
-
-func (v *VFO) ToggleAudio() {
-	if v.online() {
-		v.client.ToggleAudio(v.id)
-	} else {
-		v.offlineClient.ToggleAudio()
 	}
 }
 
@@ -480,9 +453,3 @@ func (c *offlineClient) SetPTT(active bool) {
 func (c *offlineClient) IncrementalTuningPerVFO() bool {
 	return false
 }
-
-func (c *offlineClient) MuteAudio() {}
-
-func (c *offlineClient) UnmuteAudio() {}
-
-func (c *offlineClient) ToggleAudio() {}

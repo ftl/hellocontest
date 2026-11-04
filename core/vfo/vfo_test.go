@@ -385,3 +385,59 @@ func TestShiftFrequency_EndsACommandInFlight(t *testing.T) {
 
 	assert.Equal(t, []core.Frequency{14201000}, spy.tuned, "the operator took over")
 }
+
+// refreshSpy is an active client that records what the VFO commands.
+type refreshSpy struct {
+	laggingClient
+	refreshCount int
+	bands        []core.Band
+	modes        []core.Mode
+}
+
+func (c *refreshSpy) Refresh()                          { c.refreshCount++ }
+func (c *refreshSpy) SetBand(_ core.VFOID, b core.Band) { c.bands = append(c.bands, b) }
+func (c *refreshSpy) SetMode(_ core.VFOID, m core.Mode) { c.modes = append(c.modes, m) }
+
+type logbookStub struct {
+	band core.Band
+	mode core.Mode
+}
+
+func (l *logbookStub) LastBand() core.Band { return l.band }
+func (l *logbookStub) LastMode() core.Mode { return l.mode }
+
+func TestLogbookLoadedRefreshesTheOnlineRigWithoutRetuningIt(t *testing.T) {
+	logbook := &logbookStub{band: core.Band160m, mode: core.ModeCW}
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, logbook, nil)
+	client := &refreshSpy{}
+	v.SetClient(client)
+	client.refreshCount = 0
+
+	v.LogbookLoaded()
+
+	assert.Equal(t, 1, client.refreshCount, "the listeners need the current state of the rig again")
+	assert.Empty(t, client.bands, "the band of the logbook must not be sent to the rig")
+	assert.Empty(t, client.modes, "the mode of the logbook must not be sent to the rig")
+}
+
+type bandSpy struct {
+	bands []core.Band
+}
+
+func (s *bandSpy) VFOBandChanged(_ core.VFOID, band core.Band) {
+	s.bands = append(s.bands, band)
+}
+
+func TestRefreshDoesNotLeaveTheVFOInRefreshingState(t *testing.T) {
+	v := NewVFO(core.VFO1, "VFO 1", bandplan.IARURegion1, nil, func(f func()) { f() })
+	spy := new(bandSpy)
+	v.Notify(spy)
+
+	v.Refresh()
+	currentBand := spy.bands[len(spy.bands)-1]
+	spy.bands = nil
+
+	v.SetBand(currentBand)
+
+	assert.Empty(t, spy.bands, "setting the band that is already selected must not emit a change")
+}

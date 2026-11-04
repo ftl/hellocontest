@@ -100,6 +100,8 @@ func (v *VFO) online() bool {
 
 func (v *VFO) Refresh() {
 	v.refreshing = true
+	defer func() { v.refreshing = false }()
+
 	if !v.online() {
 		v.offlineClient.Refresh()
 		return
@@ -107,7 +109,6 @@ func (v *VFO) Refresh() {
 	v.client.Refresh()
 	v.emitIncrementalTuningVisibilityChanged(core.RIT)
 	v.emitIncrementalTuningVisibilityChanged(core.XIT)
-	v.refreshing = false
 }
 
 func (v *VFO) SetFrequency(frequency core.Frequency) {
@@ -221,20 +222,20 @@ func (v *VFO) ToggleAudio() {
 func (v *VFO) LogbookLoaded() {
 	log.Printf("VFO logbook changed")
 
-	if v.online() {
-		return
+	// only the offline client follows the logbook, a connected rig keeps its own band and mode
+	if !v.online() {
+		lastBand := v.logbook.LastBand()
+		if lastBand != core.NoBand {
+			v.offlineClient.SetBand(lastBand)
+		}
+
+		lastMode := v.logbook.LastMode()
+		if lastMode != core.NoMode {
+			v.offlineClient.SetMode(lastMode)
+		}
 	}
 
-	lastBand := v.logbook.LastBand()
-	if lastBand != core.NoBand {
-		v.offlineClient.SetBand(lastBand)
-	}
-
-	lastMode := v.logbook.LastMode()
-	if lastMode != core.NoMode {
-		v.offlineClient.SetMode(lastMode)
-	}
-
+	// the listeners reset their state when the logbook changes, they need the current state again
 	v.Refresh()
 }
 

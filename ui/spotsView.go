@@ -17,6 +17,8 @@ type SpotsController interface {
 	SelectEntry(core.BandmapEntryID)
 	SelectMarker(core.BandmapEntryID)
 	RemoveMarker(core.BandmapEntryID)
+	IgnoreEntry(core.BandmapEntryID)
+	RestoreEntry(core.BandmapEntryID)
 }
 
 const (
@@ -211,25 +213,49 @@ func (v *spotsView) showContextMenu(pos *qtlib.QPoint) {
 	if row < 0 || row >= len(v.currentFrame.Rows) {
 		return
 	}
-	if v.currentFrame.Rows[row].Kind != core.MarkerRow {
+	if v.currentFrame.Rows[row].Kind == core.MarkerRow {
+		v.showMarkerContextMenu(pos, v.currentFrame.Rows[row].Marker)
 		return
 	}
-	marker := v.currentFrame.Rows[row].Marker
+	v.showSpotContextMenu(pos, v.currentFrame.Rows[row].Entry)
+}
+
+func (v *spotsView) showMarkerContextMenu(pos *qtlib.QPoint, marker core.BandmapMarker) {
 	if marker.Kind == core.CQMarker {
 		return
 	}
 
-	menu := qtlib.NewQMenu2()
-	deleteAction := menu.AddActionWithText("Delete Marker")
-	// the menu holds the mouse grab and runs its own event loop, therefore the deletion
-	// happens after the menu closed
-	chosen := menu.ExecWithPos(v.table.Viewport().MapToGlobalWithQPoint(pos))
-	deleteChosen := chosen != nil && chosen.UnsafePointer() == deleteAction.UnsafePointer()
-	menu.Delete()
-
-	if deleteChosen {
-		v.controller.RemoveMarker(marker.ID)
+	if !v.chooseFromContextMenu(pos, "Delete Marker") {
+		return
 	}
+	v.controller.RemoveMarker(marker.ID)
+}
+
+func (v *spotsView) showSpotContextMenu(pos *qtlib.QPoint, entry core.BandmapEntry) {
+	label := "Ignore Spot"
+	if entry.Ignored {
+		label = "Restore Spot"
+	}
+
+	if !v.chooseFromContextMenu(pos, label) {
+		return
+	}
+	if entry.Ignored {
+		v.controller.RestoreEntry(entry.ID)
+		return
+	}
+	v.controller.IgnoreEntry(entry.ID)
+}
+
+func (v *spotsView) chooseFromContextMenu(pos *qtlib.QPoint, text string) bool {
+	// the menu holds the mouse grab and runs its own event loop, therefore the caller acts
+	// after the menu closed
+	menu := qtlib.NewQMenu2()
+	action := menu.AddActionWithText(text)
+	chosen := menu.ExecWithPos(v.table.Viewport().MapToGlobalWithQPoint(pos))
+	result := chosen != nil && chosen.UnsafePointer() == action.UnsafePointer()
+	menu.Delete()
+	return result
 }
 
 // --- Table updates ---------------------------------------------------------
@@ -312,7 +338,9 @@ func (v *spotsView) buildMarkerRow(marker core.BandmapMarker) []*qtlib.QStandard
 
 func (v *spotsView) buildSpotRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
 	ageText, ageBold := FormatSpotAge(entry.LastHeard)
-	worked := entry.Source == core.WorkedSpot
+	// an ignored spot is no target for the operator any more, therefore it looks like a
+	// worked spot
+	dimmed := entry.Source == core.WorkedSpot || entry.Ignored
 
 	type cell struct {
 		text  string
@@ -338,7 +366,7 @@ func (v *spotsView) buildSpotRow(entry core.BandmapEntry) []*qtlib.QStandardItem
 	items := make([]*qtlib.QStandardItem, spotColCount)
 	for i, c := range cells {
 		item := qtlib.NewQStandardItem2(c.text)
-		if worked {
+		if dimmed {
 			item.SetForeground(v.style.WorkedSpotBrush())
 		}
 		if c.align != 0 {

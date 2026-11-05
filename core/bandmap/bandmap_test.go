@@ -1020,3 +1020,97 @@ func setupBandmapWithSelectedSpot(t *testing.T) (*Bandmap, chan core.BandmapFram
 	})
 	return bandmap, frames
 }
+
+func TestBandmap_IgnoreEntry_TakesTheValueOfTheSpot(t *testing.T) {
+	bandmap, frames := setupBandmapWithSpot(t)
+	defer bandmap.Close()
+	frame := waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool {
+		return len(f.Rows) == 1 && f.Rows[0].Entry.Info.Value > 0
+	})
+
+	bandmap.IgnoreEntry(frame.Rows[0].Entry.ID)
+
+	frame = waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool {
+		return len(f.Rows) == 1 && f.Rows[0].Entry.Ignored
+	})
+	entry := frame.Rows[0].Entry
+	assert.Zero(t, entry.Info.Value, "an ignored spot has no value")
+	assert.Zero(t, entry.Info.Points, "an ignored spot scores no points")
+	assert.Zero(t, entry.Info.Multis, "an ignored spot is no multi")
+	assert.Zero(t, entry.Info.WeightedValue, "an ignored spot has no weight")
+}
+
+func TestBandmap_RestoreEntry_GivesTheValueBack(t *testing.T) {
+	bandmap, frames := setupBandmapWithSpot(t)
+	defer bandmap.Close()
+	frame := waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 1 })
+	id := frame.Rows[0].Entry.ID
+	bandmap.IgnoreEntry(id)
+	waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool {
+		return len(f.Rows) == 1 && f.Rows[0].Entry.Ignored
+	})
+
+	bandmap.RestoreEntry(id)
+
+	frame = waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool {
+		return len(f.Rows) == 1 && !f.Rows[0].Entry.Ignored
+	})
+	assert.Positive(t, frame.Rows[0].Entry.Info.Value, "the spot has its value again")
+}
+
+func TestBandmap_IgnoreEntryOnFrequency_TakesTheSpotOfTheFocusedVFO(t *testing.T) {
+	bandmap, frames := setupBandmapWithSpot(t)
+	defer bandmap.Close()
+	bandmap.Add(core.Spot{Call: core.MustParseCallsign("dl2abc"), Frequency: 14050000, Band: core.Band20m, Mode: core.ModeCW, Time: time.Now()})
+	waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 2 })
+
+	bandmap.IgnoreEntryOnFrequency()
+
+	frame := waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool {
+		return len(f.Rows) == 2 && f.Rows[0].Entry.Ignored
+	})
+	assert.Equal(t, "DL1ABC", frame.Rows[0].Entry.Call.String(), "the VFO is on this spot")
+	assert.False(t, frame.Rows[1].Entry.Ignored, "the other spot keeps its value")
+}
+
+func TestBandmap_IgnoredSpot_DisappearsWithTheValueFilter(t *testing.T) {
+	bandmap, frames := setupBandmapWithSpot(t)
+	defer bandmap.Close()
+	bandmap.SetFilterValue(core.SpotFilterScoring)
+	frame := waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 1 })
+
+	bandmap.IgnoreEntry(frame.Rows[0].Entry.ID)
+
+	frame = waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 0 })
+	assert.Empty(t, frame.Rows, "the ignored spot has no value, therefore the filter hides it")
+}
+
+func setupBandmapWithSpot(t *testing.T) (*Bandmap, chan core.BandmapFrame) {
+	t.Helper()
+	// the periodic update recomputes the values of the entries
+	bandmap, frames := setupRunningBandmapWithPeriod(t, 10*time.Millisecond)
+	bandmap.SetCallinfo(&callinfoStub{value: 40, multis: 1})
+	bandmap.VFOBandChanged(core.VFO1, core.Band20m)
+	bandmap.VFOModeChanged(core.VFO1, core.ModeCW)
+	bandmap.VFOFrequencyChanged(core.VFO1, 14023000)
+	bandmap.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 14023000, Band: core.Band20m, Mode: core.ModeCW, Time: time.Now()})
+	return bandmap, frames
+}
+
+func TestBandmap_IgnoredEntry_StaysIgnoredWhenANewSpotArrives(t *testing.T) {
+	bandmap, frames := setupBandmapWithSpot(t)
+	defer bandmap.Close()
+	frame := waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 1 })
+	bandmap.IgnoreEntry(frame.Rows[0].Entry.ID)
+	waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool {
+		return len(f.Rows) == 1 && f.Rows[0].Entry.Ignored
+	})
+
+	bandmap.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 14023000, Band: core.Band20m, Mode: core.ModeCW, Time: time.Now()})
+
+	frame = waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool {
+		return len(f.Rows) == 1 && f.Rows[0].Entry.SpotCount == 2
+	})
+	assert.True(t, frame.Rows[0].Entry.Ignored, "another spot of the same station changes nothing")
+	assert.Zero(t, frame.Rows[0].Entry.Info.Value, "the spot stays without value")
+}

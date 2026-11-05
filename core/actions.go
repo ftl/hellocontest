@@ -55,6 +55,8 @@ const (
 	ActionBandmapMark                 = "bandmap.mark"
 	ActionBandmapMarkWithNumber       = "bandmap.mark_with_number"
 	ActionBandmapDeleteMarker         = "bandmap.delete_marker"
+	ActionBandmapIgnoreSpot           = "bandmap.ignore_spot"
+	ActionBandmapRestoreSpot          = "bandmap.restore_spot"
 	ActionBandmapGotoHighestValueSpot = "bandmap.goto_highest_value_spot"
 	ActionBandmapGotoNearestSpot      = "bandmap.goto_nearest_spot"
 	ActionBandmapGotoNextSpotUp       = "bandmap.goto_next_spot_up"

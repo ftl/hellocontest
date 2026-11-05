@@ -1873,6 +1873,7 @@ type BandmapEntry struct {
 	SpotCount int
 	Quality   SpotQuality
 	SNR       float64
+	Ignored   bool
 
 	Info Callinfo
 }

@@ -686,6 +686,48 @@ func (m *Bandmap) Remove(spot core.Spot) {
 	}
 }
 
+func (m *Bandmap) IgnoreEntry(id core.BandmapEntryID) {
+	m.do <- func() {
+		m.setEntryIgnored(id, true)
+	}
+}
+
+func (m *Bandmap) RestoreEntry(id core.BandmapEntryID) {
+	m.do <- func() {
+		m.setEntryIgnored(id, false)
+	}
+}
+
+func (m *Bandmap) IgnoreEntryOnFrequency() {
+	m.do <- func() {
+		m.setEntryOnFrequencyIgnored(true)
+	}
+}
+
+func (m *Bandmap) RestoreEntryOnFrequency() {
+	m.do <- func() {
+		m.setEntryOnFrequencyIgnored(false)
+	}
+}
+
+func (m *Bandmap) setEntryOnFrequencyIgnored(ignored bool) {
+	// the operator names the spot with the frequency of the focused VFO, with the same
+	// rule as for the deletion of a marker
+	entry, found := m.nextEntryOnFrequency(m.filter.FocusedVFO())
+	if !found {
+		return
+	}
+	m.setEntryIgnored(entry.ID, ignored)
+}
+
+func (m *Bandmap) setEntryIgnored(id core.BandmapEntryID, ignored bool) {
+	if !m.entries.SetIgnored(id, ignored) {
+		return
+	}
+	// the value of the entry follows the ignore flag, the update recalculates it
+	m.update()
+}
+
 func (m *Bandmap) SelectEntry(id core.BandmapEntryID) {
 	m.do <- func() {
 		m.selection.SelectEntry(id)

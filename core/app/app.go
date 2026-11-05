@@ -1045,6 +1045,14 @@ func (c *Controller) DeleteMarker() {
 	c.Bandmap.DeleteMarkerOnFrequency()
 }
 
+func (c *Controller) IgnoreSpot() {
+	c.Bandmap.IgnoreEntryOnFrequency()
+}
+
+func (c *Controller) RestoreSpot() {
+	c.Bandmap.RestoreEntryOnFrequency()
+}
+
 func (c *Controller) GotoHighestValueSpot() {
 	c.Bandmap.GotoHighestValueEntry()
 }
@@ -1257,6 +1265,10 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		c.MarkWithNumberInBandmap(number)
 	case core.ActionBandmapDeleteMarker:
 		c.DeleteMarker()
+	case core.ActionBandmapIgnoreSpot:
+		c.IgnoreSpot()
+	case core.ActionBandmapRestoreSpot:
+		c.RestoreSpot()
 	case core.ActionBandmapGotoHighestValueSpot:
 		c.GotoHighestValueSpot()
 	case core.ActionBandmapGotoNearestSpot:

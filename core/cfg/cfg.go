@@ -175,6 +175,8 @@ var Default = &Data{
 		"radio.dial_active":               "",
 		"bandmap.mark":                    "Ctrl+M",
 		"bandmap.delete_marker":           "Ctrl+Shift+D",
+		"bandmap.ignore_spot":             "Ctrl+I",
+		"bandmap.restore_spot":            "Ctrl+Shift+I",
 		"bandmap.goto_highest_value_spot": "Ctrl+Shift+N",
 		"bandmap.goto_nearest_spot":       "Ctrl+N",
 		"bandmap.goto_next_spot_up":       "Ctrl+Up",

@@ -68,6 +68,8 @@ type actions struct {
 	// Bandmap menu
 	markBandmapAction     *qtlib.QAction
 	deleteMarkerAction    *qtlib.QAction
+	ignoreSpotAction      *qtlib.QAction
+	restoreSpotAction     *qtlib.QAction
 	highestSpotAction     *qtlib.QAction
 	nearestSpotAction     *qtlib.QAction
 	gotoCQFrequencyAction *qtlib.QAction
@@ -174,6 +176,8 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 	// Bandmap menu
 	a.markBandmapAction = a.makeTriggerAction(core.ActionBandmapMark, "Mark In Bandmap", "", "Ctrl+M", controller.MarkInBandmap)
 	a.deleteMarkerAction = a.makeTriggerAction(core.ActionBandmapDeleteMarker, "Delete Marker", "Delete the marker on the frequency of the focused VFO", "Ctrl+Shift+D", controller.DeleteMarker)
+	a.ignoreSpotAction = a.makeTriggerAction(core.ActionBandmapIgnoreSpot, "Ignore Spot", "Take the value from the spot on the frequency of the focused VFO", "Ctrl+I", controller.IgnoreSpot)
+	a.restoreSpotAction = a.makeTriggerAction(core.ActionBandmapRestoreSpot, "Restore Spot", "Give the value back to the ignored spot on the frequency of the focused VFO", "Ctrl+Shift+I", controller.RestoreSpot)
 	a.highestSpotAction = a.makeTriggerAction(core.ActionBandmapGotoHighestValueSpot, "Goto Highest Value Spot", "Go to the spot with the highest predicted value", "Ctrl+Shift+N", controller.GotoHighestValueSpot)
 	a.nearestSpotAction = a.makeTriggerAction(core.ActionBandmapGotoNearestSpot, "Goto Nearest Spot", "Go to the spot closest to the current frequency", "Ctrl+N", controller.GotoNearestSpot)
 	a.gotoCQFrequencyAction = a.makeTriggerAction(core.ActionBandmapGotoCQFrequency, "Goto &CQ Frequency", "Go to the frequency of the CQ marker", "Ctrl+Shift+C", controller.GotoCQFrequency)

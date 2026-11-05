@@ -196,6 +196,19 @@ func (e *Entry) update() {
 	}
 }
 
+func (e *Entry) clearValueIfIgnored() {
+	if !e.Ignored {
+		return
+	}
+	// an ignored entry looks like a spot without value, therefore the filters of the
+	// spots table can hide it
+	e.Info.Points = 0
+	e.Info.Multis = 0
+	e.Info.MultiValues = nil
+	e.Info.Value = 0
+	e.Info.WeightedValue = 0
+}
+
 func (e *Entry) updateFrequency() bool {
 	if len(e.spots) == 0 {
 		e.Frequency = 0
@@ -346,6 +359,19 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 	return left
 }
 
+func (l *Entries) SetIgnored(id core.BandmapEntryID, ignored bool) bool {
+	for _, e := range l.entries {
+		if e.ID != id || e.Ignored == ignored {
+			continue
+		}
+		e.Ignored = ignored
+		e.updated = true
+		l.notifier.emitEntryUpdated(e.BandmapEntry)
+		return true
+	}
+	return false
+}
+
 func (l *Entries) MarkAsWorked(call core.Callsign, band core.Band, mode core.Mode) {
 	for _, e := range l.entries {
 		match := true
@@ -422,6 +448,7 @@ func (l *Entries) complementCallinfo(entry *Entry, now time.Time, weights core.B
 	}
 	entry.Info = l.callinfo.GetInfo(entry.Call, entry.Band, entry.Mode, []string{})
 	entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
+	entry.clearValueIfIgnored()
 }
 
 func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.BandmapWeights) {
@@ -432,6 +459,7 @@ func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.Band
 	if ok {
 		entry.Info.WeightedValue = l.calculateWeightedValue(entry, now, weights)
 	}
+	entry.clearValueIfIgnored()
 }
 
 func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {

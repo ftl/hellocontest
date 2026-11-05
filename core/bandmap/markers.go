@@ -196,6 +196,22 @@ func (m *Markers) retextMarker(i int, text string, frequency core.Frequency, ban
 	return marker
 }
 
+func (m *Markers) SetInput(id core.BandmapEntryID, input core.MarkerInput) {
+	// empty entry fields take nothing away from the marker, the operator removes the
+	// marker to get rid of its data
+	if input.IsEmpty() {
+		return
+	}
+	for i, marker := range m.markers {
+		if marker.ID != id {
+			continue
+		}
+		marker.Input = input
+		m.markers[i] = marker
+		return
+	}
+}
+
 func (m *Markers) Get(id core.BandmapEntryID) (core.BandmapMarker, bool) {
 	for _, marker := range m.markers {
 		if marker.ID == id {

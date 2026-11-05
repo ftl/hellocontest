@@ -132,3 +132,29 @@ func TestIsFrequencyJump(t *testing.T) {
 		})
 	}
 }
+
+func TestBandmapMarker_Label(t *testing.T) {
+	tt := []struct {
+		desc   string
+		marker BandmapMarker
+		want   string
+	}{
+		{desc: "without a QSO", marker: BandmapMarker{Kind: NumberedMarker, Number: 1, Text: "1"}, want: "1"},
+		{
+			desc:   "with a QSO",
+			marker: BandmapMarker{Kind: NumberedMarker, Number: 1, Text: "1", Input: MarkerInput{Call: "DL1ABC"}},
+			want:   "1: DL1ABC",
+		},
+		{
+			desc:   "with an exchange, but without a callsign",
+			marker: BandmapMarker{Kind: NumberedMarker, Number: 1, Text: "1", Input: MarkerInput{TheirExchange: []string{"599"}}},
+			want:   "1",
+		},
+		{desc: "a text marker", marker: BandmapMarker{Kind: TextMarker, Text: "beacon"}, want: "beacon"},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.marker.Label())
+		})
+	}
+}

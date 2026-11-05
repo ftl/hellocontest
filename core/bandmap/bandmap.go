@@ -612,16 +612,18 @@ func (m *Bandmap) selectMarker(marker core.BandmapMarker) {
 	m.update()
 }
 
-func (m *Bandmap) MarkWithNextNumber(frequency core.Frequency, band core.Band) {
+func (m *Bandmap) MarkWithNextNumber(frequency core.Frequency, band core.Band, input core.MarkerInput) {
 	m.do <- func() {
-		m.markers.MarkWithNextNumber(frequency, band, m.clock.Now())
+		marker := m.markers.MarkWithNextNumber(frequency, band, m.clock.Now())
+		m.markers.SetInput(marker.ID, input)
 		m.update()
 	}
 }
 
-func (m *Bandmap) MarkWithNumber(number int, frequency core.Frequency, band core.Band) {
+func (m *Bandmap) MarkWithNumber(number int, frequency core.Frequency, band core.Band, input core.MarkerInput) {
 	m.do <- func() {
-		m.markers.MarkWithNumber(number, frequency, band, m.clock.Now())
+		marker := m.markers.MarkWithNumber(number, frequency, band, m.clock.Now())
+		m.markers.SetInput(marker.ID, input)
 		m.update()
 	}
 }

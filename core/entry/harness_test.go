@@ -835,12 +835,12 @@ func (b *bandmapSpy) GotoNumberedMarker(number int) {
 	b.numberedMarkerGotos = append(b.numberedMarkerGotos, number)
 }
 
-func (b *bandmapSpy) MarkWithNextNumber(frequency core.Frequency, band core.Band) {
-	b.marksWithNextNumber = append(b.marksWithNextNumber, markCall{frequency: frequency, band: band})
+func (b *bandmapSpy) MarkWithNextNumber(frequency core.Frequency, band core.Band, input core.MarkerInput) {
+	b.marksWithNextNumber = append(b.marksWithNextNumber, markCall{frequency: frequency, band: band, input: input})
 }
 
-func (b *bandmapSpy) MarkWithNumber(number int, frequency core.Frequency, band core.Band) {
-	b.marksWithNumber = append(b.marksWithNumber, markCall{number: number, frequency: frequency, band: band})
+func (b *bandmapSpy) MarkWithNumber(number int, frequency core.Frequency, band core.Band, input core.MarkerInput) {
+	b.marksWithNumber = append(b.marksWithNumber, markCall{number: number, frequency: frequency, band: band, input: input})
 }
 
 func (b *bandmapSpy) MarkWithText(text string, frequency core.Frequency, band core.Band) {
@@ -852,6 +852,7 @@ type markCall struct {
 	text      string
 	frequency core.Frequency
 	band      core.Band
+	input     core.MarkerInput
 }
 
 func (b *bandmapSpy) Add(spot core.Spot) { b.addedSpots = append(b.addedSpots, spot) }

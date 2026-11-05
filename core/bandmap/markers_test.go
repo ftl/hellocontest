@@ -433,3 +433,28 @@ func TestMarkers_RemoveOnFrequency_KeepsTheCQMarker(t *testing.T) {
 	assert.False(t, found, "the CQ marker is no numbered or text marker")
 	assert.Len(t, markers.All(), 1)
 }
+
+func TestMarkers_SetInput_StoresTheDataOfTheQSOInProgress(t *testing.T) {
+	markers, now := setupMarkers()
+	marker := markers.AddNumbered(5, 3550000, core.Band80m, now)
+
+	markers.SetInput(marker.ID, core.MarkerInput{Call: "DL1ABC", TheirExchange: []string{"599", "012"}})
+
+	stored, ok := markers.Get(marker.ID)
+	require.True(t, ok)
+	assert.Equal(t, "DL1ABC", stored.Input.Call)
+	assert.Equal(t, []string{"599", "012"}, stored.Input.TheirExchange)
+}
+
+func TestMarkers_SetInput_WithAnEmptyInput_KeepsTheData(t *testing.T) {
+	markers, now := setupMarkers()
+	marker := markers.AddNumbered(5, 3550000, core.Band80m, now)
+	markers.SetInput(marker.ID, core.MarkerInput{Call: "DL1ABC"})
+
+	// the operator marks the frequency again, this time with empty entry fields
+	markers.SetInput(marker.ID, core.MarkerInput{TheirExchange: []string{"", ""}})
+
+	stored, ok := markers.Get(marker.ID)
+	require.True(t, ok)
+	assert.Equal(t, "DL1ABC", stored.Input.Call, "only the removal of the marker removes its data")
+}

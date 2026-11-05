@@ -321,7 +321,7 @@ func (v *spotsView) buildMarkerRow(marker core.BandmapMarker) []*qtlib.QStandard
 	ageText, _ := FormatSpotAge(marker.CreatedAt)
 	cells := [spotColCount]string{
 		spotColFrequency: FormatSpotFrequency(marker.Frequency),
-		spotColCallsign:  marker.Text,
+		spotColCallsign:  marker.Label(),
 		spotColAge:       ageText,
 	}
 	background, foreground := v.style.MarkerBrushes(marker.Kind)

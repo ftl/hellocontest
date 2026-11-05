@@ -3,6 +3,7 @@ package entry
 import (
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -89,8 +90,8 @@ type Bandmap interface {
 	SelectByCallsign(core.Callsign)
 	GotoCQMarker()
 	GotoNumberedMarker(int)
-	MarkWithNextNumber(core.Frequency, core.Band)
-	MarkWithNumber(int, core.Frequency, core.Band)
+	MarkWithNextNumber(core.Frequency, core.Band, core.MarkerInput)
+	MarkWithNumber(int, core.Frequency, core.Band, core.MarkerInput)
 	MarkWithText(string, core.Frequency, core.Band)
 }
 
@@ -1489,13 +1490,17 @@ func (c *Controller) MarkInBandmap() {
 
 	// an empty callsign marks the frequency with the next available number
 	if callsign == "" {
-		c.bandmap.MarkWithNextNumber(frequency, band)
+		c.bandmap.MarkWithNextNumber(frequency, band, c.currentMarkerInput())
 		return
 	}
 
 	// a number marks the frequency with exactly that number
 	if number, ok := parseMarkerNumber(callsign); ok {
-		c.bandmap.MarkWithNumber(number, frequency, band)
+		// the callsign field holds the number of the marker, therefore the marker takes
+		// only the exchange
+		input := c.currentMarkerInput()
+		input.Call = ""
+		c.bandmap.MarkWithNumber(number, frequency, band, input)
 		c.clearCallsignInput()
 		return
 	}
@@ -1507,7 +1512,9 @@ func (c *Controller) MarkInBandmap() {
 
 	call, err := core.ParseCallsign(callsign)
 	if err != nil {
-		log.Printf("Cannot mark invalid call: %v", err)
+		// an incomplete callsign is no spot for the other operators, but the operator
+		// parks the QSO at a marker and continues it later
+		c.bandmap.MarkWithNextNumber(frequency, band, c.currentMarkerInput())
 		return
 	}
 	spot := core.Spot{
@@ -1522,7 +1529,15 @@ func (c *Controller) MarkInBandmap() {
 }
 
 func (c *Controller) MarkWithNumberInBandmap(number int) {
-	c.bandmap.MarkWithNumber(number, c.selectedFrequency[c.focusedVFO], c.selectedBand[c.focusedVFO])
+	c.bandmap.MarkWithNumber(number, c.selectedFrequency[c.focusedVFO], c.selectedBand[c.focusedVFO], c.currentMarkerInput())
+}
+
+func (c *Controller) currentMarkerInput() core.MarkerInput {
+	// the operator comes back to the marker later and continues the QSO there
+	return core.MarkerInput{
+		Call:          strings.TrimSpace(c.input[c.focusedVFO].callsign),
+		TheirExchange: slices.Clone(c.input[c.focusedVFO].theirExchange),
+	}
 }
 
 func parseMarkerNumber(s string) (int, bool) {
@@ -1539,7 +1554,7 @@ func (c *Controller) markFromText(text string) {
 
 	// a text that is a number marks the frequency with that number
 	if number, ok := parseMarkerNumber(text); ok {
-		c.bandmap.MarkWithNumber(number, frequency, band)
+		c.bandmap.MarkWithNumber(number, frequency, band, c.currentMarkerInput())
 	} else {
 		c.bandmap.MarkWithText(text, frequency, band)
 	}
@@ -1558,10 +1573,25 @@ func (c *Controller) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) {
 
 	c.Clear()
 	// setting the frequency also moves the rig to the band of the marker. A marker names
-	// no callsign and no mode, therefore the input stays empty.
+	// no mode, therefore the mode of the VFO stays as it is.
 	c.frequencyEntered(marker.Frequency)
 	c.SetActiveField(core.CallsignField)
+	c.restoreMarkerInput(marker.Input)
 	c.Activate()
+}
+
+func (c *Controller) restoreMarkerInput(input core.MarkerInput) {
+	if input.IsEmpty() {
+		return
+	}
+
+	// the operator continues the QSO that they left behind on the frequency of the marker
+
+	c.input[c.focusedVFO].callsign = input.Call
+	c.input[c.focusedVFO].theirExchange = ensureLen(input.TheirExchange, len(c.theirExchangeFields))
+	c.showInput()
+	c.enterCallsign(input.Call)
+	c.updateESM()
 }
 
 func (c *Controller) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) {

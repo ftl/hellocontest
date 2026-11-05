@@ -1114,3 +1114,16 @@ func TestBandmap_IgnoredEntry_StaysIgnoredWhenANewSpotArrives(t *testing.T) {
 	assert.True(t, frame.Rows[0].Entry.Ignored, "another spot of the same station changes nothing")
 	assert.Zero(t, frame.Rows[0].Entry.Info.Value, "the spot stays without value")
 }
+
+func TestBandmap_MarkWithNumber_StoresTheInputInTheMarker(t *testing.T) {
+	bandmap, frames := setupRunningBandmap(t)
+	defer bandmap.Close()
+	input := core.MarkerInput{Call: "DL1ABC", TheirExchange: []string{"599", "012"}}
+
+	bandmap.MarkWithNumber(5, 3550000, core.Band80m, input)
+
+	frame := waitForFrameMatching(t, frames, func(f core.BandmapFrame) bool { return len(f.Rows) == 1 })
+	marker := frame.Rows[0].Marker
+	assert.Equal(t, 5, marker.Number)
+	assert.Equal(t, input, marker.Input, "the operator continues this QSO at the marker")
+}

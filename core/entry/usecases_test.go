@@ -2638,3 +2638,138 @@ func TestA3b_GotoNextFieldSkippingReport_TheirExchange2_GoesToTheirExchange3(t *
 		GotoNextFieldSkippingReport().
 		AssertActiveField(core.VFO1, core.TheirExchangeField(3))
 }
+
+// G18. Mark with a number takes the data of the QSO in progress with it
+// Pre:  a callsign and an exchange are entered on the focused VFO.
+// Act:  MarkWithNumberInBandmap(5).
+// Post: the marker holds the callsign and the exchange, so that the operator continues the
+//
+//	QSO when they come back to the marker.
+func TestG18_MarkWithNumberInBandmap_TakesTheInputWithIt(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		Enter("DL1ABC").
+		GotoNextField().
+		Enter("599").
+		GotoNextField().
+		Enter("012").
+		MarkWithNumberInBandmap(5)
+
+	require.Len(t, s.bandmap.marksWithNumber, 1)
+	input := s.bandmap.marksWithNumber[0].input
+	assert.Equal(t, "DL1ABC", input.Call)
+	assert.Equal(t, []string{"599", "012", ""}, input.TheirExchange)
+}
+
+// G19. Mark in bandmap with a number takes only the exchange with it
+// Pre:  the callsign field holds the number of the marker, an exchange is entered.
+// Act:  MarkInBandmap().
+// Post: the marker holds the exchange, but no callsign: the callsign field holds the number
+//
+//	of the marker, which is no callsign.
+func TestG19_MarkInBandmap_WithANumber_TakesOnlyTheExchange(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		SetActiveField(core.TheirExchangeField(2)).
+		Enter("012").
+		SetActiveField(core.CallsignField).
+		Enter("3").
+		MarkInBandmap()
+
+	require.Len(t, s.bandmap.marksWithNumber, 1)
+	input := s.bandmap.marksWithNumber[0].input
+	assert.Empty(t, input.Call, "the number of the marker is no callsign")
+	// the report is the generated default, the serial is the entered value
+	assert.Equal(t, []string{"599", "012", ""}, input.TheirExchange)
+}
+
+// G20. A selected marker restores the data of the QSO that it holds
+// Pre:  the marker holds a callsign and an exchange.
+// Act:  MarkerSelected(VFO1, marker).
+// Post: the row of VFO1 shows the data of the marker again; the active field is the
+//
+//	callsign field.
+func TestG20_MarkerSelected_RestoresTheInput(t *testing.T) {
+	marker := core.BandmapMarker{
+		Kind:      core.NumberedMarker,
+		Number:    5,
+		Text:      "5",
+		Frequency: 3560000,
+		Band:      core.Band80m,
+		Input:     core.MarkerInput{Call: "DL1ABC", TheirExchange: []string{"599", "012", "ABC"}},
+	}
+
+	NewScenario(t).
+		WithClassicExchange().
+		MarkerSelected(core.VFO1, marker).
+		AssertCallsignView(core.VFO1, "DL1ABC").
+		AssertTheirExchangeSet(core.VFO1, 1, "599").
+		AssertTheirExchangeSet(core.VFO1, 2, "012").
+		AssertTheirExchangeSet(core.VFO1, 3, "ABC").
+		AssertCallinfoNotified("DL1ABC").
+		AssertActiveField(core.VFO1, core.CallsignField)
+}
+
+// G21. A selected marker without data leaves the row empty
+// Pre:  the marker holds no callsign and no exchange.
+// Act:  MarkerSelected(VFO1, marker).
+// Post: the row of VFO1 stays empty, like before.
+func TestG21_MarkerSelected_WithoutInput_LeavesTheRowEmpty(t *testing.T) {
+	marker := core.BandmapMarker{Kind: core.NumberedMarker, Number: 5, Text: "5", Frequency: 3560000, Band: core.Band80m}
+
+	NewScenario(t).
+		WithClassicExchange().
+		Enter("DL1ABC").
+		MarkerSelected(core.VFO1, marker).
+		AssertCallsignView(core.VFO1, "")
+}
+
+// G22. Mark in bandmap with an incomplete callsign parks the QSO
+// Pre:  the callsign field holds a callsign that does not parse.
+// Act:  MarkInBandmap().
+// Post: the bandmap marks the frequency with the next number and the marker takes the
+//
+//	incomplete callsign with it; an incomplete callsign is no spot.
+func TestG22_MarkInBandmap_WithAnIncompleteCallsign(t *testing.T) {
+	s := NewScenario(t).
+		WithClassicExchange().
+		VFOFrequencyChanged(core.VFO1, 3550000).
+		VFOBandChanged(core.VFO1, core.Band80m).
+		Enter("DL1").
+		GotoNextField().
+		GotoNextField().
+		Enter("012").
+		MarkInBandmap()
+
+	require.Len(t, s.bandmap.marksWithNextNumber, 1)
+	mark := s.bandmap.marksWithNextNumber[0]
+	assert.Equal(t, core.Frequency(3550000), mark.frequency)
+	assert.Equal(t, "DL1", mark.input.Call, "the operator continues this QSO at the marker")
+	assert.Equal(t, []string{"599", "012", ""}, mark.input.TheirExchange)
+	assert.Empty(t, s.bandmap.addedSpots, "an incomplete callsign is no spot")
+}
+
+// G23. A selected marker restores an incomplete callsign
+// Pre:  the marker holds a callsign that does not parse.
+// Act:  MarkerSelected(VFO1, marker).
+// Post: the callsign field shows the incomplete callsign again.
+func TestG23_MarkerSelected_RestoresAnIncompleteCallsign(t *testing.T) {
+	marker := core.BandmapMarker{
+		Kind:      core.NumberedMarker,
+		Number:    1,
+		Text:      "1",
+		Frequency: 3550000,
+		Band:      core.Band80m,
+		Input:     core.MarkerInput{Call: "DL1"},
+	}
+
+	NewScenario(t).
+		WithClassicExchange().
+		MarkerSelected(core.VFO1, marker).
+		AssertCallsignView(core.VFO1, "DL1").
+		AssertActiveField(core.VFO1, core.CallsignField)
+}

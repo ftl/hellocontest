@@ -236,6 +236,9 @@ Exit edit modal.
 ### G1. Mark current callsign in bandmap
 - **Pre:** focused VFO callsign input parses.
 - **Post:** `ManualSpot` with call/freq/band/mode/now added to bandmap.
+- **Callsign does not parse:** the frequency gets a marker with the next free number. The
+  marker keeps the callsign and the their-exchange, and gives them back when the operator
+  selects the marker.
 - **Invariants:** input row; logbook.
 
 ### G2. Bandmap entry selected

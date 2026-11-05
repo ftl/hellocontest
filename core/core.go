@@ -1413,6 +1413,32 @@ type BandmapMarker struct {
 	Frequency Frequency
 	Band      Band
 	CreatedAt time.Time
+	Input     MarkerInput
+}
+
+type MarkerInput struct {
+	Call          string
+	TheirExchange []string
+}
+
+func (i MarkerInput) IsEmpty() bool {
+	if i.Call != "" {
+		return false
+	}
+	for _, value := range i.TheirExchange {
+		if value != "" {
+			return false
+		}
+	}
+	return true
+}
+
+func (m BandmapMarker) Label() string {
+	if m.Input.Call == "" {
+		return m.Text
+	}
+	// the operator sees which marker holds which station, the text stays the sort key
+	return fmt.Sprintf("%s: %s", m.Text, m.Input.Call)
 }
 
 func (m BandmapMarker) ProximityFactor(frequency Frequency) float64 {

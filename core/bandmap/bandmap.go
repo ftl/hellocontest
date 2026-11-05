@@ -373,7 +373,25 @@ func (m *Bandmap) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 func (m *Bandmap) FocusedVFOChanged(vfo core.VFOID) {
 	m.do <- func() {
 		m.filter.FocusedVFOChanged(vfo)
+		// the operator works with another VFO now, therefore the navigation starts at the
+		// frequency of that VFO again
+		m.selection.clear()
 		// the navigation and the marks in the frame follow the focused VFO
+		m.update()
+	}
+}
+
+func (m *Bandmap) VFOTuned(vfo core.VFOID, frequency core.Frequency) {
+	m.do <- func() {
+		if vfo != m.filter.FocusedVFO() {
+			return
+		}
+		if !core.IsFrequencyJump(m.vfoFrequencies[vfo], frequency) {
+			return
+		}
+		// the operator left the frequency of the selected row, therefore the navigation
+		// starts at the new frequency again
+		m.selection.clear()
 		m.update()
 	}
 }

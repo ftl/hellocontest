@@ -112,3 +112,23 @@ func TestBandmapMarker_OnFrequency(t *testing.T) {
 		})
 	}
 }
+
+func TestIsFrequencyJump(t *testing.T) {
+	tt := []struct {
+		desc string
+		from Frequency
+		to   Frequency
+		want bool
+	}{
+		{desc: "no change", from: 14020000, to: 14020000},
+		{desc: "tuning around the frequency", from: 14020000, to: 14020250},
+		{desc: "tuning away", from: 14020000, to: 14020251, want: true},
+		{desc: "tuning down and away", from: 14020000, to: 14019749, want: true},
+		{desc: "another band", from: 14020000, to: 7030000, want: true},
+	}
+	for _, tc := range tt {
+		t.Run(tc.desc, func(t *testing.T) {
+			assert.Equal(t, tc.want, IsFrequencyJump(tc.from, tc.to))
+		})
+	}
+}

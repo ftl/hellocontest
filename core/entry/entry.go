@@ -3,7 +3,6 @@ package entry
 import (
 	"fmt"
 	"log"
-	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -18,8 +17,6 @@ const (
 	commandPrefix     = "@"   // goes to a callsign, a numbered marker, or the CQ marker
 	cqCommand         = "@cq" // goes to the frequency of the CQ marker
 	textMarkerCommand = ":"   // followed by a text, marks the frequency with that text
-
-	jumpThreshold core.Frequency = 250 // Hz
 )
 
 // View represents the visual part of the QSO data entry.
@@ -783,7 +780,7 @@ func (c *Controller) VFOTuned(vfo core.VFOID, frequency core.Frequency) {
 		}
 		// the operator left the frequency of the QSO in progress, therefore the input
 		// belongs to the previous frequency and gets cleared
-		if math.Abs(float64(c.selectedFrequency[vfo]-frequency)) <= float64(jumpThreshold) {
+		if !core.IsFrequencyJump(c.selectedFrequency[vfo], frequency) {
 			return
 		}
 		c.selectedFrequency[vfo] = frequency

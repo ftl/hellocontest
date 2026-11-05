@@ -79,11 +79,7 @@ func (s *Selection) findAndSelectRow(frequency core.Frequency, descendingID bool
 }
 
 func distance(row core.BandmapRow, frequency core.Frequency) core.Frequency {
-	result := row.Frequency() - frequency
-	if result < 0 {
-		return -result
-	}
-	return result
+	return row.Frequency().DistanceTo(frequency)
 }
 
 func (s *Selection) SelectedEntry() (core.BandmapEntry, bool) {

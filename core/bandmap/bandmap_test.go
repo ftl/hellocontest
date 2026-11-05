@@ -952,3 +952,71 @@ func TestBandmap_GotoNearestEntry_KeepsTheFocusedVFOActive(t *testing.T) {
 		require.Fail(t, "the bandmap selected no entry")
 	}
 }
+
+var _ core.VFOTunedListener = (*Bandmap)(nil)
+
+func TestBandmap_FocusedVFOChanged_ClearsTheSelection(t *testing.T) {
+	bandmap, frames := setupBandmapWithSelectedSpot(t)
+	defer bandmap.Close()
+
+	bandmap.FocusedVFOChanged(core.VFO2)
+
+	frame := waitForFrameMatching(t, frames, func(frame core.BandmapFrame) bool {
+		return frame.SelectedEntry.ID == core.NoEntryID
+	})
+	assert.Equal(t, core.NoEntryID, frame.SelectedEntry.ID, "the operator works with another VFO now")
+}
+
+func TestBandmap_VFOTuned_WithABigJump_ClearsTheSelection(t *testing.T) {
+	bandmap, frames := setupBandmapWithSelectedSpot(t)
+	defer bandmap.Close()
+
+	bandmap.VFOTuned(core.VFO1, 14030000)
+
+	frame := waitForFrameMatching(t, frames, func(frame core.BandmapFrame) bool {
+		return frame.SelectedEntry.ID == core.NoEntryID
+	})
+	assert.Equal(t, core.NoEntryID, frame.SelectedEntry.ID, "the operator left the frequency of the selected row")
+}
+
+func TestBandmap_VFOTuned_WithASmallJump_KeepsTheSelection(t *testing.T) {
+	bandmap, frames := setupBandmapWithSelectedSpot(t)
+	defer bandmap.Close()
+
+	bandmap.VFOTuned(core.VFO1, 14020100)
+
+	// the tuning alone delivers no frame, therefore a filter change asks for one
+	bandmap.SetFilterBand(core.SpotFilterBand{Kind: core.SpotFilterAll})
+	frame := waitForFrameMatching(t, frames, func(frame core.BandmapFrame) bool {
+		return frame.Filter.Band.Kind == core.SpotFilterAll
+	})
+	assert.NotEqual(t, core.NoEntryID, frame.SelectedEntry.ID, "the operator stays on the frequency of the selected row")
+}
+
+func TestBandmap_VFOTuned_OfAnotherVFO_KeepsTheSelection(t *testing.T) {
+	bandmap, frames := setupBandmapWithSelectedSpot(t)
+	defer bandmap.Close()
+
+	bandmap.VFOTuned(core.VFO2, 7030000)
+
+	bandmap.SetFilterBand(core.SpotFilterBand{Kind: core.SpotFilterAll})
+	frame := waitForFrameMatching(t, frames, func(frame core.BandmapFrame) bool {
+		return frame.Filter.Band.Kind == core.SpotFilterAll
+	})
+	assert.NotEqual(t, core.NoEntryID, frame.SelectedEntry.ID, "the selection belongs to the focused VFO")
+}
+
+func setupBandmapWithSelectedSpot(t *testing.T) (*Bandmap, chan core.BandmapFrame) {
+	t.Helper()
+	bandmap, frames := setupRunningBandmap(t)
+	bandmap.RadioChanged("radio", false)
+	bandmap.VFOBandChanged(core.VFO1, core.Band20m)
+	bandmap.VFOModeChanged(core.VFO1, core.ModeCW)
+	bandmap.VFOFrequencyChanged(core.VFO1, 14020000)
+	bandmap.Add(core.Spot{Call: core.MustParseCallsign("dl1abc"), Frequency: 14023000, Band: core.Band20m, Mode: core.ModeCW, Time: time.Now()})
+	bandmap.SelectByCallsign(core.MustParseCallsign("dl1abc"))
+	waitForFrameMatching(t, frames, func(frame core.BandmapFrame) bool {
+		return frame.SelectedEntry.ID != core.NoEntryID
+	})
+	return bandmap, frames
+}

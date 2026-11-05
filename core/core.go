@@ -63,6 +63,18 @@ func (f Frequency) String() string {
 	return fmt.Sprintf("%.0fHz", float64(f))
 }
 
+func (f Frequency) DistanceTo(other Frequency) Frequency {
+	result := f - other
+	if result < 0 {
+		return -result
+	}
+	return result
+}
+
+func IsFrequencyJump(from Frequency, to Frequency) bool {
+	return from.DistanceTo(to) > frequencyJumpThreshold
+}
+
 // Band represents an amateur radio band.
 type Band string
 
@@ -1833,6 +1845,8 @@ func (f CallinfoFrame) GetMatch(i int) string {
 	}
 	return ""
 }
+
+const frequencyJumpThreshold = Frequency(250) // Hz
 
 // frequencies within this distance to an entry's frequency will be recognized as "in proximity"
 const spotFrequencyProximityThreshold float64 = 2500

@@ -6,6 +6,7 @@ hellocontest
 hellocontest-qt6
 hellocontest*.deb
 hellocontest*.AppImage
+hellocontest*.AppImage.zsync
 .appimage-build
 .flatpak-build
 .flatpak/VERSION

@@ -82,7 +82,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hellocontest-appimage
-          path: ${{ steps.create_appimage.outputs.appimage_filename }}
+          path: |
+            ${{ steps.create_appimage.outputs.appimage_filename }}
+            ${{ steps.create_appimage.outputs.appimage_filename }}.zsync
 
       - name: "Upload Debian package"
         uses: actions/upload-artifact@v4
@@ -101,5 +103,5 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
-          file: ./hellocontest*.{deb,AppImage,flatpak}
+          file: ./hellocontest*.{deb,AppImage,AppImage.zsync,flatpak}
           tag: ${{ github.ref }}

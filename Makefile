@@ -20,6 +20,8 @@ FLATPAK_GOLANG_VERSION ?= 25.08
 LINUXDEPLOY ?= ${APPIMAGE_TOOLS}/linuxdeploy-${ARCH}.AppImage
 LINUXDEPLOY_PLUGIN_QT ?= ${APPIMAGE_TOOLS}/linuxdeploy-plugin-qt-${ARCH}.AppImage
 APPIMAGETOOL ?= ${APPIMAGE_TOOLS}/appimagetool-${ARCH}.AppImage
+# AppImageUpdate and AppImageLauncher read this from the AppImage to find a newer version
+APPIMAGE_UPDATE_INFORMATION ?= gh-releases-zsync|ftl|${BINARY_NAME}|latest|${BINARY_NAME}-*-${ARCH}.AppImage.zsync
 
 all: clean test build
 
@@ -169,8 +171,11 @@ prepare_appimage: appimage_tools
 	cp ${QT_PLUGINS}/platformthemes/libqgtk3.so ${APPDIR}/usr/plugins/platformthemes/
 	cp ./.assets/appimage-qt-hook.sh ${APPDIR}/apprun-hooks/linuxdeploy-plugin-qt-hook.sh
 
+# appimagetool brings its own zsyncmake and writes the .zsync file into the working directory
 appimage: prepare_appimage
-	env APPIMAGE_EXTRACT_AND_RUN=1 ARCH=${ARCH} ${APPIMAGETOOL} ${APPDIR} ${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.AppImage
+	env APPIMAGE_EXTRACT_AND_RUN=1 ARCH=${ARCH} ${APPIMAGETOOL} \
+		--updateinformation "${APPIMAGE_UPDATE_INFORMATION}" \
+		${APPDIR} ${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.AppImage
 
 flatpak_deps:
 	flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo

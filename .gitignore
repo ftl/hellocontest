@@ -6,10 +6,7 @@ hellocontest
 hellocontest-qt6
 hellocontest*.deb
 hellocontest*.AppImage
-.appimage/*.desktop
-.appimage/*.png
-.appimage/*.svg
-.appimage/.DirIcon
+.appimage-build
 .debpkg/usr
 .config_backup
 ui/glade/#contest.glade#

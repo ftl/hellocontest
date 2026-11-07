@@ -5,7 +5,16 @@ ARCH = x86_64
 DESTDIR ?=
 BINDIR ?= /usr/bin
 SHAREDIR ?= /usr/share
-APPIMAGETOOL ?= appimagetool
+QMAKE ?= /usr/bin/qmake6
+QT_PLUGINS = $(shell ${QMAKE} -query QT_INSTALL_PLUGINS)
+APPDIR = ./.appimage-build/AppDir
+APPIMAGE_TOOLS = ./.appimage-build/tools
+LINUXDEPLOY_VERSION ?= 1-alpha-20251107-1
+LINUXDEPLOY_PLUGIN_QT_VERSION ?= 1-alpha-20250213-1
+APPIMAGETOOL_VERSION ?= 1.9.1
+LINUXDEPLOY ?= ${APPIMAGE_TOOLS}/linuxdeploy-${ARCH}.AppImage
+LINUXDEPLOY_PLUGIN_QT ?= ${APPIMAGE_TOOLS}/linuxdeploy-plugin-qt-${ARCH}.AppImage
+APPIMAGETOOL ?= ${APPIMAGE_TOOLS}/appimagetool-${ARCH}.AppImage
 
 all: clean test build
 
@@ -117,13 +126,43 @@ debpkg:
 	dpkg-deb --build ./.debpkg .
 	git restore ./.debpkg/DEBIAN/control
 
-prepare_appimage:
-	mkdir -p ./.appimage${BINDIR}
-	cp ./${BINARY_NAME} ./.appimage${BINDIR}/${BINARY_NAME}
-	chmod a+x ./.appimage${BINDIR}/${BINARY_NAME}
-	cp ./.assets/${BINARY_NAME}.desktop ./.appimage/${BINARY_NAME}.desktop
-	cp ./.assets/${BINARY_NAME}-256x256.png ./.appimage/${BINARY_NAME}.png
-	cp ./.assets/${BINARY_NAME}.svg ./.appimage/${BINARY_NAME}.svg
+# the plugin must sit next to linuxdeploy, this is how "--plugin qt" finds it
+${LINUXDEPLOY}:
+	mkdir -p ${APPIMAGE_TOOLS}
+	wget -nv -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/${LINUXDEPLOY_VERSION}/linuxdeploy-${ARCH}.AppImage
+	chmod a+x $@
+
+${LINUXDEPLOY_PLUGIN_QT}:
+	mkdir -p ${APPIMAGE_TOOLS}
+	wget -nv -O $@ https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/${LINUXDEPLOY_PLUGIN_QT_VERSION}/linuxdeploy-plugin-qt-${ARCH}.AppImage
+	chmod a+x $@
+
+${APPIMAGETOOL}:
+	mkdir -p ${APPIMAGE_TOOLS}
+	wget -nv -O $@ https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${ARCH}.AppImage
+	chmod a+x $@
+
+appimage_tools: ${LINUXDEPLOY} ${LINUXDEPLOY_PLUGIN_QT} ${APPIMAGETOOL}
+
+# linuxdeploy collects the Qt6 libraries and the Qt plugins that the binary needs. An
+# AppImage must bring them with it, because the target system has no Qt6 installation.
+# The tools are AppImages themselves, APPIMAGE_EXTRACT_AND_RUN runs them without FUSE.
+prepare_appimage: appimage_tools
+	rm -rf ${APPDIR}
+	mkdir -p ${APPDIR}
+	env APPIMAGE_EXTRACT_AND_RUN=1 QMAKE=${QMAKE} ${LINUXDEPLOY} \
+		--appdir ${APPDIR} \
+		--executable ./${BINARY_NAME} \
+		--desktop-file ./.assets/${BINARY_NAME}.desktop \
+		--icon-file ./.assets/${BINARY_NAME}-256x256.png \
+		--icon-filename ${BINARY_NAME} \
+		--plugin qt
+	# the Qt plugin deploys no platform theme, therefore the application follows neither
+	# the colors nor the fonts of the desktop. The theme comes from the build system, so
+	# that it fits to the Qt version in the AppImage.
+	mkdir -p ${APPDIR}/usr/plugins/platformthemes
+	cp ${QT_PLUGINS}/platformthemes/libqgtk3.so ${APPDIR}/usr/plugins/platformthemes/
+	cp ./.assets/appimage-qt-hook.sh ${APPDIR}/apprun-hooks/linuxdeploy-plugin-qt-hook.sh
 
 appimage: prepare_appimage
-	env ARCH=${ARCH} ${APPIMAGETOOL} .appimage ${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.AppImage
+	env APPIMAGE_EXTRACT_AND_RUN=1 ARCH=${ARCH} ${APPIMAGETOOL} ${APPDIR} ${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.AppImage

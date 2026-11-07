@@ -8,14 +8,16 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    # pinned: the runner image decides the oldest glibc that can run the AppImage, and
+    # ubuntu-latest moves to a newer Ubuntu without notice
+    runs-on: ubuntu-24.04
     outputs:
       version_number: ${{ steps.version_number.outputs.version_number }}
       deb_package_filename: ${{ steps.create_deb_package.outputs.deb_package_filename }}
       appimage_filenname: ${{ steps.create_appimage.outputs.appimage_filename }}
     steps:
       - name: Install Linux packages and build tools
-        run: sudo add-apt-repository universe && sudo apt update && sudo apt install -y --no-install-recommends libfuse2t64 qt6-base-dev libqscintilla2-qt6-dev qt6-base-private-dev qt6-charts-dev qt6-multimedia-dev qt6-pdf-dev qt6-positioning-dev qt6-svg-dev qt6-tools-dev qt6-webchannel-dev qt6-webengine-dev qt6-declarative-dev qml6-module-qtquick-{controls,shapes,layouts,templates,window} build-essential
+        run: sudo add-apt-repository universe && sudo apt update && sudo apt install -y --no-install-recommends libfuse2t64 libxcb-cursor0 qt6-gtk-platformtheme qt6-base-dev libqscintilla2-qt6-dev qt6-base-private-dev qt6-charts-dev qt6-multimedia-dev qt6-pdf-dev qt6-positioning-dev qt6-svg-dev qt6-tools-dev qt6-webchannel-dev qt6-webengine-dev qt6-declarative-dev qml6-module-qtquick-{controls,shapes,layouts,templates,window} build-essential
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
@@ -41,9 +43,14 @@ jobs:
       - name: Create AppImage
         id: create_appimage
         run: |
-          wget -nv -c https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod a+x appimagetool-x86_64.AppImage
-          env APPIMAGETOOL="$(pwd)/appimagetool-x86_64.AppImage" make appimage
+          wget -nv -c https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+          wget -nv -c https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-x86_64.AppImage
+          wget -nv -c https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          chmod a+x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage appimagetool-x86_64.AppImage
+          env APPIMAGE_EXTRACT_AND_RUN=1 \
+            LINUXDEPLOY="$(pwd)/linuxdeploy-x86_64.AppImage" \
+            APPIMAGETOOL="$(pwd)/appimagetool-x86_64.AppImage" \
+            make appimage
           echo "appimage_filename=$(ls ./hellocontest*.AppImage | head -n 1)" >> $GITHUB_OUTPUT
 
       - name: Create Debian package

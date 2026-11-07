@@ -12,6 +12,11 @@ APPIMAGE_TOOLS = ./.appimage-build/tools
 LINUXDEPLOY_VERSION ?= 1-alpha-20251107-1
 LINUXDEPLOY_PLUGIN_QT_VERSION ?= 1-alpha-20250213-1
 APPIMAGETOOL_VERSION ?= 1.9.1
+FLATPAK_ID = com.thecodingflow.hellocontest
+FLATPAK_MANIFEST = ./.flatpak/${FLATPAK_ID}.yml
+FLATPAK_BUILD_DIR = ./.flatpak-build
+FLATPAK_RUNTIME_VERSION ?= 6.10
+FLATPAK_GOLANG_VERSION ?= 25.08
 LINUXDEPLOY ?= ${APPIMAGE_TOOLS}/linuxdeploy-${ARCH}.AppImage
 LINUXDEPLOY_PLUGIN_QT ?= ${APPIMAGE_TOOLS}/linuxdeploy-plugin-qt-${ARCH}.AppImage
 APPIMAGETOOL ?= ${APPIMAGE_TOOLS}/appimagetool-${ARCH}.AppImage
@@ -166,3 +171,35 @@ prepare_appimage: appimage_tools
 
 appimage: prepare_appimage
 	env APPIMAGE_EXTRACT_AND_RUN=1 ARCH=${ARCH} ${APPIMAGETOOL} ${APPDIR} ${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.AppImage
+
+flatpak_deps:
+	flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+	flatpak install --user --noninteractive flathub \
+		org.kde.Platform//${FLATPAK_RUNTIME_VERSION} \
+		org.kde.Sdk//${FLATPAK_RUNTIME_VERSION} \
+		org.freedesktop.Sdk.Extension.golang//${FLATPAK_GOLANG_VERSION}
+
+# the flatpak build has no network, therefore the modules come from the vendor directory.
+# GOWORK=off keeps a local go workspace out of the package.
+# the target has the name of the directory it creates, therefore it is phony
+.PHONY: vendor
+vendor:
+	env GOWORK=off go mod vendor
+
+# the build has no git, therefore the version goes into a file that the manifest reads
+prepare_flatpak: vendor
+	echo ${VERSION_NUMBER} > ./.flatpak/VERSION
+
+flatpak: prepare_flatpak
+	@command -v flatpak-builder > /dev/null || \
+		{ echo "flatpak-builder is missing: sudo apt install flatpak-builder"; exit 1; }
+	flatpak-builder --user --force-clean --install-deps-from=flathub \
+		--repo=${FLATPAK_BUILD_DIR}/repo ${FLATPAK_BUILD_DIR}/build ${FLATPAK_MANIFEST}
+	flatpak build-bundle ${FLATPAK_BUILD_DIR}/repo \
+		${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.flatpak ${FLATPAK_ID}
+
+flatpak_install: flatpak
+	flatpak install --user --noninteractive --reinstall ./${BINARY_NAME}-${VERSION_NUMBER}-${ARCH}.flatpak
+
+flatpak_run:
+	flatpak run ${FLATPAK_ID}

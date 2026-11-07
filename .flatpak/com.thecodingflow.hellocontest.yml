@@ -1,0 +1,48 @@
+app-id: com.thecodingflow.hellocontest
+runtime: org.kde.Platform
+runtime-version: "6.10"
+sdk: org.kde.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.golang
+command: hellocontest
+
+finish-args:
+  # the application forces the xcb platform on wayland, therefore it needs the X11 socket
+  # also in a wayland session, where XWayland provides it
+  - --socket=x11
+  - --share=ipc
+  - --device=dri
+  # rigctld, TCI, the DX cluster, the HamDXMap and the remote server use the network
+  - --share=network
+  # the HamDial is a hidraw device, flatpak has no permission for a single device class
+  - --device=all
+  # the operator chooses where the log files are
+  - --filesystem=home
+
+modules:
+  - name: hellocontest
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/golang/bin
+      env:
+        # the modules come from the vendor directory, the build has no network
+        GOFLAGS: -mod=vendor
+        GOTOOLCHAIN: local
+    build-commands:
+      - make build VERSION_NUMBER=$(cat .flatpak/VERSION)
+      - make install DESTDIR=/app BINDIR=/bin SHAREDIR=/share
+      # flatpak exports only the files that carry the application ID as their name
+      - mv /app/share/applications/hellocontest.desktop /app/share/applications/com.thecodingflow.hellocontest.desktop
+      - desktop-file-edit --set-icon=com.thecodingflow.hellocontest /app/share/applications/com.thecodingflow.hellocontest.desktop
+      - for size in 16x16 32x32 48x48 128x128 256x256; do mv /app/share/icons/hicolor/$size/apps/hellocontest.png /app/share/icons/hicolor/$size/apps/com.thecodingflow.hellocontest.png; done
+      - mv /app/share/icons/hicolor/scalable/apps/hellocontest.svg /app/share/icons/hicolor/scalable/apps/com.thecodingflow.hellocontest.svg
+      - install -Dm644 .flatpak/com.thecodingflow.hellocontest.metainfo.xml /app/share/metainfo/com.thecodingflow.hellocontest.metainfo.xml
+      - sed -i -E "s#!THE_VERSION!#$(cat .flatpak/VERSION)#;s#!THE_DATE!#$(date +%F)#" /app/share/metainfo/com.thecodingflow.hellocontest.metainfo.xml
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - .git
+          - .appimage-build
+          - .flatpak-build
+          - .config_backup

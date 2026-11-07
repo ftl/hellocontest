@@ -15,6 +15,7 @@ jobs:
       version_number: ${{ steps.version_number.outputs.version_number }}
       deb_package_filename: ${{ steps.create_deb_package.outputs.deb_package_filename }}
       appimage_filenname: ${{ steps.create_appimage.outputs.appimage_filename }}
+      flatpak_package_filename: ${{ steps.create_flatpak_package.outputs.flatpak_package_filename }}
     steps:
       - name: Install Linux packages and build tools
         run: sudo add-apt-repository universe && sudo apt update && sudo apt install -y --no-install-recommends libfuse2t64 libxcb-cursor0 qt6-gtk-platformtheme qt6-base-dev libqscintilla2-qt6-dev qt6-base-private-dev qt6-charts-dev qt6-multimedia-dev qt6-pdf-dev qt6-positioning-dev qt6-svg-dev qt6-tools-dev qt6-webchannel-dev qt6-webengine-dev qt6-declarative-dev qml6-module-qtquick-{controls,shapes,layouts,templates,window} build-essential
@@ -59,6 +60,18 @@ jobs:
           make debpkg
           echo "deb_package_filename=$(ls ./hellocontest*.deb | head -n 1)" >> $GITHUB_OUTPUT
 
+      - name: Install Flatpak build tools
+        run: |
+          sudo apt install -y --no-install-recommends flatpak flatpak-builder
+          # flatpak-builder needs unprivileged user namespaces, Ubuntu restricts them
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: Create Flatpak package
+        id: create_flatpak_package
+        run: |
+          make flatpak_deps flatpak
+          echo "flatpak_package_filename=$(ls ./hellocontest*.flatpak | head -n 1)" >> $GITHUB_OUTPUT
+
       - name: "Upload binary for linux_x86_64"
         uses: actions/upload-artifact@v4
         with:
@@ -77,10 +90,16 @@ jobs:
           name: hellocontest-debpkg
           path: ${{ steps.create_deb_package.outputs.deb_package_filename }}
 
+      - name: "Upload Flatpak package"
+        uses: actions/upload-artifact@v4
+        with:
+          name: hellocontest-flatpak
+          path: ${{ steps.create_flatpak_package.outputs.flatpak_package_filename }}
+
       - name: Upload package to the release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
-          file: ./hellocontest*.{deb,AppImage}
+          file: ./hellocontest*.{deb,AppImage,flatpak}
           tag: ${{ github.ref }}

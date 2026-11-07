@@ -7,6 +7,10 @@ hellocontest-qt6
 hellocontest*.deb
 hellocontest*.AppImage
 .appimage-build
+.flatpak-build
+.flatpak/VERSION
+hellocontest*.flatpak
+vendor
 .debpkg/usr
 .config_backup
 ui/glade/#contest.glade#

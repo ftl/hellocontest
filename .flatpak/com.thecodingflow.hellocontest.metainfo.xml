@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.thecodingflow.hellocontest</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Hello Contest</name>
+  <summary>Contest log for radio amateurs</summary>
+  <description>
+    <p>
+      Hello Contest is a log for HF contests. It shows the QSOs, the score and the spots of
+      the contest, and it controls the transceiver.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Logging with duplicate check, exchange prediction and enter-sends-message</li>
+      <li>Score and rate for many contests, with the rules of the conval library</li>
+      <li>Spots from the DX cluster, from the RBN and from SDRainer, in a bandmap</li>
+      <li>Transceiver control through hamlib and TCI, with two VFOs</li>
+      <li>CW keyer with macros, and a parrot for voice contests</li>
+      <li>Export to Cabrillo, ADIF and CSV</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">com.thecodingflow.hellocontest.desktop</launchable>
+  <developer id="com.thecodingflow">
+    <name>Florian Thienel, DL3NEY</name>
+  </developer>
+
+  <url type="homepage">https://github.com/ftl/hellocontest</url>
+  <url type="bugtracker">https://github.com/ftl/hellocontest/issues</url>
+  <url type="help">https://github.com/ftl/hellocontest/wiki</url>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="!THE_VERSION!" date="!THE_DATE!"/>
+  </releases>
+</component>

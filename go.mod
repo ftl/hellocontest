@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/ftl/cabrillo v0.4.0
 	github.com/ftl/clusterix v0.1.0
-	github.com/ftl/conval v0.12.1
+	github.com/ftl/conval v0.13.0
 	github.com/ftl/godxmap v1.0.1
 	github.com/ftl/hamdial v1.0.0
 	github.com/ftl/hamradio v0.3.0

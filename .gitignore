@@ -17,3 +17,4 @@ vendor
 ui/glade/#contest.glade#
 docs/screenshots/*.bak.png
 go.work*
+.grill

@@ -9,6 +9,9 @@ QMAKE ?= /usr/bin/qmake6
 QT_PLUGINS = $(shell ${QMAKE} -query QT_INSTALL_PLUGINS)
 APPDIR = ./.appimage-build/AppDir
 APPIMAGE_TOOLS = ./.appimage-build/tools
+# a download of the build tools must survive a hiccup of the network: curl retries also
+# after a server error or a reset connection, wget does not
+DOWNLOAD = curl -sSfL --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 30 -o
 LINUXDEPLOY_VERSION ?= 1-alpha-20251107-1
 LINUXDEPLOY_PLUGIN_QT_VERSION ?= 1-alpha-20250213-1
 APPIMAGETOOL_VERSION ?= 1.9.1
@@ -136,17 +139,17 @@ debpkg:
 # the plugin must sit next to linuxdeploy, this is how "--plugin qt" finds it
 ${LINUXDEPLOY}:
 	mkdir -p ${APPIMAGE_TOOLS}
-	wget -nv -O $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/${LINUXDEPLOY_VERSION}/linuxdeploy-${ARCH}.AppImage
+	${DOWNLOAD} $@ https://github.com/linuxdeploy/linuxdeploy/releases/download/${LINUXDEPLOY_VERSION}/linuxdeploy-${ARCH}.AppImage
 	chmod a+x $@
 
 ${LINUXDEPLOY_PLUGIN_QT}:
 	mkdir -p ${APPIMAGE_TOOLS}
-	wget -nv -O $@ https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/${LINUXDEPLOY_PLUGIN_QT_VERSION}/linuxdeploy-plugin-qt-${ARCH}.AppImage
+	${DOWNLOAD} $@ https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/${LINUXDEPLOY_PLUGIN_QT_VERSION}/linuxdeploy-plugin-qt-${ARCH}.AppImage
 	chmod a+x $@
 
 ${APPIMAGETOOL}:
 	mkdir -p ${APPIMAGE_TOOLS}
-	wget -nv -O $@ https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${ARCH}.AppImage
+	${DOWNLOAD} $@ https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${ARCH}.AppImage
 	chmod a+x $@
 
 appimage_tools: ${LINUXDEPLOY} ${LINUXDEPLOY_PLUGIN_QT} ${APPIMAGETOOL}

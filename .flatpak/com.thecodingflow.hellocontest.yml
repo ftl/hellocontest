@@ -35,7 +35,9 @@ modules:
       - mv /app/share/applications/hellocontest.desktop /app/share/applications/com.thecodingflow.hellocontest.desktop
       - desktop-file-edit --set-icon=com.thecodingflow.hellocontest /app/share/applications/com.thecodingflow.hellocontest.desktop
       - for size in 16x16 32x32 48x48 128x128 256x256; do mv /app/share/icons/hicolor/$size/apps/hellocontest.png /app/share/icons/hicolor/$size/apps/com.thecodingflow.hellocontest.png; done
-      - mv /app/share/icons/hicolor/scalable/apps/hellocontest.svg /app/share/icons/hicolor/scalable/apps/com.thecodingflow.hellocontest.svg
+      # the appstream compose of the build host cannot read SVG icons, and the PNG icons
+      # are enough for the desktop and for the metadata
+      - rm /app/share/icons/hicolor/scalable/apps/hellocontest.svg
       - install -Dm644 .flatpak/com.thecodingflow.hellocontest.metainfo.xml /app/share/metainfo/com.thecodingflow.hellocontest.metainfo.xml
       - sed -i -E "s#!THE_VERSION!#$(cat .flatpak/VERSION)#;s#!THE_DATE!#$(date +%F)#" /app/share/metainfo/com.thecodingflow.hellocontest.metainfo.xml
     sources:
@@ -46,3 +48,5 @@ modules:
           - .appimage-build
           - .flatpak-build
           - .config_backup
+          # the binary and the packages of the host build belong to another Qt
+          - hellocontest

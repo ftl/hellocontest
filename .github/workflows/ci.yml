@@ -9,6 +9,9 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build
@@ -24,10 +27,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go 1.24.3
+      - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.24.3"
+          go-version: "1.26.0"
         id: go
 
       - name: Version Number

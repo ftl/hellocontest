@@ -65,8 +65,13 @@ func (f *Finder) Activate(filename string) {
 }
 
 func (f *Finder) Deactivate() {
+	if f.filename == "" {
+		return
+	}
 	f.filename = ""
 	clear(f.fieldNames)
+	// the loaded call history must go, otherwise it still answers the queries
+	f.activateCallHistory()
 }
 
 func (f *Finder) activateCallHistory() {

@@ -131,6 +131,10 @@ func New(configurationFileOpener ConfigurationFileOpener, clock core.Clock, brow
 		savedContest:            deepCopyContest(contest),
 	}
 
+	if callHistory == nil {
+		result.callHistory = new(nullCallHistory)
+	}
+
 	result.availableCallHistoryFieldNames = make([]string, 0, len(scp.DefaultFieldSet))
 	for _, fieldName := range scp.DefaultFieldSet {
 		result.availableCallHistoryFieldNames = append(result.availableCallHistoryFieldNames, string(fieldName))
@@ -368,6 +372,9 @@ func (s *Settings) Reset() {
 	s.contest = deepCopyContest(s.defaultContest)
 	s.contest.StartTime = time.Time{}
 	s.contest.UpdateExchangeFields()
+	// the call history of the old contest must not survive into the new contest
+	s.callHistory.Activate(s.contest.CallHistoryFilename)
+	s.callHistory.SelectFieldNames(s.contest.CallHistoryFieldNames)
 
 	log.Printf("GOALS: q %d p %d m %d", s.contest.QSOsGoal, s.contest.PointsGoal, s.contest.MultisGoal)
 
@@ -778,6 +785,12 @@ func (s *Settings) EnterMultisGoal(value string) {
 	s.view.HideMessage()
 	s.contest.MultisGoal = intValue
 }
+
+type nullCallHistory struct{}
+
+func (h *nullCallHistory) Activate(string)           {}
+func (h *nullCallHistory) Deactivate()               {}
+func (h *nullCallHistory) SelectFieldNames([]string) {}
 
 type nullWriter struct{}
 

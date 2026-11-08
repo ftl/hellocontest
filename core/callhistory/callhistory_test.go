@@ -1,9 +1,12 @@
 package callhistory
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/ftl/hamradio/scp"
+
+	"github.com/ftl/hellocontest/core"
 )
 
 func TestFinder_AvailableFor(t *testing.T) {
@@ -28,5 +31,25 @@ func TestFinder_AvailableFor(t *testing.T) {
 				t.Errorf("AvailableFor(%d) = %v, want %v", tc.fieldIndex, got, tc.expected)
 			}
 		})
+	}
+}
+
+func TestFinder_Deactivate_DropsTheLoadedCallHistory(t *testing.T) {
+	available := true
+	f := &Finder{
+		database:             &scp.Database{},
+		dataLock:             new(sync.Mutex),
+		filename:             "/home/dl1abc/contest.txt",
+		fieldNames:           []string{"name"},
+		availabilityCallback: func(_ core.Service, a bool) { available = a },
+	}
+
+	f.Deactivate()
+
+	if f.database != nil {
+		t.Error("the call history is still loaded")
+	}
+	if available {
+		t.Error("the call history is still reported as available")
 	}
 }

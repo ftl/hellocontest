@@ -116,3 +116,45 @@ func TestShowSettingsOffersTheDetailedMultisOnlyWithSeveralProperties(t *testing
 		})
 	}
 }
+
+type callHistorySpy struct {
+	activatedFiles [][]string
+	fieldNames     [][]string
+	deactivated    int
+}
+
+func (h *callHistorySpy) Activate(filename string) {
+	h.activatedFiles = append(h.activatedFiles, []string{filename})
+}
+func (h *callHistorySpy) Deactivate() { h.deactivated++ }
+func (h *callHistorySpy) SelectFieldNames(fieldNames []string) {
+	h.fieldNames = append(h.fieldNames, fieldNames)
+}
+
+func (h *callHistorySpy) lastActivatedFile() string {
+	if len(h.activatedFiles) == 0 {
+		return "<none>"
+	}
+	return h.activatedFiles[len(h.activatedFiles)-1][0]
+}
+
+// A new contest must not keep the call history of the contest before, see the settings of
+// the default contest.
+func TestNewContestResetDropsTheCallHistoryOfTheContestBefore(t *testing.T) {
+	callHistory := new(callHistorySpy)
+	s := New(nil, nil, nil, callHistory, core.Station{}, core.Contest{})
+	s.SetView(&recordingView{nullView: new(nullView)})
+	s.SetContest(core.Contest{
+		CallHistoryFilename:   "/home/dl1abc/contest.txt",
+		CallHistoryFieldNames: []string{"name"},
+	})
+
+	s.Reset()
+
+	if got := s.Contest().CallHistoryFilename; got != "" {
+		t.Errorf("call history file of the new contest = %q, want %q", got, "")
+	}
+	if got := callHistory.lastActivatedFile(); got != "" {
+		t.Errorf("activated call history file = %q, want %q", got, "")
+	}
+}

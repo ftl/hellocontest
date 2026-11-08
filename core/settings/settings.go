@@ -14,6 +14,7 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callhistory"
+	"github.com/ftl/hellocontest/core/dxcc"
 )
 
 const contestStartTimeFormat = "02-01-2006 15:04"
@@ -68,6 +69,10 @@ type ConfigurationFileOpener func()
 
 type BrowserOpener func(string)
 
+type DXCCEntities interface {
+	Find(string) (dxcc.Prefix, bool)
+}
+
 type CallHistory interface {
 	Activate(filename string)
 	Deactivate()
@@ -96,6 +101,7 @@ type View interface {
 	SetContestGenerateSerialExchange(active bool, sensitive bool)
 	SetContestGenerateReport(active bool, sensitive bool)
 	SetContestEnableQTCs(bool)
+	SetContestDetailedMultis(value bool, enabled bool)
 
 	SetContestName(string)
 	SetContestStartTime(string)
@@ -140,6 +146,7 @@ type Settings struct {
 	configurationFileOpener        ConfigurationFileOpener
 	browserOpener                  BrowserOpener
 	callHistory                    CallHistory
+	entities                       DXCCEntities
 	reportFieldIndex               int
 	serialExchangeFieldIndex       int
 	availableCallHistoryFieldNames []string
@@ -154,6 +161,23 @@ type Settings struct {
 
 	savedStation core.Station
 	savedContest core.Contest
+}
+
+func (s *Settings) SetDXCCEntities(entities DXCCEntities) {
+	s.entities = entities
+}
+
+func (s *Settings) multiProperties() []conval.Property {
+	// the rules of the contest decide per station which properties count, for example the
+	// WAG counts the entities for a german station and the districts for all others
+	if s.entities == nil {
+		return nil
+	}
+	entity, found := s.entities.Find(s.station.Callsign.String())
+	if !found {
+		return nil
+	}
+	return s.contest.MultiProperties(core.ContestSetup(s.station, entity))
 }
 
 func (s *Settings) SetWriter(writer Writer) {
@@ -301,6 +325,7 @@ func (s *Settings) showSettings() {
 	s.view.SetContestStartTime(s.formattedContestStartTime())
 	s.view.SetOperationModeSprint(s.contest.OperationModeSprint)
 	s.view.SetContestEnableQTCs(s.contest.EnableQTCs)
+	s.showDetailedMultis()
 	s.view.SetContestCallHistoryFile(s.contest.CallHistoryFilename)
 	s.view.SetQSOsGoal(strconv.Itoa(s.contest.QSOsGoal))
 	s.view.SetPointsGoal(strconv.Itoa(s.contest.PointsGoal))
@@ -681,6 +706,19 @@ func (s *Settings) SetContestEnableQTCs(value bool) {
 	s.contest.EnableQTCs = value
 }
 
+func (s *Settings) showDetailedMultis() {
+	// with only one property there is nothing to show in detail, the operator cannot
+	// select the option and the contest loses the stored value
+	properties := s.multiProperties()
+	enabled := len(properties) > 1
+	s.contest.DetailedMultis = s.contest.DetailedMultis && enabled
+	s.view.SetContestDetailedMultis(s.contest.DetailedMultis, enabled)
+}
+
+func (s *Settings) SetContestDetailedMultis(value bool) {
+	s.contest.DetailedMultis = value
+}
+
 func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.contest.CallHistoryFilename = value
 	s.callHistory.Activate(s.contest.CallHistoryFilename)
@@ -767,6 +805,7 @@ func (v *nullView) SetContestExchangeValue(index int, value string)    {}
 func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
 func (v *nullView) SetContestGenerateReport(bool, bool)                {}
 func (v *nullView) SetContestEnableQTCs(bool)                          {}
+func (v *nullView) SetContestDetailedMultis(bool, bool)                {}
 func (v *nullView) SetContestName(string)                              {}
 func (v *nullView) SetContestStartTime(string)                         {}
 func (v *nullView) SetOperationModeSprint(bool)                        {}

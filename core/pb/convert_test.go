@@ -26,3 +26,15 @@ func TestStationBandplanEmptyDefaultsToRegion1(t *testing.T) {
 		t.Errorf("bandplan = %q, want default %q", got.Bandplan, core.DefaultBandplanID)
 	}
 }
+
+func TestContestDetailedMultisRoundtrip(t *testing.T) {
+	for _, detailedMultis := range []bool{false, true} {
+		got, err := ToContest(ContestToPB(core.Contest{DetailedMultis: detailedMultis}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.DetailedMultis != detailedMultis {
+			t.Errorf("detailed multis = %v, want %v", got.DetailedMultis, detailedMultis)
+		}
+	}
+}

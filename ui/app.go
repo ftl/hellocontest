@@ -543,6 +543,11 @@ func (s *scoreCompositeAdapter) SetQTCsEnabled(enabled bool) {
 	s.table.SetQTCsEnabled(enabled)
 }
 
+func (s *scoreCompositeAdapter) SetDetailedMultis(detailed bool) {
+	// the graph always shows the summed multipliers
+	s.table.SetDetailedMultis(detailed)
+}
+
 type keyerButtonAdapter struct {
 	*keyerView
 	messenger *entryView

@@ -37,8 +37,10 @@ type summaryDialog struct {
 	breakTime     time.Duration
 	breaks        int
 
-	qtcsEnabled bool
-	score       core.Score
+	qtcsEnabled           bool
+	detailedMultis        bool
+	detailedMultisEnabled bool
+	score                 core.Score
 
 	openAfterExport bool
 }
@@ -69,7 +71,10 @@ func (d *summaryDialog) Show() bool {
 		d.view.assisted.SetChecked(d.assisted)
 
 		d.view.scoreTable.SetQTCsEnabled(d.qtcsEnabled)
+		d.view.scoreTable.SetDetailedMultis(d.detailedMultis)
 		d.view.scoreTable.ShowScore(d.score)
+		d.view.detailedMultis.SetChecked(d.detailedMultis)
+		d.view.detailedMultis.SetEnabled(d.detailedMultisEnabled)
 
 		d.view.openAfterExport.SetChecked(d.openAfterExport)
 	})
@@ -213,6 +218,18 @@ func (d *summaryDialog) SetQTCsEnabled(enabled bool) {
 	d.qtcsEnabled = enabled
 	if d.view != nil {
 		d.view.scoreTable.SetQTCsEnabled(enabled)
+	}
+}
+
+func (d *summaryDialog) SetDetailedMultis(value bool, enabled bool) {
+	d.detailedMultis = value
+	d.detailedMultisEnabled = enabled
+	if d.view != nil {
+		d.view.doIgnore(func() {
+			d.view.detailedMultis.SetChecked(value)
+			d.view.detailedMultis.SetEnabled(enabled)
+		})
+		d.view.scoreTable.SetDetailedMultis(value)
 	}
 }
 

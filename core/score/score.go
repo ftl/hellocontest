@@ -14,6 +14,7 @@ type View interface {
 	ShowScore(score core.Score)
 	SetGoals(points int, multis int)
 	SetQTCsEnabled(enabled bool)
+	SetDetailedMultis(detailed bool)
 }
 
 type Controller struct {
@@ -25,6 +26,7 @@ type Controller struct {
 	contestPointsGoal int
 	contestMultisGoal int
 	qtcsEnabled       bool
+	detailedMultis    bool
 
 	listeners []any
 }
@@ -51,6 +53,7 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.SetQTCsEnabled(c.qtcsEnabled)
+	c.view.SetDetailedMultis(c.detailedMultis)
 	c.view.ShowScore(c.score)
 }
 
@@ -58,6 +61,7 @@ func (c *Controller) ContestChanged(contest core.Contest) {
 	c.setContest(contest)
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.SetQTCsEnabled(c.qtcsEnabled)
+	c.view.SetDetailedMultis(c.detailedMultis)
 }
 
 func (c *Controller) setContest(contest core.Contest) {
@@ -65,6 +69,7 @@ func (c *Controller) setContest(contest core.Contest) {
 	c.contestPointsGoal = contest.PointsGoal
 	c.contestMultisGoal = contest.MultisGoal
 	c.qtcsEnabled = contest.EnableQTCs
+	c.detailedMultis = contest.DetailedMultis
 }
 
 func (c *Controller) ScoreChanged(score core.Score) {
@@ -76,6 +81,7 @@ func (c *Controller) ShowGraph() {
 	c.view.ShowGraph()
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.SetQTCsEnabled(c.qtcsEnabled)
+	c.view.SetDetailedMultis(c.detailedMultis)
 	c.view.ShowScore(c.score)
 }
 
@@ -83,6 +89,7 @@ func (c *Controller) ShowTable() {
 	c.view.ShowTable()
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.SetQTCsEnabled(c.qtcsEnabled)
+	c.view.SetDetailedMultis(c.detailedMultis)
 	c.view.ShowScore(c.score)
 }
 
@@ -90,8 +97,9 @@ var _ View = new(nullView)
 
 type nullView struct{}
 
-func (v *nullView) ShowScore(core.Score) {}
-func (v *nullView) ShowGraph()           {}
-func (v *nullView) ShowTable()           {}
-func (v *nullView) SetGoals(int, int)    {}
-func (v *nullView) SetQTCsEnabled(bool)  {}
+func (v *nullView) ShowScore(core.Score)   {}
+func (v *nullView) ShowGraph()             {}
+func (v *nullView) ShowTable()             {}
+func (v *nullView) SetGoals(int, int)      {}
+func (v *nullView) SetQTCsEnabled(bool)    {}
+func (v *nullView) SetDetailedMultis(bool) {}

@@ -54,3 +54,7 @@ func (v *scoreTableView) SetBands(bands []core.Band) {
 func (v *scoreTableView) SetQTCsEnabled(enabled bool) {
 	v.table.SetQTCsEnabled(enabled)
 }
+
+func (v *scoreTableView) SetDetailedMultis(detailed bool) {
+	v.table.SetDetailedMultis(detailed)
+}

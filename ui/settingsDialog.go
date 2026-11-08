@@ -157,6 +157,13 @@ func (d *settingsDialog) SetContestEnableQTCs(v bool) {
 	d.view.SetContestEnableQTCs(v)
 }
 
+func (d *settingsDialog) SetContestDetailedMultis(value bool, enabled bool) {
+	if d.view == nil {
+		return
+	}
+	d.view.SetContestDetailedMultis(value, enabled)
+}
+
 func (d *settingsDialog) SetContestName(v string) {
 	if d.view == nil {
 		return

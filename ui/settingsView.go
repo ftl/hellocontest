@@ -33,6 +33,7 @@ type SettingsController interface {
 	SetContestStartTimeNow()
 	SetOperationModeSprint(bool)
 	SetContestEnableQTCs(bool)
+	SetContestDetailedMultis(bool)
 	EnterContestCallHistoryFile(string)
 	EnterContestCallHistoryFieldName(core.EntryField, string)
 	EnterQSOsGoal(string)
@@ -74,6 +75,7 @@ type settingsView struct {
 	startTimeNowBtn   *qtlib.QPushButton
 	sprintMode        *qtlib.QCheckBox
 	enableQTCs        *qtlib.QCheckBox
+	detailedMultis    *qtlib.QCheckBox
 
 	exchangeGrid        *qtlib.QGridLayout
 	exchangeRows        []exchangeRow
@@ -232,6 +234,15 @@ func (v *settingsView) buildContestGroup() *qtlib.QGroupBox {
 		v.controller.SetContestEnableQTCs(checked)
 	})
 	form.AddRow3("QTCs:", v.enableQTCs.QWidget)
+
+	v.detailedMultis = qtlib.NewQCheckBox3("Show each multiplier in a separate column")
+	v.detailedMultis.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetContestDetailedMultis(checked)
+	})
+	form.AddRow3("Multipliers:", v.detailedMultis.QWidget)
 
 	return box
 }
@@ -570,6 +581,13 @@ func (v *settingsView) SetContestGenerateReport(active bool, sensitive bool) {
 		if v.reportExchangeEntry != nil {
 			v.reportExchangeEntry.SetEnabled(!active)
 		}
+	})
+}
+
+func (v *settingsView) SetContestDetailedMultis(value bool, enabled bool) {
+	v.doIgnore(func() {
+		v.detailedMultis.SetChecked(value)
+		v.detailedMultis.SetEnabled(enabled)
 	})
 }
 

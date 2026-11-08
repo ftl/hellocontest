@@ -29,6 +29,7 @@ type View interface {
 	SetBreaks(int)
 
 	SetQTCsEnabled(bool)
+	SetDetailedMultis(value bool, enabled bool)
 	SetScore(core.Score)
 
 	SetOpenAfterExport(bool)
@@ -111,17 +112,30 @@ func (c *Controller) showSummary() {
 
 	c.view.SetQTCsEnabled(c.summary.QTCsEnabled)
 	c.view.SetScore(c.summary.Score)
+	c.showDetailedMultis()
 
 	c.view.SetOpenAfterExport(c.openAfterExport)
 }
 
+func (c *Controller) SetDetailedMultis(value bool) {
+	c.summary.DetailedMultis = value
+	c.showDetailedMultis()
+}
+
+func (c *Controller) showDetailedMultis() {
+	enabled := len(c.summary.Score.MultiProperties) > 1
+	c.summary.DetailedMultis = c.summary.DetailedMultis && enabled
+	c.view.SetDetailedMultis(c.summary.DetailedMultis, enabled)
+}
+
 func (c *Controller) createSummary(settings core.Settings) *core.Summary {
 	result := &core.Summary{
-		ContestName:  settings.Contest().Definition.Name,
-		CabrilloName: string(settings.Contest().Definition.Identifier),
-		StartTime:    settings.Contest().StartTime,
-		Callsign:     settings.Station().Callsign,
-		QTCsEnabled:  settings.Contest().EnableQTCs,
+		ContestName:    settings.Contest().Definition.Name,
+		CabrilloName:   string(settings.Contest().Definition.Identifier),
+		StartTime:      settings.Contest().StartTime,
+		Callsign:       settings.Station().Callsign,
+		QTCsEnabled:    settings.Contest().EnableQTCs,
+		DetailedMultis: settings.Contest().DetailedMultis,
 	}
 
 	// calculate MyExchanges

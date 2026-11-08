@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/dxcc"
 )
 
 func TestScoreCounter_AddQSO_ScoreQSO(t *testing.T) {
@@ -71,4 +72,65 @@ func TestScoreCounter_AddQSO_MarksDuplicates(t *testing.T) {
 
 	qso = scoreCounter.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 2})
 	assert.True(t, qso.Duplicate, "second qso, after insert")
+}
+
+func TestScoreCounter_AddQSO_MultisPerProperty(t *testing.T) {
+	// a district is worth 5 multiplier points, a zone 1, like in the Portugal Day Contest
+	scoreCounter := newScoreCounter(new(testSettings), testEntity)
+	scoreCounter.counter = &testConvalCounter{
+		scores: map[string]conval.QSOScore{
+			"CT1ABC": {Points: 1, Multis: 6, MultisPerProperty: map[conval.Property]int{"ct_district": 5, conval.CQZoneProperty: 1}},
+			"CT2ABC": {Points: 1, Multis: 5, MultisPerProperty: map[conval.Property]int{"ct_district": 5}},
+		},
+	}
+
+	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT1ABC"), Band: core.Band80m, MyNumber: 1})
+	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT2ABC"), Band: core.Band40m, MyNumber: 2})
+
+	score := scoreCounter.Score()
+	assert.Equal(t, map[conval.Property]int{"ct_district": 5, conval.CQZoneProperty: 1}, score.ScorePerBand[core.Band80m].MultisPerProperty, "80m")
+	assert.Equal(t, map[conval.Property]int{"ct_district": 5}, score.ScorePerBand[core.Band40m].MultisPerProperty, "40m")
+	assert.Equal(t, map[conval.Property]int{"ct_district": 10, conval.CQZoneProperty: 1}, score.Result().MultisPerProperty, "total")
+	assert.Equal(t, 11, score.Result().Multis, "the properties sum up to the multis")
+}
+
+func TestScoreCounter_AddQSO_DuplicateBringsNoMultis(t *testing.T) {
+	scoreCounter := newScoreCounter(new(testSettings), testEntity)
+	scoreCounter.counter = &testConvalCounter{
+		scores: map[string]conval.QSOScore{
+			"CT1ABC": {Points: 1, Multis: 5, MultisPerProperty: map[conval.Property]int{"ct_district": 5}},
+		},
+	}
+
+	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT1ABC"), Band: core.Band80m, MyNumber: 1})
+	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT1ABC"), Band: core.Band80m, MyNumber: 2})
+
+	score := scoreCounter.Score()
+	assert.Equal(t, map[conval.Property]int{"ct_district": 5}, score.ScorePerBand[core.Band80m].MultisPerProperty)
+}
+
+func TestScoreCounter_MultiProperties_FollowTheStation(t *testing.T) {
+	// WAG counts the entities for a german station and the districts for all other stations
+	wag := core.Contest{Definition: &conval.Definition{Scoring: conval.Scoring{MultiRules: []conval.ScoringRule{
+		{Property: conval.DXCCEntityProperty, MyCountry: []conval.DXCCEntity{"dl"}},
+		{Property: "wag_district", MyCountry: []conval.DXCCEntity{conval.NotCountry, "dl"}},
+	}}}}
+	entities := &testEntities{entity: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU"}}
+	scoreCounter := newScoreCounter(new(testSettings), entities)
+
+	scoreCounter.ContestChanged(wag)
+	assert.Equal(t, []conval.Property{conval.DXCCEntityProperty}, scoreCounter.Score().MultiProperties, "a german station counts the entities")
+
+	entities.entity = dxcc.Prefix{Prefix: "OE", PrimaryPrefix: "OE", Continent: "EU"}
+	scoreCounter.StationChanged(core.Station{Callsign: core.MustParseCallsign("OE1ABC")})
+
+	assert.Equal(t, []conval.Property{"wag_district"}, scoreCounter.Score().MultiProperties, "another station counts the districts")
+}
+
+func TestScoreCounter_MultiProperties_WithoutAContestDefinition(t *testing.T) {
+	scoreCounter := newScoreCounter(new(testSettings), testEntity)
+
+	scoreCounter.ContestChanged(core.Contest{})
+
+	assert.Empty(t, scoreCounter.Score().MultiProperties)
 }

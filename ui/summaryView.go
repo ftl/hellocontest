@@ -16,6 +16,7 @@ type SummaryController interface {
 	SetAssisted(bool)
 
 	SetOpenAfterExport(bool)
+	SetDetailedMultis(bool)
 }
 
 type summaryView struct {
@@ -40,7 +41,8 @@ type summaryView struct {
 	breakTime     *qtlib.QLineEdit
 	breaks        *qtlib.QLineEdit
 
-	scoreTable *scoreTable
+	scoreTable     *scoreTable
+	detailedMultis *qtlib.QCheckBox
 
 	openAfterExport *qtlib.QCheckBox
 
@@ -175,6 +177,15 @@ func (v *summaryView) buildRightColumn() *qtlib.QWidget {
 	header := qtlib.NewQLabel3("Claimed Score")
 	header.SetStyleSheet(BoldSectionStyle)
 	col.AddWidget(header.QWidget)
+
+	v.detailedMultis = qtlib.NewQCheckBox3("Show each multiplier in a separate column")
+	v.detailedMultis.OnToggled(func(checked bool) {
+		if v.ignoreChangedEvent {
+			return
+		}
+		v.controller.SetDetailedMultis(checked)
+	})
+	col.AddWidget(v.detailedMultis.QWidget)
 
 	v.scoreTable = newScoreTable()
 	col.AddWidget(v.scoreTable.widget.QWidget)

@@ -6,6 +6,7 @@ import (
 	"maps"
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -649,6 +650,7 @@ type Contest struct {
 	GenerateReport         bool
 	StartTime              time.Time
 	EnableQTCs             bool
+	DetailedMultis         bool
 
 	MyExchangeFields         []ExchangeField
 	MyReportExchangeField    ExchangeField
@@ -664,6 +666,27 @@ type Contest struct {
 	QSOsGoal   int
 	PointsGoal int
 	MultisGoal int
+}
+
+func ContestSetup(station Station, entity dxcc.Prefix) conval.Setup {
+	return conval.Setup{
+		MyCall:      station.Callsign,
+		MyContinent: conval.Continent(strings.ToLower(entity.Continent)),
+		MyCountry:   conval.DXCCEntity(strings.ToLower(entity.PrimaryPrefix)),
+		GridLocator: station.Locator,
+	}
+}
+
+func ShowMultisPerProperty(detailedMultis bool, properties []conval.Property) bool {
+	// one property alone needs no own column, the summed multis say the same
+	return detailedMultis && len(properties) > 1
+}
+
+func (c Contest) MultiProperties(setup conval.Setup) []conval.Property {
+	if c.Definition == nil {
+		return nil
+	}
+	return c.Definition.MultiProperties(setup)
 }
 
 func (c Contest) Bands() []Band {
@@ -842,6 +865,9 @@ type Summary struct {
 	MyExchanges string
 	QTCsEnabled bool
 
+	// the dialog starts with the value of the contest settings and may change it
+	DetailedMultis bool
+
 	// has to be selected by the user in a dialog
 	OperatorMode conval.OperatorMode
 	Overlay      conval.Overlay
@@ -873,41 +899,130 @@ func (s Summary) WorkingConditions() string {
 }
 
 func (s Summary) ScoreTable() string {
-	var header, separator string
-	if s.QTCsEnabled {
-		header = "Band QSOs  QTCs  Dupe Pts     P/Q  Mult Q/M  Result \n"
-		separator = "----------------------------------------------------\n"
-	} else {
-		header = "Band QSOs  Dupe Pts     P/Q  Mult Q/M  Result \n"
-		separator = "----------------------------------------------\n"
-	}
+	columns := ScoreColumns(s.QTCsEnabled, s.DetailedMultis, s.Score.MultiProperties)
 
-	buf := bytes.NewBufferString("")
-	fmt.Fprint(buf, header)
-	fmt.Fprint(buf, separator)
+	rows := make([][]string, 0, len(Bands)+1)
 	for _, band := range Bands {
 		if score, ok := s.Score.ScorePerBand[band]; ok {
-			fmt.Fprintf(buf, "%4s %s\n", band, s.bandScoreToString(score))
+			rows = append(rows, scoreTableRow(columns, string(band), score))
 		}
 	}
-	fmt.Fprint(buf, separator)
-	fmt.Fprintf(buf, "Tot  %s\n", s.bandScoreToString(s.Score.Result()))
+	totalRow := scoreTableRow(columns, "Tot", s.Score.Result())
+
+	widths := scoreTableWidths(columns, rows, totalRow)
+	separator := strings.Repeat("-", scoreTableWidth(widths))
+
+	buf := bytes.NewBufferString("")
+	fmt.Fprintln(buf, scoreTableLine(columns, widths, scoreTableHeaders(columns)))
+	fmt.Fprintln(buf, separator)
+	for _, row := range rows {
+		fmt.Fprintln(buf, scoreTableLine(columns, widths, row))
+	}
+	fmt.Fprintln(buf, separator)
+	fmt.Fprintln(buf, scoreTableLine(columns, widths, totalRow))
 	return buf.String()
 }
 
-func (s Summary) bandScoreToString(score BandScore) string {
-	if s.QTCsEnabled {
-		return fmt.Sprintf("%5d %5d %4d %7d %4.1f %4d %4.1f %7d", score.QSOs, score.QTCs, score.Duplicates, score.Points, score.PointsPerQSO(), score.Multis, score.QSOsPerMulti(), score.Result())
-	} else {
-		return fmt.Sprintf("%5d %4d %7d %4.1f %4d %4.1f %7d", score.QSOs, score.Duplicates, score.Points, score.PointsPerQSO(), score.Multis, score.QSOsPerMulti(), score.Result())
+func scoreTableHeaders(columns []ScoreColumn) []string {
+	result := make([]string, len(columns)+1)
+	result[0] = "Band"
+	for i, column := range columns {
+		result[i+1] = column.Header
 	}
+	return result
+}
+
+func scoreTableRow(columns []ScoreColumn, label string, score BandScore) []string {
+	result := make([]string, len(columns)+1)
+	result[0] = label
+	for i, column := range columns {
+		result[i+1] = column.Value(score)
+	}
+	return result
+}
+
+func scoreTableWidths(columns []ScoreColumn, rows [][]string, totalRow []string) []int {
+	result := make([]int, len(columns)+1)
+	for i, header := range scoreTableHeaders(columns) {
+		result[i] = len(header)
+	}
+	for _, row := range append(rows, totalRow) {
+		for i, cell := range row {
+			result[i] = max(result[i], len(cell))
+		}
+	}
+	return result
+}
+
+func scoreTableWidth(widths []int) int {
+	result := 0
+	for _, width := range widths {
+		result += width + 1
+	}
+	return result - 1
+}
+
+func scoreTableLine(columns []ScoreColumn, widths []int, cells []string) string {
+	result := make([]string, len(cells))
+	for i, cell := range cells {
+		// the band stands on the left, every value on the right
+		if i == 0 {
+			result[i] = fmt.Sprintf("%-*s", widths[i], cell)
+		} else {
+			result[i] = fmt.Sprintf("%*s", widths[i], cell)
+		}
+	}
+	return strings.Join(result, " ")
+}
+
+type ScoreColumn struct {
+	Header string
+	Value  func(BandScore) string
+}
+
+func ScoreColumns(qtcsEnabled bool, detailedMultis bool, properties []conval.Property) []ScoreColumn {
+	result := make([]ScoreColumn, 0, len(properties)+8)
+	result = append(result, ScoreColumn{"QSOs", func(score BandScore) string { return strconv.Itoa(score.QSOs) }})
+	if qtcsEnabled {
+		result = append(result, ScoreColumn{"QTCs", func(score BandScore) string { return strconv.Itoa(score.QTCs) }})
+	}
+	result = append(result,
+		ScoreColumn{"Dupes", func(score BandScore) string { return strconv.Itoa(score.Duplicates) }},
+		ScoreColumn{"Points", func(score BandScore) string { return strconv.Itoa(score.Points) }},
+		ScoreColumn{"P/Q", func(score BandScore) string { return fmt.Sprintf("%.1f", score.PointsPerQSO()) }},
+	)
+
+	// a contest without multiplier properties needs neither a multiplier column nor Q/M
+	switch {
+	case ShowMultisPerProperty(detailedMultis, properties):
+		for _, property := range SortedMultiProperties(properties) {
+			result = append(result, ScoreColumn{string(property), func(score BandScore) string {
+				return strconv.Itoa(score.MultisPerProperty[property])
+			}})
+		}
+	case len(properties) > 0:
+		result = append(result, ScoreColumn{"Mult", func(score BandScore) string { return strconv.Itoa(score.Multis) }})
+	}
+	if len(properties) > 0 {
+		result = append(result, ScoreColumn{"Q/M", func(score BandScore) string { return fmt.Sprintf("%.1f", score.QSOsPerMulti()) }})
+	}
+
+	result = append(result, ScoreColumn{"Result", func(score BandScore) string { return strconv.Itoa(score.Result()) }})
+	return result
+}
+
+func SortedMultiProperties(properties []conval.Property) []conval.Property {
+	result := slices.Clone(properties)
+	slices.Sort(result)
+	return result
 }
 
 type TimeReport = conval.TimeReport
 
 type Score struct {
-	ScorePerBand map[Band]BandScore
-	GraphPerBand map[Band]BandGraph
+	ScorePerBand    map[Band]BandScore
+	GraphPerBand    map[Band]BandGraph
+	MultiProperties []conval.Property
 }
 
 func NewScore() Score {
@@ -919,11 +1034,14 @@ func NewScore() Score {
 
 func (s Score) Copy() Score {
 	result := Score{
-		ScorePerBand: make(map[Band]BandScore),
-		GraphPerBand: make(map[Band]BandGraph),
+		ScorePerBand:    make(map[Band]BandScore),
+		GraphPerBand:    make(map[Band]BandGraph),
+		MultiProperties: slices.Clone(s.MultiProperties),
 	}
 
-	maps.Copy(result.ScorePerBand, s.ScorePerBand)
+	for band, bandScore := range s.ScorePerBand {
+		result.ScorePerBand[band] = bandScore.Copy()
+	}
 	for band, bandGraph := range s.GraphPerBand {
 		result.GraphPerBand[band] = bandGraph.Copy()
 	}
@@ -1047,7 +1165,9 @@ func (g BandGraph) Copy() BandGraph {
 		binSeconds: g.binSeconds,
 	}
 
-	copy(result.DataPoints, g.DataPoints)
+	for i, dataPoint := range g.DataPoints {
+		result.DataPoints[i] = dataPoint.Copy()
+	}
 
 	return result
 }
@@ -1161,11 +1281,31 @@ func (g BandGraph) PercentAsDuration(percent float64) time.Duration {
 }
 
 type BandScore struct {
-	QSOs       int
-	QTCs       int
-	Duplicates int
-	Points     int
-	Multis     int
+	QSOs              int
+	QTCs              int
+	Duplicates        int
+	Points            int
+	Multis            int
+	MultisPerProperty map[conval.Property]int
+}
+
+func (s BandScore) Copy() BandScore {
+	result := s
+	result.MultisPerProperty = maps.Clone(s.MultisPerProperty)
+	return result
+}
+
+func (s *BandScore) addMultisPerProperty(multisPerProperty map[conval.Property]int) {
+	if len(multisPerProperty) == 0 {
+		return
+	}
+	// a band score must not share its map with another band score
+	if s.MultisPerProperty == nil {
+		s.MultisPerProperty = make(map[conval.Property]int, len(multisPerProperty))
+	}
+	for property, multis := range multisPerProperty {
+		s.MultisPerProperty[property] += multis
+	}
 }
 
 func (s BandScore) String() string {
@@ -1178,6 +1318,7 @@ func (s *BandScore) Add(other BandScore) {
 	s.Duplicates += other.Duplicates
 	s.Points += other.Points
 	s.Multis += other.Multis
+	s.addMultisPerProperty(other.MultisPerProperty)
 }
 
 func (s *BandScore) AddQSO(qso QSOScore) {
@@ -1187,6 +1328,7 @@ func (s *BandScore) AddQSO(qso QSOScore) {
 	} else {
 		s.Points += qso.Points
 		s.Multis += qso.Multis
+		s.addMultisPerProperty(qso.MultisPerProperty)
 	}
 }
 
@@ -1239,9 +1381,10 @@ func (s BandScore) Result() int {
 }
 
 type QSOScore struct {
-	Points    int
-	Multis    int
-	Duplicate bool
+	Points            int
+	Multis            int
+	MultisPerProperty map[conval.Property]int
+	Duplicate         bool
 }
 
 type QTCScore struct {

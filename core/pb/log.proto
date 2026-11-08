@@ -81,6 +81,7 @@ message Contest {
   google.protobuf.Timestamp start_time = 26;
   bool generate_report = 27;
   bool enable_qtcs = 28;
+  bool detailed_multis = 29;
 }
 
 message Multis { // deprecated

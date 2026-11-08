@@ -176,6 +176,8 @@ func (c *Controller) Startup() {
 
 	c.bandplan = core.BandplanByID(c.configuration.Station().Bandplan)
 	c.dxccFinder = dxcc.New()
+	// the settings need the DXCC entity of the station to find the multiplier properties
+	c.Settings.SetDXCCEntities(c.dxccFinder)
 	c.scpFinder = scp.New()
 	c.hamDXMap = hamdxmap.NewHamDXMap(c.configuration.HamDXMapPort())
 

@@ -20,6 +20,8 @@ type scoreCounter struct {
 	prefixDatabase prefixDatabase
 	valid          bool
 
+	multiProperties []conval.Property
+
 	contestSetup        conval.Setup
 	contestDefinition   *conval.Definition
 	contestStartTime    time.Time
@@ -51,19 +53,17 @@ func newScoreCounter(settings core.Settings, entities DXCCEntities) *scoreCounte
 func (c *scoreCounter) StationChanged(station core.Station) {
 	oldSetup := c.contestSetup
 
-	continent, country, _, _, found := c.prefixDatabase.Find(station.Callsign.String())
+	entity, found := c.prefixDatabase.prefixes.Find(station.Callsign.String())
 	if !found {
 		log.Printf("No DXCC entity found for the station callsign %s", station.Callsign)
 		return
 	}
 
-	c.contestSetup = conval.Setup{
-		MyCall:      station.Callsign,
-		MyContinent: continent,
-		MyCountry:   country,
-		GridLocator: station.Locator,
-	}
+	c.contestSetup = core.ContestSetup(station, entity)
 	log.Printf("Using %+v as station setup", c.contestSetup)
+
+	// the rules decide per station which multiplier properties count
+	c.updateMultiProperties()
 
 	c.valid = (oldSetup.MyCountry == c.contestSetup.MyCountry)
 	if !c.valid {
@@ -71,11 +71,21 @@ func (c *scoreCounter) StationChanged(station core.Station) {
 	}
 }
 
+func (c *scoreCounter) updateMultiProperties() {
+	if c.contestDefinition == nil {
+		c.multiProperties = nil
+	} else {
+		c.multiProperties = c.contestDefinition.MultiProperties(c.contestSetup)
+	}
+	c.score.MultiProperties = c.multiProperties
+}
+
 func (c *scoreCounter) ContestChanged(contest core.Contest) {
 	c.contestDefinition = contest.Definition
 	c.contestStartTime = contest.StartTime
 	c.myExchangeFields = toConvalExchangeFields(contest.MyExchangeFields)
 	c.theirExchangeFields = toConvalExchangeFields(contest.TheirExchangeFields)
+	c.updateMultiProperties()
 
 	c.valid = false
 	c.clear()
@@ -92,6 +102,7 @@ func (c *scoreCounter) Clear() {
 
 func (c *scoreCounter) clear() {
 	c.score = core.NewScore()
+	c.score.MultiProperties = c.multiProperties
 	c.counter = c.counterFactory()
 	c.timeSheet = c.timeSheetFactory()
 	c.activeBands = make(map[core.Band]bool)
@@ -116,9 +127,10 @@ func (c *scoreCounter) newConvalCounter() convalCounter {
 func (c *scoreCounter) AddQSO(qso core.QSO) core.QSO {
 	convalScore := c.counter.Add(c.toConvalQSO(qso))
 	qsoScore := core.QSOScore{
-		Points:    convalScore.Points,
-		Multis:    convalScore.Multis,
-		Duplicate: convalScore.Duplicate,
+		Points:            convalScore.Points,
+		Multis:            convalScore.Multis,
+		MultisPerProperty: convalScore.MultisPerProperty,
+		Duplicate:         convalScore.Duplicate,
 	}
 	qso.Points = qsoScore.Points
 	qso.Multis = qsoScore.Multis

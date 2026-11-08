@@ -18,17 +18,48 @@ permissions:
 jobs:
   build:
     name: Build
-    # pinned: the runner image decides the oldest glibc that can run the AppImage, and
-    # ubuntu-latest moves to a newer Ubuntu without notice
-    runs-on: ubuntu-24.04
+    # the oldest Ubuntu LTS in standard support: the runner image decides the oldest
+    # glibc that can run the AppImage, and the AppImage catalog tests on this release
+    runs-on: ubuntu-22.04
+    env:
+      # the Qt of Ubuntu 22.04 is 6.2, miqt needs 6.4 or newer
+      QT_VERSION: "6.9.3"
     outputs:
       version_number: ${{ steps.version_number.outputs.version_number }}
       deb_package_filename: ${{ steps.create_deb_package.outputs.deb_package_filename }}
-      appimage_filenname: ${{ steps.create_appimage.outputs.appimage_filename }}
-      flatpak_package_filename: ${{ steps.create_flatpak_package.outputs.flatpak_package_filename }}
+      appimage_filename: ${{ steps.create_appimage.outputs.appimage_filename }}
     steps:
+      # the Qt libraries come from the Qt project, therefore only the libraries that they
+      # need themselves come from the distribution. The xcb list is what libQt6XcbQpa
+      # needs: the Qt plugin of linuxdeploy cannot deploy the platform plugin without it.
       - name: Install Linux packages and build tools
-        run: sudo add-apt-repository universe && sudo apt update && sudo apt install -y --no-install-recommends libfuse2t64 libxcb-cursor0 qt6-gtk-platformtheme qt6-base-dev libqscintilla2-qt6-dev qt6-base-private-dev qt6-charts-dev qt6-multimedia-dev qt6-pdf-dev qt6-positioning-dev qt6-svg-dev qt6-tools-dev qt6-webchannel-dev qt6-webengine-dev qt6-declarative-dev qml6-module-qtquick-{controls,shapes,layouts,templates,window} build-essential
+        run: |
+          sudo add-apt-repository universe && sudo apt update
+          sudo apt install -y --no-install-recommends \
+            build-essential pkg-config python3-venv libfuse2 \
+            libgl1 libglx0 libopengl0 libegl1 libglib2.0-0 libdbus-1-3 \
+            libfontconfig1 libfreetype6 libxkbcommon0 libxkbcommon-x11-0 \
+            libx11-6 libx11-xcb1 libice6 libsm6 \
+            libxcb1 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb-xinput0 libxcb-xkb1
+
+      # the binaries of the Qt project are built against glibc 2.28, therefore they run
+      # on this runner and on every distribution that the AppImage must support
+      - name: Install Qt
+        run: |
+          python3 -m venv /tmp/aqt
+          /tmp/aqt/bin/pip install --quiet aqtinstall
+          /tmp/aqt/bin/aqt install-qt linux desktop ${QT_VERSION} linux_gcc_64 -O /opt/qt
+          QT_ROOT=/opt/qt/${QT_VERSION}/gcc_64
+          # the distributions call it qmake6, the Qt project calls it qmake
+          QMAKE=${QT_ROOT}/bin/qmake6
+          [ -x "${QMAKE}" ] || QMAKE=${QT_ROOT}/bin/qmake
+          echo "QMAKE=${QMAKE}" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=${QT_ROOT}/lib/pkgconfig" >> $GITHUB_ENV
+          # the Qt libraries are not in the search path of the loader, this is how
+          # linuxdeploy finds the libraries that the binary needs
+          echo "LD_LIBRARY_PATH=${QT_ROOT}/lib" >> $GITHUB_ENV
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
@@ -74,47 +105,6 @@ jobs:
           make debpkg
           echo "deb_package_filename=$(ls ./hellocontest*.deb | head -n 1)" >> $GITHUB_OUTPUT
 
-      - name: Install Flatpak build tools
-        if: github.event_name != 'workflow_dispatch' || inputs.flatpak
-        run: |
-          sudo apt install -y --no-install-recommends flatpak flatpak-builder
-          # flatpak-builder needs unprivileged user namespaces, Ubuntu restricts them
-          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-
-      # the stage cache of flatpak-builder, the build directory itself is transient and
-      # would only make the cache big
-      - name: Cache the Flatpak build stages
-        if: github.event_name != 'workflow_dispatch' || inputs.flatpak
-        uses: actions/cache@v4
-        with:
-          path: |
-            .flatpak-builder/cache
-            .flatpak-builder/checksums
-            .flatpak-builder/ccache
-          key: flatpak-builder-${{ github.sha }}
-          restore-keys: flatpak-builder-
-
-      - name: Create Flatpak package
-        id: create_flatpak_package
-        if: github.event_name != 'workflow_dispatch' || inputs.flatpak
-        run: |
-          make flatpak_deps flatpak
-          echo "flatpak_package_filename=$(ls ./hellocontest*.flatpak | head -n 1)" >> $GITHUB_OUTPUT
-
-      # the appstream compose of flatpak-builder fails only on the runner, the report names
-      # the file that it cannot read
-      - name: Show the AppStream report
-        if: always() && steps.create_flatpak_package.conclusion == 'failure'
-        run: |
-          appstreamcli --version
-          find .flatpak-build/build/files/share/metainfo \
-               .flatpak-build/build/files/share/applications \
-               .flatpak-build/build/files/share/icons -type f -o -type l | xargs ls -la
-          appstreamcli compose --prefix=/ --origin=com.thecodingflow.hellocontest \
-            --components=com.thecodingflow.hellocontest --print-report=full \
-            --result-root=/tmp/as --data-dir=/tmp/as/xmls --icons-dir=/tmp/as/icons \
-            .flatpak-build/build/files
-
       - name: "Upload binary for linux_x86_64"
         uses: actions/upload-artifact@v4
         with:
@@ -135,14 +125,7 @@ jobs:
           name: hellocontest-debpkg
           path: ${{ steps.create_deb_package.outputs.deb_package_filename }}
 
-      - name: "Upload Flatpak package"
-        if: github.event_name != 'workflow_dispatch' || inputs.flatpak
-        uses: actions/upload-artifact@v4
-        with:
-          name: hellocontest-flatpak
-          path: ${{ steps.create_flatpak_package.outputs.flatpak_package_filename }}
-
-      - name: Upload package to the release
+      - name: Upload packages to the release
         # only a pushed tag makes a release, a manual run keeps the packages as run
         # artifacts, even when it is started on a tag
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
@@ -150,5 +133,79 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file_glob: true
-          file: ./hellocontest*.{deb,AppImage,AppImage.zsync,flatpak}
+          file: ./hellocontest*.{deb,AppImage,AppImage.zsync}
+          tag: ${{ github.ref }}
+
+  flatpak:
+    name: Flatpak
+    # the flatpak brings its own runtime, the host glibc does not matter; flatpak-builder
+    # of Ubuntu 22.04 is too old for the runtime that the manifest uses
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'workflow_dispatch' || inputs.flatpak
+    outputs:
+      flatpak_package_filename: ${{ steps.create_flatpak_package.outputs.flatpak_package_filename }}
+    steps:
+      - name: Install Flatpak build tools
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends flatpak flatpak-builder
+          # flatpak-builder needs unprivileged user namespaces, Ubuntu restricts them
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # go mod vendor runs on the host, the build in the sandbox has no network
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.26.0"
+
+      # the stage cache of flatpak-builder, the build directory itself is transient and
+      # would only make the cache big
+      - name: Cache the Flatpak build stages
+        uses: actions/cache@v4
+        with:
+          path: |
+            .flatpak-builder/cache
+            .flatpak-builder/checksums
+            .flatpak-builder/ccache
+          key: flatpak-builder-${{ github.sha }}
+          restore-keys: flatpak-builder-
+
+      - name: Create Flatpak package
+        id: create_flatpak_package
+        run: |
+          make flatpak_deps flatpak
+          echo "flatpak_package_filename=$(ls ./hellocontest*.flatpak | head -n 1)" >> $GITHUB_OUTPUT
+
+      # the appstream compose of flatpak-builder fails only on the runner, the report names
+      # the file that it cannot read
+      - name: Show the AppStream report
+        if: always() && steps.create_flatpak_package.conclusion == 'failure'
+        run: |
+          appstreamcli --version
+          find .flatpak-build/build/files/share/metainfo \
+               .flatpak-build/build/files/share/applications \
+               .flatpak-build/build/files/share/icons -type f -o -type l | xargs ls -la
+          appstreamcli compose --prefix=/ --origin=com.thecodingflow.hellocontest \
+            --components=com.thecodingflow.hellocontest --print-report=full \
+            --result-root=/tmp/as --data-dir=/tmp/as/xmls --icons-dir=/tmp/as/icons \
+            .flatpak-build/build/files
+
+      - name: "Upload Flatpak package"
+        uses: actions/upload-artifact@v4
+        with:
+          name: hellocontest-flatpak
+          path: ${{ steps.create_flatpak_package.outputs.flatpak_package_filename }}
+
+      - name: Upload the package to the release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: ./hellocontest*.flatpak
           tag: ${{ github.ref }}

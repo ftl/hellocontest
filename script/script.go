@@ -2,6 +2,7 @@ package script
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,8 +15,49 @@ type Script struct {
 	windowState string
 	sections    []*Section
 
+	// a script that needs a contest to work on builds its own log file before the
+	// application starts, so that no file dialog interrupts the run
+	prepare     func() (string, error)
+	logFilename string
+	// the clock must carry the timebase before the application loads the log file: the
+	// rate counter drops every QSO that is older than one hour when it is added
+	timebase string
+
+	// a script works with the demo radio, so that the user interface does not depend on
+	// the transceiver that was connected the last time
+	demoRadio          bool
+	demoRadioSingleVFO bool
+
 	currentSection int
 	screenshotter  ui.Screenshotter
+}
+
+func (s *Script) Prepare() error {
+	if s.timebase != "" {
+		t, err := time.Parse(time.RFC3339, s.timebase)
+		if err != nil {
+			return fmt.Errorf("cannot set the timebase of the script: %w", err)
+		}
+		s.clock = &Clock{}
+		s.clock.Set(t)
+	}
+	if s.prepare == nil {
+		return nil
+	}
+	filename, err := s.prepare()
+	if err != nil {
+		return err
+	}
+	s.logFilename = filename
+	return nil
+}
+
+func (s *Script) LogFilename() string {
+	return s.logFilename
+}
+
+func (s *Script) DemoRadio() (bool, bool) {
+	return s.demoRadio, s.demoRadioSingleVFO
 }
 
 func (s *Script) SetScreenshotter(sh ui.Screenshotter) {

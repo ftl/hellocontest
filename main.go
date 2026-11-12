@@ -30,10 +30,21 @@ func main() {
 			ui.PrintKeybindingsTable()
 			os.Exit(0)
 		case "screenshots":
-			startupScript = script.ScreenshotsScript
+			startupScript = prepareScript(script.ScreenshotsScript)
+			args = args[0:1]
+		case "screenshots-legacy":
+			startupScript = prepareScript(script.LegacyScreenshotsScript)
 			args = args[0:1]
 		}
 	}
 
 	ui.Run(version, sponsors, startupScript, args)
+}
+
+func prepareScript(s *script.Script) ui.Script {
+	if err := s.Prepare(); err != nil {
+		fmt.Fprintf(os.Stderr, "Cannot prepare the script: %v\n", err)
+		os.Exit(1)
+	}
+	return s
 }

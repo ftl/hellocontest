@@ -815,7 +815,24 @@ type RadioType string
 const (
 	RadioTypeHamlib RadioType = "hamlib"
 	RadioTypeTCI    RadioType = "tci"
+	RadioTypeDemo   RadioType = "demo"
 )
+
+const (
+	DemoRadioName       = "Demo"
+	DemoSingleVFOOption = "single_vfo"
+)
+
+// DemoRadio is a radio that only exists inside the application. A script selects it to put
+// the user interface into a defined state, without a transceiver and without a keyer.
+func DemoRadio(singleVFO bool) Radio {
+	return Radio{
+		Name:    DemoRadioName,
+		Type:    RadioTypeDemo,
+		Keyer:   RadioKeyer,
+		Options: map[string]string{DemoSingleVFOOption: strconv.FormatBool(singleVFO)},
+	}
+}
 
 type Keyer struct {
 	Name    string    `json:"name"`

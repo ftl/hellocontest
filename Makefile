@@ -6,6 +6,7 @@ DESTDIR ?=
 BINDIR ?= /usr/bin
 SHAREDIR ?= /usr/share
 QMAKE ?= /usr/bin/qmake6
+WIKI_SCREENSHOTS ?= ../hellocontest-wiki/screenshots
 QT_PLUGINS = $(shell ${QMAKE} -query QT_INSTALL_PLUGINS)
 APPDIR = ./.appimage-build/AppDir
 APPIMAGE_TOOLS = ./.appimage-build/tools
@@ -51,8 +52,12 @@ build:
 run: build
 	./${BINARY_NAME}
 
+# the docks only work on XWayland, and the screenshots go into the wiki clone
 screenshots: build
-	./${BINARY_NAME} screenshots
+	env QT_QPA_PLATFORM=xcb HELLOCONTEST_SCREENSHOTS=${WIKI_SCREENSHOTS} ./${BINARY_NAME} screenshots
+
+screenshots_legacy: build
+	env QT_QPA_PLATFORM=xcb HELLOCONTEST_SCREENSHOTS=${WIKI_SCREENSHOTS} ./${BINARY_NAME} screenshots-legacy
 
 copy_screenshots_config:
 	cp -f ~/.config/com.thecodingflow/hellocontest.conf ./script/screenshots_config.conf

@@ -50,6 +50,11 @@ type Screenshotter interface {
 	ShowMenu(name string) error
 	HideMenu(name string) error
 	HighlightMenuAction(menuName, actionTitle string) error
+	SetWidgetVisible(objectName string, visible bool) error
+	HideDocks() error
+	ResizeMainWindow(width, height int) error
+	ResizeDocks(objectNames []string, sizes []int, horizontal bool) error
+	RestoreWindowState() error
 }
 
 type capturedImage struct {
@@ -251,6 +256,78 @@ func (s *screenshotter) HighlightMenuAction(menuName, actionTitle string) error 
 			}
 		}
 		return fmt.Errorf("action %q not found in menu %q", actionTitle, menuName)
+	})
+}
+
+func (s *screenshotter) SetWidgetVisible(objectName string, visible bool) error {
+	return runOnMainSync(func() error {
+		w := findWidgetByObjectName(objectName)
+		if w == nil {
+			return fmt.Errorf("widget %q not found", objectName)
+		}
+		if visible {
+			// a dock stays invisible if the window that contains it is hidden
+			w.Window().SetVisible(true)
+		}
+		w.SetVisible(visible)
+		if visible {
+			w.Raise()
+		}
+		return nil
+	})
+}
+
+// RestoreWindowState puts the saved layout back. Qt does not restore the size of a dock
+// that is shown again after it was hidden, therefore the saved state decides how the main
+// window looks with its views.
+func (s *screenshotter) RestoreWindowState() error {
+	return runOnMainSync(func() error {
+		if s.app.startupScript == nil {
+			return errors.New("no script, no saved window state")
+		}
+		s.app.restoreWindowStateFromString(s.app.startupScript.WindowState())
+		return nil
+	})
+}
+
+// ResizeDocks gives the docks the size they need, because Qt does not restore the size of
+// a dock that is shown again after it was hidden. Horizontal sizes are widths, vertical
+// sizes are heights.
+func (s *screenshotter) ResizeDocks(objectNames []string, sizes []int, horizontal bool) error {
+	return runOnMainSync(func() error {
+		if len(objectNames) != len(sizes) {
+			return fmt.Errorf("%d docks, but %d sizes", len(objectNames), len(sizes))
+		}
+		docks := make([]*qtlib.QDockWidget, 0, len(objectNames))
+		for _, name := range objectNames {
+			dock := s.app.dockManager.find(name)
+			if dock == nil {
+				return fmt.Errorf("dock %q not found", name)
+			}
+			docks = append(docks, dock)
+		}
+		orientation := qtlib.Vertical
+		if horizontal {
+			orientation = qtlib.Horizontal
+		}
+		s.app.window.ResizeDocks(docks, sizes, orientation)
+		return nil
+	})
+}
+
+func (s *screenshotter) ResizeMainWindow(width, height int) error {
+	return runOnMainSync(func() error {
+		s.app.window.Resize(width, height)
+		return nil
+	})
+}
+
+func (s *screenshotter) HideDocks() error {
+	return runOnMainSync(func() error {
+		for _, dock := range s.app.dockManager.docks {
+			dock.dock.SetVisible(false)
+		}
+		return nil
 	})
 }
 

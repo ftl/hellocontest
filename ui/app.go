@@ -33,6 +33,8 @@ type Script interface {
 	Now() time.Time
 	SetScreenshotter(s Screenshotter)
 	WindowState() string
+	LogFilename() string
+	DemoRadio() (use bool, singleVFO bool)
 }
 
 // Run starts the Qt6 application
@@ -77,6 +79,12 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 	}
 
 	a.controller = app.NewController(version, timebase, a, a.runAsync, configuration, sponsors)
+	if startupScript != nil {
+		a.controller.SetScriptedFilename(startupScript.LogFilename())
+		if useDemoRadio, singleVFO := startupScript.DemoRadio(); useDemoRadio {
+			a.controller.UseDemoRadio(singleVFO)
+		}
+	}
 	a.controller.Startup()
 	a.controller.SetView(a)
 	a.stopKeyHandler.SetStopKeyController(a.controller)

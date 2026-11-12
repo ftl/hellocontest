@@ -61,6 +61,12 @@ type Controller struct {
 	view View
 
 	filename string
+	// a script brings its own log file, which must not become the session's last file
+	scriptedFilename string
+	// a script works with the demo radio, so that the state of the radio does not depend
+	// on the transceiver that was connected the last time
+	demoRadio          bool
+	demoRadioSingleVFO bool
 
 	version       string
 	clock         core.Clock
@@ -222,7 +228,11 @@ func (c *Controller) Startup() {
 	c.Entry.SetCallinfo(c.Callinfo)
 	c.Callinfo.Notify(c.Entry)
 
-	c.Radio = radio.NewController(c.configuration.Radios(), c.configuration.Keyers(), c.bandplan, c.asyncRunner)
+	radios := c.configuration.Radios()
+	if c.demoRadio {
+		radios = append(radios, core.DemoRadio(c.demoRadioSingleVFO))
+	}
+	c.Radio = radio.NewController(radios, c.configuration.Keyers(), c.bandplan, c.asyncRunner)
 	c.Radio.Notify(c.ServiceStatus)
 	// the entry controller gets the VFO events from the VFOs, not from the raw stream of
 	// the radio, because only the VFO knows whether the application commanded a change.
@@ -278,8 +288,15 @@ func (c *Controller) Startup() {
 	}
 
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
-	c.Radio.SelectRadio(c.session.Radio1())
-	c.Radio.SelectKeyer(c.session.Keyer1())
+	if c.demoRadio {
+		// not through c.SelectRadio: the selection must not survive in the session
+		if err := c.Radio.SelectRadio(core.DemoRadioName); err != nil {
+			log.Printf("Cannot select the demo radio: %v", err)
+		}
+	} else {
+		c.Radio.SelectRadio(c.session.Radio1())
+		c.Radio.SelectKeyer(c.session.Keyer1())
+	}
 
 	c.Keyer = keyer.New(c.Settings, c.Radio, c.configuration.KeyerSettings(), c.Workmode.Workmode(), c.configuration.KeyerPresets())
 	c.Keyer.SetVFOSwitcher(c.Radio)
@@ -393,8 +410,20 @@ func (c *Controller) Startup() {
 	}
 }
 
+func (c *Controller) SetScriptedFilename(filename string) {
+	c.scriptedFilename = filename
+}
+
+func (c *Controller) UseDemoRadio(singleVFO bool) {
+	c.demoRadio = true
+	c.demoRadioSingleVFO = singleVFO
+}
+
 func (c *Controller) openCurrentLog() error {
 	filename := c.session.LastFilename()
+	if c.scriptedFilename != "" {
+		filename = c.scriptedFilename
+	}
 	store := store.NewFileStore(filename)
 	if !store.Exists() {
 		err := store.Clear()
@@ -450,9 +479,11 @@ func (c *Controller) loadLogbook(filename string, store *store.FileStore, qsos [
 		c.view.ShowFilename(c.filename)
 	}
 
-	err := c.session.SetLastFilename(c.filename)
-	if err != nil {
-		log.Println(err)
+	if c.filename != c.scriptedFilename {
+		err := c.session.SetLastFilename(c.filename)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 

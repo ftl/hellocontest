@@ -9,6 +9,7 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/cwdaemon"
+	"github.com/ftl/hellocontest/core/demoradio"
 	"github.com/ftl/hellocontest/core/hamlib"
 	"github.com/ftl/hellocontest/core/tci"
 )
@@ -217,6 +218,8 @@ func (c *Controller) SelectRadio(name string) error {
 		radio = c.newHamlibClient(config)
 	case core.RadioTypeTCI:
 		radio, err = c.newTCIClient(config)
+	case core.RadioTypeDemo:
+		radio = demoradio.New(c.bandplan, config.Options[core.DemoSingleVFOOption] != "false", c.asyncRunner)
 	default:
 		err = fmt.Errorf("unknown radio type %q", config.Type)
 	}

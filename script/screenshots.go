@@ -14,7 +14,31 @@ import (
 	"github.com/ftl/hellocontest/ui"
 )
 
-const ScreenshotsFolder = "./docs/screenshots"
+const (
+	defaultScreenshotsFolder = "../hellocontest-wiki/screenshots"
+	screenshotsFolderEnv     = "HELLOCONTEST_SCREENSHOTS"
+
+	// the size of the main window without any view
+	basicWindowWidth  = 720
+	basicWindowHeight = 400
+
+	// the size of the main window with some views, and the height of each view
+	filledWindowWidth    = 960
+	filledWindowHeight   = 960
+	qsoTableDockHeight   = 180
+	rateDockHeight       = 180
+	scoreTableDockHeight = 280
+	scoreTableWidth      = 520
+	scoreGraphDockHeight = 280
+)
+
+func screenshotsFolder() string {
+	folder := os.Getenv(screenshotsFolderEnv)
+	if folder == "" {
+		return defaultScreenshotsFolder
+	}
+	return folder
+}
 
 //go:embed screenshots_qsos.csv
 var qsoDataCSV string
@@ -22,8 +46,238 @@ var qsoDataCSV string
 //go:embed screenshots_config.conf
 var screenshotsWindowState string
 
+// ScreenshotsScript takes the screenshots that the wiki page "Main Window" uses. It runs
+// without any interaction: the contest comes from a fixture log file that is written
+// before the application starts.
 var ScreenshotsScript = &Script{
-	windowState: screenshotsWindowState,
+	windowState:        screenshotsWindowState,
+	prepare:            prepareScreenshotsFixture,
+	timebase:           fixtureNow,
+	demoRadio:          true,
+	demoRadioSingleVFO: true,
+	sections: []*Section{
+		{
+			steps: []Step{
+				SetWorkmode(core.SearchPounce),
+				SetVFOFrequency(core.VFO1, 7028000),
+				SetVFOMode(core.VFO1, core.ModeCW),
+				Wait(3 * time.Second),
+			},
+		},
+		{
+			steps: []Step{
+				HideDocks(),
+				ResizeMainWindow(basicWindowWidth, basicWindowHeight),
+				Wait(1 * time.Second),
+				TriggerScreenshot("main_window_basic", WithMainWindow()),
+			},
+		},
+		{
+			steps: []Step{
+				ShowWidget("qsoTableDock"),
+				ShowWidget("rateDock"),
+				ShowWidget("scoreTableDock"),
+				ShowWidget("scoreGraphDock"),
+				ResizeMainWindow(filledWindowWidth, filledWindowHeight),
+				// Qt does not restore the size of a dock that is shown again after it was
+				// hidden, therefore the script says how high each view must be
+				ResizeDocksVertically(
+					DockSize{"qsoTableDock", qsoTableDockHeight},
+					DockSize{"rateDock", rateDockHeight},
+					DockSize{"scoreTableDock", scoreTableDockHeight},
+					DockSize{"scoreGraphDock", scoreGraphDockHeight},
+				),
+				ResizeDocksHorizontally(
+					DockSize{"scoreTableDock", scoreTableWidth},
+				),
+				Wait(2 * time.Second),
+				TriggerScreenshot("main_window_filled", WithMainWindow()),
+			},
+		},
+		{
+			steps: []Step{
+				EnterCallsign("AA3B"),
+				Wait(1 * time.Second),
+				TriggerScreenshot("main_window_entry",
+					WithCaptureWidget("vfo1VFOArea"),
+					WithMarkerAtWidget(1, "vfo1predictedBestMatch", 65, 10),
+					WithMarkerAtWidget(2, "vfo1predictedExchange", 50, 10),
+					WithMarkerAtWidget(3, "vfo1predictedValue", -30, 10),
+					WithMarkerAtWidget(4, "vfo1dxccLabel", 20, 10),
+				),
+				TriggerScreenshot("main_window_supercheck", WithCaptureWidget("vfo1supercheckLabel")),
+				TriggerScreenshot("main_window_vfo", WithCaptureWidget("vfo1VFOContainer")),
+				TriggerScreenshot("main_window_status_bar", WithCaptureWidget("statusBar")),
+			},
+		},
+		{
+			steps: []Step{
+				TriggerScreenshot("main_window_macros", WithCaptureUnion("", "keyerButtons", "esmWorkmode"),
+					WithMarkerAtWidget(1, "workmode", -20, 20),
+					WithMarkerAtWidget(2, "esm", 110, 20),
+					WithMarkerAtWidget(3, "keyerButtons", 300, 20),
+					WithMarkerAtWidget(4, "keyerSettingsButton", 20, 10),
+					WithMarkerAtWidget(5, "keyerSpeed", -80, 10),
+				),
+				OpenKeyerSettings(),
+				Wait(2 * time.Second),
+				TriggerScreenshot("macros_dialog", WithCaptureWidget("keyerSettingsDialog")),
+				HideWidget("keyerSettingsDialog"),
+				Wait(1 * time.Second),
+			},
+		},
+		{
+			steps: []Step{
+				Quit(),
+			},
+		},
+	},
+}
+
+func SetVFOFrequency(vfo core.VFOID, frequency core.Frequency) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() { r.App.VFOs[vfo].SetFrequency(frequency) })
+		return 0
+	}
+}
+
+func SetVFOMode(vfo core.VFOID, mode core.Mode) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() { r.App.VFOs[vfo].SetMode(mode) })
+		return 0
+	}
+}
+
+func SetWorkmode(workmode core.Workmode) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() { r.App.Workmode.SetWorkmode(workmode) })
+		return 0
+	}
+}
+
+func EnterCallsign(callsign string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() {
+			r.App.Entry.Clear()
+			r.App.Entry.Enter(callsign)
+			r.App.Entry.RefreshView()
+		})
+		return 0
+	}
+}
+
+func OpenKeyerSettings() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() { r.App.Keyer.OpenKeyerSettings() })
+		return 0
+	}
+}
+
+func Quit() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.Quit)
+		return 0
+	}
+}
+
+func ShowWidget(objectName string) Step {
+	return setWidgetVisible(objectName, true)
+}
+
+func HideWidget(objectName string) Step {
+	return setWidgetVisible(objectName, false)
+}
+
+func setWidgetVisible(objectName string, visible bool) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot change the visibility of %s", objectName)
+			return 0
+		}
+		if err := r.Screenshotter.SetWidgetVisible(objectName, visible); err != nil {
+			log.Printf("SetWidgetVisible %s failed: %v", objectName, err)
+		}
+		return 0
+	}
+}
+
+type DockSize struct {
+	Name string
+	Size int
+}
+
+func ResizeDocksVertically(sizes ...DockSize) Step {
+	return resizeDocks(sizes, false)
+}
+
+func ResizeDocksHorizontally(sizes ...DockSize) Step {
+	return resizeDocks(sizes, true)
+}
+
+func resizeDocks(sizes []DockSize, horizontal bool) Step {
+	names := make([]string, len(sizes))
+	values := make([]int, len(sizes))
+	for i, size := range sizes {
+		names[i] = size.Name
+		values[i] = size.Size
+	}
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot resize the docks")
+			return 0
+		}
+		if err := r.Screenshotter.ResizeDocks(names, values, horizontal); err != nil {
+			log.Printf("ResizeDocks failed: %v", err)
+		}
+		return 0
+	}
+}
+
+func RestoreWindowState() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot restore the window state")
+			return 0
+		}
+		if err := r.Screenshotter.RestoreWindowState(); err != nil {
+			log.Printf("RestoreWindowState failed: %v", err)
+		}
+		return 0
+	}
+}
+
+func ResizeMainWindow(width, height int) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot resize the main window")
+			return 0
+		}
+		if err := r.Screenshotter.ResizeMainWindow(width, height); err != nil {
+			log.Printf("ResizeMainWindow failed: %v", err)
+		}
+		return 0
+	}
+}
+
+func HideDocks() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot hide the docks")
+			return 0
+		}
+		if err := r.Screenshotter.HideDocks(); err != nil {
+			log.Printf("HideDocks failed: %v", err)
+		}
+		return 0
+	}
+}
+
+// LegacyScreenshotsScript still asks the operator for the screenshots of the wiki pages
+// that have no screenshot comments yet.
+var LegacyScreenshotsScript = &Script{
+	windowState:        screenshotsWindowState,
+	demoRadio:          true,
+	demoRadioSingleVFO: true,
 	sections: []*Section{
 		{
 			steps: []Step{
@@ -169,7 +423,7 @@ func DescribeScreenshot(description string, delay time.Duration) Step {
 func ClearScreenshotsFolder() Step {
 	return func(_ context.Context, _ *Runtime) time.Duration {
 		log.Printf("[clearing screenshots folder]")
-		d, err := os.Open(ScreenshotsFolder)
+		d, err := os.Open(screenshotsFolder())
 		if err != nil {
 			log.Printf("Cannot open screenshots folder: %v", err)
 			return 0
@@ -178,11 +432,11 @@ func ClearScreenshotsFolder() Step {
 
 		names, err := d.Readdirnames(-1)
 		if err != nil {
-			log.Printf("Cannot read filenames in %s: %v", ScreenshotsFolder, err)
+			log.Printf("Cannot read filenames in %s: %v", screenshotsFolder(), err)
 			return 0
 		}
 		for _, name := range names {
-			filename := filepath.Join(ScreenshotsFolder, name)
+			filename := filepath.Join(screenshotsFolder(), name)
 			err = os.RemoveAll(filename)
 			if err != nil {
 				log.Printf("Cannot delete %s: %v", filename, err)
@@ -194,7 +448,7 @@ func ClearScreenshotsFolder() Step {
 
 func DeleteScreenshot(name string) Step {
 	return func(_ context.Context, _ *Runtime) time.Duration {
-		filename := filepath.Join(ScreenshotsFolder, name)
+		filename := filepath.Join(screenshotsFolder(), name)
 		err := os.RemoveAll(filename)
 		if err != nil {
 			log.Printf("Cannot delete %s: %v", filename, err)
@@ -381,7 +635,7 @@ func CloseMenu(menuObjectName string) Step {
 }
 
 func screenshotFilenames(name string) (string, string) {
-	return filepath.Join(ScreenshotsFolder, name+".png"), filepath.Join(ScreenshotsFolder, name+".bak.png")
+	return filepath.Join(screenshotsFolder(), name+".png"), filepath.Join(screenshotsFolder(), name+".bak.png")
 
 }
 

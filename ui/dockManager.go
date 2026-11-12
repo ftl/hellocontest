@@ -59,6 +59,15 @@ func (m *dockManager) Add(view dockable, area qtlib.DockWidgetArea) {
 	})
 }
 
+func (m *dockManager) find(objectName string) *qtlib.QDockWidget {
+	for _, dock := range m.docks {
+		if dock.name == objectName {
+			return dock.dock
+		}
+	}
+	return nil
+}
+
 func (m *dockManager) showContextMenu(dock *managedDock, pos *qtlib.QPoint) {
 	target, text := dockTargetSpots, "Move to Spot Window"
 	if dock.target == dockTargetSpots {

@@ -243,7 +243,7 @@ func (a *vfoArea) applyStyle() {
 	// TODO: use a property with a selective style
 	colors := a.vfoContainerColors()
 	a.root.SetStyleSheet(fmt.Sprintf(a.rootStyle(), a.rootName))
-	a.vfoContainer.SetStyleSheet(fmt.Sprintf(VFOContainerStyle, a.vfoContainerName, colors.background, colors.text))
+	a.vfoContainer.SetStyleSheet(fmt.Sprintf(VFOContainerStyle, a.vfoContainerName, colors.background, colors.border, colors.text))
 	a.entry.txIndicator.SetStyleSheet(a.txIndicatorStyle(colors.text))
 }
 

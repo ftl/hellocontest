@@ -15,14 +15,14 @@ const (
 	TXIndicatorActiveStyle   = "QLabel { padding-left: 5px; padding-right: 5px; background-color: red; color: white; border: 1px solid white; border-radius: 10px; font-weight: bold; }"
 	TXIndicatorInactiveStyle = "QLabel { padding-left: 5px; padding-right: 5px; color: %[1]s; border: 1px solid %[1]s; border-radius: 10px; }"
 
-	VFOAreaNormalStyle    = "QWidget#%s { border: 1px solid transparent; }"
+	VFOAreaNormalStyle    = "QWidget#%s { border: 1px solid palette(text); }"
 	VFOAreaActiveStyle    = "QWidget#%s { border: 1px solid palette(highlight); }"
 	VFOAreaDuplicateStyle = "QWidget#%s { border: 1px solid red; }"
 	VFOAreaEditingStyle   = "QWidget#%s { border: 1px solid palette(accent); }"
 	VFOAreaBorderWidth    = 1
 	VFOAreaBorderGap      = 5
 
-	VFOContainerStyle = "QWidget#%s { background-color: %s; } QLabel { color: %s; }"
+	VFOContainerStyle = "QWidget#%s { background-color: %s; border-bottom: 1px solid %s; } QLabel { color: %s; }"
 
 	RoundedLabelPadding = 10
 
@@ -43,13 +43,14 @@ const (
 type vfoContainerColors struct {
 	background string
 	text       string
+	border     string
 }
 
 var (
-	vfoContainerInactive  = vfoContainerColors{"palette(window)", "palette(text)"}
-	vfoContainerActive    = vfoContainerColors{"palette(highlight)", "palette(highlighted-text)"}
-	vfoContainerDuplicate = vfoContainerColors{"red", "white"}
-	vfoContainerEditing   = vfoContainerColors{"palette(accent)", "palette(highlighted-text)"}
+	vfoContainerInactive  = vfoContainerColors{"palette(window)", "palette(text)", "palette(text)"}
+	vfoContainerActive    = vfoContainerColors{"palette(highlight)", "palette(highlighted-text)", "transparent"}
+	vfoContainerDuplicate = vfoContainerColors{"red", "white", "transparent"}
+	vfoContainerEditing   = vfoContainerColors{"palette(accent)", "palette(highlighted-text)", "transparent"}
 )
 
 // The band colors connect the score graph with the band column of the score table and the band matrix.

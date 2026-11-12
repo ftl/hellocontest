@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"unsafe"
 
 	qtlib "github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
@@ -54,6 +55,7 @@ type Screenshotter interface {
 	HideDocks() error
 	ResizeMainWindow(width, height int) error
 	ResizeDocks(objectNames []string, sizes []int, horizontal bool) error
+	RejectDialog(objectName string) error
 	RestoreWindowState() error
 }
 
@@ -286,6 +288,20 @@ func (s *screenshotter) RestoreWindowState() error {
 			return errors.New("no script, no saved window state")
 		}
 		s.app.restoreWindowStateFromString(s.app.startupScript.WindowState())
+		return nil
+	})
+}
+
+// RejectDialog ends a modal dialog that runs its own event loop, where hiding the widget
+// would leave the loop running.
+func (s *screenshotter) RejectDialog(objectName string) error {
+	return runOnMainSync(func() error {
+		w := findWidgetByObjectName(objectName)
+		if w == nil {
+			return fmt.Errorf("dialog %q not found", objectName)
+		}
+		dialog := qtlib.UnsafeNewQDialog(unsafe.Pointer(w.UnsafePointer()))
+		dialog.Reject()
 		return nil
 	})
 }

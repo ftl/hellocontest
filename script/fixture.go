@@ -18,7 +18,9 @@ import (
 var callHistoryFixture string
 
 const (
-	fixtureContestIdentifier = "cw-ops"
+	// upper case, as the contest selection of the application lists it; conval itself
+	// does not care about the case
+	fixtureContestIdentifier = "CW-OPS"
 	fixtureContestName       = "CWT Screenshot Demo"
 	fixtureStationCallsign   = "DL0ABC"
 	fixtureStationOperator   = "DL1ABC"
@@ -36,8 +38,6 @@ const (
 	fixtureQSOShift = 19 * time.Minute
 	// seconds after the last demo QSO, so that the rate view shows the time since then
 	fixtureNow = "2023-06-28T19:40:30Z"
-
-	fixtureReport = "599"
 
 	// without a goal the rate indicator collapses every axis onto its centre, and the
 	// score graph scales its bins to zero
@@ -89,11 +89,6 @@ func prepareScreenshotsFixture() (string, error) {
 	if err := fileStore.WriteContest(contest); err != nil {
 		return "", fmt.Errorf("cannot write the fixture contest: %w", err)
 	}
-	for _, qso := range fixtureQSOs() {
-		if err := fileStore.WriteQSO(qso); err != nil {
-			return "", fmt.Errorf("cannot write the fixture QSO %s: %w", qso.Callsign, err)
-		}
-	}
 
 	return filename, nil
 }
@@ -137,44 +132,4 @@ func mustParseFixtureTime(s string) time.Time {
 		return time.Time{}
 	}
 	return t
-}
-
-func fixtureQSOs() []core.QSO {
-	base := mustParseFixtureTime(fixtureTimebase)
-	data := parseQSOCSV()
-	result := make([]core.QSO, 0, len(data))
-	for i, qso := range data {
-		timestamp := base.Add(time.Duration(qso.minute)*time.Minute - fixtureQSOShift)
-		if len(qso.values) < 3 {
-			continue
-		}
-		result = append(result, core.QSO{
-			Callsign:      core.MustParseCallsign(qso.values[0]),
-			Time:          timestamp,
-			LogTimestamp:  timestamp,
-			Frequency:     qso.frequency,
-			Band:          bandOfFrequency(qso.frequency),
-			Mode:          core.ModeCW,
-			MyReport:      core.RST(fixtureReport),
-			MyNumber:      core.QSONumber(i + 1),
-			MyExchange:    []string{fixtureOperatorName, fixtureOperatorNumber},
-			TheirReport:   core.RST(fixtureReport),
-			TheirNumber:   core.QSONumber(i + 1),
-			TheirExchange: []string{qso.values[1], qso.values[2]},
-			Workmode:      qso.workmode,
-		})
-	}
-	return result
-}
-
-// bandOfFrequency covers only the bands that the fixture QSOs use
-func bandOfFrequency(frequency core.Frequency) core.Band {
-	switch {
-	case frequency >= 3500000 && frequency < 4000000:
-		return core.Band80m
-	case frequency >= 7000000 && frequency < 7300000:
-		return core.Band40m
-	default:
-		return core.NoBand
-	}
 }

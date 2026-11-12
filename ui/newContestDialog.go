@@ -34,6 +34,7 @@ func newNewContestDialog(parent *qtlib.QMainWindow, controller NewContestControl
 
 func (d *newContestDialog) Show() bool {
 	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
+	setObjectName(d.dialog, "newContestDialog")
 	d.dialog.SetWindowTitle("New Contest")
 	d.dialog.SetModal(true)
 	d.dialog.SetWindowFlags(

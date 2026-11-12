@@ -66,21 +66,53 @@ var ScreenshotsScript = &Script{
 		},
 		{
 			steps: []Step{
-				HideDocks(),
-				ResizeMainWindow(basicWindowWidth, basicWindowHeight),
+				OpenMenu("fileMenu"),
+				// the popup is shown asynchronously, an action that is activated before that
+				// does not stay active
 				Wait(1 * time.Second),
-				TriggerScreenshot("main_window_basic", WithMainWindow()),
+				HighlightMenuAction("fileMenu", "New..."),
+				Wait(1 * time.Second),
+				TriggerScreenshot("menu_file_new", WithCapturePopup(), WithDelay(150*time.Millisecond)),
+				HighlightMenuAction("fileMenu", "Open Configuration File..."),
+				Wait(1 * time.Second),
+				TriggerScreenshot("menu_file_open_configuration", WithCapturePopup(), WithDelay(150*time.Millisecond)),
+				CloseMenu("fileMenu"),
+				Wait(1 * time.Second),
 			},
 		},
 		{
 			steps: []Step{
+				// the dialog is only shown, never accepted: the contest comes from the
+				// fixture log, and accepting it would ask for a file name
+				OpenNewContestDialog(fixtureContestIdentifier, fixtureContestName),
+				Wait(2 * time.Second),
+				TriggerScreenshot("new_cwt", WithActiveWindow()),
+				RejectDialog("newContestDialog"),
+				Wait(1 * time.Second),
+			},
+		},
+		{
+			steps: []Step{
+				OpenSettings(),
+				Wait(2 * time.Second),
+				TriggerScreenshot("contest_settings_complete", WithCaptureWidget("settingsDialog")),
+				TriggerScreenshot("contest_settings_myexchange_cwt", WithCaptureWidget("myExchangeGroup")),
+				HideWidget("settingsDialog"),
+				Wait(1 * time.Second),
+			},
+		},
+		{
+			steps: []Step{
+				// the saved window state decides nothing: the script shows the views that the
+				// wiki page describes, and nothing else
+				HideDocks(),
 				ShowWidget("qsoTableDock"),
 				ShowWidget("rateDock"),
 				ShowWidget("scoreTableDock"),
 				ShowWidget("scoreGraphDock"),
 				ResizeMainWindow(filledWindowWidth, filledWindowHeight),
 				// Qt does not restore the size of a dock that is shown again after it was
-				// hidden, therefore the script says how high each view must be
+				// hidden, therefore the script says how big each view must be
 				ResizeDocksVertically(
 					DockSize{"qsoTableDock", qsoTableDockHeight},
 					DockSize{"rateDock", rateDockHeight},
@@ -91,7 +123,18 @@ var ScreenshotsScript = &Script{
 					DockSize{"scoreTableDock", scoreTableWidth},
 				),
 				Wait(2 * time.Second),
+				TriggerScreenshot("main_window_empty", WithMainWindow()),
+				FillQSOList(0, -1),
+				Wait(2 * time.Second),
 				TriggerScreenshot("main_window_filled", WithMainWindow()),
+			},
+		},
+		{
+			steps: []Step{
+				HideDocks(),
+				ResizeMainWindow(basicWindowWidth, basicWindowHeight),
+				Wait(1 * time.Second),
+				TriggerScreenshot("main_window_basic", WithMainWindow()),
 			},
 		},
 		{
@@ -132,6 +175,38 @@ var ScreenshotsScript = &Script{
 			},
 		},
 	},
+}
+
+func OpenNewContestDialog(identifier string, name string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.New)
+		r.UI(func() {
+			r.App.NewContestController.SelectContestIdentifier(identifier)
+			r.App.NewContestController.EnterContestName(name)
+			r.App.NewContestController.RefreshView()
+		})
+		return 0
+	}
+}
+
+func OpenSettings() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.OpenSettings)
+		return 0
+	}
+}
+
+func RejectDialog(objectName string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot close the dialog %s", objectName)
+			return 0
+		}
+		if err := r.Screenshotter.RejectDialog(objectName); err != nil {
+			log.Printf("RejectDialog %s failed: %v", objectName, err)
+		}
+		return 0
+	}
 }
 
 func SetVFOFrequency(vfo core.VFOID, frequency core.Frequency) Step {
@@ -737,7 +812,7 @@ func parseQSOCSV() []qsoData {
 
 func enterQSOData(r *Runtime, qso qsoData) {
 	r.UI(r.App.Entry.Clear)
-	r.Clock.SetMinute(qso.minute)
+	r.Clock.SetMinute(qso.minute - int(fixtureQSOShift/time.Minute))
 	r.App.VFOs[core.VFO1].SetFrequency(qso.frequency)
 	time.Sleep(100 * time.Millisecond)
 	r.UI(func() {

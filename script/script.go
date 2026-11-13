@@ -22,6 +22,7 @@ type Script struct {
 	// the clock must carry the timebase before the application loads the log file: the
 	// rate counter drops every QSO that is older than one hour when it is added
 	timebase string
+	version  string
 
 	// a script works with the demo radio, so that the user interface does not depend on
 	// the transceiver that was connected the last time
@@ -41,15 +42,18 @@ func (s *Script) Prepare() error {
 		s.clock = &Clock{}
 		s.clock.Set(t)
 	}
-	if s.prepare == nil {
-		return nil
+	if s.prepare != nil {
+		filename, err := s.prepare()
+		if err != nil {
+			return err
+		}
+		s.logFilename = filename
 	}
-	filename, err := s.prepare()
-	if err != nil {
-		return err
-	}
-	s.logFilename = filename
-	return nil
+	return writeVersionFile(s.version)
+}
+
+func (s *Script) SetVersion(version string) {
+	s.version = version
 }
 
 func (s *Script) LogFilename() string {

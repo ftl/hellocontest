@@ -3,6 +3,7 @@ package script
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 const (
 	defaultScreenshotsFolder = "../hellocontest-wiki/screenshots"
 	screenshotsFolderEnv     = "HELLOCONTEST_SCREENSHOTS"
+	versionFilename          = "VERSION"
 
 	// the size of the main window without any view
 	basicWindowWidth  = 720
@@ -31,6 +33,17 @@ const (
 	scoreTableWidth      = 520
 	scoreGraphDockHeight = 280
 )
+
+func writeVersionFile(version string) error {
+	if version == "" {
+		return nil
+	}
+	filename := filepath.Join(screenshotsFolder(), versionFilename)
+	if err := os.WriteFile(filename, []byte(version+"\n"), 0644); err != nil {
+		return fmt.Errorf("cannot write %s: %w", filename, err)
+	}
+	return nil
+}
 
 func screenshotsFolder() string {
 	folder := os.Getenv(screenshotsFolderEnv)

@@ -42,6 +42,7 @@ func main() {
 }
 
 func prepareScript(s *script.Script) ui.Script {
+	s.SetVersion(version)
 	if err := s.Prepare(); err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot prepare the script: %v\n", err)
 		os.Exit(1)

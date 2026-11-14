@@ -114,8 +114,29 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 				steps: []Step{
 					OpenSettings(),
 					Wait(2 * time.Second),
+				},
+			},
+			{
+				enter: ForContest(cwtFixture),
+				steps: []Step{
 					TriggerScreenshot("contest_settings_complete", WithCaptureWidget("settingsDialog")),
 					TriggerScreenshot("contest_settings_myexchange", WithCaptureWidget("myExchangeGroup")),
+				},
+			},
+			{
+				// only a contest with a report and a serial number can generate them
+				enter: ForContest(waedcFixture),
+				steps: []Step{
+					TriggerScreenshot("contest_settings_myexchange_generate_all", WithCaptureWidget("myExchangeGroup")),
+					SetGenerateReport(false),
+					Wait(1 * time.Second),
+					TriggerScreenshot("contest_settings_myexchange_generate_serial_only", WithCaptureWidget("myExchangeGroup")),
+					SetGenerateReport(true),
+					Wait(1 * time.Second),
+				},
+			},
+			{
+				steps: []Step{
 					HideWidget("settingsDialog"),
 					Wait(1 * time.Second),
 				},
@@ -204,6 +225,24 @@ func OpenNewContestDialog() Step {
 			r.App.NewContestController.SelectContestIdentifier(r.Fixture.identifier)
 			r.App.NewContestController.EnterContestName(r.Fixture.name)
 			r.App.NewContestController.RefreshView()
+		})
+		return 0
+	}
+}
+
+// ForContest lets a section run only in the run of one contest, for screenshots that make
+// no sense in the other one
+func ForContest(fixture *contestFixture) Condition {
+	return func(_ context.Context, r *Runtime) (bool, time.Duration) {
+		return r.Fixture == fixture, 0
+	}
+}
+
+func SetGenerateReport(generate bool) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() {
+			r.App.Settings.EnterContestGenerateReport(generate)
+			r.App.Settings.RefreshView()
 		})
 		return 0
 	}
@@ -423,7 +462,6 @@ var LegacyScreenshotsScript = &Script{
 					})
 					return 0
 				},
-				TriggerScreenshot("new_cwt"),
 				Describe("close the dialog with 'NEW', save the contest with the proposed filename", 10*time.Second),
 				func(_ context.Context, r *Runtime) time.Duration {
 					r.UI(func() {
@@ -439,7 +477,6 @@ var LegacyScreenshotsScript = &Script{
 				},
 				Describe("select a current call history file", 20*time.Second),
 				TriggerScreenshot("contest_settings_complete", WithCaptureWidget("settingsDialog")),
-				TriggerScreenshot("contest_settings_myexchange_cwt", WithCaptureWidget("myExchangeGroup")),
 				Describe("close the contest settings dialog, screenshot of empty main window", 10*time.Second),
 				TriggerScreenshot("main_window_empty"),
 			},

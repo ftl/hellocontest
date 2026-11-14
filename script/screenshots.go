@@ -170,6 +170,15 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 				},
 			},
 			{
+				enter: ForContest(cwtFixture),
+				steps: []Step{
+					TriggerScreenshot("qsos_table_filled", WithCaptureWidget("qsoTable")),
+					TriggerScreenshot("score_graph_filled", WithCaptureWidget("scoreGraph")),
+					TriggerScreenshot("score_table_filled", WithCaptureWidget("scoreTable")),
+					TriggerScreenshot("qso_rate_filled", WithCaptureWidget("rate")),
+				},
+			},
+			{
 				steps: []Step{
 					HideDocks(),
 					ResizeMainWindow(basicWindowWidth, basicWindowHeight),

@@ -24,6 +24,7 @@ type qsoTableView struct {
 func newQSOTableView(parent *qtlib.QWidget, controller QSOListController) *qsoTableView {
 	v := &qsoTableView{}
 	v.widget = qtlib.NewQWidget2()
+	setObjectName(v.widget, "qsoTable")
 
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)

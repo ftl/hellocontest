@@ -93,14 +93,15 @@ func newMainMenu(
 
 	// ── Window ───────────────────────────────────────────────────────────
 	windowMenu := m.menuBar.AddMenuWithTitle("&Window")
-	windowMenu.AddAction(a.showQSOsAction)
-	windowMenu.AddAction(a.showQTCsAction)
-	windowMenu.AddAction(a.showScoreGraphAction)
-	windowMenu.AddAction(a.showScoreTableAction)
-	windowMenu.AddAction(a.showRateAction)
 	windowMenu.AddAction(a.showSpotsAction)
+	windowMenu.AddSeparator()
 	windowMenu.AddAction(a.showBandMatrixAction)
 	windowMenu.AddAction(a.showClockAction)
+	windowMenu.AddAction(a.showQSOsAction)
+	windowMenu.AddAction(a.showQTCsAction)
+	windowMenu.AddAction(a.showRateAction)
+	windowMenu.AddAction(a.showScoreGraphAction)
+	windowMenu.AddAction(a.showScoreTableAction)
 
 	// ── Help ─────────────────────────────────────────────────────────────
 	helpMenu := m.menuBar.AddMenuWithTitle("&Help")

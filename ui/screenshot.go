@@ -58,7 +58,11 @@ type Screenshotter interface {
 	SetWidgetVisible(objectName string, visible bool) error
 	HideDocks() error
 	ResizeMainWindow(width, height int) error
+	ResizeWidget(objectName string, width, height int) error
+	SetChecked(objectName string, checked bool) error
 	ResizeDocks(objectNames []string, sizes []int, horizontal bool) error
+	MoveDock(objectName string, area string) error
+	SplitDocks(firstObjectName, secondObjectName string, horizontal bool) error
 	RejectDialog(objectName string) error
 	RestoreWindowState() error
 }
@@ -311,6 +315,54 @@ func (s *screenshotter) RejectDialog(objectName string) error {
 	})
 }
 
+func dockArea(name string) (qtlib.DockWidgetArea, error) {
+	switch name {
+	case "top":
+		return qtlib.TopDockWidgetArea, nil
+	case "bottom":
+		return qtlib.BottomDockWidgetArea, nil
+	case "left":
+		return qtlib.LeftDockWidgetArea, nil
+	case "right":
+		return qtlib.RightDockWidgetArea, nil
+	}
+	return 0, fmt.Errorf("unknown dock area %q", name)
+}
+
+// MoveDock puts a dock into another area of the main window, which decides whether the
+// view is wide and flat or narrow and tall
+func (s *screenshotter) MoveDock(objectName string, area string) error {
+	return runOnMainSync(func() error {
+		dock := s.app.dockManager.find(objectName)
+		if dock == nil {
+			return fmt.Errorf("dock %q not found", objectName)
+		}
+		dockWidgetArea, err := dockArea(area)
+		if err != nil {
+			return err
+		}
+		s.app.window.AddDockWidget(dockWidgetArea, dock)
+		return nil
+	})
+}
+
+// SplitDocks puts the second dock beside the first one, in the area of the first
+func (s *screenshotter) SplitDocks(firstObjectName, secondObjectName string, horizontal bool) error {
+	return runOnMainSync(func() error {
+		first := s.app.dockManager.find(firstObjectName)
+		second := s.app.dockManager.find(secondObjectName)
+		if first == nil || second == nil {
+			return fmt.Errorf("dock %q or %q not found", firstObjectName, secondObjectName)
+		}
+		orientation := qtlib.Vertical
+		if horizontal {
+			orientation = qtlib.Horizontal
+		}
+		s.app.window.SplitDockWidget(first, second, orientation)
+		return nil
+	})
+}
+
 // ResizeDocks gives the docks the size they need, because Qt does not restore the size of
 // a dock that is shown again after it was hidden. Horizontal sizes are widths, vertical
 // sizes are heights.
@@ -332,6 +384,33 @@ func (s *screenshotter) ResizeDocks(objectNames []string, sizes []int, horizonta
 			orientation = qtlib.Horizontal
 		}
 		s.app.window.ResizeDocks(docks, sizes, orientation)
+		return nil
+	})
+}
+
+// SetChecked toggles a named checkable widget as the operator would, for the states that
+// the model keeps to itself because normally the widget tells the model, not the other
+// way round
+func (s *screenshotter) SetChecked(objectName string, checked bool) error {
+	return runOnMainSync(func() error {
+		w := findWidgetByObjectName(objectName)
+		if w == nil {
+			return fmt.Errorf("widget %q not found", objectName)
+		}
+		button := qtlib.UnsafeNewQAbstractButton(unsafe.Pointer(w.UnsafePointer()))
+		button.SetChecked(checked)
+		return nil
+	})
+}
+
+// ResizeWidget sizes any named widget, for the windows beside the main window
+func (s *screenshotter) ResizeWidget(objectName string, width, height int) error {
+	return runOnMainSync(func() error {
+		w := findWidgetByObjectName(objectName)
+		if w == nil {
+			return fmt.Errorf("widget %q not found", objectName)
+		}
+		w.Resize(width, height)
 		return nil
 	})
 }

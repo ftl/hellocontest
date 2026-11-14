@@ -58,6 +58,7 @@ func (a *spotFilterArea) buildHeader() *qtlib.QWidget {
 	layout.SetContentsMargins(0, 0, 0, 0)
 
 	a.toggle = qtlib.NewQToolButton2()
+	setObjectName(a.toggle, "spotFilterToggle")
 	a.toggle.SetFocusPolicy(qtlib.NoFocus)
 	a.toggle.SetArrowType(qtlib.DownArrow)
 	a.toggle.SetCheckable(true)

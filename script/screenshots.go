@@ -32,6 +32,15 @@ const (
 	scoreTableDockHeight = 280
 	scoreTableWidth      = 520
 	scoreGraphDockHeight = 280
+
+	// the band matrix sits above the table, the clock next to it limits its width
+	bandMatrixDockHeight = 200
+	bandMatrixDockWidth  = 360
+	clockDockWidth       = 220
+
+	// the spots window is a window of its own
+	spotsWindowWidth  = 640
+	spotsWindowHeight = 360
 )
 
 func writeVersionFile(version string) error {
@@ -207,6 +216,42 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 				},
 			},
 			{
+				enter: ForContest(cwtFixture),
+				steps: []Step{
+					AddDemoSpots(),
+					// the spots window has no views of its own, HideDocks hid them all
+					ShowSpotsWindow(),
+					ResizeWidget("spotWindow", spotsWindowWidth, spotsWindowHeight),
+					SetSpotFilter(core.SpotFilterFocused, core.SpotFilterFocused, true),
+					Wait(2 * time.Second),
+					TriggerScreenshot("spots_window_filled", WithCaptureWidget("spotWindow")),
+					// in its default area on the right the band matrix is narrow and tall,
+					// above the table it is wide and flat; the clock limits its width
+					MoveDock("bandMatrixDock", "top"),
+					MoveDock("clockDock", "top"),
+					ShowWidget("bandMatrixDock"),
+					ShowWidget("clockDock"),
+					SplitDocksHorizontally("bandMatrixDock", "clockDock"),
+					ResizeDocksVertically(DockSize{"bandMatrixDock", bandMatrixDockHeight}),
+					ResizeDocksHorizontally(
+						DockSize{"bandMatrixDock", bandMatrixDockWidth},
+						DockSize{"clockDock", clockDockWidth},
+					),
+					Wait(2 * time.Second),
+					TriggerScreenshot("band_matrix_filled", WithCaptureWidget("bandMatrix")),
+					HideWidget("bandMatrixDock"),
+					HideWidget("clockDock"),
+					// the expanded area, with the settings that the wiki page describes
+					SetSpotFilter(core.SpotFilterFocused, core.SpotFilterFocused, false),
+					// the model keeps the folded state to itself, the toggle unfolds the area
+					SetChecked("spotFilterToggle", false),
+					SetSpotValueFilter(core.SpotFilterAnyValue),
+					SetSpotSorting(core.SortSpotsByFrequency, true),
+					Wait(1 * time.Second),
+					TriggerScreenshot("spots_filtering_expanded", WithCaptureWidget("spotFilter")),
+				},
+			},
+			{
 				steps: []Step{
 					HideDocks(),
 					ResizeMainWindow(basicWindowWidth, basicWindowHeight),
@@ -283,6 +328,91 @@ func SetGenerateReport(generate bool) Step {
 		})
 		return 0
 	}
+}
+
+func ShowSpotsWindow() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.ShowSpots)
+		return 0
+	}
+}
+
+func SetSpotFilter(band core.SpotFilterKind, mode core.SpotFilterKind, folded bool) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() {
+			r.App.Bandmap.SetFilterBand(core.SpotFilterBand{Kind: band})
+			r.App.Bandmap.SetFilterMode(core.SpotFilterMode{Kind: mode})
+			r.App.Bandmap.SetFilterFolded(folded)
+		})
+		return 0
+	}
+}
+
+func SetSpotValueFilter(value core.SpotFilterValue) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() { r.App.Bandmap.SetFilterValue(value) })
+		return 0
+	}
+}
+
+func SetSpotSorting(column core.SpotSortColumn, descending bool) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() { r.App.Bandmap.SetFilterSort(column, descending) })
+		return 0
+	}
+}
+
+// AddDemoSpots puts spots on every contest band into the bandmap, so that the band matrix
+// and the spots table have something to show without a spot source
+func AddDemoSpots() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() {
+			for _, spot := range demoSpots(r.Clock.Now()) {
+				r.App.Bandmap.Add(spot)
+			}
+		})
+		return 0
+	}
+}
+
+func demoSpots(now time.Time) []core.Spot {
+	type demoSpot struct {
+		call      string
+		frequency core.Frequency
+		band      core.Band
+		age       time.Duration
+	}
+	spots := []demoSpot{
+		// 40m, the band of the demo radio: these are the ones the focused filter shows
+		{"W1AW", 7021000, core.Band40m, 1 * time.Minute},
+		{"OK1RR", 7026000, core.Band40m, 2 * time.Minute},
+		{"PA3DBS", 7031000, core.Band40m, 1 * time.Minute},
+		{"SM6M", 7035000, core.Band40m, 3 * time.Minute},
+		{"EA1X", 7039000, core.Band40m, 2 * time.Minute},
+		{"G3LHJ", 7043000, core.Band40m, 4 * time.Minute},
+		{"OZ1AAR", 7047000, core.Band40m, 3 * time.Minute},
+		// the other bands fill the band matrix
+		{"K3LR", 3524000, core.Band80m, 2 * time.Minute},
+		{"M0RYB", 3538000, core.Band80m, 5 * time.Minute},
+		{"JA1NUT", 14028000, core.Band20m, 3 * time.Minute},
+		{"VE3EJ", 14035000, core.Band20m, 4 * time.Minute},
+		{"N5DX", 14042000, core.Band20m, 6 * time.Minute},
+		{"PY5EG", 21026000, core.Band15m, 2 * time.Minute},
+		{"ZS6CCY", 21033000, core.Band15m, 5 * time.Minute},
+		{"VK6LW", 28024000, core.Band10m, 4 * time.Minute},
+	}
+	result := make([]core.Spot, 0, len(spots))
+	for _, spot := range spots {
+		result = append(result, core.Spot{
+			Call:      core.MustParseCallsign(spot.call),
+			Frequency: spot.frequency,
+			Band:      spot.band,
+			Mode:      core.ModeCW,
+			Time:      now.Add(-spot.age),
+			Source:    core.ClusterSpot,
+		})
+	}
+	return result
 }
 
 func OfferQTCs() Step {
@@ -431,6 +561,32 @@ type DockSize struct {
 	Size int
 }
 
+func MoveDock(objectName string, area string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot move the dock %s", objectName)
+			return 0
+		}
+		if err := r.Screenshotter.MoveDock(objectName, area); err != nil {
+			log.Printf("MoveDock %s failed: %v", objectName, err)
+		}
+		return 0
+	}
+}
+
+func SplitDocksHorizontally(firstObjectName, secondObjectName string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot split the docks")
+			return 0
+		}
+		if err := r.Screenshotter.SplitDocks(firstObjectName, secondObjectName, true); err != nil {
+			log.Printf("SplitDocks %s/%s failed: %v", firstObjectName, secondObjectName, err)
+		}
+		return 0
+	}
+}
+
 func ResizeDocksVertically(sizes ...DockSize) Step {
 	return resizeDocks(sizes, false)
 }
@@ -466,6 +622,32 @@ func RestoreWindowState() Step {
 		}
 		if err := r.Screenshotter.RestoreWindowState(); err != nil {
 			log.Printf("RestoreWindowState failed: %v", err)
+		}
+		return 0
+	}
+}
+
+func SetChecked(objectName string, checked bool) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot check %s", objectName)
+			return 0
+		}
+		if err := r.Screenshotter.SetChecked(objectName, checked); err != nil {
+			log.Printf("SetChecked %s failed: %v", objectName, err)
+		}
+		return 0
+	}
+}
+
+func ResizeWidget(objectName string, width, height int) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		if r.Screenshotter == nil {
+			log.Printf("No screenshotter configured; cannot resize %s", objectName)
+			return 0
+		}
+		if err := r.Screenshotter.ResizeWidget(objectName, width, height); err != nil {
+			log.Printf("ResizeWidget %s failed: %v", objectName, err)
 		}
 		return 0
 	}

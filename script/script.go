@@ -2,7 +2,6 @@ package script
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -17,11 +16,14 @@ type Script struct {
 
 	// a script that needs a contest to work on builds its own log file before the
 	// application starts, so that no file dialog interrupts the run
-	prepare     func() (string, error)
+	prepare     func(*contestFixture) (string, error)
 	logFilename string
+	// the contest that this run documents; its name suffix keeps the screenshots of two
+	// runs apart
+	fixture *contestFixture
 	// the clock must carry the timebase before the application loads the log file: the
 	// rate counter drops every QSO that is older than one hour when it is added
-	timebase string
+	timebase time.Time
 	version  string
 
 	// a script works with the demo radio, so that the user interface does not depend on
@@ -34,16 +36,12 @@ type Script struct {
 }
 
 func (s *Script) Prepare() error {
-	if s.timebase != "" {
-		t, err := time.Parse(time.RFC3339, s.timebase)
-		if err != nil {
-			return fmt.Errorf("cannot set the timebase of the script: %w", err)
-		}
+	if !s.timebase.IsZero() {
 		s.clock = &Clock{}
-		s.clock.Set(t)
+		s.clock.Set(s.timebase)
 	}
 	if s.prepare != nil {
-		filename, err := s.prepare()
+		filename, err := s.prepare(s.fixture)
 		if err != nil {
 			return err
 		}
@@ -86,6 +84,7 @@ type Runtime struct {
 	App           *app.Controller
 	UI            func(func())
 	Screenshotter ui.Screenshotter
+	Fixture       *contestFixture
 }
 
 type Step func(ctx context.Context, r *Runtime) time.Duration
@@ -113,6 +112,7 @@ func (s *Script) Step(ctx context.Context, controller *app.Controller, runUI fun
 		App:           controller,
 		UI:            runUI,
 		Screenshotter: s.screenshotter,
+		Fixture:       s.fixture,
 	}
 
 	cont := section.Step(ctx, runtime)

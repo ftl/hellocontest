@@ -53,8 +53,10 @@ run: build
 	./${BINARY_NAME}
 
 # the docks only work on XWayland, and the screenshots go into the wiki clone
+# one run per contest: the file names carry the contest as a suffix
 screenshots: build
-	env QT_QPA_PLATFORM=xcb HELLOCONTEST_SCREENSHOTS=${WIKI_SCREENSHOTS} ./${BINARY_NAME} screenshots
+	env QT_QPA_PLATFORM=xcb HELLOCONTEST_SCREENSHOTS=${WIKI_SCREENSHOTS} ./${BINARY_NAME} screenshots-cwt
+	env QT_QPA_PLATFORM=xcb HELLOCONTEST_SCREENSHOTS=${WIKI_SCREENSHOTS} ./${BINARY_NAME} screenshots-waedc
 
 screenshots_legacy: build
 	env QT_QPA_PLATFORM=xcb HELLOCONTEST_SCREENSHOTS=${WIKI_SCREENSHOTS} ./${BINARY_NAME} screenshots-legacy

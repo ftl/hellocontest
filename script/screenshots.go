@@ -53,149 +53,156 @@ func screenshotsFolder() string {
 	return folder
 }
 
-//go:embed screenshots_qsos.csv
-var qsoDataCSV string
-
 //go:embed screenshots_config.conf
 var screenshotsWindowState string
 
-// ScreenshotsScript takes the screenshots that the wiki page "Main Window" uses. It runs
-// without any interaction: the contest comes from a fixture log file that is written
-// before the application starts.
-var ScreenshotsScript = &Script{
-	windowState:        screenshotsWindowState,
-	prepare:            prepareScreenshotsFixture,
-	timebase:           fixtureNow,
-	demoRadio:          true,
-	demoRadioSingleVFO: true,
-	sections: []*Section{
-		{
-			steps: []Step{
-				SetWorkmode(core.SearchPounce),
-				SetVFOFrequency(core.VFO1, 7028000),
-				SetVFOMode(core.VFO1, core.ModeCW),
-				Wait(3 * time.Second),
+// the screenshots of both contests: one with a predictable exchange, one with QTCs and a
+// serial number. Each run appends its own suffix to the file names.
+var (
+	CWTScreenshotsScript   = newScreenshotsScript(cwtFixture)
+	WAEDCScreenshotsScript = newScreenshotsScript(waedcFixture)
+)
+
+// newScreenshotsScript takes the screenshots that the wiki pages use. It runs without any
+// interaction: the contest comes from a fixture log file that is written before the
+// application starts. Every call builds its own sections, which carry the progress of a run.
+func newScreenshotsScript(fixture *contestFixture) *Script {
+	return &Script{
+		windowState:        screenshotsWindowState,
+		prepare:            prepareScreenshotsFixture,
+		fixture:            fixture,
+		timebase:           fixture.now(),
+		demoRadio:          true,
+		demoRadioSingleVFO: true,
+		sections: []*Section{
+			{
+				steps: []Step{
+					SetWorkmode(core.SearchPounce),
+					SetVFOFrequency(core.VFO1, 7028000),
+					SetVFOMode(core.VFO1, core.ModeCW),
+					Wait(3 * time.Second),
+				},
+			},
+			{
+				steps: []Step{
+					OpenMenu("fileMenu"),
+					// the popup is shown asynchronously, an action that is activated before that
+					// does not stay active
+					Wait(1 * time.Second),
+					HighlightMenuAction("fileMenu", "New..."),
+					Wait(1 * time.Second),
+					TriggerScreenshot("menu_file_new", WithCapturePopup(), WithDelay(150*time.Millisecond)),
+					HighlightMenuAction("fileMenu", "Open Configuration File..."),
+					Wait(1 * time.Second),
+					TriggerScreenshot("menu_file_open_configuration", WithCapturePopup(), WithDelay(150*time.Millisecond)),
+					CloseMenu("fileMenu"),
+					Wait(1 * time.Second),
+				},
+			},
+			{
+				steps: []Step{
+					// the dialog is only shown, never accepted: the contest comes from the
+					// fixture log, and accepting it would ask for a file name
+					OpenNewContestDialog(),
+					Wait(2 * time.Second),
+					TriggerScreenshot("new", WithActiveWindow()),
+					RejectDialog("newContestDialog"),
+					Wait(1 * time.Second),
+				},
+			},
+			{
+				steps: []Step{
+					OpenSettings(),
+					Wait(2 * time.Second),
+					TriggerScreenshot("contest_settings_complete", WithCaptureWidget("settingsDialog")),
+					TriggerScreenshot("contest_settings_myexchange", WithCaptureWidget("myExchangeGroup")),
+					HideWidget("settingsDialog"),
+					Wait(1 * time.Second),
+				},
+			},
+			{
+				steps: []Step{
+					// the saved window state decides nothing: the script shows the views that the
+					// wiki page describes, and nothing else
+					HideDocks(),
+					ShowWidget("qsoTableDock"),
+					ShowWidget("rateDock"),
+					ShowWidget("scoreTableDock"),
+					ShowWidget("scoreGraphDock"),
+					ResizeMainWindow(filledWindowWidth, filledWindowHeight),
+					// Qt does not restore the size of a dock that is shown again after it was
+					// hidden, therefore the script says how big each view must be
+					ResizeDocksVertically(
+						DockSize{"qsoTableDock", qsoTableDockHeight},
+						DockSize{"rateDock", rateDockHeight},
+						DockSize{"scoreTableDock", scoreTableDockHeight},
+						DockSize{"scoreGraphDock", scoreGraphDockHeight},
+					),
+					ResizeDocksHorizontally(
+						DockSize{"scoreTableDock", scoreTableWidth},
+					),
+					Wait(2 * time.Second),
+					TriggerScreenshot("main_window_empty", WithMainWindow()),
+					FillQSOList(0, -1),
+					Wait(2 * time.Second),
+					TriggerScreenshot("main_window_filled", WithMainWindow()),
+				},
+			},
+			{
+				steps: []Step{
+					HideDocks(),
+					ResizeMainWindow(basicWindowWidth, basicWindowHeight),
+					Wait(1 * time.Second),
+					TriggerScreenshot("main_window_basic", WithMainWindow()),
+				},
+			},
+			{
+				steps: []Step{
+					EnterCallsign("AA3B"),
+					Wait(1 * time.Second),
+					TriggerScreenshot("main_window_entry",
+						WithCaptureWidget("vfo1VFOArea"),
+						WithMarkerAtWidget(1, "vfo1predictedBestMatch", 65, 10),
+						WithMarkerAtWidget(2, "vfo1predictedExchange", 50, 10),
+						WithMarkerAtWidget(3, "vfo1predictedValue", -30, 10),
+						WithMarkerAtWidget(4, "vfo1dxccLabel", 20, 10),
+					),
+					TriggerScreenshot("main_window_supercheck", WithCaptureWidget("vfo1supercheckLabel")),
+					TriggerScreenshot("main_window_vfo", WithCaptureWidget("vfo1VFOContainer")),
+					TriggerScreenshot("main_window_status_bar", WithCaptureWidget("statusBar")),
+				},
+			},
+			{
+				steps: []Step{
+					TriggerScreenshot("main_window_macros", WithCaptureUnion("", "keyerButtons", "esmWorkmode"),
+						WithMarkerAtWidget(1, "workmode", -20, 20),
+						WithMarkerAtWidget(2, "esm", 110, 20),
+						WithMarkerAtWidget(3, "keyerButtons", 300, 20),
+						WithMarkerAtWidget(4, "keyerSettingsButton", 20, 10),
+						WithMarkerAtWidget(5, "keyerSpeed", -80, 10),
+					),
+					OpenKeyerSettings(),
+					Wait(2 * time.Second),
+					TriggerScreenshot("macros_dialog", WithCaptureWidget("keyerSettingsDialog")),
+					HideWidget("keyerSettingsDialog"),
+					Wait(1 * time.Second),
+				},
+			},
+			{
+				steps: []Step{
+					Quit(),
+				},
 			},
 		},
-		{
-			steps: []Step{
-				OpenMenu("fileMenu"),
-				// the popup is shown asynchronously, an action that is activated before that
-				// does not stay active
-				Wait(1 * time.Second),
-				HighlightMenuAction("fileMenu", "New..."),
-				Wait(1 * time.Second),
-				TriggerScreenshot("menu_file_new", WithCapturePopup(), WithDelay(150*time.Millisecond)),
-				HighlightMenuAction("fileMenu", "Open Configuration File..."),
-				Wait(1 * time.Second),
-				TriggerScreenshot("menu_file_open_configuration", WithCapturePopup(), WithDelay(150*time.Millisecond)),
-				CloseMenu("fileMenu"),
-				Wait(1 * time.Second),
-			},
-		},
-		{
-			steps: []Step{
-				// the dialog is only shown, never accepted: the contest comes from the
-				// fixture log, and accepting it would ask for a file name
-				OpenNewContestDialog(fixtureContestIdentifier, fixtureContestName),
-				Wait(2 * time.Second),
-				TriggerScreenshot("new_cwt", WithActiveWindow()),
-				RejectDialog("newContestDialog"),
-				Wait(1 * time.Second),
-			},
-		},
-		{
-			steps: []Step{
-				OpenSettings(),
-				Wait(2 * time.Second),
-				TriggerScreenshot("contest_settings_complete", WithCaptureWidget("settingsDialog")),
-				TriggerScreenshot("contest_settings_myexchange_cwt", WithCaptureWidget("myExchangeGroup")),
-				HideWidget("settingsDialog"),
-				Wait(1 * time.Second),
-			},
-		},
-		{
-			steps: []Step{
-				// the saved window state decides nothing: the script shows the views that the
-				// wiki page describes, and nothing else
-				HideDocks(),
-				ShowWidget("qsoTableDock"),
-				ShowWidget("rateDock"),
-				ShowWidget("scoreTableDock"),
-				ShowWidget("scoreGraphDock"),
-				ResizeMainWindow(filledWindowWidth, filledWindowHeight),
-				// Qt does not restore the size of a dock that is shown again after it was
-				// hidden, therefore the script says how big each view must be
-				ResizeDocksVertically(
-					DockSize{"qsoTableDock", qsoTableDockHeight},
-					DockSize{"rateDock", rateDockHeight},
-					DockSize{"scoreTableDock", scoreTableDockHeight},
-					DockSize{"scoreGraphDock", scoreGraphDockHeight},
-				),
-				ResizeDocksHorizontally(
-					DockSize{"scoreTableDock", scoreTableWidth},
-				),
-				Wait(2 * time.Second),
-				TriggerScreenshot("main_window_empty", WithMainWindow()),
-				FillQSOList(0, -1),
-				Wait(2 * time.Second),
-				TriggerScreenshot("main_window_filled", WithMainWindow()),
-			},
-		},
-		{
-			steps: []Step{
-				HideDocks(),
-				ResizeMainWindow(basicWindowWidth, basicWindowHeight),
-				Wait(1 * time.Second),
-				TriggerScreenshot("main_window_basic", WithMainWindow()),
-			},
-		},
-		{
-			steps: []Step{
-				EnterCallsign("AA3B"),
-				Wait(1 * time.Second),
-				TriggerScreenshot("main_window_entry",
-					WithCaptureWidget("vfo1VFOArea"),
-					WithMarkerAtWidget(1, "vfo1predictedBestMatch", 65, 10),
-					WithMarkerAtWidget(2, "vfo1predictedExchange", 50, 10),
-					WithMarkerAtWidget(3, "vfo1predictedValue", -30, 10),
-					WithMarkerAtWidget(4, "vfo1dxccLabel", 20, 10),
-				),
-				TriggerScreenshot("main_window_supercheck", WithCaptureWidget("vfo1supercheckLabel")),
-				TriggerScreenshot("main_window_vfo", WithCaptureWidget("vfo1VFOContainer")),
-				TriggerScreenshot("main_window_status_bar", WithCaptureWidget("statusBar")),
-			},
-		},
-		{
-			steps: []Step{
-				TriggerScreenshot("main_window_macros", WithCaptureUnion("", "keyerButtons", "esmWorkmode"),
-					WithMarkerAtWidget(1, "workmode", -20, 20),
-					WithMarkerAtWidget(2, "esm", 110, 20),
-					WithMarkerAtWidget(3, "keyerButtons", 300, 20),
-					WithMarkerAtWidget(4, "keyerSettingsButton", 20, 10),
-					WithMarkerAtWidget(5, "keyerSpeed", -80, 10),
-				),
-				OpenKeyerSettings(),
-				Wait(2 * time.Second),
-				TriggerScreenshot("macros_dialog", WithCaptureWidget("keyerSettingsDialog")),
-				HideWidget("keyerSettingsDialog"),
-				Wait(1 * time.Second),
-			},
-		},
-		{
-			steps: []Step{
-				Quit(),
-			},
-		},
-	},
+	}
 }
 
-func OpenNewContestDialog(identifier string, name string) Step {
+func OpenNewContestDialog() Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(r.App.New)
 		r.UI(func() {
-			r.App.NewContestController.SelectContestIdentifier(identifier)
-			r.App.NewContestController.EnterContestName(name)
+			r.App.NewContestController.SelectContestIdentifier(r.Fixture.identifier)
+			r.App.NewContestController.EnterContestName(r.Fixture.name)
 			r.App.NewContestController.RefreshView()
 		})
 		return 0
@@ -362,8 +369,13 @@ func HideDocks() Step {
 
 // LegacyScreenshotsScript still asks the operator for the screenshots of the wiki pages
 // that have no screenshot comments yet.
+// the legacy script keeps the file names that the wiki pages use today, therefore its
+// fixture carries no name suffix
+var legacyFixture = &contestFixture{qsoData: cwtQSOData}
+
 var LegacyScreenshotsScript = &Script{
 	windowState:        screenshotsWindowState,
+	fixture:            legacyFixture,
 	demoRadio:          true,
 	demoRadioSingleVFO: true,
 	sections: []*Section{
@@ -642,6 +654,7 @@ func TriggerScreenshot(name string, opts ...ScreenshotOption) Step {
 				return 0
 			}
 		}
+		name := name + r.nameSuffix()
 		filename, _ := screenshotFilenames(name)
 		if err := backupScreenshot(name); err != nil {
 			log.Printf("Cannot backup screenshot %s: %v", filename, err)
@@ -774,7 +787,7 @@ func removeBackup(name string) error {
 
 func FillQSOList(begin, end int) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
-		qsos := parseQSOCSV()
+		qsos := parseQSOCSV(r.qsoData())
 		if begin < 0 {
 			begin = 0
 		}
@@ -792,14 +805,28 @@ func FillQSOList(begin, end int) Step {
 }
 
 type qsoData struct {
-	minute    int
+	offset    time.Duration
 	frequency core.Frequency
 	workmode  core.Workmode
 	values    []string
 }
 
-func parseQSOCSV() []qsoData {
-	lines := strings.Split(qsoDataCSV, "\n")
+func (r *Runtime) nameSuffix() string {
+	if r.Fixture == nil || r.Fixture.nameSuffix == "" {
+		return ""
+	}
+	return "_" + r.Fixture.nameSuffix
+}
+
+func (r *Runtime) qsoData() string {
+	if r.Fixture == nil {
+		return ""
+	}
+	return r.Fixture.qsoData
+}
+
+func parseQSOCSV(csv string) []qsoData {
+	lines := strings.Split(csv, "\n")
 	result := make([]qsoData, 0, len(lines))
 	for _, line := range lines {
 		fields := strings.Split(line, ",")
@@ -808,7 +835,8 @@ func parseQSOCSV() []qsoData {
 		}
 
 		qso := qsoData{}
-		qso.minute, _ = strconv.Atoi(fields[0])
+		offsetMinutes, _ := strconv.Atoi(fields[0])
+		qso.offset = time.Duration(offsetMinutes) * time.Minute
 		kHz, _ := strconv.Atoi(fields[1])
 		qso.frequency = core.Frequency(kHz * 1000)
 		if fields[2] == "r" {
@@ -825,7 +853,7 @@ func parseQSOCSV() []qsoData {
 
 func enterQSOData(r *Runtime, qso qsoData) {
 	r.UI(r.App.Entry.Clear)
-	r.Clock.SetMinute(qso.minute - int(fixtureQSOShift/time.Minute))
+	r.Clock.Set(contestStart().Add(qso.offset))
 	r.App.VFOs[core.VFO1].SetFrequency(qso.frequency)
 	time.Sleep(100 * time.Millisecond)
 	r.UI(func() {

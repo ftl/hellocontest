@@ -29,8 +29,11 @@ func main() {
 		case "keybindings":
 			ui.PrintKeybindingsTable()
 			os.Exit(0)
-		case "screenshots":
-			startupScript = prepareScript(script.ScreenshotsScript)
+		case "screenshots-cwt":
+			startupScript = prepareScript(script.CWTScreenshotsScript)
+			args = args[0:1]
+		case "screenshots-waedc":
+			startupScript = prepareScript(script.WAEDCScreenshotsScript)
 			args = args[0:1]
 		case "screenshots-legacy":
 			startupScript = prepareScript(script.LegacyScreenshotsScript)

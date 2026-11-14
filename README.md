@@ -4,7 +4,7 @@
 # Hello Contest
 A simple amateur radio contest log for Linux with a strong bias towards CW on HF. *Hello Contest* is written in Go using the Qt6 mapping [miqt](https://github.com/mappu/miqt) for the UI.
 
-![main window with qso data](https://github.com/ftl/hellocontest/wiki/screenshots/main_window_filled.png)
+![main window with qso data](https://github.com/ftl/hellocontest/wiki/screenshots/main_window_filled_cwt.png)
 
 Here are some highlights:
 * Enter your contacts simple and fast using the keyboard.

@@ -4,13 +4,13 @@
 # Hello Contest
 A simple amateur radio contest log for Linux with a strong bias towards CW on HF. *Hello Contest* is written in Go using the Qt6 mapping [miqt](https://github.com/mappu/miqt) for the UI.
 
-![main window with qso data](https://github.com/ftl/hellocontest/wiki/screenshots/main_window_filled_cwt.png)
+![main window with qso data](https://raw.githubusercontent.com/wiki/ftl/hellocontest/screenshots/main_window_filled_cwt.png)
 
 Here are some highlights:
 * Enter your contacts simple and fast using the keyboard.
 * Use the popular ["enter sends message"](https://github.com/ftl/hellocontest/wiki/Main-Window#enter-sends-message-aka-esm) method to enter your contacts.
-* Show the current rate of QSOs, points, and multis in a [comprehensive graphic](https://github.com/ftl/hellocontest/wiki/QSO-Rate).
-* Calculate your points, multis, and [score](https://github.com/ftl/hellocontest/wiki/Score) both per band and overall. The calculation is done using the [conval](https://github.com/ftl/conval) library. You can select the contest definition in the [settings dialog](https://github.com/ftl/hellocontest/wiki/Contest-Settings) (File > Settings).
+* Show the current rate of QSOs, points, and multis in a [comprehensive graphic](https://github.com/ftl/hellocontest/wiki/QSOs-and-Score#qso-rate).
+* Calculate your points, multis, and [score](https://github.com/ftl/hellocontest/wiki/QSOs-and-Score) both per band and overall. The calculation is done using the [conval](https://github.com/ftl/conval) library. You can select the contest definition in the [settings dialog](https://github.com/ftl/hellocontest/wiki/Contest-Settings) (File > Settings).
 * Send and receive QTCs (for example in the Worked All Europe DX Contest).
 * Export the logbook as [Cabrillo](https://wwrof.org/cabrillo/), [ADIF](http://adif.org), CSV, or call history file.
 * Get additional information about the entered callsign from the [DXCC](http://www.country-files.com) and [super check partial](http://supercheckpartial.com) databases, or a call history file.

@@ -25,6 +25,8 @@ func newQTCTableView(parent *qtlib.QWidget) *qtcTableView {
 	v := &qtcTableView{}
 	v.widget = qtlib.NewQWidget2()
 
+	setObjectName(v.widget, "qtcTable")
+
 	layout := qtlib.NewQVBoxLayout(v.widget)
 	layout.SetContentsMargins(0, 0, 0, 0)
 

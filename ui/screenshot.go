@@ -28,6 +28,10 @@ type Marker struct {
 	X, Y       int
 	WidgetName string
 	DX, DY     int
+	// a frame marks a whole widget instead of pointing at a spot with a number
+	Frame   bool
+	W, H    int
+	Padding int
 }
 
 type Rect struct{ X, Y, W, H int }
@@ -80,6 +84,7 @@ const (
 	markerLineWidth           = 3.0
 	markerFontSize            = 14
 	markerR, markerG, markerB = 220, 40, 40
+	markerFrameRadius         = 4.0
 )
 
 func (s *screenshotter) Capture(req ScreenshotRequest) (Pixmap, error) {
@@ -385,6 +390,13 @@ func (s *screenshotter) Annotate(p Pixmap, markers []Marker) error {
 				g := w.MapToGlobalWithQPoint(gc(qtlib.NewQPoint2(m.DX, m.DY)))
 				m.X = g.X() - rootGlobal.X() - img.originX
 				m.Y = g.Y() - rootGlobal.Y() - img.originY
+				if m.Frame {
+					size := w.Size()
+					m.X -= m.Padding
+					m.Y -= m.Padding
+					m.W = size.Width() + 2*m.Padding
+					m.H = size.Height() + 2*m.Padding
+				}
 			}
 			resolved = append(resolved, m)
 		}
@@ -404,7 +416,16 @@ func (s *screenshotter) Annotate(p Pixmap, markers []Marker) error {
 		textPen := gc(qtlib.NewQPen3(textColor))
 		font := gc(qtlib.NewQFont7("Sans", markerFontSize, int(qtlib.QFont__Bold)))
 
+		framePen := gc(qtlib.NewQPen3(circleColor))
+		framePen.SetWidthF(markerLineWidth)
+
 		for _, m := range resolved {
+			if m.Frame {
+				painter.SetPenWithPen(framePen)
+				painter.SetBrush(gc(qtlib.NewQBrush()))
+				painter.DrawRoundedRect2(m.X, m.Y, m.W, m.H, markerFrameRadius, markerFrameRadius)
+				continue
+			}
 			painter.SetPenWithPen(outlinePen)
 			painter.SetBrush(fillBrush)
 			painter.DrawEllipse2(

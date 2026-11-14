@@ -176,6 +176,7 @@ func (v *settingsView) buildStationGroup() *qtlib.QGroupBox {
 
 func (v *settingsView) buildContestGroup() *qtlib.QGroupBox {
 	box := qtlib.NewQGroupBox3("Contest")
+	setObjectName(box, "contestGroup")
 	form := qtlib.NewQFormLayout(box.QWidget)
 
 	v.contestCombo = makeFilterableCombo()
@@ -227,6 +228,7 @@ func (v *settingsView) buildContestGroup() *qtlib.QGroupBox {
 	form.AddRow3("Operation Mode:", v.sprintMode.QWidget)
 
 	v.enableQTCs = qtlib.NewQCheckBox3("Enable QTCs")
+	setObjectName(v.enableQTCs, "enableQTCs")
 	v.enableQTCs.OnToggled(func(checked bool) {
 		if v.ignoreChangedEvent {
 			return

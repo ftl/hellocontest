@@ -127,6 +127,8 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 				// only a contest with a report and a serial number can generate them
 				enter: ForContest(waedcFixture),
 				steps: []Step{
+					TriggerScreenshot("contest_settings_qtc", WithCaptureWidget("contestGroup"),
+						WithFrameAtWidget("enableQTCs", 3)),
 					TriggerScreenshot("contest_settings_myexchange_generate_all", WithCaptureWidget("myExchangeGroup")),
 					SetGenerateReport(false),
 					Wait(1 * time.Second),
@@ -167,6 +169,32 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 					FillQSOList(0, -1),
 					Wait(2 * time.Second),
 					TriggerScreenshot("main_window_filled", WithMainWindow()),
+				},
+			},
+			{
+				enter: ForContest(waedcFixture),
+				steps: []Step{
+					ShowWidget("qtcTableDock"),
+					// the recipient is the station of the last logged QSO
+					OfferQTCs(),
+					Wait(2 * time.Second),
+					TriggerScreenshot("send_qtcs", WithCaptureWidget("qtcDialog")),
+					// a direct reject skips the question whether the series may be aborted
+					RejectDialog("qtcDialog"),
+					Wait(1 * time.Second),
+					RequestQTCs(),
+					Wait(1 * time.Second),
+					ConfirmQTCStart(),
+					EnterQTCHeader("17/3"),
+					EnterQTC("1301", "W1AW", "12"),
+					EnterQTC("1305", "K3LR", "34"),
+					EnterQTC("1309", "N5DX", "56"),
+					Wait(1 * time.Second),
+					TriggerScreenshot("receive_qtcs", WithCaptureWidget("qtcDialog")),
+					// logging the series fills the QTCs table
+					CompleteQTCs(),
+					Wait(2 * time.Second),
+					TriggerScreenshot("qtcs_table_filled", WithCaptureWidget("qtcTable")),
 				},
 			},
 			{
@@ -253,6 +281,60 @@ func SetGenerateReport(generate bool) Step {
 			r.App.Settings.EnterContestGenerateReport(generate)
 			r.App.Settings.RefreshView()
 		})
+		return 0
+	}
+}
+
+func OfferQTCs() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.QTCController.OfferQTC)
+		return 0
+	}
+}
+
+func RequestQTCs() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.QTCController.RequestQTC)
+		return 0
+	}
+}
+
+func ConfirmQTCStart() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.QTCController.ConfirmStart)
+		return 0
+	}
+}
+
+func EnterQTCHeader(header string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() {
+			r.App.QTCController.SetActiveField(core.QTCHeaderField)
+			r.App.QTCController.Enter(header)
+			r.App.QTCController.ConfirmHeader()
+		})
+		return 0
+	}
+}
+
+func EnterQTC(timestamp string, callsign string, number string) Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(func() {
+			r.App.QTCController.SetActiveField(core.QTCTimestampField)
+			r.App.QTCController.Enter(timestamp)
+			r.App.QTCController.SetActiveField(core.QTCCallsignField)
+			r.App.QTCController.Enter(callsign)
+			r.App.QTCController.SetActiveField(core.QTCExchangeField)
+			r.App.QTCController.Enter(number)
+			r.App.QTCController.ConfirmData()
+		})
+		return 0
+	}
+}
+
+func CompleteQTCs() Step {
+	return func(_ context.Context, r *Runtime) time.Duration {
+		r.UI(r.App.QTCController.CompleteQTCSeries)
 		return 0
 	}
 }
@@ -673,6 +755,18 @@ func WithPadding(px int) ScreenshotOption {
 func WithMarker(n, x, y int) ScreenshotOption {
 	return func(c *screenshotConfig) {
 		c.markers = append(c.markers, ui.Marker{Number: n, X: x, Y: y})
+	}
+}
+
+// WithFrameAtWidget draws a frame around a widget, to point at a single control without
+// the number of a marker
+func WithFrameAtWidget(widgetObjectName string, padding int) ScreenshotOption {
+	return func(c *screenshotConfig) {
+		c.markers = append(c.markers, ui.Marker{
+			WidgetName: widgetObjectName,
+			Frame:      true,
+			Padding:    padding,
+		})
 	}
 }
 

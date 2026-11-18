@@ -8,7 +8,7 @@ import (
 
 	"github.com/ftl/conval"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -23,19 +23,19 @@ type View interface {
 	Show()
 	Hide()
 
-	ShowFrame(frame core.BandmapFrame)
+	ShowFrame(frame model.BandmapFrame)
 }
 
 type DupeChecker interface {
-	FindWorkedQSOs(core.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
+	FindWorkedQSOs(model.Callsign, model.Band, model.Mode) ([]model.QSO, bool)
 }
 
 type Callinfo interface {
-	GetInfo(core.Callsign, core.Band, core.Mode, []string) core.Callinfo
-	UpdateValue(*core.Callinfo, core.Band, core.Mode) bool
+	GetInfo(model.Callsign, model.Band, model.Mode, []string) model.Callinfo
+	UpdateValue(*model.Callinfo, model.Band, model.Mode) bool
 }
 
-var defaultWeights = core.BandmapWeights{
+var defaultWeights = model.BandmapWeights{
 	AgeSeconds: -0.001,
 	Spots:      0.001,
 	Source:     0,
@@ -49,24 +49,24 @@ type Bandmap struct {
 	selection *Selection
 	filter    *SpotFilter
 
-	clock       core.Clock
+	clock       model.Clock
 	view        View
 	dupeChecker DupeChecker
-	asyncRunner core.AsyncRunner
-	vfo         core.VFO
+	asyncRunner model.AsyncRunner
+	vfo         model.VFO
 
-	activeMode      core.Mode
-	activeFrequency core.Frequency
-	activeBand      core.Band
-	visibleBand     core.Band
+	activeMode      model.Mode
+	activeFrequency model.Frequency
+	activeBand      model.Band
+	visibleBand     model.Band
 
-	vfoBands       [core.VFOCount]core.Band
-	vfoModes       [core.VFOCount]core.Mode
-	vfoFrequencies [core.VFOCount]core.Frequency
+	vfoBands       [model.VFOCount]model.Band
+	vfoModes       [model.VFOCount]model.Mode
+	vfoFrequencies [model.VFOCount]model.Frequency
 
 	updatePeriod time.Duration
 	maximumAge   time.Duration
-	weights      core.BandmapWeights
+	weights      model.BandmapWeights
 	bandRule     conval.BandRule
 	qtcsEnabled  bool
 
@@ -74,11 +74,11 @@ type Bandmap struct {
 	closed chan struct{}
 }
 
-func NewDefaultBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, filterStore SpotFilterStore, asyncRunner core.AsyncRunner) *Bandmap {
+func NewDefaultBandmap(clock model.Clock, settings model.Settings, dupeChecker DupeChecker, filterStore SpotFilterStore, asyncRunner model.AsyncRunner) *Bandmap {
 	return NewBandmap(clock, settings, dupeChecker, filterStore, asyncRunner, DefaultUpdatePeriod, DefaultMaximumAge)
 }
 
-func NewBandmap(clock core.Clock, settings core.Settings, dupeChecker DupeChecker, filterStore SpotFilterStore, asyncRunner core.AsyncRunner, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
+func NewBandmap(clock model.Clock, settings model.Settings, dupeChecker DupeChecker, filterStore SpotFilterStore, asyncRunner model.AsyncRunner, updatePeriod time.Duration, maximumAge time.Duration) *Bandmap {
 	result := &Bandmap{
 		clock:       clock,
 		view:        new(nullView),
@@ -132,12 +132,12 @@ func (m *Bandmap) update() {
 	focusedFrequency := m.focusedFrequency()
 	// every VFO has its own entry on frequency, because the operator may work a spot on
 	// any of them
-	for vfo := range core.VFOCount {
-		entryOnFrequency, entryOnFrequencyAvailable := m.nextEntryOnFrequency(core.VFOID(vfo))
-		m.notifier.emitEntryOnFrequency(core.VFOID(vfo), entryOnFrequency, entryOnFrequencyAvailable)
+	for vfo := range model.VFOCount {
+		entryOnFrequency, entryOnFrequencyAvailable := m.nextEntryOnFrequency(model.VFOID(vfo))
+		m.notifier.emitEntryOnFrequency(model.VFOID(vfo), entryOnFrequency, entryOnFrequencyAvailable)
 
-		markerOnFrequency, markerOnFrequencyAvailable := m.markerOnFrequency(core.VFOID(vfo))
-		m.notifier.emitMarkerOnFrequency(core.VFOID(vfo), markerOnFrequency, markerOnFrequencyAvailable)
+		markerOnFrequency, markerOnFrequencyAvailable := m.markerOnFrequency(model.VFOID(vfo))
+		m.notifier.emitMarkerOnFrequency(model.VFOID(vfo), markerOnFrequency, markerOnFrequencyAvailable)
 	}
 
 	m.notifier.emitMarkersChanged(m.markers.All())
@@ -145,8 +145,8 @@ func (m *Bandmap) update() {
 	bands := m.entries.Bands(m.activeBand, m.visibleBand)
 	m.notifier.emitBandsChanged(bands)
 	rows := m.rows()
-	index := core.NewFrameIndex(rows)
-	frame := core.BandmapFrame{
+	index := model.NewFrameIndex(rows)
+	frame := model.BandmapFrame{
 		Frequency:   focusedFrequency,
 		ActiveBand:  m.activeBand,
 		VisibleBand: m.visibleBand,
@@ -163,12 +163,12 @@ func (m *Bandmap) update() {
 		frame.SelectedEntry = selectedEntry
 	}
 
-	nearestEntry, nearestEntryFound := m.nextVisibleEntryBy(core.BandmapByDistance(focusedFrequency), 0, core.Not(core.Or(core.OnFrequency(focusedFrequency), core.IsWorkedSpot)))
+	nearestEntry, nearestEntryFound := m.nextVisibleEntryBy(model.BandmapByDistance(focusedFrequency), 0, model.Not(model.Or(model.OnFrequency(focusedFrequency), model.IsWorkedSpot)))
 	if nearestEntryFound {
 		frame.NearestEntry = nearestEntry
 	}
 
-	highestValueEntry, highestValueEntryFound := m.nextVisibleEntryBy(core.Descending(core.BandmapByValue), 0, core.Not(core.IsWorkedSpot))
+	highestValueEntry, highestValueEntryFound := m.nextVisibleEntryBy(model.Descending(model.BandmapByValue), 0, model.Not(model.IsWorkedSpot))
 	if highestValueEntryFound {
 		frame.HighestValueEntry = highestValueEntry
 	}
@@ -178,17 +178,17 @@ func (m *Bandmap) update() {
 	})
 }
 
-func (m *Bandmap) rows() []core.BandmapRow {
+func (m *Bandmap) rows() []model.BandmapRow {
 	state := m.filter.State()
 	markers := m.markers.Ordered(m.filter.MatchesMarker, state.SortBy, state.Descending)
 	entries := m.entries.Query(m.filter.Order(), m.filter.Matches)
 
-	result := make([]core.BandmapRow, 0, len(markers)+len(entries))
+	result := make([]model.BandmapRow, 0, len(markers)+len(entries))
 	for _, marker := range markers {
-		result = append(result, core.MarkerBandmapRow(marker))
+		result = append(result, model.MarkerBandmapRow(marker))
 	}
 	for _, entry := range entries {
-		result = append(result, core.SpotBandmapRow(entry))
+		result = append(result, model.SpotBandmapRow(entry))
 	}
 
 	if !blendsMarkersWithSpots(state.SortBy) {
@@ -197,22 +197,22 @@ func (m *Bandmap) rows() []core.BandmapRow {
 		return result
 	}
 
-	slices.SortStableFunc(result, func(a, b core.BandmapRow) int {
+	slices.SortStableFunc(result, func(a, b model.BandmapRow) int {
 		return compareRows(a, b, state.SortBy, state.Descending)
 	})
 	return result
 }
 
-func (m *Bandmap) markerOnFrequency(vfo core.VFOID) (core.BandmapMarker, bool) {
+func (m *Bandmap) markerOnFrequency(vfo model.VFOID) (model.BandmapMarker, bool) {
 	if !validVFO(vfo) {
-		return core.BandmapMarker{}, false
+		return model.BandmapMarker{}, false
 	}
 	frequency := m.vfoFrequencies[vfo]
 	if frequency == 0 {
-		return core.BandmapMarker{}, false
+		return model.BandmapMarker{}, false
 	}
 
-	var result core.BandmapMarker
+	var result model.BandmapMarker
 	found := false
 	for _, marker := range m.markers.All() {
 		if !marker.OnFrequency(frequency) {
@@ -228,19 +228,19 @@ func (m *Bandmap) markerOnFrequency(vfo core.VFOID) (core.BandmapMarker, bool) {
 	return result, found
 }
 
-func (m *Bandmap) nextEntryOnFrequency(vfo core.VFOID) (core.BandmapEntry, bool) {
+func (m *Bandmap) nextEntryOnFrequency(vfo model.VFOID) (model.BandmapEntry, bool) {
 	if !validVFO(vfo) {
-		return core.BandmapEntry{}, false
+		return model.BandmapEntry{}, false
 	}
 	frequency := m.vfoFrequencies[vfo]
-	return m.nextEntryBy(core.BandmapByDistance(frequency), 2, m.entryVisibleOn(vfo), core.OnFrequency(frequency))
+	return m.nextEntryBy(model.BandmapByDistance(frequency), 2, m.entryVisibleOn(vfo), model.OnFrequency(frequency))
 }
 
-func (m *Bandmap) nextVisibleEntryBy(order core.BandmapOrder, limit int, filter core.BandmapFilter) (core.BandmapEntry, bool) {
+func (m *Bandmap) nextVisibleEntryBy(order model.BandmapOrder, limit int, filter model.BandmapFilter) (model.BandmapEntry, bool) {
 	return m.nextEntryBy(order, limit, m.entryVisible, filter)
 }
 
-func (m *Bandmap) nextEntryBy(order core.BandmapOrder, limit int, visible core.BandmapFilter, filter core.BandmapFilter) (core.BandmapEntry, bool) {
+func (m *Bandmap) nextEntryBy(order model.BandmapOrder, limit int, visible model.BandmapFilter, filter model.BandmapFilter) (model.BandmapEntry, bool) {
 	entries := m.entries.AllBy(order)
 	if limit == 0 || limit > len(entries) {
 		limit = len(entries)
@@ -256,7 +256,7 @@ func (m *Bandmap) nextEntryBy(order core.BandmapOrder, limit int, visible core.B
 
 		return entry, true
 	}
-	return core.BandmapEntry{}, false
+	return model.BandmapEntry{}, false
 }
 
 func (m *Bandmap) Close() {
@@ -280,7 +280,7 @@ func (m *Bandmap) SetView(view View) {
 	m.do <- m.update
 }
 
-func (m *Bandmap) SetVFO(vfo core.VFO) {
+func (m *Bandmap) SetVFO(vfo model.VFO) {
 	if vfo == nil {
 		m.vfo = new(nullVFO)
 	} else {
@@ -305,7 +305,7 @@ func (m *Bandmap) Hide() {
 	m.view.Hide()
 }
 
-func (m *Bandmap) ContestChanged(contest core.Contest) {
+func (m *Bandmap) ContestChanged(contest model.Contest) {
 	m.do <- func() {
 		if contest.Definition != nil {
 			m.bandRule = contest.Definition.Scoring.QSOBandRule
@@ -317,25 +317,25 @@ func (m *Bandmap) ContestChanged(contest core.Contest) {
 	}
 }
 
-func (m *Bandmap) ScoreChanged(_ core.Score) {
+func (m *Bandmap) ScoreChanged(_ model.Score) {
 	m.do <- func() {
 		m.update()
 	}
 }
 
-func (m *Bandmap) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+func (m *Bandmap) VFOFrequencyChanged(vfo model.VFOID, frequency model.Frequency) {
 	m.do <- func() {
 		if validVFO(vfo) {
 			m.vfoFrequencies[vfo] = frequency
 		}
-		if vfo == core.VFO1 {
+		if vfo == model.VFO1 {
 			m.activeFrequency = frequency
 		}
 		// the frame is not updated with every frequency change, this creates too much load
 	}
 }
 
-func (m *Bandmap) VFOBandChanged(vfo core.VFOID, band core.Band) {
+func (m *Bandmap) VFOBandChanged(vfo model.VFOID, band model.Band) {
 	m.do <- func() {
 		if validVFO(vfo) {
 			m.vfoBands[vfo] = band
@@ -343,7 +343,7 @@ func (m *Bandmap) VFOBandChanged(vfo core.VFOID, band core.Band) {
 		m.filter.VFOBandChanged(vfo, band)
 
 		// the active band and the visible band belong to VFO1
-		if vfo != core.VFO1 || band == m.activeBand {
+		if vfo != model.VFO1 || band == m.activeBand {
 			return
 		}
 		if m.activeBand == m.visibleBand {
@@ -354,7 +354,7 @@ func (m *Bandmap) VFOBandChanged(vfo core.VFOID, band core.Band) {
 	}
 }
 
-func (m *Bandmap) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
+func (m *Bandmap) VFOModeChanged(vfo model.VFOID, mode model.Mode) {
 	m.do <- func() {
 		if validVFO(vfo) {
 			m.vfoModes[vfo] = mode
@@ -362,7 +362,7 @@ func (m *Bandmap) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 		m.filter.VFOModeChanged(vfo, mode)
 
 		// the active mode belongs to VFO1
-		if vfo != core.VFO1 || m.activeMode == mode {
+		if vfo != model.VFO1 || m.activeMode == mode {
 			return
 		}
 		m.activeMode = mode
@@ -370,7 +370,7 @@ func (m *Bandmap) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 	}
 }
 
-func (m *Bandmap) FocusedVFOChanged(vfo core.VFOID) {
+func (m *Bandmap) FocusedVFOChanged(vfo model.VFOID) {
 	m.do <- func() {
 		m.filter.FocusedVFOChanged(vfo)
 		// the operator works with another VFO now, therefore the navigation starts at the
@@ -381,12 +381,12 @@ func (m *Bandmap) FocusedVFOChanged(vfo core.VFOID) {
 	}
 }
 
-func (m *Bandmap) VFOTuned(vfo core.VFOID, frequency core.Frequency) {
+func (m *Bandmap) VFOTuned(vfo model.VFOID, frequency model.Frequency) {
 	m.do <- func() {
 		if vfo != m.filter.FocusedVFO() {
 			return
 		}
-		if !core.IsFrequencyJump(m.vfoFrequencies[vfo], frequency) {
+		if !model.IsFrequencyJump(m.vfoFrequencies[vfo], frequency) {
 			return
 		}
 		// the operator left the frequency of the selected row, therefore the navigation
@@ -402,25 +402,25 @@ func (m *Bandmap) RadioChanged(name string, singleVFO bool) {
 	}
 }
 
-func (m *Bandmap) SetFilterBand(band core.SpotFilterBand) {
+func (m *Bandmap) SetFilterBand(band model.SpotFilterBand) {
 	m.do <- func() {
 		m.filter.SetBand(band)
 	}
 }
 
-func (m *Bandmap) SetFilterMode(mode core.SpotFilterMode) {
+func (m *Bandmap) SetFilterMode(mode model.SpotFilterMode) {
 	m.do <- func() {
 		m.filter.SetMode(mode)
 	}
 }
 
-func (m *Bandmap) SetFilterValue(value core.SpotFilterValue) {
+func (m *Bandmap) SetFilterValue(value model.SpotFilterValue) {
 	m.do <- func() {
 		m.filter.SetValue(value)
 	}
 }
 
-func (m *Bandmap) SetFilterSort(column core.SpotSortColumn, descending bool) {
+func (m *Bandmap) SetFilterSort(column model.SpotSortColumn, descending bool) {
 	m.do <- func() {
 		m.filter.SetSort(column, descending)
 	}
@@ -432,42 +432,42 @@ func (m *Bandmap) SetFilterFolded(folded bool) {
 	}
 }
 
-func (m *Bandmap) VisibleRows() []core.BandmapRow {
+func (m *Bandmap) VisibleRows() []model.BandmapRow {
 	return m.rows()
 }
 
-func (m *Bandmap) SelectableFilter() core.BandmapFilter {
+func (m *Bandmap) SelectableFilter() model.BandmapFilter {
 	return m.filter.Matches
 }
 
-func (m *Bandmap) NavigationFilter() core.BandmapFilter {
+func (m *Bandmap) NavigationFilter() model.BandmapFilter {
 	return m.entryVisible
 }
 
-func (m *Bandmap) MarkerNavigationFilter() core.BandmapMarkerFilter {
+func (m *Bandmap) MarkerNavigationFilter() model.BandmapMarkerFilter {
 	return m.markerVisible
 }
 
-func (m *Bandmap) TargetVFO(entry core.BandmapEntry) core.VFOID {
+func (m *Bandmap) TargetVFO(entry model.BandmapEntry) model.VFOID {
 	return m.filter.TargetVFO(entry)
 }
 
-func (m *Bandmap) TargetVFOForMarker(band core.Band) core.VFOID {
+func (m *Bandmap) TargetVFOForMarker(band model.Band) model.VFOID {
 	return m.filter.TargetVFOForMarker(band)
 }
 
-func (m *Bandmap) FocusedVFO() core.VFOID {
+func (m *Bandmap) FocusedVFO() model.VFOID {
 	return m.filter.FocusedVFO()
 }
 
-func (m *Bandmap) entryVisible(entry core.BandmapEntry) bool {
+func (m *Bandmap) entryVisible(entry model.BandmapEntry) bool {
 	// the keyboard navigation tunes the focused VFO, therefore it stays on the band and
 	// in the mode of that VFO
 	return m.entryVisibleOn(m.filter.FocusedVFO())(entry)
 }
 
-func (m *Bandmap) markerVisible(marker core.BandmapMarker) bool {
-	if marker.Kind == core.CQMarker {
+func (m *Bandmap) markerVisible(marker model.BandmapMarker) bool {
+	if marker.Kind == model.CQMarker {
 		// the CQ frequency has its own action, the navigation does not stop there
 		return false
 	}
@@ -478,11 +478,11 @@ func (m *Bandmap) markerVisible(marker core.BandmapMarker) bool {
 	// a marker has no mode, therefore only the band decides. A band that the rig did not
 	// report yet restricts nothing.
 	band := m.vfoBands[vfo]
-	return band == core.NoBand || marker.Band == band
+	return band == model.NoBand || marker.Band == band
 }
 
-func (m *Bandmap) entryVisibleOn(vfo core.VFOID) core.BandmapFilter {
-	return func(entry core.BandmapEntry) bool {
+func (m *Bandmap) entryVisibleOn(vfo model.VFOID) model.BandmapFilter {
+	return func(entry model.BandmapEntry) bool {
 		if !validVFO(vfo) {
 			return false
 		}
@@ -490,29 +490,29 @@ func (m *Bandmap) entryVisibleOn(vfo core.VFOID) core.BandmapFilter {
 		// filter uses the same rule
 		band := m.vfoBands[vfo]
 		mode := m.vfoModes[vfo]
-		return (band == core.NoBand || entry.Band == band) &&
-			(mode == core.NoMode || entry.Mode == mode)
+		return (band == model.NoBand || entry.Band == band) &&
+			(mode == model.NoMode || entry.Mode == mode)
 	}
 }
 
-func (m *Bandmap) focusedBand() core.Band {
+func (m *Bandmap) focusedBand() model.Band {
 	return m.vfoBands[m.filter.FocusedVFO()]
 }
 
-func (m *Bandmap) focusedMode() core.Mode {
+func (m *Bandmap) focusedMode() model.Mode {
 	return m.vfoModes[m.filter.FocusedVFO()]
 }
 
-func (m *Bandmap) focusedFrequency() core.Frequency {
+func (m *Bandmap) focusedFrequency() model.Frequency {
 	return m.vfoFrequencies[m.filter.FocusedVFO()]
 }
 
-func (m *Bandmap) countEntryValue(entry core.BandmapEntry) bool {
-	if entry.Source == core.WorkedSpot {
+func (m *Bandmap) countEntryValue(entry model.BandmapEntry) bool {
+	if entry.Source == model.WorkedSpot {
 		return false
 	}
 	// a mode that the rig did not report yet restricts nothing
-	return m.activeMode == core.NoMode || entry.Mode == m.activeMode
+	return m.activeMode == model.NoMode || entry.Mode == m.activeMode
 }
 
 func (m *Bandmap) Notify(listener any) {
@@ -521,17 +521,17 @@ func (m *Bandmap) Notify(listener any) {
 	}
 }
 
-func (m *Bandmap) Add(spot core.Spot) {
+func (m *Bandmap) Add(spot model.Spot) {
 	m.do <- func() {
 		mode := spot.Mode
-		if mode == core.NoMode {
+		if mode == model.NoMode {
 			mode = m.activeMode
 		}
 
 		if !spot.IsWorked() {
 			_, worked := m.dupeChecker.FindWorkedQSOs(spot.Call, spot.Band, mode)
 			if worked {
-				spot.Source = core.WorkedSpot
+				spot.Source = model.WorkedSpot
 			}
 		}
 
@@ -541,24 +541,24 @@ func (m *Bandmap) Add(spot core.Spot) {
 			band := spot.Band
 			switch m.bandRule {
 			case conval.Once:
-				band, mode = core.NoBand, core.NoMode
+				band, mode = model.NoBand, model.NoMode
 			case conval.OncePerBand:
-				mode = core.NoMode
+				mode = model.NoMode
 			case conval.OncePerBandAndMode:
 				// band, mode = band, mode
 			default:
-				band, mode = core.NoBand, core.NoMode
+				band, mode = model.NoBand, model.NoMode
 			}
 			m.entries.MarkAsWorked(spot.Call, band, mode)
 		}
 	}
 }
 
-func (m *Bandmap) MacroSent(vfo core.VFOID, workmode core.Workmode, index int) {
+func (m *Bandmap) MacroSent(vfo model.VFOID, workmode model.Workmode, index int) {
 	m.do <- func() {
 		// only VFO1 works in the running workmode, and only the CQ macro marks a
 		// running frequency
-		if vfo != core.VFO1 || workmode != core.Run || index != core.CQMacroIndex {
+		if vfo != model.VFO1 || workmode != model.Run || index != model.CQMacroIndex {
 			return
 		}
 		m.setCQMarker()
@@ -566,16 +566,16 @@ func (m *Bandmap) MacroSent(vfo core.VFOID, workmode core.Workmode, index int) {
 }
 
 func (m *Bandmap) setCQMarker() {
-	frequency := m.vfoFrequencies[core.VFO1]
+	frequency := m.vfoFrequencies[model.VFO1]
 	if frequency == 0 {
 		// the rig did not report a frequency yet
 		return
 	}
-	m.markers.SetCQ(frequency, m.vfoBands[core.VFO1], m.clock.Now())
+	m.markers.SetCQ(frequency, m.vfoBands[model.VFO1], m.clock.Now())
 	m.update()
 }
 
-func (m *Bandmap) SelectMarker(id core.BandmapEntryID) {
+func (m *Bandmap) SelectMarker(id model.BandmapEntryID) {
 	m.do <- func() {
 		marker, found := m.markers.Get(id)
 		if !found {
@@ -607,12 +607,12 @@ func (m *Bandmap) GotoCQMarker() {
 	}
 }
 
-func (m *Bandmap) selectMarker(marker core.BandmapMarker) {
+func (m *Bandmap) selectMarker(marker model.BandmapMarker) {
 	m.selection.SelectMarker(marker)
 	m.update()
 }
 
-func (m *Bandmap) MarkWithNextNumber(frequency core.Frequency, band core.Band, input core.MarkerInput) {
+func (m *Bandmap) MarkWithNextNumber(frequency model.Frequency, band model.Band, input model.MarkerInput) {
 	m.do <- func() {
 		marker := m.markers.MarkWithNextNumber(frequency, band, m.clock.Now())
 		m.markers.SetInput(marker.ID, input)
@@ -620,7 +620,7 @@ func (m *Bandmap) MarkWithNextNumber(frequency core.Frequency, band core.Band, i
 	}
 }
 
-func (m *Bandmap) MarkWithNumber(number int, frequency core.Frequency, band core.Band, input core.MarkerInput) {
+func (m *Bandmap) MarkWithNumber(number int, frequency model.Frequency, band model.Band, input model.MarkerInput) {
 	m.do <- func() {
 		marker := m.markers.MarkWithNumber(number, frequency, band, m.clock.Now())
 		m.markers.SetInput(marker.ID, input)
@@ -628,21 +628,21 @@ func (m *Bandmap) MarkWithNumber(number int, frequency core.Frequency, band core
 	}
 }
 
-func (m *Bandmap) MarkWithText(text string, frequency core.Frequency, band core.Band) {
+func (m *Bandmap) MarkWithText(text string, frequency model.Frequency, band model.Band) {
 	m.do <- func() {
 		m.markers.MarkWithText(text, frequency, band, m.clock.Now())
 		m.update()
 	}
 }
 
-func (m *Bandmap) AddNumberedMarker(number int, frequency core.Frequency, band core.Band) {
+func (m *Bandmap) AddNumberedMarker(number int, frequency model.Frequency, band model.Band) {
 	m.do <- func() {
 		m.markers.AddNumbered(number, frequency, band, m.clock.Now())
 		m.update()
 	}
 }
 
-func (m *Bandmap) AddTextMarker(text string, frequency core.Frequency, band core.Band) {
+func (m *Bandmap) AddTextMarker(text string, frequency model.Frequency, band model.Band) {
 	m.do <- func() {
 		m.markers.AddText(text, frequency, band, m.clock.Now())
 		m.update()
@@ -659,7 +659,7 @@ func (m *Bandmap) DeleteMarkerOnFrequency() {
 	}
 }
 
-func (m *Bandmap) RemoveMarker(id core.BandmapEntryID) {
+func (m *Bandmap) RemoveMarker(id model.BandmapEntryID) {
 	m.do <- func() {
 		m.markers.Remove(id)
 		m.update()
@@ -673,13 +673,13 @@ func (m *Bandmap) ClearMarkers() {
 	}
 }
 
-func (m *Bandmap) QTCAdded(qtc core.QTC) {
+func (m *Bandmap) QTCAdded(qtc model.QTC) {
 	m.do <- func() {
 		m.entries.RefreshCallinfo(qtc.TheirCallsign, m.clock.Now(), m.weights)
 	}
 }
 
-func (m *Bandmap) Remove(spot core.Spot) {
+func (m *Bandmap) Remove(spot model.Spot) {
 	m.do <- func() {
 		if !m.entries.Remove(spot) {
 			return
@@ -688,13 +688,13 @@ func (m *Bandmap) Remove(spot core.Spot) {
 	}
 }
 
-func (m *Bandmap) IgnoreEntry(id core.BandmapEntryID) {
+func (m *Bandmap) IgnoreEntry(id model.BandmapEntryID) {
 	m.do <- func() {
 		m.setEntryIgnored(id, true)
 	}
 }
 
-func (m *Bandmap) RestoreEntry(id core.BandmapEntryID) {
+func (m *Bandmap) RestoreEntry(id model.BandmapEntryID) {
 	m.do <- func() {
 		m.setEntryIgnored(id, false)
 	}
@@ -722,7 +722,7 @@ func (m *Bandmap) setEntryOnFrequencyIgnored(ignored bool) {
 	m.setEntryIgnored(entry.ID, ignored)
 }
 
-func (m *Bandmap) setEntryIgnored(id core.BandmapEntryID, ignored bool) {
+func (m *Bandmap) setEntryIgnored(id model.BandmapEntryID, ignored bool) {
 	if !m.entries.SetIgnored(id, ignored) {
 		return
 	}
@@ -730,14 +730,14 @@ func (m *Bandmap) setEntryIgnored(id core.BandmapEntryID, ignored bool) {
 	m.update()
 }
 
-func (m *Bandmap) SelectEntry(id core.BandmapEntryID) {
+func (m *Bandmap) SelectEntry(id model.BandmapEntryID) {
 	m.do <- func() {
 		m.selection.SelectEntry(id)
 		m.update()
 	}
 }
 
-func (m *Bandmap) SelectByCallsign(call core.Callsign) {
+func (m *Bandmap) SelectByCallsign(call model.Callsign) {
 	m.do <- func() {
 		m.selection.SelectByCallsign(call)
 		m.update()
@@ -751,7 +751,7 @@ func (m *Bandmap) GotoHighestValueEntry() {
 	}
 }
 
-func (m *Bandmap) GotoNearestEntry(frequency core.Frequency) {
+func (m *Bandmap) GotoNearestEntry(frequency model.Frequency) {
 	m.do <- func() {
 		m.selection.SelectNearest(frequency)
 		m.update()
@@ -778,47 +778,47 @@ func (m *Bandmap) GotoNextEntryDown() {
 
 type Logger struct{}
 
-func (l *Logger) EntryAdded(e core.BandmapEntry) {
+func (l *Logger) EntryAdded(e model.BandmapEntry) {
 	log.Printf("Bandmap entry added: %v", e)
 }
 
-func (l *Logger) EntryUpdated(e core.BandmapEntry) {
+func (l *Logger) EntryUpdated(e model.BandmapEntry) {
 	log.Printf("Bandmap entry updated: %v", e)
 }
 
-func (l *Logger) EntryRemoved(e core.BandmapEntry) {
+func (l *Logger) EntryRemoved(e model.BandmapEntry) {
 	log.Printf("Bandmap entry removed: %v", e)
 }
 
 type nullView struct{}
 
-func (v *nullView) Show()                         {}
-func (v *nullView) Hide()                         {}
-func (v *nullView) ShowFrame(core.BandmapFrame)   {}
-func (v *nullView) RevealEntry(core.BandmapEntry) {}
+func (v *nullView) Show()                          {}
+func (v *nullView) Hide()                          {}
+func (v *nullView) ShowFrame(model.BandmapFrame)   {}
+func (v *nullView) RevealEntry(model.BandmapEntry) {}
 
 type nullVFO struct{}
 
-func (n *nullVFO) Name() string                                                          { return "" }
-func (n *nullVFO) Notify(any)                                                            {}
-func (n *nullVFO) Active() bool                                                          { return false }
-func (n *nullVFO) Refresh()                                                              {}
-func (n *nullVFO) SetFrequency(core.Frequency)                                           {}
-func (n *nullVFO) ShiftFrequency(core.Frequency)                                         {}
-func (n *nullVFO) SetBand(core.Band)                                                     {}
-func (n *nullVFO) SetMode(core.Mode)                                                     {}
-func (n *nullVFO) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
-func (n *nullVFO) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}
-func (n *nullVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
-func (n *nullVFO) ShiftIncrementalTuning(core.IncrementalTuningKind, core.Frequency)     {}
-func (n *nullVFO) ToggleAvailableIncrementalTuning()                                     {}
-func (n *nullVFO) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
+func (n *nullVFO) Name() string                                                            { return "" }
+func (n *nullVFO) Notify(any)                                                              {}
+func (n *nullVFO) Active() bool                                                            { return false }
+func (n *nullVFO) Refresh()                                                                {}
+func (n *nullVFO) SetFrequency(model.Frequency)                                            {}
+func (n *nullVFO) ShiftFrequency(model.Frequency)                                          {}
+func (n *nullVFO) SetBand(model.Band)                                                      {}
+func (n *nullVFO) SetMode(model.Mode)                                                      {}
+func (n *nullVFO) IncrementalTuningActive(model.IncrementalTuningKind) bool                { return false }
+func (n *nullVFO) SetIncrementalTuningActive(model.IncrementalTuningKind, bool)            {}
+func (n *nullVFO) SetIncrementalTuning(model.IncrementalTuningKind, bool, model.Frequency) {}
+func (n *nullVFO) ShiftIncrementalTuning(model.IncrementalTuningKind, model.Frequency)     {}
+func (n *nullVFO) ToggleAvailableIncrementalTuning()                                       {}
+func (n *nullVFO) ShiftAvailableIncrementalTuning(model.Frequency)                         {}
 
 type nullCallinfo struct{}
 
-func (n *nullCallinfo) GetInfo(core.Callsign, core.Band, core.Mode, []string) core.Callinfo {
-	return core.Callinfo{}
+func (n *nullCallinfo) GetInfo(model.Callsign, model.Band, model.Mode, []string) model.Callinfo {
+	return model.Callinfo{}
 }
-func (n *nullCallinfo) UpdateValue(*core.Callinfo, core.Band, core.Mode) bool {
+func (n *nullCallinfo) UpdateValue(*model.Callinfo, model.Band, model.Mode) bool {
 	return false
 }

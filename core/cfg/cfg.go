@@ -10,7 +10,6 @@ import (
 	"github.com/ftl/hamradio/cfg"
 	"github.com/pkg/errors"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/pb"
 )
@@ -33,7 +32,7 @@ var Default = &Data{
 		PointsGoal: 60,
 		MultisGoal: 12,
 	},
-	Radios: []core.Radio{
+	Radios: []model.Radio{
 		{
 			Name:    "Hamlib Radio",
 			Type:    "hamlib",
@@ -50,19 +49,19 @@ var Default = &Data{
 			},
 		},
 	},
-	Keyers: []core.Keyer{
+	Keyers: []model.Keyer{
 		{
 			Name:    "Local CWDaemon",
 			Type:    "cwdaemon",
 			Address: "localhost:6789",
 		},
 	},
-	KeyerSettings: core.KeyerSettings{
+	KeyerSettings: model.KeyerSettings{
 		WPM:                   25,
 		Preset:                "Default",
 		ParrotIntervalSeconds: 10,
 	},
-	KeyerPresets: []core.KeyerPreset{
+	KeyerPresets: []model.KeyerPreset{
 		{
 			Name: "Default",
 			SPMacros: []string{
@@ -203,28 +202,28 @@ var Default = &Data{
 		"keyer.speed_down":                "Ctrl+Alt+Down",
 	},
 	SpotLifetime: "10m",
-	SpotSources: []core.SpotSource{
+	SpotSources: []model.SpotSource{
 		{
 			Name:        "SDRainer",
 			HostAddress: "localhost:35369",
-			Type:        core.SkimmerSpot,
-			Protocol:    core.SDRainerProtocol,
+			Type:        model.SkimmerSpot,
+			Protocol:    model.SDRainerProtocol,
 		},
 		{
 			Name:        "Skimmer",
 			Username:    "dl0abc",
 			HostAddress: "localhost:7373",
-			Type:        core.SkimmerSpot,
+			Type:        model.SkimmerSpot,
 		},
 		{
 			Name:        "W3LPL",
 			Username:    "dl0abc",
 			HostAddress: "w3lpl.net:7373",
-			Type:        core.RBNSpot,
-			Filter:      core.OwnContinentSpotsOnly,
+			Type:        model.RBNSpot,
+			Filter:      model.OwnContinentSpotsOnly,
 		},
 	},
-	RemoteServer: core.RemoteServerSettings{
+	RemoteServer: model.RemoteServerSettings{
 		Enabled: false,
 		Port:    8383,
 	},
@@ -247,11 +246,11 @@ func Load() (*LoadedConfiguration, error) {
 	}
 
 	for i, radio := range data.Radios {
-		radio.Type = core.RadioType(normalizeName(string(radio.Type)))
+		radio.Type = model.RadioType(normalizeName(string(radio.Type)))
 		data.Radios[i] = radio
 	}
 	for i, keyer := range data.Keyers {
-		keyer.Type = core.KeyerType(normalizeName(string(keyer.Type)))
+		keyer.Type = model.KeyerType(normalizeName(string(keyer.Type)))
 		data.Keyers[i] = keyer
 	}
 
@@ -278,18 +277,18 @@ func AbsoluteFilename() string {
 }
 
 type Data struct {
-	LogDirectory  string                    `json:"log_directory"`
-	HamDXMapPort  int                       `json:"ham_dx_map_port"`
-	Station       *pb.Station               `json:"station"`
-	Contest       *pb.Contest               `json:"contest"`
-	Radios        []core.Radio              `json:"radios"`
-	Keyers        []core.Keyer              `json:"keyers"`
-	KeyerSettings core.KeyerSettings        `json:"keyer_settings"`
-	KeyerPresets  []core.KeyerPreset        `json:"keyer_presets"`
-	SpotLifetime  string                    `json:"spot_lifetime"`
-	SpotSources   []core.SpotSource         `json:"spot_sources"`
-	Keybindings   map[string]string         `json:"keybindings"`
-	RemoteServer  core.RemoteServerSettings `json:"remote_server"`
+	LogDirectory  string                     `json:"log_directory"`
+	HamDXMapPort  int                        `json:"ham_dx_map_port"`
+	Station       *pb.Station                `json:"station"`
+	Contest       *pb.Contest                `json:"contest"`
+	Radios        []model.Radio              `json:"radios"`
+	Keyers        []model.Keyer              `json:"keyers"`
+	KeyerSettings model.KeyerSettings        `json:"keyer_settings"`
+	KeyerPresets  []model.KeyerPreset        `json:"keyer_presets"`
+	SpotLifetime  string                     `json:"spot_lifetime"`
+	SpotSources   []model.SpotSource         `json:"spot_sources"`
+	Keybindings   map[string]string          `json:"keybindings"`
+	RemoteServer  model.RemoteServerSettings `json:"remote_server"`
 }
 
 type LoadedConfiguration struct {
@@ -304,33 +303,33 @@ func (c *LoadedConfiguration) HamDXMapPort() int {
 	return c.data.HamDXMapPort
 }
 
-func (c *LoadedConfiguration) Station() core.Station {
+func (c *LoadedConfiguration) Station() model.Station {
 	result, err := pb.ToStation(c.data.Station)
 	if err != nil {
 		log.Printf("Cannot parse default station settings: %v", err)
-		return core.Station{}
+		return model.Station{}
 	}
 	return result
 }
 
-func (c *LoadedConfiguration) Contest() core.Contest {
+func (c *LoadedConfiguration) Contest() model.Contest {
 	result, _ := pb.ToContest(c.data.Contest)
 	return result
 }
 
-func (c *LoadedConfiguration) Radios() []core.Radio {
+func (c *LoadedConfiguration) Radios() []model.Radio {
 	return c.data.Radios
 }
 
-func (c *LoadedConfiguration) Keyers() []core.Keyer {
+func (c *LoadedConfiguration) Keyers() []model.Keyer {
 	return c.data.Keyers
 }
 
-func (c *LoadedConfiguration) KeyerSettings() core.KeyerSettings {
+func (c *LoadedConfiguration) KeyerSettings() model.KeyerSettings {
 	return c.data.KeyerSettings
 }
 
-func (c *LoadedConfiguration) KeyerPresets() []core.KeyerPreset {
+func (c *LoadedConfiguration) KeyerPresets() []model.KeyerPreset {
 	return c.data.KeyerPresets
 }
 
@@ -343,7 +342,7 @@ func (c *LoadedConfiguration) SpotLifetime() time.Duration {
 	return result
 }
 
-func (c *LoadedConfiguration) SpotSources() []core.SpotSource {
+func (c *LoadedConfiguration) SpotSources() []model.SpotSource {
 	return c.data.SpotSources
 }
 
@@ -354,6 +353,6 @@ func (c *LoadedConfiguration) Keybindings() map[string]string {
 	return c.data.Keybindings
 }
 
-func (c *LoadedConfiguration) RemoteServerSettings() core.RemoteServerSettings {
+func (c *LoadedConfiguration) RemoteServerSettings() model.RemoteServerSettings {
 	return c.data.RemoteServer
 }

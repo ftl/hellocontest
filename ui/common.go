@@ -7,7 +7,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func makeFilterableCombo() *qtlib.QComboBox {
@@ -23,7 +23,7 @@ func makeFilterableCombo() *qtlib.QComboBox {
 
 func setupBandCombo(combo *qtlib.QComboBox) {
 	combo.Clear()
-	for _, band := range core.Bands {
+	for _, band := range model.Bands {
 		combo.AddItem(band.String())
 	}
 	combo.SetCurrentIndex(0)
@@ -31,7 +31,7 @@ func setupBandCombo(combo *qtlib.QComboBox) {
 
 func setupModeCombo(combo *qtlib.QComboBox) {
 	combo.Clear()
-	for _, mode := range core.Modes {
+	for _, mode := range model.Modes {
 		combo.AddItem(mode.String())
 	}
 	combo.SetCurrentIndex(0)
@@ -189,15 +189,15 @@ func FormatSpotAge(lastHeard time.Time) (string, bool) {
 	return s, false
 }
 
-func FormatSpotFrequency(f core.Frequency) string {
+func FormatSpotFrequency(f model.Frequency) string {
 	return fmt.Sprintf("%.2f kHz", f/1000)
 }
 
-func KindToString(kind core.QTCKind) string {
+func KindToString(kind model.QTCKind) string {
 	switch kind {
-	case core.ReceivedQTC:
+	case model.ReceivedQTC:
 		return "R"
-	case core.SentQTC:
+	case model.SentQTC:
 		return "S"
 	default:
 		return "?"

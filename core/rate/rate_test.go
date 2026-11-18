@@ -7,12 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestHourOf(t *testing.T) {
-	assert.Equal(t, core.Hour(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)), core.HourOf(time.Date(2009, time.November, 10, 23, 24, 25, 26, time.UTC)))
-	assert.Equal(t, core.Hour(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)), core.HourOf(time.Date(2009, time.November, 10, 23, 24, 25, 26, time.Local)))
+	assert.Equal(t, model.Hour(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)), model.HourOf(time.Date(2009, time.November, 10, 23, 24, 25, 26, time.UTC)))
+	assert.Equal(t, model.Hour(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.Local)), model.HourOf(time.Date(2009, time.November, 10, 23, 24, 25, 26, time.Local)))
 }
 
 func TestNewQSOListIsEmpty(t *testing.T) {
@@ -22,7 +22,7 @@ func TestNewQSOListIsEmpty(t *testing.T) {
 }
 
 func TestQSOList_AddFirstQSO(t *testing.T) {
-	qso := core.QSO{Time: time.Now()}
+	qso := model.QSO{Time: time.Now()}
 	list := new(qsoList)
 
 	list.Add(qso)
@@ -37,8 +37,8 @@ func TestQSOList_AddFirstQSO(t *testing.T) {
 
 func TestQSOList_AddTwoQSOs(t *testing.T) {
 	now := time.Now()
-	qso1 := core.QSO{Time: now.Add(1 * time.Minute)}
-	qso2 := core.QSO{Time: now}
+	qso1 := model.QSO{Time: now.Add(1 * time.Minute)}
+	qso2 := model.QSO{Time: now}
 	list := new(qsoList)
 
 	list.Add(qso1)
@@ -66,7 +66,7 @@ func TestQSOList_OrderByQSOTime(t *testing.T) {
 		if i%2 == 0 {
 			offset = 10
 		}
-		list.Add(core.QSO{MyNumber: core.QSONumber(i + 1), Time: now.Add(time.Duration(-(10-i)-offset) * time.Minute)})
+		list.Add(model.QSO{MyNumber: model.QSONumber(i + 1), Time: now.Add(time.Duration(-(10-i)-offset) * time.Minute)})
 	}
 
 	for e := list.first; e != nil; e = e.Next {
@@ -82,7 +82,7 @@ func TestQSOList_RemoveBefore(t *testing.T) {
 		if i%2 == 0 {
 			offset = 10
 		}
-		list.Add(core.QSO{MyNumber: core.QSONumber(i + 1), Time: now.Add(time.Duration(-(10-i)-offset) * time.Minute)})
+		list.Add(model.QSO{MyNumber: model.QSONumber(i + 1), Time: now.Add(time.Duration(-(10-i)-offset) * time.Minute)})
 	}
 
 	endOfLife := now.Add(-10 * time.Minute)
@@ -98,11 +98,11 @@ func TestQSOList_RemoveQSO(t *testing.T) {
 	now := time.Now()
 	list := new(qsoList)
 	for i := 0; i < 10; i++ {
-		list.Add(core.QSO{MyNumber: core.QSONumber(i + 1 + (i % 2)), Time: now.Add(time.Duration(-(10 - i)) * time.Minute)})
+		list.Add(model.QSO{MyNumber: model.QSONumber(i + 1 + (i % 2)), Time: now.Add(time.Duration(-(10 - i)) * time.Minute)})
 	}
 
-	list.RemoveQSO(core.QSO{MyNumber: 3})
-	list.RemoveQSO(core.QSO{MyNumber: 5})
+	list.RemoveQSO(model.QSO{MyNumber: 3})
+	list.RemoveQSO(model.QSO{MyNumber: 5})
 
 	assert.Equal(t, 6, list.Length())
 	for e := list.first; e != nil; e = e.Next {
@@ -115,7 +115,7 @@ func TestQSOList_LengthAfter(t *testing.T) {
 	now := time.Now()
 	list := new(qsoList)
 	for i := 0; i < 10; i++ {
-		list.Add(core.QSO{MyNumber: core.QSONumber(i + 1 + (i % 2)), Time: now.Add(time.Duration(-(10 - i)) * time.Minute)})
+		list.Add(model.QSO{MyNumber: model.QSONumber(i + 1 + (i % 2)), Time: now.Add(time.Duration(-(10 - i)) * time.Minute)})
 	}
 
 	assert.Equal(t, 4, list.LengthAfter(now.Add(-5*time.Minute)))
@@ -123,8 +123,8 @@ func TestQSOList_LengthAfter(t *testing.T) {
 
 func printList(list *qsoList) {
 	list.forward(func(e *qsoListEntry) bool {
-		var n core.QSONumber
-		var p core.QSONumber
+		var n model.QSONumber
+		var p model.QSONumber
 		if e.Next != nil {
 			n = e.Next.QSO.MyNumber
 		}

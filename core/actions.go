@@ -1,5 +1,7 @@
 package core
 
+import "github.com/ftl/hellocontest/core/model"
+
 const (
 	ActionFileNew               = "file.new"
 	ActionFileOpen              = "file.open"
@@ -90,8 +92,8 @@ const (
 // Default step sizes for the relative shift actions. Keyboard shortcuts use
 // these; the remote interface may override them via an explicit amount.
 const (
-	DefaultFrequencyShift = Frequency(10) // Hz
-	DefaultXITShift       = Frequency(10) // Hz
-	DefaultRITShift       = Frequency(10) // Hz
-	DefaultSpeedShift     = 1             // WPM
+	DefaultFrequencyShift = model.Frequency(10) // Hz
+	DefaultXITShift       = model.Frequency(10) // Hz
+	DefaultRITShift       = model.Frequency(10) // Hz
+	DefaultSpeedShift     = 1                   // WPM
 )

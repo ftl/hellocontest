@@ -3,29 +3,29 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var statusServiceOrder = []struct {
-	svc  core.Service
+	svc  model.Service
 	name string
 }{
-	{core.RadioService, "Radio"},
-	{core.KeyerService, "CW"},
-	{core.DXCCService, "DXCC"},
-	{core.SCPService, "SCP"},
-	{core.CallHistoryService, "CH"},
-	{core.MapService, "Map"},
-	{core.RemoteService, "RMT"},
+	{model.RadioService, "Radio"},
+	{model.KeyerService, "CW"},
+	{model.DXCCService, "DXCC"},
+	{model.SCPService, "SCP"},
+	{model.CallHistoryService, "CH"},
+	{model.MapService, "Map"},
+	{model.RemoteService, "RMT"},
 }
 
 type statusView struct {
 	statusBar *qtlib.QStatusBar
-	labels    map[core.Service]*qtlib.QLabel
+	labels    map[model.Service]*qtlib.QLabel
 }
 
 func newStatusView() *statusView {
-	v := &statusView{labels: make(map[core.Service]*qtlib.QLabel)}
+	v := &statusView{labels: make(map[model.Service]*qtlib.QLabel)}
 	v.statusBar = qtlib.NewQStatusBar2()
 	setObjectName(v.statusBar, "statusBar")
 	for _, s := range statusServiceOrder {
@@ -37,7 +37,7 @@ func newStatusView() *statusView {
 	return v
 }
 
-func (v *statusView) StatusChanged(service core.Service, available bool) {
+func (v *statusView) StatusChanged(service model.Service, available bool) {
 	lbl, ok := v.labels[service]
 	if !ok {
 		return

@@ -7,7 +7,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -224,7 +224,7 @@ func newRateIndicator() *rateIndicator {
 	return ri
 }
 
-func (ri *rateIndicator) SetRate(rate core.QSORate) {
+func (ri *rateIndicator) SetRate(rate model.QSORate) {
 	ri.qAxis.SetValues(float64(rate.Last5MinRate), float64(rate.LastHourRate))
 	ri.pAxis.SetValues(float64(rate.Last5MinPoints), float64(rate.LastHourPoints))
 	ri.mAxis.SetValues(float64(rate.Last5MinMultis), float64(rate.LastHourMultis))

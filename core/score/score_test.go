@@ -6,29 +6,29 @@ import (
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var myTestEntity = testEntities{entity: dxcc.Prefix{Prefix: "DL", PrimaryPrefix: "DL", Continent: "EU", CQZone: 14, ITUZone: 28}}
 
 func TestNewController(t *testing.T) {
 	counter := NewController(&testSettings{stationCallsign: "DL1AAA"})
-	counter.score.ScorePerBand[core.Band80m] = core.BandScore{QSOs: 5}
-	assert.Equal(t, 5, counter.score.ScorePerBand[core.Band80m].QSOs)
+	counter.score.ScorePerBand[model.Band80m] = model.BandScore{QSOs: 5}
+	assert.Equal(t, 5, counter.score.ScorePerBand[model.Band80m].QSOs)
 }
 
 type testSettings struct {
 	stationCallsign string
 }
 
-func (s *testSettings) Station() core.Station {
-	return core.Station{
-		Callsign: core.MustParseCallsign(s.stationCallsign),
+func (s *testSettings) Station() model.Station {
+	return model.Station{
+		Callsign: model.MustParseCallsign(s.stationCallsign),
 	}
 }
 
-func (s *testSettings) Contest() core.Contest {
-	return core.Contest{}
+func (s *testSettings) Contest() model.Contest {
+	return model.Contest{}
 }
 
 type testEntities struct {

@@ -3,8 +3,8 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/logbook"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var (
@@ -45,11 +45,11 @@ func (v *qsoTableView) RepaintForThemeChange() {
 	repaintScrollBarsForThemeChange(v.table.table.QAbstractScrollArea)
 }
 
-func (v *qsoTableView) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+func (v *qsoTableView) ExchangeFieldsChanged(myExchangeFields []model.ExchangeField, theirExchangeFields []model.ExchangeField) {
 	v.table.ExchangeFieldsChanged(myExchangeFields, theirExchangeFields)
 }
 
-func (v *qsoTableView) QSOAdded(qso core.QSO) {
+func (v *qsoTableView) QSOAdded(qso model.QSO) {
 	v.table.QSOAdded(qso)
 }
 

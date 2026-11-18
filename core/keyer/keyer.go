@@ -9,7 +9,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const PatternCount = 4
@@ -28,8 +28,8 @@ type SettingsView interface {
 	Show()
 	ShowMessage(...any)
 	ClearMessage()
-	SetLabel(core.Workmode, int, string)
-	SetMacro(core.Workmode, int, string)
+	SetLabel(model.Workmode, int, string)
+	SetMacro(model.Workmode, int, string)
 	SetPresetNames([]string)
 	SetPreset(string)
 	SetParrotIntervalSeconds(int)
@@ -43,18 +43,18 @@ type CWClient interface {
 }
 
 type VFOSwitcher interface {
-	SetTXVFO(core.VFOID)
+	SetTXVFO(model.VFOID)
 }
 
 type nullVFOSwitcher struct{}
 
-func (*nullVFOSwitcher) SetTXVFO(core.VFOID) {}
+func (*nullVFOSwitcher) SetTXVFO(model.VFOID) {}
 
 // KeyerValueProvider provides the variable values for the Keyer templates on demand.
-type KeyerValueProvider func() core.KeyerValues
+type KeyerValueProvider func() model.KeyerValues
 
 type Writer interface {
-	WriteKeyer(core.KeyerSettings) error
+	WriteKeyer(model.KeyerSettings) error
 }
 
 // KeyerStoppedListener is notified when the keyer was actively stopped by the user.
@@ -73,7 +73,7 @@ type SerialSentListener interface {
 }
 
 type MacroSentListener interface {
-	MacroSent(vfo core.VFOID, workmode core.Workmode, index int)
+	MacroSent(vfo model.VFOID, workmode model.Workmode, index int)
 }
 
 type Parrot interface {
@@ -82,7 +82,7 @@ type Parrot interface {
 }
 
 // New returns a new Keyer that has no patterns or templates defined yet.
-func New(settings core.Settings, client CWClient, keyerSettings core.KeyerSettings, workmode core.Workmode, presets []core.KeyerPreset) *Keyer {
+func New(settings model.Settings, client CWClient, keyerSettings model.KeyerSettings, workmode model.Workmode, presets []model.KeyerPreset) *Keyer {
 	result := &Keyer{
 		writer:          new(nullWriter),
 		parrot:          new(nullParrot),
@@ -108,7 +108,7 @@ func New(settings core.Settings, client CWClient, keyerSettings core.KeyerSettin
 	return result
 }
 
-func presetNames(presets []core.KeyerPreset) []string {
+func presetNames(presets []model.KeyerPreset) []string {
 	result := make([]string, len(presets))
 	for i, preset := range presets {
 		result[i] = preset.Name
@@ -123,18 +123,18 @@ type Keyer struct {
 	settingsView   SettingsView
 	client         CWClient
 	vfoSwitcher    VFOSwitcher
-	presets        []core.KeyerPreset
+	presets        []model.KeyerPreset
 	presetNames    []string
 	values         KeyerValueProvider
-	savedSettings  core.KeyerSettings
-	selectedPreset *core.KeyerPreset
+	savedSettings  model.KeyerSettings
+	selectedPreset *model.KeyerPreset
 
 	listeners []any
 
-	stationCallsign       core.Callsign
-	focusedVFO            core.VFOID
-	vfoWorkmode           [core.VFOCount]core.Workmode
-	workmode              core.Workmode
+	stationCallsign       model.Callsign
+	focusedVFO            model.VFOID
+	vfoWorkmode           [model.VFOCount]model.Workmode
+	workmode              model.Workmode
 	wpm                   int
 	parrotIntervalSeconds int
 	spLabels              map[int]string
@@ -149,36 +149,36 @@ type Keyer struct {
 	lastTransmission      string
 }
 
-func (k *Keyer) setWorkmode(workmode core.Workmode) {
+func (k *Keyer) setWorkmode(workmode model.Workmode) {
 	k.workmode = workmode
 	switch workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		k.labels = &k.spLabels
 		k.patterns = &k.spPatterns
 		k.templates = &k.spTemplates
-	case core.Run:
+	case model.Run:
 		k.labels = &k.runLabels
 		k.patterns = &k.runPatterns
 		k.templates = &k.runTemplates
 	}
 }
 
-func (k *Keyer) getPatternsByWorkmode(workmode core.Workmode) map[int]string {
+func (k *Keyer) getPatternsByWorkmode(workmode model.Workmode) map[int]string {
 	switch workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		return k.spPatterns
-	case core.Run:
+	case model.Run:
 		return k.runPatterns
 	default:
 		return nil
 	}
 }
 
-func (k *Keyer) getTemplatesByWorkmode(workmode core.Workmode) map[int]*template.Template {
+func (k *Keyer) getTemplatesByWorkmode(workmode model.Workmode) map[int]*template.Template {
 	switch workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		return k.spTemplates
-	case core.Run:
+	case model.Run:
 		return k.runTemplates
 	default:
 		return nil
@@ -210,7 +210,7 @@ func (k *Keyer) SetParrot(parrot Parrot) {
 	k.parrot.SetInterval(time.Duration(k.parrotIntervalSeconds) * time.Second)
 }
 
-func (k *Keyer) SetSettings(settings core.KeyerSettings, presetName string) {
+func (k *Keyer) SetSettings(settings model.KeyerSettings, presetName string) {
 	k.savedSettings = settings
 
 	spLabels := settings.SPLabels
@@ -259,14 +259,14 @@ func (k *Keyer) SetSettings(settings core.KeyerSettings, presetName string) {
 	k.showKeyerSettings()
 }
 
-func (k *Keyer) presetByName(name string) (core.KeyerPreset, bool) {
+func (k *Keyer) presetByName(name string) (model.KeyerPreset, bool) {
 	normalizeName := func(name string) string {
 		return strings.TrimSpace(strings.ToLower(name))
 	}
 
 	name = normalizeName(name)
 	if name == "" {
-		return core.KeyerPreset{}, false
+		return model.KeyerPreset{}, false
 	}
 
 	for _, preset := range k.presets {
@@ -275,7 +275,7 @@ func (k *Keyer) presetByName(name string) (core.KeyerPreset, bool) {
 		}
 	}
 
-	return core.KeyerPreset{}, false
+	return model.KeyerPreset{}, false
 }
 
 func applyPreset(settingsPatterns []string, presetPatterns []string) []string {
@@ -346,21 +346,21 @@ func (k *Keyer) showKeyerSettings() {
 		k.settingsView.SetPreset(k.selectedPreset.Name)
 	}
 	for i, label := range k.spLabels {
-		k.settingsView.SetLabel(core.SearchPounce, i, label)
+		k.settingsView.SetLabel(model.SearchPounce, i, label)
 	}
 	for i, pattern := range k.spPatterns {
-		k.settingsView.SetMacro(core.SearchPounce, i, pattern)
+		k.settingsView.SetMacro(model.SearchPounce, i, pattern)
 	}
 	for i, label := range k.runLabels {
-		k.settingsView.SetLabel(core.Run, i, label)
+		k.settingsView.SetLabel(model.Run, i, label)
 	}
 	for i, pattern := range k.runPatterns {
-		k.settingsView.SetMacro(core.Run, i, pattern)
+		k.settingsView.SetMacro(model.Run, i, pattern)
 	}
 	k.settingsView.SetParrotIntervalSeconds(k.parrotIntervalSeconds)
 }
 
-func (k *Keyer) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+func (k *Keyer) WorkmodeChanged(vfo model.VFOID, workmode model.Workmode) {
 	k.vfoWorkmode[vfo] = workmode
 	if vfo == k.focusedVFO {
 		k.setWorkmode(workmode)
@@ -368,13 +368,13 @@ func (k *Keyer) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
 	}
 }
 
-func (k *Keyer) FocusedVFOChanged(vfo core.VFOID) {
+func (k *Keyer) FocusedVFOChanged(vfo model.VFOID) {
 	k.focusedVFO = vfo
 	k.setWorkmode(k.vfoWorkmode[vfo])
 	k.showPatterns()
 }
 
-func (k *Keyer) StationChanged(station core.Station) {
+func (k *Keyer) StationChanged(station model.Station) {
 	k.stationCallsign = station.Callsign
 }
 
@@ -391,13 +391,13 @@ func (k *Keyer) Save() {
 	k.writer.WriteKeyer(keyer)
 }
 
-func (k *Keyer) KeyerSettings() core.KeyerSettings {
+func (k *Keyer) KeyerSettings() model.KeyerSettings {
 	keyer, _ := k.getKeyerSettings()
 	return keyer
 }
 
-func (k *Keyer) getKeyerSettings() (core.KeyerSettings, bool) {
-	var keyer core.KeyerSettings
+func (k *Keyer) getKeyerSettings() (model.KeyerSettings, bool) {
+	var keyer model.KeyerSettings
 	keyer.WPM = k.wpm
 	keyer.ParrotIntervalSeconds = k.parrotIntervalSeconds
 	keyer.SPLabels = make([]string, len(k.spLabels))
@@ -452,7 +452,7 @@ func (k *Keyer) SelectPreset(name string) {
 	preset := *k.selectedPreset
 	k.settingsView.SetPreset(preset.Name)
 
-	settings := core.KeyerSettings{
+	settings := model.KeyerSettings{
 		WPM:                   k.savedSettings.WPM,
 		ParrotIntervalSeconds: k.savedSettings.ParrotIntervalSeconds,
 		Preset:                name,
@@ -490,11 +490,11 @@ func (k *Keyer) EnterParrotIntervalSeconds(interval int) {
 	k.parrot.SetInterval(time.Duration(k.parrotIntervalSeconds) * time.Second)
 }
 
-func (k *Keyer) EnterLabel(workmode core.Workmode, index int, text string) {
+func (k *Keyer) EnterLabel(workmode model.Workmode, index int, text string) {
 	switch workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		k.spLabels[index] = text
-	case core.Run:
+	case model.Run:
 		k.runLabels[index] = text
 	}
 
@@ -503,7 +503,7 @@ func (k *Keyer) EnterLabel(workmode core.Workmode, index int, text string) {
 	}
 }
 
-func (k *Keyer) EnterMacro(workmode core.Workmode, index int, pattern string) {
+func (k *Keyer) EnterMacro(workmode model.Workmode, index int, pattern string) {
 	t, err := parseTemplate(pattern)
 	if err != nil {
 		k.settingsView.ShowMessage(err)
@@ -512,10 +512,10 @@ func (k *Keyer) EnterMacro(workmode core.Workmode, index int, pattern string) {
 	}
 
 	switch workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		k.spPatterns[index] = pattern
 		k.spTemplates[index] = t
-	case core.Run:
+	case model.Run:
 		k.runPatterns[index] = pattern
 		k.runTemplates[index] = t
 	}
@@ -530,9 +530,9 @@ func (k *Keyer) EnterMacro(workmode core.Workmode, index int, pattern string) {
 
 	presetPattern := ""
 	switch workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		presetPattern = k.selectedPreset.SPMacros[index]
-	case core.Run:
+	case model.Run:
 		presetPattern = k.selectedPreset.RunMacros[index]
 	}
 
@@ -558,9 +558,9 @@ func (k *Keyer) EnterPattern(index int, pattern string) {
 
 	presetPattern := ""
 	switch k.workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		presetPattern = k.selectedPreset.SPMacros[index]
-	case core.Run:
+	case model.Run:
 		presetPattern = k.selectedPreset.RunMacros[index]
 	}
 
@@ -574,7 +574,7 @@ func (k *Keyer) GetPattern(index int) string {
 	return (*k.patterns)[index]
 }
 
-func (k *Keyer) GetText(workmode core.Workmode, index int) (string, error) {
+func (k *Keyer) GetText(workmode model.Workmode, index int) (string, error) {
 	buffer := bytes.NewBufferString("")
 	templates := k.getTemplatesByWorkmode(workmode)
 	template, ok := templates[index]
@@ -614,17 +614,17 @@ func (k *Keyer) SendMacro(index int) {
 	k.SendWithWorkmode(k.workmode, index)
 }
 
-func (k *Keyer) SendWithWorkmode(workmode core.Workmode, index int) {
+func (k *Keyer) SendWithWorkmode(workmode model.Workmode, index int) {
 	k.ensureFocusedVFO()
 	k.sendMessage(k.focusedVFO, workmode, index)
 }
 
-func (k *Keyer) SendWithWorkmodeOnVFO(vfo core.VFOID, workmode core.Workmode, index int) {
+func (k *Keyer) SendWithWorkmodeOnVFO(vfo model.VFOID, workmode model.Workmode, index int) {
 	k.vfoSwitcher.SetTXVFO(vfo)
 	k.sendMessage(vfo, workmode, index)
 }
 
-func (k *Keyer) sendMessage(vfo core.VFOID, workmode core.Workmode, index int) {
+func (k *Keyer) sendMessage(vfo model.VFOID, workmode model.Workmode, index int) {
 	message, err := k.GetText(workmode, index)
 	if err != nil {
 		k.buttonView.ShowMessage(err)
@@ -698,31 +698,31 @@ func (k *Keyer) Notify(listener any) {
 }
 
 func (k *Keyer) emitKeyerStopped() {
-	core.Emit(k.listeners, func(l KeyerStoppedListener) {
+	model.Emit(k.listeners, func(l KeyerStoppedListener) {
 		l.KeyerStopped()
 	})
 }
 
-func (k *Keyer) emitTransmissionStarted(vfo core.VFOID) {
-	core.Emit(k.listeners, func(l core.TransmissionStartedListener) {
+func (k *Keyer) emitTransmissionStarted(vfo model.VFOID) {
+	model.Emit(k.listeners, func(l model.TransmissionStartedListener) {
 		l.TransmissionStarted(vfo)
 	})
 }
 
 func (k *Keyer) emitKeyerTransmission(s string) {
-	core.Emit(k.listeners, func(l TransmissionListener) {
+	model.Emit(k.listeners, func(l TransmissionListener) {
 		l.KeyerTransmission(s)
 	})
 }
 
-func (k *Keyer) emitMacroSent(vfo core.VFOID, workmode core.Workmode, index int) {
-	core.Emit(k.listeners, func(l MacroSentListener) {
+func (k *Keyer) emitMacroSent(vfo model.VFOID, workmode model.Workmode, index int) {
+	model.Emit(k.listeners, func(l MacroSentListener) {
 		l.MacroSent(vfo, workmode, index)
 	})
 }
 
 func (k *Keyer) emitSerialSent() {
-	core.Emit(k.listeners, func(l SerialSentListener) {
+	model.Emit(k.listeners, func(l SerialSentListener) {
 		l.SerialSent()
 	})
 }
@@ -813,13 +813,13 @@ func pad(length int, value string) string {
 	return result
 }
 
-func noValues() core.KeyerValues {
-	return core.KeyerValues{}
+func noValues() model.KeyerValues {
+	return model.KeyerValues{}
 }
 
 type nullWriter struct{}
 
-func (*nullWriter) WriteKeyer(core.KeyerSettings) error { return nil }
+func (*nullWriter) WriteKeyer(model.KeyerSettings) error { return nil }
 
 type nullClient struct{}
 

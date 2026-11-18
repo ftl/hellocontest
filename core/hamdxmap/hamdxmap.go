@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ftl/godxmap"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type mapServer interface {
@@ -57,11 +57,11 @@ func (m *HamDXMap) WhenStopped(callback func()) {
 	}()
 }
 
-func (m *HamDXMap) CallsignEntered(_ core.VFOID, callsign string) {
+func (m *HamDXMap) CallsignEntered(_ model.VFOID, callsign string) {
 	m.server.ShowPartialCall(callsign)
 }
 
-func (m *HamDXMap) CallsignLogged(callsign string, frequency core.Frequency) {
+func (m *HamDXMap) CallsignLogged(callsign string, frequency model.Frequency) {
 	m.server.ShowLoggedCall(callsign, float64(frequency/1000.0))
 }
 

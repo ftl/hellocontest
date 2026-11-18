@@ -3,7 +3,7 @@ package parse
 import (
 	"testing"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestRST(t *testing.T) {
@@ -11,7 +11,7 @@ func TestRST(t *testing.T) {
 		desc     string
 		value    string
 		valid    bool
-		expected core.RST
+		expected model.RST
 	}{
 		{"valid CW report", "599", true, "599"},
 		{"valid SSB report", "59", true, "59"},

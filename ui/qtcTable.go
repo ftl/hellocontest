@@ -5,7 +5,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type qtcTable struct {
@@ -33,7 +33,7 @@ func newQTCTable() *qtcTable {
 	return t
 }
 
-func (t *qtcTable) QTCAdded(qtc core.QTC) {
+func (t *qtcTable) QTCAdded(qtc model.QTC) {
 	row := t.model.RowCount(gc(qtlib.NewQModelIndex()))
 	items := []*qtlib.QStandardItem{
 		qtlib.NewQStandardItem2(qtc.Timestamp.In(time.UTC).Format("15:04")),

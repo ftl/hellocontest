@@ -10,46 +10,46 @@ import (
 	"github.com/ftl/hamradio/locator"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestQsoLine(t *testing.T) {
 	template := template.Must(template.New("").Parse("{{.QRG}} {{.Mode}} {{.Date}} {{.Time}} {{.MyCall}} {{.MyExchange}} {{.TheirCall}} {{.TheirExchange}}"))
-	myCall, _ := core.ParseCallsign("AA1ZZZ")
-	theirCall, _ := core.ParseCallsign("S50A")
+	myCall, _ := model.ParseCallsign("AA1ZZZ")
+	theirCall, _ := model.ParseCallsign("S50A")
 	testCases := []struct {
 		desc     string
-		qso      core.QSO
+		qso      model.QSO
 		expected string
 	}{
 		{
 			desc: "40m CW",
-			qso: core.QSO{
+			qso: model.QSO{
 				Callsign:      theirCall,
 				Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
-				Band:          core.Band40m,
-				Mode:          core.ModeCW,
-				MyReport:      core.RST("599"),
-				MyNumber:      core.QSONumber(1),
+				Band:          model.Band40m,
+				Mode:          model.ModeCW,
+				MyReport:      model.RST("599"),
+				MyNumber:      model.QSONumber(1),
 				MyExchange:    []string{"599", "001", "ABC"},
-				TheirReport:   core.RST("589"),
-				TheirNumber:   core.QSONumber(4),
+				TheirReport:   model.RST("589"),
+				TheirNumber:   model.QSONumber(4),
 				TheirExchange: []string{"589", "004", "DEF"},
 			},
 			expected: "QSO: 7000 CW 2009-05-30 0002 AA1ZZZ 599 001 ABC S50A 589 004 DEF\n",
 		},
 		{
 			desc: "20m SSB",
-			qso: core.QSO{
+			qso: model.QSO{
 				Callsign:      theirCall,
 				Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
-				Band:          core.Band20m,
-				Mode:          core.ModeSSB,
-				MyReport:      core.RST("59"),
-				MyNumber:      core.QSONumber(1),
+				Band:          model.Band20m,
+				Mode:          model.ModeSSB,
+				MyReport:      model.RST("59"),
+				MyNumber:      model.QSONumber(1),
 				MyExchange:    []string{"59", "001", "XXX"},
-				TheirReport:   core.RST("58"),
-				TheirNumber:   core.QSONumber(4),
+				TheirReport:   model.RST("58"),
+				TheirNumber:   model.QSONumber(4),
 				TheirExchange: []string{"58", "004", "YYY"},
 			},
 			expected: "QSO: 14000 PH 2009-05-30 0002 AA1ZZZ 59 001 XXX S50A 58 004 YYY\n",
@@ -73,30 +73,30 @@ func TestExport(t *testing.T) {
 		stationLocator:    "AA00AA",
 		contestIdentifier: "HELLO-CONTEST-CABRILLO-TEST",
 	}
-	theirCall := core.MustParseCallsign("S50A")
-	qso := core.QSO{
+	theirCall := model.MustParseCallsign("S50A")
+	qso := model.QSO{
 		Callsign:      theirCall,
 		Time:          time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
-		Band:          core.Band40m,
-		Mode:          core.ModeCW,
-		MyReport:      core.RST("599"),
-		MyNumber:      core.QSONumber(1),
+		Band:          model.Band40m,
+		Mode:          model.ModeCW,
+		MyReport:      model.RST("599"),
+		MyNumber:      model.QSONumber(1),
 		MyExchange:    []string{"599", "001", "ABC"},
-		TheirReport:   core.RST("589"),
-		TheirNumber:   core.QSONumber(4),
+		TheirReport:   model.RST("589"),
+		TheirNumber:   model.QSONumber(4),
 		TheirExchange: []string{"589", "004", "DEF"},
 	}
-	qtc := core.QTC{
-		Kind:          core.SentQTC,
+	qtc := model.QTC{
+		Kind:          model.SentQTC,
 		QSONumber:     1,
 		TheirCallsign: theirCall,
-		Header:        core.QTCHeader{SeriesNumber: 321, QTCCount: 1},
+		Header:        model.QTCHeader{SeriesNumber: 321, QTCCount: 1},
 		Timestamp:     time.Date(2009, time.May, 30, 0, 2, 0, 0, time.UTC),
 		Frequency:     7020000,
-		Band:          core.Band40m,
-		Mode:          core.ModeCW,
-		QTCTime:       core.QTCTime{Hour: 12, Minute: 34},
-		QTCCallsign:   core.MustParseCallsign("DL1ABC"),
+		Band:          model.Band40m,
+		Mode:          model.ModeCW,
+		QTCTime:       model.QTCTime{Hour: 12, Minute: 34},
+		QTCCallsign:   model.MustParseCallsign("DL1ABC"),
 		QTCNumber:     5,
 	}
 
@@ -113,7 +113,7 @@ QTC:  7020 CW 2009-05-30 0002 S50A 321/1 AA1ZZZ 1234 DL1ABC 005
 END-OF-LOG:
 `
 
-	export := createCabrilloLog(settings, 123, []core.QSO{qso}, []core.QTC{qtc})
+	export := createCabrilloLog(settings, 123, []model.QSO{qso}, []model.QTC{qtc})
 	Export(buffer, export)
 
 	assert.Equal(t, expected, buffer.String())
@@ -126,17 +126,17 @@ type testSettings struct {
 	contestIdentifier string
 }
 
-func (s *testSettings) Station() core.Station {
+func (s *testSettings) Station() model.Station {
 	loc, _ := locator.Parse(s.stationLocator)
-	return core.Station{
-		Callsign: core.MustParseCallsign(s.stationCallsign),
-		Operator: core.MustParseCallsign(s.stationOperator),
+	return model.Station{
+		Callsign: model.MustParseCallsign(s.stationCallsign),
+		Operator: model.MustParseCallsign(s.stationOperator),
 		Locator:  loc,
 	}
 }
 
-func (s *testSettings) Contest() core.Contest {
-	return core.Contest{
+func (s *testSettings) Contest() model.Contest {
+	return model.Contest{
 		Definition: &conval.Definition{
 			Identifier: conval.ContestIdentifier(s.contestIdentifier),
 		},

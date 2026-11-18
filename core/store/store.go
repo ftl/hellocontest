@@ -10,7 +10,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type latestFormat = v1Format
@@ -38,7 +38,7 @@ func (f *FileStore) Exists() bool {
 	return true
 }
 
-func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, []core.QTC, error) {
+func (f *FileStore) ReadAll() ([]model.QSO, *model.Station, *model.Contest, *model.KeyerSettings, []model.QTC, error) {
 	b, err := os.ReadFile(f.filename)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -50,7 +50,7 @@ func (f *FileStore) ReadAll() ([]core.QSO, *core.Station, *core.Contest, *core.K
 	return f.format.ReadAll(pbReader)
 }
 
-func (f *FileStore) WriteQSO(qso core.QSO) error {
+func (f *FileStore) WriteQSO(qso model.QSO) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func (f *FileStore) WriteQSO(qso core.QSO) error {
 	return f.format.WriteQSO(&pbReadWriter{writer: file}, qso)
 }
 
-func (f *FileStore) WriteStation(station core.Station) error {
+func (f *FileStore) WriteStation(station model.Station) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (f *FileStore) WriteStation(station core.Station) error {
 	return f.format.WriteStation(&pbReadWriter{writer: file}, station)
 }
 
-func (f *FileStore) WriteContest(contest core.Contest) error {
+func (f *FileStore) WriteContest(contest model.Contest) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func (f *FileStore) WriteContest(contest core.Contest) error {
 	return f.format.WriteContest(&pbReadWriter{writer: file}, contest)
 }
 
-func (f *FileStore) WriteKeyer(keyer core.KeyerSettings) error {
+func (f *FileStore) WriteKeyer(keyer model.KeyerSettings) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (f *FileStore) WriteKeyer(keyer core.KeyerSettings) error {
 	return f.format.WriteKeyer(&pbReadWriter{writer: file}, keyer)
 }
 
-func (f *FileStore) WriteQTC(qtc core.QTC) error {
+func (f *FileStore) WriteQTC(qtc model.QTC) error {
 	file, err := os.OpenFile(f.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

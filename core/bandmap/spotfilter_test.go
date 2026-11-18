@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestSpotFilter_DefaultState(t *testing.T) {
@@ -15,19 +15,19 @@ func TestSpotFilter_DefaultState(t *testing.T) {
 
 	state := filter.State()
 
-	assert.Equal(t, core.SpotFilterFocused, state.Band.Kind, "band follows the focused VFO")
-	assert.Equal(t, core.SpotFilterFocused, state.Mode.Kind, "mode follows the focused VFO")
-	assert.Equal(t, core.SortSpotsByFrequency, state.SortBy)
+	assert.Equal(t, model.SpotFilterFocused, state.Band.Kind, "band follows the focused VFO")
+	assert.Equal(t, model.SpotFilterFocused, state.Mode.Kind, "mode follows the focused VFO")
+	assert.Equal(t, model.SortSpotsByFrequency, state.SortBy)
 	assert.False(t, state.Descending)
 	assert.False(t, state.Folded)
 }
 
 func TestSpotFilter_RestoresTheStoredState(t *testing.T) {
 	store := newSpotFilterStoreStub()
-	stored := core.SpotFilterState{
-		Band:       core.FixedSpotFilterBand(core.Band20m),
-		Mode:       core.FixedSpotFilterMode(core.ModeCW),
-		SortBy:     core.SortSpotsByValue,
+	stored := model.SpotFilterState{
+		Band:       model.FixedSpotFilterBand(model.Band20m),
+		Mode:       model.FixedSpotFilterMode(model.ModeCW),
+		SortBy:     model.SortSpotsByValue,
 		Descending: true,
 		Folded:     true,
 	}
@@ -41,16 +41,16 @@ func TestSpotFilter_RestoresTheStoredState(t *testing.T) {
 func TestSpotFilter_StoresEveryChange(t *testing.T) {
 	filter, store := setupSpotFilter()
 
-	filter.SetBand(core.FixedSpotFilterBand(core.Band40m))
-	filter.SetMode(core.FixedSpotFilterMode(core.ModeSSB))
-	filter.SetSort(core.SortSpotsByLastSeen, true)
+	filter.SetBand(model.FixedSpotFilterBand(model.Band40m))
+	filter.SetMode(model.FixedSpotFilterMode(model.ModeSSB))
+	filter.SetSort(model.SortSpotsByLastSeen, true)
 	filter.SetFolded(true)
 
 	stored, ok := store.states[MainSpotFilterID]
 	require.True(t, ok)
-	assert.Equal(t, core.FixedSpotFilterBand(core.Band40m), stored.Band)
-	assert.Equal(t, core.FixedSpotFilterMode(core.ModeSSB), stored.Mode)
-	assert.Equal(t, core.SortSpotsByLastSeen, stored.SortBy)
+	assert.Equal(t, model.FixedSpotFilterBand(model.Band40m), stored.Band)
+	assert.Equal(t, model.FixedSpotFilterMode(model.ModeSSB), stored.Mode)
+	assert.Equal(t, model.SortSpotsByLastSeen, stored.SortBy)
 	assert.True(t, stored.Descending)
 	assert.True(t, stored.Folded)
 }
@@ -60,13 +60,13 @@ func TestSpotFilter_NotifiesAboutRelevantChanges(t *testing.T) {
 	changes := 0
 	filter.OnChanged(func() { changes++ })
 
-	filter.SetBand(core.FixedSpotFilterBand(core.Band40m))
+	filter.SetBand(model.FixedSpotFilterBand(model.Band40m))
 	assert.Equal(t, 1, changes, "a new band changes the content")
 
-	filter.SetMode(core.FixedSpotFilterMode(core.ModeSSB))
+	filter.SetMode(model.FixedSpotFilterMode(model.ModeSSB))
 	assert.Equal(t, 2, changes, "a new mode changes the content")
 
-	filter.SetSort(core.SortSpotsByValue, true)
+	filter.SetSort(model.SortSpotsByValue, true)
 	assert.Equal(t, 3, changes, "a new order changes the content")
 
 	filter.SetFolded(true)
@@ -75,115 +75,115 @@ func TestSpotFilter_NotifiesAboutRelevantChanges(t *testing.T) {
 
 func TestSpotFilter_NotifiesOnlyOnResolvedChanges(t *testing.T) {
 	filter, _ := setupSpotFilter()
-	filter.SetBand(core.SpotFilterBand{Kind: core.SpotFilterVFO1})
+	filter.SetBand(model.SpotFilterBand{Kind: model.SpotFilterVFO1})
 	changes := 0
 	filter.OnChanged(func() { changes++ })
 
-	filter.VFOBandChanged(core.VFO1, core.Band40m)
+	filter.VFOBandChanged(model.VFO1, model.Band40m)
 	assert.Equal(t, 1, changes, "the band of VFO1 is the resolved band")
 
-	filter.VFOBandChanged(core.VFO1, core.Band40m)
+	filter.VFOBandChanged(model.VFO1, model.Band40m)
 	assert.Equal(t, 1, changes, "the same band again resolves to the same band")
 
-	filter.VFOBandChanged(core.VFO2, core.Band20m)
+	filter.VFOBandChanged(model.VFO2, model.Band20m)
 	assert.Equal(t, 1, changes, "the band of VFO2 does not matter here")
 
-	filter.FocusedVFOChanged(core.VFO2)
+	filter.FocusedVFOChanged(model.VFO2)
 	assert.Equal(t, 1, changes, "the focus does not matter here")
 }
 
 func TestSpotFilter_Matches(t *testing.T) {
 	tt := []struct {
 		desc          string
-		band          core.SpotFilterBand
-		mode          core.SpotFilterMode
+		band          model.SpotFilterBand
+		mode          model.SpotFilterMode
 		vfo2Available bool
-		entry         core.BandmapEntry
+		entry         model.BandmapEntry
 		want          bool
 	}{
 		{
 			desc:  "all bands and all modes",
-			band:  core.SpotFilterBand{Kind: core.SpotFilterAll},
-			mode:  core.SpotFilterMode{Kind: core.SpotFilterAll},
-			entry: core.BandmapEntry{Band: core.Band10m, Mode: core.ModeFM},
+			band:  model.SpotFilterBand{Kind: model.SpotFilterAll},
+			mode:  model.SpotFilterMode{Kind: model.SpotFilterAll},
+			entry: model.BandmapEntry{Band: model.Band10m, Mode: model.ModeFM},
 			want:  true,
 		},
 		{
 			desc:  "fixed band matches",
-			band:  core.FixedSpotFilterBand(core.Band40m),
-			mode:  core.SpotFilterMode{Kind: core.SpotFilterAll},
-			entry: core.BandmapEntry{Band: core.Band40m, Mode: core.ModeCW},
+			band:  model.FixedSpotFilterBand(model.Band40m),
+			mode:  model.SpotFilterMode{Kind: model.SpotFilterAll},
+			entry: model.BandmapEntry{Band: model.Band40m, Mode: model.ModeCW},
 			want:  true,
 		},
 		{
 			desc:  "fixed band does not match",
-			band:  core.FixedSpotFilterBand(core.Band40m),
-			mode:  core.SpotFilterMode{Kind: core.SpotFilterAll},
-			entry: core.BandmapEntry{Band: core.Band20m, Mode: core.ModeCW},
+			band:  model.FixedSpotFilterBand(model.Band40m),
+			mode:  model.SpotFilterMode{Kind: model.SpotFilterAll},
+			entry: model.BandmapEntry{Band: model.Band20m, Mode: model.ModeCW},
 			want:  false,
 		},
 		{
 			desc:  "fixed mode does not match",
-			band:  core.SpotFilterBand{Kind: core.SpotFilterAll},
-			mode:  core.FixedSpotFilterMode(core.ModeCW),
-			entry: core.BandmapEntry{Band: core.Band40m, Mode: core.ModeSSB},
+			band:  model.SpotFilterBand{Kind: model.SpotFilterAll},
+			mode:  model.FixedSpotFilterMode(model.ModeCW),
+			entry: model.BandmapEntry{Band: model.Band40m, Mode: model.ModeSSB},
 			want:  false,
 		},
 		{
 			desc:  "band of VFO1",
-			band:  core.SpotFilterBand{Kind: core.SpotFilterVFO1},
-			mode:  core.SpotFilterMode{Kind: core.SpotFilterAll},
-			entry: core.BandmapEntry{Band: core.Band40m, Mode: core.ModeCW},
+			band:  model.SpotFilterBand{Kind: model.SpotFilterVFO1},
+			mode:  model.SpotFilterMode{Kind: model.SpotFilterAll},
+			entry: model.BandmapEntry{Band: model.Band40m, Mode: model.ModeCW},
 			want:  true,
 		},
 		{
 			desc:          "band of VFO2",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterVFO2},
-			mode:          core.SpotFilterMode{Kind: core.SpotFilterAll},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterVFO2},
+			mode:          model.SpotFilterMode{Kind: model.SpotFilterAll},
 			vfo2Available: true,
-			entry:         core.BandmapEntry{Band: core.Band20m, Mode: core.ModeSSB},
+			entry:         model.BandmapEntry{Band: model.Band20m, Mode: model.ModeSSB},
 			want:          true,
 		},
 		{
 			desc:  "band of VFO2 falls back to VFO1 without a second VFO",
-			band:  core.SpotFilterBand{Kind: core.SpotFilterVFO2},
-			mode:  core.SpotFilterMode{Kind: core.SpotFilterAll},
-			entry: core.BandmapEntry{Band: core.Band40m, Mode: core.ModeCW},
+			band:  model.SpotFilterBand{Kind: model.SpotFilterVFO2},
+			mode:  model.SpotFilterMode{Kind: model.SpotFilterAll},
+			entry: model.BandmapEntry{Band: model.Band40m, Mode: model.ModeCW},
 			want:  true,
 		},
 		{
 			desc:          "band of the focused VFO",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterFocused},
-			mode:          core.SpotFilterMode{Kind: core.SpotFilterFocused},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterFocused},
+			mode:          model.SpotFilterMode{Kind: model.SpotFilterFocused},
 			vfo2Available: true,
-			entry:         core.BandmapEntry{Band: core.Band40m, Mode: core.ModeCW},
+			entry:         model.BandmapEntry{Band: model.Band40m, Mode: model.ModeCW},
 			want:          true,
 		},
 		{
 			desc:  "contest band",
-			band:  core.SpotFilterBand{Kind: core.SpotFilterContest},
-			mode:  core.SpotFilterMode{Kind: core.SpotFilterAll},
-			entry: core.BandmapEntry{Band: core.Band20m, Mode: core.ModeCW},
+			band:  model.SpotFilterBand{Kind: model.SpotFilterContest},
+			mode:  model.SpotFilterMode{Kind: model.SpotFilterAll},
+			entry: model.BandmapEntry{Band: model.Band20m, Mode: model.ModeCW},
 			want:  true,
 		},
 		{
 			desc:  "band outside the contest",
-			band:  core.SpotFilterBand{Kind: core.SpotFilterContest},
-			mode:  core.SpotFilterMode{Kind: core.SpotFilterAll},
-			entry: core.BandmapEntry{Band: core.Band10m, Mode: core.ModeCW},
+			band:  model.SpotFilterBand{Kind: model.SpotFilterContest},
+			mode:  model.SpotFilterMode{Kind: model.SpotFilterAll},
+			entry: model.BandmapEntry{Band: model.Band10m, Mode: model.ModeCW},
 			want:  false,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			filter, _ := setupSpotFilter()
-			filter.SetContestBandsAndModes([]core.Band{core.Band40m, core.Band20m}, []core.Mode{core.ModeCW})
+			filter.SetContestBandsAndModes([]model.Band{model.Band40m, model.Band20m}, []model.Mode{model.ModeCW})
 			filter.RadioChanged("radio", !tc.vfo2Available)
-			filter.VFOBandChanged(core.VFO1, core.Band40m)
-			filter.VFOModeChanged(core.VFO1, core.ModeCW)
-			filter.VFOBandChanged(core.VFO2, core.Band20m)
-			filter.VFOModeChanged(core.VFO2, core.ModeSSB)
-			filter.FocusedVFOChanged(core.VFO1)
+			filter.VFOBandChanged(model.VFO1, model.Band40m)
+			filter.VFOModeChanged(model.VFO1, model.ModeCW)
+			filter.VFOBandChanged(model.VFO2, model.Band20m)
+			filter.VFOModeChanged(model.VFO2, model.ModeSSB)
+			filter.FocusedVFOChanged(model.VFO1)
 			filter.SetBand(tc.band)
 			filter.SetMode(tc.mode)
 
@@ -195,15 +195,15 @@ func TestSpotFilter_Matches(t *testing.T) {
 func TestSpotFilter_MatchesEverythingWhileUnresolved(t *testing.T) {
 	filter, _ := setupSpotFilter()
 
-	assert.True(t, filter.Matches(core.BandmapEntry{Band: core.Band10m, Mode: core.ModeFM}), "no radio, no restriction")
+	assert.True(t, filter.Matches(model.BandmapEntry{Band: model.Band10m, Mode: model.ModeFM}), "no radio, no restriction")
 }
 
 func TestSpotFilter_Order(t *testing.T) {
 	now := time.Now()
-	low := core.BandmapEntry{ID: 1, Call: core.MustParseCallsign("dl1abc"), Frequency: 3500000, LastHeard: now.Add(-time.Minute), Info: core.Callinfo{WeightedValue: 1}}
-	high := core.BandmapEntry{ID: 2, Call: core.MustParseCallsign("dl2abc"), Frequency: 7000000, LastHeard: now, Info: core.Callinfo{WeightedValue: 9}}
+	low := model.BandmapEntry{ID: 1, Call: model.MustParseCallsign("dl1abc"), Frequency: 3500000, LastHeard: now.Add(-time.Minute), Info: model.Callinfo{WeightedValue: 1}}
+	high := model.BandmapEntry{ID: 2, Call: model.MustParseCallsign("dl2abc"), Frequency: 7000000, LastHeard: now, Info: model.Callinfo{WeightedValue: 9}}
 
-	for _, column := range core.SpotSortColumns {
+	for _, column := range model.SpotSortColumns {
 		t.Run(column.String(), func(t *testing.T) {
 			filter, _ := setupSpotFilter()
 
@@ -219,113 +219,113 @@ func TestSpotFilter_Order(t *testing.T) {
 func TestSpotFilter_TargetVFO(t *testing.T) {
 	tt := []struct {
 		desc          string
-		band          core.SpotFilterBand
+		band          model.SpotFilterBand
 		vfo2Available bool
-		vfo1Band      core.Band
-		vfo2Band      core.Band
-		focusedVFO    core.VFOID
-		entryBand     core.Band
-		want          core.VFOID
+		vfo1Band      model.Band
+		vfo2Band      model.Band
+		focusedVFO    model.VFOID
+		entryBand     model.Band
+		want          model.VFOID
 	}{
 		{
 			desc:          "band bound to VFO1",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterVFO1},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterVFO1},
 			vfo2Available: true,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO2,
-			entryBand:     core.Band40m,
-			want:          core.VFO1,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO2,
+			entryBand:     model.Band40m,
+			want:          model.VFO1,
 		},
 		{
 			desc:          "band bound to VFO2",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterVFO2},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterVFO2},
 			vfo2Available: true,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO1,
-			entryBand:     core.Band20m,
-			want:          core.VFO2,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO1,
+			entryBand:     model.Band20m,
+			want:          model.VFO2,
 		},
 		{
 			desc:       "band bound to VFO2 without a second VFO",
-			band:       core.SpotFilterBand{Kind: core.SpotFilterVFO2},
-			vfo1Band:   core.Band40m,
-			focusedVFO: core.VFO1,
-			entryBand:  core.Band20m,
-			want:       core.VFO1,
+			band:       model.SpotFilterBand{Kind: model.SpotFilterVFO2},
+			vfo1Band:   model.Band40m,
+			focusedVFO: model.VFO1,
+			entryBand:  model.Band20m,
+			want:       model.VFO1,
 		},
 		{
 			desc:          "band bound to the focused VFO",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterFocused},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterFocused},
 			vfo2Available: true,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO2,
-			entryBand:     core.Band20m,
-			want:          core.VFO2,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO2,
+			entryBand:     model.Band20m,
+			want:          model.VFO2,
 		},
 		{
 			desc:          "free band, the spot is on the band of VFO2",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterAll},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterAll},
 			vfo2Available: true,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO1,
-			entryBand:     core.Band20m,
-			want:          core.VFO2,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO1,
+			entryBand:     model.Band20m,
+			want:          model.VFO2,
 		},
 		{
 			desc:          "free band, the spot is on the band of VFO1",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterAll},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterAll},
 			vfo2Available: true,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO2,
-			entryBand:     core.Band40m,
-			want:          core.VFO1,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO2,
+			entryBand:     model.Band40m,
+			want:          model.VFO1,
 		},
 		{
 			desc:          "free band, both VFOs on the band of the spot",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterAll},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterAll},
 			vfo2Available: true,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band40m,
-			focusedVFO:    core.VFO2,
-			entryBand:     core.Band40m,
-			want:          core.VFO2,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band40m,
+			focusedVFO:    model.VFO2,
+			entryBand:     model.Band40m,
+			want:          model.VFO2,
 		},
 		{
 			desc:          "free band, no VFO on the band of the spot",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterAll},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterAll},
 			vfo2Available: true,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO2,
-			entryBand:     core.Band15m,
-			want:          core.VFO2,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO2,
+			entryBand:     model.Band15m,
+			want:          model.VFO2,
 		},
 		{
 			desc:          "free band, the spot is on the band of the unavailable VFO2",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterAll},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterAll},
 			vfo2Available: false,
-			vfo1Band:      core.Band40m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO1,
-			entryBand:     core.Band20m,
-			want:          core.VFO1,
+			vfo1Band:      model.Band40m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO1,
+			entryBand:     model.Band20m,
+			want:          model.VFO1,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			filter, _ := setupSpotFilter()
 			filter.RadioChanged("radio", !tc.vfo2Available)
-			filter.VFOBandChanged(core.VFO1, tc.vfo1Band)
-			filter.VFOBandChanged(core.VFO2, tc.vfo2Band)
+			filter.VFOBandChanged(model.VFO1, tc.vfo1Band)
+			filter.VFOBandChanged(model.VFO2, tc.vfo2Band)
 			filter.FocusedVFOChanged(tc.focusedVFO)
 			filter.SetBand(tc.band)
 
-			assert.Equal(t, tc.want, filter.TargetVFO(core.BandmapEntry{Band: tc.entryBand}))
+			assert.Equal(t, tc.want, filter.TargetVFO(model.BandmapEntry{Band: tc.entryBand}))
 		})
 	}
 }
@@ -333,14 +333,14 @@ func TestSpotFilter_TargetVFO(t *testing.T) {
 func TestSpotFilter_TargetVFOForBand_FollowsTheRulesOfASpot(t *testing.T) {
 	filter, _ := setupSpotFilter()
 	filter.RadioChanged("radio", false)
-	filter.VFOBandChanged(core.VFO1, core.Band80m)
-	filter.VFOBandChanged(core.VFO2, core.Band20m)
-	filter.FocusedVFOChanged(core.VFO1)
-	filter.SetBand(core.SpotFilterBand{Kind: core.SpotFilterAll})
+	filter.VFOBandChanged(model.VFO1, model.Band80m)
+	filter.VFOBandChanged(model.VFO2, model.Band20m)
+	filter.FocusedVFOChanged(model.VFO1)
+	filter.SetBand(model.SpotFilterBand{Kind: model.SpotFilterAll})
 
-	for _, band := range []core.Band{core.Band80m, core.Band20m, core.Band15m} {
+	for _, band := range []model.Band{model.Band80m, model.Band20m, model.Band15m} {
 		t.Run(string(band), func(t *testing.T) {
-			assert.Equal(t, filter.TargetVFO(core.BandmapEntry{Band: band}), filter.TargetVFOForBand(band))
+			assert.Equal(t, filter.TargetVFO(model.BandmapEntry{Band: band}), filter.TargetVFOForBand(band))
 		})
 	}
 }
@@ -348,53 +348,53 @@ func TestSpotFilter_TargetVFOForBand_FollowsTheRulesOfASpot(t *testing.T) {
 func TestSpotFilter_TargetVFOForMarker(t *testing.T) {
 	tt := []struct {
 		desc          string
-		band          core.SpotFilterBand
+		band          model.SpotFilterBand
 		vfo2Available bool
-		markerBand    core.Band
-		want          core.VFOID
+		markerBand    model.Band
+		want          model.VFOID
 	}{
 		{
 			desc:          "the other VFO is on the band of the marker",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterFocused},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterFocused},
 			vfo2Available: true,
-			markerBand:    core.Band20m,
-			want:          core.VFO2,
+			markerBand:    model.Band20m,
+			want:          model.VFO2,
 		},
 		{
 			desc:          "the focused VFO is on the band of the marker",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterFocused},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterFocused},
 			vfo2Available: true,
-			markerBand:    core.Band80m,
-			want:          core.VFO1,
+			markerBand:    model.Band80m,
+			want:          model.VFO1,
 		},
 		{
 			desc:          "no VFO is on the band of the marker",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterAll},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterAll},
 			vfo2Available: true,
-			markerBand:    core.Band15m,
-			want:          core.VFO1,
+			markerBand:    model.Band15m,
+			want:          model.VFO1,
 		},
 		{
 			desc:          "the band selection binds the list to VFO1",
-			band:          core.SpotFilterBand{Kind: core.SpotFilterVFO1},
+			band:          model.SpotFilterBand{Kind: model.SpotFilterVFO1},
 			vfo2Available: true,
-			markerBand:    core.Band20m,
-			want:          core.VFO2,
+			markerBand:    model.Band20m,
+			want:          model.VFO2,
 		},
 		{
 			desc:       "without a second VFO",
-			band:       core.SpotFilterBand{Kind: core.SpotFilterAll},
-			markerBand: core.Band20m,
-			want:       core.VFO1,
+			band:       model.SpotFilterBand{Kind: model.SpotFilterAll},
+			markerBand: model.Band20m,
+			want:       model.VFO1,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			filter, _ := setupSpotFilter()
 			filter.RadioChanged("radio", !tc.vfo2Available)
-			filter.VFOBandChanged(core.VFO1, core.Band80m)
-			filter.VFOBandChanged(core.VFO2, core.Band20m)
-			filter.FocusedVFOChanged(core.VFO1)
+			filter.VFOBandChanged(model.VFO1, model.Band80m)
+			filter.VFOBandChanged(model.VFO2, model.Band20m)
+			filter.FocusedVFOChanged(model.VFO1)
 			filter.SetBand(tc.band)
 
 			assert.Equal(t, tc.want, filter.TargetVFOForMarker(tc.markerBand),
@@ -406,39 +406,39 @@ func TestSpotFilter_TargetVFOForMarker(t *testing.T) {
 func TestSpotFilter_FrameDescription(t *testing.T) {
 	tt := []struct {
 		desc string
-		band core.SpotFilterBand
-		mode core.SpotFilterMode
-		sort core.SpotSortColumn
+		band model.SpotFilterBand
+		mode model.SpotFilterMode
+		sort model.SpotSortColumn
 		down bool
 		want string
 	}{
 		{
 			desc: "focused VFO",
-			band: core.SpotFilterBand{Kind: core.SpotFilterFocused},
-			mode: core.SpotFilterMode{Kind: core.SpotFilterFocused},
-			sort: core.SortSpotsByFrequency,
+			band: model.SpotFilterBand{Kind: model.SpotFilterFocused},
+			mode: model.SpotFilterMode{Kind: model.SpotFilterFocused},
+			sort: model.SortSpotsByFrequency,
 			want: "Focused VFO (40m) · Focused VFO (CW) · by Frequency ↑",
 		},
 		{
 			desc: "all bands, fixed mode, descending",
-			band: core.SpotFilterBand{Kind: core.SpotFilterAll},
-			mode: core.FixedSpotFilterMode(core.ModeSSB),
-			sort: core.SortSpotsByValue,
+			band: model.SpotFilterBand{Kind: model.SpotFilterAll},
+			mode: model.FixedSpotFilterMode(model.ModeSSB),
+			sort: model.SortSpotsByValue,
 			down: true,
 			want: "All bands · SSB · by Value ↓",
 		},
 		{
 			desc: "contest",
-			band: core.SpotFilterBand{Kind: core.SpotFilterContest},
-			mode: core.SpotFilterMode{Kind: core.SpotFilterContest},
-			sort: core.SortSpotsByLastSeen,
+			band: model.SpotFilterBand{Kind: model.SpotFilterContest},
+			mode: model.SpotFilterMode{Kind: model.SpotFilterContest},
+			sort: model.SortSpotsByLastSeen,
 			want: "Contest bands · Contest modes · by Last Seen ↑",
 		},
 		{
 			desc: "VFO2",
-			band: core.SpotFilterBand{Kind: core.SpotFilterVFO2},
-			mode: core.SpotFilterMode{Kind: core.SpotFilterVFO2},
-			sort: core.SortSpotsByCallsign,
+			band: model.SpotFilterBand{Kind: model.SpotFilterVFO2},
+			mode: model.SpotFilterMode{Kind: model.SpotFilterVFO2},
+			sort: model.SortSpotsByCallsign,
 			want: "VFO2 (20m) · VFO2 (SSB) · by Callsign ↑",
 		},
 	}
@@ -446,11 +446,11 @@ func TestSpotFilter_FrameDescription(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			filter, _ := setupSpotFilter()
 			filter.RadioChanged("radio", false)
-			filter.VFOBandChanged(core.VFO1, core.Band40m)
-			filter.VFOModeChanged(core.VFO1, core.ModeCW)
-			filter.VFOBandChanged(core.VFO2, core.Band20m)
-			filter.VFOModeChanged(core.VFO2, core.ModeSSB)
-			filter.FocusedVFOChanged(core.VFO1)
+			filter.VFOBandChanged(model.VFO1, model.Band40m)
+			filter.VFOModeChanged(model.VFO1, model.ModeCW)
+			filter.VFOBandChanged(model.VFO2, model.Band20m)
+			filter.VFOModeChanged(model.VFO2, model.ModeSSB)
+			filter.FocusedVFOChanged(model.VFO1)
 			filter.SetBand(tc.band)
 			filter.SetMode(tc.mode)
 			filter.SetSort(tc.sort, tc.down)
@@ -465,8 +465,8 @@ func TestSpotFilter_FrameOffersAllBandsAndModes(t *testing.T) {
 
 	frame := filter.Frame()
 
-	assert.Equal(t, core.Bands, frame.Bands)
-	assert.Equal(t, core.Modes, frame.Modes)
+	assert.Equal(t, model.Bands, frame.Bands)
+	assert.Equal(t, model.Modes, frame.Modes)
 }
 
 func setupSpotFilter() (*SpotFilter, *spotFilterStoreStub) {
@@ -475,57 +475,57 @@ func setupSpotFilter() (*SpotFilter, *spotFilterStoreStub) {
 }
 
 type spotFilterStoreStub struct {
-	states map[string]core.SpotFilterState
+	states map[string]model.SpotFilterState
 }
 
 func newSpotFilterStoreStub() *spotFilterStoreStub {
 	return &spotFilterStoreStub{
-		states: make(map[string]core.SpotFilterState),
+		states: make(map[string]model.SpotFilterState),
 	}
 }
 
-func (s *spotFilterStoreStub) SpotFilter(id string) (core.SpotFilterState, bool) {
+func (s *spotFilterStoreStub) SpotFilter(id string) (model.SpotFilterState, bool) {
 	state, ok := s.states[id]
 	return state, ok
 }
 
-func (s *spotFilterStoreStub) SetSpotFilter(id string, state core.SpotFilterState) error {
+func (s *spotFilterStoreStub) SetSpotFilter(id string, state model.SpotFilterState) error {
 	s.states[id] = state
 	return nil
 }
 
 func TestSpotFilter_Value(t *testing.T) {
-	scoringEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+	scoringEntry := model.BandmapEntry{Band: model.Band80m, Mode: model.ModeCW}
 	scoringEntry.Info.Value = 40
 
-	multiEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+	multiEntry := model.BandmapEntry{Band: model.Band80m, Mode: model.ModeCW}
 	multiEntry.Info.Value = 25
 	multiEntry.Info.Multis = 1
 
-	worthlessEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+	worthlessEntry := model.BandmapEntry{Band: model.Band80m, Mode: model.ModeCW}
 
-	duplicateEntry := core.BandmapEntry{Band: core.Band80m, Mode: core.ModeCW}
+	duplicateEntry := model.BandmapEntry{Band: model.Band80m, Mode: model.ModeCW}
 	duplicateEntry.Info.Value = 40
 	duplicateEntry.Info.Multis = 1
 	duplicateEntry.Info.Duplicate = true
 
 	tt := []struct {
 		desc          string
-		value         core.SpotFilterValue
+		value         model.SpotFilterValue
 		wantScoring   bool
 		wantMulti     bool
 		wantWorthless bool
 		wantDuplicate bool
 	}{
-		{desc: "all", value: core.SpotFilterAnyValue, wantScoring: true, wantMulti: true, wantWorthless: true, wantDuplicate: true},
-		{desc: "scoring", value: core.SpotFilterScoring, wantScoring: true, wantMulti: true},
-		{desc: "multi", value: core.SpotFilterMulti, wantMulti: true},
+		{desc: "all", value: model.SpotFilterAnyValue, wantScoring: true, wantMulti: true, wantWorthless: true, wantDuplicate: true},
+		{desc: "scoring", value: model.SpotFilterScoring, wantScoring: true, wantMulti: true},
+		{desc: "multi", value: model.SpotFilterMulti, wantMulti: true},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			filter := NewSpotFilter(MainSpotFilterID, nil)
-			filter.SetBand(core.SpotFilterBand{Kind: core.SpotFilterAll})
-			filter.SetMode(core.SpotFilterMode{Kind: core.SpotFilterAll})
+			filter.SetBand(model.SpotFilterBand{Kind: model.SpotFilterAll})
+			filter.SetMode(model.SpotFilterMode{Kind: model.SpotFilterAll})
 
 			filter.SetValue(tc.value)
 
@@ -542,7 +542,7 @@ func TestSpotFilter_ValueInTheDescription(t *testing.T) {
 
 	assert.NotContains(t, filter.Frame().Description, "Multi", "the description names no value filter when it shows all spots")
 
-	filter.SetValue(core.SpotFilterMulti)
+	filter.SetValue(model.SpotFilterMulti)
 
 	assert.Contains(t, filter.Frame().Description, "Multi > 0")
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/ftl/conval"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/core/model"
 )
@@ -23,8 +22,8 @@ func (v *recordingView) SetStationBandplanOptions(ids, labels []string) {
 func (v *recordingView) SetStationBandplan(id string) { v.bandplan = id }
 
 func TestShowSettingsSelectsConfiguredBandplan(t *testing.T) {
-	station := core.Station{Bandplan: model.BandplanIARURegion3}
-	s := New(nil, nil, nil, nil, station, core.Contest{})
+	station := model.Station{Bandplan: model.BandplanIARURegion3}
+	s := New(nil, nil, nil, nil, station, model.Contest{})
 
 	view := &recordingView{nullView: new(nullView)}
 	s.SetView(view)
@@ -37,13 +36,13 @@ func TestShowSettingsSelectsConfiguredBandplan(t *testing.T) {
 // mirrors the New()-contest sequence: an old log (no bandplan -> region-1) is
 // loaded, then Reset() restores the config default, then the dialog is shown.
 func TestNewContestResetRestoresConfiguredBandplan(t *testing.T) {
-	config := core.Station{Bandplan: model.BandplanIARURegion3}
-	s := New(nil, nil, nil, nil, config, core.Contest{})
+	config := model.Station{Bandplan: model.BandplanIARURegion3}
+	s := New(nil, nil, nil, nil, config, model.Contest{})
 
 	view := &recordingView{nullView: new(nullView)}
 	s.SetView(view)
 
-	s.SetStation(core.Station{Bandplan: model.BandplanIARURegion1}) // old log loaded
+	s.SetStation(model.Station{Bandplan: model.BandplanIARURegion1}) // old log loaded
 	s.Reset()
 	s.showSettings()
 
@@ -100,8 +99,8 @@ func TestShowSettingsOffersTheDetailedMultisOnlyWithSeveralProperties(t *testing
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
-			station := core.Station{Callsign: core.MustParseCallsign("DL1ABC")}
-			contest := core.Contest{Definition: tc.definition, DetailedMultis: tc.detailedMultis}
+			station := model.Station{Callsign: model.MustParseCallsign("DL1ABC")}
+			contest := model.Contest{Definition: tc.definition, DetailedMultis: tc.detailedMultis}
 			s := New(nil, nil, nil, nil, station, contest)
 			s.SetDXCCEntities(&testEntities{entity: dxcc.Prefix{PrimaryPrefix: "DL", Continent: "EU"}})
 			view := &detailedMultisView{nullView: new(nullView)}
@@ -143,9 +142,9 @@ func (h *callHistorySpy) lastActivatedFile() string {
 // the default contest.
 func TestNewContestResetDropsTheCallHistoryOfTheContestBefore(t *testing.T) {
 	callHistory := new(callHistorySpy)
-	s := New(nil, nil, nil, callHistory, core.Station{}, core.Contest{})
+	s := New(nil, nil, nil, callHistory, model.Station{}, model.Contest{})
 	s.SetView(&recordingView{nullView: new(nullView)})
-	s.SetContest(core.Contest{
+	s.SetContest(model.Contest{
 		CallHistoryFilename:   "/home/dl1abc/contest.txt",
 		CallHistoryFieldNames: []string{"name"},
 	})

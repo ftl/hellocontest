@@ -7,10 +7,10 @@ import (
 
 	"github.com/ftl/hamradio/bandplan"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/cwdaemon"
 	"github.com/ftl/hellocontest/core/demoradio"
 	"github.com/ftl/hellocontest/core/hamlib"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/tci"
 )
 
@@ -32,11 +32,11 @@ type View interface {
 }
 
 type Controller struct {
-	radios      []core.Radio
-	keyers      []core.Keyer
+	radios      []model.Radio
+	keyers      []model.Keyer
 	bandplan    bandplan.Bandplan
 	listeners   []any
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 
 	view          View
 	ignoreUpdates bool
@@ -56,12 +56,12 @@ type radio interface {
 	Disconnect()
 	Active() bool
 	SingleVFO() bool
-	SetCurrentVFO(core.VFOID)
-	SetTXVFO(core.VFOID)
-	SetFrequency(core.VFOID, core.Frequency)
-	SetBand(core.VFOID, core.Band)
-	SetMode(core.VFOID, core.Mode)
-	SetIncrementalTuning(core.VFOID, core.IncrementalTuningKind, bool, core.Frequency)
+	SetCurrentVFO(model.VFOID)
+	SetTXVFO(model.VFOID)
+	SetFrequency(model.VFOID, model.Frequency)
+	SetBand(model.VFOID, model.Band)
+	SetMode(model.VFOID, model.Mode)
+	SetIncrementalTuning(model.VFOID, model.IncrementalTuningKind, bool, model.Frequency)
 	Refresh()
 	Notify(any)
 }
@@ -74,7 +74,7 @@ type keyer interface {
 	Notify(any)
 }
 
-func NewController(radios []core.Radio, keyers []core.Keyer, bandplan bandplan.Bandplan, asyncRunner core.AsyncRunner) *Controller {
+func NewController(radios []model.Radio, keyers []model.Keyer, bandplan bandplan.Bandplan, asyncRunner model.AsyncRunner) *Controller {
 	result := &Controller{
 		radios:      radios,
 		keyers:      keyers,
@@ -106,7 +106,7 @@ func (c *Controller) SetView(view View) {
 		for _, radio := range c.radios {
 			view.AddRadio(radio.Name)
 		}
-		view.AddKeyer(core.RadioKeyer)
+		view.AddKeyer(model.RadioKeyer)
 		for _, keyer := range c.keyers {
 			view.AddKeyer(keyer.Name)
 		}
@@ -147,19 +147,19 @@ func (c *Controller) Notify(listener any) {
 }
 
 func (c *Controller) emitRadioStatusChanged(available bool) {
-	core.Emit(c.listeners, func(listener core.ServiceStatusListener) {
-		listener.StatusChanged(core.RadioService, available)
+	model.Emit(c.listeners, func(listener model.ServiceStatusListener) {
+		listener.StatusChanged(model.RadioService, available)
 	})
 }
 
 func (c *Controller) emitKeyerStatusChanged(available bool) {
-	core.Emit(c.listeners, func(listener core.ServiceStatusListener) {
-		listener.StatusChanged(core.KeyerService, available)
+	model.Emit(c.listeners, func(listener model.ServiceStatusListener) {
+		listener.StatusChanged(model.KeyerService, available)
 	})
 }
 
 func (c *Controller) emitRadioChanged(name string, singleVFO bool) {
-	core.Emit(c.listeners, func(listener core.RadioChangedListener) {
+	model.Emit(c.listeners, func(listener model.RadioChangedListener) {
 		listener.RadioChanged(name, singleVFO)
 	})
 	c.incrementalTuningPerVFO = false
@@ -177,7 +177,7 @@ func (c *Controller) emitKeyerSelected(name string) {
 	type listenerType interface {
 		KeyerSelected(string)
 	}
-	core.Emit(c.listeners, func(listener listenerType) {
+	model.Emit(c.listeners, func(listener listenerType) {
 		listener.KeyerSelected(name)
 	})
 	if c.view != nil {
@@ -210,16 +210,16 @@ func (c *Controller) SelectRadio(name string) error {
 		c.activeKeyerName = ""
 	}
 
-	c.radioAsKeyer = normalizeName(config.Keyer) == core.RadioKeyer
+	c.radioAsKeyer = normalizeName(config.Keyer) == model.RadioKeyer
 	var radio radio
 	var err error
 	switch config.Type {
-	case core.RadioTypeHamlib:
+	case model.RadioTypeHamlib:
 		radio = c.newHamlibClient(config)
-	case core.RadioTypeTCI:
+	case model.RadioTypeTCI:
 		radio, err = c.newTCIClient(config)
-	case core.RadioTypeDemo:
-		radio = demoradio.New(c.bandplan, config.Options[core.DemoSingleVFOOption] != "false", c.asyncRunner)
+	case model.RadioTypeDemo:
+		radio = demoradio.New(c.bandplan, config.Options[model.DemoSingleVFOOption] != "false", c.asyncRunner)
 	default:
 		err = fmt.Errorf("unknown radio type %q", config.Type)
 	}
@@ -234,28 +234,28 @@ func (c *Controller) SelectRadio(name string) error {
 	for _, listener := range c.listeners {
 		c.activeRadio.Notify(listener)
 	}
-	c.activeRadio.Notify(core.ConnectionChangedFunc(c.onRadioConnectionChanged))
+	c.activeRadio.Notify(model.ConnectionChangedFunc(c.onRadioConnectionChanged))
 	c.emitRadioChanged(config.Name, c.activeRadio.SingleVFO())
 	c.onRadioConnectionChanged(c.activeRadio.IsConnected())
 
 	if c.radioAsKeyer {
 		c.activeKeyer = c.activeRadio
-		c.activeKeyerName = core.RadioKeyer
-		c.emitKeyerSelected(core.RadioKeyer)
+		c.activeKeyerName = model.RadioKeyer
+		c.emitKeyerSelected(model.RadioKeyer)
 		c.onKeyerConnectionChanged(c.activeKeyer.IsConnected())
 		return nil
 	}
 	return c.SelectKeyer(config.Keyer)
 }
 
-func (c *Controller) radioConfig(name string) (core.Radio, bool) {
+func (c *Controller) radioConfig(name string) (model.Radio, bool) {
 	name = normalizeName(name)
 	for _, config := range c.radios {
 		if normalizeName(config.Name) == name {
 			return config, true
 		}
 	}
-	return core.Radio{}, false
+	return model.Radio{}, false
 }
 
 func (c *Controller) onRadioConnectionChanged(connected bool) {
@@ -265,7 +265,7 @@ func (c *Controller) onRadioConnectionChanged(connected bool) {
 	}
 }
 
-func (c *Controller) newHamlibClient(config core.Radio) radio {
+func (c *Controller) newHamlibClient(config model.Radio) radio {
 	vfo1, ok := config.Options[hamlibVFO1Option]
 	if !ok {
 		vfo1 = ""
@@ -279,7 +279,7 @@ func (c *Controller) newHamlibClient(config core.Radio) radio {
 	return hamlibClient
 }
 
-func (c *Controller) newTCIClient(config core.Radio) (radio, error) {
+func (c *Controller) newTCIClient(config model.Radio) (radio, error) {
 	var err error
 	trx := 0
 	trxStr, ok := config.Options[tciTRXOption]
@@ -319,35 +319,35 @@ func (c *Controller) SingleVFO() bool {
 	return c.activeRadio.SingleVFO()
 }
 
-func (c *Controller) SetCurrentVFO(vfo core.VFOID) {
+func (c *Controller) SetCurrentVFO(vfo model.VFOID) {
 	if c.activeRadio == nil {
 		return
 	}
 	c.activeRadio.SetCurrentVFO(vfo)
 }
 
-func (c *Controller) SetTXVFO(vfo core.VFOID) {
+func (c *Controller) SetTXVFO(vfo model.VFOID) {
 	if c.activeRadio == nil {
 		return
 	}
 	c.activeRadio.SetTXVFO(vfo)
 }
 
-func (c *Controller) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+func (c *Controller) SetFrequency(vfo model.VFOID, frequency model.Frequency) {
 	if c.activeRadio == nil {
 		return
 	}
 	c.activeRadio.SetFrequency(vfo, frequency)
 }
 
-func (c *Controller) SetBand(vfo core.VFOID, band core.Band) {
+func (c *Controller) SetBand(vfo model.VFOID, band model.Band) {
 	if c.activeRadio == nil {
 		return
 	}
 	c.activeRadio.SetBand(vfo, band)
 }
 
-func (c *Controller) SetMode(vfo core.VFOID, mode core.Mode) {
+func (c *Controller) SetMode(vfo model.VFOID, mode model.Mode) {
 	if c.activeRadio == nil {
 		return
 	}
@@ -358,7 +358,7 @@ func (c *Controller) IncrementalTuningPerVFO() bool {
 	return c.incrementalTuningPerVFO
 }
 
-func (c *Controller) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (c *Controller) SetIncrementalTuning(vfo model.VFOID, kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
 	if c.activeRadio == nil {
 		return
 	}
@@ -376,10 +376,10 @@ func (c *Controller) Refresh() {
 
 type tciRadioType interface {
 	SetSendSpots(bool)
-	EntryAdded(core.BandmapEntry)
-	EntryUpdated(core.BandmapEntry)
-	EntryRemoved(core.BandmapEntry)
-	MarkersChanged([]core.BandmapMarker)
+	EntryAdded(model.BandmapEntry)
+	EntryUpdated(model.BandmapEntry)
+	EntryRemoved(model.BandmapEntry)
+	MarkersChanged([]model.BandmapMarker)
 }
 
 func (c *Controller) SetSendSpotsToTci(value bool) {
@@ -392,7 +392,7 @@ func (c *Controller) SetSendSpotsToTci(value bool) {
 	tciRadio.SetSendSpots(c.sendSpotsToTci)
 }
 
-func (c *Controller) EntryAdded(entry core.BandmapEntry) {
+func (c *Controller) EntryAdded(entry model.BandmapEntry) {
 	tciRadio, ok := c.activeRadio.(tciRadioType)
 	if !ok {
 		return
@@ -400,7 +400,7 @@ func (c *Controller) EntryAdded(entry core.BandmapEntry) {
 	tciRadio.EntryAdded(entry)
 }
 
-func (c *Controller) EntryUpdated(entry core.BandmapEntry) {
+func (c *Controller) EntryUpdated(entry model.BandmapEntry) {
 	tciRadio, ok := c.activeRadio.(tciRadioType)
 	if !ok {
 		return
@@ -408,7 +408,7 @@ func (c *Controller) EntryUpdated(entry core.BandmapEntry) {
 	tciRadio.EntryUpdated(entry)
 }
 
-func (c *Controller) EntryRemoved(entry core.BandmapEntry) {
+func (c *Controller) EntryRemoved(entry model.BandmapEntry) {
 	tciRadio, ok := c.activeRadio.(tciRadioType)
 	if !ok {
 		return
@@ -416,7 +416,7 @@ func (c *Controller) EntryRemoved(entry core.BandmapEntry) {
 	tciRadio.EntryRemoved(entry)
 }
 
-func (c *Controller) MarkersChanged(markers []core.BandmapMarker) {
+func (c *Controller) MarkersChanged(markers []model.BandmapMarker) {
 	tciRadio, ok := c.activeRadio.(tciRadioType)
 	if !ok {
 		return
@@ -434,7 +434,7 @@ func (c *Controller) SelectKeyer(name string) error {
 	if normalizeName(c.activeKeyerName) == normalizeName(name) {
 		return nil
 	}
-	radioAsKeyer := normalizeName(name) == core.RadioKeyer
+	radioAsKeyer := normalizeName(name) == model.RadioKeyer
 
 	config, ok := c.keyerConfig(name)
 	if !ok && !radioAsKeyer {
@@ -450,13 +450,13 @@ func (c *Controller) SelectKeyer(name string) error {
 	c.radioAsKeyer = radioAsKeyer
 	if c.radioAsKeyer {
 		c.activeKeyer = c.activeRadio
-		c.activeKeyerName = core.RadioKeyer
+		c.activeKeyerName = model.RadioKeyer
 		c.emitKeyerSelected(name)
 		return nil
 	}
 
 	switch config.Type {
-	case core.KeyerTypeCWDaemon:
+	case model.KeyerTypeCWDaemon:
 		client, err := cwdaemon.NewClient(config.Address)
 		if err != nil {
 			c.emitKeyerSelected("")
@@ -469,21 +469,21 @@ func (c *Controller) SelectKeyer(name string) error {
 		return fmt.Errorf("unknown keyer %q", name)
 	}
 
-	c.activeKeyer.Notify(core.ConnectionChangedFunc(c.onKeyerConnectionChanged))
+	c.activeKeyer.Notify(model.ConnectionChangedFunc(c.onKeyerConnectionChanged))
 	c.emitKeyerSelected(name)
 	c.emitKeyerStatusChanged(c.activeKeyer.IsConnected())
 
 	return nil
 }
 
-func (c *Controller) keyerConfig(name string) (core.Keyer, bool) {
+func (c *Controller) keyerConfig(name string) (model.Keyer, bool) {
 	name = normalizeName(name)
 	for _, config := range c.keyers {
 		if normalizeName(config.Name) == name {
 			return config, true
 		}
 	}
-	return core.Keyer{}, false
+	return model.Keyer{}, false
 }
 
 func (c *Controller) onKeyerConnectionChanged(connected bool) {

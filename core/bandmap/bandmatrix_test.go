@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestBandMatrix_Show(t *testing.T) {
@@ -23,30 +23,30 @@ func TestBandMatrix_Show(t *testing.T) {
 func TestBandMatrix_BandsChanged_EmitsFrame(t *testing.T) {
 	matrix, _, _, view := setupBandMatrix()
 
-	matrix.BandsChanged([]core.BandSummary{{Band: core.Band80m, SpotCount: 3}})
+	matrix.BandsChanged([]model.BandSummary{{Band: model.Band80m, SpotCount: 3}})
 
 	require.NotEmpty(t, view.frames)
 	require.Len(t, view.lastFrame().Bands, 1)
-	assert.Equal(t, core.Band80m, view.lastFrame().Bands[0].Band)
+	assert.Equal(t, model.Band80m, view.lastFrame().Bands[0].Band)
 	assert.Equal(t, 3, view.lastFrame().Bands[0].SpotCount)
 }
 
 func TestBandMatrix_VFOBandChanged_EmitsBandPerVFO(t *testing.T) {
 	matrix, _, _, view := setupBandMatrix()
 
-	matrix.VFOBandChanged(core.VFO1, core.Band40m)
-	matrix.VFOBandChanged(core.VFO2, core.Band20m)
+	matrix.VFOBandChanged(model.VFO1, model.Band40m)
+	matrix.VFOBandChanged(model.VFO2, model.Band20m)
 
-	assert.Equal(t, core.Band40m, view.lastFrame().VFOBands[core.VFO1])
-	assert.Equal(t, core.Band20m, view.lastFrame().VFOBands[core.VFO2])
+	assert.Equal(t, model.Band40m, view.lastFrame().VFOBands[model.VFO1])
+	assert.Equal(t, model.Band20m, view.lastFrame().VFOBands[model.VFO2])
 }
 
 func TestBandMatrix_FocusedVFOChanged_EmitsFocusedVFO(t *testing.T) {
 	matrix, _, _, view := setupBandMatrix()
 
-	matrix.FocusedVFOChanged(core.VFO2)
+	matrix.FocusedVFOChanged(model.VFO2)
 
-	assert.Equal(t, core.VFO2, view.lastFrame().FocusedVFO)
+	assert.Equal(t, model.VFO2, view.lastFrame().FocusedVFO)
 }
 
 func TestBandMatrix_RadioChanged_TogglesVFO2Availability(t *testing.T) {
@@ -63,19 +63,19 @@ func TestBandMatrix_SelectBand(t *testing.T) {
 	tt := []struct {
 		desc          string
 		vfo2Available bool
-		vfo           core.VFOID
+		vfo           model.VFOID
 		wantSwitched  bool
 	}{
-		{desc: "VFO1", vfo: core.VFO1, wantSwitched: true},
-		{desc: "VFO2 available", vfo2Available: true, vfo: core.VFO2, wantSwitched: true},
-		{desc: "VFO2 not available", vfo: core.VFO2, wantSwitched: false},
+		{desc: "VFO1", vfo: model.VFO1, wantSwitched: true},
+		{desc: "VFO2 available", vfo2Available: true, vfo: model.VFO2, wantSwitched: true},
+		{desc: "VFO2 not available", vfo: model.VFO2, wantSwitched: false},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			matrix, switcher, _, _ := setupBandMatrix()
 			matrix.RadioChanged("radio", !tc.vfo2Available)
 
-			matrix.SelectBand(tc.vfo, core.Band20m)
+			matrix.SelectBand(tc.vfo, model.Band20m)
 
 			if !tc.wantSwitched {
 				assert.Empty(t, switcher.calls)
@@ -83,7 +83,7 @@ func TestBandMatrix_SelectBand(t *testing.T) {
 			}
 			require.Len(t, switcher.calls, 1)
 			assert.Equal(t, tc.vfo, switcher.calls[0].vfo)
-			assert.Equal(t, core.Band20m, switcher.calls[0].band)
+			assert.Equal(t, model.Band20m, switcher.calls[0].band)
 		})
 	}
 }
@@ -91,51 +91,51 @@ func TestBandMatrix_SelectBand(t *testing.T) {
 func TestBandMatrix_SelectBand_SwitchesTheVFOOfTheColumn(t *testing.T) {
 	tt := []struct {
 		desc       string
-		focusedVFO core.VFOID
-		vfo1Band   core.Band
-		vfo2Band   core.Band
-		vfo        core.VFOID
-		band       core.Band
+		focusedVFO model.VFOID
+		vfo1Band   model.Band
+		vfo2Band   model.Band
+		vfo        model.VFOID
+		band       model.Band
 	}{
 		{
 			desc:       "the other VFO goes to a free band",
-			focusedVFO: core.VFO1,
-			vfo1Band:   core.Band80m,
-			vfo2Band:   core.Band40m,
-			vfo:        core.VFO2,
-			band:       core.Band20m,
+			focusedVFO: model.VFO1,
+			vfo1Band:   model.Band80m,
+			vfo2Band:   model.Band40m,
+			vfo:        model.VFO2,
+			band:       model.Band20m,
 		},
 		{
 			desc:       "the other VFO goes to the band of the focused VFO",
-			focusedVFO: core.VFO1,
-			vfo1Band:   core.Band80m,
-			vfo2Band:   core.Band40m,
-			vfo:        core.VFO2,
-			band:       core.Band80m,
+			focusedVFO: model.VFO1,
+			vfo1Band:   model.Band80m,
+			vfo2Band:   model.Band40m,
+			vfo:        model.VFO2,
+			band:       model.Band80m,
 		},
 		{
 			desc:       "the other VFO stays on its own band",
-			focusedVFO: core.VFO1,
-			vfo1Band:   core.Band80m,
-			vfo2Band:   core.Band40m,
-			vfo:        core.VFO2,
-			band:       core.Band40m,
+			focusedVFO: model.VFO1,
+			vfo1Band:   model.Band80m,
+			vfo2Band:   model.Band40m,
+			vfo:        model.VFO2,
+			band:       model.Band40m,
 		},
 		{
 			desc:       "the focused VFO goes to the band of the other VFO",
-			focusedVFO: core.VFO2,
-			vfo1Band:   core.Band80m,
-			vfo2Band:   core.Band40m,
-			vfo:        core.VFO2,
-			band:       core.Band80m,
+			focusedVFO: model.VFO2,
+			vfo1Band:   model.Band80m,
+			vfo2Band:   model.Band40m,
+			vfo:        model.VFO2,
+			band:       model.Band80m,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			matrix, switcher, focuser, _ := setupBandMatrix()
 			matrix.RadioChanged("radio", false)
-			matrix.VFOBandChanged(core.VFO1, tc.vfo1Band)
-			matrix.VFOBandChanged(core.VFO2, tc.vfo2Band)
+			matrix.VFOBandChanged(model.VFO1, tc.vfo1Band)
+			matrix.VFOBandChanged(model.VFO2, tc.vfo2Band)
 			matrix.FocusedVFOChanged(tc.focusedVFO)
 
 			matrix.SelectBand(tc.vfo, tc.band)
@@ -152,70 +152,70 @@ func TestBandMatrix_ActivateBand(t *testing.T) {
 	tt := []struct {
 		desc          string
 		vfo2Available bool
-		vfo1Band      core.Band
-		vfo2Band      core.Band
-		focusedVFO    core.VFOID
-		band          core.Band
+		vfo1Band      model.Band
+		vfo2Band      model.Band
+		focusedVFO    model.VFOID
+		band          model.Band
 		wantSwitched  bool
 		wantFocused   bool
-		wantVFO       core.VFOID
+		wantVFO       model.VFOID
 	}{
 		{
 			desc:         "band on no VFO switches the focused VFO",
-			vfo1Band:     core.Band80m,
-			focusedVFO:   core.VFO1,
-			band:         core.Band20m,
+			vfo1Band:     model.Band80m,
+			focusedVFO:   model.VFO1,
+			band:         model.Band20m,
 			wantSwitched: true,
-			wantVFO:      core.VFO1,
+			wantVFO:      model.VFO1,
 		},
 		{
 			desc:       "band on the focused VFO does nothing",
-			vfo1Band:   core.Band20m,
-			focusedVFO: core.VFO1,
-			band:       core.Band20m,
+			vfo1Band:   model.Band20m,
+			focusedVFO: model.VFO1,
+			band:       model.Band20m,
 		},
 		{
 			desc:          "band on the other VFO focuses that VFO",
 			vfo2Available: true,
-			vfo1Band:      core.Band80m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO1,
-			band:          core.Band20m,
+			vfo1Band:      model.Band80m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO1,
+			band:          model.Band20m,
 			wantFocused:   true,
-			wantVFO:       core.VFO2,
+			wantVFO:       model.VFO2,
 		},
 		{
 			desc:          "band on VFO1 focuses VFO1",
 			vfo2Available: true,
-			vfo1Band:      core.Band80m,
-			vfo2Band:      core.Band20m,
-			focusedVFO:    core.VFO2,
-			band:          core.Band80m,
+			vfo1Band:      model.Band80m,
+			vfo2Band:      model.Band20m,
+			focusedVFO:    model.VFO2,
+			band:          model.Band80m,
 			wantFocused:   true,
-			wantVFO:       core.VFO1,
+			wantVFO:       model.VFO1,
 		},
 		{
 			desc:         "band on VFO2, but VFO2 not available, switches the focused VFO",
-			vfo1Band:     core.Band80m,
-			vfo2Band:     core.Band20m,
-			focusedVFO:   core.VFO1,
-			band:         core.Band20m,
+			vfo1Band:     model.Band80m,
+			vfo2Band:     model.Band20m,
+			focusedVFO:   model.VFO1,
+			band:         model.Band20m,
 			wantSwitched: true,
-			wantVFO:      core.VFO1,
+			wantVFO:      model.VFO1,
 		},
 		{
 			desc:       "no band does nothing",
-			vfo1Band:   core.Band80m,
-			focusedVFO: core.VFO1,
-			band:       core.NoBand,
+			vfo1Band:   model.Band80m,
+			focusedVFO: model.VFO1,
+			band:       model.NoBand,
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			matrix, switcher, focuser, _ := setupBandMatrix()
 			matrix.RadioChanged("radio", !tc.vfo2Available)
-			matrix.VFOBandChanged(core.VFO1, tc.vfo1Band)
-			matrix.VFOBandChanged(core.VFO2, tc.vfo2Band)
+			matrix.VFOBandChanged(model.VFO1, tc.vfo1Band)
+			matrix.VFOBandChanged(model.VFO2, tc.vfo2Band)
 			matrix.FocusedVFOChanged(tc.focusedVFO)
 
 			matrix.ActivateBand(tc.band)
@@ -229,7 +229,7 @@ func TestBandMatrix_ActivateBand(t *testing.T) {
 			}
 
 			if tc.wantFocused {
-				require.Equal(t, []core.VFOID{tc.wantVFO}, focuser.calls)
+				require.Equal(t, []model.VFOID{tc.wantVFO}, focuser.calls)
 			} else {
 				assert.Empty(t, focuser.calls, "no focus change")
 			}
@@ -241,12 +241,12 @@ func TestBandMatrix_FocusVFO(t *testing.T) {
 	tt := []struct {
 		desc          string
 		vfo2Available bool
-		vfo           core.VFOID
+		vfo           model.VFOID
 		wantFocused   bool
 	}{
-		{desc: "VFO1", vfo: core.VFO1, wantFocused: true},
-		{desc: "VFO2 available", vfo2Available: true, vfo: core.VFO2, wantFocused: true},
-		{desc: "VFO2 not available", vfo: core.VFO2, wantFocused: false},
+		{desc: "VFO1", vfo: model.VFO1, wantFocused: true},
+		{desc: "VFO2 available", vfo2Available: true, vfo: model.VFO2, wantFocused: true},
+		{desc: "VFO2 not available", vfo: model.VFO2, wantFocused: false},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -259,7 +259,7 @@ func TestBandMatrix_FocusVFO(t *testing.T) {
 				assert.Empty(t, focuser.calls)
 				return
 			}
-			require.Equal(t, []core.VFOID{tc.vfo}, focuser.calls)
+			require.Equal(t, []model.VFOID{tc.vfo}, focuser.calls)
 		})
 	}
 }
@@ -274,28 +274,28 @@ func setupBandMatrix() (*BandMatrix, *bandSwitcherStub, *vfoFocuserStub, *bandMa
 }
 
 type bandSwitcherCall struct {
-	vfo  core.VFOID
-	band core.Band
+	vfo  model.VFOID
+	band model.Band
 }
 
 type bandSwitcherStub struct {
 	calls []bandSwitcherCall
 }
 
-func (s *bandSwitcherStub) SetVFOBand(vfo core.VFOID, band core.Band) {
+func (s *bandSwitcherStub) SetVFOBand(vfo model.VFOID, band model.Band) {
 	s.calls = append(s.calls, bandSwitcherCall{vfo: vfo, band: band})
 }
 
 type vfoFocuserStub struct {
-	calls []core.VFOID
+	calls []model.VFOID
 }
 
-func (s *vfoFocuserStub) SetFocusedVFO(vfo core.VFOID) {
+func (s *vfoFocuserStub) SetFocusedVFO(vfo model.VFOID) {
 	s.calls = append(s.calls, vfo)
 }
 
 type bandMatrixViewStub struct {
-	frames []core.BandMatrixFrame
+	frames []model.BandMatrixFrame
 	shown  bool
 }
 
@@ -303,13 +303,13 @@ func (s *bandMatrixViewStub) Show() {
 	s.shown = true
 }
 
-func (s *bandMatrixViewStub) ShowFrame(frame core.BandMatrixFrame) {
+func (s *bandMatrixViewStub) ShowFrame(frame model.BandMatrixFrame) {
 	s.frames = append(s.frames, frame)
 }
 
-func (s *bandMatrixViewStub) lastFrame() core.BandMatrixFrame {
+func (s *bandMatrixViewStub) lastFrame() model.BandMatrixFrame {
 	if len(s.frames) == 0 {
-		return core.BandMatrixFrame{}
+		return model.BandMatrixFrame{}
 	}
 	return s.frames[len(s.frames)-1]
 }
@@ -335,10 +335,10 @@ func TestBandMatrix_EventsFromManyGoroutines_StayOnTheUIThread(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			matrix.VFOBandChanged(core.VFOID(i%int(core.VFOCount)), core.Bands[i%len(core.Bands)])
-			matrix.FocusedVFOChanged(core.VFOID(i % int(core.VFOCount)))
+			matrix.VFOBandChanged(model.VFOID(i%int(model.VFOCount)), model.Bands[i%len(model.Bands)])
+			matrix.FocusedVFOChanged(model.VFOID(i % int(model.VFOCount)))
 			matrix.RadioChanged("radio", i%2 == 0)
-			matrix.BandsChanged([]core.BandSummary{{Band: core.Band20m, SpotCount: i}})
+			matrix.BandsChanged([]model.BandSummary{{Band: model.Band20m, SpotCount: i}})
 		}(i)
 	}
 	wg.Wait()

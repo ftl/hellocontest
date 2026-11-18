@@ -10,7 +10,7 @@ import (
 
 	"github.com/ftl/cabrillo"
 	"github.com/ftl/conval"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type View interface {
@@ -95,7 +95,7 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 }
 
-func (c *Controller) Run(settings core.Settings, claimedScore int, qsos []core.QSO, qtcs []core.QTC) (Result, bool) {
+func (c *Controller) Run(settings model.Settings, claimedScore int, qsos []model.QSO, qtcs []model.QTC) (Result, bool) {
 	c.definition = settings.Contest().Definition
 	c.qsoBand, c.qsoMode = findBandAndMode(qsos)
 	c.category.Band = c.qsoBand
@@ -427,12 +427,12 @@ func (c *Controller) SetOpenAfterExport(open bool) {
 	c.openAfterExport = open
 }
 
-func createCabrilloLog(settings core.Settings, claimedScore int, qsos []core.QSO, qtcs []core.QTC) *cabrillo.Log {
+func createCabrilloLog(settings model.Settings, claimedScore int, qsos []model.QSO, qtcs []model.QTC) *cabrillo.Log {
 	export := cabrillo.NewLog()
 	export.Callsign = settings.Station().Callsign
 	export.CreatedBy = "Hello Contest"
 	export.Contest = cabrillo.ContestIdentifier(settings.Contest().Definition.Identifier)
-	export.Operators = []core.Callsign{settings.Station().Operator}
+	export.Operators = []model.Callsign{settings.Station().Operator}
 	export.GridLocator = settings.Station().Locator
 	export.ClaimedScore = claimedScore
 
@@ -465,30 +465,30 @@ func Export(w io.Writer, export *cabrillo.Log) error {
 	return cabrillo.Write(w, export, false)
 }
 
-var qrg = map[core.Band]string{
-	core.NoBand:   "",
-	core.Band160m: "1800",
-	core.Band80m:  "3500",
-	core.Band60m:  "5351",
-	core.Band40m:  "7000",
-	core.Band30m:  "10100",
-	core.Band20m:  "14000",
-	core.Band17m:  "18100",
-	core.Band15m:  "21000",
-	core.Band12m:  "24890",
-	core.Band10m:  "28000",
+var qrg = map[model.Band]string{
+	model.NoBand:   "",
+	model.Band160m: "1800",
+	model.Band80m:  "3500",
+	model.Band60m:  "5351",
+	model.Band40m:  "7000",
+	model.Band30m:  "10100",
+	model.Band20m:  "14000",
+	model.Band17m:  "18100",
+	model.Band15m:  "21000",
+	model.Band12m:  "24890",
+	model.Band10m:  "28000",
 }
 
-var mode = map[core.Mode]cabrillo.QSOMode{
-	core.NoMode:      "",
-	core.ModeCW:      cabrillo.QSOModeCW,
-	core.ModeSSB:     cabrillo.QSOModePhone,
-	core.ModeFM:      cabrillo.QSOModeFM,
-	core.ModeRTTY:    cabrillo.QSOModeRTTY,
-	core.ModeDigital: cabrillo.QSOModeDigi,
+var mode = map[model.Mode]cabrillo.QSOMode{
+	model.NoMode:      "",
+	model.ModeCW:      cabrillo.QSOModeCW,
+	model.ModeSSB:     cabrillo.QSOModePhone,
+	model.ModeFM:      cabrillo.QSOModeFM,
+	model.ModeRTTY:    cabrillo.QSOModeRTTY,
+	model.ModeDigital: cabrillo.QSOModeDigi,
 }
 
-func writeQSO(w io.Writer, t *template.Template, mycall core.Callsign, qso core.QSO) error {
+func writeQSO(w io.Writer, t *template.Template, mycall model.Callsign, qso model.QSO) error {
 	var frequency string
 	if qso.Frequency == 0 {
 		frequency = qrg[qso.Band]
@@ -522,7 +522,7 @@ func writeQSO(w io.Writer, t *template.Template, mycall core.Callsign, qso core.
 	return err
 }
 
-func toQSO(qso core.QSO, mycall core.Callsign) cabrillo.QSO {
+func toQSO(qso model.QSO, mycall model.Callsign) cabrillo.QSO {
 	return cabrillo.QSO{
 		Frequency: toQSOFrequency(qso.Frequency, qso.Band),
 		Mode:      mode[qso.Mode],
@@ -539,7 +539,7 @@ func toQSO(qso core.QSO, mycall core.Callsign) cabrillo.QSO {
 	}
 }
 
-func toQTC(qtc core.QTC, mycall core.Callsign) cabrillo.QTC {
+func toQTC(qtc model.QTC, mycall model.Callsign) cabrillo.QTC {
 	result := cabrillo.QTC{
 		Frequency: toQSOFrequency(qtc.Frequency, qtc.Band),
 		Mode:      mode[qtc.Mode],
@@ -550,7 +550,7 @@ func toQTC(qtc core.QTC, mycall core.Callsign) cabrillo.QTC {
 		QTCNumber: cabrillo.QTCNumber(qtc.QTCNumber),
 	}
 
-	if qtc.Kind == core.SentQTC {
+	if qtc.Kind == model.SentQTC {
 		result.RxCall = qtc.TheirCallsign
 		result.TxCall = mycall
 	} else {
@@ -561,14 +561,14 @@ func toQTC(qtc core.QTC, mycall core.Callsign) cabrillo.QTC {
 	return result
 }
 
-func toQSOFrequency(frequency core.Frequency, band core.Band) cabrillo.QSOFrequency {
+func toQSOFrequency(frequency model.Frequency, band model.Band) cabrillo.QSOFrequency {
 	if frequency == 0 {
 		return cabrillo.QSOFrequency(qrg[band])
 	}
 	return cabrillo.QSOFrequency(fmt.Sprintf("%5.0f", frequency/1000.0))
 }
 
-func findBandAndMode(qsos []core.QSO) (band cabrillo.CategoryBand, mode cabrillo.CategoryMode) {
+func findBandAndMode(qsos []model.QSO) (band cabrillo.CategoryBand, mode cabrillo.CategoryMode) {
 	band = ""
 	mode = ""
 	for _, qso := range qsos {

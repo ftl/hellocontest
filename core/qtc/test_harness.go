@@ -3,8 +3,8 @@ package qtc
 import (
 	"fmt"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // FAKES
@@ -23,19 +23,19 @@ func (l *fakeQTCList) SelectLastQTC()      {}
 func (l *fakeQTCList) SetQTCsEnabled(bool) {}
 
 type fakeEntryController struct {
-	currentCallsign core.Callsign
-	currentState    core.QSODataState
-	frequency       core.Frequency
-	band            core.Band
-	mode            core.Mode
+	currentCallsign model.Callsign
+	currentState    model.QSODataState
+	frequency       model.Frequency
+	band            model.Band
+	mode            model.Mode
 	vfoName         string
 	so2v            bool
 }
 
-func (c *fakeEntryController) CurrentQSOState() (core.Callsign, core.QSODataState) {
+func (c *fakeEntryController) CurrentQSOState() (model.Callsign, model.QSODataState) {
 	return c.currentCallsign, c.currentState
 }
-func (c *fakeEntryController) CurrentVFOState() (core.Frequency, core.Band, core.Mode) {
+func (c *fakeEntryController) CurrentVFOState() (model.Frequency, model.Band, model.Mode) {
 	return c.frequency, c.band, c.mode
 }
 func (c *fakeEntryController) FocusedVFO() (string, bool) {
@@ -56,50 +56,50 @@ func (*fakeKeyer) Cut(s string) string { return s }
 
 type fakeLogbook struct {
 	nextSeriesNumber int
-	lastCallsign     core.Callsign
-	loggedQTCs       []core.QTC
-	availableQTCs    []core.QTC
+	lastCallsign     model.Callsign
+	loggedQTCs       []model.QTC
+	availableQTCs    []model.QTC
 }
 
-func (l *fakeLogbook) NextSeriesNumber() int       { return l.nextSeriesNumber }
-func (l *fakeLogbook) LastCallsign() core.Callsign { return l.lastCallsign }
-func (l *fakeLogbook) AddQTCSeries(series core.QTCSeries) {
+func (l *fakeLogbook) NextSeriesNumber() int        { return l.nextSeriesNumber }
+func (l *fakeLogbook) LastCallsign() model.Callsign { return l.lastCallsign }
+func (l *fakeLogbook) AddQTCSeries(series model.QTCSeries) {
 	for _, qtc := range series.QTCs {
 		l.loggedQTCs = append(l.loggedQTCs, qtc)
 	}
 }
-func (l *fakeLogbook) PrepareFor(core.Callsign, int) []core.QTC { return l.availableQTCs }
+func (l *fakeLogbook) PrepareFor(model.Callsign, int) []model.QTC { return l.availableQTCs }
 
 type fakeView struct {
 	visible        bool
-	mode           core.QTCMode
-	series         core.QTCSeries
-	phase          core.QTCWorkflowPhase
-	field          core.QTCField
+	mode           model.QTCMode
+	series         model.QTCSeries
+	phase          model.QTCWorkflowPhase
+	field          model.QTCField
 	activeQTCIndex int
 	errorMessage   string
-	errorField     core.QTCField
+	errorField     model.QTCField
 	vfoName        string
 }
 
 func (v *fakeView) QuestionQTCCount(max int) (int, bool) {
 	return max, true
 }
-func (v *fakeView) ShowFieldError(field core.QTCField, s string) {
+func (v *fakeView) ShowFieldError(field model.QTCField, s string) {
 	v.errorField = field
 	v.errorMessage = s
 }
 func (v *fakeView) ClearFieldError() {
-	v.errorField = core.QTCNoneField
+	v.errorField = model.QTCNoneField
 	v.errorMessage = ""
 }
-func (v *fakeView) Show(mode core.QTCMode, series core.QTCSeries, vfoName string) {
+func (v *fakeView) Show(mode model.QTCMode, series model.QTCSeries, vfoName string) {
 	v.visible = true
 	v.mode = mode
 	v.series = series
 	v.vfoName = vfoName
 }
-func (v *fakeView) UpdateQTC(index int, qtc core.QTC) {
+func (v *fakeView) UpdateQTC(index int, qtc model.QTC) {
 	v.series.SetData(index, qtc)
 }
 func (v *fakeView) Close() {
@@ -108,10 +108,10 @@ func (v *fakeView) Close() {
 func (v *fakeView) ClearDataInputs() {
 	// no-op
 }
-func (v *fakeView) SetActivePhase(phase core.QTCWorkflowPhase) {
+func (v *fakeView) SetActivePhase(phase model.QTCWorkflowPhase) {
 	v.phase = phase
 }
-func (v *fakeView) SetActiveField(field core.QTCField) {
+func (v *fakeView) SetActiveField(field model.QTCField) {
 	v.field = field
 }
 func (v *fakeView) SetActiveQTC(index int) {
@@ -121,7 +121,7 @@ func (v *fakeView) SetActiveQTC(index int) {
 // BUILDER
 
 type controllerBuilder struct {
-	clock           core.Clock
+	clock           model.Clock
 	infoDialogs     InfoDialogs
 	qtcList         QTCList
 	entryController EntryController
@@ -139,7 +139,7 @@ func newController() *controllerBuilder {
 	}
 }
 
-func (b *controllerBuilder) WithClock(clock core.Clock) *controllerBuilder {
+func (b *controllerBuilder) WithClock(clock model.Clock) *controllerBuilder {
 	b.clock = clock
 	return b
 }
@@ -161,7 +161,7 @@ func (b *controllerBuilder) WithQTCList(qtcList QTCList) *controllerBuilder {
 	return b
 }
 
-func (b *controllerBuilder) WithQTCs(qtcs []core.QTC) *controllerBuilder {
+func (b *controllerBuilder) WithQTCs(qtcs []model.QTC) *controllerBuilder {
 	b.logbook = &fakeLogbook{
 		availableQTCs: qtcs,
 	}
@@ -173,7 +173,7 @@ func (b *controllerBuilder) WithEntryController(entryController EntryController)
 	return b
 }
 
-func (b *controllerBuilder) WithCurrentQSOState(call core.Callsign, state core.QSODataState) *controllerBuilder {
+func (b *controllerBuilder) WithCurrentQSOState(call model.Callsign, state model.QSODataState) *controllerBuilder {
 	b.entryController = &fakeEntryController{
 		currentCallsign: call,
 		currentState:    state,
@@ -181,7 +181,7 @@ func (b *controllerBuilder) WithCurrentQSOState(call core.Callsign, state core.Q
 	return b
 }
 
-func (b *controllerBuilder) WithVFOState(frequency core.Frequency, band core.Band, mode core.Mode) *controllerBuilder {
+func (b *controllerBuilder) WithVFOState(frequency model.Frequency, band model.Band, mode model.Mode) *controllerBuilder {
 	fake, ok := b.entryController.(*fakeEntryController)
 	if !ok {
 		fake = &fakeEntryController{}
@@ -221,7 +221,7 @@ func (b *controllerBuilder) WithNextSeriesNumber(nextSeriesNumber int) *controll
 	return b
 }
 
-func (b *controllerBuilder) WithLastCallsign(lastCallsign core.Callsign) *controllerBuilder {
+func (b *controllerBuilder) WithLastCallsign(lastCallsign model.Callsign) *controllerBuilder {
 	b.logbook = &fakeLogbook{
 		lastCallsign: lastCallsign,
 	}
@@ -238,30 +238,30 @@ func (b *controllerBuilder) Build() *Controller {
 }
 
 type qtcBuilder struct {
-	kind          core.QTCKind
-	theirCallsign core.Callsign
-	qtcs          []core.QTC
+	kind          model.QTCKind
+	theirCallsign model.Callsign
+	qtcs          []model.QTC
 }
 
-func qtcsFor(kind core.QTCKind, theirCallsign core.Callsign) *qtcBuilder {
+func qtcsFor(kind model.QTCKind, theirCallsign model.Callsign) *qtcBuilder {
 	return &qtcBuilder{
 		kind:          kind,
 		theirCallsign: theirCallsign,
-		qtcs:          []core.QTC{},
+		qtcs:          []model.QTC{},
 	}
 }
 
-func (b *qtcBuilder) Add(time, call string, qtcNumber core.QSONumber) *qtcBuilder {
-	var lastQTC core.QTC
+func (b *qtcBuilder) Add(time, call string, qtcNumber model.QSONumber) *qtcBuilder {
+	var lastQTC model.QTC
 	if len(b.qtcs) > 0 {
 		lastQTC = b.qtcs[len(b.qtcs)-1]
 	}
-	qtcTime, err := core.ParseQTCTime(time, lastQTC.QTCTime)
+	qtcTime, err := model.ParseQTCTime(time, lastQTC.QTCTime)
 	if err != nil {
 		panic(err)
 	}
-	qtcCallsign := core.MustParseCallsign(call)
-	qtc := core.QTC{
+	qtcCallsign := model.MustParseCallsign(call)
+	qtc := model.QTC{
 		Kind:          b.kind,
 		TheirCallsign: b.theirCallsign,
 		QTCTime:       qtcTime,
@@ -272,6 +272,6 @@ func (b *qtcBuilder) Add(time, call string, qtcNumber core.QSONumber) *qtcBuilde
 	return b
 }
 
-func (b *qtcBuilder) Build() []core.QTC {
+func (b *qtcBuilder) Build() []model.QTC {
 	return b.qtcs
 }

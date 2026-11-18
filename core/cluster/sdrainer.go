@@ -13,7 +13,7 @@ import (
 	sdrcore "github.com/ftl/sdrainer/core"
 	sdrainer "github.com/ftl/sdrainer/scope/client"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // refreshDivisor gives the period of the refresh: SDRainer reports a running callsign one time,
@@ -35,13 +35,13 @@ const minSpotInterval = 1 * time.Minute
 // character for each channel in this period is enough to see that the station still sends.
 const characterGracePeriod = 1 * time.Minute
 
-func newSDRainerCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock, spotLifetime time.Duration) *cluster {
+func newSDRainerCluster(parent *Clusters, source model.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock model.Clock, spotLifetime time.Duration) *cluster {
 	result := newCluster(parent, source, bandmap, bandplan, clock, openSDRainer(parent, source, bandmap, clock, spotLifetime/refreshDivisor))
 	result.retryInterval = sdrainerRetryInterval
 	return result
 }
 
-func openSDRainer(parent *Clusters, source core.SpotSource, bandmap Bandmap, clock core.Clock, refreshPeriod time.Duration) openClusterFunc {
+func openSDRainer(parent *Clusters, source model.SpotSource, bandmap Bandmap, clock model.Clock, refreshPeriod time.Duration) openClusterFunc {
 	return func(host *net.TCPAddr, username string, password string, trace bool) (clusterClient, error) {
 		client := sdrainer.NewClient(host.String())
 		err := client.Open()
@@ -84,9 +84,9 @@ func openSDRainer(parent *Clusters, source core.SpotSource, bandmap Bandmap, clo
 // state of the connection.
 type sdrainerClient struct {
 	parent  *Clusters
-	source  core.SpotSource
+	source  model.SpotSource
 	bandmap Bandmap
-	clock   core.Clock
+	clock   model.Clock
 
 	client *sdrainer.Client
 	cancel context.CancelFunc
@@ -125,7 +125,7 @@ type sdrainerChannel struct {
 	// lastSpot is the spot that this client made of the channel. It tells when the channel was
 	// spotted the last time, and with which callsign. This client takes that spot back when
 	// SDRainer corrects the callsign of the channel.
-	lastSpot core.Spot
+	lastSpot model.Spot
 }
 
 // handleEvent keeps one record for each channel, and every event that carries a channel
@@ -204,7 +204,7 @@ func (c *sdrainerClient) removeLastSpot(id string) {
 
 	c.bandmap.Remove(record.lastSpot)
 
-	record.lastSpot = core.Spot{}
+	record.lastSpot = model.Spot{}
 	c.channels[id] = record
 }
 
@@ -298,21 +298,21 @@ type connectionListener interface {
 
 // sdrainerSpot makes a spot of a channel that SDRainer detected. SDRainer decodes CW, and it
 // reports the frequency in Hz.
-func sdrainerSpot(channel sdrainer.Channel, source core.SpotType, plan bandplan.Bandplan, now time.Time) (core.Spot, bool) {
-	if channel.Callsign == core.NoCallsign {
-		return core.Spot{}, false
+func sdrainerSpot(channel sdrainer.Channel, source model.SpotType, plan bandplan.Bandplan, now time.Time) (model.Spot, bool) {
+	if channel.Callsign == model.NoCallsign {
+		return model.Spot{}, false
 	}
-	frequency := core.Frequency(channel.Frequency)
+	frequency := model.Frequency(channel.Frequency)
 	band := toCoreBand(plan.ByFrequency(hamradio.Frequency(frequency)).Name)
-	if band == core.NoBand {
-		return core.Spot{}, false
+	if band == model.NoBand {
+		return model.Spot{}, false
 	}
 
-	return core.Spot{
+	return model.Spot{
 		Call:      channel.Callsign,
 		Frequency: frequency,
 		Band:      band,
-		Mode:      core.ModeCW,
+		Mode:      model.ModeCW,
 		Time:      now,
 		Source:    source,
 		Quality:   toSpotQuality(channel.Quality),
@@ -322,15 +322,15 @@ func sdrainerSpot(channel sdrainer.Channel, source core.SpotType, plan bandplan.
 
 // toSpotQuality maps the quality of a channel to the quality of a spot. Both use the tags of the
 // algorithm of CT1BOH.
-func toSpotQuality(quality sdrcore.ChannelQuality) core.SpotQuality {
+func toSpotQuality(quality sdrcore.ChannelQuality) model.SpotQuality {
 	switch quality {
 	case sdrcore.ValidQuality:
-		return core.ValidSpotQuality
+		return model.ValidSpotQuality
 	case sdrcore.QSYQuality:
-		return core.QSYSpotQuality
+		return model.QSYSpotQuality
 	case sdrcore.BustedQuality:
-		return core.BustedSpotQuality
+		return model.BustedSpotQuality
 	default:
-		return core.UnknownSpotQuality
+		return model.UnknownSpotQuality
 	}
 }

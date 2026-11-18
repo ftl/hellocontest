@@ -10,27 +10,26 @@ import (
 	"github.com/ftl/hamradio/locator"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/parse"
 )
 
-func ToQSO(pbQSO *QSO) (core.QSO, error) {
-	var qso core.QSO
+func ToQSO(pbQSO *QSO) (model.QSO, error) {
+	var qso model.QSO
 	var err error
-	qso.Callsign, err = core.ParseCallsign(pbQSO.Callsign)
+	qso.Callsign, err = model.ParseCallsign(pbQSO.Callsign)
 	if err != nil {
-		return core.QSO{}, err
+		return model.QSO{}, err
 	}
 	qso.Time = time.Unix(pbQSO.Timestamp, 0)
-	qso.Frequency = core.Frequency(pbQSO.Frequency)
+	qso.Frequency = model.Frequency(pbQSO.Frequency)
 	qso.Band, err = parse.Band(pbQSO.Band)
 	if err != nil {
-		return core.QSO{}, err
+		return model.QSO{}, err
 	}
 	qso.Mode, err = parse.Mode(pbQSO.Mode)
 	if err != nil {
-		return core.QSO{}, err
+		return model.QSO{}, err
 	}
 	if pbQSO.MyReport != "" {
 		qso.MyReport, err = parse.RST(pbQSO.MyReport)
@@ -38,22 +37,22 @@ func ToQSO(pbQSO *QSO) (core.QSO, error) {
 			qso.MyReport = ""
 		}
 	}
-	qso.MyNumber = core.QSONumber(pbQSO.MyNumber)
+	qso.MyNumber = model.QSONumber(pbQSO.MyNumber)
 	qso.MyExchange = pbQSO.MyExchange
 	if pbQSO.TheirReport != "" {
 		qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
 		if err != nil {
-			return core.QSO{}, err
+			return model.QSO{}, err
 		}
 	}
-	qso.TheirNumber = core.QSONumber(pbQSO.TheirNumber)
+	qso.TheirNumber = model.QSONumber(pbQSO.TheirNumber)
 	qso.TheirExchange = pbQSO.TheirExchange
 	qso.LogTimestamp = time.Unix(pbQSO.LogTimestamp, 0)
-	qso.Workmode = core.Workmode(pbQSO.Workmode)
+	qso.Workmode = model.Workmode(pbQSO.Workmode)
 	return qso, nil
 }
 
-func QSOToPB(qso core.QSO) *QSO {
+func QSOToPB(qso model.QSO) *QSO {
 	return &QSO{
 		Callsign:      qso.Callsign.String(),
 		Timestamp:     qso.Time.Unix(),
@@ -71,18 +70,18 @@ func QSOToPB(qso core.QSO) *QSO {
 	}
 }
 
-func ToStation(pbStation *Station) (core.Station, error) {
-	var station core.Station
+func ToStation(pbStation *Station) (model.Station, error) {
+	var station model.Station
 	var err error
-	station.Callsign, err = core.ParseCallsign(pbStation.Callsign)
+	station.Callsign, err = model.ParseCallsign(pbStation.Callsign)
 	if err != nil {
 		log.Printf("Cannot parse station callsign: %v", err)
-		station.Callsign = core.Callsign{}
+		station.Callsign = model.Callsign{}
 	}
-	station.Operator, err = core.ParseCallsign(pbStation.Operator)
+	station.Operator, err = model.ParseCallsign(pbStation.Operator)
 	if err != nil {
 		log.Printf("Cannot parse station operator: %v", err)
-		station.Operator = core.Callsign{}
+		station.Operator = model.Callsign{}
 	}
 	station.Locator, err = locator.Parse(pbStation.Locator)
 	if err != nil {
@@ -96,7 +95,7 @@ func ToStation(pbStation *Station) (core.Station, error) {
 	return station, nil
 }
 
-func StationToPB(station core.Station) *Station {
+func StationToPB(station model.Station) *Station {
 	return &Station{
 		Callsign: station.Callsign.String(),
 		Operator: station.Operator.String(),
@@ -105,8 +104,8 @@ func StationToPB(station core.Station) *Station {
 	}
 }
 
-func ToContest(pbContest *Contest) (core.Contest, error) {
-	var contest core.Contest
+func ToContest(pbContest *Contest) (model.Contest, error) {
+	var contest model.Contest
 
 	contest.Name = pbContest.Name
 	contest.StartTime = pbContest.StartTime.AsTime()
@@ -138,7 +137,7 @@ func ToContest(pbContest *Contest) (core.Contest, error) {
 	return contest, nil
 }
 
-func ContestToPB(contest core.Contest) *Contest {
+func ContestToPB(contest model.Contest) *Contest {
 	definitionYaml := ""
 	if contest.Definition != nil {
 		buffer := bytes.NewBuffer([]byte{})
@@ -169,8 +168,8 @@ func ContestToPB(contest core.Contest) *Contest {
 	}
 }
 
-func ToKeyerSettings(pbSettings *Keyer) (core.KeyerSettings, error) {
-	var result core.KeyerSettings
+func ToKeyerSettings(pbSettings *Keyer) (model.KeyerSettings, error) {
+	var result model.KeyerSettings
 	result.WPM = int(pbSettings.Wpm)
 	result.SPLabels = pbSettings.SpLabels
 	result.SPMacros = pbSettings.SpMacros
@@ -180,7 +179,7 @@ func ToKeyerSettings(pbSettings *Keyer) (core.KeyerSettings, error) {
 	return result, nil
 }
 
-func KeyerSettingsToPB(settings core.KeyerSettings) *Keyer {
+func KeyerSettingsToPB(settings model.KeyerSettings) *Keyer {
 	return &Keyer{
 		Wpm:                   int32(settings.WPM),
 		SpLabels:              settings.SPLabels,
@@ -191,56 +190,56 @@ func KeyerSettingsToPB(settings core.KeyerSettings) *Keyer {
 	}
 }
 
-func ToQTC(pbQTC *QTC) (core.QTC, error) {
-	var qtc core.QTC
+func ToQTC(pbQTC *QTC) (model.QTC, error) {
+	var qtc model.QTC
 	var err error
 
 	qtc.Timestamp = time.Unix(pbQTC.Timestamp, 0)
 	if qtc.Timestamp.IsZero() {
-		return core.QTC{}, fmt.Errorf("QTC has no timestamp: %v", pbQTC)
+		return model.QTC{}, fmt.Errorf("QTC has no timestamp: %v", pbQTC)
 	}
-	qtc.Frequency = core.Frequency(pbQTC.Frequency)
+	qtc.Frequency = model.Frequency(pbQTC.Frequency)
 	qtc.Band, err = parse.Band(pbQTC.Band)
 	if err != nil {
-		return core.QTC{}, err
+		return model.QTC{}, err
 	}
 	qtc.Mode, err = parse.Mode(pbQTC.Mode)
 	if err != nil {
-		return core.QTC{}, err
+		return model.QTC{}, err
 	}
 
-	qtc.Kind = core.QTCKind(pbQTC.Kind)
-	qtc.QSONumber = core.QSONumber(pbQTC.QsoNumber)
-	qtc.TheirCallsign, err = core.ParseCallsign(pbQTC.TheirCallsign)
+	qtc.Kind = model.QTCKind(pbQTC.Kind)
+	qtc.QSONumber = model.QSONumber(pbQTC.QsoNumber)
+	qtc.TheirCallsign, err = model.ParseCallsign(pbQTC.TheirCallsign)
 	if err != nil {
-		return core.QTC{}, err
+		return model.QTC{}, err
 	}
 
 	if pbQTC.Header != "" {
-		qtc.Header, err = core.ParseQTCHeader(pbQTC.Header)
+		qtc.Header, err = model.ParseQTCHeader(pbQTC.Header)
 		if err != nil {
-			return core.QTC{}, err
+			return model.QTC{}, err
 		}
 	}
 
 	if pbQTC.QtcTime != "" {
-		qtc.QTCTime, err = core.ParseQTCTime(pbQTC.QtcTime, core.ZeroQTCTime)
+		qtc.QTCTime, err = model.ParseQTCTime(pbQTC.QtcTime, model.ZeroQTCTime)
 		if err != nil {
-			return core.QTC{}, err
+			return model.QTC{}, err
 		}
 	}
 
-	qtc.QTCCallsign, err = core.ParseCallsign(pbQTC.QtcCallsign)
+	qtc.QTCCallsign, err = model.ParseCallsign(pbQTC.QtcCallsign)
 	if err != nil {
-		return core.QTC{}, err
+		return model.QTC{}, err
 	}
 
-	qtc.QTCNumber = core.QSONumber(pbQTC.QtcNumber)
+	qtc.QTCNumber = model.QSONumber(pbQTC.QtcNumber)
 
 	return qtc, nil
 }
 
-func QTCToPB(qtc core.QTC) *QTC {
+func QTCToPB(qtc model.QTC) *QTC {
 	return &QTC{
 		Timestamp:     qtc.Timestamp.Unix(),
 		Frequency:     float64(qtc.Frequency),

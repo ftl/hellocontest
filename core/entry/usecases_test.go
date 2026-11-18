@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // A1. Enter callsign
@@ -24,13 +24,13 @@ func TestA1_EnterCallsign_Valid(t *testing.T) {
 		AssertCallsignEntered("DL1ABC").
 		AssertCallinfoNotified("DL1ABC").
 		AssertSerialClaimed().
-		AssertMessageCleared(core.VFO1).
+		AssertMessageCleared(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
 func TestA1_EnterCallsign_Duplicate(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	dupe := core.QSO{Callsign: dl1abc, MyNumber: 1}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	dupe := model.QSO{Callsign: dl1abc, MyNumber: 1}
 
 	NewScenario(t).
 		WithClassicExchange().
@@ -39,7 +39,7 @@ func TestA1_EnterCallsign_Duplicate(t *testing.T) {
 		AssertCallsignEntered("DL1ABC").
 		AssertCallinfoNotified("DL1ABC").
 		AssertSerialClaimed().
-		AssertMessageShown(core.VFO1).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -66,60 +66,60 @@ func TestA2_LeaveCallsign_NoDuplicate(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		GotoNextField().
-		AssertDuplicateMarker(core.VFO1, false).
+		AssertDuplicateMarker(model.VFO1, false).
 		AssertNoLogbookWrite()
 }
 
 func TestA2_LeaveCallsign_Duplicate(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	dupe := core.QSO{Callsign: dl1abc, MyNumber: 1}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	dupe := model.QSO{Callsign: dl1abc, MyNumber: 1}
 
 	NewScenario(t).
 		WithClassicExchange().
 		WithDuplicateQSO(dupe).
 		Enter("DL1ABC").
 		GotoNextField().
-		AssertDuplicateMarker(core.VFO1, true).
+		AssertDuplicateMarker(model.VFO1, true).
 		AssertNoLogbookWrite()
 }
 
 func TestA2_LeaveCallsign_PredictionFillsEmptySlot(t *testing.T) {
 	// ClassicExchange: [RST(not predictable), Serial(not predictable), GenericText(predictable)]
 	// Prediction fills slot 3 (1-based) when empty.
-	frame := core.CallinfoFrame{
+	frame := model.CallinfoFrame{
 		PredictedExchange: []string{"599", "042", "OE"},
 	}
 
 	NewScenario(t).
 		WithClassicExchange().
-		WithCallinfoFrame(core.VFO1, frame).
+		WithCallinfoFrame(model.VFO1, frame).
 		Enter("OE5XYZ").
 		GotoNextField().
-		AssertTheirExchangeSet(core.VFO1, 3, "OE").
+		AssertTheirExchangeSet(model.VFO1, 3, "OE").
 		AssertNoLogbookWrite()
 }
 
 func TestA2_LeaveCallsign_Editing_SameCallsign_NoMarker(t *testing.T) {
 	// Editing the QSO's own callsign: duplicate marker stays false
 	// even though the callsign appears in the logbook.
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	editedQSO := core.QSO{Callsign: dl1abc, MyNumber: 7}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	editedQSO := model.QSO{Callsign: dl1abc, MyNumber: 7}
 
 	NewScenario(t).
 		WithClassicExchange().
 		WithDuplicateQSO(editedQSO).
 		SelectQSO(editedQSO).
 		GotoNextField().
-		AssertDuplicateMarker(core.VFO1, false).
+		AssertDuplicateMarker(model.VFO1, false).
 		AssertNoLogbookWrite()
 }
 
 func TestA2_LeaveCallsign_Editing_DifferentCallsign_ShowsMarker(t *testing.T) {
 	// Editing: changed callsign that is a duplicate → marker shown.
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	dl2xyz, _ := core.ParseCallsign("DL2XYZ")
-	editedQSO := core.QSO{Callsign: dl1abc, MyNumber: 7}
-	dupeQSO := core.QSO{Callsign: dl2xyz, MyNumber: 3}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	dl2xyz, _ := model.ParseCallsign("DL2XYZ")
+	editedQSO := model.QSO{Callsign: dl1abc, MyNumber: 7}
+	dupeQSO := model.QSO{Callsign: dl2xyz, MyNumber: 3}
 
 	NewScenario(t).
 		WithClassicExchange().
@@ -127,7 +127,7 @@ func TestA2_LeaveCallsign_Editing_DifferentCallsign_ShowsMarker(t *testing.T) {
 		SelectQSO(editedQSO). // edit mode, shows DL1ABC
 		Enter("DL2XYZ").      // change to a different (duped) callsign
 		GotoNextField().
-		AssertDuplicateMarker(core.VFO1, true).
+		AssertDuplicateMarker(model.VFO1, true).
 		AssertNoLogbookWrite()
 }
 
@@ -143,7 +143,7 @@ func TestA3_GotoNextField_Callsign_GoesToTheirExchange1(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		GotoNextField().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(1))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(1))
 }
 
 func TestA3_GotoNextField_TheirExchange1_GoesToTheirExchange2(t *testing.T) {
@@ -152,7 +152,7 @@ func TestA3_GotoNextField_TheirExchange1_GoesToTheirExchange2(t *testing.T) {
 		Enter("DL1ABC").
 		GotoNextField(). // → TheirExchange1
 		GotoNextField(). // → TheirExchange2
-		AssertActiveField(core.VFO1, core.TheirExchangeField(2))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(2))
 }
 
 func TestA3_GotoNextField_TheirExchange2_GoesToTheirExchange3(t *testing.T) {
@@ -162,7 +162,7 @@ func TestA3_GotoNextField_TheirExchange2_GoesToTheirExchange3(t *testing.T) {
 		GotoNextField(). // → TheirExchange1
 		GotoNextField(). // → TheirExchange2
 		GotoNextField(). // → TheirExchange3
-		AssertActiveField(core.VFO1, core.TheirExchangeField(3))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(3))
 }
 
 func TestA3_GotoNextField_LastTheirExchange_GoesToCallsign(t *testing.T) {
@@ -173,39 +173,39 @@ func TestA3_GotoNextField_LastTheirExchange_GoesToCallsign(t *testing.T) {
 		GotoNextField(). // → TheirExchange2
 		GotoNextField(). // → TheirExchange3
 		GotoNextField(). // → Callsign (last their-exchange wraps)
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 func TestA3_GotoNextField_MyExchange_GoesToCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		SetActiveField(core.MyExchangeField(1)).
+		SetActiveField(model.MyExchangeField(1)).
 		GotoNextField().
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 func TestA3_GotoNextField_Band_GoesToCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		SetActiveField(core.BandField).
+		SetActiveField(model.BandField).
 		GotoNextField().
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 func TestA3_GotoNextField_Mode_GoesToCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		SetActiveField(core.ModeField).
+		SetActiveField(model.ModeField).
 		GotoNextField().
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 func TestA3_GotoNextField_OtherField_GoesToCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		SetActiveField(core.OtherField).
+		SetActiveField(model.OtherField).
 		GotoNextField().
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // A4. Goto next placeholder
@@ -217,8 +217,8 @@ func TestA4_GotoNextPlaceholder_FocusesCallsignAndSelectsPlaceholder(t *testing.
 	NewScenario(t).
 		WithClassicExchange().
 		GotoNextPlaceholder().
-		AssertActiveField(core.VFO1, core.CallsignField).
-		AssertTextSelected(core.VFO1, core.CallsignField, core.FilterPlaceholder)
+		AssertActiveField(model.VFO1, model.CallsignField).
+		AssertTextSelected(model.VFO1, model.CallsignField, model.FilterPlaceholder)
 }
 
 // A5. Set active field
@@ -231,9 +231,9 @@ func TestA5_SetActiveField_FieldIsSet(t *testing.T) {
 	// Verify via subsequent GotoNextField transition from the set field.
 	NewScenario(t).
 		WithClassicExchange().
-		SetActiveField(core.BandField).
+		SetActiveField(model.BandField).
 		GotoNextField().
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // A6. Enter text into a field
@@ -255,7 +255,7 @@ func TestA6_EnterTheirExchange_NotifiesCallinfo(t *testing.T) {
 func TestA6_EnterMyExchange_UpdatesInputSlot(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		SetActiveField(core.MyExchangeField(3)).
+		SetActiveField(model.MyExchangeField(3)).
 		Enter("OE").
 		AssertMyExchangeValue(3, "OE")
 }
@@ -270,9 +270,9 @@ func TestB1_SelectBand_Valid(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		SetActiveField(core.BandField).
+		SetActiveField(model.BandField).
 		Enter("40m").
-		AssertVFOBand(core.Band40m).
+		AssertVFOBand(model.Band40m).
 		AssertCallinfoNotified("DL1ABC").
 		AssertNoLogbookWrite()
 }
@@ -287,9 +287,9 @@ func TestB2_SelectMode_Valid(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		SetActiveField(core.ModeField).
+		SetActiveField(model.ModeField).
 		Enter("SSB").
-		AssertVFOMode(core.ModeSSB).
+		AssertVFOMode(model.ModeSSB).
 		AssertCallinfoNotified("DL1ABC").
 		AssertNoLogbookWrite()
 }
@@ -300,10 +300,10 @@ func TestB2_SelectMode_GeneratesReport(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchangeAndReport().
 		Enter("DL1ABC").
-		SetActiveField(core.ModeField).
+		SetActiveField(model.ModeField).
 		Enter("SSB").
 		AssertMyExchangeView(1, "59").
-		AssertTheirExchangeSet(core.VFO1, 1, "59").
+		AssertTheirExchangeSet(model.VFO1, 1, "59").
 		AssertNoLogbookWrite()
 }
 
@@ -319,7 +319,7 @@ func TestB3_EnterFrequency_ViaCallsignField(t *testing.T) {
 		Enter("14250").
 		PressEnter().
 		AssertVFOFrequency(14250000).
-		AssertCallsignView(core.VFO1, "").
+		AssertCallsignView(model.VFO1, "").
 		AssertCallinfoNotified("").
 		AssertNoLogbookWrite()
 }
@@ -334,8 +334,8 @@ func TestB4_EnterBand_ViaCallsignField(t *testing.T) {
 		WithClassicExchange().
 		Enter("40m").
 		PressEnter().
-		AssertVFOBand(core.Band40m).
-		AssertCallsignView(core.VFO1, "").
+		AssertVFOBand(model.Band40m).
+		AssertCallsignView(model.VFO1, "").
 		AssertCallinfoNotified("").
 		AssertNoLogbookWrite()
 }
@@ -351,7 +351,7 @@ func TestB5_JumpToBandmapCall(t *testing.T) {
 		Enter("@DL1ABC").
 		PressEnter().
 		AssertBandmapSelected("DL1ABC").
-		AssertCallsignView(core.VFO1, "").
+		AssertCallsignView(model.VFO1, "").
 		AssertCallinfoNotified("").
 		AssertNoLogbookWrite()
 }
@@ -375,14 +375,14 @@ func TestC1_LogValidQSO(t *testing.T) {
 		AssertQSOAdded().
 		AssertQSOAddedCallsign("DL1ABC").
 		AssertCallsignLogged("DL1ABC").
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 func TestC1_LogValidQSO_SearchPounce_AddsWorkedSpotToBandmap(t *testing.T) {
 	// workmode = S&P → WorkedSpot added to bandmap after logging.
 	NewScenario(t).
 		WithClassicExchange().
-		WithWorkmode(core.SearchPounce).
+		WithWorkmode(model.SearchPounce).
 		Enter("DL1ABC").
 		GotoNextField().Enter("599").
 		GotoNextField().Enter("042").
@@ -390,13 +390,13 @@ func TestC1_LogValidQSO_SearchPounce_AddsWorkedSpotToBandmap(t *testing.T) {
 		PressEnter().
 		AssertQSOAdded().
 		AssertBandmapAddedCallsign("DL1ABC").
-		AssertBandmapSpotSource(core.WorkedSpot)
+		AssertBandmapSpotSource(model.WorkedSpot)
 }
 
 func TestC1_LogDuplicateQSO_StillAddsToLogbook(t *testing.T) {
 	// Duplicate callsign: duplicate marker shown but QSO still added (C1 makes no exception).
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	dupe := core.QSO{Callsign: dl1abc, MyNumber: 1}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	dupe := model.QSO{Callsign: dl1abc, MyNumber: 1}
 
 	NewScenario(t).
 		WithClassicExchange().
@@ -419,8 +419,8 @@ func TestC2_LogFails_InvalidCallsign(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		PressEnter(). // callsign = "" → ParseCallsign fails
-		AssertActiveField(core.VFO1, core.CallsignField).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.CallsignField).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -434,11 +434,11 @@ func TestC3_LogFails_InvalidBand(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		SetActiveField(core.BandField).
+		SetActiveField(model.BandField).
 		Enter("invalid").
 		PressEnter().
-		AssertActiveField(core.VFO1, core.BandField).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.BandField).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -451,11 +451,11 @@ func TestC4_LogFails_InvalidMode(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		SetActiveField(core.ModeField).
+		SetActiveField(model.ModeField).
 		Enter("invalid").
 		PressEnter().
-		AssertActiveField(core.VFO1, core.ModeField).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.ModeField).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -471,8 +471,8 @@ func TestC5_LogFails_MissingTheirExchange(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		PressEnter().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(2)).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.TheirExchangeField(2)).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -488,8 +488,8 @@ func TestC6_LogFails_InvalidTheirReport(t *testing.T) {
 		GotoNextField(). // → TheirExchange1
 		Enter("abc").    // non-empty but invalid RST
 		PressEnter().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(1)).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.TheirExchangeField(1)).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -507,8 +507,8 @@ func TestC7_LogFails_InvalidTheirSerial(t *testing.T) {
 		GotoNextField(). // → TheirExchange2
 		Enter("abc").    // non-numeric serial
 		PressEnter().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(2)).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.TheirExchangeField(2)).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -526,22 +526,22 @@ func TestC8_Log_PredictionFillsEmptySlot(t *testing.T) {
 	// leaveCallsignField() pre-fills predictable empty slots, so injecting the
 	// frame before GotoNextField() would populate TheirExchange3 early and the
 	// empty check in parseTheirExchange would never fire.
-	frame := core.CallinfoFrame{
+	frame := model.CallinfoFrame{
 		PredictedExchange: []string{"599", "042", "OE"},
 	}
 
 	NewScenario(t).
 		WithClassicExchangeWithOptionalText().
 		Enter("DL1ABC").
-		GotoNextField().                     // leaves callsign field (no prediction yet → slot 3 stays empty)
-		WithCallinfoFrame(core.VFO1, frame). // inject prediction now
+		GotoNextField().                      // leaves callsign field (no prediction yet → slot 3 stays empty)
+		WithCallinfoFrame(model.VFO1, frame). // inject prediction now
 		Enter("599").
 		GotoNextField(). // → TheirExchange2
 		Enter("042").
 		PressEnter(). // at TheirExchange2 → Log; TheirExchange3 is empty → prediction fills it
-		AssertTheirExchangeSet(core.VFO1, 3, "OE").
-		AssertActiveField(core.VFO1, core.TheirExchangeField(3)).
-		AssertMessageShown(core.VFO1).
+		AssertTheirExchangeSet(model.VFO1, 3, "OE").
+		AssertActiveField(model.VFO1, model.TheirExchangeField(3)).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -560,11 +560,11 @@ func TestC9_LogFails_InvalidMyReport(t *testing.T) {
 		Enter("042").
 		GotoNextField(). // → TheirExchange3
 		Enter("OE").
-		SetActiveField(core.MyExchangeField(1)).
+		SetActiveField(model.MyExchangeField(1)).
 		Enter("abc"). // invalid my-RST
 		PressEnter().
-		AssertActiveField(core.VFO1, core.MyExchangeField(1)).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.MyExchangeField(1)).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -583,11 +583,11 @@ func TestC10_LogFails_InvalidMySerial(t *testing.T) {
 		Enter("042").
 		GotoNextField(). // → TheirExchange3
 		Enter("OE").
-		SetActiveField(core.MyExchangeField(2)).
+		SetActiveField(model.MyExchangeField(2)).
 		Enter("abc"). // non-numeric my-serial
 		PressEnter().
-		AssertActiveField(core.VFO1, core.MyExchangeField(2)).
-		AssertMessageShown(core.VFO1).
+		AssertActiveField(model.VFO1, model.MyExchangeField(2)).
+		AssertMessageShown(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -613,12 +613,12 @@ func TestC11_EnterPressed_CommandPrecedesESMAndLog(t *testing.T) {
 // Invariants: logbook.
 
 func TestD1_Clear_WhileEditing_ExitsEditMode(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -627,9 +627,9 @@ func TestD1_Clear_WhileEditing_ExitsEditMode(t *testing.T) {
 		WithClassicExchange().
 		SelectQSO(qso).
 		Clear().
-		AssertEditingMarker(core.VFO1, false).
-		AssertActiveField(core.VFO1, core.CallsignField).
-		AssertMessageCleared(core.VFO1).
+		AssertEditingMarker(model.VFO1, false).
+		AssertActiveField(model.VFO1, model.CallsignField).
+		AssertMessageCleared(model.VFO1).
 		AssertNoLogbookWrite()
 }
 
@@ -643,11 +643,11 @@ func TestD2_Clear_NotEditing_ReleasesClaimAndResetsRow(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC"). // claim serial
 		Clear().
-		AssertCallsignView(core.VFO1, "").
-		AssertDuplicateMarker(core.VFO1, false).
-		AssertEditingMarker(core.VFO1, false).
-		AssertActiveField(core.VFO1, core.CallsignField).
-		AssertMessageCleared(core.VFO1)
+		AssertCallsignView(model.VFO1, "").
+		AssertDuplicateMarker(model.VFO1, false).
+		AssertEditingMarker(model.VFO1, false).
+		AssertActiveField(model.VFO1, model.CallsignField).
+		AssertMessageCleared(model.VFO1)
 }
 
 func TestD2_Clear_SeedsMyExchangeFromLastExchange(t *testing.T) {
@@ -671,17 +671,17 @@ func TestD3_VFOTuned_LargeJump_TriggersAutoClear(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		VFOTuned(core.VFO1, 14050000+1000).
-		AssertCallsignView(core.VFO1, ""). // row was cleared
-		AssertActiveField(core.VFO1, core.CallsignField)
+		VFOTuned(model.VFO1, 14050000+1000).
+		AssertCallsignView(model.VFO1, ""). // row was cleared
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 func TestD3_VFOTuned_SmallChange_KeepsTheInput(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		VFOTuned(core.VFO1, 14050000+100). // below the 250 Hz threshold
-		AssertViewNotCalledWith("SetCallsign", core.VFO1, "")
+		VFOTuned(model.VFO1, 14050000+100). // below the 250 Hz threshold
+		AssertViewNotCalledWith("SetCallsign", model.VFO1, "")
 }
 
 // D4. A reported frequency never clears the input
@@ -690,16 +690,16 @@ func TestD3_VFOTuned_SmallChange_KeepsTheInput(t *testing.T) {
 // Invariants: core/vfo decides which report is a tuning, see vfo.vfoFrequencyChanged.
 
 func TestD4_FrequencyReports_NeverClearTheInput(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	entry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	entry := model.BandmapEntry{Call: dl1abc, Frequency: 14200000}
 
 	NewScenario(t).
 		WithClassicExchange().
-		EntrySelected(core.VFO1, entry).
-		VFOFrequencyChanged(core.VFO1, 14200000). // the rig confirms the command
-		AssertViewNotCalledWith("SetCallsign", core.VFO1, "").
-		VFOFrequencyChanged(core.VFO1, 14050000). // a stale report of the old frequency
-		AssertViewNotCalledWith("SetCallsign", core.VFO1, "")
+		EntrySelected(model.VFO1, entry).
+		VFOFrequencyChanged(model.VFO1, 14200000). // the rig confirms the command
+		AssertViewNotCalledWith("SetCallsign", model.VFO1, "").
+		VFOFrequencyChanged(model.VFO1, 14050000). // a stale report of the old frequency
+		AssertViewNotCalledWith("SetCallsign", model.VFO1, "")
 }
 
 // E1. QSO selected from list
@@ -708,20 +708,20 @@ func TestD4_FrequencyReports_NeverClearTheInput(t *testing.T) {
 // Invariants: logbook; VFO2 state.
 
 func TestE1_QSOSelected_EntersEditMode(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign: dl1abc,
 		MyNumber: 7,
-		Band:     core.Band20m,
-		Mode:     core.ModeCW,
+		Band:     model.Band20m,
+		Mode:     model.ModeCW,
 	}
 
 	NewScenario(t).
 		WithClassicExchange().
 		SelectQSO(qso).
-		AssertCallsignView(core.VFO1, "DL1ABC").
-		AssertEditingMarker(core.VFO1, true).
-		AssertActiveField(core.VFO1, core.CallsignField).
+		AssertCallsignView(model.VFO1, "DL1ABC").
+		AssertEditingMarker(model.VFO1, true).
+		AssertActiveField(model.VFO1, model.CallsignField).
 		AssertNoLogbookWrite()
 }
 
@@ -732,15 +732,15 @@ func TestE1_QSOSelected_EntersEditMode(t *testing.T) {
 func TestE2_QSOSelection_Ignored_WhenFlagSet(t *testing.T) {
 	// selectLastQSO() sets ignoreQSOSelection=true, calls qsoList.SelectLastQSO(), then resets.
 	// Our qsoListSpy fires QSOSelected synchronously inside SelectLastQSO; it must be ignored.
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	autoQSO := core.QSO{Callsign: dl1abc, MyNumber: 42}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	autoQSO := model.QSO{Callsign: dl1abc, MyNumber: 42}
 
 	s := NewScenario(t).WithClassicExchange()
 	s.WithQSOListCallback(func() {
 		s.controller.QSOSelected(autoQSO)
 	})
 	s.Clear(). // triggers selectLastQSO → callback → QSOSelected → ignored
-			AssertCallsignView(core.VFO1, "") // row not populated with autoQSO's callsign
+			AssertCallsignView(model.VFO1, "") // row not populated with autoQSO's callsign
 }
 
 // E3. Edit last QSO
@@ -760,12 +760,12 @@ func TestE3_EditLastQSO_CallsSelectLastQSO(t *testing.T) {
 // Invariants: original time; original workmode.
 
 func TestE4_SaveEditedQSO_UpdatesLogbook(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -784,12 +784,12 @@ func TestE4_SaveEditedQSO_UpdatesLogbook(t *testing.T) {
 // Post: event ignored; VFO1 row unchanged.
 
 func TestE5_VFO1BandChanged_Ignored_DuringEdit(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -797,17 +797,17 @@ func TestE5_VFO1BandChanged_Ignored_DuringEdit(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		SelectQSO(qso).
-		VFOBandChanged(core.VFO1, core.Band40m). // must be suppressed during edit
-		AssertViewNotCalledWith("SetBand", core.VFO1, "40m")
+		VFOBandChanged(model.VFO1, model.Band40m). // must be suppressed during edit
+		AssertViewNotCalledWith("SetBand", model.VFO1, "40m")
 }
 
 func TestE5_VFO1ModeChanged_Ignored_DuringEdit(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -815,19 +815,19 @@ func TestE5_VFO1ModeChanged_Ignored_DuringEdit(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		SelectQSO(qso).
-		VFOModeChanged(core.VFO1, core.ModeSSB). // must be suppressed during edit
-		AssertViewNotCalledWith("SetMode", core.VFO1, "SSB")
+		VFOModeChanged(model.VFO1, model.ModeSSB). // must be suppressed during edit
+		AssertViewNotCalledWith("SetMode", model.VFO1, "SSB")
 }
 
 func TestE5_VFO1FrequencyChanged_Ignored_DuringEdit(t *testing.T) {
 	// Large jump (1000 Hz > 250 Hz threshold) that would normally trigger Clear.
 	// During edit it must be fully ignored: no view update, no Clear.
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -835,9 +835,9 @@ func TestE5_VFO1FrequencyChanged_Ignored_DuringEdit(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		SelectQSO(qso).
-		VFOFrequencyChanged(core.VFO1, 14050000+1000). // large jump, must be suppressed
-		AssertViewNotCalledWith("SetFrequency", core.VFO1, core.Frequency(14050000+1000)).
-		AssertViewNotCalledWith("SetCallsign", core.VFO1, "") // Clear did not run
+		VFOFrequencyChanged(model.VFO1, 14050000+1000). // large jump, must be suppressed
+		AssertViewNotCalledWith("SetFrequency", model.VFO1, model.Frequency(14050000+1000)).
+		AssertViewNotCalledWith("SetCallsign", model.VFO1, "") // Clear did not run
 }
 
 // F1. Set ESM view
@@ -861,7 +861,7 @@ func TestF2_ToggleESM_NotifiesListenerAndReappliesActiveField(t *testing.T) {
 		WithClassicExchange().
 		ToggleESM(true).
 		AssertESMListenerNotified(true).
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // F3. NextESMStep — Run mode, CallsignValid: sends keyer text, advances past RST field.
@@ -875,11 +875,11 @@ func TestF3_NextESMStep_Run_CallsignValid_SendsAndAdvancesField(t *testing.T) {
 		WithESMEnabled().
 		WithKeyer().
 		WithVFOSwitcher().
-		WithWorkmode(core.Run).
+		WithWorkmode(model.Run).
 		Enter("DL1ABC"). // ESM state = CallsignValid
 		NextESMStep().
 		AssertKeyerSentMacro(1).
-		AssertActiveField(core.VFO1, core.TheirExchangeField(2)) // skip RST → serial
+		AssertActiveField(model.VFO1, model.TheirExchangeField(2)) // skip RST → serial
 }
 
 // F3b. NextESMStep — ExchangeValid: logs the QSO.
@@ -889,7 +889,7 @@ func TestF3_NextESMStep_ExchangeValid_Logs(t *testing.T) {
 		WithClassicExchange().
 		WithESMEnabled().
 		WithKeyer().
-		WithWorkmode(core.Run).
+		WithWorkmode(model.Run).
 		Enter("DL1ABC").
 		GotoNextField(). // → TheirExchange1 (RST pre-filled "599")
 		GotoNextField(). // → TheirExchange2
@@ -911,7 +911,7 @@ func TestF4_ESMRecomputedOnWorkmodeChange(t *testing.T) {
 		WithESMEnabled().
 		WithKeyer().
 		ConnectESMView().
-		WorkmodeChanged(core.Run). // triggers updateESM
+		WorkmodeChanged(model.Run). // triggers updateESM
 		AssertESMViewMessage("keyer[0]")
 }
 
@@ -920,12 +920,12 @@ func TestF4_ESMRecomputedOnWorkmodeChange(t *testing.T) {
 // Post: ESM step not taken; Log path used.
 
 func TestF5_EnterPressed_Editing_SkipsESM(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -951,7 +951,7 @@ func TestG1_MarkInBandmap_AddsManualSpot(t *testing.T) {
 		Enter("DL1ABC").
 		MarkInBandmap().
 		AssertBandmapAddedCallsign("DL1ABC").
-		AssertBandmapSpotSource(core.ManualSpot)
+		AssertBandmapSpotSource(model.ManualSpot)
 }
 
 // G2. Bandmap entry selected
@@ -960,16 +960,16 @@ func TestG1_MarkInBandmap_AddsManualSpot(t *testing.T) {
 // Invariants: logbook; contest.
 
 func TestG2_EntrySelected_ClearsAndEntersCallsign(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	bEntry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	bEntry := model.BandmapEntry{Call: dl1abc, Frequency: 14200000}
 
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL2XYZ"). // some other callsign in the row
-		EntrySelected(core.VFO1, bEntry).
-		AssertCallsignView(core.VFO1, "DL1ABC").
+		EntrySelected(model.VFO1, bEntry).
+		AssertCallsignView(model.VFO1, "DL1ABC").
 		AssertVFOFrequency(14200000).
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // G3. Select best on-frequency match
@@ -977,17 +977,17 @@ func TestG2_EntrySelected_ClearsAndEntersCallsign(t *testing.T) {
 // Post: active field = callsign; A1 effects with that callsign; view updated.
 
 func TestG3_SelectBestMatchOnFrequency_EntersCallsign(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	frame := core.CallinfoFrame{
-		Supercheck: []core.AnnotatedCallsign{{Callsign: dl1abc}},
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	frame := model.CallinfoFrame{
+		Supercheck: []model.AnnotatedCallsign{{Callsign: dl1abc}},
 	}
 
 	NewScenario(t).
 		WithClassicExchange().
-		WithCallinfoFrame(core.VFO1, frame).
+		WithCallinfoFrame(model.VFO1, frame).
 		SelectBestMatchOnFrequency().
-		AssertCallsignView(core.VFO1, "DL1ABC").
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertCallsignView(model.VFO1, "DL1ABC").
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // G4. Select match by index
@@ -995,10 +995,10 @@ func TestG3_SelectBestMatchOnFrequency_EntersCallsign(t *testing.T) {
 // Post: same as G3 with that match's callsign.
 
 func TestG4_SelectMatchByIndex_EntersCallsign(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	dl2xyz, _ := core.ParseCallsign("DL2XYZ")
-	frame := core.CallinfoFrame{
-		Supercheck: []core.AnnotatedCallsign{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	dl2xyz, _ := model.ParseCallsign("DL2XYZ")
+	frame := model.CallinfoFrame{
+		Supercheck: []model.AnnotatedCallsign{
 			{Callsign: dl1abc},
 			{Callsign: dl2xyz},
 		},
@@ -1006,10 +1006,10 @@ func TestG4_SelectMatchByIndex_EntersCallsign(t *testing.T) {
 
 	NewScenario(t).
 		WithClassicExchange().
-		WithCallinfoFrame(core.VFO1, frame).
+		WithCallinfoFrame(model.VFO1, frame).
 		SelectMatch(1). // index 1 = DL2XYZ
-		AssertCallsignView(core.VFO1, "DL2XYZ").
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertCallsignView(model.VFO1, "DL2XYZ").
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // G5. Refresh prediction
@@ -1031,14 +1031,14 @@ func TestG5_RefreshPrediction_NotifiesCallinfo(t *testing.T) {
 
 func TestG6_CallinfoFrameChanged_FrameUsedInSubsequentPrediction(t *testing.T) {
 	// Same mechanism as A2 — verifies CallinfoFrameChanged stores the frame for leaveCallsignField.
-	frame := core.CallinfoFrame{PredictedExchange: []string{"599", "042", "OE"}}
+	frame := model.CallinfoFrame{PredictedExchange: []string{"599", "042", "OE"}}
 
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("OE5XYZ").
-		WithCallinfoFrame(core.VFO1, frame). // G6 event: store the frame
-		GotoNextField().                     // leaveCallsignField uses the stored frame
-		AssertTheirExchangeSet(core.VFO1, 3, "OE")
+		WithCallinfoFrame(model.VFO1, frame). // G6 event: store the frame
+		GotoNextField().                      // leaveCallsignField uses the stored frame
+		AssertTheirExchangeSet(model.VFO1, 3, "OE")
 }
 
 // H1. SetFocusedVFO
@@ -1049,18 +1049,18 @@ func TestG6_CallinfoFrameChanged_FrameUsedInSubsequentPrediction(t *testing.T) {
 func TestH1_SetFocusedVFO_ReappliesActiveField(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().WithVFOSwitcher().
-		SetFocusedVFO(core.VFO2).
-		AssertActiveField(core.VFO2, core.CallsignField).
-		AssertVFOSwitcherCurrentCalled(core.VFO2)
+		SetFocusedVFO(model.VFO2).
+		AssertActiveField(model.VFO2, model.CallsignField).
+		AssertVFOSwitcherCurrentCalled(model.VFO2)
 }
 
 func TestH1_SetFocusedVFO_VFO2Disabled_Ignored(t *testing.T) {
 	// VFO2 not enabled → SetFocusedVFO(VFO2) is a no-op.
 	NewScenario(t).
 		WithClassicExchange().WithVFOSwitcher().
-		SetFocusedVFO(core.VFO2).
+		SetFocusedVFO(model.VFO2).
 		// focused stays on VFO1; VFO2 active field NOT set by controller
-		AssertViewNotCalledWith("SetActiveField", core.VFO2, core.CallsignField)
+		AssertViewNotCalledWith("SetActiveField", model.VFO2, model.CallsignField)
 }
 
 // H3. ToggleFocusedVFO
@@ -1072,7 +1072,7 @@ func TestH3_ToggleFocusedVFO_VFO2Enabled_TogglesFromVFO1ToVFO2(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().
 		ToggleFocusedVFO(). // VFO1 → VFO2
-		AssertActiveField(core.VFO2, core.CallsignField)
+		AssertActiveField(model.VFO2, model.CallsignField)
 }
 
 func TestH3_ToggleFocusedVFO_VFO2Disabled_StaysOnVFO1(t *testing.T) {
@@ -1081,7 +1081,7 @@ func TestH3_ToggleFocusedVFO_VFO2Disabled_StaysOnVFO1(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange(). // VFO2 not enabled
 		ToggleFocusedVFO().
-		AssertViewNotCalledWith("SetActiveField", core.VFO2, core.CallsignField)
+		AssertViewNotCalledWith("SetActiveField", model.VFO2, model.CallsignField)
 }
 
 // H4. FocusVFO1 / FocusVFO2
@@ -1091,7 +1091,7 @@ func TestH4_FocusVFO2_SetsActiveFieldOnVFO2(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().
 		FocusVFO2().
-		AssertActiveField(core.VFO2, core.CallsignField)
+		AssertActiveField(model.VFO2, model.CallsignField)
 }
 
 func TestH4_FocusVFO1_AfterVFO2_SetsActiveFieldOnVFO1(t *testing.T) {
@@ -1099,7 +1099,7 @@ func TestH4_FocusVFO1_AfterVFO2_SetsActiveFieldOnVFO1(t *testing.T) {
 		WithClassicExchange().WithVFO2().
 		FocusVFO2().
 		FocusVFO1().
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // H5. LogVFO(vfo)
@@ -1114,7 +1114,7 @@ func TestH5_LogVFO_FocusesAndLogs(t *testing.T) {
 		GotoNextField().Enter("599").
 		GotoNextField().Enter("042").
 		GotoNextField().Enter("OE").
-		LogVFO(core.VFO1).
+		LogVFO(model.VFO1).
 		AssertQSOAdded().
 		AssertQSOAddedCallsign("DL1ABC")
 }
@@ -1128,9 +1128,9 @@ func TestH6_ClearVFO_FocusesAndClears(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().
 		Enter("DL1ABC").
-		ClearVFO(core.VFO1).
-		AssertCallsignView(core.VFO1, "").
-		AssertActiveField(core.VFO1, core.CallsignField)
+		ClearVFO(model.VFO1).
+		AssertCallsignView(model.VFO1, "").
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // H7. RadioChanged → dual VFO
@@ -1162,7 +1162,7 @@ func TestH8_RadioChanged_SingleVFO_VFO2Focused_CollapsesToVFO1(t *testing.T) {
 	s := NewScenario(t).WithClassicExchange()
 	s.controller.Enter("DL1ABC") // VFO1 callsign
 	s.WithVFO2()
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ") // VFO2 callsign
 	s.resetSpies()
 	s.controller.RadioChanged("", true) // collapse with VFO2 focused
@@ -1214,7 +1214,7 @@ func TestI3_CollisionAvoidance_VFO2GetsNextSerial(t *testing.T) {
 	// Enter on VFO1 → claims serial 1 (nextQSONumber=1).
 	s.Enter("DL1ABC")
 	// Switch focus to VFO2.
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	// Enter on VFO2 → must get serial 2 (serial 1 taken by VFO1).
 	s.Enter("DL2XYZ")
 	got := s.controller.CurrentValues().MyNumber
@@ -1232,8 +1232,8 @@ func TestI4_ReleaseClaim_OnClear_RowResetAndPreviewRefreshed(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC"). // claim serial 1
 		Clear().
-		AssertCallsignView(core.VFO1, ""). // row cleared
-		AssertMyExchangeView(2, "001")     // serial preview refreshed
+		AssertCallsignView(model.VFO1, ""). // row cleared
+		AssertMyExchangeView(2, "001")      // serial preview refreshed
 }
 
 // I5. Refresh previews after log
@@ -1256,12 +1256,12 @@ func TestI5_RefreshPreviewsAfterLog(t *testing.T) {
 // Post: claimedSerial[VFO1] = editQSO.MyNumber; restored on leaveEditMode.
 
 func TestI6_EditMode_OwnsSerialSlot(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign: dl1abc,
 		MyNumber: 7,
-		Band:     core.Band20m,
-		Mode:     core.ModeCW,
+		Band:     model.Band20m,
+		Mode:     model.ModeCW,
 	}
 	s := NewScenario(t).WithClassicExchange()
 	s.SelectQSO(qso)
@@ -1280,9 +1280,9 @@ func TestJ1_VFOFrequencyChanged_SmallJump_NoClear(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		VFOFrequencyChanged(core.VFO1, 14050000+100). // small jump
+		VFOFrequencyChanged(model.VFO1, 14050000+100). // small jump
 		// Clear must NOT have fired: callsign still in view.
-		AssertViewNotCalledWith("SetCallsign", core.VFO1, "")
+		AssertViewNotCalledWith("SetCallsign", model.VFO1, "")
 }
 
 func TestJ1_VFOTuned_LargeJump_ClearsEventVFO(t *testing.T) {
@@ -1290,8 +1290,8 @@ func TestJ1_VFOTuned_LargeJump_ClearsEventVFO(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		VFOTuned(core.VFO1, 14050000+1000). // large jump
-		AssertCallsignView(core.VFO1, "")   // VFO1 cleared
+		VFOTuned(model.VFO1, 14050000+1000). // large jump
+		AssertCallsignView(model.VFO1, "")   // VFO1 cleared
 }
 
 func TestJ1_VFOTuned_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
@@ -1303,19 +1303,19 @@ func TestJ1_VFOTuned_VFO2LargeJump_ClearsVFO2Only(t *testing.T) {
 	// Enter callsign on VFO1.
 	s.controller.Enter("DL1ABC")
 	// Switch to VFO2, enter callsign.
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ")
 	// Switch back to VFO1 (so VFO1 is focused).
-	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.SetFocusedVFO(model.VFO1)
 	s.resetSpies()
 
 	// Large frequency jump on VFO2 while VFO1 is focused.
-	s.controller.VFOTuned(core.VFO2, 14050000+1000)
+	s.controller.VFOTuned(model.VFO2, 14050000+1000)
 
 	// VFO2 input must be cleared.
-	s.view.assertCalledWith(s.t, "SetCallsign", core.VFO2, "")
+	s.view.assertCalledWith(s.t, "SetCallsign", model.VFO2, "")
 	// VFO1 input must NOT be cleared.
-	assert.False(t, s.view.wasCalledWith("SetCallsign", core.VFO1, ""),
+	assert.False(t, s.view.wasCalledWith("SetCallsign", model.VFO1, ""),
 		"VFO1 callsign must not be cleared by VFO2 frequency jump")
 	// Focused VFO must still be VFO1: verify by entering text — it goes to VFO1.
 	s.resetSpies()
@@ -1334,21 +1334,21 @@ func TestJ1_VFOTuned_VFO2LargeJump_ClearsCallinfoAndMessage(t *testing.T) {
 	// Enter callsign on VFO1.
 	s.controller.Enter("DL1ABC")
 	// Switch to VFO2, enter callsign (triggers callinfo).
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ")
 	// Switch back to VFO1.
-	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.SetFocusedVFO(model.VFO1)
 	s.resetSpies()
 
 	// Large frequency jump on VFO2.
-	s.controller.VFOTuned(core.VFO2, 14050000+1000)
+	s.controller.VFOTuned(model.VFO2, 14050000+1000)
 
 	// VFO2 callinfo must be cleared (InputChanged with empty call for VFO2).
-	s.AssertCallinfoCleared(core.VFO2)
+	s.AssertCallinfoCleared(model.VFO2)
 	// VFO2 message must be cleared.
-	s.view.assertCalledWith(s.t, "ClearMessage", core.VFO2)
+	s.view.assertCalledWith(s.t, "ClearMessage", model.VFO2)
 	// VFO1 message must NOT be cleared.
-	assert.False(t, s.view.wasCalledWith("ClearMessage", core.VFO1),
+	assert.False(t, s.view.wasCalledWith("ClearMessage", model.VFO1),
 		"VFO1 message must not be cleared by VFO2 frequency jump")
 	// Focus must remain on VFO1.
 	s.resetSpies()
@@ -1360,8 +1360,8 @@ func TestJ1_VFOTuned_VFO2LargeJump_ClearsCallinfoAndMessage(t *testing.T) {
 func TestJ1_VFOFrequencyChanged_UpdatesFrequencyView(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 14050000+100).
-		AssertFrequencyView(core.VFO1, 14050000+100)
+		VFOFrequencyChanged(model.VFO1, 14050000+100).
+		AssertFrequencyView(model.VFO1, 14050000+100)
 }
 
 // J2. VFOBandChanged
@@ -1372,16 +1372,16 @@ func TestJ2_VFOBandChanged_UpdatesView(t *testing.T) {
 	// Initial band = Band20m (from vfoSpy.Refresh). Band40m differs → view updated.
 	NewScenario(t).
 		WithClassicExchange().
-		VFOBandChanged(core.VFO1, core.Band40m).
-		AssertViewNotCalledWith("SetBand", core.VFO1, "") // at minimum, not empty
+		VFOBandChanged(model.VFO1, model.Band40m).
+		AssertViewNotCalledWith("SetBand", model.VFO1, "") // at minimum, not empty
 }
 
 func TestJ2_VFOBandChanged_SameBand_Ignored(t *testing.T) {
 	// Same as current selectedBand → no view update.
 	NewScenario(t).
 		WithClassicExchange().
-		VFOBandChanged(core.VFO1, core.Band20m). // Band20m is already selected
-		AssertViewNotCalledWith("SetBand", core.VFO1, "20m")
+		VFOBandChanged(model.VFO1, model.Band20m). // Band20m is already selected
+		AssertViewNotCalledWith("SetBand", model.VFO1, "20m")
 }
 
 // J3. VFOModeChanged
@@ -1391,15 +1391,15 @@ func TestJ2_VFOBandChanged_SameBand_Ignored(t *testing.T) {
 func TestJ3_VFOModeChanged_UpdatesView(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		VFOModeChanged(core.VFO1, core.ModeSSB).
-		AssertViewNotCalledWith("SetMode", core.VFO1, "") // mode was updated
+		VFOModeChanged(model.VFO1, model.ModeSSB).
+		AssertViewNotCalledWith("SetMode", model.VFO1, "") // mode was updated
 }
 
 func TestJ3_VFOModeChanged_SameMode_Ignored(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		VFOModeChanged(core.VFO1, core.ModeCW). // ModeCW already selected
-		AssertViewNotCalledWith("SetMode", core.VFO1, "CW")
+		VFOModeChanged(model.VFO1, model.ModeCW). // ModeCW already selected
+		AssertViewNotCalledWith("SetMode", model.VFO1, "CW")
 }
 
 // J2b. VFOBandChanged targets event VFO, not focused VFO
@@ -1410,9 +1410,9 @@ func TestJ2b_VFOBandChanged_VFO2Event_WhileVFO1Focused(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		WithVFO2().
-		VFOBandChanged(core.VFO2, core.Band40m).
-		AssertBandView(core.VFO2, "40m").
-		AssertViewNotCalledWith("SetBand", core.VFO1, "40m")
+		VFOBandChanged(model.VFO2, model.Band40m).
+		AssertBandView(model.VFO2, "40m").
+		AssertViewNotCalledWith("SetBand", model.VFO1, "40m")
 }
 
 func TestJ2b_VFOBandChanged_VFO2Event_DoesNotCorruptVFO1(t *testing.T) {
@@ -1421,9 +1421,9 @@ func TestJ2b_VFOBandChanged_VFO2Event_DoesNotCorruptVFO1(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		WithVFO2().
-		VFOBandChanged(core.VFO2, core.Band40m).
-		VFOBandChanged(core.VFO1, core.Band20m). // resetSpies; must be no-op (same band)
-		AssertViewNotCalledWith("SetBand", core.VFO1, "20m")
+		VFOBandChanged(model.VFO2, model.Band40m).
+		VFOBandChanged(model.VFO1, model.Band20m). // resetSpies; must be no-op (same band)
+		AssertViewNotCalledWith("SetBand", model.VFO1, "20m")
 }
 
 // J3b. VFOModeChanged targets event VFO, not focused VFO
@@ -1433,18 +1433,18 @@ func TestJ3b_VFOModeChanged_VFO2Event_WhileVFO1Focused(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		WithVFO2().
-		VFOModeChanged(core.VFO2, core.ModeSSB).
-		AssertModeView(core.VFO2, "SSB").
-		AssertViewNotCalledWith("SetMode", core.VFO1, "SSB")
+		VFOModeChanged(model.VFO2, model.ModeSSB).
+		AssertModeView(model.VFO2, "SSB").
+		AssertViewNotCalledWith("SetMode", model.VFO1, "SSB")
 }
 
 func TestJ3b_VFOModeChanged_VFO2Event_DoesNotCorruptVFO1(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		WithVFO2().
-		VFOModeChanged(core.VFO2, core.ModeSSB).
-		VFOModeChanged(core.VFO1, core.ModeCW). // resetSpies; must be no-op (same mode)
-		AssertViewNotCalledWith("SetMode", core.VFO1, "CW")
+		VFOModeChanged(model.VFO2, model.ModeSSB).
+		VFOModeChanged(model.VFO1, model.ModeCW). // resetSpies; must be no-op (same mode)
+		AssertViewNotCalledWith("SetMode", model.VFO1, "CW")
 }
 
 // J6. VFOPTTChanged
@@ -1454,15 +1454,15 @@ func TestJ3b_VFOModeChanged_VFO2Event_DoesNotCorruptVFO1(t *testing.T) {
 func TestJ6_VFOPTTChanged_VFO1_UpdatesTXState(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		VFOPTTChanged(core.VFO1, true).
-		AssertTXStateView(core.VFO1, true, false, 0)
+		VFOPTTChanged(model.VFO1, true).
+		AssertTXStateView(model.VFO1, true, false, 0)
 }
 
 func TestJ6_VFOPTTChanged_VFO2_UpdatesTXStateForVFO2(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().
-		VFOPTTChanged(core.VFO2, true).
-		AssertTXStateView(core.VFO2, true, false, 0)
+		VFOPTTChanged(model.VFO2, true).
+		AssertTXStateView(model.VFO2, true, false, 0)
 }
 
 // K1. SendQuestion
@@ -1517,15 +1517,15 @@ func TestK4_ParrotActive_True_UpdatesTXStateAndClears(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		ParrotActive(true).
-		AssertTXStateView(core.VFO1, false, true, 0).
-		AssertCallsignView(core.VFO1, "") // Clear ran
+		AssertTXStateView(model.VFO1, false, true, 0).
+		AssertCallsignView(model.VFO1, "") // Clear ran
 }
 
 func TestK4_ParrotActive_False_UpdatesTXStateOnly(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		ParrotActive(false).
-		AssertTXStateView(core.VFO1, false, false, 0)
+		AssertTXStateView(model.VFO1, false, false, 0)
 }
 
 // K5. ParrotTimeLeft(d)
@@ -1536,7 +1536,7 @@ func TestK5_ParrotTimeLeft_UpdatesTXState(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
 		ParrotTimeLeft(5*time.Second).
-		AssertTXStateView(core.VFO1, false, false, 5*time.Second)
+		AssertTXStateView(model.VFO1, false, false, 5*time.Second)
 }
 
 // L2. ContestChanged
@@ -1549,8 +1549,8 @@ func TestL2_ContestChanged_ClearsRow(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		WithClassicExchange(). // second ContestChanged → Clear
-		AssertCallsignView(core.VFO1, "").
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertCallsignView(model.VFO1, "").
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // L3. WorkmodeChanged
@@ -1561,7 +1561,7 @@ func TestL2_ContestChanged_ClearsRow(t *testing.T) {
 func TestL3_WorkmodeChanged_UpdatesWorkmode(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithESMEnabled().WithKeyer().ConnectESMView().
-		WorkmodeChanged(core.Run).
+		WorkmodeChanged(model.Run).
 		AssertESMViewMessage("keyer[0]")
 }
 
@@ -1574,8 +1574,8 @@ func TestL4_LogbookLoaded_ClearsRowAndPushesInput(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC"). // something in the row
 		LogbookLoaded().
-		AssertCallsignView(core.VFO1, ""). // Clear ran
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertCallsignView(model.VFO1, ""). // Clear ran
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // M6. RefreshView
@@ -1587,7 +1587,7 @@ func TestM6_RefreshView_PushesCurrentInputToView(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		RefreshView().
-		AssertCallsignView(core.VFO1, "DL1ABC")
+		AssertCallsignView(model.VFO1, "DL1ABC")
 }
 
 // M7. Activate
@@ -1597,9 +1597,9 @@ func TestM6_RefreshView_PushesCurrentInputToView(t *testing.T) {
 func TestM7_Activate_ReappliesActiveField(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().
-		SetActiveField(core.TheirExchangeField(1)).
+		SetActiveField(model.TheirExchangeField(1)).
 		Activate().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(1))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(1))
 }
 
 // N1. CurrentQSOState
@@ -1611,10 +1611,10 @@ func TestM7_Activate_ReappliesActiveField(t *testing.T) {
 func TestN1_CurrentQSOState_Empty_WhenCallsignEmpty(t *testing.T) {
 	s := NewScenario(t).WithClassicExchange()
 	call, state := s.controller.CurrentQSOState()
-	if call != core.NoCallsign {
+	if call != model.NoCallsign {
 		t.Errorf("expected NoCallsign, got %v", call)
 	}
-	if state != core.QSODataEmpty {
+	if state != model.QSODataEmpty {
 		t.Errorf("expected QSODataEmpty, got %v", state)
 	}
 }
@@ -1623,7 +1623,7 @@ func TestN1_CurrentQSOState_Invalid_WhenExchangeIncomplete(t *testing.T) {
 	s := NewScenario(t).WithClassicExchange()
 	s.Enter("DL1ABC") // callsign OK, exchange empty → invalid
 	_, state := s.controller.CurrentQSOState()
-	if state != core.QSODataInvalid {
+	if state != model.QSODataInvalid {
 		t.Errorf("expected QSODataInvalid, got %v", state)
 	}
 }
@@ -1638,7 +1638,7 @@ func TestN1_CurrentQSOState_Valid_WhenFullyFilledIn(t *testing.T) {
 	s.GotoNextField()
 	s.Enter("OE") // TheirExchange3 (text)
 	_, state := s.controller.CurrentQSOState()
-	if state != core.QSODataValid {
+	if state != model.QSODataValid {
 		t.Errorf("expected QSODataValid, got %v", state)
 	}
 }
@@ -1684,7 +1684,7 @@ func logClassicQSO(s *Scenario, callsign string) {
 func TestN3_LastNumber_ZeroBeforeAnyQSOLogged(t *testing.T) {
 	s := NewScenario(t).WithClassicExchange().WithNextQSONumber(42)
 	s.Enter("DL1ABC")
-	assert.Equal(t, core.QSONumber(0), s.controller.CurrentValues().LastNumber,
+	assert.Equal(t, model.QSONumber(0), s.controller.CurrentValues().LastNumber,
 		"LastNumber must be 0 until a QSO is logged")
 }
 
@@ -1696,9 +1696,9 @@ func TestN3_LastNumber_HoldsLoggedSerialAfterAdvance(t *testing.T) {
 	s.Enter("DL2XYZ")
 
 	vals := s.controller.CurrentValues()
-	assert.Equal(t, core.QSONumber(43), vals.MyNumber,
+	assert.Equal(t, model.QSONumber(43), vals.MyNumber,
 		"MyNumber must reflect the advanced serial")
-	assert.Equal(t, core.QSONumber(42), vals.LastNumber,
+	assert.Equal(t, model.QSONumber(42), vals.LastNumber,
 		"LastNumber must still hold the previously logged serial")
 }
 
@@ -1706,31 +1706,31 @@ func TestN3_LastNumber_IsPerVFO(t *testing.T) {
 	s := NewScenario(t).WithClassicExchange().WithVFO2().WithNextQSONumber(6)
 	logClassicQSO(s, "DL1ABC")
 
-	assert.Equal(t, core.QSONumber(6), s.controller.CurrentValues().LastNumber,
+	assert.Equal(t, model.QSONumber(6), s.controller.CurrentValues().LastNumber,
 		"VFO1 must see its own logged serial")
 
-	s.controller.SetFocusedVFO(core.VFO2)
-	assert.Equal(t, core.QSONumber(0), s.controller.CurrentValues().LastNumber,
+	s.controller.SetFocusedVFO(model.VFO2)
+	assert.Equal(t, model.QSONumber(0), s.controller.CurrentValues().LastNumber,
 		"VFO2 has logged nothing → LastNumber 0")
 }
 
 func TestN3_LastNumber_NotUpdatedByEdit(t *testing.T) {
-	dl2xyz, _ := core.ParseCallsign("DL2XYZ")
+	dl2xyz, _ := model.ParseCallsign("DL2XYZ")
 	s := NewScenario(t).WithClassicExchange().WithNextQSONumber(6)
 	logClassicQSO(s, "DL1ABC")
-	require.Equal(t, core.QSONumber(6), s.controller.CurrentValues().LastNumber)
+	require.Equal(t, model.QSONumber(6), s.controller.CurrentValues().LastNumber)
 
-	s.controller.QSOSelected(core.QSO{
+	s.controller.QSOSelected(model.QSO{
 		Callsign:      dl2xyz,
 		MyNumber:      3,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "003", ""},
 	})
 	s.controller.Log()
 
-	assert.Equal(t, core.QSONumber(6), s.controller.CurrentValues().LastNumber,
+	assert.Equal(t, model.QSONumber(6), s.controller.CurrentValues().LastNumber,
 		"edit must not overwrite LastNumber")
 }
 
@@ -1747,15 +1747,15 @@ func TestI7_DualVFO_SerialInterleaving(t *testing.T) {
 		WithNextQSONumber(6)
 
 	// Ensure VFO2 has band and mode set (VFO1 gets them via vfoSpy.Refresh in SetView).
-	s.controller.VFOBandChanged(core.VFO2, core.Band20m)
-	s.controller.VFOModeChanged(core.VFO2, core.ModeCW)
+	s.controller.VFOBandChanged(model.VFO2, model.Band20m)
+	s.controller.VFOModeChanged(model.VFO2, model.ModeCW)
 
 	// VFO1: enter callsign → claims serial 6; advance to first exchange field.
 	s.controller.Enter("DL1ABC")
 	s.controller.GotoNextField()
 
 	// VFO2: enter callsign → claims serial 7 (collision avoidance skips 6).
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ")
 	// Fill VFO2 exchange fields.
 	s.controller.GotoNextField()
@@ -1777,7 +1777,7 @@ func TestI7_DualVFO_SerialInterleaving(t *testing.T) {
 	s.logbook.nextQSONumber = 7
 
 	// Focus VFO1: serial display must reflect VFO1's still-held claim (6).
-	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.SetFocusedVFO(model.VFO1)
 	// Fill remaining VFO1 exchange fields.
 	s.controller.Enter("599") // TheirExchange1 (RST) — active field is still TheirExchange1
 	s.controller.GotoNextField()
@@ -1804,25 +1804,25 @@ func TestI7_DualVFO_SerialInterleaving(t *testing.T) {
 func TestH2_CurrentVFOChanged_SwitchesFocusAndUpdatesView(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().
-		CurrentVFOChanged(core.VFO2).
-		AssertActiveVFO(core.VFO2).
-		AssertActiveField(core.VFO2, core.CallsignField)
+		CurrentVFOChanged(model.VFO2).
+		AssertActiveVFO(model.VFO2).
+		AssertActiveField(model.VFO2, model.CallsignField)
 }
 
 func TestH2_CurrentVFOChanged_VFO2Disabled_Ignored(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange(). // VFO2 not enabled
-		CurrentVFOChanged(core.VFO2).
-		AssertViewNotCalledWith("SetActiveVFO", core.VFO2).
-		AssertViewNotCalledWith("SetActiveField", core.VFO2, core.CallsignField)
+		CurrentVFOChanged(model.VFO2).
+		AssertViewNotCalledWith("SetActiveVFO", model.VFO2).
+		AssertViewNotCalledWith("SetActiveField", model.VFO2, model.CallsignField)
 }
 
 func TestH2_CurrentVFOChanged_SameVFO_Ignored(t *testing.T) {
 	// Already on VFO1 → CurrentVFOChanged(VFO1) is a no-op.
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().
-		CurrentVFOChanged(core.VFO1).
-		AssertViewNotCalledWith("SetActiveVFO", core.VFO1)
+		CurrentVFOChanged(model.VFO1).
+		AssertViewNotCalledWith("SetActiveVFO", model.VFO1)
 }
 
 func TestH2_CurrentVFOChanged_SuppressedDuringSetFocusedVFO(t *testing.T) {
@@ -1832,9 +1832,9 @@ func TestH2_CurrentVFOChanged_SuppressedDuringSetFocusedVFO(t *testing.T) {
 	// focusedVFO is already VFO2).
 	s := NewScenario(t).
 		WithClassicExchange().WithVFO2().WithVFOSwitcher()
-	s.SetFocusedVFO(core.VFO2) // commands rig; focusedVFO = VFO2
+	s.SetFocusedVFO(model.VFO2) // commands rig; focusedVFO = VFO2
 	s.resetSpies()
-	s.controller.CurrentVFOChanged(core.VFO2) // echo from rig → same VFO → no-op
+	s.controller.CurrentVFOChanged(model.VFO2) // echo from rig → same VFO → no-op
 	assert.False(t, s.view.wasCalled("SetActiveVFO"),
 		"CurrentVFOChanged echo must be suppressed (same VFO)")
 }
@@ -1844,15 +1844,15 @@ func TestH2_CurrentVFOChanged_SuppressedDuringSetFocusedVFO(t *testing.T) {
 func TestH1_SetFocusedVFO_CallsSetCurrentVFO(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().WithVFOSwitcher().
-		SetFocusedVFO(core.VFO2).
-		AssertVFOSwitcherCurrentCalled(core.VFO2)
+		SetFocusedVFO(model.VFO2).
+		AssertVFOSwitcherCurrentCalled(model.VFO2)
 }
 
 func TestH1_SetFocusedVFO_CallsSetActiveVFO(t *testing.T) {
 	NewScenario(t).
 		WithClassicExchange().WithVFO2().WithVFOSwitcher().
-		SetFocusedVFO(core.VFO2).
-		AssertActiveVFO(core.VFO2)
+		SetFocusedVFO(model.VFO2).
+		AssertActiveVFO(model.VFO2)
 }
 
 // H8+. RadioChanged VFO2 collapse releases serial claim
@@ -1860,28 +1860,28 @@ func TestH1_SetFocusedVFO_CallsSetActiveVFO(t *testing.T) {
 func TestH8_RadioChanged_SingleVFO_VFO2Focused_ReleasesSerialClaim(t *testing.T) {
 	s := NewScenario(t).WithClassicExchange().WithNextQSONumber(5)
 	s.WithVFO2()
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL1ABC") // claim serial on VFO2
 	got := s.controller.CurrentValues().MyNumber
-	require.Equal(t, core.QSONumber(5), got, "VFO2 must have claimed serial 5")
+	require.Equal(t, model.QSONumber(5), got, "VFO2 must have claimed serial 5")
 
 	s.controller.RadioChanged("", true) // collapse → release VFO2 claim, move to VFO1
 
 	// After collapse, VFO1 is focused. Serial preview should be 5 (released, re-available).
 	vals := s.controller.CurrentValues()
-	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+	assert.Equal(t, model.QSONumber(5), vals.MyNumber,
 		"after VFO2 collapse, VFO1 serial preview should be 5 (VFO2 claim released)")
 }
 
 // K1b. SendQuestion blocked during edit
 
 func TestK1b_SendQuestion_DuringEdit_IsNoOp(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -1890,18 +1890,18 @@ func TestK1b_SendQuestion_DuringEdit_IsNoOp(t *testing.T) {
 		WithClassicExchange().WithKeyer().WithVFOSwitcher().
 		SelectQSO(qso).
 		SendQuestion().
-		AssertViewNotCalledWith("SetActiveField", core.VFO1, core.CallsignField) // no side effects
+		AssertViewNotCalledWith("SetActiveField", model.VFO1, model.CallsignField) // no side effects
 	// keyer.SendQuestion NOT called is the key assertion:
 	// AssertNoKeyerText covers SendText; check sentQuestion directly.
 }
 
 func TestK1b_SendQuestion_DuringEdit_KeyerNotCalled(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -1918,12 +1918,12 @@ func TestK1b_SendQuestion_DuringEdit_KeyerNotCalled(t *testing.T) {
 // K2b. RepeatLastTransmission blocked during edit
 
 func TestK2b_RepeatLastTransmission_DuringEdit_IsNoOp(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -1940,12 +1940,12 @@ func TestK2b_RepeatLastTransmission_DuringEdit_IsNoOp(t *testing.T) {
 // F3c. NextESMStep blocked during edit
 
 func TestF3c_NextESMStep_DuringEdit_IsNoOp(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
@@ -1967,13 +1967,13 @@ func TestF3d_NextESMStep_SP_CallsignValid_SendsButNoFieldAdvance(t *testing.T) {
 		WithESMEnabled().
 		WithKeyer().
 		WithVFOSwitcher().
-		WithWorkmode(core.SearchPounce)
+		WithWorkmode(model.SearchPounce)
 	s.Enter("DL1ABC") // ESM state = CallsignValid
 	s.NextESMStep()
 	s.AssertKeyerSentMacro(0)
 	// In S&P, CallsignValid does NOT advance field (unlike Run mode).
 	// Verify no GotoNextField side effects: active field was not pushed.
-	assert.False(t, s.view.wasCalledWith("SetActiveField", core.VFO1, core.TheirExchangeField(1)),
+	assert.False(t, s.view.wasCalledWith("SetActiveField", model.VFO1, model.TheirExchangeField(1)),
 		"S&P CallsignValid must not advance to TheirExchange1 (that's Run-only)")
 }
 
@@ -1984,7 +1984,7 @@ func TestF3e_NextESMStep_SP_ExchangeValid_Logs(t *testing.T) {
 		WithClassicExchange().
 		WithESMEnabled().
 		WithKeyer().
-		WithWorkmode(core.SearchPounce).
+		WithWorkmode(model.SearchPounce).
 		Enter("DL1ABC").
 		GotoNextField(). // → TheirExchange1 (RST pre-filled "599")
 		GotoNextField(). // → TheirExchange2
@@ -1999,21 +1999,21 @@ func TestF3e_NextESMStep_SP_ExchangeValid_Logs(t *testing.T) {
 
 func TestE4_SaveEditedQSO_PreservesOriginalTimeAndWorkmode(t *testing.T) {
 	editTime := time.Date(2025, time.March, 15, 10, 30, 0, 0, time.UTC)
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      7,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		Time:          editTime,
-		Workmode:      core.SearchPounce,
+		Workmode:      model.SearchPounce,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "007", ""},
 	}
 
 	s := NewScenario(t).
 		WithClassicExchange().
-		WithWorkmode(core.Run) // current workmode differs from edit QSO's
+		WithWorkmode(model.Run) // current workmode differs from edit QSO's
 	s.SelectQSO(qso)
 	s.PressEnter() // Log → UpdateQSO
 
@@ -2021,7 +2021,7 @@ func TestE4_SaveEditedQSO_PreservesOriginalTimeAndWorkmode(t *testing.T) {
 	updated := s.logbook.updatedQSOs[0]
 	assert.Equal(t, editTime, updated.Time,
 		"edited QSO must preserve original time, not clock.Now()")
-	assert.Equal(t, core.SearchPounce, updated.Workmode,
+	assert.Equal(t, model.SearchPounce, updated.Workmode,
 		"edited QSO must preserve original workmode, not current workmode")
 }
 
@@ -2036,17 +2036,17 @@ func TestI8_FrequencyJump_VFO2_ReleasesSerialClaim(t *testing.T) {
 	// Enter callsign on VFO1 → claims serial 5.
 	s.controller.Enter("DL1ABC")
 	// Switch to VFO2, enter callsign → claims serial 6.
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ")
 	// Switch back to VFO1.
-	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.SetFocusedVFO(model.VFO1)
 	s.resetSpies()
 
 	// Large frequency jump on VFO2 → clearInput(VFO2) → Release(VFO2).
-	s.controller.VFOTuned(core.VFO2, 14050000+1000)
+	s.controller.VFOTuned(model.VFO2, 14050000+1000)
 
 	// VFO2 serial claim released: SetSerialClaim(VFO2, 0, false) must be called.
-	s.AssertSerialClaimView(core.VFO2, 0, false)
+	s.AssertSerialClaimView(model.VFO2, 0, false)
 }
 
 // D2+. Clear fills idle non-focused VFO exchange defaults
@@ -2057,8 +2057,8 @@ func TestD2_Clear_FillsIdleNonFocusedVFODefaults(t *testing.T) {
 		WithVFO2()
 
 	// Set VFO2 band/mode so it has valid state.
-	s.controller.VFOBandChanged(core.VFO2, core.Band20m)
-	s.controller.VFOModeChanged(core.VFO2, core.ModeCW)
+	s.controller.VFOBandChanged(model.VFO2, model.Band20m)
+	s.controller.VFOModeChanged(model.VFO2, model.ModeCW)
 
 	// VFO2 has no callsign and no claim → it's idle.
 	// Clear on VFO1 should also fill VFO2's exchange defaults.
@@ -2067,7 +2067,7 @@ func TestD2_Clear_FillsIdleNonFocusedVFODefaults(t *testing.T) {
 
 	// VFO2 should have gotten its their-exchange[0] (RST) seeded via fillExchangeDefaults.
 	// showInput pushes all VFOs' exchange fields to the view.
-	s.view.assertCalledWith(s.t, "SetCallsign", core.VFO2, "")
+	s.view.assertCalledWith(s.t, "SetCallsign", model.VFO2, "")
 }
 
 func TestD2_Clear_DoesNotFillNonFocusedVFOWithClaim(t *testing.T) {
@@ -2077,10 +2077,10 @@ func TestD2_Clear_DoesNotFillNonFocusedVFOWithClaim(t *testing.T) {
 		WithNextQSONumber(5)
 
 	// Switch to VFO2, enter callsign → claims serial.
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ")
 	// Switch back to VFO1 and enter something.
-	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.SetFocusedVFO(model.VFO1)
 	s.controller.Enter("DL1ABC")
 	s.resetSpies()
 
@@ -2090,7 +2090,7 @@ func TestD2_Clear_DoesNotFillNonFocusedVFOWithClaim(t *testing.T) {
 	// VFO2 has a claim → fillExchangeDefaults must NOT run for VFO2.
 	// VFO2's callsign "DL2XYZ" must survive VFO1's Clear.
 	vals := s.controller.CurrentValues()
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	vals = s.controller.CurrentValues()
 	assert.Equal(t, "DL2XYZ", vals.TheirCall,
 		"VFO2 callsign must survive VFO1 Clear when VFO2 has a claim")
@@ -2104,7 +2104,7 @@ func TestI10_SerialSent_ClaimsAndCommits(t *testing.T) {
 		WithNextQSONumber(5).
 		Enter("DL1ABC"). // claims serial 5
 		SerialSent().
-		AssertSerialCommitted(core.VFO1)
+		AssertSerialCommitted(model.VFO1)
 }
 
 func TestI10_SerialSent_WithoutPriorClaim_ClaimsThenCommits(t *testing.T) {
@@ -2114,7 +2114,7 @@ func TestI10_SerialSent_WithoutPriorClaim_ClaimsThenCommits(t *testing.T) {
 	// No callsign entered → no claim yet.
 	s.SerialSent()
 	s.AssertSerialClaimed()
-	s.AssertSerialCommitted(core.VFO1)
+	s.AssertSerialCommitted(model.VFO1)
 }
 
 func TestI10_SerialSent_DoesNotAffectOtherVFO(t *testing.T) {
@@ -2123,15 +2123,15 @@ func TestI10_SerialSent_DoesNotAffectOtherVFO(t *testing.T) {
 		WithVFO2().
 		WithNextQSONumber(5)
 	s.controller.Enter("DL1ABC") // VFO1 claims 5
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ") // VFO2 claims 6
 	s.resetSpies()
 
 	s.controller.SerialSent() // commits VFO2 (focused)
 
-	assert.True(t, s.controller.IsSerialCommitted(core.VFO2),
+	assert.True(t, s.controller.IsSerialCommitted(model.VFO2),
 		"VFO2 serial must be committed")
-	assert.False(t, s.controller.IsSerialCommitted(core.VFO1),
+	assert.False(t, s.controller.IsSerialCommitted(model.VFO1),
 		"VFO1 serial must not be committed")
 }
 
@@ -2152,7 +2152,7 @@ func TestI11_CommittedSerial_RecycledOnClear(t *testing.T) {
 	// Enter new callsign → serial 5 reused.
 	s.controller.Enter("DL2XYZ")
 	vals := s.controller.CurrentValues()
-	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+	assert.Equal(t, model.QSONumber(5), vals.MyNumber,
 		"committed serial 5 must be recycled after clear without logging")
 }
 
@@ -2163,7 +2163,7 @@ func TestI11_UncommittedSerial_RecycledOnClear(t *testing.T) {
 
 	// Claim serial 5 but do NOT commit.
 	s.controller.Enter("DL1ABC")
-	assert.False(t, s.controller.IsSerialCommitted(core.VFO1))
+	assert.False(t, s.controller.IsSerialCommitted(model.VFO1))
 
 	// Clear without logging → release uncommitted serial 5.
 	s.controller.Clear()
@@ -2171,7 +2171,7 @@ func TestI11_UncommittedSerial_RecycledOnClear(t *testing.T) {
 	// Enter new callsign → serial 5 reused.
 	s.controller.Enter("DL2XYZ")
 	vals := s.controller.CurrentValues()
-	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+	assert.Equal(t, model.QSONumber(5), vals.MyNumber,
 		"uncommitted serial 5 must be recycled")
 }
 
@@ -2184,30 +2184,30 @@ func TestI11_DualVFO_CommittedSerial_RecycledAfterClear(t *testing.T) {
 	// VFO1 claims 5, VFO2 claims 6. Both committed.
 	s.controller.Enter("DL1ABC")
 	s.controller.SerialSent()
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.controller.Enter("DL2XYZ")
 	s.controller.SerialSent()
 
 	// Clear VFO1 without logging → serial 5 released.
-	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.SetFocusedVFO(model.VFO1)
 	s.controller.Clear()
 
 	// VFO1 enters new callsign → gets 5 again (VFO2 holds 6, so 5 is free).
 	s.controller.Enter("DL3FOO")
 	vals := s.controller.CurrentValues()
-	assert.Equal(t, core.QSONumber(5), vals.MyNumber,
+	assert.Equal(t, model.QSONumber(5), vals.MyNumber,
 		"released serial 5 must be recycled (VFO2 holds 6)")
 }
 
 // I12. Edit mode does not interact with committed state
 
 func TestI12_EditMode_CommittedNotAffected(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		MyNumber:      3,
-		Band:          core.Band20m,
-		Mode:          core.ModeCW,
+		Band:          model.Band20m,
+		Mode:          model.ModeCW,
 		TheirExchange: []string{"599", "042", "OE"},
 		MyExchange:    []string{"599", "003", ""},
 	}
@@ -2219,16 +2219,16 @@ func TestI12_EditMode_CommittedNotAffected(t *testing.T) {
 	// Claim and commit serial 5.
 	s.controller.Enter("DL9ZZZ")
 	s.controller.SerialSent()
-	assert.True(t, s.controller.IsSerialCommitted(core.VFO1))
+	assert.True(t, s.controller.IsSerialCommitted(model.VFO1))
 
 	// Enter edit mode → committed state saved, edit claim not committed.
 	s.controller.QSOSelected(qso)
-	assert.False(t, s.controller.IsSerialCommitted(core.VFO1),
+	assert.False(t, s.controller.IsSerialCommitted(model.VFO1),
 		"edit mode claim must not be committed")
 
 	// Leave edit mode → committed state restored.
 	s.controller.Clear()
-	assert.True(t, s.controller.IsSerialCommitted(core.VFO1),
+	assert.True(t, s.controller.IsSerialCommitted(model.VFO1),
 		"committed state must be restored after edit mode")
 }
 
@@ -2243,29 +2243,29 @@ func TestL3b_SO2V_WorkmodeLabel_CorrectAfterWorkmodeChanged(t *testing.T) {
 
 	// Simulate workmode controller setting Run: VFO1=Run, VFO2=S&P.
 	s.resetSpies()
-	s.controller.WorkmodeChanged(core.VFO1, core.Run)
-	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
+	s.controller.WorkmodeChanged(model.VFO1, model.Run)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", model.VFO1, model.Run)
 
 	s.resetSpies()
-	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
-	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO2, core.SearchPounce)
+	s.controller.WorkmodeChanged(model.VFO2, model.SearchPounce)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", model.VFO2, model.SearchPounce)
 
 	// After focus switch, workmode controller re-emits WorkmodeChanged for
 	// both VFOs. Simulate that arriving after focus switch to VFO2:
-	s.controller.SetFocusedVFO(core.VFO2)
+	s.controller.SetFocusedVFO(model.VFO2)
 	s.resetSpies()
-	s.controller.WorkmodeChanged(core.VFO1, core.Run)
-	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
-	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
-	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO2, core.SearchPounce)
+	s.controller.WorkmodeChanged(model.VFO1, model.Run)
+	s.controller.WorkmodeChanged(model.VFO2, model.SearchPounce)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", model.VFO1, model.Run)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", model.VFO2, model.SearchPounce)
 
 	// Switch back to VFO1, re-emit workmodes — regression case:
 	// VFO1 must show Run, not S&P from previous focus.
-	s.controller.SetFocusedVFO(core.VFO1)
+	s.controller.SetFocusedVFO(model.VFO1)
 	s.resetSpies()
-	s.controller.WorkmodeChanged(core.VFO1, core.Run)
-	s.controller.WorkmodeChanged(core.VFO2, core.SearchPounce)
-	s.view.assertCalledWith(s.t, "SetVFOWorkmode", core.VFO1, core.Run)
+	s.controller.WorkmodeChanged(model.VFO1, model.Run)
+	s.controller.WorkmodeChanged(model.VFO2, model.SearchPounce)
+	s.view.assertCalledWith(s.t, "SetVFOWorkmode", model.VFO1, model.Run)
 }
 
 // G7. A selected spot for the unfocused VFO moves the focus
@@ -2276,19 +2276,19 @@ func TestL3b_SO2V_WorkmodeLabel_CorrectAfterWorkmodeChanged(t *testing.T) {
 // Note: Clear() calls vfoSpy.Refresh(), which pins the rig to 14050000/20m/CW,
 // therefore an SSB spot is the case that commands a mode.
 func TestG7_EntrySelected_OnUnfocusedVFO_MovesTheFocus(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	entry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeSSB}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	entry := model.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: model.Band20m, Mode: model.ModeSSB}
 
 	NewScenario(t).
 		WithClassicExchange().
 		WithVFO2().
 		FocusVFO1().
-		EntrySelected(core.VFO2, entry).
-		AssertActiveVFO(core.VFO2).
+		EntrySelected(model.VFO2, entry).
+		AssertActiveVFO(model.VFO2).
 		AssertVFO2Frequency(14200000).
-		AssertVFO2Mode(core.ModeSSB).
-		AssertCallsignView(core.VFO2, "DL1ABC").
-		AssertActiveField(core.VFO2, core.CallsignField)
+		AssertVFO2Mode(model.ModeSSB).
+		AssertCallsignView(model.VFO2, "DL1ABC").
+		AssertActiveField(model.VFO2, model.CallsignField)
 }
 
 // G8. A selected spot commands the mode only when it differs
@@ -2297,21 +2297,21 @@ func TestG7_EntrySelected_OnUnfocusedVFO_MovesTheFocus(t *testing.T) {
 // Post: the SSB spot commands SSB; the CW spot commands no mode.
 // Invariants: the frequency is commanded in both cases.
 func TestG8_EntrySelected_CommandsTheModeOfTheSpot(t *testing.T) {
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	ssbEntry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeSSB}
-	cwEntry := core.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: core.Band20m, Mode: core.ModeCW}
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	ssbEntry := model.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: model.Band20m, Mode: model.ModeSSB}
+	cwEntry := model.BandmapEntry{Call: dl1abc, Frequency: 14200000, Band: model.Band20m, Mode: model.ModeCW}
 
 	NewScenario(t).
 		WithClassicExchange().
-		EntrySelected(core.VFO1, ssbEntry).
+		EntrySelected(model.VFO1, ssbEntry).
 		AssertVFOFrequency(14200000).
-		AssertVFOMode(core.ModeSSB)
+		AssertVFOMode(model.ModeSSB)
 
 	NewScenario(t).
 		WithClassicExchange().
-		EntrySelected(core.VFO1, cwEntry).
+		EntrySelected(model.VFO1, cwEntry).
 		AssertVFOFrequency(14200000).
-		AssertVFOMode(core.NoMode)
+		AssertVFOMode(model.NoMode)
 }
 
 // G9. A selected marker tunes the VFO without a callsign
@@ -2320,23 +2320,23 @@ func TestG8_EntrySelected_CommandsTheModeOfTheSpot(t *testing.T) {
 // Post: focus on VFO2; VFO2 commanded with the frequency of the marker; the row stays empty.
 // Invariants: a marker names no callsign and no mode.
 func TestG9_MarkerSelected_TunesTheVFOWithoutACallsign(t *testing.T) {
-	marker := core.BandmapMarker{
-		Kind:      core.CQMarker,
+	marker := model.BandmapMarker{
+		Kind:      model.CQMarker,
 		Text:      "CQ",
 		Frequency: 14200000,
-		Band:      core.Band20m,
+		Band:      model.Band20m,
 	}
 
 	NewScenario(t).
 		WithClassicExchange().
 		WithVFO2().
 		FocusVFO1().
-		MarkerSelected(core.VFO2, marker).
-		AssertActiveVFO(core.VFO2).
+		MarkerSelected(model.VFO2, marker).
+		AssertActiveVFO(model.VFO2).
 		AssertVFO2Frequency(14200000).
-		AssertVFO2Mode(core.NoMode).
-		AssertCallsignView(core.VFO2, "").
-		AssertActiveField(core.VFO2, core.CallsignField)
+		AssertVFO2Mode(model.NoMode).
+		AssertCallsignView(model.VFO2, "").
+		AssertActiveField(model.VFO2, model.CallsignField)
 }
 
 // G10. A selected marker clears the entry fields of the target VFO
@@ -2344,17 +2344,17 @@ func TestG9_MarkerSelected_TunesTheVFOWithoutACallsign(t *testing.T) {
 // Act:  MarkerSelected(VFO1, marker).
 // Post: the row of VFO1 is empty again.
 func TestG10_MarkerSelected_ClearsTheEntryFields(t *testing.T) {
-	marker := core.BandmapMarker{Kind: core.CQMarker, Text: "CQ", Frequency: 3560000, Band: core.Band80m}
+	marker := model.BandmapMarker{Kind: model.CQMarker, Text: "CQ", Frequency: 3560000, Band: model.Band80m}
 
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
 		GotoNextField().
 		Enter("599").
-		MarkerSelected(core.VFO1, marker).
-		AssertCallsignView(core.VFO1, "").
+		MarkerSelected(model.VFO1, marker).
+		AssertCallsignView(model.VFO1, "").
 		AssertVFOFrequency(3560000).
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // G11. The command @cq goes to the CQ frequency
@@ -2371,7 +2371,7 @@ func TestG11_CQCommand_GoesToTheCQFrequency(t *testing.T) {
 				PressEnter()
 
 			assert.Equal(t, 1, s.bandmap.cqMarkerGotos, "the command goes to the CQ frequency")
-			s.AssertCallsignView(core.VFO1, "")
+			s.AssertCallsignView(model.VFO1, "")
 		})
 	}
 }
@@ -2385,7 +2385,7 @@ func TestG11_CQCommand_OnTheSecondVFO(t *testing.T) {
 		PressEnter()
 
 	assert.Equal(t, 1, s.bandmap.cqMarkerGotos, "the command works on every callsign field")
-	s.AssertCallsignView(core.VFO2, "")
+	s.AssertCallsignView(model.VFO2, "")
 }
 
 func TestG11_CQCommand_DoesNotLogAQSO(t *testing.T) {
@@ -2408,7 +2408,7 @@ func TestG14_MarkerCommand_GoesToTheNumberedMarker(t *testing.T) {
 		PressEnter()
 
 	assert.Equal(t, []int{3}, s.bandmap.numberedMarkerGotos, "the command goes to the marker with this number")
-	s.AssertCallsignView(core.VFO1, "")
+	s.AssertCallsignView(model.VFO1, "")
 	s.AssertNoQSOAdded()
 }
 
@@ -2421,7 +2421,7 @@ func TestG14_MarkerCommand_OnTheSecondVFO(t *testing.T) {
 		PressEnter()
 
 	assert.Equal(t, []int{12}, s.bandmap.numberedMarkerGotos, "the command works on every callsign field")
-	s.AssertCallsignView(core.VFO2, "")
+	s.AssertCallsignView(model.VFO2, "")
 }
 
 func TestG14_MarkerCommand_WithoutAValidNumber(t *testing.T) {
@@ -2466,13 +2466,13 @@ func TestG15_CommandWithoutATarget_DoesNothing(t *testing.T) {
 func TestG12_MarkInBandmap_WithoutACallsign(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
 		MarkInBandmap()
 
 	require.Len(t, s.bandmap.marksWithNextNumber, 1)
-	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithNextNumber[0].frequency)
-	assert.Equal(t, core.Band80m, s.bandmap.marksWithNextNumber[0].band)
+	assert.Equal(t, model.Frequency(3550000), s.bandmap.marksWithNextNumber[0].frequency)
+	assert.Equal(t, model.Band80m, s.bandmap.marksWithNextNumber[0].band)
 	assert.Empty(t, s.bandmap.addedSpots, "an empty callsign is no spot")
 }
 
@@ -2483,16 +2483,16 @@ func TestG12_MarkInBandmap_WithoutACallsign(t *testing.T) {
 func TestG13_MarkInBandmap_WithANumber(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
 		Enter("3").
 		MarkInBandmap()
 
 	require.Len(t, s.bandmap.marksWithNumber, 1)
 	assert.Equal(t, 3, s.bandmap.marksWithNumber[0].number)
-	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithNumber[0].frequency)
+	assert.Equal(t, model.Frequency(3550000), s.bandmap.marksWithNumber[0].frequency)
 	assert.Empty(t, s.bandmap.addedSpots, "a number is no callsign")
-	s.AssertCallsignView(core.VFO1, "")
+	s.AssertCallsignView(model.VFO1, "")
 }
 
 // G16. The command :text marks the frequency with that text
@@ -2502,16 +2502,16 @@ func TestG13_MarkInBandmap_WithANumber(t *testing.T) {
 func TestG16_TextMarkerCommand_MarksTheFrequency(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
 		Enter(":beacon").
 		PressEnter()
 
 	require.Len(t, s.bandmap.marksWithText, 1)
 	assert.Equal(t, "beacon", s.bandmap.marksWithText[0].text)
-	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithText[0].frequency)
-	assert.Equal(t, core.Band80m, s.bandmap.marksWithText[0].band)
-	s.AssertCallsignView(core.VFO1, "").
+	assert.Equal(t, model.Frequency(3550000), s.bandmap.marksWithText[0].frequency)
+	assert.Equal(t, model.Band80m, s.bandmap.marksWithText[0].band)
+	s.AssertCallsignView(model.VFO1, "").
 		AssertNoQSOAdded()
 }
 
@@ -2525,36 +2525,36 @@ func TestG16_TextMarkerCommand_OnTheSecondVFO(t *testing.T) {
 
 	require.Len(t, s.bandmap.marksWithText, 1)
 	assert.Equal(t, "dx", s.bandmap.marksWithText[0].text, "the command works on every callsign field")
-	s.AssertCallsignView(core.VFO2, "")
+	s.AssertCallsignView(model.VFO2, "")
 }
 
 func TestG16_TextMarkerCommand_WithTheMarkInBandmapAction(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
 		Enter(":beacon").
 		MarkInBandmap()
 
 	require.Len(t, s.bandmap.marksWithText, 1)
 	assert.Equal(t, "beacon", s.bandmap.marksWithText[0].text)
 	assert.Empty(t, s.bandmap.addedSpots, "a marker text is no callsign")
-	s.AssertCallsignView(core.VFO1, "")
+	s.AssertCallsignView(model.VFO1, "")
 }
 
 func TestG16_TextMarkerCommand_WithANumber(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
 		Enter(":3").
 		PressEnter()
 
 	require.Len(t, s.bandmap.marksWithNumber, 1, "a number creates a numbered marker")
 	assert.Equal(t, 3, s.bandmap.marksWithNumber[0].number)
-	assert.Equal(t, core.Frequency(3550000), s.bandmap.marksWithNumber[0].frequency)
+	assert.Equal(t, model.Frequency(3550000), s.bandmap.marksWithNumber[0].frequency)
 	assert.Empty(t, s.bandmap.marksWithText)
-	s.AssertCallsignView(core.VFO1, "")
+	s.AssertCallsignView(model.VFO1, "")
 }
 
 func TestG16_TextMarkerCommand_WithoutAText(t *testing.T) {
@@ -2590,14 +2590,14 @@ func TestG17_MarkWithNumberInBandmap(t *testing.T) {
 		WithClassicExchange().
 		WithVFO2().
 		FocusVFO2().
-		VFOFrequencyChanged(core.VFO2, 7025000).
-		VFOBandChanged(core.VFO2, core.Band40m).
+		VFOFrequencyChanged(model.VFO2, 7025000).
+		VFOBandChanged(model.VFO2, model.Band40m).
 		MarkWithNumberInBandmap(5)
 
 	require.Len(t, s.bandmap.marksWithNumber, 1)
 	assert.Equal(t, 5, s.bandmap.marksWithNumber[0].number)
-	assert.Equal(t, core.Frequency(7025000), s.bandmap.marksWithNumber[0].frequency)
-	assert.Equal(t, core.Band40m, s.bandmap.marksWithNumber[0].band)
+	assert.Equal(t, model.Frequency(7025000), s.bandmap.marksWithNumber[0].frequency)
+	assert.Equal(t, model.Band40m, s.bandmap.marksWithNumber[0].band)
 	assert.Empty(t, s.bandmap.addedSpots, "a marker is no spot")
 }
 
@@ -2611,7 +2611,7 @@ func TestA3b_GotoNextFieldSkippingReport_Callsign_SkipsTheReport(t *testing.T) {
 		WithClassicExchange(). // RST, serial, text
 		Enter("DL1ABC").
 		GotoNextFieldSkippingReport().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(2))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(2))
 }
 
 func TestA3b_GotoNextFieldSkippingReport_WithoutReport_GoesToTheirExchange1(t *testing.T) {
@@ -2619,7 +2619,7 @@ func TestA3b_GotoNextFieldSkippingReport_WithoutReport_GoesToTheirExchange1(t *t
 		WithExchangeWithoutReport(). // name, text
 		Enter("DL1ABC").
 		GotoNextFieldSkippingReport().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(1))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(1))
 }
 
 func TestA3b_GotoNextField_DoesNotSkipTheReport(t *testing.T) {
@@ -2627,7 +2627,7 @@ func TestA3b_GotoNextField_DoesNotSkipTheReport(t *testing.T) {
 		WithClassicExchange().
 		Enter("DL1ABC").
 		GotoNextField().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(1))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(1))
 }
 
 func TestA3b_GotoNextFieldSkippingReport_TheirExchange2_GoesToTheirExchange3(t *testing.T) {
@@ -2636,7 +2636,7 @@ func TestA3b_GotoNextFieldSkippingReport_TheirExchange2_GoesToTheirExchange3(t *
 		Enter("DL1ABC").
 		GotoNextFieldSkippingReport(). // → TheirExchange2, the report is skipped
 		GotoNextFieldSkippingReport().
-		AssertActiveField(core.VFO1, core.TheirExchangeField(3))
+		AssertActiveField(model.VFO1, model.TheirExchangeField(3))
 }
 
 // G18. Mark with a number takes the data of the QSO in progress with it
@@ -2648,8 +2648,8 @@ func TestA3b_GotoNextFieldSkippingReport_TheirExchange2_GoesToTheirExchange3(t *
 func TestG18_MarkWithNumberInBandmap_TakesTheInputWithIt(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
 		Enter("DL1ABC").
 		GotoNextField().
 		Enter("599").
@@ -2672,11 +2672,11 @@ func TestG18_MarkWithNumberInBandmap_TakesTheInputWithIt(t *testing.T) {
 func TestG19_MarkInBandmap_WithANumber_TakesOnlyTheExchange(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
-		SetActiveField(core.TheirExchangeField(2)).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
+		SetActiveField(model.TheirExchangeField(2)).
 		Enter("012").
-		SetActiveField(core.CallsignField).
+		SetActiveField(model.CallsignField).
 		Enter("3").
 		MarkInBandmap()
 
@@ -2694,24 +2694,24 @@ func TestG19_MarkInBandmap_WithANumber_TakesOnlyTheExchange(t *testing.T) {
 //
 //	callsign field.
 func TestG20_MarkerSelected_RestoresTheInput(t *testing.T) {
-	marker := core.BandmapMarker{
-		Kind:      core.NumberedMarker,
+	marker := model.BandmapMarker{
+		Kind:      model.NumberedMarker,
 		Number:    5,
 		Text:      "5",
 		Frequency: 3560000,
-		Band:      core.Band80m,
-		Input:     core.MarkerInput{Call: "DL1ABC", TheirExchange: []string{"599", "012", "ABC"}},
+		Band:      model.Band80m,
+		Input:     model.MarkerInput{Call: "DL1ABC", TheirExchange: []string{"599", "012", "ABC"}},
 	}
 
 	NewScenario(t).
 		WithClassicExchange().
-		MarkerSelected(core.VFO1, marker).
-		AssertCallsignView(core.VFO1, "DL1ABC").
-		AssertTheirExchangeSet(core.VFO1, 1, "599").
-		AssertTheirExchangeSet(core.VFO1, 2, "012").
-		AssertTheirExchangeSet(core.VFO1, 3, "ABC").
+		MarkerSelected(model.VFO1, marker).
+		AssertCallsignView(model.VFO1, "DL1ABC").
+		AssertTheirExchangeSet(model.VFO1, 1, "599").
+		AssertTheirExchangeSet(model.VFO1, 2, "012").
+		AssertTheirExchangeSet(model.VFO1, 3, "ABC").
 		AssertCallinfoNotified("DL1ABC").
-		AssertActiveField(core.VFO1, core.CallsignField)
+		AssertActiveField(model.VFO1, model.CallsignField)
 }
 
 // G21. A selected marker without data leaves the row empty
@@ -2719,13 +2719,13 @@ func TestG20_MarkerSelected_RestoresTheInput(t *testing.T) {
 // Act:  MarkerSelected(VFO1, marker).
 // Post: the row of VFO1 stays empty, like before.
 func TestG21_MarkerSelected_WithoutInput_LeavesTheRowEmpty(t *testing.T) {
-	marker := core.BandmapMarker{Kind: core.NumberedMarker, Number: 5, Text: "5", Frequency: 3560000, Band: core.Band80m}
+	marker := model.BandmapMarker{Kind: model.NumberedMarker, Number: 5, Text: "5", Frequency: 3560000, Band: model.Band80m}
 
 	NewScenario(t).
 		WithClassicExchange().
 		Enter("DL1ABC").
-		MarkerSelected(core.VFO1, marker).
-		AssertCallsignView(core.VFO1, "")
+		MarkerSelected(model.VFO1, marker).
+		AssertCallsignView(model.VFO1, "")
 }
 
 // G22. Mark in bandmap with an incomplete callsign parks the QSO
@@ -2737,8 +2737,8 @@ func TestG21_MarkerSelected_WithoutInput_LeavesTheRowEmpty(t *testing.T) {
 func TestG22_MarkInBandmap_WithAnIncompleteCallsign(t *testing.T) {
 	s := NewScenario(t).
 		WithClassicExchange().
-		VFOFrequencyChanged(core.VFO1, 3550000).
-		VFOBandChanged(core.VFO1, core.Band80m).
+		VFOFrequencyChanged(model.VFO1, 3550000).
+		VFOBandChanged(model.VFO1, model.Band80m).
 		Enter("DL1").
 		GotoNextField().
 		GotoNextField().
@@ -2747,7 +2747,7 @@ func TestG22_MarkInBandmap_WithAnIncompleteCallsign(t *testing.T) {
 
 	require.Len(t, s.bandmap.marksWithNextNumber, 1)
 	mark := s.bandmap.marksWithNextNumber[0]
-	assert.Equal(t, core.Frequency(3550000), mark.frequency)
+	assert.Equal(t, model.Frequency(3550000), mark.frequency)
 	assert.Equal(t, "DL1", mark.input.Call, "the operator continues this QSO at the marker")
 	assert.Equal(t, []string{"599", "012", ""}, mark.input.TheirExchange)
 	assert.Empty(t, s.bandmap.addedSpots, "an incomplete callsign is no spot")
@@ -2758,18 +2758,18 @@ func TestG22_MarkInBandmap_WithAnIncompleteCallsign(t *testing.T) {
 // Act:  MarkerSelected(VFO1, marker).
 // Post: the callsign field shows the incomplete callsign again.
 func TestG23_MarkerSelected_RestoresAnIncompleteCallsign(t *testing.T) {
-	marker := core.BandmapMarker{
-		Kind:      core.NumberedMarker,
+	marker := model.BandmapMarker{
+		Kind:      model.NumberedMarker,
 		Number:    1,
 		Text:      "1",
 		Frequency: 3550000,
-		Band:      core.Band80m,
-		Input:     core.MarkerInput{Call: "DL1"},
+		Band:      model.Band80m,
+		Input:     model.MarkerInput{Call: "DL1"},
 	}
 
 	NewScenario(t).
 		WithClassicExchange().
-		MarkerSelected(core.VFO1, marker).
-		AssertCallsignView(core.VFO1, "DL1").
-		AssertActiveField(core.VFO1, core.CallsignField)
+		MarkerSelected(model.VFO1, marker).
+		AssertCallsignView(model.VFO1, "DL1").
+		AssertActiveField(model.VFO1, model.CallsignField)
 }

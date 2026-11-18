@@ -10,8 +10,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/cfg"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type Session struct {
@@ -90,22 +90,22 @@ func (s *Session) ESMEnabled(enabled bool) {
 	}
 }
 
-func (s *Session) SpotFilter(id string) (core.SpotFilterState, bool) {
+func (s *Session) SpotFilter(id string) (model.SpotFilterState, bool) {
 	stored, ok := s.state.SpotFilters[id]
 	if !ok || stored == nil {
-		return core.SpotFilterState{}, false
+		return model.SpotFilterState{}, false
 	}
-	return core.SpotFilterState{
-		Band:       core.ParseSpotFilterBand(stored.Band),
-		Mode:       core.ParseSpotFilterMode(stored.Mode),
-		Value:      core.ParseSpotFilterValue(stored.Value),
-		SortBy:     core.ParseSpotSortColumn(stored.SortBy),
+	return model.SpotFilterState{
+		Band:       model.ParseSpotFilterBand(stored.Band),
+		Mode:       model.ParseSpotFilterMode(stored.Mode),
+		Value:      model.ParseSpotFilterValue(stored.Value),
+		SortBy:     model.ParseSpotSortColumn(stored.SortBy),
 		Descending: stored.Descending,
 		Folded:     stored.Folded,
 	}, true
 }
 
-func (s *Session) SetSpotFilter(id string, state core.SpotFilterState) error {
+func (s *Session) SetSpotFilter(id string, state model.SpotFilterState) error {
 	if s.state.SpotFilters == nil {
 		s.state.SpotFilters = make(map[string]*SpotFilterState)
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hamradio/latlon"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type callinfoVFOWidgets struct {
@@ -24,22 +24,22 @@ type callinfoVFOWidgets struct {
 }
 
 type serialClaim struct {
-	serial    core.QSONumber
+	serial    model.QSONumber
 	committed bool
 }
 
 // callinfoView handles interaction and content related to core/callinfo. It owns all related widgets.
 type callinfoView struct {
-	vfo [core.VFOCount]callinfoVFOWidgets
+	vfo [model.VFOCount]callinfoVFOWidgets
 
 	qtcsEnabled bool
 
 	area *entryArea
 
 	serialFieldIndex int
-	serialClaims     [core.VFOCount]serialClaim
+	serialClaims     [model.VFOCount]serialClaim
 
-	current [core.VFOCount]core.CallinfoFrame
+	current [model.VFOCount]model.CallinfoFrame
 }
 
 func newCallinfoVFOWidgets() callinfoVFOWidgets {
@@ -60,25 +60,25 @@ func newCallinfoView() *callinfoView {
 		serialFieldIndex: -1,
 	}
 
-	v.vfo[core.VFO1] = newCallinfoVFOWidgets()
-	v.vfo[core.VFO2] = newCallinfoVFOWidgets()
+	v.vfo[model.VFO1] = newCallinfoVFOWidgets()
+	v.vfo[model.VFO2] = newCallinfoVFOWidgets()
 
 	return v
 }
 
-func (v *callinfoView) ShowFrame(vfo core.VFOID, frame core.CallinfoFrame) {
+func (v *callinfoView) ShowFrame(vfo model.VFOID, frame model.CallinfoFrame) {
 	v.current[vfo] = frame
 	v.refreshVFO(vfo)
 }
 
 func (v *callinfoView) SetQTCsEnabled(enabled bool) {
 	v.qtcsEnabled = enabled
-	for vfo := range core.VFOCount {
+	for vfo := range model.VFOCount {
 		v.refreshVFO(vfo)
 	}
 }
 
-func (v *callinfoView) refreshVFO(vfo core.VFOID) {
+func (v *callinfoView) refreshVFO(vfo model.VFOID) {
 	w := &v.vfo[vfo]
 	cur := &v.current[vfo]
 
@@ -100,12 +100,12 @@ func (v *callinfoView) refreshVFO(vfo core.VFOID) {
 	v.refreshSerialClaim(vfo)
 }
 
-func (v *callinfoView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
+func (v *callinfoView) SetSerialClaim(vfo model.VFOID, serial model.QSONumber, committed bool) {
 	v.serialClaims[vfo] = serialClaim{serial: serial, committed: committed}
 	v.refreshSerialClaim(vfo)
 }
 
-func (v *callinfoView) refreshSerialClaim(vfo core.VFOID) {
+func (v *callinfoView) refreshSerialClaim(vfo model.VFOID) {
 	w := &v.vfo[vfo]
 	if v.serialFieldIndex < 0 || v.serialFieldIndex >= len(w.predictedExchangeLabels) {
 		return
@@ -113,12 +113,12 @@ func (v *callinfoView) refreshSerialClaim(vfo core.VFOID) {
 	w.predictedExchangeLabels[v.serialFieldIndex].SetText(renderSerialClaim(v.serialClaims[vfo]))
 }
 
-func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField, showSerialExchangeIndicator bool) {
+func (v *callinfoView) SetPredictedExchangeFields(fields []model.ExchangeField, showSerialExchangeIndicator bool) {
 	v.serialFieldIndex = -1
 	if showSerialExchangeIndicator {
 		v.serialFieldIndex = serialFieldIndex(fields)
 	}
-	for vfo := range core.VFOCount {
+	for vfo := range model.VFOCount {
 		w := &v.vfo[vfo]
 		for _, label := range w.predictedExchangeLabels {
 			label.Delete()
@@ -132,7 +132,7 @@ func (v *callinfoView) SetPredictedExchangeFields(fields []core.ExchangeField, s
 	}
 }
 
-func serialFieldIndex(fields []core.ExchangeField) int {
+func serialFieldIndex(fields []model.ExchangeField) int {
 	for i, field := range fields {
 		if field.CanContainSerial {
 			return i
@@ -152,8 +152,8 @@ func renderSerialClaim(claim serialClaim) string {
 	}
 }
 
-func (v *callinfoView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
-	if vfo == core.VFO1 {
+func (v *callinfoView) SetVFOEnabled(vfo model.VFOID, enabled bool) {
+	if vfo == model.VFO1 {
 		return
 	}
 	v.area.setVFO2Enabled(enabled)
@@ -164,7 +164,7 @@ const (
 	supercheckSpacerCell = "<td>&nbsp;&nbsp;&nbsp;</td>"
 )
 
-func renderCallsignOnFrequencyHTML(cs core.AnnotatedCallsign, markerOnFrequency string) string {
+func renderCallsignOnFrequencyHTML(cs model.AnnotatedCallsign, markerOnFrequency string) string {
 	callsign := renderAnnotatedCallsignHTML(cs)
 	if markerOnFrequency == "" {
 		return callsign
@@ -177,25 +177,25 @@ func renderCallsignOnFrequencyHTML(cs core.AnnotatedCallsign, markerOnFrequency 
 	return marker + " | " + callsign
 }
 
-func renderAnnotatedCallsignHTML(cs core.AnnotatedCallsign) string {
+func renderAnnotatedCallsignHTML(cs model.AnnotatedCallsign) string {
 	var text strings.Builder
 	for _, part := range cs.Assembly {
 		switch part.OP {
-		case core.Matching:
+		case model.Matching:
 			text.WriteString(part.Value)
-		case core.Insert:
+		case model.Insert:
 			text.WriteString("<i>")
 			text.WriteString(part.Value)
 			text.WriteString("</i>")
-		case core.Delete:
+		case model.Delete:
 			text.WriteString("<s>")
 			text.WriteString(part.Value)
 			text.WriteString("</s>")
-		case core.Substitute:
+		case model.Substitute:
 			text.WriteString("<u>")
 			text.WriteString(part.Value)
 			text.WriteString("</u>")
-		case core.FalseFriend:
+		case model.FalseFriend:
 			text.WriteString("<b>")
 			text.WriteString(part.Value)
 			text.WriteString("</b>")
@@ -221,7 +221,7 @@ func renderDXCC(entity dxcc.Prefix, azimuth latlon.Degrees, distance latlon.Km) 
 		entity.ITUZone, entity.CQZone, float64(distance), float64(azimuth))
 }
 
-func renderSupercheckHTML(matches []core.AnnotatedCallsign) string {
+func renderSupercheckHTML(matches []model.AnnotatedCallsign) string {
 	if len(matches) == 0 {
 		return ""
 	}

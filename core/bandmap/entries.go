@@ -7,7 +7,7 @@ import (
 
 	"github.com/texttheater/golang-levenshtein/levenshtein"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -20,15 +20,15 @@ const (
 )
 
 type Entry struct {
-	core.BandmapEntry
+	model.BandmapEntry
 
-	spots   []core.Spot
+	spots   []model.Spot
 	updated bool
 }
 
-func NewEntry(spot core.Spot) Entry {
+func NewEntry(spot model.Spot) Entry {
 	return Entry{
-		BandmapEntry: core.BandmapEntry{
+		BandmapEntry: model.BandmapEntry{
 			Call:      spot.Call,
 			Frequency: spot.Frequency,
 			Band:      spot.Band,
@@ -38,7 +38,7 @@ func NewEntry(spot core.Spot) Entry {
 			SpotCount: 1,
 		},
 
-		spots: []core.Spot{spot},
+		spots: []model.Spot{spot},
 	}
 }
 
@@ -46,12 +46,12 @@ func (e *Entry) Len() int {
 	return len(e.spots)
 }
 
-func (e *Entry) Matches(spot core.Spot) (core.SpotQuality, bool) {
+func (e *Entry) Matches(spot model.Spot) (model.SpotQuality, bool) {
 	if spot.Band != e.Band {
-		return core.UnknownSpotQuality, false
+		return model.UnknownSpotQuality, false
 	}
-	if spot.Mode != core.NoMode && e.Mode != core.NoMode && spot.Mode != e.Mode {
-		return core.UnknownSpotQuality, false
+	if spot.Mode != model.NoMode && e.Mode != model.NoMode && spot.Mode != e.Mode {
+		return model.UnknownSpotQuality, false
 	}
 
 	var callsignDistance int
@@ -63,28 +63,28 @@ func (e *Entry) Matches(spot core.Spot) (core.SpotQuality, bool) {
 
 	onFrequency := e.OnFrequency(spot.Frequency)
 
-	quality := core.UnknownSpotQuality
+	quality := model.UnknownSpotQuality
 	if len(e.spots)+1 >= spotValidThreshold {
-		quality = core.ValidSpotQuality
+		quality = model.ValidSpotQuality
 	}
 
 	if callsignDistance == 0 && onFrequency {
 		return quality, true
-	} else if e.Quality == core.ValidSpotQuality && callsignDistance == 0 && !onFrequency {
-		return core.QSYSpotQuality, false
-	} else if e.Quality == core.ValidSpotQuality && callsignDistance <= similarCallsignThreshold && onFrequency {
-		return core.BustedSpotQuality, false
+	} else if e.Quality == model.ValidSpotQuality && callsignDistance == 0 && !onFrequency {
+		return model.QSYSpotQuality, false
+	} else if e.Quality == model.ValidSpotQuality && callsignDistance <= similarCallsignThreshold && onFrequency {
+		return model.BustedSpotQuality, false
 	} else {
-		return core.UnknownSpotQuality, false
+		return model.UnknownSpotQuality, false
 	}
 }
 
-func calculateCallsignDistance(call1, call2 core.Callsign) int {
+func calculateCallsignDistance(call1, call2 model.Callsign) int {
 	options := levenshtein.DefaultOptions
 	return levenshtein.DistanceForStrings([]rune(call1.String()), []rune(call2.String()), options)
 }
 
-func (e *Entry) Add(spot core.Spot) (core.SpotQuality, bool) {
+func (e *Entry) Add(spot model.Spot) (model.SpotQuality, bool) {
 	quality, match := e.Matches(spot)
 	if !match {
 		return quality, false
@@ -98,7 +98,7 @@ func (e *Entry) Add(spot core.Spot) (core.SpotQuality, bool) {
 	if e.Source.Priority() > spot.Source.Priority() {
 		e.Source = spot.Source
 	}
-	if quality == core.ValidSpotQuality {
+	if quality == model.ValidSpotQuality {
 		e.Quality = quality
 	}
 	e.applyReportedQuality()
@@ -110,8 +110,8 @@ func (e *Entry) Add(spot core.Spot) (core.SpotQuality, bool) {
 // applyReportedQuality takes the quality that a source reports about its own spot. It wins over
 // the judgement of the bandmap, because a source that reports a quality knows the signal better.
 func (e *Entry) applyReportedQuality() bool {
-	spot, ok := bestSpot(e.spots, func(spot core.Spot) bool {
-		return spot.Quality != core.UnknownSpotQuality
+	spot, ok := bestSpot(e.spots, func(spot model.Spot) bool {
+		return spot.Quality != model.UnknownSpotQuality
 	})
 	if !ok {
 		return false
@@ -123,7 +123,7 @@ func (e *Entry) applyReportedQuality() bool {
 // applyReportedSNR takes the signal to noise ratio that a source measured. The sources measure at
 // different places with different receivers, therefore the nearest source wins.
 func (e *Entry) applyReportedSNR() {
-	spot, ok := bestSpot(e.spots, func(spot core.Spot) bool {
+	spot, ok := bestSpot(e.spots, func(spot model.Spot) bool {
 		return spot.SNR != 0
 	})
 	if !ok {
@@ -135,8 +135,8 @@ func (e *Entry) applyReportedSNR() {
 
 // bestSpot gives the spot of the source with the highest priority. At the same priority the latest
 // spot wins.
-func bestSpot(spots []core.Spot, matches func(core.Spot) bool) (core.Spot, bool) {
-	var result core.Spot
+func bestSpot(spots []model.Spot, matches func(model.Spot) bool) (model.Spot, bool) {
+	var result model.Spot
 	found := false
 	for _, spot := range spots {
 		if !matches(spot) {
@@ -155,7 +155,7 @@ func bestSpot(spots []core.Spot, matches func(core.Spot) bool) (core.Spot, bool)
 }
 
 func (e *Entry) RemoveSpotsBefore(timestamp time.Time) bool {
-	e.spots = filterSlice(e.spots, func(s core.Spot) bool {
+	e.spots = filterSlice(e.spots, func(s model.Spot) bool {
 		return !s.Time.Before(timestamp)
 	})
 	stillValid := len(e.spots) > 0
@@ -171,7 +171,7 @@ func (e *Entry) update() {
 	frequencyUpdated := e.updateFrequency()
 
 	lastHeard := time.Time{}
-	var source core.SpotType
+	var source model.SpotType
 	for _, s := range e.spots {
 		if lastHeard.Before(s.Time) {
 			lastHeard = s.Time
@@ -183,7 +183,7 @@ func (e *Entry) update() {
 
 	e.updated = frequencyUpdated || (lastHeard != e.LastHeard) || (source != e.Source)
 	e.LastHeard = lastHeard
-	if e.Source != core.WorkedSpot {
+	if e.Source != model.WorkedSpot {
 		e.Source = source
 	}
 	e.SpotCount = len(e.spots)
@@ -191,8 +191,8 @@ func (e *Entry) update() {
 	if e.applyReportedQuality() {
 		return
 	}
-	if e.SpotCount < spotValidThreshold && e.Quality == core.ValidSpotQuality {
-		e.Quality = core.UnknownSpotQuality
+	if e.SpotCount < spotValidThreshold && e.Quality == model.ValidSpotQuality {
+		e.Quality = model.UnknownSpotQuality
 	}
 }
 
@@ -215,19 +215,19 @@ func (e *Entry) updateFrequency() bool {
 		return true
 	}
 
-	var sum core.Frequency
+	var sum model.Frequency
 	for _, s := range e.spots {
 		sum += s.Frequency
 	}
 	downscaledMean := float64(sum) / (float64(len(e.spots)) * spotFrequencyStep)
 	roundedMean := math.RoundToEven(downscaledMean)
 	oldFrequency := e.Frequency
-	e.Frequency = core.Frequency(roundedMean * spotFrequencyStep)
+	e.Frequency = model.Frequency(roundedMean * spotFrequencyStep)
 
 	return oldFrequency != e.Frequency
 }
 
-func (e *Entry) MatchesAllFilters(filters ...core.BandmapFilter) bool {
+func (e *Entry) MatchesAllFilters(filters ...model.BandmapFilter) bool {
 	for _, filter := range filters {
 		if !filter(e.BandmapEntry) {
 			return false
@@ -236,7 +236,7 @@ func (e *Entry) MatchesAllFilters(filters ...core.BandmapFilter) bool {
 	return true
 }
 
-func (e *Entry) MatchesAnyFilter(filters ...core.BandmapFilter) bool {
+func (e *Entry) MatchesAnyFilter(filters ...model.BandmapFilter) bool {
 	for _, filter := range filters {
 		if filter(e.BandmapEntry) {
 			return true
@@ -247,19 +247,19 @@ func (e *Entry) MatchesAnyFilter(filters ...core.BandmapFilter) bool {
 
 type Entries struct {
 	entries         []*Entry
-	bands           []core.Band
-	summaries       map[core.Band]core.BandSummary
-	order           core.BandmapOrder
+	bands           []model.Band
+	summaries       map[model.Band]model.BandSummary
+	order           model.BandmapOrder
 	callinfo        Callinfo
-	countEntryValue func(core.BandmapEntry) bool
-	lastID          core.BandmapEntryID
+	countEntryValue func(model.BandmapEntry) bool
+	lastID          model.BandmapEntryID
 
 	notifier *Notifier
 }
 
-func NewEntries(notifier *Notifier, countEntryValue func(core.BandmapEntry) bool) *Entries {
+func NewEntries(notifier *Notifier, countEntryValue func(model.BandmapEntry) bool) *Entries {
 	result := &Entries{
-		order:           core.BandmapByFrequency,
+		order:           model.BandmapByFrequency,
 		callinfo:        new(nullCallinfo),
 		countEntryValue: countEntryValue,
 		notifier:        notifier,
@@ -268,14 +268,14 @@ func NewEntries(notifier *Notifier, countEntryValue func(core.BandmapEntry) bool
 	return result
 }
 
-func (l *Entries) nextID() core.BandmapEntryID {
+func (l *Entries) nextID() model.BandmapEntryID {
 	l.lastID++
 	return l.lastID
 }
 
-func (l *Entries) SetBands(bands []core.Band) {
+func (l *Entries) SetBands(bands []model.Band) {
 	l.bands = bands
-	l.summaries = make(map[core.Band]core.BandSummary, len(bands))
+	l.summaries = make(map[model.Band]model.BandSummary, len(bands))
 }
 
 func (l *Entries) SetCallinfo(callinfo Callinfo) {
@@ -295,8 +295,8 @@ func (l *Entries) Len() int {
 	return len(l.entries)
 }
 
-func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights) {
-	entryQuality := core.UnknownSpotQuality
+func (l *Entries) Add(spot model.Spot, now time.Time, weights model.BandmapWeights) {
+	entryQuality := model.UnknownSpotQuality
 	for _, e := range l.entries {
 		quality, added := e.Add(spot)
 		if added {
@@ -318,7 +318,7 @@ func (l *Entries) Add(spot core.Spot, now time.Time, weights core.BandmapWeights
 	l.notifier.emitEntryAdded(newEntry.BandmapEntry)
 }
 
-func (l *Entries) RefreshCallinfo(call core.Callsign, now time.Time, weights core.BandmapWeights) {
+func (l *Entries) RefreshCallinfo(call model.Callsign, now time.Time, weights model.BandmapWeights) {
 	for _, e := range l.entries {
 		if e.Call.String() == call.String() {
 			l.complementCallinfo(e, now, weights)
@@ -359,7 +359,7 @@ func (l *Entries) findIndexForInsert(entry *Entry) int {
 	return left
 }
 
-func (l *Entries) SetIgnored(id core.BandmapEntryID, ignored bool) bool {
+func (l *Entries) SetIgnored(id model.BandmapEntryID, ignored bool) bool {
 	for _, e := range l.entries {
 		if e.ID != id || e.Ignored == ignored {
 			continue
@@ -372,16 +372,16 @@ func (l *Entries) SetIgnored(id core.BandmapEntryID, ignored bool) bool {
 	return false
 }
 
-func (l *Entries) MarkAsWorked(call core.Callsign, band core.Band, mode core.Mode) {
+func (l *Entries) MarkAsWorked(call model.Callsign, band model.Band, mode model.Mode) {
 	for _, e := range l.entries {
 		match := true
 		if call != e.Call {
 			match = false
 		}
-		if band != core.NoBand && band != e.Band {
+		if band != model.NoBand && band != e.Band {
 			match = false
 		}
-		if mode != core.NoMode && mode != e.Mode {
+		if mode != model.NoMode && mode != e.Mode {
 			match = false
 		}
 
@@ -389,7 +389,7 @@ func (l *Entries) MarkAsWorked(call core.Callsign, band core.Band, mode core.Mod
 			continue
 		}
 
-		e.Source = core.WorkedSpot
+		e.Source = model.WorkedSpot
 		e.update()
 		l.notifier.emitEntryUpdated(e.BandmapEntry)
 	}
@@ -398,7 +398,7 @@ func (l *Entries) MarkAsWorked(call core.Callsign, band core.Band, mode core.Mod
 // Remove takes an entry back that a spot source gave up. The band and the frequency of the spot
 // decide which entry of that callsign goes, because the same station may run on more than one
 // band.
-func (l *Entries) Remove(spot core.Spot) bool {
+func (l *Entries) Remove(spot model.Spot) bool {
 	removed := false
 	l.entries = filterSlice(l.entries, func(e *Entry) bool {
 		if e.Call != spot.Call || e.Band != spot.Band || !e.OnFrequency(spot.Frequency) {
@@ -411,10 +411,10 @@ func (l *Entries) Remove(spot core.Spot) bool {
 	return removed
 }
 
-func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights core.BandmapWeights) {
+func (l *Entries) CleanOut(maximumAge time.Duration, now time.Time, weights model.BandmapWeights) {
 	l.cleanOutOldEntries(maximumAge, now)
 
-	l.summaries = make(map[core.Band]core.BandSummary, len(l.bands))
+	l.summaries = make(map[model.Band]model.BandSummary, len(l.bands))
 	for i, e := range l.entries {
 		oldPoints, oldMultis, oldWeightedValue := e.Info.Points, e.Info.Multis, e.Info.WeightedValue
 		l.complementValue(e, now, weights)
@@ -442,7 +442,7 @@ func (l *Entries) cleanOutOldEntries(maximumAge time.Duration, now time.Time) {
 	})
 }
 
-func (l *Entries) complementCallinfo(entry *Entry, now time.Time, weights core.BandmapWeights) {
+func (l *Entries) complementCallinfo(entry *Entry, now time.Time, weights model.BandmapWeights) {
 	if entry.Call.String() == "" {
 		return
 	}
@@ -451,7 +451,7 @@ func (l *Entries) complementCallinfo(entry *Entry, now time.Time, weights core.B
 	entry.clearValueIfIgnored()
 }
 
-func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.BandmapWeights) {
+func (l *Entries) complementValue(entry *Entry, now time.Time, weights model.BandmapWeights) {
 	if entry.Call.String() == "" {
 		return
 	}
@@ -462,8 +462,8 @@ func (l *Entries) complementValue(entry *Entry, now time.Time, weights core.Band
 	entry.clearValueIfIgnored()
 }
 
-func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights core.BandmapWeights) float64 {
-	if entry.Source == core.WorkedSpot {
+func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights model.BandmapWeights) float64 {
+	if entry.Source == model.WorkedSpot {
 		return 0
 	}
 
@@ -473,7 +473,7 @@ func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights co
 	spots := float64(entry.SpotCount)
 	sourcePriority := float64(entry.Source.Priority())
 	qualityFactor := 0.0
-	if entry.Quality > core.BustedSpotQuality {
+	if entry.Quality > model.BustedSpotQuality {
 		qualityFactor = float64(entry.Quality)
 	}
 	weight := 1 + (ageSeconds * weights.AgeSeconds) + (spots * weights.Spots) + (sourcePriority * weights.Source) + (qualityFactor * weights.Quality)
@@ -484,7 +484,7 @@ func (l *Entries) calculateWeightedValue(entry *Entry, now time.Time, weights co
 func (l *Entries) addToSummary(entry *Entry) {
 	summary, ok := l.summaries[entry.Band]
 	if !ok {
-		summary = core.BandSummary{Band: entry.Band}
+		summary = model.BandSummary{Band: entry.Band}
 	}
 	summary.SpotCount++
 	summary.Points += entry.Info.Points
@@ -492,12 +492,12 @@ func (l *Entries) addToSummary(entry *Entry) {
 	l.summaries[entry.Band] = summary
 }
 
-func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
-	result := make([]core.BandSummary, len(l.bands))
+func (l *Entries) Bands(active, visible model.Band) []model.BandSummary {
+	result := make([]model.BandSummary, len(l.bands))
 	for i, band := range l.bands {
 		summary, ok := l.summaries[band]
 		if !ok {
-			summary = core.BandSummary{
+			summary = model.BandSummary{
 				Band: band,
 			}
 		}
@@ -506,14 +506,14 @@ func (l *Entries) Bands(active, visible core.Band) []core.BandSummary {
 		result[i].Visible = (summary.Band == visible)
 	}
 
-	markMaximum(result, func(s core.BandSummary) int { return s.SpotCount }, func(s *core.BandSummary) { s.MaxSpots = true })
-	markMaximum(result, func(s core.BandSummary) int { return s.Points }, func(s *core.BandSummary) { s.MaxPoints = true })
-	markMaximum(result, func(s core.BandSummary) int { return s.Multis() }, func(s *core.BandSummary) { s.MaxMultis = true })
+	markMaximum(result, func(s model.BandSummary) int { return s.SpotCount }, func(s *model.BandSummary) { s.MaxSpots = true })
+	markMaximum(result, func(s model.BandSummary) int { return s.Points }, func(s *model.BandSummary) { s.MaxPoints = true })
+	markMaximum(result, func(s model.BandSummary) int { return s.Multis() }, func(s *model.BandSummary) { s.MaxMultis = true })
 
 	return result
 }
 
-func markMaximum(summaries []core.BandSummary, valueOf func(core.BandSummary) int, mark func(*core.BandSummary)) {
+func markMaximum(summaries []model.BandSummary, valueOf func(model.BandSummary) int, mark func(*model.BandSummary)) {
 	maximum := 0
 	maximumIndex := -1
 	for i, summary := range summaries {
@@ -528,25 +528,25 @@ func markMaximum(summaries []core.BandSummary, valueOf func(core.BandSummary) in
 	}
 }
 
-func (l *Entries) DoOnEntry(id core.BandmapEntryID, f func(core.BandmapEntry)) {
+func (l *Entries) DoOnEntry(id model.BandmapEntryID, f func(model.BandmapEntry)) {
 	for _, entry := range l.entries {
 		if entry.ID == id {
 			f(entry.BandmapEntry)
 			return
 		}
 	}
-	f(core.BandmapEntry{})
+	f(model.BandmapEntry{})
 }
 
-func (l *Entries) All() []core.BandmapEntry {
-	result := make([]core.BandmapEntry, len(l.entries))
+func (l *Entries) All() []model.BandmapEntry {
+	result := make([]model.BandmapEntry, len(l.entries))
 	for i, e := range l.entries {
 		result[i] = e.BandmapEntry
 	}
 	return result
 }
 
-func (l *Entries) AllBy(order core.BandmapOrder) []core.BandmapEntry {
+func (l *Entries) AllBy(order model.BandmapOrder) []model.BandmapEntry {
 	result := l.All()
 	if order != nil {
 		slices.SortStableFunc(result, order)
@@ -554,8 +554,8 @@ func (l *Entries) AllBy(order core.BandmapOrder) []core.BandmapEntry {
 	return result
 }
 
-func (l *Entries) Query(order core.BandmapOrder, filters ...core.BandmapFilter) []core.BandmapEntry {
-	result := make([]core.BandmapEntry, 0, len(l.entries))
+func (l *Entries) Query(order model.BandmapOrder, filters ...model.BandmapFilter) []model.BandmapEntry {
+	result := make([]model.BandmapEntry, 0, len(l.entries))
 	for _, e := range l.entries {
 		if e.MatchesAllFilters(filters...) {
 			result = append(result, e.BandmapEntry)
@@ -567,7 +567,7 @@ func (l *Entries) Query(order core.BandmapOrder, filters ...core.BandmapFilter) 
 	return result
 }
 
-func (l *Entries) ForEach(f func(entry core.BandmapEntry) bool) {
+func (l *Entries) ForEach(f func(entry model.BandmapEntry) bool) {
 	for _, entry := range l.entries {
 		if f(entry.BandmapEntry) {
 			return

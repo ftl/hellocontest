@@ -7,7 +7,7 @@ import (
 
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // pendingFrequencyTimeout defines how long a commanded frequency is used as the
@@ -19,45 +19,45 @@ type Client interface {
 	Notify(any)
 	Active() bool
 	Refresh()
-	SetCurrentVFO(core.VFOID)
-	SetTXVFO(core.VFOID)
-	SetFrequency(core.VFOID, core.Frequency)
-	SetBand(core.VFOID, core.Band)
-	SetMode(core.VFOID, core.Mode)
+	SetCurrentVFO(model.VFOID)
+	SetTXVFO(model.VFOID)
+	SetFrequency(model.VFOID, model.Frequency)
+	SetBand(model.VFOID, model.Band)
+	SetMode(model.VFOID, model.Mode)
 	IncrementalTuningPerVFO() bool
-	SetIncrementalTuning(core.VFOID, core.IncrementalTuningKind, bool, core.Frequency)
+	SetIncrementalTuning(model.VFOID, model.IncrementalTuningKind, bool, model.Frequency)
 }
 
 type Logbook interface {
-	LastBand() core.Band
-	LastMode() core.Mode
+	LastBand() model.Band
+	LastMode() model.Mode
 }
 
 type VFO struct {
-	id   core.VFOID
+	id   model.VFOID
 	name string
 
-	clock         core.Clock
+	clock         model.Clock
 	bandplan      bandplan.Bandplan
 	logbook       Logbook
 	client        Client
 	offlineClient *offlineClient
 	refreshing    bool
-	asyncRunner   core.AsyncRunner
+	asyncRunner   model.AsyncRunner
 
 	state    [2]incrementalTuningState
-	workmode core.Workmode
+	workmode model.Workmode
 
-	pendingFrequency core.Frequency
+	pendingFrequency model.Frequency
 	pendingSince     time.Time
-	staleFrequency   core.Frequency
+	staleFrequency   model.Frequency
 	commandedSince   time.Time
 	awaitingSettle   bool
 
 	listeners []any
 }
 
-func NewVFO(id core.VFOID, name string, clock core.Clock, bandplan bandplan.Bandplan, logbook Logbook, asyncRunner core.AsyncRunner) *VFO {
+func NewVFO(id model.VFOID, name string, clock model.Clock, bandplan bandplan.Bandplan, logbook Logbook, asyncRunner model.AsyncRunner) *VFO {
 	result := &VFO{
 		id:          id,
 		name:        name,
@@ -106,21 +106,21 @@ func (v *VFO) Refresh() {
 		return
 	}
 	v.client.Refresh()
-	v.emitIncrementalTuningVisibilityChanged(core.RIT)
-	v.emitIncrementalTuningVisibilityChanged(core.XIT)
+	v.emitIncrementalTuningVisibilityChanged(model.RIT)
+	v.emitIncrementalTuningVisibilityChanged(model.XIT)
 }
 
-func (v *VFO) Frequency() core.Frequency {
+func (v *VFO) Frequency() model.Frequency {
 	// a command that the rig did not confirm yet already names the frequency of the
 	// operator, therefore the base frequency answers this question
 	return v.baseFrequency(v.clock.Now())
 }
 
-func (v *VFO) SetFrequency(frequency core.Frequency) {
+func (v *VFO) SetFrequency(frequency model.Frequency) {
 	v.setFrequency(frequency, v.clock.Now())
 }
 
-func (v *VFO) setFrequency(frequency core.Frequency, now time.Time) {
+func (v *VFO) setFrequency(frequency model.Frequency, now time.Time) {
 	// the application jumps to another frequency, therefore the reports of the rig that
 	// follow belong to this command and are no tuning of the operator
 	v.staleFrequency = v.currentFrequency()
@@ -130,7 +130,7 @@ func (v *VFO) setFrequency(frequency core.Frequency, now time.Time) {
 	v.sendFrequency(frequency, now)
 }
 
-func (v *VFO) sendFrequency(frequency core.Frequency, now time.Time) {
+func (v *VFO) sendFrequency(frequency model.Frequency, now time.Time) {
 	v.pendingFrequency = frequency
 	v.pendingSince = now
 
@@ -142,11 +142,11 @@ func (v *VFO) sendFrequency(frequency core.Frequency, now time.Time) {
 }
 
 // ShiftFrequency changes the current frequency by delta (may be negative).
-func (v *VFO) ShiftFrequency(delta core.Frequency) {
+func (v *VFO) ShiftFrequency(delta model.Frequency) {
 	v.shiftFrequency(delta, v.clock.Now())
 }
 
-func (v *VFO) shiftFrequency(delta core.Frequency, now time.Time) {
+func (v *VFO) shiftFrequency(delta model.Frequency, now time.Time) {
 	// a dial or the keyboard shifts the frequency, which is a tuning of the operator like
 	// turning the knob of the rig. It also ends a command that is still in flight.
 	v.commandedSince = time.Time{}
@@ -160,7 +160,7 @@ func (v *VFO) shiftFrequency(delta core.Frequency, now time.Time) {
 // that frequency is used instead of the last frequency reported by the rig.
 // Otherwise a rig that cannot keep up with fast changes would make the
 // frequency jump back and forth.
-func (v *VFO) baseFrequency(now time.Time) core.Frequency {
+func (v *VFO) baseFrequency(now time.Time) model.Frequency {
 	if v.frequencyCommandPending(now) {
 		return v.pendingFrequency
 	}
@@ -176,14 +176,14 @@ func (v *VFO) clearPendingFrequency() {
 // currentFrequency returns the last known frequency of this VFO. The offline
 // client is kept in sync with the rig via VFOFrequencyChanged, so it holds the
 // current frequency in both online and offline mode.
-func (v *VFO) currentFrequency() core.Frequency {
+func (v *VFO) currentFrequency() model.Frequency {
 	c := v.offlineClient
 	c.stateLock.RLock()
 	defer c.stateLock.RUnlock()
 	return c.lastState(c.currentBand).frequency
 }
 
-func (v *VFO) SetBand(band core.Band) {
+func (v *VFO) SetBand(band model.Band) {
 	v.clearPendingFrequency()
 	if v.online() {
 		v.client.SetBand(v.id, band)
@@ -192,7 +192,7 @@ func (v *VFO) SetBand(band core.Band) {
 	}
 }
 
-func (v *VFO) SetMode(mode core.Mode) {
+func (v *VFO) SetMode(mode model.Mode) {
 	if v.online() {
 		v.client.SetMode(v.id, mode)
 	} else {
@@ -206,12 +206,12 @@ func (v *VFO) LogbookLoaded() {
 	// only the offline client follows the logbook, a connected rig keeps its own band and mode
 	if !v.online() {
 		lastBand := v.logbook.LastBand()
-		if lastBand != core.NoBand {
+		if lastBand != model.NoBand {
 			v.offlineClient.SetBand(lastBand)
 		}
 
 		lastMode := v.logbook.LastMode()
-		if lastMode != core.NoMode {
+		if lastMode != model.NoMode {
 			v.offlineClient.SetMode(lastMode)
 		}
 	}
@@ -220,11 +220,11 @@ func (v *VFO) LogbookLoaded() {
 	v.Refresh()
 }
 
-func (v *VFO) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+func (v *VFO) VFOFrequencyChanged(vfo model.VFOID, frequency model.Frequency) {
 	v.vfoFrequencyChanged(vfo, frequency, v.clock.Now())
 }
 
-func (v *VFO) vfoFrequencyChanged(vfo core.VFOID, frequency core.Frequency, now time.Time) {
+func (v *VFO) vfoFrequencyChanged(vfo model.VFOID, frequency model.Frequency, now time.Time) {
 	if vfo != v.id {
 		return
 	}
@@ -256,7 +256,7 @@ func (v *VFO) vfoFrequencyChanged(vfo core.VFOID, frequency core.Frequency, now 
 	v.offlineClient.SetFrequency(frequency)
 }
 
-func (v *VFO) staleReport(frequency core.Frequency, now time.Time) bool {
+func (v *VFO) staleReport(frequency model.Frequency, now time.Time) bool {
 	return frequency == v.staleFrequency && v.withinCommandTimeout(now)
 }
 
@@ -272,53 +272,53 @@ func (v *VFO) frequencyCommandPending(now time.Time) bool {
 	return !v.pendingSince.IsZero() && now.Sub(v.pendingSince) < pendingFrequencyTimeout
 }
 
-func (v *VFO) VFOBandChanged(vfo core.VFOID, band core.Band) {
+func (v *VFO) VFOBandChanged(vfo model.VFOID, band model.Band) {
 	if vfo != v.id {
 		return
 	}
 	v.offlineClient.SetBand(band)
 }
 
-func (v *VFO) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
+func (v *VFO) VFOModeChanged(vfo model.VFOID, mode model.Mode) {
 	if vfo != v.id {
 		return
 	}
 	v.offlineClient.SetMode(mode)
 }
 
-func (v *VFO) VFOPTTChanged(vfo core.VFOID, active bool) {
+func (v *VFO) VFOPTTChanged(vfo model.VFOID, active bool) {
 	if vfo != v.id {
 		return
 	}
 	v.offlineClient.SetPTT(active)
 }
 
-func (v *VFO) emitFrequencyChanged(frequency core.Frequency) {
-	core.Emit(v.listeners, func(listener core.VFOFrequencyListener) {
+func (v *VFO) emitFrequencyChanged(frequency model.Frequency) {
+	model.Emit(v.listeners, func(listener model.VFOFrequencyListener) {
 		v.asyncRunner(func() {
 			listener.VFOFrequencyChanged(v.id, frequency)
 		})
 	})
 }
 
-func (v *VFO) emitTuned(frequency core.Frequency) {
-	core.Emit(v.listeners, func(listener core.VFOTunedListener) {
+func (v *VFO) emitTuned(frequency model.Frequency) {
+	model.Emit(v.listeners, func(listener model.VFOTunedListener) {
 		v.asyncRunner(func() {
 			listener.VFOTuned(v.id, frequency)
 		})
 	})
 }
 
-func (v *VFO) emitBandChanged(band core.Band) {
-	core.Emit(v.listeners, func(listener core.VFOBandListener) {
+func (v *VFO) emitBandChanged(band model.Band) {
+	model.Emit(v.listeners, func(listener model.VFOBandListener) {
 		v.asyncRunner(func() {
 			listener.VFOBandChanged(v.id, band)
 		})
 	})
 }
 
-func (v *VFO) emitModeChanged(mode core.Mode) {
-	core.Emit(v.listeners, func(listener core.VFOModeListener) {
+func (v *VFO) emitModeChanged(mode model.Mode) {
+	model.Emit(v.listeners, func(listener model.VFOModeListener) {
 		v.asyncRunner(func() {
 			listener.VFOModeChanged(v.id, mode)
 		})
@@ -326,7 +326,7 @@ func (v *VFO) emitModeChanged(mode core.Mode) {
 }
 
 func (v *VFO) emitPTTChanged(active bool) {
-	core.Emit(v.listeners, func(listener core.VFOPTTListener) {
+	model.Emit(v.listeners, func(listener model.VFOPTTListener) {
 		v.asyncRunner(func() {
 			listener.VFOPTTChanged(v.id, active)
 		})
@@ -334,31 +334,31 @@ func (v *VFO) emitPTTChanged(active bool) {
 }
 
 type bandState struct {
-	frequency core.Frequency
-	mode      core.Mode
+	frequency model.Frequency
+	mode      model.Mode
 	itActive  [2]bool
-	itOffset  [2]core.Frequency
+	itOffset  [2]model.Frequency
 }
 
 type offlineClient struct {
 	vfo         *VFO
-	currentBand core.Band
+	currentBand model.Band
 	stateLock   *sync.RWMutex
-	lastStates  map[core.Band]bandState
+	lastStates  map[model.Band]bandState
 }
 
 func newOfflineClient(vfo *VFO) *offlineClient {
 	result := &offlineClient{
 		vfo:         vfo,
-		currentBand: core.Band160m,
+		currentBand: model.Band160m,
 		stateLock:   &sync.RWMutex{},
-		lastStates:  make(map[core.Band]bandState),
+		lastStates:  make(map[model.Band]bandState),
 	}
 	_ = result.lastState(result.currentBand)
 	return result
 }
 
-func (c *offlineClient) lastState(band core.Band) bandState {
+func (c *offlineClient) lastState(band model.Band) bandState {
 	result, ok := c.lastStates[band]
 	if ok {
 		return result
@@ -371,8 +371,8 @@ func (c *offlineClient) lastState(band core.Band) bandState {
 	}
 
 	result = bandState{
-		frequency: core.Frequency(plan.From),
-		mode:      core.ModeCW,
+		frequency: model.Frequency(plan.From),
+		mode:      model.ModeCW,
 	}
 	c.lastStates[band] = result
 
@@ -393,9 +393,9 @@ func (c *offlineClient) Refresh() {
 	c.vfo.emitModeChanged(state.mode)
 }
 
-func (c *offlineClient) SetFrequency(frequency core.Frequency) {
+func (c *offlineClient) SetFrequency(frequency model.Frequency) {
 	planband := c.vfo.bandplan.ByFrequency(hamradio.Frequency(frequency))
-	newBand := core.Band(planband.Name)
+	newBand := model.Band(planband.Name)
 
 	c.stateLock.Lock()
 	state := c.lastState(newBand)
@@ -412,13 +412,13 @@ func (c *offlineClient) SetFrequency(frequency core.Frequency) {
 	c.vfo.emitBandChanged(c.currentBand)
 }
 
-func (c *offlineClient) SetBand(band core.Band) {
+func (c *offlineClient) SetBand(band model.Band) {
 	plan, ok := c.vfo.bandplan[bandplan.BandName(band)]
 	if !ok {
 		log.Printf("Band %s not found in bandplan (2)", band)
 		return
 	}
-	newBand := core.Band(plan.Name)
+	newBand := model.Band(plan.Name)
 	if newBand == c.currentBand && !c.vfo.refreshing {
 		return
 	}
@@ -433,7 +433,7 @@ func (c *offlineClient) SetBand(band core.Band) {
 	c.vfo.emitBandChanged(c.currentBand)
 }
 
-func (c *offlineClient) SetMode(mode core.Mode) {
+func (c *offlineClient) SetMode(mode model.Mode) {
 	c.stateLock.Lock()
 	state := c.lastState(c.currentBand)
 	state.mode = mode
@@ -443,7 +443,7 @@ func (c *offlineClient) SetMode(mode core.Mode) {
 	c.vfo.emitModeChanged(mode)
 }
 
-func (c *offlineClient) SetIncrementalTuning(kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (c *offlineClient) SetIncrementalTuning(kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
 	c.stateLock.Lock()
 	state := c.lastState(c.currentBand)
 	state.itActive[kind] = active

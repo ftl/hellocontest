@@ -3,12 +3,12 @@ package logbook
 import (
 	"log"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type QSOScorer interface {
 	Clear()
-	AddMuted(qso core.QSO) core.QSOScore
+	AddMuted(qso model.QSO) model.QSOScore
 	Unmute()
 }
 
@@ -21,22 +21,22 @@ type QSOView interface {
 // QSO information.
 // QSOList is thread-safe.
 type QSOList struct {
-	myExchangeFields    []core.ExchangeField
-	theirExchangeFields []core.ExchangeField
+	myExchangeFields    []model.ExchangeField
+	theirExchangeFields []model.ExchangeField
 
-	list    []core.QSO
+	list    []model.QSO
 	invalid bool
 
 	listeners []any
 	view      QSOView
 }
 
-func NewQSOList(settings core.Settings) *QSOList {
+func NewQSOList(settings model.Settings) *QSOList {
 	contest := settings.Contest()
 	return &QSOList{
 		myExchangeFields:    contest.MyExchangeFields,
 		theirExchangeFields: contest.TheirExchangeFields,
-		list:                make([]core.QSO, 0),
+		list:                make([]model.QSO, 0),
 		view:                new(nullQSOView),
 	}
 }
@@ -52,7 +52,7 @@ func (l *QSOList) Show() {
 	l.view.Show()
 }
 
-func (l *QSOList) ContestChanged(contest core.Contest) {
+func (l *QSOList) ContestChanged(contest model.Contest) {
 	l.myExchangeFields = contest.MyExchangeFields
 	l.theirExchangeFields = contest.TheirExchangeFields
 	l.emitExchangeFieldsChanged(l.myExchangeFields, l.theirExchangeFields)
@@ -60,13 +60,13 @@ func (l *QSOList) ContestChanged(contest core.Contest) {
 }
 
 func (l *QSOList) LogbookCleared() {
-	l.list = make([]core.QSO, 0)
+	l.list = make([]model.QSO, 0)
 	l.invalid = false
 
 	l.emitQSOsCleared()
 }
 
-func (l *QSOList) QSOAdded(qso core.QSO) {
+func (l *QSOList) QSOAdded(qso model.QSO) {
 	l.list = append(l.list, qso)
 
 	l.emitQSOAdded(qso)
@@ -76,7 +76,7 @@ func (l *QSOList) Valid() bool {
 	return !l.invalid
 }
 
-func (l *QSOList) GetExchangeFields() ([]core.ExchangeField, []core.ExchangeField) {
+func (l *QSOList) GetExchangeFields() ([]model.ExchangeField, []model.ExchangeField) {
 	return l.myExchangeFields, l.theirExchangeFields
 }
 
@@ -115,7 +115,7 @@ func (l *QSOList) emitQSOsCleared() {
 	}
 }
 
-func (l *QSOList) emitQSOAdded(qso core.QSO) {
+func (l *QSOList) emitQSOAdded(qso model.QSO) {
 	for _, listener := range l.listeners {
 		if qsoAddedListener, ok := listener.(QSOAddedListener); ok {
 			qsoAddedListener.QSOAdded(qso)
@@ -123,7 +123,7 @@ func (l *QSOList) emitQSOAdded(qso core.QSO) {
 	}
 }
 
-func (l *QSOList) emitQSOSelected(qso core.QSO) {
+func (l *QSOList) emitQSOSelected(qso model.QSO) {
 	for _, listener := range l.listeners {
 		if qsoSelectedListener, ok := listener.(QSOSelectedListener); ok {
 			qsoSelectedListener.QSOSelected(qso)
@@ -139,7 +139,7 @@ func (l *QSOList) emitQSORowSelected(index int) {
 	}
 }
 
-func (l *QSOList) emitExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+func (l *QSOList) emitExchangeFieldsChanged(myExchangeFields []model.ExchangeField, theirExchangeFields []model.ExchangeField) {
 	for _, listener := range l.listeners {
 		if exchangeFieldsChangedListener, ok := listener.(ExchangeFieldsChangedListener); ok {
 			exchangeFieldsChangedListener.ExchangeFieldsChanged(myExchangeFields, theirExchangeFields)

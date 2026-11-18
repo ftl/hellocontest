@@ -9,16 +9,16 @@ import (
 	"time"
 
 	"github.com/ftl/hamdial"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
 	longPressDuration = 500 * time.Millisecond
 
 	// tuning acceleration: the frequency delta per detent grows with the turn rate
-	baseTuningStep      = core.Frequency(10)    // delta per detent when turning slowly
-	maxTuningStep       = core.Frequency(300)   // delta per detent when turning at full speed
-	tuningStepIncrement = core.Frequency(10)    // the delta is rounded to a multiple of this value
+	baseTuningStep      = model.Frequency(10)   // delta per detent when turning slowly
+	maxTuningStep       = model.Frequency(300)  // delta per detent when turning at full speed
+	tuningStepIncrement = model.Frequency(10)   // the delta is rounded to a multiple of this value
 	slowTurnInterval    = 75 * time.Millisecond // detents further apart than this are considered slow
 	tuningAcceleration  = 1.6                   // exponent of the acceleration curve, > 1 means faster than linear
 )
@@ -32,7 +32,7 @@ type DialActions interface {
 	// 6
 	FocusVFO2() // 7
 
-	ShiftFrequency(core.Frequency)
+	ShiftFrequency(model.Frequency)
 }
 
 // ActiveChangedListener is notified when the connection state of the dial changes.
@@ -48,7 +48,7 @@ func (f ActiveChangedListenerFunc) DialActiveChanged(active bool) {
 
 type Controller struct {
 	actions     DialActions
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 	listeners   []any
 
 	dial     *hamdial.Dial
@@ -63,11 +63,11 @@ type Controller struct {
 	lastTurnDirection hamdial.Direction
 
 	shiftLock      sync.Mutex
-	pendingDelta   core.Frequency
+	pendingDelta   model.Frequency
 	shiftScheduled bool
 }
 
-func New(actions DialActions, asyncRunner core.AsyncRunner) *Controller {
+func New(actions DialActions, asyncRunner model.AsyncRunner) *Controller {
 	return &Controller{
 		actions:     actions,
 		asyncRunner: asyncRunner,
@@ -205,7 +205,7 @@ func (c *Controller) DialTurned(direction hamdial.Direction) {
 
 // shiftFrequency accumulates the given delta and schedules its application on
 // the main thread, if that is not already pending.
-func (c *Controller) shiftFrequency(delta core.Frequency) {
+func (c *Controller) shiftFrequency(delta model.Frequency) {
 	c.shiftLock.Lock()
 	c.pendingDelta += delta
 	alreadyScheduled := c.shiftScheduled
@@ -247,7 +247,7 @@ func (c *Controller) Disconnected() {
 
 // turnDelta returns the frequency delta for one detent, accelerated by the turn rate:
 // the shorter the interval since the preceding detent, the larger the delta.
-func (c *Controller) turnDelta(direction hamdial.Direction, now time.Time) core.Frequency {
+func (c *Controller) turnDelta(direction hamdial.Direction, now time.Time) model.Frequency {
 	interval := now.Sub(c.lastTurn)
 	sameDirection := direction == c.lastTurnDirection
 	c.lastTurn = now
@@ -256,11 +256,11 @@ func (c *Controller) turnDelta(direction hamdial.Direction, now time.Time) core.
 	step := baseTuningStep
 	if sameDirection && interval > 0 && interval < slowTurnInterval {
 		factor := math.Pow(float64(slowTurnInterval)/float64(interval), tuningAcceleration)
-		step = core.Frequency(math.Round(float64(baseTuningStep)*factor/float64(tuningStepIncrement))) * tuningStepIncrement
+		step = model.Frequency(math.Round(float64(baseTuningStep)*factor/float64(tuningStepIncrement))) * tuningStepIncrement
 		step = min(step, maxTuningStep)
 	}
 
-	return core.Frequency(direction) * step
+	return model.Frequency(direction) * step
 }
 
 func (c *Controller) spotMode() bool {

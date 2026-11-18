@@ -5,7 +5,7 @@ import (
 
 	"github.com/ftl/conval"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type convalCounter interface {
@@ -19,20 +19,20 @@ type convalTimeSheet interface {
 	TimeReport(minBreakDuration time.Duration) conval.TimeReport
 }
 
-var toConvalMode = map[core.Mode]conval.Mode{
-	core.ModeCW:      conval.ModeCW,
-	core.ModeSSB:     conval.ModeSSB,
-	core.ModeFM:      conval.ModeFM,
-	core.ModeRTTY:    conval.ModeRTTY,
-	core.ModeDigital: conval.ModeDigital,
+var toConvalMode = map[model.Mode]conval.Mode{
+	model.ModeCW:      conval.ModeCW,
+	model.ModeSSB:     conval.ModeSSB,
+	model.ModeFM:      conval.ModeFM,
+	model.ModeRTTY:    conval.ModeRTTY,
+	model.ModeDigital: conval.ModeDigital,
 }
 
-var fromConvalMode = map[conval.Mode]core.Mode{
-	conval.ModeCW:      core.ModeCW,
-	conval.ModeSSB:     core.ModeSSB,
-	conval.ModeFM:      core.ModeFM,
-	conval.ModeRTTY:    core.ModeRTTY,
-	conval.ModeDigital: core.ModeDigital,
+var fromConvalMode = map[conval.Mode]model.Mode{
+	conval.ModeCW:      model.ModeCW,
+	conval.ModeSSB:     model.ModeSSB,
+	conval.ModeFM:      model.ModeFM,
+	conval.ModeRTTY:    model.ModeRTTY,
+	conval.ModeDigital: model.ModeDigital,
 }
 
 var _ convalCounter = new(nullCounter)

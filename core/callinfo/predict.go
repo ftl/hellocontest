@@ -4,11 +4,11 @@ import (
 	"strconv"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
-func predictExchange(theirExchangeFields []core.ExchangeField, dxccEntity dxcc.Prefix, workedQSOs []core.QSO, currentExchange []string, historicExchange []string, historyAvailable []bool) []string {
+func predictExchange(theirExchangeFields []model.ExchangeField, dxccEntity dxcc.Prefix, workedQSOs []model.QSO, currentExchange []string, historicExchange []string, historyAvailable []bool) []string {
 	result := make([]string, len(theirExchangeFields))
 	if len(currentExchange) > 0 {
 		copy(result, currentExchange)
@@ -36,7 +36,7 @@ func predictExchange(theirExchangeFields []core.ExchangeField, dxccEntity dxcc.P
 	return result
 }
 
-func historyAvailability(history CallHistoryFinder, theirExchangeFields []core.ExchangeField) []bool {
+func historyAvailability(history CallHistoryFinder, theirExchangeFields []model.ExchangeField) []bool {
 	result := make([]bool, len(theirExchangeFields))
 	for i := range result {
 		result[i] = history.AvailableFor(i)
@@ -44,12 +44,12 @@ func historyAvailability(history CallHistoryFinder, theirExchangeFields []core.E
 	return result
 }
 
-func isNoMemberField(field core.ExchangeField) bool {
+func isNoMemberField(field model.ExchangeField) bool {
 	return field.Properties.Contains(conval.MemberNumberProperty) &&
 		field.Properties.Contains(conval.NoMemberProperty)
 }
 
-func findExchangeInQSOs(exchangeIndex int, workedQSOs []core.QSO) (string, bool) {
+func findExchangeInQSOs(exchangeIndex int, workedQSOs []model.QSO) (string, bool) {
 	result := ""
 	found := false
 	for _, qso := range workedQSOs {
@@ -69,7 +69,7 @@ func findExchangeInQSOs(exchangeIndex int, workedQSOs []core.QSO) (string, bool)
 	return result, found
 }
 
-func findExchangeInHistory(theirExchangeFields []core.ExchangeField, exchangeIndex int, historicExchange []string, dxccEntity dxcc.Prefix) (string, bool) {
+func findExchangeInHistory(theirExchangeFields []model.ExchangeField, exchangeIndex int, historicExchange []string, dxccEntity dxcc.Prefix) (string, bool) {
 	if exchangeIndex < len(historicExchange) && historicExchange[exchangeIndex] != "" {
 		return historicExchange[exchangeIndex], true
 	}

@@ -13,7 +13,7 @@ import (
 
 	"github.com/ftl/hamradio/scp"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -43,10 +43,10 @@ type Finder struct {
 }
 
 type Settings interface {
-	core.Settings
+	model.Settings
 }
 
-type AvailabilityCallback func(service core.Service, available bool)
+type AvailabilityCallback func(service model.Service, available bool)
 
 type AvailableFieldNamesListener interface {
 	SetAvailableCallHistoryFieldNames(fieldNames []string)
@@ -81,7 +81,7 @@ func (f *Finder) activateCallHistory() {
 	available := f.database != nil
 	f.dataLock.Unlock()
 
-	f.availabilityCallback(core.CallHistoryService, available)
+	f.availabilityCallback(model.CallHistoryService, available)
 	if available {
 		log.Printf("Using call history from %s with available field names %v", f.filename, f.database.FieldSet().UsableNames())
 		f.emitAvailableCallHistoryFieldNames(toFieldNames(f.database.FieldSet().UsableNames()))
@@ -129,18 +129,18 @@ func (f *Finder) AvailableFor(fieldIndex int) bool {
 	return f.database != nil && fieldIndex < len(f.fieldNames) && f.fieldNames[fieldIndex] != ""
 }
 
-func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
-	searchCallsign, err := core.ParseCallsign(s)
+func (f *Finder) FindEntry(s string) (model.AnnotatedCallsign, bool) {
+	searchCallsign, err := model.ParseCallsign(s)
 	if err != nil {
 		log.Print(err)
-		return core.AnnotatedCallsign{}, false
+		return model.AnnotatedCallsign{}, false
 	}
 	searchString := searchCallsign.String()
 
 	entries, err := f.findInDatabase(searchString)
 	if err != nil {
 		log.Print(err)
-		return core.AnnotatedCallsign{}, false
+		return model.AnnotatedCallsign{}, false
 	}
 
 	for _, entry := range entries {
@@ -151,7 +151,7 @@ func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 		result, err := toAnnotatedCallsign(entry)
 		if err != nil {
 			log.Print(err)
-			return core.AnnotatedCallsign{}, false
+			return model.AnnotatedCallsign{}, false
 		}
 		result.PredictedExchange = make([]string, len(f.fieldNames))
 		for i := range f.fieldNames {
@@ -160,16 +160,16 @@ func (f *Finder) FindEntry(s string) (core.AnnotatedCallsign, bool) {
 		return result, true
 	}
 
-	return core.AnnotatedCallsign{}, false
+	return model.AnnotatedCallsign{}, false
 }
 
-func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
+func (f *Finder) Find(s string) ([]model.AnnotatedCallsign, error) {
 	matches, err := f.findInDatabase(s)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]core.AnnotatedCallsign, 0, len(matches))
+	result := make([]model.AnnotatedCallsign, 0, len(matches))
 	for _, match := range matches {
 		annotatedCallsign, err := toAnnotatedCallsign(match)
 		if err != nil {
@@ -186,12 +186,12 @@ func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 	return result, nil
 }
 
-func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
-	cs, err := core.ParseCallsign(match.Key())
+func toAnnotatedCallsign(match scp.Match) (model.AnnotatedCallsign, error) {
+	cs, err := model.ParseCallsign(match.Key())
 	if err != nil {
-		return core.AnnotatedCallsign{}, nil
+		return model.AnnotatedCallsign{}, nil
 	}
-	return core.AnnotatedCallsign{
+	return model.AnnotatedCallsign{
 		Callsign:   cs,
 		Assembly:   toMatchingAssembly(match),
 		Comparable: match,
@@ -208,11 +208,11 @@ func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
 	}, nil
 }
 
-func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
-	result := make(core.MatchingAssembly, len(match.Assembly))
+func toMatchingAssembly(match scp.Match) model.MatchingAssembly {
+	result := make(model.MatchingAssembly, len(match.Assembly))
 
 	for i, part := range match.Assembly {
-		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
+		result[i] = model.MatchingPart{OP: model.MatchingOperation(part.OP), Value: part.Value}
 	}
 
 	return result
@@ -241,7 +241,7 @@ func loadCallHistory(filename string) *scp.Database {
 	return result
 }
 
-func Export(w io.Writer, fieldNames []string, qsos ...core.QSO) error {
+func Export(w io.Writer, fieldNames []string, qsos ...model.QSO) error {
 	usedFieldNames := make([]string, 0, len(fieldNames))
 	for _, fieldName := range fieldNames {
 		if fieldName != "" {

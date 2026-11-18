@@ -6,27 +6,27 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const MainSpotFilterID = "main"
 
 type SpotFilterStore interface {
-	SpotFilter(id string) (core.SpotFilterState, bool)
-	SetSpotFilter(id string, state core.SpotFilterState) error
+	SpotFilter(id string) (model.SpotFilterState, bool)
+	SetSpotFilter(id string, state model.SpotFilterState) error
 }
 
 type SpotFilter struct {
 	id    string
 	store SpotFilterStore
-	state core.SpotFilterState
+	state model.SpotFilterState
 
-	vfoBands      [core.VFOCount]core.Band
-	vfoModes      [core.VFOCount]core.Mode
-	focusedVFO    core.VFOID
+	vfoBands      [model.VFOCount]model.Band
+	vfoModes      [model.VFOCount]model.Mode
+	focusedVFO    model.VFOID
 	vfo2Available bool
-	contestBands  []core.Band
-	contestModes  []core.Mode
+	contestBands  []model.Band
+	contestModes  []model.Mode
 
 	changed func()
 }
@@ -45,11 +45,11 @@ func NewSpotFilter(id string, store SpotFilterStore) *SpotFilter {
 	return result
 }
 
-func defaultSpotFilterState() core.SpotFilterState {
-	return core.SpotFilterState{
-		Band:   core.SpotFilterBand{Kind: core.SpotFilterFocused},
-		Mode:   core.SpotFilterMode{Kind: core.SpotFilterFocused},
-		SortBy: core.SortSpotsByFrequency,
+func defaultSpotFilterState() model.SpotFilterState {
+	return model.SpotFilterState{
+		Band:   model.SpotFilterBand{Kind: model.SpotFilterFocused},
+		Mode:   model.SpotFilterMode{Kind: model.SpotFilterFocused},
+		SortBy: model.SortSpotsByFrequency,
 	}
 }
 
@@ -57,11 +57,11 @@ func (f *SpotFilter) OnChanged(changed func()) {
 	f.changed = changed
 }
 
-func (f *SpotFilter) State() core.SpotFilterState {
+func (f *SpotFilter) State() model.SpotFilterState {
 	return f.state
 }
 
-func (f *SpotFilter) SetBand(band core.SpotFilterBand) {
+func (f *SpotFilter) SetBand(band model.SpotFilterBand) {
 	if f.state.Band == band {
 		return
 	}
@@ -70,7 +70,7 @@ func (f *SpotFilter) SetBand(band core.SpotFilterBand) {
 	f.emitChanged()
 }
 
-func (f *SpotFilter) SetMode(mode core.SpotFilterMode) {
+func (f *SpotFilter) SetMode(mode model.SpotFilterMode) {
 	if f.state.Mode == mode {
 		return
 	}
@@ -79,7 +79,7 @@ func (f *SpotFilter) SetMode(mode core.SpotFilterMode) {
 	f.emitChanged()
 }
 
-func (f *SpotFilter) SetValue(value core.SpotFilterValue) {
+func (f *SpotFilter) SetValue(value model.SpotFilterValue) {
 	if f.state.Value == value {
 		return
 	}
@@ -88,7 +88,7 @@ func (f *SpotFilter) SetValue(value core.SpotFilterValue) {
 	f.emitChanged()
 }
 
-func (f *SpotFilter) SetSort(column core.SpotSortColumn, descending bool) {
+func (f *SpotFilter) SetSort(column model.SpotSortColumn, descending bool) {
 	if f.state.SortBy == column && f.state.Descending == descending {
 		return
 	}
@@ -107,21 +107,21 @@ func (f *SpotFilter) SetFolded(folded bool) {
 	f.storeState()
 }
 
-func (f *SpotFilter) VFOBandChanged(vfo core.VFOID, band core.Band) {
+func (f *SpotFilter) VFOBandChanged(vfo model.VFOID, band model.Band) {
 	if !validVFO(vfo) || f.vfoBands[vfo] == band {
 		return
 	}
 	f.emitOnResolvedChange(func() { f.vfoBands[vfo] = band })
 }
 
-func (f *SpotFilter) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
+func (f *SpotFilter) VFOModeChanged(vfo model.VFOID, mode model.Mode) {
 	if !validVFO(vfo) || f.vfoModes[vfo] == mode {
 		return
 	}
 	f.emitOnResolvedChange(func() { f.vfoModes[vfo] = mode })
 }
 
-func (f *SpotFilter) FocusedVFOChanged(vfo core.VFOID) {
+func (f *SpotFilter) FocusedVFOChanged(vfo model.VFOID) {
 	if !validVFO(vfo) || f.focusedVFO == vfo {
 		return
 	}
@@ -136,7 +136,7 @@ func (f *SpotFilter) RadioChanged(_ string, singleVFO bool) {
 	f.emitOnResolvedChange(func() { f.vfo2Available = vfo2Available })
 }
 
-func (f *SpotFilter) SetContestBandsAndModes(bands []core.Band, modes []core.Mode) {
+func (f *SpotFilter) SetContestBandsAndModes(bands []model.Band, modes []model.Mode) {
 	if slices.Equal(f.contestBands, bands) && slices.Equal(f.contestModes, modes) {
 		return
 	}
@@ -146,59 +146,59 @@ func (f *SpotFilter) SetContestBandsAndModes(bands []core.Band, modes []core.Mod
 	})
 }
 
-func (f *SpotFilter) Matches(entry core.BandmapEntry) bool {
+func (f *SpotFilter) Matches(entry model.BandmapEntry) bool {
 	return f.bandMatches(entry.Band) && f.modeMatches(entry.Mode) && f.state.Value.Matches(entry)
 }
 
-func (f *SpotFilter) MatchesMarker(marker core.BandmapMarker) bool {
+func (f *SpotFilter) MatchesMarker(marker model.BandmapMarker) bool {
 	// a marker has no mode, therefore only the band decides
 	return f.bandMatches(marker.Band)
 }
 
-func (f *SpotFilter) Order() core.BandmapOrder {
-	var order core.BandmapOrder
+func (f *SpotFilter) Order() model.BandmapOrder {
+	var order model.BandmapOrder
 	switch f.state.SortBy {
-	case core.SortSpotsByCallsign:
-		order = core.BandmapByCallsign
-	case core.SortSpotsByValue:
-		order = core.BandmapByValue
-	case core.SortSpotsByLastSeen:
-		order = core.BandmapByLastSeen
+	case model.SortSpotsByCallsign:
+		order = model.BandmapByCallsign
+	case model.SortSpotsByValue:
+		order = model.BandmapByValue
+	case model.SortSpotsByLastSeen:
+		order = model.BandmapByLastSeen
 	default:
-		order = core.BandmapByFrequency
+		order = model.BandmapByFrequency
 	}
 	if f.state.Descending {
-		return core.Descending(order)
+		return model.Descending(order)
 	}
 	return order
 }
 
-func (f *SpotFilter) TargetVFO(entry core.BandmapEntry) core.VFOID {
+func (f *SpotFilter) TargetVFO(entry model.BandmapEntry) model.VFOID {
 	return f.TargetVFOForBand(entry.Band)
 }
 
-func (f *SpotFilter) TargetVFOForMarker(band core.Band) core.VFOID {
+func (f *SpotFilter) TargetVFOForMarker(band model.Band) model.VFOID {
 	// a marker names a frequency to go to: if a VFO is already on that band, that VFO goes
 	// there and no VFO changes its band
 	if f.vfoOnBand(f.FocusedVFO(), band) {
 		return f.FocusedVFO()
 	}
-	for vfo := range core.VFOCount {
-		if f.vfoOnBand(core.VFOID(vfo), band) {
-			return core.VFOID(vfo)
+	for vfo := range model.VFOCount {
+		if f.vfoOnBand(model.VFOID(vfo), band) {
+			return model.VFOID(vfo)
 		}
 	}
 	return f.TargetVFOForBand(band)
 }
 
-func (f *SpotFilter) TargetVFOForBand(band core.Band) core.VFOID {
+func (f *SpotFilter) TargetVFOForBand(band model.Band) model.VFOID {
 	// a band selection that binds the table to one VFO names that VFO
 	switch f.state.Band.Kind {
-	case core.SpotFilterVFO1:
-		return core.VFO1
-	case core.SpotFilterVFO2:
-		return f.availableVFO(core.VFO2)
-	case core.SpotFilterFocused:
+	case model.SpotFilterVFO1:
+		return model.VFO1
+	case model.SpotFilterVFO2:
+		return f.availableVFO(model.VFO2)
+	case model.SpotFilterFocused:
 		return f.FocusedVFO()
 	}
 
@@ -206,100 +206,100 @@ func (f *SpotFilter) TargetVFOForBand(band core.Band) core.VFOID {
 	if f.vfoOnBand(f.FocusedVFO(), band) {
 		return f.FocusedVFO()
 	}
-	for vfo := range core.VFOCount {
-		if f.vfoOnBand(core.VFOID(vfo), band) {
-			return core.VFOID(vfo)
+	for vfo := range model.VFOCount {
+		if f.vfoOnBand(model.VFOID(vfo), band) {
+			return model.VFOID(vfo)
 		}
 	}
 	return f.FocusedVFO()
 }
 
-func (f *SpotFilter) FocusedVFO() core.VFOID {
+func (f *SpotFilter) FocusedVFO() model.VFOID {
 	return f.availableVFO(f.focusedVFO)
 }
 
-func (f *SpotFilter) Frame() core.SpotFilterFrame {
-	return core.SpotFilterFrame{
+func (f *SpotFilter) Frame() model.SpotFilterFrame {
+	return model.SpotFilterFrame{
 		SpotFilterState: f.state,
-		Bands:           core.Bands,
-		Modes:           core.Modes,
+		Bands:           model.Bands,
+		Modes:           model.Modes,
 		Description:     f.description(),
 	}
 }
 
-func (f *SpotFilter) bandMatches(band core.Band) bool {
+func (f *SpotFilter) bandMatches(band model.Band) bool {
 	switch f.state.Band.Kind {
-	case core.SpotFilterFixed:
+	case model.SpotFilterFixed:
 		return band == f.state.Band.Band
-	case core.SpotFilterContest:
+	case model.SpotFilterContest:
 		return len(f.contestBands) == 0 || slices.Contains(f.contestBands, band)
-	case core.SpotFilterVFO1, core.SpotFilterVFO2, core.SpotFilterFocused:
+	case model.SpotFilterVFO1, model.SpotFilterVFO2, model.SpotFilterFocused:
 		selected := f.selectedBand()
-		return selected == core.NoBand || band == selected
+		return selected == model.NoBand || band == selected
 	default:
 		return true
 	}
 }
 
-func (f *SpotFilter) modeMatches(mode core.Mode) bool {
+func (f *SpotFilter) modeMatches(mode model.Mode) bool {
 	switch f.state.Mode.Kind {
-	case core.SpotFilterFixed:
+	case model.SpotFilterFixed:
 		return mode == f.state.Mode.Mode
-	case core.SpotFilterContest:
+	case model.SpotFilterContest:
 		return len(f.contestModes) == 0 || slices.Contains(f.contestModes, mode)
-	case core.SpotFilterVFO1, core.SpotFilterVFO2, core.SpotFilterFocused:
+	case model.SpotFilterVFO1, model.SpotFilterVFO2, model.SpotFilterFocused:
 		selected := f.selectedMode()
-		return selected == core.NoMode || mode == selected
+		return selected == model.NoMode || mode == selected
 	default:
 		return true
 	}
 }
 
-func (f *SpotFilter) selectedBand() core.Band {
+func (f *SpotFilter) selectedBand() model.Band {
 	vfo, ok := f.boundVFO(f.state.Band.Kind)
 	if !ok {
-		return core.NoBand
+		return model.NoBand
 	}
 	return f.vfoBands[vfo]
 }
 
-func (f *SpotFilter) selectedMode() core.Mode {
+func (f *SpotFilter) selectedMode() model.Mode {
 	vfo, ok := f.boundVFO(f.state.Mode.Kind)
 	if !ok {
-		return core.NoMode
+		return model.NoMode
 	}
 	return f.vfoModes[vfo]
 }
 
-func (f *SpotFilter) boundVFO(kind core.SpotFilterKind) (core.VFOID, bool) {
+func (f *SpotFilter) boundVFO(kind model.SpotFilterKind) (model.VFOID, bool) {
 	switch kind {
-	case core.SpotFilterVFO1:
-		return core.VFO1, true
-	case core.SpotFilterVFO2:
-		return f.availableVFO(core.VFO2), true
-	case core.SpotFilterFocused:
+	case model.SpotFilterVFO1:
+		return model.VFO1, true
+	case model.SpotFilterVFO2:
+		return f.availableVFO(model.VFO2), true
+	case model.SpotFilterFocused:
 		return f.FocusedVFO(), true
 	default:
-		return core.VFO1, false
+		return model.VFO1, false
 	}
 }
 
-func (f *SpotFilter) vfoOnBand(vfo core.VFOID, band core.Band) bool {
-	if !validVFO(vfo) || band == core.NoBand {
+func (f *SpotFilter) vfoOnBand(vfo model.VFOID, band model.Band) bool {
+	if !validVFO(vfo) || band == model.NoBand {
 		return false
 	}
-	if vfo == core.VFO2 && !f.vfo2Available {
+	if vfo == model.VFO2 && !f.vfo2Available {
 		return false
 	}
 	return f.vfoBands[vfo] == band
 }
 
-func (f *SpotFilter) availableVFO(vfo core.VFOID) core.VFOID {
-	if vfo == core.VFO2 && !f.vfo2Available {
-		return core.VFO1
+func (f *SpotFilter) availableVFO(vfo model.VFOID) model.VFOID {
+	if vfo == model.VFO2 && !f.vfo2Available {
+		return model.VFO1
 	}
 	if !validVFO(vfo) {
-		return core.VFO1
+		return model.VFO1
 	}
 	return vfo
 }
@@ -313,7 +313,7 @@ func (f *SpotFilter) description() string {
 		f.bandDescription(),
 		f.modeDescription(),
 	}
-	if f.state.Value != core.SpotFilterAnyValue {
+	if f.state.Value != model.SpotFilterAnyValue {
 		parts = append(parts, f.state.Value.Label())
 	}
 	parts = append(parts, fmt.Sprintf("by %s %s", f.state.SortBy.Label(), direction))
@@ -322,11 +322,11 @@ func (f *SpotFilter) description() string {
 
 func (f *SpotFilter) bandDescription() string {
 	switch f.state.Band.Kind {
-	case core.SpotFilterFixed:
+	case model.SpotFilterFixed:
 		return string(f.state.Band.Band)
-	case core.SpotFilterContest:
+	case model.SpotFilterContest:
 		return "Contest bands"
-	case core.SpotFilterVFO1, core.SpotFilterVFO2, core.SpotFilterFocused:
+	case model.SpotFilterVFO1, model.SpotFilterVFO2, model.SpotFilterFocused:
 		return boundDescription(f.state.Band.Kind, string(f.selectedBand()))
 	default:
 		return "All bands"
@@ -335,23 +335,23 @@ func (f *SpotFilter) bandDescription() string {
 
 func (f *SpotFilter) modeDescription() string {
 	switch f.state.Mode.Kind {
-	case core.SpotFilterFixed:
+	case model.SpotFilterFixed:
 		return string(f.state.Mode.Mode)
-	case core.SpotFilterContest:
+	case model.SpotFilterContest:
 		return "Contest modes"
-	case core.SpotFilterVFO1, core.SpotFilterVFO2, core.SpotFilterFocused:
+	case model.SpotFilterVFO1, model.SpotFilterVFO2, model.SpotFilterFocused:
 		return boundDescription(f.state.Mode.Kind, string(f.selectedMode()))
 	default:
 		return "All modes"
 	}
 }
 
-func boundDescription(kind core.SpotFilterKind, value string) string {
+func boundDescription(kind model.SpotFilterKind, value string) string {
 	name := "Focused VFO"
 	switch kind {
-	case core.SpotFilterVFO1:
+	case model.SpotFilterVFO1:
 		name = "VFO1"
-	case core.SpotFilterVFO2:
+	case model.SpotFilterVFO2:
 		name = "VFO2"
 	}
 	if value == "" {
@@ -385,6 +385,6 @@ func (f *SpotFilter) storeState() {
 	}
 }
 
-func validVFO(vfo core.VFOID) bool {
-	return vfo >= 0 && vfo < core.VFOCount
+func validVFO(vfo model.VFOID) bool {
+	return vfo >= 0 && vfo < model.VFOCount
 }

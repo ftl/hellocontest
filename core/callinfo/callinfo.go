@@ -6,8 +6,8 @@ import (
 
 	"github.com/ftl/conval"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -18,40 +18,40 @@ type DXCCFinder interface {
 // CallsignFinder returns a list of matching callsigns for the given partial string.
 type CallsignFinder interface {
 	FindStrings(string) ([]string, error)
-	Find(string) ([]core.AnnotatedCallsign, error)
+	Find(string) ([]model.AnnotatedCallsign, error)
 }
 
 // CallHistoryFinder returns additional information for a given callsign if a call history file is used.
 type CallHistoryFinder interface {
-	FindEntry(string) (core.AnnotatedCallsign, bool)
-	Find(string) ([]core.AnnotatedCallsign, error)
+	FindEntry(string) (model.AnnotatedCallsign, bool)
+	Find(string) ([]model.AnnotatedCallsign, error)
 	AvailableFor(fieldIndex int) bool
 }
 
 // DupeChecker can be used to find out if the given callsign was already worked, according to the contest rules.
 // It can also find worked callsigns that are similar to a given string, e.g. for supercheck.
 type DupeChecker interface {
-	FindWorkedQSOs(core.Callsign, core.Band, core.Mode) ([]core.QSO, bool)
-	Find(string) ([]core.AnnotatedCallsign, error)
+	FindWorkedQSOs(model.Callsign, model.Band, model.Mode) ([]model.QSO, bool)
+	Find(string) ([]model.AnnotatedCallsign, error)
 }
 
 // Valuer provides the points and multis of a QSO based on the given information.
 type Valuer interface {
-	Value(callsign core.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string)
+	Value(callsign model.Callsign, entity dxcc.Prefix, band model.Band, mode model.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string)
 }
 
 type QTCProvider interface {
-	QTCsInLog(core.Callsign) (sent, received int)
+	QTCsInLog(model.Callsign) (sent, received int)
 }
 
 // View defines the visual part of the call information window.
 type View interface {
-	ShowFrame(core.VFOID, core.CallinfoFrame)
-	SetVFOEnabled(core.VFOID, bool)
+	ShowFrame(model.VFOID, model.CallinfoFrame)
+	SetVFOEnabled(model.VFOID, bool)
 }
 
 type CallinfoFrameListener interface {
-	CallinfoFrameChanged(core.VFOID, core.CallinfoFrame)
+	CallinfoFrameChanged(model.VFOID, model.CallinfoFrame)
 }
 
 type Callinfo struct {
@@ -61,11 +61,11 @@ type Callinfo struct {
 	qtcProvider QTCProvider
 	listeners   []any
 
-	theirExchangeFields []core.ExchangeField
+	theirExchangeFields []model.ExchangeField
 	qtcsEnabled         bool
 	vfo2Enabled         bool
 
-	frames [core.VFOCount]core.CallinfoFrame
+	frames [model.VFOCount]model.CallinfoFrame
 }
 
 func New(entities DXCCFinder, callsigns CallsignFinder, callHistory CallHistoryFinder, dupeChecker DupeChecker, valuer Valuer, qtcProvider QTCProvider) *Callinfo {
@@ -88,14 +88,14 @@ func (c *Callinfo) SetView(view View) {
 	}
 
 	c.view = view
-	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
+	c.view.SetVFOEnabled(model.VFO2, c.vfo2Enabled)
 }
 
-func (c *Callinfo) StationChanged(station core.Station) {
+func (c *Callinfo) StationChanged(station model.Station) {
 	c.collector.SetMyLocator(station.Locator)
 }
 
-func (c *Callinfo) ContestChanged(contest core.Contest) {
+func (c *Callinfo) ContestChanged(contest model.Contest) {
 	if contest.Definition == nil {
 		log.Printf("there is no contest definition!")
 		return
@@ -106,7 +106,7 @@ func (c *Callinfo) ContestChanged(contest core.Contest) {
 	c.supercheck.SetTheirExchangeFields(c.theirExchangeFields)
 }
 
-func (c *Callinfo) ScoreChanged(score core.Score) {
+func (c *Callinfo) ScoreChanged(score model.Score) {
 	c.collector.ScoreChanged(score)
 }
 
@@ -114,7 +114,7 @@ func (c *Callinfo) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Callinfo) emitFrameChanged(vfo core.VFOID) {
+func (c *Callinfo) emitFrameChanged(vfo model.VFOID) {
 	for _, listener := range c.listeners {
 		if l, ok := listener.(CallinfoFrameListener); ok {
 			l.CallinfoFrameChanged(vfo, c.frames[vfo])
@@ -123,15 +123,15 @@ func (c *Callinfo) emitFrameChanged(vfo core.VFOID) {
 	c.view.ShowFrame(vfo, c.frames[vfo])
 }
 
-func (c *Callinfo) GetInfo(call core.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
+func (c *Callinfo) GetInfo(call model.Callsign, band model.Band, mode model.Mode, currentExchange []string) model.Callinfo {
 	return c.collector.GetInfo(call, band, mode, currentExchange)
 }
 
-func (c *Callinfo) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
+func (c *Callinfo) UpdateValue(info *model.Callinfo, band model.Band, mode model.Mode) bool {
 	return c.collector.UpdateValue(info, band, mode)
 }
 
-func (c *Callinfo) InputChanged(vfo core.VFOID, call string, band core.Band, mode core.Mode, currentExchange []string) {
+func (c *Callinfo) InputChanged(vfo model.VFOID, call string, band model.Band, mode model.Mode, currentExchange []string) {
 	normalizedCall := normalizeInput(call)
 
 	callinfo := c.collector.GetInfoForInput(normalizedCall, band, mode, currentExchange)
@@ -156,7 +156,7 @@ func (c *Callinfo) InputChanged(vfo core.VFOID, call string, band core.Band, mod
 	c.emitFrameChanged(vfo)
 }
 
-func (c *Callinfo) MarkerOnFrequency(vfo core.VFOID, marker core.BandmapMarker, available bool) {
+func (c *Callinfo) MarkerOnFrequency(vfo model.VFOID, marker model.BandmapMarker, available bool) {
 	if int(vfo) < 0 || int(vfo) >= len(c.frames) {
 		return
 	}
@@ -173,21 +173,21 @@ func (c *Callinfo) MarkerOnFrequency(vfo core.VFOID, marker core.BandmapMarker, 
 	c.emitFrameChanged(vfo)
 }
 
-func (c *Callinfo) EntryOnFrequency(vfo core.VFOID, entry core.BandmapEntry, available bool) {
+func (c *Callinfo) EntryOnFrequency(vfo model.VFOID, entry model.BandmapEntry, available bool) {
 	if int(vfo) < 0 || int(vfo) >= len(c.frames) {
 		return
 	}
 	frame := &c.frames[vfo]
 	last := frame.CallsignOnFrequency.Callsign.String()
 	if !available {
-		frame.CallsignOnFrequency = core.AnnotatedCallsign{}
+		frame.CallsignOnFrequency = model.AnnotatedCallsign{}
 	} else if frame.CallsignOnFrequency.Callsign.String() == entry.Call.String() {
 		// go on
 	} else {
 		exactMatch := frame.NormalizedCallInput == entry.Call.String()
-		frame.CallsignOnFrequency = core.AnnotatedCallsign{
+		frame.CallsignOnFrequency = model.AnnotatedCallsign{
 			Callsign:          entry.Call,
-			Assembly:          core.MatchingAssembly{{OP: core.Matching, Value: entry.Call.String()}},
+			Assembly:          model.MatchingAssembly{{OP: model.Matching, Value: entry.Call.String()}},
 			Duplicate:         entry.Info.Duplicate,
 			Worked:            entry.Info.Worked,
 			ExactMatch:        exactMatch,
@@ -203,10 +203,10 @@ func (c *Callinfo) EntryOnFrequency(vfo core.VFOID, entry core.BandmapEntry, ava
 	}
 }
 
-// RadioChanged implements core.RadioChangedListener.
+// RadioChanged implements model.RadioChangedListener.
 func (c *Callinfo) RadioChanged(_ string, singleVFO bool) {
 	c.vfo2Enabled = !singleVFO
-	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
+	c.view.SetVFOEnabled(model.VFO2, c.vfo2Enabled)
 }
 
 func normalizeInput(input string) string {
@@ -215,8 +215,8 @@ func normalizeInput(input string) string {
 
 type nullView struct{}
 
-func (v *nullView) Show()                                           {}
-func (v *nullView) Hide()                                           {}
-func (v *nullView) SetPredictedExchangeFields([]core.ExchangeField) {}
-func (v *nullView) ShowFrame(core.VFOID, core.CallinfoFrame)        {}
-func (v *nullView) SetVFOEnabled(core.VFOID, bool)                  {}
+func (v *nullView) Show()                                            {}
+func (v *nullView) Hide()                                            {}
+func (v *nullView) SetPredictedExchangeFields([]model.ExchangeField) {}
+func (v *nullView) ShowFrame(model.VFOID, model.CallinfoFrame)       {}
+func (v *nullView) SetVFOEnabled(model.VFOID, bool)                  {}

@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/qtc"
 )
 
@@ -19,8 +19,8 @@ type qtcDialog struct {
 
 	stopKeyHandler *stopKeyHandler
 
-	activePhase core.QTCWorkflowPhase
-	activeField core.QTCField
+	activePhase model.QTCWorkflowPhase
+	activeField model.QTCField
 	activeQTC   int
 
 	completed bool
@@ -38,7 +38,7 @@ func (d *qtcDialog) QuestionQTCCount(max int) (int, bool) {
 	return max, true
 }
 
-func (d *qtcDialog) Show(mode core.QTCMode, series core.QTCSeries, vfoName string) {
+func (d *qtcDialog) Show(mode model.QTCMode, series model.QTCSeries, vfoName string) {
 	d.completed = false
 
 	d.dialog = qtlib.NewQDialog(d.parent.QWidget)
@@ -101,7 +101,7 @@ func (d *qtcDialog) Close() {
 	d.dialog.Done(int(qtlib.QDialog__Accepted))
 }
 
-func (d *qtcDialog) UpdateQTC(index int, q core.QTC) {
+func (d *qtcDialog) UpdateQTC(index int, q model.QTC) {
 	if d.view == nil {
 		return
 	}
@@ -115,7 +115,7 @@ func (d *qtcDialog) ClearDataInputs() {
 	d.view.clearExchangeEntry()
 }
 
-func (d *qtcDialog) ShowFieldError(field core.QTCField, message string) {
+func (d *qtcDialog) ShowFieldError(field model.QTCField, message string) {
 	if d.view == nil {
 		return
 	}
@@ -129,7 +129,7 @@ func (d *qtcDialog) ClearFieldError() {
 	d.view.clearFieldError()
 }
 
-func (d *qtcDialog) SetActivePhase(phase core.QTCWorkflowPhase) {
+func (d *qtcDialog) SetActivePhase(phase model.QTCWorkflowPhase) {
 	d.activePhase = phase
 	d.applyActivePhase()
 }
@@ -139,13 +139,13 @@ func (d *qtcDialog) applyActivePhase() {
 		return
 	}
 	switch d.activePhase {
-	case core.QTCStart:
+	case model.QTCStart:
 		d.view.focusStart()
-	case core.QTCExchangeHeader:
+	case model.QTCExchangeHeader:
 		d.view.focusHeader()
-	case core.QTCExchangeData:
+	case model.QTCExchangeData:
 		d.view.focusData()
-	case core.QTCFinish:
+	case model.QTCFinish:
 		d.view.focusNone()
 		if d.logBtn != nil {
 			d.logBtn.SetFocus()
@@ -155,7 +155,7 @@ func (d *qtcDialog) applyActivePhase() {
 	}
 }
 
-func (d *qtcDialog) SetActiveField(field core.QTCField) {
+func (d *qtcDialog) SetActiveField(field model.QTCField) {
 	d.activeField = field
 	if d.view == nil {
 		return

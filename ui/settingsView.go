@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // SettingsController is the callback surface the settings dialog uses.
@@ -23,7 +23,7 @@ type SettingsController interface {
 	OpenCallHistoryArchivePage()
 	ClearCallHistory()
 
-	EnterContestExchangeValue(core.EntryField, string)
+	EnterContestExchangeValue(model.EntryField, string)
 	EnterContestGenerateSerialExchange(bool)
 	EnterContestGenerateReport(bool)
 
@@ -35,7 +35,7 @@ type SettingsController interface {
 	SetContestEnableQTCs(bool)
 	SetContestDetailedMultis(bool)
 	EnterContestCallHistoryFile(string)
-	EnterContestCallHistoryFieldName(core.EntryField, string)
+	EnterContestCallHistoryFieldName(model.EntryField, string)
 	EnterQSOsGoal(string)
 	EnterPointsGoal(string)
 	EnterMultisGoal(string)
@@ -44,13 +44,13 @@ type SettingsController interface {
 type exchangeRow struct {
 	label *qtlib.QLabel
 	entry *qtlib.QLineEdit
-	field core.EntryField
+	field model.EntryField
 }
 
 type callHistoryFieldRow struct {
 	label *qtlib.QLabel
 	combo *qtlib.QComboBox
-	field core.EntryField
+	field model.EntryField
 }
 
 type settingsView struct {
@@ -443,7 +443,7 @@ func (v *settingsView) SelectContestIdentifier(value string) {
 	})
 }
 
-func (v *settingsView) SetContestExchangeFields(fields []core.ExchangeField) {
+func (v *settingsView) SetContestExchangeFields(fields []model.ExchangeField) {
 	v.doIgnore(func() {
 		// Wipe existing exchange rows.
 		for _, row := range v.exchangeRows {

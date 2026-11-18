@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type bandMatrixView struct {
@@ -37,6 +37,6 @@ func (v *bandMatrixView) RepaintForThemeChange() {
 	repaintScrollBarsForThemeChange(v.matrix.widget.QAbstractScrollArea)
 }
 
-func (v *bandMatrixView) ShowFrame(frame core.BandMatrixFrame) {
+func (v *bandMatrixView) ShowFrame(frame model.BandMatrixFrame) {
 	v.matrix.ShowFrame(frame)
 }

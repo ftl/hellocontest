@@ -6,17 +6,17 @@ import (
 	"log"
 	"os"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/pb"
 )
 
 type fileFormat interface {
-	ReadAll(pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, []core.QTC, error)
-	WriteQSO(pbWriter, core.QSO) error
-	WriteStation(pbWriter, core.Station) error
-	WriteContest(pbWriter, core.Contest) error
-	WriteKeyer(pbWriter, core.KeyerSettings) error
-	WriteQTC(pbWriter, core.QTC) error
+	ReadAll(pbReader) ([]model.QSO, *model.Station, *model.Contest, *model.KeyerSettings, []model.QTC, error)
+	WriteQSO(pbWriter, model.QSO) error
+	WriteStation(pbWriter, model.Station) error
+	WriteContest(pbWriter, model.Contest) error
+	WriteKeyer(pbWriter, model.KeyerSettings) error
+	WriteQTC(pbWriter, model.QTC) error
 	Clear(pbWriter) error
 }
 
@@ -59,27 +59,27 @@ type unknownFormat struct {
 	err error
 }
 
-func (f *unknownFormat) ReadAll(pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, []core.QTC, error) {
+func (f *unknownFormat) ReadAll(pbReader) ([]model.QSO, *model.Station, *model.Contest, *model.KeyerSettings, []model.QTC, error) {
 	return nil, nil, nil, nil, nil, f.err
 }
 
-func (f *unknownFormat) WriteQSO(pbWriter, core.QSO) error {
+func (f *unknownFormat) WriteQSO(pbWriter, model.QSO) error {
 	return f.err
 }
 
-func (f *unknownFormat) WriteStation(pbWriter, core.Station) error {
+func (f *unknownFormat) WriteStation(pbWriter, model.Station) error {
 	return f.err
 }
 
-func (f *unknownFormat) WriteContest(pbWriter, core.Contest) error {
+func (f *unknownFormat) WriteContest(pbWriter, model.Contest) error {
 	return f.err
 }
 
-func (f *unknownFormat) WriteKeyer(pbWriter, core.KeyerSettings) error {
+func (f *unknownFormat) WriteKeyer(pbWriter, model.KeyerSettings) error {
 	return f.err
 }
 
-func (f *unknownFormat) WriteQTC(pbWriter, core.QTC) error {
+func (f *unknownFormat) WriteQTC(pbWriter, model.QTC) error {
 	return f.err
 }
 
@@ -91,8 +91,8 @@ type v0Format struct {
 	filename string
 }
 
-func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, []core.QTC, error) {
-	qsos := []core.QSO{}
+func (f *v0Format) ReadAll(r pbReader) ([]model.QSO, *model.Station, *model.Contest, *model.KeyerSettings, []model.QTC, error) {
+	qsos := []model.QSO{}
 	var pbQSO pb.QSO
 	for {
 		err := r.Read(&pbQSO)
@@ -109,27 +109,27 @@ func (f *v0Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 	}
 }
 
-func (f *v0Format) WriteQSO(w pbWriter, qso core.QSO) error {
+func (f *v0Format) WriteQSO(w pbWriter, qso model.QSO) error {
 	pbQSO := pb.QSOToPB(qso)
 	return w.Write(pbQSO)
 }
 
-func (f *v0Format) WriteStation(pbWriter, core.Station) error {
+func (f *v0Format) WriteStation(pbWriter, model.Station) error {
 	log.Println("The V0 file format cannot store station data.")
 	return nil
 }
 
-func (f *v0Format) WriteContest(pbWriter, core.Contest) error {
+func (f *v0Format) WriteContest(pbWriter, model.Contest) error {
 	log.Println("The V0 file format cannot store contest data.")
 	return nil
 }
 
-func (f *v0Format) WriteKeyer(pbWriter, core.KeyerSettings) error {
+func (f *v0Format) WriteKeyer(pbWriter, model.KeyerSettings) error {
 	log.Println("The V0 file format cannot store keyer data.")
 	return nil
 }
 
-func (f *v0Format) WriteQTC(pbWriter, core.QTC) error {
+func (f *v0Format) WriteQTC(pbWriter, model.QTC) error {
 	log.Println("The V0 file format cannot store QTC data.")
 	return nil
 }
@@ -142,7 +142,7 @@ type v1Format struct {
 	filename string
 }
 
-func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest, *core.KeyerSettings, []core.QTC, error) {
+func (f *v1Format) ReadAll(r pbReader) ([]model.QSO, *model.Station, *model.Contest, *model.KeyerSettings, []model.QTC, error) {
 	var (
 		pbFormatInfo pb.FileInfo
 		pbEntry      pb.Entry
@@ -156,11 +156,11 @@ func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 		return nil, nil, nil, nil, nil, err
 	}
 
-	var qsos []core.QSO
-	var station *core.Station
-	var contest *core.Contest
-	var settings *core.KeyerSettings
-	var qtcs []core.QTC
+	var qsos []model.QSO
+	var station *model.Station
+	var contest *model.Contest
+	var settings *model.KeyerSettings
+	var qtcs []model.QTC
 	for {
 		err := r.Read(&pbEntry)
 		if err == io.EOF {
@@ -207,7 +207,7 @@ func (f *v1Format) ReadAll(r pbReader) ([]core.QSO, *core.Station, *core.Contest
 	}
 }
 
-func (f *v1Format) WriteQSO(w pbWriter, qso core.QSO) error {
+func (f *v1Format) WriteQSO(w pbWriter, qso model.QSO) error {
 	pbQSO := pb.QSOToPB(qso)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Qso{Qso: pbQSO},
@@ -215,7 +215,7 @@ func (f *v1Format) WriteQSO(w pbWriter, qso core.QSO) error {
 	return w.Write(pbEntry)
 }
 
-func (f *v1Format) WriteStation(w pbWriter, station core.Station) error {
+func (f *v1Format) WriteStation(w pbWriter, station model.Station) error {
 	pbStation := pb.StationToPB(station)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Station{Station: pbStation},
@@ -223,7 +223,7 @@ func (f *v1Format) WriteStation(w pbWriter, station core.Station) error {
 	return w.Write(pbEntry)
 }
 
-func (f *v1Format) WriteContest(w pbWriter, contest core.Contest) error {
+func (f *v1Format) WriteContest(w pbWriter, contest model.Contest) error {
 	pbContest := pb.ContestToPB(contest)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Contest{Contest: pbContest},
@@ -231,7 +231,7 @@ func (f *v1Format) WriteContest(w pbWriter, contest core.Contest) error {
 	return w.Write(pbEntry)
 }
 
-func (f *v1Format) WriteKeyer(w pbWriter, settings core.KeyerSettings) error {
+func (f *v1Format) WriteKeyer(w pbWriter, settings model.KeyerSettings) error {
 	pbKeyer := pb.KeyerSettingsToPB(settings)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Keyer{Keyer: pbKeyer},
@@ -239,7 +239,7 @@ func (f *v1Format) WriteKeyer(w pbWriter, settings core.KeyerSettings) error {
 	return w.Write(pbEntry)
 }
 
-func (f *v1Format) WriteQTC(w pbWriter, qtc core.QTC) error {
+func (f *v1Format) WriteQTC(w pbWriter, qtc model.QTC) error {
 	pbQTC := pb.QTCToPB(qtc)
 	pbEntry := &pb.Entry{
 		Entry: &pb.Entry_Qtc{Qtc: pbQTC},

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const cqMarkerText = "CQ"
@@ -15,12 +15,12 @@ const cqMarkerText = "CQ"
 type idSource interface {
 	// nextID gives the markers the same IDs as the spots, so that the spot list can tell
 	// its rows apart with one ID space
-	nextID() core.BandmapEntryID
+	nextID() model.BandmapEntryID
 }
 
 type Markers struct {
 	ids     idSource
-	markers []core.BandmapMarker
+	markers []model.BandmapMarker
 }
 
 func NewMarkers(ids idSource) *Markers {
@@ -29,9 +29,9 @@ func NewMarkers(ids idSource) *Markers {
 	}
 }
 
-func (m *Markers) AddNumbered(number int, frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
-	return m.add(core.BandmapMarker{
-		Kind:      core.NumberedMarker,
+func (m *Markers) AddNumbered(number int, frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
+	return m.add(model.BandmapMarker{
+		Kind:      model.NumberedMarker,
 		Number:    number,
 		Frequency: frequency,
 		Band:      band,
@@ -39,9 +39,9 @@ func (m *Markers) AddNumbered(number int, frequency core.Frequency, band core.Ba
 	})
 }
 
-func (m *Markers) AddText(text string, frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
-	return m.add(core.BandmapMarker{
-		Kind:      core.TextMarker,
+func (m *Markers) AddText(text string, frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
+	return m.add(model.BandmapMarker{
+		Kind:      model.TextMarker,
 		Text:      text,
 		Frequency: frequency,
 		Band:      band,
@@ -49,22 +49,22 @@ func (m *Markers) AddText(text string, frequency core.Frequency, band core.Band,
 	})
 }
 
-func (m *Markers) add(marker core.BandmapMarker) core.BandmapMarker {
+func (m *Markers) add(marker model.BandmapMarker) model.BandmapMarker {
 	marker.ID = m.ids.nextID()
 	marker.Text = markerText(marker)
 
-	if marker.Kind == core.CQMarker {
+	if marker.Kind == model.CQMarker {
 		// there is either none or only one marker of this kind
-		m.removeKind(core.CQMarker)
+		m.removeKind(model.CQMarker)
 	}
 	m.markers = append(m.markers, marker)
 
 	return marker
 }
 
-func (m *Markers) SetCQ(frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
+func (m *Markers) SetCQ(frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
 	for i, marker := range m.markers {
-		if marker.Kind != core.CQMarker {
+		if marker.Kind != model.CQMarker {
 			continue
 		}
 		// the marker keeps its ID, so that the spot list moves the row instead of
@@ -76,43 +76,43 @@ func (m *Markers) SetCQ(frequency core.Frequency, band core.Band, now time.Time)
 		return marker
 	}
 
-	return m.add(core.BandmapMarker{
-		Kind:      core.CQMarker,
+	return m.add(model.BandmapMarker{
+		Kind:      model.CQMarker,
 		Frequency: frequency,
 		Band:      band,
 		CreatedAt: now,
 	})
 }
 
-func (m *Markers) MarkWithNextNumber(frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
+func (m *Markers) MarkWithNextNumber(frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
 	// a marker that is already close to that frequency moves instead, so that the operator
 	// does not collect several markers on the same signal
-	if i, ok := m.closestOnFrequency(frequency, core.NumberedMarker, core.TextMarker); ok {
+	if i, ok := m.closestOnFrequency(frequency, model.NumberedMarker, model.TextMarker); ok {
 		return m.moveMarker(i, frequency, band, now)
 	}
 	return m.AddNumbered(m.nextAvailableNumber(), frequency, band, now)
 }
 
-func (m *Markers) MarkWithNumber(number int, frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
+func (m *Markers) MarkWithNumber(number int, frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
 	// the number always wins: an existing marker with that number moves, a marker close to
 	// the frequency takes the number over, and a text marker close to the frequency becomes
 	// a numbered marker
 	if i, ok := m.indexOfNumber(number); ok {
 		return m.moveMarker(i, frequency, band, now)
 	}
-	if i, ok := m.closestOnFrequency(frequency, core.NumberedMarker); ok {
+	if i, ok := m.closestOnFrequency(frequency, model.NumberedMarker); ok {
 		return m.renumberMarker(i, number, frequency, band, now)
 	}
-	if i, ok := m.closestOnFrequency(frequency, core.TextMarker); ok {
+	if i, ok := m.closestOnFrequency(frequency, model.TextMarker); ok {
 		return m.renumberMarker(i, number, frequency, band, now)
 	}
 	return m.AddNumbered(number, frequency, band, now)
 }
 
-func (m *Markers) MarkWithText(text string, frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
+func (m *Markers) MarkWithText(text string, frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
 	// a marker that is already close to that frequency takes the new text, the text of a
 	// marker does not have to be unique
-	if i, ok := m.closestOnFrequency(frequency, core.TextMarker, core.NumberedMarker); ok {
+	if i, ok := m.closestOnFrequency(frequency, model.TextMarker, model.NumberedMarker); ok {
 		return m.retextMarker(i, text, frequency, band, now)
 	}
 	return m.AddText(text, frequency, band, now)
@@ -121,7 +121,7 @@ func (m *Markers) MarkWithText(text string, frequency core.Frequency, band core.
 func (m *Markers) nextAvailableNumber() int {
 	used := make(map[int]bool, len(m.markers))
 	for _, marker := range m.markers {
-		if marker.Kind == core.NumberedMarker {
+		if marker.Kind == model.NumberedMarker {
 			used[marker.Number] = true
 		}
 	}
@@ -134,14 +134,14 @@ func (m *Markers) nextAvailableNumber() int {
 
 func (m *Markers) indexOfNumber(number int) (int, bool) {
 	for i, marker := range m.markers {
-		if marker.Kind == core.NumberedMarker && marker.Number == number {
+		if marker.Kind == model.NumberedMarker && marker.Number == number {
 			return i, true
 		}
 	}
 	return 0, false
 }
 
-func (m *Markers) closestOnFrequency(frequency core.Frequency, kinds ...core.BandmapMarkerKind) (int, bool) {
+func (m *Markers) closestOnFrequency(frequency model.Frequency, kinds ...model.BandmapMarkerKind) (int, bool) {
 	result := 0
 	found := false
 	for i, marker := range m.markers {
@@ -162,7 +162,7 @@ func (m *Markers) closestOnFrequency(frequency core.Frequency, kinds ...core.Ban
 
 // the marker keeps its ID, so that the spot list moves the row instead of removing and
 // inserting it. Every adjustment renews the creation time.
-func (m *Markers) moveMarker(i int, frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
+func (m *Markers) moveMarker(i int, frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
 	marker := m.markers[i]
 	marker.Frequency = frequency
 	marker.Band = band
@@ -171,9 +171,9 @@ func (m *Markers) moveMarker(i int, frequency core.Frequency, band core.Band, no
 	return marker
 }
 
-func (m *Markers) renumberMarker(i int, number int, frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
+func (m *Markers) renumberMarker(i int, number int, frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
 	marker := m.markers[i]
-	marker.Kind = core.NumberedMarker
+	marker.Kind = model.NumberedMarker
 	marker.Number = number
 	marker.Text = markerText(marker)
 	marker.Frequency = frequency
@@ -183,9 +183,9 @@ func (m *Markers) renumberMarker(i int, number int, frequency core.Frequency, ba
 	return marker
 }
 
-func (m *Markers) retextMarker(i int, text string, frequency core.Frequency, band core.Band, now time.Time) core.BandmapMarker {
+func (m *Markers) retextMarker(i int, text string, frequency model.Frequency, band model.Band, now time.Time) model.BandmapMarker {
 	marker := m.markers[i]
-	marker.Kind = core.TextMarker
+	marker.Kind = model.TextMarker
 	// a text marker has no number, therefore the number becomes available again
 	marker.Number = 0
 	marker.Text = text
@@ -196,7 +196,7 @@ func (m *Markers) retextMarker(i int, text string, frequency core.Frequency, ban
 	return marker
 }
 
-func (m *Markers) SetInput(id core.BandmapEntryID, input core.MarkerInput) {
+func (m *Markers) SetInput(id model.BandmapEntryID, input model.MarkerInput) {
 	// empty entry fields take nothing away from the marker, the operator removes the
 	// marker to get rid of its data
 	if input.IsEmpty() {
@@ -212,46 +212,46 @@ func (m *Markers) SetInput(id core.BandmapEntryID, input core.MarkerInput) {
 	}
 }
 
-func (m *Markers) Get(id core.BandmapEntryID) (core.BandmapMarker, bool) {
+func (m *Markers) Get(id model.BandmapEntryID) (model.BandmapMarker, bool) {
 	for _, marker := range m.markers {
 		if marker.ID == id {
 			return marker, true
 		}
 	}
-	return core.BandmapMarker{}, false
+	return model.BandmapMarker{}, false
 }
 
-func (m *Markers) Numbered(number int) (core.BandmapMarker, bool) {
+func (m *Markers) Numbered(number int) (model.BandmapMarker, bool) {
 	i, found := m.indexOfNumber(number)
 	if !found {
-		return core.BandmapMarker{}, false
+		return model.BandmapMarker{}, false
 	}
 	return m.markers[i], true
 }
 
-func (m *Markers) CQ() (core.BandmapMarker, bool) {
+func (m *Markers) CQ() (model.BandmapMarker, bool) {
 	for _, marker := range m.markers {
-		if marker.Kind == core.CQMarker {
+		if marker.Kind == model.CQMarker {
 			return marker, true
 		}
 	}
-	return core.BandmapMarker{}, false
+	return model.BandmapMarker{}, false
 }
 
-func (m *Markers) RemoveOnFrequency(frequency core.Frequency) (core.BandmapMarker, bool) {
+func (m *Markers) RemoveOnFrequency(frequency model.Frequency) (model.BandmapMarker, bool) {
 	// the CQ marker belongs to the running workmode, only a numbered or a text marker is
 	// deleted this way
-	i, found := m.closestOnFrequency(frequency, core.NumberedMarker, core.TextMarker)
+	i, found := m.closestOnFrequency(frequency, model.NumberedMarker, model.TextMarker)
 	if !found {
-		return core.BandmapMarker{}, false
+		return model.BandmapMarker{}, false
 	}
 	marker := m.markers[i]
 	m.markers = slices.Delete(m.markers, i, i+1)
 	return marker, true
 }
 
-func (m *Markers) Remove(id core.BandmapEntryID) {
-	m.markers = slices.DeleteFunc(m.markers, func(marker core.BandmapMarker) bool {
+func (m *Markers) Remove(id model.BandmapEntryID) {
+	m.markers = slices.DeleteFunc(m.markers, func(marker model.BandmapMarker) bool {
 		return marker.ID == id
 	})
 }
@@ -264,36 +264,36 @@ func (m *Markers) Len() int {
 	return len(m.markers)
 }
 
-func (m *Markers) All() []core.BandmapMarker {
+func (m *Markers) All() []model.BandmapMarker {
 	return slices.Clone(m.markers)
 }
 
-func (m *Markers) Ordered(matches core.BandmapMarkerFilter, column core.SpotSortColumn, descending bool) []core.BandmapMarker {
-	result := make([]core.BandmapMarker, 0, len(m.markers))
+func (m *Markers) Ordered(matches model.BandmapMarkerFilter, column model.SpotSortColumn, descending bool) []model.BandmapMarker {
+	result := make([]model.BandmapMarker, 0, len(m.markers))
 	for _, marker := range m.markers {
 		if matches != nil && !matches(marker) {
 			continue
 		}
 		result = append(result, marker)
 	}
-	slices.SortStableFunc(result, func(a, b core.BandmapMarker) int {
+	slices.SortStableFunc(result, func(a, b model.BandmapMarker) int {
 		return compareMarkers(a, b, column, descending)
 	})
 	return result
 }
 
-func (m *Markers) removeKind(kind core.BandmapMarkerKind) {
-	m.markers = slices.DeleteFunc(m.markers, func(marker core.BandmapMarker) bool {
+func (m *Markers) removeKind(kind model.BandmapMarkerKind) {
+	m.markers = slices.DeleteFunc(m.markers, func(marker model.BandmapMarker) bool {
 		return marker.Kind == kind
 	})
 }
 
-func markerText(marker core.BandmapMarker) string {
+func markerText(marker model.BandmapMarker) string {
 	switch marker.Kind {
-	case core.CQMarker:
+	case model.CQMarker:
 		// the text of a CQ marker is always the same
 		return cqMarkerText
-	case core.NumberedMarker:
+	case model.NumberedMarker:
 		// the number is the text of a numbered marker, therefore the spot list shows and
 		// sorts it without a special case
 		return strconv.Itoa(marker.Number)
@@ -302,49 +302,49 @@ func markerText(marker core.BandmapMarker) string {
 	}
 }
 
-func blendsMarkersWithSpots(column core.SpotSortColumn) bool {
+func blendsMarkersWithSpots(column model.SpotSortColumn) bool {
 	// a marker has a frequency and a creation time, therefore it fits between the spots
 	// with those two orders
 	switch column {
-	case core.SortSpotsByFrequency, core.SortSpotsByLastSeen:
+	case model.SortSpotsByFrequency, model.SortSpotsByLastSeen:
 		return true
 	default:
 		return false
 	}
 }
 
-func compareRows(a, b core.BandmapRow, column core.SpotSortColumn, descending bool) int {
+func compareRows(a, b model.BandmapRow, column model.SpotSortColumn, descending bool) int {
 	var result int
-	if column == core.SortSpotsByLastSeen {
+	if column == model.SortSpotsByLastSeen {
 		result = a.LastSeen().Compare(b.LastSeen())
 	} else {
-		result = core.Compare(a.Frequency(), b.Frequency())
+		result = model.Compare(a.Frequency(), b.Frequency())
 	}
 	if result == 0 {
-		result = core.Compare(a.ID(), b.ID())
+		result = model.Compare(a.ID(), b.ID())
 	}
 	return applyDirection(result, descending)
 }
 
-func compareMarkers(a, b core.BandmapMarker, column core.SpotSortColumn, descending bool) int {
+func compareMarkers(a, b model.BandmapMarker, column model.SpotSortColumn, descending bool) int {
 	switch column {
-	case core.SortSpotsByCallsign, core.SortSpotsByValue:
+	case model.SortSpotsByCallsign, model.SortSpotsByValue:
 		// a marker has no callsign and no value, therefore its text decides. The CQ marker
 		// keeps the first place in both directions.
 		if a.Kind != b.Kind {
-			if a.Kind == core.CQMarker {
+			if a.Kind == model.CQMarker {
 				return -1
 			}
-			if b.Kind == core.CQMarker {
+			if b.Kind == model.CQMarker {
 				return 1
 			}
 		}
 		return applyDirection(compareMarkerText(a.Text, b.Text), descending)
-	case core.SortSpotsByLastSeen:
+	case model.SortSpotsByLastSeen:
 		// the creation time is the last seen value of a marker
 		return applyDirection(a.CreatedAt.Compare(b.CreatedAt), descending)
 	default:
-		return applyDirection(core.Compare(a.Frequency, b.Frequency), descending)
+		return applyDirection(model.Compare(a.Frequency, b.Frequency), descending)
 	}
 }
 
@@ -353,7 +353,7 @@ func compareMarkerText(a, b string) int {
 	numberB, bIsNumber := markerTextNumber(b)
 	switch {
 	case aIsNumber && bIsNumber:
-		return core.Compare(numberA, numberB)
+		return model.Compare(numberA, numberB)
 	case aIsNumber:
 		return -1
 	case bIsNumber:

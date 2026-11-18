@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/settings"
 )
 
@@ -122,7 +122,7 @@ func (d *settingsDialog) SelectContestIdentifier(v string) {
 	d.view.SelectContestIdentifier(v)
 }
 
-func (d *settingsDialog) SetContestExchangeFields(fields []core.ExchangeField) {
+func (d *settingsDialog) SetContestExchangeFields(fields []model.ExchangeField) {
 	if d.view == nil {
 		return
 	}

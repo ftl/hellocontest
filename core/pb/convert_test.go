@@ -3,12 +3,11 @@ package pb
 import (
 	"testing"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestStationBandplanRoundtrip(t *testing.T) {
-	station := core.Station{Bandplan: "iaru-region-2"}
+	station := model.Station{Bandplan: "iaru-region-2"}
 	got, err := ToStation(StationToPB(station))
 	if err != nil {
 		t.Fatal(err)
@@ -19,7 +18,7 @@ func TestStationBandplanRoundtrip(t *testing.T) {
 }
 
 func TestStationBandplanEmptyDefaultsToRegion1(t *testing.T) {
-	got, err := ToStation(StationToPB(core.Station{}))
+	got, err := ToStation(StationToPB(model.Station{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +29,7 @@ func TestStationBandplanEmptyDefaultsToRegion1(t *testing.T) {
 
 func TestContestDetailedMultisRoundtrip(t *testing.T) {
 	for _, detailedMultis := range []bool{false, true} {
-		got, err := ToContest(ContestToPB(core.Contest{DetailedMultis: detailedMultis}))
+		got, err := ToContest(ContestToPB(model.Contest{DetailedMultis: detailedMultis}))
 		if err != nil {
 			t.Fatal(err)
 		}

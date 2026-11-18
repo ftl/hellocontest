@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/ticker"
 )
 
 type RateUpdatedListener interface {
-	RateUpdated(core.QSORate)
+	RateUpdated(model.QSORate)
 }
 
-type RateUpdatedListenerFunc func(core.QSORate)
+type RateUpdatedListenerFunc func(model.QSORate)
 
-func (f RateUpdatedListenerFunc) RateUpdated(rate core.QSORate) {
+func (f RateUpdatedListenerFunc) RateUpdated(rate model.QSORate) {
 	f(rate)
 }
 
-func NewCounter(clock core.Clock, asyncRunner core.AsyncRunner) *Counter {
+func NewCounter(clock model.Clock, asyncRunner model.AsyncRunner) *Counter {
 	result := &Counter{
-		QSORate: core.QSORate{
-			QSOsPerHours: make(core.QSOsPerHours),
+		QSORate: model.QSORate{
+			QSOsPerHours: make(model.QSOsPerHours),
 		},
 		clock:       clock,
 		view:        new(nullView),
@@ -35,8 +35,8 @@ func NewCounter(clock core.Clock, asyncRunner core.AsyncRunner) *Counter {
 }
 
 type Counter struct {
-	core.QSORate
-	clock core.Clock
+	model.QSORate
+	clock model.Clock
 	view  View
 
 	listeners []any
@@ -44,7 +44,7 @@ type Counter struct {
 	lastHourQSOs qsoList
 	lastQSOTime  time.Time
 
-	asyncRunner   core.AsyncRunner
+	asyncRunner   model.AsyncRunner
 	refreshTicker *ticker.Ticker
 
 	isRunning  func(time.Time) bool
@@ -59,7 +59,7 @@ type View interface {
 	Show()
 	Hide()
 
-	ShowRate(rate core.QSORate)
+	ShowRate(rate model.QSORate)
 	SetGoals(qsos int, points int, multis int)
 }
 
@@ -90,7 +90,7 @@ func (c *Counter) Hide() {
 	c.view.Hide()
 }
 
-func (c *Counter) ContestChanged(contest core.Contest) {
+func (c *Counter) ContestChanged(contest model.Contest) {
 	c.qsosGoal = contest.QSOsGoal
 	c.pointsGoal = contest.PointsGoal
 	c.multisGoal = contest.MultisGoal
@@ -112,7 +112,7 @@ func (c *Counter) Clear() {
 	c.Last5MinPoints = 0
 	c.LastHourMultis = 0
 	c.Last5MinMultis = 0
-	c.QSOsPerHours = make(core.QSOsPerHours)
+	c.QSOsPerHours = make(model.QSOsPerHours)
 }
 
 func (c *Counter) refresh() {
@@ -167,7 +167,7 @@ func (c *Counter) refresh() {
 			} else {
 				duration = now.Sub(lastHourStart)
 			}
-			c.LastHourRate = core.QSOsPerHour((float64(lastHourCount) / duration.Seconds()) * time.Hour.Seconds())
+			c.LastHourRate = model.QSOsPerHour((float64(lastHourCount) / duration.Seconds()) * time.Hour.Seconds())
 			c.LastHourPoints = int((float64(c.LastHourPoints) / duration.Seconds()) * time.Hour.Seconds())
 			c.LastHourMultis = int((float64(c.LastHourMultis) / duration.Seconds()) * time.Hour.Seconds())
 		}
@@ -182,7 +182,7 @@ func (c *Counter) refresh() {
 			} else {
 				duration = now.Sub(last5MinStart)
 			}
-			c.Last5MinRate = core.QSOsPerHour((float64(last5MinCount) / duration.Seconds()) * time.Hour.Seconds())
+			c.Last5MinRate = model.QSOsPerHour((float64(last5MinCount) / duration.Seconds()) * time.Hour.Seconds())
 			c.Last5MinPoints = int((float64(c.Last5MinPoints) / duration.Seconds()) * time.Hour.Seconds())
 			c.Last5MinMultis = int((float64(c.Last5MinMultis) / duration.Seconds()) * time.Hour.Seconds())
 		}
@@ -196,7 +196,7 @@ func (c *Counter) refresh() {
 	})
 }
 
-func (c *Counter) emitRateUpdated(rate core.QSORate) {
+func (c *Counter) emitRateUpdated(rate model.QSORate) {
 	c.view.ShowRate(rate)
 	for _, listener := range c.listeners {
 		if rateUpdatedListener, ok := listener.(RateUpdatedListener); ok {
@@ -205,31 +205,31 @@ func (c *Counter) emitRateUpdated(rate core.QSORate) {
 	}
 }
 
-func (c *Counter) Add(qso core.QSO) {
+func (c *Counter) Add(qso model.QSO) {
 	if c.lastQSOTime.Before(qso.Time) {
 		c.lastQSOTime = qso.Time
 	}
 	c.lastHourQSOs.Add(qso)
 
-	hour := core.HourOf(qso.Time)
+	hour := model.HourOf(qso.Time)
 	qsosPerHour := c.QSOsPerHours[hour]
 	c.QSOsPerHours[hour] = qsosPerHour + 1
 
 	c.refresh()
 }
 
-func (c *Counter) Update(oldQSO, newQSO core.QSO) {
+func (c *Counter) Update(oldQSO, newQSO model.QSO) {
 	if oldQSO.Time == newQSO.Time {
 		return
 	}
 	c.lastHourQSOs.RemoveQSO(oldQSO)
 	c.lastHourQSOs.Add(newQSO)
 
-	oldHour := core.HourOf(oldQSO.Time)
+	oldHour := model.HourOf(oldQSO.Time)
 	if qsosPerOldHour, ok := c.QSOsPerHours[oldHour]; ok {
 		c.QSOsPerHours[oldHour] = qsosPerOldHour - 1
 	}
-	newHour := core.HourOf(newQSO.Time)
+	newHour := model.HourOf(newQSO.Time)
 	if qsosPerNewHour, ok := c.QSOsPerHours[newHour]; ok {
 		c.QSOsPerHours[newHour] = qsosPerNewHour - 1
 	}
@@ -251,7 +251,7 @@ func (f *qsoList) Clear() {
 	f.last = nil
 }
 
-func (f *qsoList) Add(qso core.QSO) {
+func (f *qsoList) Add(qso model.QSO) {
 	entry := &qsoListEntry{QSO: qso}
 	if f.first == nil {
 		f.first = entry
@@ -322,7 +322,7 @@ func (f *qsoList) RemoveBefore(t time.Time) {
 	})
 }
 
-func (f *qsoList) RemoveQSO(qso core.QSO) {
+func (f *qsoList) RemoveQSO(qso model.QSO) {
 	if f.first == nil {
 		return
 	}
@@ -374,7 +374,7 @@ func (f *qsoList) ForEachAfter(fun func(e *qsoListEntry), t time.Time) {
 }
 
 type qsoListEntry struct {
-	QSO      core.QSO
+	QSO      model.QSO
 	Previous *qsoListEntry
 	Next     *qsoListEntry
 }
@@ -387,5 +387,5 @@ type nullView struct{}
 
 func (v *nullView) Show()                                     {}
 func (v *nullView) Hide()                                     {}
-func (v *nullView) ShowRate(rate core.QSORate)                {}
+func (v *nullView) ShowRate(rate model.QSORate)               {}
 func (v *nullView) SetGoals(qsos int, points int, multis int) {}

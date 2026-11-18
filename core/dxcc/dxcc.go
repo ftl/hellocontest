@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/dxcc"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type Prefix = dxcc.Prefix
@@ -73,7 +73,7 @@ func (f *Finder) WaitUntilAvailable(timeout time.Duration) bool {
 	}
 }
 
-func (f *Finder) ContestChanged(contest core.Contest) {
+func (f *Finder) ContestChanged(contest model.Contest) {
 	if contest.Definition == nil {
 		f.onlyARRLCompliant = false
 		return

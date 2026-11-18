@@ -3,35 +3,35 @@ package bandmap
 import (
 	"log"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type BandMatrixView interface {
 	Show()
-	ShowFrame(core.BandMatrixFrame)
+	ShowFrame(model.BandMatrixFrame)
 }
 
 type BandSwitcher interface {
-	SetVFOBand(core.VFOID, core.Band)
+	SetVFOBand(model.VFOID, model.Band)
 }
 
 type VFOFocuser interface {
-	SetFocusedVFO(core.VFOID)
+	SetFocusedVFO(model.VFOID)
 }
 
 type BandMatrix struct {
 	view        BandMatrixView
 	switcher    BandSwitcher
 	focuser     VFOFocuser
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 
-	bands         []core.BandSummary
-	vfoBands      [core.VFOCount]core.Band
-	focusedVFO    core.VFOID
+	bands         []model.BandSummary
+	vfoBands      [model.VFOCount]model.Band
+	focusedVFO    model.VFOID
 	vfo2Available bool
 }
 
-func NewBandMatrix(switcher BandSwitcher, focuser VFOFocuser, asyncRunner core.AsyncRunner) *BandMatrix {
+func NewBandMatrix(switcher BandSwitcher, focuser VFOFocuser, asyncRunner model.AsyncRunner) *BandMatrix {
 	return &BandMatrix{
 		view:        new(nullBandMatrixView),
 		switcher:    switcher,
@@ -65,16 +65,16 @@ func (m *BandMatrix) onUIThread(f func()) {
 	m.asyncRunner(f)
 }
 
-func (m *BandMatrix) BandsChanged(bands []core.BandSummary) {
+func (m *BandMatrix) BandsChanged(bands []model.BandSummary) {
 	m.onUIThread(func() {
 		m.bands = bands
 		m.emitFrame()
 	})
 }
 
-func (m *BandMatrix) VFOBandChanged(vfo core.VFOID, band core.Band) {
+func (m *BandMatrix) VFOBandChanged(vfo model.VFOID, band model.Band) {
 	m.onUIThread(func() {
-		if vfo < 0 || vfo >= core.VFOCount {
+		if vfo < 0 || vfo >= model.VFOCount {
 			return
 		}
 		if m.vfoBands[vfo] == band {
@@ -85,7 +85,7 @@ func (m *BandMatrix) VFOBandChanged(vfo core.VFOID, band core.Band) {
 	})
 }
 
-func (m *BandMatrix) FocusedVFOChanged(vfo core.VFOID) {
+func (m *BandMatrix) FocusedVFOChanged(vfo model.VFOID) {
 	m.onUIThread(func() {
 		if m.focusedVFO == vfo {
 			return
@@ -106,7 +106,7 @@ func (m *BandMatrix) RadioChanged(_ string, singleVFO bool) {
 	})
 }
 
-func (m *BandMatrix) SelectBand(vfo core.VFOID, band core.Band) {
+func (m *BandMatrix) SelectBand(vfo model.VFOID, band model.Band) {
 	if !m.vfoAvailable(vfo) {
 		log.Printf("band matrix: cannot switch VFO%d to %s, this VFO is not available", vfo+1, band)
 		return
@@ -115,8 +115,8 @@ func (m *BandMatrix) SelectBand(vfo core.VFOID, band core.Band) {
 	m.switcher.SetVFOBand(vfo, band)
 }
 
-func (m *BandMatrix) ActivateBand(band core.Band) {
-	if band == core.NoBand {
+func (m *BandMatrix) ActivateBand(band model.Band) {
+	if band == model.NoBand {
 		return
 	}
 	vfo, onVFO := m.vfoOnBand(band)
@@ -128,30 +128,30 @@ func (m *BandMatrix) ActivateBand(band core.Band) {
 	}
 }
 
-func (m *BandMatrix) FocusVFO(vfo core.VFOID) {
+func (m *BandMatrix) FocusVFO(vfo model.VFOID) {
 	if !m.vfoAvailable(vfo) {
 		return
 	}
 	m.focuser.SetFocusedVFO(vfo)
 }
 
-func (m *BandMatrix) vfoOnBand(band core.Band) (core.VFOID, bool) {
+func (m *BandMatrix) vfoOnBand(band model.Band) (model.VFOID, bool) {
 	for vfo, vfoBand := range m.vfoBands {
-		if !m.vfoAvailable(core.VFOID(vfo)) {
+		if !m.vfoAvailable(model.VFOID(vfo)) {
 			continue
 		}
 		if vfoBand == band {
-			return core.VFOID(vfo), true
+			return model.VFOID(vfo), true
 		}
 	}
-	return core.VFO1, false
+	return model.VFO1, false
 }
 
-func (m *BandMatrix) vfoAvailable(vfo core.VFOID) bool {
+func (m *BandMatrix) vfoAvailable(vfo model.VFOID) bool {
 	switch vfo {
-	case core.VFO1:
+	case model.VFO1:
 		return true
-	case core.VFO2:
+	case model.VFO2:
 		return m.vfo2Available
 	default:
 		return false
@@ -159,7 +159,7 @@ func (m *BandMatrix) vfoAvailable(vfo core.VFOID) bool {
 }
 
 func (m *BandMatrix) emitFrame() {
-	m.view.ShowFrame(core.BandMatrixFrame{
+	m.view.ShowFrame(model.BandMatrixFrame{
 		Bands:         m.bands,
 		VFOBands:      m.vfoBands,
 		FocusedVFO:    m.focusedVFO,
@@ -169,5 +169,5 @@ func (m *BandMatrix) emitFrame() {
 
 type nullBandMatrixView struct{}
 
-func (v *nullBandMatrixView) Show()                          {}
-func (v *nullBandMatrixView) ShowFrame(core.BandMatrixFrame) {}
+func (v *nullBandMatrixView) Show()                           {}
+func (v *nullBandMatrixView) ShowFrame(model.BandMatrixFrame) {}

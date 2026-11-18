@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // text prompts to communicate with the opposite station
@@ -21,9 +21,9 @@ const (
 
 type Logbook interface {
 	NextSeriesNumber() int
-	LastCallsign() core.Callsign
-	AddQTCSeries(core.QTCSeries)
-	PrepareFor(core.Callsign, int) []core.QTC
+	LastCallsign() model.Callsign
+	AddQTCSeries(model.QTCSeries)
+	PrepareFor(model.Callsign, int) []model.QTC
 }
 
 type QTCList interface {
@@ -32,8 +32,8 @@ type QTCList interface {
 }
 
 type EntryController interface {
-	CurrentQSOState() (core.Callsign, core.QSODataState)
-	CurrentVFOState() (core.Frequency, core.Band, core.Mode)
+	CurrentQSOState() (model.Callsign, model.QSODataState)
+	CurrentVFOState() (model.Frequency, model.Band, model.Mode)
 	FocusedVFO() (string, bool)
 	Log()
 }
@@ -53,14 +53,14 @@ type InfoDialogs interface {
 
 type View interface {
 	QuestionQTCCount(max int) (int, bool)
-	ShowFieldError(core.QTCField, string)
+	ShowFieldError(model.QTCField, string)
 	ClearFieldError()
-	Show(core.QTCMode, core.QTCSeries, string)
-	UpdateQTC(int, core.QTC)
+	Show(model.QTCMode, model.QTCSeries, string)
+	UpdateQTC(int, model.QTC)
 	Close()
 	ClearDataInputs()
-	SetActivePhase(core.QTCWorkflowPhase)
-	SetActiveField(core.QTCField)
+	SetActivePhase(model.QTCWorkflowPhase)
+	SetActiveField(model.QTCField)
 	SetActiveQTC(int)
 }
 
@@ -79,7 +79,7 @@ type Controller struct {
 	workflow qtcWorkflow
 	enabled  bool
 
-	clock           core.Clock
+	clock           model.Clock
 	logbook         Logbook
 	qtcList         QTCList
 	entryController EntryController
@@ -88,16 +88,16 @@ type Controller struct {
 	infoDialogs InfoDialogs
 	view        View
 
-	activePhase core.QTCWorkflowPhase
-	activeField core.QTCField
+	activePhase model.QTCWorkflowPhase
+	activeField model.QTCField
 
-	currentMode   core.QTCMode
-	currentSeries core.QTCSeries
+	currentMode   model.QTCMode
+	currentSeries model.QTCSeries
 	currentQTC    int
-	currentInput  map[core.QTCField]string
+	currentInput  map[model.QTCField]string
 }
 
-func NewController(clock core.Clock, infoDialogs InfoDialogs, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
+func NewController(clock model.Clock, infoDialogs InfoDialogs, logbook Logbook, qtcList QTCList, entryController EntryController, keyer Keyer) *Controller {
 	return &Controller{
 		workflow:        new(nullWorkflow),
 		clock:           clock,
@@ -107,7 +107,7 @@ func NewController(clock core.Clock, infoDialogs InfoDialogs, logbook Logbook, q
 		keyer:           keyer,
 		infoDialogs:     infoDialogs,
 		view:            new(nullView),
-		currentInput:    make(map[core.QTCField]string),
+		currentInput:    make(map[model.QTCField]string),
 	}
 }
 
@@ -120,12 +120,12 @@ func (c *Controller) SetView(view View) {
 	c.qtcList.SetQTCsEnabled(c.enabled)
 }
 
-func (c *Controller) ContestChanged(contest core.Contest) {
+func (c *Controller) ContestChanged(contest model.Contest) {
 	c.enabled = contest.EnableQTCs
 	c.qtcList.SetQTCsEnabled(contest.EnableQTCs)
 }
 
-func (c *Controller) questionInvalidQSOData(call core.Callsign) bool {
+func (c *Controller) questionInvalidQSOData(call model.Callsign) bool {
 	return c.infoDialogs.ShowQuestion("The entered callsign is valid, but the QSO data is invalid. Proceed with the entered callsign of %s?", call.String())
 }
 
@@ -137,7 +137,7 @@ func (c *Controller) showErrorDialog(format string, args ...any) {
 	c.infoDialogs.ShowError(format, args...)
 }
 
-func (c *Controller) showFieldError(field core.QTCField, err error) {
+func (c *Controller) showFieldError(field model.QTCField, err error) {
 	c.view.ShowFieldError(field, err.Error())
 }
 
@@ -145,7 +145,7 @@ func (c *Controller) clearErrorMessage() {
 	c.view.ClearFieldError()
 }
 
-// OfferQTC initiates the QTC dialog with mode core.ProvideQTC.
+// OfferQTC initiates the QTC dialog with mode model.ProvideQTC.
 func (c *Controller) OfferQTC() {
 	// 1. find out their callsign
 	theirCall, ok := c.findOutTheirCallsign()
@@ -154,7 +154,7 @@ func (c *Controller) OfferQTC() {
 	}
 
 	// 2. get available QTCs
-	qtcs := c.logbook.PrepareFor(theirCall, core.MaxQTCsPerCall)
+	qtcs := c.logbook.PrepareFor(theirCall, model.MaxQTCsPerCall)
 	if len(qtcs) == 0 {
 		c.showErrorDialog("No QTCs available for %s", theirCall)
 		return
@@ -169,18 +169,18 @@ func (c *Controller) OfferQTC() {
 	qtcs = qtcs[:qtcCount]
 
 	// 4. create new QTCSeries
-	qtcSeries, err := core.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs)
+	qtcSeries, err := model.NewQTCSeries(c.logbook.NextSeriesNumber(), qtcs)
 	if err != nil {
 		c.showErrorDialog("%v", err)
 		return
 	}
 	c.workflow = &provide{Controller: c}
-	c.currentMode = core.ProvideQTC
+	c.currentMode = model.ProvideQTC
 	c.currentSeries = qtcSeries
-	c.currentQTC = core.NoQTCIndex
+	c.currentQTC = model.NoQTCIndex
 
 	// 5. enter the first phase: send "qtc"
-	c.setActivePhase(core.QTCStart)
+	c.setActivePhase(model.QTCStart)
 	c.sendQTCOffer()
 
 	// 6. show and run the QTC dialog
@@ -195,16 +195,16 @@ func (c *Controller) so2vVFOName() string {
 	return name
 }
 
-func (c *Controller) findOutTheirCallsign() (core.Callsign, bool) {
+func (c *Controller) findOutTheirCallsign() (model.Callsign, bool) {
 	theirCall, currentQSOState := c.entryController.CurrentQSOState()
 	switch currentQSOState {
-	case core.QSODataValid: // a) there is currently a valid QSO in the entry fields that is not yet logged -> log this QSO and take their callsign
+	case model.QSODataValid: // a) there is currently a valid QSO in the entry fields that is not yet logged -> log this QSO and take their callsign
 		c.entryController.Log()
-	case core.QSODataInvalid: // b) there is currently a valid callsign and some QSO data (but not valid) in the entry fields -> show info about invalid QSO data, ask if the callsign should be used -> use the callsign
+	case model.QSODataInvalid: // b) there is currently a valid callsign and some QSO data (but not valid) in the entry fields -> show info about invalid QSO data, ask if the callsign should be used -> use the callsign
 		if !c.questionInvalidQSOData(theirCall) {
-			return core.Callsign{}, false
+			return model.Callsign{}, false
 		}
-	case core.QSODataEmpty: // c) there is currently a valid callsign in the entry field, but no QSO data at all-> use this callsign
+	case model.QSODataEmpty: // c) there is currently a valid callsign in the entry field, but no QSO data at all-> use this callsign
 	default:
 		panic(fmt.Errorf("unknown QSODataState: %d", currentQSOState))
 	}
@@ -218,7 +218,7 @@ func (c *Controller) findOutTheirCallsign() (core.Callsign, bool) {
 	return theirCall, (theirCall.BaseCall != "")
 }
 
-// OfferQTC initiates the QTC dialog with mode core.ReceiveQTC.
+// OfferQTC initiates the QTC dialog with mode model.ReceiveQTC.
 func (c *Controller) RequestQTC() {
 	// find out their callsign
 	theirCall, ok := c.findOutTheirCallsign()
@@ -229,14 +229,14 @@ func (c *Controller) RequestQTC() {
 	// TODO: find out how many QTCs may be received from theirCall (is this relevant, maybe we should just take what we get)
 
 	// create a new and empty QTCSeries
-	qtcSeries := core.NewReceivingQTCSeries(theirCall)
+	qtcSeries := model.NewReceivingQTCSeries(theirCall)
 	c.workflow = &receive{Controller: c}
-	c.currentMode = core.ReceiveQTC
+	c.currentMode = model.ReceiveQTC
 	c.currentSeries = qtcSeries
-	c.currentQTC = core.NoQTCIndex
+	c.currentQTC = model.NoQTCIndex
 
 	// enter the first phase
-	c.setActivePhase(core.QTCStart)
+	c.setActivePhase(model.QTCStart)
 
 	// show and run the QTC dialog
 	c.view.Show(c.currentMode, c.currentSeries, c.so2vVFOName())
@@ -247,7 +247,7 @@ func (c *Controller) RequestQTC() {
 // *****************************************************
 
 func (c *Controller) StartAction() {
-	if c.activePhase != core.QTCStart {
+	if c.activePhase != model.QTCStart {
 		return
 	}
 
@@ -255,16 +255,16 @@ func (c *Controller) StartAction() {
 }
 
 func (c *Controller) ConfirmStart() {
-	if c.activePhase != core.QTCStart {
+	if c.activePhase != model.QTCStart {
 		return
 	}
-	c.setActivePhase(core.QTCExchangeHeader)
+	c.setActivePhase(model.QTCExchangeHeader)
 
 	c.workflow.ConfirmStart()
 }
 
 func (c *Controller) HeaderAction() {
-	if c.activePhase != core.QTCExchangeHeader {
+	if c.activePhase != model.QTCExchangeHeader {
 		return
 	}
 
@@ -272,7 +272,7 @@ func (c *Controller) HeaderAction() {
 }
 
 func (c *Controller) ConfirmHeader() {
-	if c.activePhase != core.QTCExchangeHeader {
+	if c.activePhase != model.QTCExchangeHeader {
 		return
 	}
 
@@ -280,7 +280,7 @@ func (c *Controller) ConfirmHeader() {
 }
 
 func (c *Controller) DataAction() {
-	if c.activePhase != core.QTCExchangeData {
+	if c.activePhase != model.QTCExchangeData {
 		return
 	}
 
@@ -288,54 +288,54 @@ func (c *Controller) DataAction() {
 }
 
 func (c *Controller) ConfirmData() {
-	if c.activePhase != core.QTCExchangeData {
+	if c.activePhase != model.QTCExchangeData {
 		return
 	}
 
 	c.workflow.ConfirmData()
 }
 
-func (c *Controller) currentHeader() (core.QTCHeader, error) {
-	headerStr, ok := c.currentInput[core.QTCHeaderField]
+func (c *Controller) currentHeader() (model.QTCHeader, error) {
+	headerStr, ok := c.currentInput[model.QTCHeaderField]
 	if !ok || (headerStr == "") {
-		return core.QTCHeader{}, fmt.Errorf("the header field is empty")
+		return model.QTCHeader{}, fmt.Errorf("the header field is empty")
 	}
-	return core.ParseQTCHeader(headerStr)
+	return model.ParseQTCHeader(headerStr)
 }
 
-func (c *Controller) currentQTCTimestamp() (core.QTCTime, error) {
-	qtcTimeStr, ok := c.currentInput[core.QTCTimestampField]
+func (c *Controller) currentQTCTimestamp() (model.QTCTime, error) {
+	qtcTimeStr, ok := c.currentInput[model.QTCTimestampField]
 	if !ok || (qtcTimeStr == "") {
-		return core.ZeroQTCTime, fmt.Errorf("the QTC timestamp field is empty")
+		return model.ZeroQTCTime, fmt.Errorf("the QTC timestamp field is empty")
 	}
-	return core.ParseQTCTime(qtcTimeStr, c.currentReferenceTime())
+	return model.ParseQTCTime(qtcTimeStr, c.currentReferenceTime())
 }
 
-func (c *Controller) currentReferenceTime() core.QTCTime {
+func (c *Controller) currentReferenceTime() model.QTCTime {
 	previousQTC := c.currentQTC - 1
 	if previousQTC >= len(c.currentSeries.QTCs) {
 		previousQTC = len(c.currentSeries.QTCs) - 1
 	}
 	if previousQTC < 0 {
-		return core.ZeroQTCTime
+		return model.ZeroQTCTime
 	}
 	return c.currentSeries.QTCs[previousQTC].QTCTime
 }
 
-func (c *Controller) currentQTCCallsign() (core.Callsign, error) {
-	qtcCallsignStr, ok := c.currentInput[core.QTCCallsignField]
+func (c *Controller) currentQTCCallsign() (model.Callsign, error) {
+	qtcCallsignStr, ok := c.currentInput[model.QTCCallsignField]
 	if !ok || (qtcCallsignStr == "") {
-		return core.Callsign{}, fmt.Errorf("the QTC callsign field is empty")
+		return model.Callsign{}, fmt.Errorf("the QTC callsign field is empty")
 	}
-	qtcCallsign, err := core.ParseCallsign(qtcCallsignStr)
+	qtcCallsign, err := model.ParseCallsign(qtcCallsignStr)
 	if err != nil {
-		return core.Callsign{}, err
+		return model.Callsign{}, err
 	}
 	return qtcCallsign, nil
 }
 
-func (c *Controller) currentQTCNumber() (core.QSONumber, error) {
-	qtcExchangeStr, ok := c.currentInput[core.QTCExchangeField]
+func (c *Controller) currentQTCNumber() (model.QSONumber, error) {
+	qtcExchangeStr, ok := c.currentInput[model.QTCExchangeField]
 	if !ok || (qtcExchangeStr == "") {
 		return 0, fmt.Errorf("the QTC exchange field is empty")
 	}
@@ -343,29 +343,29 @@ func (c *Controller) currentQTCNumber() (core.QSONumber, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%q is not a valid QTC exchange", qtcExchangeStr)
 	}
-	return core.QSONumber(qtcExchange), nil
+	return model.QSONumber(qtcExchange), nil
 }
 
 func (c *Controller) DoAction() {
 	switch c.activePhase {
-	case core.QTCStart:
+	case model.QTCStart:
 		c.StartAction()
-	case core.QTCExchangeHeader:
+	case model.QTCExchangeHeader:
 		c.HeaderAction()
-	case core.QTCExchangeData:
+	case model.QTCExchangeData:
 		c.DataAction()
 	}
 }
 
 func (c *Controller) DoConfirm() {
 	switch c.activePhase {
-	case core.QTCStart:
+	case model.QTCStart:
 		c.ConfirmStart()
-	case core.QTCExchangeHeader:
+	case model.QTCExchangeHeader:
 		c.ConfirmHeader()
-	case core.QTCExchangeData:
+	case model.QTCExchangeData:
 		c.ConfirmData()
-	case core.QTCFinish:
+	case model.QTCFinish:
 		c.CompleteQTCSeries()
 	}
 }
@@ -378,7 +378,7 @@ func (c *Controller) GotoNextField() {
 	c.workflow.GotoNextField()
 }
 
-func (c *Controller) SetActiveField(field core.QTCField) {
+func (c *Controller) SetActiveField(field model.QTCField) {
 	// TODO: make sure the active phase matches the field's phase
 
 	// set the active field
@@ -421,7 +421,7 @@ func (c *Controller) DoubleStop() {
 // WORKFLOW HELPER METHODS
 // *****************************************************
 
-func (c *Controller) setActivePhase(phase core.QTCWorkflowPhase) {
+func (c *Controller) setActivePhase(phase model.QTCWorkflowPhase) {
 	c.view.SetActivePhase(phase)
 	if c.activePhase == phase {
 		return
@@ -487,7 +487,7 @@ func (c *Controller) sendHeader() {
 }
 
 // sendQTC sends the given QTC.
-func (c *Controller) sendQTC(qtc core.QTC, shortenTime bool) {
+func (c *Controller) sendQTC(qtc model.QTC, shortenTime bool) {
 	time := qtc.QTCTime.String()
 	if shortenTime {
 		time = qtc.QTCTime.ShortString()
@@ -504,16 +504,16 @@ var _ View = &nullView{}
 
 type nullView struct{}
 
-func (*nullView) QuestionQTCCount(int) (int, bool)          { return 0, false }
-func (*nullView) ShowFieldError(core.QTCField, string)      {}
-func (*nullView) ClearFieldError()                          {}
-func (*nullView) Show(core.QTCMode, core.QTCSeries, string) {}
-func (*nullView) UpdateQTC(int, core.QTC)                   {}
-func (*nullView) Close()                                    {}
-func (*nullView) ClearDataInputs()                          {}
-func (*nullView) SetActivePhase(core.QTCWorkflowPhase)      {}
-func (*nullView) SetActiveField(core.QTCField)              {}
-func (*nullView) SetActiveQTC(int)                          {}
+func (*nullView) QuestionQTCCount(int) (int, bool)            { return 0, false }
+func (*nullView) ShowFieldError(model.QTCField, string)       {}
+func (*nullView) ClearFieldError()                            {}
+func (*nullView) Show(model.QTCMode, model.QTCSeries, string) {}
+func (*nullView) UpdateQTC(int, model.QTC)                    {}
+func (*nullView) Close()                                      {}
+func (*nullView) ClearDataInputs()                            {}
+func (*nullView) SetActivePhase(model.QTCWorkflowPhase)       {}
+func (*nullView) SetActiveField(model.QTCField)               {}
+func (*nullView) SetActiveQTC(int)                            {}
 
 // nullWorkflow
 
@@ -521,12 +521,12 @@ var _ qtcWorkflow = &nullWorkflow{}
 
 type nullWorkflow struct{}
 
-func (*nullWorkflow) StartAction()                         {}
-func (*nullWorkflow) ConfirmStart()                        {}
-func (*nullWorkflow) HeaderAction()                        {}
-func (*nullWorkflow) ConfirmHeader()                       {}
-func (*nullWorkflow) DataAction()                          {}
-func (*nullWorkflow) ConfirmData()                         {}
-func (*nullWorkflow) GotoNextField()                       {}
-func (*nullWorkflow) CompleteQTCSeries()                   {}
-func (*nullWorkflow) SetActivePhase(core.QTCWorkflowPhase) {}
+func (*nullWorkflow) StartAction()                          {}
+func (*nullWorkflow) ConfirmStart()                         {}
+func (*nullWorkflow) HeaderAction()                         {}
+func (*nullWorkflow) ConfirmHeader()                        {}
+func (*nullWorkflow) DataAction()                           {}
+func (*nullWorkflow) ConfirmData()                          {}
+func (*nullWorkflow) GotoNextField()                        {}
+func (*nullWorkflow) CompleteQTCSeries()                    {}
+func (*nullWorkflow) SetActivePhase(model.QTCWorkflowPhase) {}

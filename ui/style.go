@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // Named stylesheet snippets. Single source of truth for strings that used to
@@ -54,13 +54,13 @@ var (
 )
 
 // The band colors connect the score graph with the band column of the score table and the band matrix.
-var bandRGB = map[core.Band][3]int{
-	core.Band160m: {0, 150, 170},
-	core.Band80m:  {0, 102, 204},
-	core.Band40m:  {0, 136, 68},
-	core.Band20m:  {230, 115, 0},
-	core.Band15m:  {147, 51, 234},
-	core.Band10m:  {230, 30, 130},
+var bandRGB = map[model.Band][3]int{
+	model.Band160m: {0, 150, 170},
+	model.Band80m:  {0, 102, 204},
+	model.Band40m:  {0, 136, 68},
+	model.Band20m:  {230, 115, 0},
+	model.Band15m:  {147, 51, 234},
+	model.Band10m:  {230, 30, 130},
 }
 
 var (
@@ -101,7 +101,7 @@ func newQColor(rgb [3]int) *qtlib.QColor {
 	return gc(qtlib.NewQColor11(rgb[0], rgb[1], rgb[2], 255))
 }
 
-func (s *Style) BandColor(band core.Band) *qtlib.QColor {
+func (s *Style) BandColor(band model.Band) *qtlib.QColor {
 	if rgb, ok := bandRGB[band]; ok {
 		return newQColor(rgb)
 	}
@@ -113,8 +113,8 @@ func (s *Style) AxisColor() *qtlib.QColor          { return newQColor(axisRGB) }
 func (s *Style) BackgroundColor() *qtlib.QColor    { return newQColor(backgroundRGB) }
 func (s *Style) TimeIndicatorColor() *qtlib.QColor { return newQColor(timeIndicatorRGB) }
 
-func (s *Style) MarkerBrushes(kind core.BandmapMarkerKind) (background, foreground *qtlib.QBrush) {
-	if kind == core.CQMarker {
+func (s *Style) MarkerBrushes(kind model.BandmapMarkerKind) (background, foreground *qtlib.QBrush) {
+	if kind == model.CQMarker {
 		// the CQ marker inverts a normal row, therefore it is readable in every theme
 		palette := qtlib.QGuiApplication_Palette()
 		return palette.Text(), palette.Base()
@@ -129,7 +129,7 @@ func (s *Style) WorkedSpotBrush() *qtlib.QBrush {
 
 // Package-level helpers used by score graph and score table. They delegate to
 // the palette defined above so both views agree on band colors.
-func bandQColor(band core.Band) *qtlib.QColor {
+func bandQColor(band model.Band) *qtlib.QColor {
 	if rgb, ok := bandRGB[band]; ok {
 		return newQColor(rgb)
 	}

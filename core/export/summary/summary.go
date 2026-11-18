@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type View interface {
@@ -30,26 +30,26 @@ type View interface {
 
 	SetQTCsEnabled(bool)
 	SetDetailedMultis(value bool, enabled bool)
-	SetScore(core.Score)
+	SetScore(model.Score)
 
 	SetOpenAfterExport(bool)
 }
 
 type ScoreCounter interface {
-	FillSummary(*core.Summary)
+	FillSummary(*model.Summary)
 }
 
 type Result struct {
-	Summary         core.Summary
+	Summary         model.Summary
 	OpenAfterExport bool
 }
 
 type Controller struct {
 	counter  ScoreCounter
-	settings core.Settings
+	settings model.Settings
 	view     View
 
-	summary *core.Summary
+	summary *model.Summary
 
 	openAfterExport bool
 }
@@ -73,7 +73,7 @@ func (c *Controller) SetView(view View) {
 	c.view = view
 }
 
-func (c *Controller) Run(settings core.Settings) (Result, bool) {
+func (c *Controller) Run(settings model.Settings) (Result, bool) {
 	c.settings = settings
 	c.summary = c.createSummary(settings)
 
@@ -128,8 +128,8 @@ func (c *Controller) showDetailedMultis() {
 	c.view.SetDetailedMultis(c.summary.DetailedMultis, enabled)
 }
 
-func (c *Controller) createSummary(settings core.Settings) *core.Summary {
-	result := &core.Summary{
+func (c *Controller) createSummary(settings model.Settings) *model.Summary {
+	result := &model.Summary{
 		ContestName:    settings.Contest().Definition.Name,
 		CabrilloName:   string(settings.Contest().Definition.Identifier),
 		StartTime:      settings.Contest().StartTime,

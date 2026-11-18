@@ -11,7 +11,7 @@ import (
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/hl-go"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -24,7 +24,7 @@ type Client struct {
 
 	bandplan    bandplan.Bandplan
 	vfos        []hl.VFO
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 
 	listeners []any
 
@@ -44,23 +44,23 @@ type Client struct {
 	pttOffCount int
 
 	frequencyLock      sync.Mutex
-	pendingFrequency   []core.Frequency
+	pendingFrequency   []model.Frequency
 	frequencyScheduled []bool
 }
 
 type vfoState struct {
 	vfo       hl.VFO
-	frequency core.Frequency
-	band      core.Band
-	mode      core.Mode
+	frequency model.Frequency
+	band      model.Band
+	mode      model.Mode
 	txVFO     bool
 	xitActive bool
-	xitOffset core.Frequency
+	xitOffset model.Frequency
 	ritActive bool
-	ritOffset core.Frequency
+	ritOffset model.Frequency
 }
 
-func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string, asyncRunner core.AsyncRunner) *Client {
+func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string, asyncRunner model.AsyncRunner) *Client {
 	if asyncRunner == nil {
 		asyncRunner = func(f func()) { f() }
 	}
@@ -78,15 +78,15 @@ func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string, asyncRun
 		loopStopped:     make(chan struct{}),
 		currentVFO:      hl.CurrVFO,
 		singleVFO:       singleVFO,
-		lastState:       make([]vfoState, int(core.VFOCount)),
-		audioLevel:      make([]float64, int(core.VFOCount)),
+		lastState:       make([]vfoState, int(model.VFOCount)),
+		audioLevel:      make([]float64, int(model.VFOCount)),
 
-		pendingFrequency:   make([]core.Frequency, int(core.VFOCount)),
-		frequencyScheduled: make([]bool, int(core.VFOCount)),
+		pendingFrequency:   make([]model.Frequency, int(model.VFOCount)),
+		frequencyScheduled: make([]bool, int(model.VFOCount)),
 	}
 	result.client.Notify(result)
 	if singleVFO {
-		log.Printf("hamlib: using SINGLE VFO: %s", result.vfos[core.VFO1])
+		log.Printf("hamlib: using SINGLE VFO: %s", result.vfos[model.VFO1])
 	} else {
 		log.Printf("hamlib: using VFOs: %v", result.vfos)
 	}
@@ -96,8 +96,8 @@ func New(address string, bandplan bandplan.Bandplan, vfo1, vfo2 string, asyncRun
 func sanitizeVFOs(vfo1, vfo2 string) ([]hl.VFO, bool) {
 	result := []hl.VFO{sanitizeHamlibVFO(vfo1), sanitizeHamlibVFO(vfo2)}
 	singleVFO := false
-	if result[core.VFO1] == "" {
-		result[core.VFO1] = hl.CurrVFO
+	if result[model.VFO1] == "" {
+		result[model.VFO1] = hl.CurrVFO
 		singleVFO = true
 	}
 	return result, singleVFO
@@ -120,11 +120,11 @@ func sanitizeHamlibVFO(s string) hl.VFO {
 	return ""
 }
 
-func (c *Client) toVFOID(vfo hl.VFO) (core.VFOID, bool) {
+func (c *Client) toVFOID(vfo hl.VFO) (model.VFOID, bool) {
 	normalizedVFO := strings.ToLower(string(vfo))
 	for id := range c.vfos {
 		if strings.ToLower(string(c.vfos[id])) == normalizedVFO {
-			return core.VFOID(id), true
+			return model.VFOID(id), true
 		}
 	}
 	return -1, false
@@ -135,7 +135,7 @@ func (c *Client) run() {
 		defer close(c.loopStopped)
 		defer c.loopRunning.Store(false)
 		c.loopRunning.Store(true)
-		currentState := make([]vfoState, core.VFOCount)
+		currentState := make([]vfoState, model.VFOCount)
 		for {
 			currentVFO, currentState, err := c.poll(currentState)
 			if err != nil {
@@ -146,7 +146,7 @@ func (c *Client) run() {
 				c.emitCurrentVFOChanged(lastVFO, currentVFO)
 				c.updateTXVFO(currentState)
 
-				for vfo := range core.VFOCount {
+				for vfo := range model.VFOCount {
 					c.emitChangeNotifications(vfo, c.lastState[vfo], currentState[vfo])
 					c.lastState[vfo] = currentState[vfo]
 				}
@@ -197,13 +197,13 @@ func (c *Client) pollPTT(currentState []vfoState) {
 }
 
 // txVFOID returns the VFOID of the VFO currently designated for transmit.
-func (c *Client) txVFOID(state []vfoState) core.VFOID {
-	for vfo := range core.VFOCount {
+func (c *Client) txVFOID(state []vfoState) model.VFOID {
+	for vfo := range model.VFOCount {
 		if state[vfo].txVFO {
-			return core.VFOID(vfo)
+			return model.VFOID(vfo)
 		}
 	}
-	return core.VFO1
+	return model.VFO1
 }
 
 // updateTXVFO stores the TX VFO derived from the freshly polled state and emits
@@ -225,7 +225,7 @@ func (c *Client) poll(state []vfoState) (hl.VFO, []vfoState, error) {
 		if err != nil {
 			return hl.CurrVFO, state, err
 		}
-		state[core.VFO1] = vfoState
+		state[model.VFO1] = vfoState
 		return hl.CurrVFO, state, nil
 	}
 
@@ -245,7 +245,7 @@ func (c *Client) pollSingleVFO(vfo hl.VFO) (vfoState, error) {
 
 	result := vfoState{
 		vfo:       vfo,
-		frequency: core.Frequency(frequency),
+		frequency: model.Frequency(frequency),
 		band:      toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(frequency)).Name),
 		mode:      toCoreMode(mode),
 		txVFO:     true,
@@ -272,21 +272,21 @@ func (c *Client) pollDualVFO(state []vfoState) (hl.VFO, []vfoState, error) {
 		}
 		vfoState := state[vfoID]
 		vfoState.vfo = vfoInfo.VFO
-		vfoState.frequency = core.Frequency(vfoInfo.Frequency)
+		vfoState.frequency = model.Frequency(vfoInfo.Frequency)
 		vfoState.band = toCoreBand(c.bandplan.ByFrequency(hamradio.Frequency(vfoInfo.Frequency)).Name)
 		vfoState.mode = toCoreMode(vfoInfo.Mode)
 		vfoState.txVFO = vfoInfo.TXActive
 		state[vfoID] = vfoState
 	}
 
-	var currentVFOID core.VFOID
+	var currentVFOID model.VFOID
 	var currentVFOOK bool
 	currentVFO, err := c.client.GetVFO()
 	if err != nil {
 		// GetVFO is not supported on every radio, fallback to VFO1
 		// log.Printf("hamlib: get_vfo not supported, using VFO %s", c.currentVFO)
 		currentVFO = c.currentVFO
-		currentVFOID = core.VFO1
+		currentVFOID = model.VFO1
 		currentVFOOK = true
 	} else {
 		currentVFOID, currentVFOOK = c.toVFOID(currentVFO)
@@ -308,7 +308,7 @@ func (c *Client) pollVFOAdditional(vfo hl.VFO, state vfoState) vfoState {
 	return result
 }
 
-func (c *Client) pollIncrementalTuning(vfo hl.VFO, function hl.Function, getOffset func(hl.VFO) (hl.Frequency, error)) (bool, core.Frequency) {
+func (c *Client) pollIncrementalTuning(vfo hl.VFO, function hl.Function, getOffset func(hl.VFO) (hl.Frequency, error)) (bool, model.Frequency) {
 	active, err := c.client.GetFunc(vfo, function)
 	if err != nil {
 		return false, 0
@@ -320,7 +320,7 @@ func (c *Client) pollIncrementalTuning(vfo hl.VFO, function hl.Function, getOffs
 	if err != nil {
 		return false, 0
 	}
-	return true, core.Frequency(offset)
+	return true, model.Frequency(offset)
 }
 
 // doInLoop hands the given function over to the rig's command loop. It returns
@@ -381,7 +381,7 @@ func (c *Client) SingleVFO() bool {
 	return c.singleVFO
 }
 
-func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+func (c *Client) SetCurrentVFO(vfo model.VFOID) {
 	if c.singleVFO {
 		return
 	}
@@ -393,7 +393,7 @@ func (c *Client) SetCurrentVFO(vfo core.VFOID) {
 	})
 }
 
-func (c *Client) SetTXVFO(vfo core.VFOID) {
+func (c *Client) SetTXVFO(vfo model.VFOID) {
 	if c.singleVFO {
 		return
 	}
@@ -408,19 +408,19 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 
 	c.doInLoop(func() {
 		hlVFO := c.vfos[vfo]
-		enableSplit := vfo == core.VFO2
+		enableSplit := vfo == model.VFO2
 		switch c.currentVFO {
-		case c.vfos[core.VFO1]:
+		case c.vfos[model.VFO1]:
 			if enableSplit {
-				hlVFO = c.vfos[core.VFO2]
+				hlVFO = c.vfos[model.VFO2]
 			} else {
-				hlVFO = c.vfos[core.VFO1]
+				hlVFO = c.vfos[model.VFO1]
 			}
-		case c.vfos[core.VFO2]:
+		case c.vfos[model.VFO2]:
 			if enableSplit {
-				hlVFO = c.vfos[core.VFO1]
+				hlVFO = c.vfos[model.VFO1]
 			} else {
-				hlVFO = c.vfos[core.VFO2]
+				hlVFO = c.vfos[model.VFO2]
 			}
 		}
 		err := c.client.SetSplitVFO(hlVFO, enableSplit, hlVFO)
@@ -434,7 +434,7 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 // per VFO is queued at a time, and it always uses the most recent frequency. A
 // rig that cannot keep up would otherwise work off a backlog of outdated
 // frequencies long after the tuning stopped.
-func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+func (c *Client) SetFrequency(vfo model.VFOID, frequency model.Frequency) {
 	c.frequencyLock.Lock()
 	c.pendingFrequency[vfo] = frequency
 	alreadyScheduled := c.frequencyScheduled[vfo]
@@ -458,7 +458,7 @@ func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 
 // takePendingFrequency returns the most recent frequency for the given VFO and
 // allows a new frequency command to be queued.
-func (c *Client) takePendingFrequency(vfo core.VFOID) core.Frequency {
+func (c *Client) takePendingFrequency(vfo model.VFOID) model.Frequency {
 	c.frequencyLock.Lock()
 	defer c.frequencyLock.Unlock()
 
@@ -466,7 +466,7 @@ func (c *Client) takePendingFrequency(vfo core.VFOID) core.Frequency {
 	return c.pendingFrequency[vfo]
 }
 
-func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
+func (c *Client) SetBand(vfo model.VFOID, band model.Band) {
 	outgoingBand, ok := c.bandplan[toBandplanBandName(band)]
 	if !ok {
 		log.Printf("hamlib: unknown band %v", band)
@@ -484,7 +484,7 @@ func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 	})
 }
 
-func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
+func (c *Client) SetMode(vfo model.VFOID, mode model.Mode) {
 	c.doInLoop(func() {
 		err := c.client.SetMode(c.vfos[vfo], toClientMode(mode), 0)
 		if err != nil {
@@ -502,16 +502,16 @@ func (c *Client) SetBandplan(bandplan bandplan.Bandplan) {
 	})
 }
 
-func (c *Client) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (c *Client) SetIncrementalTuning(vfo model.VFOID, kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
 	function := hl.XITFunction
 	setOffset := c.client.SetXIT
-	if kind == core.RIT {
+	if kind == model.RIT {
 		function = hl.RITFunction
 		setOffset = c.client.SetRIT
 	}
 	c.doInLoop(func() {
 		lastActive, lastOffset := c.lastState[vfo].xitActive, c.lastState[vfo].xitOffset
-		if kind == core.RIT {
+		if kind == model.RIT {
 			lastActive, lastOffset = c.lastState[vfo].ritActive, c.lastState[vfo].ritOffset
 		}
 		if active == lastActive && offset == lastOffset {
@@ -538,7 +538,7 @@ func (c *Client) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTunin
 
 func (c *Client) Refresh() {
 	c.doInLoop(func() {
-		for vfo := range core.VFOCount {
+		for vfo := range model.VFOCount {
 			c.emitChangeNotifications(vfo, vfoState{}, c.lastState[vfo])
 		}
 	})
@@ -576,7 +576,7 @@ func (c *Client) Notify(listener any) {
 }
 
 func (c *Client) emitConnectionChanged(connected bool) {
-	core.Emit(c.listeners, func(listener core.ConnectionChangedListener) {
+	model.Emit(c.listeners, func(listener model.ConnectionChangedListener) {
 		listener.ConnectionChanged(connected)
 	})
 }
@@ -594,13 +594,13 @@ func (c *Client) emitCurrentVFOChanged(last, current hl.VFO) {
 	log.Printf("current vfo changed: %d = %s", vfoID, c.vfos[vfoID])
 
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.CurrentVFOListener) {
+		model.Emit(c.listeners, func(listener model.CurrentVFOListener) {
 			listener.CurrentVFOChanged(vfoID)
 		})
 	})
 }
 
-func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState) {
+func (c *Client) emitChangeNotifications(vfo model.VFOID, last, current vfoState) {
 	c.asyncRunner(func() {
 		if last.frequency != current.frequency {
 			c.emitFrequencyChanged(vfo, current.frequency)
@@ -611,97 +611,97 @@ func (c *Client) emitChangeNotifications(vfo core.VFOID, last, current vfoState)
 		if last.mode != current.mode {
 			c.emitModeChanged(vfo, current.mode)
 		}
-		c.emitIncrementalTuningChanges(vfo, core.XIT, last.xitActive, last.xitOffset, current.xitActive, current.xitOffset)
-		c.emitIncrementalTuningChanges(vfo, core.RIT, last.ritActive, last.ritOffset, current.ritActive, current.ritOffset)
+		c.emitIncrementalTuningChanges(vfo, model.XIT, last.xitActive, last.xitOffset, current.xitActive, current.xitOffset)
+		c.emitIncrementalTuningChanges(vfo, model.RIT, last.ritActive, last.ritOffset, current.ritActive, current.ritOffset)
 	})
 }
 
-func (c *Client) emitIncrementalTuningChanges(vfo core.VFOID, kind core.IncrementalTuningKind, lastActive bool, lastOffset core.Frequency, currentActive bool, currentOffset core.Frequency) {
+func (c *Client) emitIncrementalTuningChanges(vfo model.VFOID, kind model.IncrementalTuningKind, lastActive bool, lastOffset model.Frequency, currentActive bool, currentOffset model.Frequency) {
 	if (lastActive != currentActive) || (currentActive && (lastOffset != currentOffset)) {
 		c.emitIncrementalTuningChanged(vfo, kind, currentActive, currentOffset)
 	}
 }
 
-func (c *Client) emitFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
-	core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
+func (c *Client) emitFrequencyChanged(vfo model.VFOID, frequency model.Frequency) {
+	model.Emit(c.listeners, func(listener model.VFOFrequencyListener) {
 		listener.VFOFrequencyChanged(vfo, frequency)
 	})
 }
 
-func (c *Client) emitBandChanged(vfo core.VFOID, band core.Band) {
-	core.Emit(c.listeners, func(listener core.VFOBandListener) {
+func (c *Client) emitBandChanged(vfo model.VFOID, band model.Band) {
+	model.Emit(c.listeners, func(listener model.VFOBandListener) {
 		listener.VFOBandChanged(vfo, band)
 	})
 }
 
-func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
-	core.Emit(c.listeners, func(listener core.VFOModeListener) {
+func (c *Client) emitModeChanged(vfo model.VFOID, mode model.Mode) {
+	model.Emit(c.listeners, func(listener model.VFOModeListener) {
 		listener.VFOModeChanged(vfo, mode)
 	})
 }
 
-func (c *Client) emitIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
-	core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
+func (c *Client) emitIncrementalTuningChanged(vfo model.VFOID, kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
+	model.Emit(c.listeners, func(listener model.VFOIncrementalTuningListener) {
 		listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
 	})
 }
 
-func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
-	core.Emit(c.listeners, func(listener core.VFOPTTListener) {
+func (c *Client) emitPTTChanged(vfo model.VFOID, active bool) {
+	model.Emit(c.listeners, func(listener model.VFOPTTListener) {
 		listener.VFOPTTChanged(vfo, active)
 	})
 }
 
-func (c *Client) emitTXVFOChanged(vfo core.VFOID) {
+func (c *Client) emitTXVFOChanged(vfo model.VFOID) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.TXVFOListener) {
+		model.Emit(c.listeners, func(listener model.TXVFOListener) {
 			listener.TXVFOChanged(vfo)
 		})
 	})
 }
 
-func toCoreBand(bandName bandplan.BandName) core.Band {
+func toCoreBand(bandName bandplan.BandName) model.Band {
 	if bandName == bandplan.BandUnknown {
-		return core.NoBand
+		return model.NoBand
 	}
-	return core.Band(bandName)
+	return model.Band(bandName)
 }
 
-func toCoreMode(mode hl.Mode) core.Mode {
+func toCoreMode(mode hl.Mode) model.Mode {
 	switch mode {
 	case hl.ModeUSB, hl.ModeLSB:
-		return core.ModeSSB
+		return model.ModeSSB
 	case hl.ModeCW, hl.ModeCWR:
-		return core.ModeCW
+		return model.ModeCW
 	case hl.ModeRTTY, hl.ModeRTTYR:
-		return core.ModeRTTY
+		return model.ModeRTTY
 	case hl.ModeFM, hl.ModeWFM:
-		return core.ModeFM
+		return model.ModeFM
 	case hl.ModePKTLSB, hl.ModePKTUSB, hl.ModePKTFM, hl.ModeECSSLSB, hl.ModeECSSUSB, hl.ModeSAM, hl.ModeSAL, hl.ModeSAH:
-		return core.ModeDigital
+		return model.ModeDigital
 	default:
-		return core.NoMode
+		return model.NoMode
 	}
 }
 
-func toClientMode(mode core.Mode) hl.Mode {
+func toClientMode(mode model.Mode) hl.Mode {
 	switch mode {
-	case core.ModeCW:
+	case model.ModeCW:
 		return hl.ModeCW
-	case core.ModeSSB:
+	case model.ModeSSB:
 		return hl.ModeUSB // TODO make this dependent of the current frequency either LSB or USB
-	case core.ModeFM:
+	case model.ModeFM:
 		return hl.ModeFM
-	case core.ModeRTTY:
+	case model.ModeRTTY:
 		return hl.ModeRTTY
-	case core.ModeDigital:
+	case model.ModeDigital:
 		return hl.ModePKTUSB
 	default:
 		return ""
 	}
 }
 
-func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) core.Frequency {
+func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) model.Frequency {
 	log.Printf("find mode portion center: %d %s", f, mode)
 	frequency := hamradio.Frequency(f)
 	band := bp.ByFrequency(frequency)
@@ -719,29 +719,29 @@ func findModePortionCenter(bp bandplan.Bandplan, f int, mode bandplan.Mode) core
 		}
 	}
 	if currentPortion.Mode == mode {
-		return core.Frequency(currentPortion.Center())
+		return model.Frequency(currentPortion.Center())
 	}
 	if modePortion.Mode == mode {
-		return core.Frequency(modePortion.Center())
+		return model.Frequency(modePortion.Center())
 	}
-	return core.Frequency(band.Center())
+	return model.Frequency(band.Center())
 }
 
-func toBandplanMode(mode core.Mode) bandplan.Mode {
+func toBandplanMode(mode model.Mode) bandplan.Mode {
 	switch mode {
-	case core.ModeCW:
+	case model.ModeCW:
 		return bandplan.ModeCW
-	case core.ModeSSB, core.ModeFM:
+	case model.ModeSSB, model.ModeFM:
 		return bandplan.ModePhone
-	case core.ModeDigital, core.ModeRTTY:
+	case model.ModeDigital, model.ModeRTTY:
 		return bandplan.ModeDigital
 	default:
 		return bandplan.ModeDigital
 	}
 }
 
-func toBandplanBandName(band core.Band) bandplan.BandName {
-	if band == core.NoBand {
+func toBandplanBandName(band model.Band) bandplan.BandName {
+	if band == model.NoBand {
 		return bandplan.BandUnknown
 	}
 	return bandplan.BandName(band)

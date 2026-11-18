@@ -5,7 +5,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -28,9 +28,9 @@ const (
 )
 
 type BandMatrixController interface {
-	SelectBand(core.VFOID, core.Band)
-	ActivateBand(core.Band)
-	FocusVFO(core.VFOID)
+	SelectBand(model.VFOID, model.Band)
+	ActivateBand(model.Band)
+	FocusVFO(model.VFOID)
 }
 
 type bandMatrix struct {
@@ -42,7 +42,7 @@ type bandMatrix struct {
 
 	controller   BandMatrixController
 	focuser      EntryFocuser
-	currentFrame core.BandMatrixFrame
+	currentFrame model.BandMatrixFrame
 }
 
 func newBandMatrix(focuser EntryFocuser) *bandMatrix {
@@ -118,9 +118,9 @@ func (t *bandMatrix) connectCellClicks() {
 		}
 		switch index.Column() {
 		case matrixColVFO1:
-			t.controller.SelectBand(core.VFO1, band)
+			t.controller.SelectBand(model.VFO1, band)
 		case matrixColVFO2:
-			t.controller.SelectBand(core.VFO2, band)
+			t.controller.SelectBand(model.VFO2, band)
 		case matrixColSpots, matrixColPoints, matrixColMultis:
 			t.controller.ActivateBand(band)
 		default:
@@ -137,9 +137,9 @@ func (t *bandMatrix) connectHeaderClicks() {
 		}
 		switch logicalIndex {
 		case matrixColVFO1:
-			t.controller.FocusVFO(core.VFO1)
+			t.controller.FocusVFO(model.VFO1)
 		case matrixColVFO2:
-			t.controller.FocusVFO(core.VFO2)
+			t.controller.FocusVFO(model.VFO2)
 		default:
 			return
 		}
@@ -155,7 +155,7 @@ func (t *bandMatrix) returnFocus() {
 	t.focuser.GotoEntryFields()
 }
 
-func (t *bandMatrix) ShowFrame(frame core.BandMatrixFrame) {
+func (t *bandMatrix) ShowFrame(frame model.BandMatrixFrame) {
 	t.currentFrame = frame
 	t.widget.SetColumnHidden(matrixColVFO2, !frame.VFO2Available)
 
@@ -167,11 +167,11 @@ func (t *bandMatrix) ShowFrame(frame core.BandMatrixFrame) {
 	t.header.Viewport().Update()
 }
 
-func (t *bandMatrix) appendRow(summary core.BandSummary, frame core.BandMatrixFrame) {
+func (t *bandMatrix) appendRow(summary model.BandSummary, frame model.BandMatrixFrame) {
 	cells := make([]*qtlib.QStandardItem, matrixColCount)
 	cells[matrixColBand] = qtlib.NewQStandardItem2(string(summary.Band))
-	cells[matrixColVFO1] = qtlib.NewQStandardItem2(markerFor(summary.Band, frame.VFOBands[core.VFO1]))
-	cells[matrixColVFO2] = qtlib.NewQStandardItem2(markerFor(summary.Band, frame.VFOBands[core.VFO2]))
+	cells[matrixColVFO1] = qtlib.NewQStandardItem2(markerFor(summary.Band, frame.VFOBands[model.VFO1]))
+	cells[matrixColVFO2] = qtlib.NewQStandardItem2(markerFor(summary.Band, frame.VFOBands[model.VFO2]))
 	cells[matrixColSpots] = qtlib.NewQStandardItem2(fmt.Sprintf("%d", summary.SpotCount))
 	cells[matrixColPoints] = qtlib.NewQStandardItem2(fmt.Sprintf("%d", summary.Points))
 	cells[matrixColMultis] = qtlib.NewQStandardItem2(fmt.Sprintf("%d", summary.Multis()))
@@ -198,22 +198,22 @@ func (t *bandMatrix) appendRow(summary core.BandSummary, frame core.BandMatrixFr
 	}
 }
 
-func (t *bandMatrix) bandOfRow(row int) (core.Band, bool) {
+func (t *bandMatrix) bandOfRow(row int) (model.Band, bool) {
 	if row < 0 || row >= len(t.currentFrame.Bands) {
-		return core.NoBand, false
+		return model.NoBand, false
 	}
 	return t.currentFrame.Bands[row].Band, true
 }
 
-func (t *bandMatrix) columnOfVFO(vfo core.VFOID) int {
-	if vfo == core.VFO2 {
+func (t *bandMatrix) columnOfVFO(vfo model.VFOID) int {
+	if vfo == model.VFO2 {
 		return matrixColVFO2
 	}
 	return matrixColVFO1
 }
 
-func markerFor(band, vfoBand core.Band) string {
-	if band != core.NoBand && band == vfoBand {
+func markerFor(band, vfoBand model.Band) string {
+	if band != model.NoBand && band == vfoBand {
 		return vfoMarker
 	}
 	return ""

@@ -3,14 +3,14 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type SpotFilterController interface {
-	SetFilterBand(core.SpotFilterBand)
-	SetFilterMode(core.SpotFilterMode)
-	SetFilterValue(core.SpotFilterValue)
-	SetFilterSort(core.SpotSortColumn, bool)
+	SetFilterBand(model.SpotFilterBand)
+	SetFilterMode(model.SpotFilterMode)
+	SetFilterValue(model.SpotFilterValue)
+	SetFilterSort(model.SpotSortColumn, bool)
 	SetFilterFolded(bool)
 }
 
@@ -26,10 +26,10 @@ type spotFilterArea struct {
 	sortCombo  *qtlib.QComboBox
 	direction  *qtlib.QToolButton
 
-	bandItems  []core.SpotFilterBand
-	modeItems  []core.SpotFilterMode
-	valueItems []core.SpotFilterValue
-	sortItems  []core.SpotSortColumn
+	bandItems  []model.SpotFilterBand
+	modeItems  []model.SpotFilterMode
+	valueItems []model.SpotFilterValue
+	sortItems  []model.SpotSortColumn
 
 	controller SpotFilterController
 	focuser    EntryFocuser
@@ -177,7 +177,7 @@ func (a *spotFilterArea) Widget() *qtlib.QWidget {
 	return a.widget
 }
 
-func (a *spotFilterArea) ShowFrame(frame core.SpotFilterFrame) {
+func (a *spotFilterArea) ShowFrame(frame model.SpotFilterFrame) {
 	a.updating = true
 	defer func() { a.updating = false }()
 
@@ -222,23 +222,23 @@ func (a *spotFilterArea) applyDirection(descending bool) {
 	}
 }
 
-func (a *spotFilterArea) currentSortColumn() core.SpotSortColumn {
+func (a *spotFilterArea) currentSortColumn() model.SpotSortColumn {
 	index := a.sortCombo.CurrentIndex()
 	if index < 0 || index >= len(a.sortItems) {
-		return core.SortSpotsByFrequency
+		return model.SortSpotsByFrequency
 	}
 	return a.sortItems[index]
 }
 
-func (a *spotFilterArea) fillBands(bands []core.Band) {
-	items := make([]core.SpotFilterBand, 0, len(bands)+5)
+func (a *spotFilterArea) fillBands(bands []model.Band) {
+	items := make([]model.SpotFilterBand, 0, len(bands)+5)
 	labels := make([]string, 0, len(bands)+5)
 	for _, kind := range specialSpotFilterKinds {
-		items = append(items, core.SpotFilterBand{Kind: kind})
+		items = append(items, model.SpotFilterBand{Kind: kind})
 		labels = append(labels, spotFilterKindLabel(kind))
 	}
 	for _, band := range bands {
-		items = append(items, core.FixedSpotFilterBand(band))
+		items = append(items, model.FixedSpotFilterBand(band))
 		labels = append(labels, string(band))
 	}
 	if len(items) == len(a.bandItems) {
@@ -249,15 +249,15 @@ func (a *spotFilterArea) fillBands(bands []core.Band) {
 	a.bandCombo.AddItems(labels)
 }
 
-func (a *spotFilterArea) fillModes(modes []core.Mode) {
-	items := make([]core.SpotFilterMode, 0, len(modes)+5)
+func (a *spotFilterArea) fillModes(modes []model.Mode) {
+	items := make([]model.SpotFilterMode, 0, len(modes)+5)
 	labels := make([]string, 0, len(modes)+5)
 	for _, kind := range specialSpotFilterKinds {
-		items = append(items, core.SpotFilterMode{Kind: kind})
+		items = append(items, model.SpotFilterMode{Kind: kind})
 		labels = append(labels, spotFilterKindLabel(kind))
 	}
 	for _, mode := range modes {
-		items = append(items, core.FixedSpotFilterMode(mode))
+		items = append(items, model.FixedSpotFilterMode(mode))
 		labels = append(labels, string(mode))
 	}
 	if len(items) == len(a.modeItems) {
@@ -269,12 +269,12 @@ func (a *spotFilterArea) fillModes(modes []core.Mode) {
 }
 
 func (a *spotFilterArea) fillValues() {
-	if len(a.valueItems) == len(core.SpotFilterValues) {
+	if len(a.valueItems) == len(model.SpotFilterValues) {
 		return
 	}
-	a.valueItems = core.SpotFilterValues
-	labels := make([]string, 0, len(core.SpotFilterValues))
-	for _, value := range core.SpotFilterValues {
+	a.valueItems = model.SpotFilterValues
+	labels := make([]string, 0, len(model.SpotFilterValues))
+	for _, value := range model.SpotFilterValues {
 		labels = append(labels, value.Label())
 	}
 	a.valueCombo.Clear()
@@ -282,42 +282,42 @@ func (a *spotFilterArea) fillValues() {
 }
 
 func (a *spotFilterArea) fillSortColumns() {
-	if len(a.sortItems) == len(core.SpotSortColumns) {
+	if len(a.sortItems) == len(model.SpotSortColumns) {
 		return
 	}
-	a.sortItems = core.SpotSortColumns
-	labels := make([]string, 0, len(core.SpotSortColumns))
-	for _, column := range core.SpotSortColumns {
+	a.sortItems = model.SpotSortColumns
+	labels := make([]string, 0, len(model.SpotSortColumns))
+	for _, column := range model.SpotSortColumns {
 		labels = append(labels, column.Label())
 	}
 	a.sortCombo.Clear()
 	a.sortCombo.AddItems(labels)
 }
 
-var specialSpotFilterKinds = []core.SpotFilterKind{
-	core.SpotFilterAll,
-	core.SpotFilterVFO1,
-	core.SpotFilterVFO2,
-	core.SpotFilterFocused,
-	core.SpotFilterContest,
+var specialSpotFilterKinds = []model.SpotFilterKind{
+	model.SpotFilterAll,
+	model.SpotFilterVFO1,
+	model.SpotFilterVFO2,
+	model.SpotFilterFocused,
+	model.SpotFilterContest,
 }
 
-func spotFilterKindLabel(kind core.SpotFilterKind) string {
+func spotFilterKindLabel(kind model.SpotFilterKind) string {
 	switch kind {
-	case core.SpotFilterVFO1:
+	case model.SpotFilterVFO1:
 		return "VFO1"
-	case core.SpotFilterVFO2:
+	case model.SpotFilterVFO2:
 		return "VFO2"
-	case core.SpotFilterFocused:
+	case model.SpotFilterFocused:
 		return "Focused"
-	case core.SpotFilterContest:
+	case model.SpotFilterContest:
 		return "Contest"
 	default:
 		return "All"
 	}
 }
 
-func indexOfBand(items []core.SpotFilterBand, band core.SpotFilterBand) int {
+func indexOfBand(items []model.SpotFilterBand, band model.SpotFilterBand) int {
 	for i, item := range items {
 		if item == band {
 			return i
@@ -326,7 +326,7 @@ func indexOfBand(items []core.SpotFilterBand, band core.SpotFilterBand) int {
 	return 0
 }
 
-func indexOfMode(items []core.SpotFilterMode, mode core.SpotFilterMode) int {
+func indexOfMode(items []model.SpotFilterMode, mode model.SpotFilterMode) int {
 	for i, item := range items {
 		if item == mode {
 			return i
@@ -335,7 +335,7 @@ func indexOfMode(items []core.SpotFilterMode, mode core.SpotFilterMode) int {
 	return 0
 }
 
-func indexOfValue(items []core.SpotFilterValue, value core.SpotFilterValue) int {
+func indexOfValue(items []model.SpotFilterValue, value model.SpotFilterValue) int {
 	for i, item := range items {
 		if item == value {
 			return i
@@ -344,7 +344,7 @@ func indexOfValue(items []core.SpotFilterValue, value core.SpotFilterValue) int 
 	return 0
 }
 
-func indexOfSortColumn(items []core.SpotSortColumn, column core.SpotSortColumn) int {
+func indexOfSortColumn(items []model.SpotSortColumn, column model.SpotSortColumn) int {
 	for i, item := range items {
 		if item == column {
 			return i

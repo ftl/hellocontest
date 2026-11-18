@@ -3,8 +3,8 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/keyer"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var _ keyer.SettingsView = (*keyerSettingsDialog)(nil)
@@ -74,14 +74,14 @@ func (d *keyerSettingsDialog) ClearMessage() {
 	d.view.ClearMessage()
 }
 
-func (d *keyerSettingsDialog) SetLabel(workmode core.Workmode, index int, text string) {
+func (d *keyerSettingsDialog) SetLabel(workmode model.Workmode, index int, text string) {
 	if d.view == nil {
 		return
 	}
 	d.view.SetLabel(workmode, index, text)
 }
 
-func (d *keyerSettingsDialog) SetMacro(workmode core.Workmode, index int, text string) {
+func (d *keyerSettingsDialog) SetMacro(workmode model.Workmode, index int, text string) {
 	if d.view == nil {
 		return
 	}

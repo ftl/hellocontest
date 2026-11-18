@@ -7,7 +7,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -26,8 +26,8 @@ const (
 type scoreGraph struct {
 	widget *qtlib.QWidget
 
-	clock          core.Clock
-	graphs         []core.BandGraph
+	clock          model.Clock
+	graphs         []model.BandGraph
 	maxPoints      int
 	maxMultis      int
 	pointsGoal     int
@@ -37,7 +37,7 @@ type scoreGraph struct {
 	timeFrameIndex int
 }
 
-func newScoreGraph(clock core.Clock) *scoreGraph {
+func newScoreGraph(clock model.Clock) *scoreGraph {
 	g := &scoreGraph{
 		clock:      clock,
 		pointsGoal: scoreGraphDefaultGoal,
@@ -55,7 +55,7 @@ func newScoreGraph(clock core.Clock) *scoreGraph {
 	return g
 }
 
-func (g *scoreGraph) SetGraphs(graphs []core.BandGraph) {
+func (g *scoreGraph) SetGraphs(graphs []model.BandGraph) {
 	g.graphs = graphs
 	g.maxPoints = 0
 	g.maxMultis = 0
@@ -336,7 +336,7 @@ func (g *scoreGraph) drawLowZone(painter *qtlib.QPainter, layout graphLayout, lo
 	g.drawYLegendAt(painter, layout, layout.zeroY+layout.multisLowZoneHeight, fmt.Sprintf("%dM", g.multisGoal), fgRGB)
 }
 
-func (g *scoreGraph) drawBand(painter *qtlib.QPainter, layout graphLayout, graph core.BandGraph) {
+func (g *scoreGraph) drawBand(painter *qtlib.QPainter, layout graphLayout, graph model.BandGraph) {
 	datapoints := graph.DataPoints
 	valueCount := len(datapoints)
 	if valueCount == 0 {

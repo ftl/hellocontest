@@ -14,15 +14,15 @@ import (
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/hamradio/dxcc"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/network"
 )
 
 const traceClusterix = false
 
 type Bandmap interface {
-	Add(core.Spot)
-	Remove(core.Spot)
+	Add(model.Spot)
+	Remove(model.Spot)
 }
 
 type DXCCFinder interface {
@@ -41,16 +41,16 @@ type Clusters struct {
 	entities DXCCFinder
 
 	view          View
-	asyncRunner   core.AsyncRunner
+	asyncRunner   model.AsyncRunner
 	ignoreUpdates bool
 
 	valid       bool
-	myCallsign  core.Callsign
+	myCallsign  model.Callsign
 	myCountry   string
 	myContinent string
 }
 
-func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, entities DXCCFinder, clock core.Clock, spotLifetime time.Duration, asyncRunner core.AsyncRunner) *Clusters {
+func NewClusters(sources []model.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, entities DXCCFinder, clock model.Clock, spotLifetime time.Duration, asyncRunner model.AsyncRunner) *Clusters {
 	if asyncRunner == nil {
 		asyncRunner = func(f func()) { f() }
 	}
@@ -67,7 +67,7 @@ func NewClusters(sources []core.SpotSource, bandmap Bandmap, bandplan bandplan.B
 		switch {
 		case isDemoSource(spotSource.Name):
 			cluster = newDemoCluster(result, spotSource, bandmap, bandplan, clock)
-		case spotSource.Protocol == core.SDRainerProtocol:
+		case spotSource.Protocol == model.SDRainerProtocol:
 			cluster = newSDRainerCluster(result, spotSource, bandmap, bandplan, clock, spotLifetime)
 		default:
 			cluster = newClusterixCluster(result, spotSource, bandmap, bandplan, clock)
@@ -105,7 +105,7 @@ func (c *Clusters) Valid() bool {
 	return c.valid
 }
 
-func (c *Clusters) StationChanged(station core.Station) {
+func (c *Clusters) StationChanged(station model.Station) {
 	c.myCallsign = station.Callsign
 	entity, ok := c.entities.Find(c.myCallsign.String())
 	if !ok {
@@ -213,10 +213,10 @@ type openClusterFunc func(host *net.TCPAddr, username string, password string, t
 
 type cluster struct {
 	parent   *Clusters
-	source   core.SpotSource
+	source   model.SpotSource
 	bandmap  Bandmap
 	bandplan bandplan.Bandplan
-	clock    core.Clock
+	clock    model.Clock
 
 	client          clusterClient
 	clientMutex     *sync.RWMutex
@@ -228,7 +228,7 @@ type cluster struct {
 	retryInterval time.Duration
 }
 
-func newCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock, openCluster openClusterFunc) *cluster {
+func newCluster(parent *Clusters, source model.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock model.Clock, openCluster openClusterFunc) *cluster {
 	return &cluster{
 		parent:   parent,
 		source:   source,
@@ -374,9 +374,9 @@ func (c *cluster) DX(msg clusterix.DXMessage) {
 		return
 	}
 
-	spot := core.Spot{
+	spot := model.Spot{
 		Call:      msg.Call,
-		Frequency: core.Frequency(msg.Frequency),
+		Frequency: model.Frequency(msg.Frequency),
 		Band:      toCoreBand(c.parent.bandplan.ByFrequency(hamradio.Frequency(msg.Frequency)).Name),
 		Mode:      c.inferCoreMode(msg),
 		Time:      msg.Time,
@@ -396,11 +396,11 @@ func (c *cluster) isSpotterRelevant(spotter string) bool {
 	}
 
 	switch c.source.Filter {
-	case core.AllSpots:
+	case model.AllSpots:
 		return true
-	case core.OwnContinentSpotsOnly:
+	case model.OwnContinentSpotsOnly:
 		return spotterContinent == c.parent.myContinent
-	case core.OwnCountrySpotsOnly:
+	case model.OwnCountrySpotsOnly:
 		return spotterCountry == c.parent.myCountry
 	default:
 		return false
@@ -415,7 +415,7 @@ func (c *cluster) findSpotterRegion(spotter string) (string, string, bool) {
 	} else {
 		spotterCallString = spotter[:dashIndex]
 	}
-	spotterCall, err := core.ParseCallsign(spotterCallString)
+	spotterCall, err := model.ParseCallsign(spotterCallString)
 	if err != nil {
 		return "", "", false
 	}
@@ -443,51 +443,51 @@ func parseSNR(text string) float64 {
 	return result
 }
 
-func (c *cluster) inferCoreMode(msg clusterix.DXMessage) core.Mode {
+func (c *cluster) inferCoreMode(msg clusterix.DXMessage) model.Mode {
 	text := strings.ToLower(strings.TrimSpace(msg.Text))
 	switch {
 	case strings.Contains(text, "cw"):
-		return core.ModeCW
+		return model.ModeCW
 	case strings.Contains(text, "rtty"):
-		return core.ModeRTTY
+		return model.ModeRTTY
 	case strings.Contains(text, "psk"):
-		return core.ModeDigital
+		return model.ModeDigital
 	case strings.Contains(text, "ft8"):
-		return core.ModeDigital
+		return model.ModeDigital
 	case strings.Contains(text, "ft4"):
-		return core.ModeDigital
+		return model.ModeDigital
 	case strings.Contains(text, "jt9"):
-		return core.ModeDigital
+		return model.ModeDigital
 	case strings.Contains(text, "jt65"):
-		return core.ModeDigital
+		return model.ModeDigital
 	default:
-		return c.modeFromFrequency(core.Frequency(msg.Frequency))
+		return c.modeFromFrequency(model.Frequency(msg.Frequency))
 	}
 }
 
-func (c *cluster) modeFromFrequency(f core.Frequency) core.Mode {
+func (c *cluster) modeFromFrequency(f model.Frequency) model.Mode {
 	frequency := hamradio.Frequency(f)
 	band := c.bandplan.ByFrequency(frequency)
 	if band.Name == bandplan.BandUnknown {
-		return core.NoMode
+		return model.NoMode
 	}
 
 	for _, portion := range band.Portions {
 		if portion.Contains(frequency) {
-			return core.Mode(portion.Mode)
+			return model.Mode(portion.Mode)
 		}
 	}
-	return core.NoMode
+	return model.NoMode
 }
 
-func toCoreBand(bandName bandplan.BandName) core.Band {
+func toCoreBand(bandName bandplan.BandName) model.Band {
 	if bandName == bandplan.BandUnknown {
-		return core.NoBand
+		return model.NoBand
 	}
-	return core.Band(bandName)
+	return model.Band(bandName)
 }
 
-func newClusterixCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock) *cluster {
+func newClusterixCluster(parent *Clusters, source model.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock model.Clock) *cluster {
 	return newCluster(parent, source, bandmap, bandplan, clock, openClusterix)
 }
 
@@ -495,51 +495,51 @@ func openClusterix(host *net.TCPAddr, username string, password string, trace bo
 	return clusterix.Open(host, username, password, trace)
 }
 
-func newDemoCluster(parent *Clusters, source core.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock core.Clock) *cluster {
+func newDemoCluster(parent *Clusters, source model.SpotSource, bandmap Bandmap, bandplan bandplan.Bandplan, clock model.Clock) *cluster {
 	return newCluster(parent, source, bandmap, bandplan, clock, openDemoCluster(bandmap, clock))
 }
 
-func openDemoCluster(bandmap Bandmap, clock core.Clock) openClusterFunc {
+func openDemoCluster(bandmap Bandmap, clock model.Clock) openClusterFunc {
 	return func(host *net.TCPAddr, username string, password string, trace bool) (clusterClient, error) {
 		result := &demoCluster{
 			clock:     clock,
 			connected: true,
 			bandmap:   bandmap,
-			spots: []core.Spot{
+			spots: []model.Spot{
 				{
-					Call:      core.MustParseCallsign("W1WA"),
+					Call:      model.MustParseCallsign("W1WA"),
 					Frequency: 7012000,
-					Band:      core.Band40m,
-					Mode:      core.ModeCW,
-					Source:    core.ClusterSpot,
+					Band:      model.Band40m,
+					Mode:      model.ModeCW,
+					Source:    model.ClusterSpot,
 				},
 				{
-					Call:      core.MustParseCallsign("DA0BCC"),
+					Call:      model.MustParseCallsign("DA0BCC"),
 					Frequency: 7013700,
-					Band:      core.Band40m,
-					Mode:      core.ModeCW,
-					Source:    core.RBNSpot,
+					Band:      model.Band40m,
+					Mode:      model.ModeCW,
+					Source:    model.RBNSpot,
 				},
 				{
-					Call:      core.MustParseCallsign("DA0HQ"),
+					Call:      model.MustParseCallsign("DA0HQ"),
 					Frequency: 7012300,
-					Band:      core.Band40m,
-					Mode:      core.ModeCW,
-					Source:    core.SkimmerSpot,
+					Band:      model.Band40m,
+					Mode:      model.ModeCW,
+					Source:    model.SkimmerSpot,
 				},
 				{
-					Call:      core.MustParseCallsign("G0ABC"),
+					Call:      model.MustParseCallsign("G0ABC"),
 					Frequency: 7015000,
-					Band:      core.Band40m,
-					Mode:      core.ModeCW,
-					Source:    core.ManualSpot,
+					Band:      model.Band40m,
+					Mode:      model.ModeCW,
+					Source:    model.ManualSpot,
 				},
 				{
-					Call:      core.MustParseCallsign("PA0ABC"),
+					Call:      model.MustParseCallsign("PA0ABC"),
 					Frequency: 7019000,
-					Band:      core.Band40m,
-					Mode:      core.ModeCW,
-					Source:    core.WorkedSpot,
+					Band:      model.Band40m,
+					Mode:      model.ModeCW,
+					Source:    model.WorkedSpot,
 				},
 			},
 		}
@@ -548,11 +548,11 @@ func openDemoCluster(bandmap Bandmap, clock core.Clock) openClusterFunc {
 }
 
 type demoCluster struct {
-	clock     core.Clock
+	clock     model.Clock
 	listeners []any
 	connected bool
 	bandmap   Bandmap
-	spots     []core.Spot
+	spots     []model.Spot
 }
 
 func (c *demoCluster) emitConnected() {

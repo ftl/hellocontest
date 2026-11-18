@@ -3,7 +3,7 @@ package logbook
 import (
 	"log"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type QTCView interface {
@@ -12,7 +12,7 @@ type QTCView interface {
 
 type QTCList struct {
 	enabled bool
-	qtcs    []core.QTC
+	qtcs    []model.QTC
 
 	listeners []any
 	view      QTCView
@@ -20,7 +20,7 @@ type QTCList struct {
 
 func NewQTCList() *QTCList {
 	return &QTCList{
-		qtcs: make([]core.QTC, 0),
+		qtcs: make([]model.QTC, 0),
 		view: new(nullQTCView),
 	}
 }
@@ -56,7 +56,7 @@ func (l *QTCList) emitQTCsCleared() {
 	}
 }
 
-func (l *QTCList) emitQTCAdded(qtc core.QTC) {
+func (l *QTCList) emitQTCAdded(qtc model.QTC) {
 	for _, lis := range l.listeners {
 		if listener, ok := lis.(QTCAddedListener); ok {
 			listener.QTCAdded(qtc)
@@ -64,7 +64,7 @@ func (l *QTCList) emitQTCAdded(qtc core.QTC) {
 	}
 }
 
-func (l *QTCList) emitQTCSelected(qtc core.QTC) {
+func (l *QTCList) emitQTCSelected(qtc model.QTC) {
 	for _, listener := range l.listeners {
 		if qsoSelectedListener, ok := listener.(QTCSelectedListener); ok {
 			qsoSelectedListener.QTCSelected(qtc)
@@ -90,11 +90,11 @@ func (l *QTCList) QTCsEnabled() bool {
 }
 
 func (l *QTCList) LogbookCleared() {
-	l.qtcs = make([]core.QTC, 0)
+	l.qtcs = make([]model.QTC, 0)
 	l.emitQTCsCleared()
 }
 
-func (l *QTCList) QTCAdded(qtc core.QTC) {
+func (l *QTCList) QTCAdded(qtc model.QTC) {
 	l.qtcs = append(l.qtcs, qtc)
 	l.emitQTCAdded(qtc)
 }

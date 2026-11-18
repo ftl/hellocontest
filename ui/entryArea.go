@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	qtlib "github.com/mappu/miqt/qt6"
 )
 
@@ -16,18 +16,18 @@ type entryArea struct {
 	myDataLayout    *qtlib.QHBoxLayout
 	myDataLabel     *qtlib.QLabel
 
-	vfoArea map[core.VFOID]*vfoArea
+	vfoArea map[model.VFOID]*vfoArea
 
 	vfo2Enabled bool
-	activeVFO   core.VFOID
-	txVFO       core.VFOID
+	activeVFO   model.VFOID
+	txVFO       model.VFOID
 }
 
 func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	result := &entryArea{
 		entry:    entry,
 		callinfo: callinfo,
-		vfoArea:  make(map[core.VFOID]*vfoArea, 2),
+		vfoArea:  make(map[model.VFOID]*vfoArea, 2),
 	}
 
 	entryFrame := qtlib.NewQFrame2()
@@ -54,14 +54,14 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	result.myDataLayout.AddWidget(result.myDataLabel.QWidget)
 	result.myDataLayout.AddStretch()
 
-	result.vfoArea[core.VFO1] = result.newVFOArea(core.VFO1, "vfo1")
-	result.vfoArea[core.VFO2] = result.newVFOArea(core.VFO2, "vfo2")
+	result.vfoArea[model.VFO1] = result.newVFOArea(model.VFO1, "vfo1")
+	result.vfoArea[model.VFO2] = result.newVFOArea(model.VFO2, "vfo2")
 
 	rootLayout.AddWidget(result.myDataContainer)
-	rootLayout.AddWidget(result.vfoArea[core.VFO1].root)
-	rootLayout.AddWidget(result.vfoArea[core.VFO2].root)
+	rootLayout.AddWidget(result.vfoArea[model.VFO1].root)
+	rootLayout.AddWidget(result.vfoArea[model.VFO2].root)
 
-	result.vfoArea[core.VFO2].setEnabled(false)
+	result.vfoArea[model.VFO2].setEnabled(false)
 	result.applyActiveVFOStyle()
 	result.applyTXIndicatorVisibility()
 
@@ -71,11 +71,11 @@ func newEntryArea(entry *entryView, callinfo *callinfoView) *entryArea {
 	return result
 }
 
-func (a *entryArea) newVFOArea(vfo core.VFOID, widgetPrefix string) *vfoArea {
+func (a *entryArea) newVFOArea(vfo model.VFOID, widgetPrefix string) *vfoArea {
 	return newVFOArea(vfo, widgetPrefix, &a.entry.vfo[vfo], &a.callinfo.vfo[vfo])
 }
 
-func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, showSerialExchangeIndicator bool) {
+func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []model.ExchangeField, showSerialExchangeIndicator bool) {
 	a.removeWidgetsFromLayout()
 
 	a.entry.SetExchangeFields(myExchangeFields, theirExchangeFields)
@@ -89,7 +89,7 @@ func (a *entryArea) SetExchangeFields(myExchangeFields, theirExchangeFields []co
 	a.addWidgetsToLayout()
 }
 
-func (a *entryArea) setupMyExchangeFields(fields []core.ExchangeField) {
+func (a *entryArea) setupMyExchangeFields(fields []model.ExchangeField) {
 	for i, field := range fields {
 		if i >= len(a.entry.myExchangeFields) {
 			break
@@ -106,12 +106,12 @@ func (a *entryArea) setVFO2Enabled(enabled bool) {
 	}
 	a.vfo2Enabled = enabled
 
-	a.vfoArea[core.VFO2].setEnabled(enabled)
+	a.vfoArea[model.VFO2].setEnabled(enabled)
 	a.applyActiveVFOStyle()
 	a.applyTXIndicatorVisibility()
 }
 
-func (a *entryArea) setActiveVFO(vfo core.VFOID) {
+func (a *entryArea) setActiveVFO(vfo model.VFOID) {
 	a.activeVFO = vfo
 	a.applyActiveVFOStyle()
 }
@@ -122,7 +122,7 @@ func (a *entryArea) applyActiveVFOStyle() {
 	}
 }
 
-func (a *entryArea) setTXVFO(vfo core.VFOID) {
+func (a *entryArea) setTXVFO(vfo model.VFOID) {
 	a.txVFO = vfo
 	a.applyTXIndicatorVisibility()
 }
@@ -133,27 +133,27 @@ func (a *entryArea) applyTXIndicatorVisibility() {
 	}
 }
 
-func (a *entryArea) setTXState(vfo core.VFOID, ptt bool, parrotActive bool) {
+func (a *entryArea) setTXState(vfo model.VFOID, ptt bool, parrotActive bool) {
 	a.vfoArea[vfo].setTXState(ptt, parrotActive)
 }
 
-func (a *entryArea) setIncrementalTuningVisible(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+func (a *entryArea) setIncrementalTuningVisible(vfo model.VFOID, kind model.IncrementalTuningKind, visible bool) {
 	a.vfoArea[vfo].setIncrementalTuningVisible(kind, visible)
 }
 
-func (a *entryArea) setDuplicateMarker(vfo core.VFOID, duplicate bool) {
+func (a *entryArea) setDuplicateMarker(vfo model.VFOID, duplicate bool) {
 	a.vfoArea[vfo].setDuplicateMarker(duplicate)
 }
 
-func (a *entryArea) setEditingMarker(vfo core.VFOID, editing bool) {
+func (a *entryArea) setEditingMarker(vfo model.VFOID, editing bool) {
 	a.vfoArea[vfo].setEditingMarker(editing)
 }
 
-func (a *entryArea) setMessageVisible(vfo core.VFOID, visible bool) {
+func (a *entryArea) setMessageVisible(vfo model.VFOID, visible bool) {
 	a.vfoArea[vfo].setMessageVisible(visible)
 }
 
-func (a *entryArea) setSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
+func (a *entryArea) setSerialClaim(vfo model.VFOID, serial model.QSONumber, committed bool) {
 	a.callinfo.SetSerialClaim(vfo, serial, committed)
 }
 
@@ -161,14 +161,14 @@ func (a *entryArea) addWidgetsToLayout() {
 	for i := range a.entry.myExchangeFields {
 		a.myDataLayout.InsertWidget(i+1, a.entry.myExchangeFields[i].QWidget)
 	}
-	a.vfoArea[core.VFO1].addWidgetsToLayout()
-	a.vfoArea[core.VFO2].addWidgetsToLayout()
+	a.vfoArea[model.VFO1].addWidgetsToLayout()
+	a.vfoArea[model.VFO2].addWidgetsToLayout()
 }
 
 func (a *entryArea) removeWidgetsFromLayout() {
 	for i := range a.entry.myExchangeFields {
 		a.myDataLayout.RemoveWidget(a.entry.myExchangeFields[i].QWidget)
 	}
-	a.vfoArea[core.VFO1].removeWidgetsFromLayout()
-	a.vfoArea[core.VFO2].removeWidgetsFromLayout()
+	a.vfoArea[model.VFO1].removeWidgetsFromLayout()
+	a.vfoArea[model.VFO2].removeWidgetsFromLayout()
 }

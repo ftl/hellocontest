@@ -5,7 +5,7 @@ import (
 
 	"github.com/ftl/hamradio/locator"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type Collector struct {
@@ -19,11 +19,11 @@ type Collector struct {
 	dataLock *sync.RWMutex
 
 	myLocator                locator.Locator
-	theirExchangeFields      []core.ExchangeField
-	theirReportExchangeField core.ExchangeField
-	theirNumberExchangeField core.ExchangeField
+	theirExchangeFields      []model.ExchangeField
+	theirReportExchangeField model.ExchangeField
+	theirNumberExchangeField model.ExchangeField
 
-	totalScore core.BandScore
+	totalScore model.BandScore
 }
 
 func NewCollector(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistoryFinder,
@@ -37,7 +37,7 @@ func NewCollector(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistory
 		valuer:      valuer,
 		qtcProvider: qtcProvider,
 		dataLock:    &sync.RWMutex{},
-		totalScore:  core.BandScore{Points: 1, Multis: 1},
+		totalScore:  model.BandScore{Points: 1, Multis: 1},
 	}
 }
 
@@ -48,7 +48,7 @@ func (c *Collector) SetMyLocator(loc locator.Locator) {
 	c.myLocator = loc
 }
 
-func (c *Collector) SetTheirExchangeFields(fields []core.ExchangeField, theirReportExchangeField core.ExchangeField, theirNumberExchangeField core.ExchangeField) {
+func (c *Collector) SetTheirExchangeFields(fields []model.ExchangeField, theirReportExchangeField model.ExchangeField, theirNumberExchangeField model.ExchangeField) {
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 
@@ -57,15 +57,15 @@ func (c *Collector) SetTheirExchangeFields(fields []core.ExchangeField, theirRep
 	c.theirNumberExchangeField = theirNumberExchangeField
 }
 
-func (c *Collector) ScoreChanged(score core.Score) {
+func (c *Collector) ScoreChanged(score model.Score) {
 	c.dataLock.Lock()
 	defer c.dataLock.Unlock()
 
 	c.totalScore = score.Result()
 }
 
-func (c *Collector) GetInfoForInput(input string, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
-	result := core.Callinfo{
+func (c *Collector) GetInfoForInput(input string, band model.Band, mode model.Mode, currentExchange []string) model.Callinfo {
+	result := model.Callinfo{
 		Input: normalizeInput(input),
 	}
 	c.addCallsign(&result)
@@ -75,8 +75,8 @@ func (c *Collector) GetInfoForInput(input string, band core.Band, mode core.Mode
 	return result
 }
 
-func (c *Collector) GetInfo(call core.Callsign, band core.Band, mode core.Mode, currentExchange []string) core.Callinfo {
-	result := core.Callinfo{
+func (c *Collector) GetInfo(call model.Callsign, band model.Band, mode model.Mode, currentExchange []string) model.Callinfo {
+	result := model.Callinfo{
 		Input: normalizeInput(call.String()),
 		Call:  call,
 	}
@@ -87,7 +87,7 @@ func (c *Collector) GetInfo(call core.Callsign, band core.Band, mode core.Mode, 
 	return result
 }
 
-func (c *Collector) UpdateValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
+func (c *Collector) UpdateValue(info *model.Callinfo, band model.Band, mode model.Mode) bool {
 	if c.dxcc == nil || c.dupes == nil || c.valuer == nil {
 		return false
 	}
@@ -104,18 +104,18 @@ func (c *Collector) UpdateValue(info *core.Callinfo, band core.Band, mode core.M
 	return true
 }
 
-func (c *Collector) addCallsign(info *core.Callinfo) bool {
-	call, err := core.ParseCallsign(info.Input)
+func (c *Collector) addCallsign(info *model.Callinfo) bool {
+	call, err := model.ParseCallsign(info.Input)
 	info.CallValid = (err == nil)
 	if info.CallValid {
 		info.Call = call
 	} else {
-		info.Call = core.Callsign{}
+		info.Call = model.Callsign{}
 	}
 	return info.CallValid
 }
 
-func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode, currentExchange []string) {
+func (c *Collector) addInfos(info *model.Callinfo, band model.Band, mode model.Mode, currentExchange []string) {
 	dxccValid := c.addDXCC(info)
 	if !info.CallValid || !dxccValid {
 		return
@@ -141,7 +141,7 @@ func (c *Collector) addInfos(info *core.Callinfo, band core.Band, mode core.Mode
 	c.addValue(info, band, mode)
 }
 
-func (c *Collector) addDXCC(info *core.Callinfo) bool {
+func (c *Collector) addDXCC(info *model.Callinfo) bool {
 	if c.dxcc == nil {
 		return false
 	}
@@ -161,7 +161,7 @@ func (c *Collector) addDXCC(info *core.Callinfo) bool {
 	return true
 }
 
-func (c *Collector) addHistoryData(info *core.Callinfo) bool {
+func (c *Collector) addHistoryData(info *model.Callinfo) bool {
 	if c.history == nil {
 		return false
 	}
@@ -177,17 +177,17 @@ func (c *Collector) addHistoryData(info *core.Callinfo) bool {
 	return true
 }
 
-func (c *Collector) addQTCCount(info *core.Callinfo, sentQTCs int, receivedQTCs int) {
+func (c *Collector) addQTCCount(info *model.Callinfo, sentQTCs int, receivedQTCs int) {
 	info.SentQTCs = sentQTCs
 	info.ReceivedQTCs = receivedQTCs
 }
 
-func (c *Collector) addWorkedState(info *core.Callinfo, workedQSOs []core.QSO, duplicate bool) {
+func (c *Collector) addWorkedState(info *model.Callinfo, workedQSOs []model.QSO, duplicate bool) {
 	info.Duplicate = duplicate
 	info.Worked = len(workedQSOs) > 0
 }
 
-func (c *Collector) addPredictedExchange(info *core.Callinfo, workedQSOs []core.QSO, currentExchange []string) {
+func (c *Collector) addPredictedExchange(info *model.Callinfo, workedQSOs []model.QSO, currentExchange []string) {
 	// ATTENTION: temporal coupling! addPredictedExchange relies on addHistoryData putting
 	// the historic exchange into the Callinfo.PredictedExchange field.
 	info.PredictedExchange = predictExchange(c.theirExchangeFields, info.DXCCEntity, workedQSOs, currentExchange, info.PredictedExchange, historyAvailability(c.history, c.theirExchangeFields))
@@ -215,7 +215,7 @@ func (c *Collector) clearUnpredictableFields(values []string) []string {
 	return result
 }
 
-func (c *Collector) addValue(info *core.Callinfo, band core.Band, mode core.Mode) bool {
+func (c *Collector) addValue(info *model.Callinfo, band model.Band, mode model.Mode) bool {
 	if c.valuer == nil {
 		return false
 	}

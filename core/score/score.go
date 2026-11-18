@@ -4,21 +4,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type View interface {
 	ShowTable()
 	ShowGraph()
 
-	ShowScore(score core.Score)
+	ShowScore(score model.Score)
 	SetGoals(points int, multis int)
 	SetQTCsEnabled(enabled bool)
 	SetDetailedMultis(detailed bool)
 }
 
 type Controller struct {
-	score     core.Score
+	score     model.Score
 	scoreLock *sync.Mutex
 	view      View
 
@@ -31,9 +31,9 @@ type Controller struct {
 	listeners []any
 }
 
-func NewController(settings core.Settings) *Controller {
+func NewController(settings model.Settings) *Controller {
 	result := &Controller{
-		score: core.NewScore(),
+		score: model.NewScore(),
 		view:  new(nullView),
 	}
 
@@ -57,14 +57,14 @@ func (c *Controller) SetView(view View) {
 	c.view.ShowScore(c.score)
 }
 
-func (c *Controller) ContestChanged(contest core.Contest) {
+func (c *Controller) ContestChanged(contest model.Contest) {
 	c.setContest(contest)
 	c.view.SetGoals(c.contestPointsGoal, c.contestMultisGoal)
 	c.view.SetQTCsEnabled(c.qtcsEnabled)
 	c.view.SetDetailedMultis(c.detailedMultis)
 }
 
-func (c *Controller) setContest(contest core.Contest) {
+func (c *Controller) setContest(contest model.Contest) {
 	c.contestStartTime = contest.StartTime
 	c.contestPointsGoal = contest.PointsGoal
 	c.contestMultisGoal = contest.MultisGoal
@@ -72,7 +72,7 @@ func (c *Controller) setContest(contest core.Contest) {
 	c.detailedMultis = contest.DetailedMultis
 }
 
-func (c *Controller) ScoreChanged(score core.Score) {
+func (c *Controller) ScoreChanged(score model.Score) {
 	c.score = score
 	c.view.ShowScore(c.score)
 }
@@ -97,7 +97,7 @@ var _ View = new(nullView)
 
 type nullView struct{}
 
-func (v *nullView) ShowScore(core.Score)   {}
+func (v *nullView) ShowScore(model.Score)  {}
 func (v *nullView) ShowGraph()             {}
 func (v *nullView) ShowTable()             {}
 func (v *nullView) SetGoals(int, int)      {}

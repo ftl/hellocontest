@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/core/mocked"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestEntryController_Clear(t *testing.T) {
 	_, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1)).Once()
+	log.On("NextQSONumber").Return(model.QSONumber(1)).Once()
 	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
@@ -37,7 +37,7 @@ func TestEntryController_Clear(t *testing.T) {
 func TestEntryController_ClearView(t *testing.T) {
 	_, log, qsoList, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
-	log.On("NextQSONumber").Once().Return(core.QSONumber(1))
+	log.On("NextQSONumber").Once().Return(model.QSONumber(1))
 	log.On("LastExchange").Return([]string{"599", "001", ""}).Once()
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Once()
@@ -51,10 +51,10 @@ func TestEntryController_ClearView(t *testing.T) {
 	view.On("SetCallsign", mock.Anything, mock.Anything)
 	view.On("SetBand", mock.Anything, mock.Anything)
 	view.On("SetMode", mock.Anything, mock.Anything)
-	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
-	view.On("SetDuplicateMarker", core.VFO1, false).Once()
-	view.On("SetEditingMarker", core.VFO1, false).Once()
-	view.On("ClearMessage", core.VFO1).Once()
+	view.On("SetActiveField", model.VFO1, model.CallsignField).Once()
+	view.On("SetDuplicateMarker", model.VFO1, false).Once()
+	view.On("SetEditingMarker", model.VFO1, false).Once()
+	view.On("ClearMessage", model.VFO1).Once()
 
 	controller.Clear()
 
@@ -64,13 +64,13 @@ func TestEntryController_ClearView(t *testing.T) {
 func TestEntryController_EnterNewCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
-	log.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]core.QSO{})
+	log.On("NextQSONumber").Return(model.QSONumber(1))
+	log.On("FindDuplicateQSOs", mock.Anything, mock.Anything, mock.Anything).Return([]model.QSO{})
 
 	view.Activate()
-	view.On("SetDuplicateMarker", core.VFO1, false).Once()
-	view.On("ClearMessage", core.VFO1).Once()
-	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(1)).Once()
+	view.On("SetDuplicateMarker", model.VFO1, false).Once()
+	view.On("ClearMessage", model.VFO1).Once()
+	view.On("SetActiveField", model.VFO1, model.TheirExchangeField(1)).Once()
 
 	controller.Enter("DL1ABC")
 	controller.GotoNextField()
@@ -84,28 +84,28 @@ func TestEntryController_EnterNewCallsign(t *testing.T) {
 func TestEntryController_EnterDuplicateCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
-		Band:          core.Band20m,
-		Mode:          core.ModeSSB,
-		TheirReport:   core.RST("599"),
+		Band:          model.Band20m,
+		Mode:          model.ModeSSB,
+		TheirReport:   model.RST("599"),
 		TheirNumber:   12,
 		TheirExchange: []string{"599", "012", ""},
-		MyReport:      core.RST("559"),
+		MyReport:      model.RST("559"),
 		MyNumber:      1,
 		MyExchange:    []string{"599", "001", ""},
 	}
 
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
-	log.On("FindDuplicateQSOs", dl1abc, core.Band160m, core.ModeCW).Return([]core.QSO{qso}).Twice()
+	log.On("NextQSONumber").Return(model.QSONumber(1))
+	log.On("FindDuplicateQSOs", dl1abc, model.Band160m, model.ModeCW).Return([]model.QSO{qso}).Twice()
 
 	view.Activate()
-	view.On("SetDuplicateMarker", core.VFO1, true).Once()
-	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
-	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
-	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(1)).Once()
+	view.On("SetDuplicateMarker", model.VFO1, true).Once()
+	view.On("ShowMessage", model.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", model.VFO1, model.CallsignField).Once()
+	view.On("SetActiveField", model.VFO1, model.TheirExchangeField(1)).Once()
 	// view.On("SetTheirExchange", mock.Anything, mock.Anything) // TODO implement the prediction with the new exchange fields
 
 	controller.Enter("DL1ABC")
@@ -133,37 +133,37 @@ func TestEntryController_EnterFrequency(t *testing.T) {
 func TestEntryController_LogNewQSO(t *testing.T) {
 	clock, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now(),
 		Frequency:     1810000,
-		Band:          core.Band40m,
-		Mode:          core.ModeCW,
-		TheirReport:   core.RST("559"),
+		Band:          model.Band40m,
+		Mode:          model.ModeCW,
+		TheirReport:   model.RST("559"),
 		TheirNumber:   2,
 		TheirExchange: []string{"559", "002", "thx"},
-		MyReport:      core.RST("579"),
+		MyReport:      model.RST("579"),
 		MyNumber:      1,
 		MyExchange:    []string{"579", "001", "myx"},
 	}
 
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(model.QSONumber(1))
 	log.On("LastExchange").Return([]string{"599", "001", ""})
 	log.On("AddQSO", qso).Once()
-	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{})
+	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]model.QSO{})
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()
-	controller.SetActiveField(core.BandField)
+	controller.SetActiveField(model.BandField)
 	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
+	controller.SetActiveField(model.ModeField)
 	controller.Enter("CW")
-	controller.SetActiveField(core.MyExchangeField(1))
+	controller.SetActiveField(model.MyExchangeField(1))
 	controller.Enter("579")
-	controller.SetActiveField(core.MyExchangeField(3))
+	controller.SetActiveField(model.MyExchangeField(3))
 	controller.Enter("myx")
 	controller.GotoNextField()
 
@@ -179,32 +179,32 @@ func TestEntryController_LogNewQSO(t *testing.T) {
 
 	log.AssertExpectations(t)
 	qsoList.AssertExpectations(t)
-	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO])
+	assert.Equal(t, model.CallsignField, controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithWrongCallsign(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTest()
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(model.QSONumber(1))
 
 	view.Activate()
-	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
-	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", model.VFO1, model.CallsignField).Once()
+	view.On("ShowMessage", model.VFO1, mock.Anything).Once()
 
 	controller.Enter("DL")
 	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO])
+	assert.Equal(t, model.CallsignField, controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	controller.SetActiveField(core.BandField)
+	controller.SetActiveField(model.BandField)
 	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
+	controller.SetActiveField(model.ModeField)
 	controller.Enter("CW")
 	controller.GotoNextField()
 	controller.Enter("DL1ABC")
@@ -212,24 +212,24 @@ func TestEntryController_LogWithInvalidTheirReport(t *testing.T) {
 	controller.Enter("000")
 
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(model.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(1)).Once()
-	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", model.VFO1, model.TheirExchangeField(1)).Once()
+	view.On("ShowMessage", model.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirExchangeField(1), controller.activeField[controller.focusedVFO])
+	assert.Equal(t, model.TheirExchangeField(1), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	controller.SetActiveField(core.BandField)
+	controller.SetActiveField(model.BandField)
 	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
+	controller.SetActiveField(model.ModeField)
 	controller.Enter("CW")
 	controller.GotoNextField()
 	controller.Enter("DL1ABC")
@@ -239,24 +239,24 @@ func TestEntryController_LogWithWrongTheirNumber(t *testing.T) {
 	controller.Enter("abc")
 
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(model.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(2)).Once()
-	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", model.VFO1, model.TheirExchangeField(2)).Once()
+	view.On("ShowMessage", model.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirExchangeField(2), controller.activeField[controller.focusedVFO])
+	assert.Equal(t, model.TheirExchangeField(2), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	controller.SetActiveField(core.BandField)
+	controller.SetActiveField(model.BandField)
 	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
+	controller.SetActiveField(model.ModeField)
 	controller.Enter("CW")
 	controller.GotoNextField()
 	controller.Enter("DL1ABC")
@@ -264,26 +264,26 @@ func TestEntryController_LogWithoutMandatoryTheirNumber(t *testing.T) {
 	controller.Enter("559")
 
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(model.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.VFO1, core.TheirExchangeField(2)).Once()
-	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", model.VFO1, model.TheirExchangeField(2)).Once()
+	view.On("ShowMessage", model.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.TheirExchangeField(2), controller.activeField[controller.focusedVFO])
+	assert.Equal(t, model.TheirExchangeField(2), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	_, log, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	controller.SetActiveField(core.BandField)
+	controller.SetActiveField(model.BandField)
 	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
+	controller.SetActiveField(model.ModeField)
 	controller.Enter("CW")
-	controller.SetActiveField(core.MyExchangeField(1))
+	controller.SetActiveField(model.MyExchangeField(1))
 	controller.Enter("000")
 	controller.GotoNextField()
 	controller.Enter("DL1ABC")
@@ -295,43 +295,43 @@ func TestEntryController_LogWithInvalidMyReport(t *testing.T) {
 	controller.Enter("abc")
 
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(model.QSONumber(1))
 	view.Activate()
-	view.On("SetActiveField", core.VFO1, core.MyExchangeField(1)).Once()
-	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", model.VFO1, model.MyExchangeField(1)).Once()
+	view.On("ShowMessage", model.VFO1, mock.Anything).Once()
 
 	controller.EnterPressed()
 
 	view.AssertExpectations(t)
 	log.AssertNotCalled(t, "Log", mock.Anything)
-	assert.Equal(t, core.MyExchangeField(1), controller.activeField[controller.focusedVFO])
+	assert.Equal(t, model.MyExchangeField(1), controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing.T) {
 	clock, log, _, view, controller, _ := setupEntryTest()
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(1))
+	log.On("NextQSONumber").Return(model.QSONumber(1))
 	view.Activate()
 
-	dl1ab, _ := core.ParseCallsign("DL1AB")
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1ab, _ := model.ParseCallsign("DL1AB")
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:    dl1ab,
 		Time:        clock.Now(),
-		TheirReport: core.RST("559"),
+		TheirReport: model.RST("559"),
 		TheirNumber: 12,
-		MyReport:    core.RST("579"),
+		MyReport:    model.RST("579"),
 		MyNumber:    12,
 	}
 
-	log.On("FindDuplicateQSOs", dl1ab, mock.Anything, mock.Anything).Once().Return([]core.QSO{qso})
-	view.On("ShowMessage", core.VFO1, mock.Anything).Once()
-	view.On("SetActiveField", core.VFO1, mock.Anything).Once()
+	log.On("FindDuplicateQSOs", dl1ab, mock.Anything, mock.Anything).Once().Return([]model.QSO{qso})
+	view.On("ShowMessage", model.VFO1, mock.Anything).Once()
+	view.On("SetActiveField", model.VFO1, mock.Anything).Once()
 	controller.Enter("DL1AB")
 	view.AssertExpectations(t)
 
-	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Once().Return([]core.QSO{})
-	view.On("ClearMessage", core.VFO1).Once()
+	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Once().Return([]model.QSO{})
+	view.On("ClearMessage", model.VFO1).Once()
 	controller.Enter("DL1ABC")
 	view.AssertExpectations(t)
 }
@@ -339,50 +339,50 @@ func TestEntryController_EnterCallsignCheckForDuplicateAndShowMessage(t *testing
 func TestEntryController_LogDuplicateQSO(t *testing.T) {
 	clock, log, qsoList, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now().Add(-1 * time.Minute),
 		Frequency:     1810000,
-		Band:          core.Band40m,
-		Mode:          core.ModeCW,
-		TheirReport:   core.RST("559"),
+		Band:          model.Band40m,
+		Mode:          model.ModeCW,
+		TheirReport:   model.RST("559"),
 		TheirNumber:   12,
 		TheirExchange: []string{"559", "012", "thx"},
-		MyReport:      core.RST("579"),
+		MyReport:      model.RST("579"),
 		MyNumber:      1,
 		MyExchange:    []string{"579", "001", "myx"},
 	}
-	dupe := core.QSO{
+	dupe := model.QSO{
 		Callsign:      dl1abc,
 		Time:          clock.Now(),
 		Frequency:     1810000,
-		Band:          core.Band40m,
-		Mode:          core.ModeCW,
-		TheirReport:   core.RST("569"),
+		Band:          model.Band40m,
+		Mode:          model.ModeCW,
+		TheirReport:   model.RST("569"),
 		TheirNumber:   12,
 		TheirExchange: []string{"569", "012", "thx"},
-		MyReport:      core.RST("579"),
+		MyReport:      model.RST("579"),
 		MyNumber:      2,
 		MyExchange:    []string{"579", "002", "myx"},
 	}
 
 	log.Activate()
-	log.On("NextQSONumber").Return(core.QSONumber(2))
+	log.On("NextQSONumber").Return(model.QSONumber(2))
 	log.On("LastExchange").Return([]string{"599", "001", ""})
 	log.On("AddQSO", dupe).Once()
-	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]core.QSO{qso})
+	log.On("FindDuplicateQSOs", dl1abc, mock.Anything, mock.Anything).Return([]model.QSO{qso})
 	qsoList.Activate()
 	qsoList.On("SelectLastQSO").Twice()
 
 	controller.Clear()
-	controller.SetActiveField(core.BandField)
+	controller.SetActiveField(model.BandField)
 	controller.Enter("40m")
-	controller.SetActiveField(core.ModeField)
+	controller.SetActiveField(model.ModeField)
 	controller.Enter("CW")
-	controller.SetActiveField(core.MyExchangeField(1))
+	controller.SetActiveField(model.MyExchangeField(1))
 	controller.Enter("579")
-	controller.SetActiveField(core.MyExchangeField(3))
+	controller.SetActiveField(model.MyExchangeField(3))
 	controller.Enter("myx")
 	controller.GotoNextField()
 
@@ -398,23 +398,23 @@ func TestEntryController_LogDuplicateQSO(t *testing.T) {
 
 	log.AssertExpectations(t)
 	qsoList.AssertExpectations(t)
-	assert.Equal(t, core.CallsignField, controller.activeField[controller.focusedVFO])
+	assert.Equal(t, model.CallsignField, controller.activeField[controller.focusedVFO])
 }
 
 func TestEntryController_SelectRowForEditing(t *testing.T) {
 	clock, _, _, view, controller, _ := setupEntryTestWithClassicExchangeFields()
 	view.Activate()
 
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	qso := core.QSO{
-		Band:          core.Band80m,
-		Mode:          core.ModeCW,
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	qso := model.QSO{
+		Band:          model.Band80m,
+		Mode:          model.ModeCW,
 		Callsign:      dl1abc,
 		Time:          clock.Now(),
-		TheirReport:   core.RST("559"),
+		TheirReport:   model.RST("559"),
 		TheirNumber:   12,
 		TheirExchange: []string{"559", "012", "A01"},
-		MyReport:      core.RST("579"),
+		MyReport:      model.RST("579"),
 		MyNumber:      34,
 		MyExchange:    []string{"579", "034", "B36"},
 	}
@@ -427,8 +427,8 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 	view.On("SetMyExchange", 1, "579").Once()
 	view.On("SetMyExchange", 2, "034").Once()
 	view.On("SetMyExchange", 3, "B36").Once()
-	view.On("SetActiveField", core.VFO1, core.CallsignField).Once()
-	view.On("SetEditingMarker", core.VFO1, true).Once()
+	view.On("SetActiveField", model.VFO1, model.CallsignField).Once()
+	view.On("SetEditingMarker", model.VFO1, true).Once()
 
 	controller.QSOSelected(qso)
 
@@ -440,17 +440,17 @@ func TestEntryController_SelectRowForEditing(t *testing.T) {
 func TestEntryController_EditQSO(t *testing.T) {
 	clock, log, _, _, controller, _ := setupEntryTestWithClassicExchangeFields()
 
-	dl1abc, _ := core.ParseCallsign("DL1ABC")
-	dl2abc, _ := core.ParseCallsign("DL2ABC")
-	qso := core.QSO{
-		Band:          core.Band80m,
-		Mode:          core.ModeCW,
+	dl1abc, _ := model.ParseCallsign("DL1ABC")
+	dl2abc, _ := model.ParseCallsign("DL2ABC")
+	qso := model.QSO{
+		Band:          model.Band80m,
+		Mode:          model.ModeCW,
 		Callsign:      dl1abc,
 		Time:          clock.Now(),
-		TheirReport:   core.RST("559"),
+		TheirReport:   model.RST("559"),
 		TheirNumber:   12,
 		TheirExchange: []string{"559", "012", "A01"},
-		MyReport:      core.RST("579"),
+		MyReport:      model.RST("579"),
 		MyNumber:      34,
 		MyExchange:    []string{"579", "034", "B36"},
 	}
@@ -459,15 +459,15 @@ func TestEntryController_EditQSO(t *testing.T) {
 	changedQSO.TheirExchange = []string{"559", "012", "B02"}
 
 	controller.QSOSelected(qso)
-	controller.SetActiveField(core.CallsignField)
+	controller.SetActiveField(model.CallsignField)
 	controller.Enter("DL2ABC")
-	controller.SetActiveField(core.TheirExchangeField(3))
+	controller.SetActiveField(model.TheirExchangeField(3))
 	controller.Enter("B02")
 
 	log.Activate()
 	log.On("UpdateQSO", changedQSO).Once()
 	log.On("LastExchange").Return([]string{"599", "001", ""}).Maybe()
-	log.On("NextQSONumber").Return(core.QSONumber(35))
+	log.On("NextQSONumber").Return(model.QSONumber(35))
 	controller.EnterPressed()
 
 	log.AssertExpectations(t)
@@ -475,7 +475,7 @@ func TestEntryController_EditQSO(t *testing.T) {
 
 // Helpers
 
-func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
+func setupEntryTest() (model.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
@@ -485,7 +485,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	settings := &testSettings{myCall: "DL0ABC"}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
-	controller.SetVFO(core.VFO1, vfo)
+	controller.SetVFO(model.VFO1, vfo)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -493,7 +493,7 @@ func setupEntryTest() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryVi
 	return clock, log, qsoList, view, controller, settings
 }
 
-func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
+func setupEntryTestWithClassicExchangeFields() (model.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
@@ -504,7 +504,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: []string{"599", "", ""}, generateSerialExchange: true}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
-	controller.SetVFO(core.VFO1, vfo)
+	controller.SetVFO(model.VFO1, vfo)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -512,7 +512,7 @@ func setupEntryTestWithClassicExchangeFields() (core.Clock, *mocked.Log, *mocked
 	return clock, log, qsoList, view, controller, settings
 }
 
-func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
+func setupEntryTestWithExchangeFields(exchangeFieldCount int) (model.Clock, *mocked.Log, *mocked.QSOList, *mocked.EntryView, *Controller, *testSettings) {
 	now := time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
 	clock := clock.Static(now)
 	log := new(mocked.Log)
@@ -527,7 +527,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	settings := &testSettings{myCall: "DL0ABC", exchangeFields: exchangeFields, exchangeValues: exchangeValues}
 	controller := NewController(settings, clock, log, qsoList, new(nullBandmap), testRunSync)
 	vfo := &testVFO{controller}
-	controller.SetVFO(core.VFO1, vfo)
+	controller.SetVFO(model.VFO1, vfo)
 	controller.SetView(view)
 	controller.SetESMEnabled(false)
 	controller.updateExchangeFields(settings.Contest())
@@ -535,7 +535,7 @@ func setupEntryTestWithExchangeFields(exchangeFieldCount int) (core.Clock, *mock
 	return clock, log, qsoList, view, controller, settings
 }
 
-func assertQSOInput(t *testing.T, qso core.QSO, controller *Controller) {
+func assertQSOInput(t *testing.T, qso model.QSO, controller *Controller) {
 	assert.Equal(t, qso.Callsign.String(), controller.input[controller.focusedVFO].callsign, "callsign")
 	assert.Equal(t, qso.TheirReport.String(), controller.input[controller.focusedVFO].theirReport, "their report")
 	assert.Equal(t, qso.TheirNumber.String(), controller.input[controller.focusedVFO].theirNumber, "their number")
@@ -556,14 +556,14 @@ type testSettings struct {
 	generateSerialExchange bool
 }
 
-func (s *testSettings) Station() core.Station {
-	return core.Station{
-		Callsign: core.MustParseCallsign(s.myCall),
+func (s *testSettings) Station() model.Station {
+	return model.Station{
+		Callsign: model.MustParseCallsign(s.myCall),
 	}
 }
 
-func (s *testSettings) Contest() core.Contest {
-	result := core.Contest{
+func (s *testSettings) Contest() model.Contest {
+	result := model.Contest{
 		Definition:             fieldDefinition(s.exchangeFields...),
 		GenerateSerialExchange: s.generateSerialExchange,
 		ExchangeValues:         s.exchangeValues,
@@ -592,17 +592,17 @@ func (v *testVFO) Name() string { return "TESTVFO" }
 func (v *testVFO) Notify(any)   {}
 func (v *testVFO) Active() bool { return false }
 func (v *testVFO) Refresh() {
-	v.controller.VFOFrequencyChanged(core.VFO1, 1810000)
-	v.controller.VFOBandChanged(core.VFO1, core.Band160m)
-	v.controller.VFOModeChanged(core.VFO1, core.ModeCW)
+	v.controller.VFOFrequencyChanged(model.VFO1, 1810000)
+	v.controller.VFOBandChanged(model.VFO1, model.Band160m)
+	v.controller.VFOModeChanged(model.VFO1, model.ModeCW)
 }
-func (v *testVFO) SetFrequency(core.Frequency)                                           {}
-func (v *testVFO) ShiftFrequency(core.Frequency)                                         {}
-func (v *testVFO) SetBand(core.Band)                                                     {}
-func (v *testVFO) SetMode(core.Mode)                                                     {}
-func (v *testVFO) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
-func (v *testVFO) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}
-func (v *testVFO) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
-func (v *testVFO) ShiftIncrementalTuning(core.IncrementalTuningKind, core.Frequency)     {}
-func (v *testVFO) ToggleAvailableIncrementalTuning()                                     {}
-func (v *testVFO) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
+func (v *testVFO) SetFrequency(model.Frequency)                                            {}
+func (v *testVFO) ShiftFrequency(model.Frequency)                                          {}
+func (v *testVFO) SetBand(model.Band)                                                      {}
+func (v *testVFO) SetMode(model.Mode)                                                      {}
+func (v *testVFO) IncrementalTuningActive(model.IncrementalTuningKind) bool                { return false }
+func (v *testVFO) SetIncrementalTuningActive(model.IncrementalTuningKind, bool)            {}
+func (v *testVFO) SetIncrementalTuning(model.IncrementalTuningKind, bool, model.Frequency) {}
+func (v *testVFO) ShiftIncrementalTuning(model.IncrementalTuningKind, model.Frequency)     {}
+func (v *testVFO) ToggleAvailableIncrementalTuning()                                       {}
+func (v *testVFO) ShiftAvailableIncrementalTuning(model.Frequency)                         {}

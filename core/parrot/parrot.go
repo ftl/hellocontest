@@ -4,22 +4,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
 	DefaultInterval = 10 * time.Second
 	tickInterval    = 1 * time.Second
 
-	CQMessageIndex = core.CQMacroIndex
+	CQMessageIndex = model.CQMacroIndex
 )
 
 type WorkmodeController interface {
-	SetWorkmode(workmode core.Workmode)
+	SetWorkmode(workmode model.Workmode)
 }
 
 type Keyer interface {
-	SendWithWorkmodeOnVFO(vfo core.VFOID, workmode core.Workmode, index int)
+	SendWithWorkmodeOnVFO(vfo model.VFOID, workmode model.Workmode, index int)
 	Stop()
 }
 
@@ -35,7 +35,7 @@ type View interface {
 	SetParrotActive(active bool)
 }
 
-func New(workmodeController WorkmodeController, keyer Keyer, runAsync core.AsyncRunner) *Parrot {
+func New(workmodeController WorkmodeController, keyer Keyer, runAsync model.AsyncRunner) *Parrot {
 	ticker := time.NewTicker(tickInterval)
 	ticker.Stop()
 	result := &Parrot{
@@ -58,7 +58,7 @@ type Parrot struct {
 	view               View
 	workmodeController WorkmodeController
 	keyer              Keyer
-	runAsync           core.AsyncRunner
+	runAsync           model.AsyncRunner
 
 	active    bool
 	interval  time.Duration
@@ -84,7 +84,7 @@ func (p *Parrot) run() {
 				p.emitParrotTimeLeft(remaining)
 			}
 			if remaining <= 0 {
-				p.keyer.SendWithWorkmodeOnVFO(core.VFO1, core.Run, CQMessageIndex)
+				p.keyer.SendWithWorkmodeOnVFO(model.VFO1, model.Run, CQMessageIndex)
 			}
 		})
 	}
@@ -133,7 +133,7 @@ func (p *Parrot) Start() {
 	}
 	p.setActive(true)
 
-	p.workmodeController.SetWorkmode(core.Run)
+	p.workmodeController.SetWorkmode(model.Run)
 
 	p.resetTick()
 	p.ticker.Reset(tickInterval)
@@ -149,18 +149,18 @@ func (p *Parrot) Stop() {
 	p.ticker.Stop()
 }
 
-func (p *Parrot) CallsignEntered(vfo core.VFOID, call string) {
+func (p *Parrot) CallsignEntered(vfo model.VFOID, call string) {
 	if !p.active {
 		return
 	}
-	if vfo != core.VFO1 {
+	if vfo != model.VFO1 {
 		return
 	}
 
 	p.keyer.Stop()
 }
 
-func (p *Parrot) TransmissionStarted(vfo core.VFOID) {
+func (p *Parrot) TransmissionStarted(vfo model.VFOID) {
 	if !p.active {
 		return
 	}
@@ -175,11 +175,11 @@ func (p *Parrot) KeyerStopped() {
 	p.Stop()
 }
 
-func (p *Parrot) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
-	if vfo != core.VFO1 {
+func (p *Parrot) WorkmodeChanged(vfo model.VFOID, workmode model.Workmode) {
+	if vfo != model.VFO1 {
 		return
 	}
-	if p.active && workmode != core.Run {
+	if p.active && workmode != model.Run {
 		p.keyer.Stop()
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/ui"
 )
 
@@ -86,9 +86,9 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 		sections: []*Section{
 			{
 				steps: []Step{
-					SetWorkmode(core.SearchPounce),
-					SetVFOFrequency(core.VFO1, 7028000),
-					SetVFOMode(core.VFO1, core.ModeCW),
+					SetWorkmode(model.SearchPounce),
+					SetVFOFrequency(model.VFO1, 7028000),
+					SetVFOMode(model.VFO1, model.ModeCW),
 					Wait(3 * time.Second),
 				},
 			},
@@ -222,7 +222,7 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 					// the spots window has no views of its own, HideDocks hid them all
 					ShowSpotsWindow(),
 					ResizeWidget("spotWindow", spotsWindowWidth, spotsWindowHeight),
-					SetSpotFilter(core.SpotFilterFocused, core.SpotFilterFocused, true),
+					SetSpotFilter(model.SpotFilterFocused, model.SpotFilterFocused, true),
 					Wait(2 * time.Second),
 					TriggerScreenshot("spots_window_filled", WithCaptureWidget("spotWindow")),
 					// in its default area on the right the band matrix is narrow and tall,
@@ -242,11 +242,11 @@ func newScreenshotsScript(fixture *contestFixture) *Script {
 					HideWidget("bandMatrixDock"),
 					HideWidget("clockDock"),
 					// the expanded area, with the settings that the wiki page describes
-					SetSpotFilter(core.SpotFilterFocused, core.SpotFilterFocused, false),
+					SetSpotFilter(model.SpotFilterFocused, model.SpotFilterFocused, false),
 					// the model keeps the folded state to itself, the toggle unfolds the area
 					SetChecked("spotFilterToggle", false),
-					SetSpotValueFilter(core.SpotFilterAnyValue),
-					SetSpotSorting(core.SortSpotsByFrequency, true),
+					SetSpotValueFilter(model.SpotFilterAnyValue),
+					SetSpotSorting(model.SortSpotsByFrequency, true),
 					Wait(1 * time.Second),
 					TriggerScreenshot("spots_filtering_expanded", WithCaptureWidget("spotFilter")),
 				},
@@ -337,25 +337,25 @@ func ShowSpotsWindow() Step {
 	}
 }
 
-func SetSpotFilter(band core.SpotFilterKind, mode core.SpotFilterKind, folded bool) Step {
+func SetSpotFilter(band model.SpotFilterKind, mode model.SpotFilterKind, folded bool) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() {
-			r.App.Bandmap.SetFilterBand(core.SpotFilterBand{Kind: band})
-			r.App.Bandmap.SetFilterMode(core.SpotFilterMode{Kind: mode})
+			r.App.Bandmap.SetFilterBand(model.SpotFilterBand{Kind: band})
+			r.App.Bandmap.SetFilterMode(model.SpotFilterMode{Kind: mode})
 			r.App.Bandmap.SetFilterFolded(folded)
 		})
 		return 0
 	}
 }
 
-func SetSpotValueFilter(value core.SpotFilterValue) Step {
+func SetSpotValueFilter(value model.SpotFilterValue) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() { r.App.Bandmap.SetFilterValue(value) })
 		return 0
 	}
 }
 
-func SetSpotSorting(column core.SpotSortColumn, descending bool) Step {
+func SetSpotSorting(column model.SpotSortColumn, descending bool) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() { r.App.Bandmap.SetFilterSort(column, descending) })
 		return 0
@@ -375,41 +375,41 @@ func AddDemoSpots() Step {
 	}
 }
 
-func demoSpots(now time.Time) []core.Spot {
+func demoSpots(now time.Time) []model.Spot {
 	type demoSpot struct {
 		call      string
-		frequency core.Frequency
-		band      core.Band
+		frequency model.Frequency
+		band      model.Band
 		age       time.Duration
 	}
 	spots := []demoSpot{
 		// 40m, the band of the demo radio: these are the ones the focused filter shows
-		{"W1AW", 7021000, core.Band40m, 1 * time.Minute},
-		{"OK1RR", 7026000, core.Band40m, 2 * time.Minute},
-		{"PA3DBS", 7031000, core.Band40m, 1 * time.Minute},
-		{"SM6M", 7035000, core.Band40m, 3 * time.Minute},
-		{"EA1X", 7039000, core.Band40m, 2 * time.Minute},
-		{"G3LHJ", 7043000, core.Band40m, 4 * time.Minute},
-		{"OZ1AAR", 7047000, core.Band40m, 3 * time.Minute},
+		{"W1AW", 7021000, model.Band40m, 1 * time.Minute},
+		{"OK1RR", 7026000, model.Band40m, 2 * time.Minute},
+		{"PA3DBS", 7031000, model.Band40m, 1 * time.Minute},
+		{"SM6M", 7035000, model.Band40m, 3 * time.Minute},
+		{"EA1X", 7039000, model.Band40m, 2 * time.Minute},
+		{"G3LHJ", 7043000, model.Band40m, 4 * time.Minute},
+		{"OZ1AAR", 7047000, model.Band40m, 3 * time.Minute},
 		// the other bands fill the band matrix
-		{"K3LR", 3524000, core.Band80m, 2 * time.Minute},
-		{"M0RYB", 3538000, core.Band80m, 5 * time.Minute},
-		{"JA1NUT", 14028000, core.Band20m, 3 * time.Minute},
-		{"VE3EJ", 14035000, core.Band20m, 4 * time.Minute},
-		{"N5DX", 14042000, core.Band20m, 6 * time.Minute},
-		{"PY5EG", 21026000, core.Band15m, 2 * time.Minute},
-		{"ZS6CCY", 21033000, core.Band15m, 5 * time.Minute},
-		{"VK6LW", 28024000, core.Band10m, 4 * time.Minute},
+		{"K3LR", 3524000, model.Band80m, 2 * time.Minute},
+		{"M0RYB", 3538000, model.Band80m, 5 * time.Minute},
+		{"JA1NUT", 14028000, model.Band20m, 3 * time.Minute},
+		{"VE3EJ", 14035000, model.Band20m, 4 * time.Minute},
+		{"N5DX", 14042000, model.Band20m, 6 * time.Minute},
+		{"PY5EG", 21026000, model.Band15m, 2 * time.Minute},
+		{"ZS6CCY", 21033000, model.Band15m, 5 * time.Minute},
+		{"VK6LW", 28024000, model.Band10m, 4 * time.Minute},
 	}
-	result := make([]core.Spot, 0, len(spots))
+	result := make([]model.Spot, 0, len(spots))
 	for _, spot := range spots {
-		result = append(result, core.Spot{
-			Call:      core.MustParseCallsign(spot.call),
+		result = append(result, model.Spot{
+			Call:      model.MustParseCallsign(spot.call),
 			Frequency: spot.frequency,
 			Band:      spot.band,
-			Mode:      core.ModeCW,
+			Mode:      model.ModeCW,
 			Time:      now.Add(-spot.age),
-			Source:    core.ClusterSpot,
+			Source:    model.ClusterSpot,
 		})
 	}
 	return result
@@ -439,7 +439,7 @@ func ConfirmQTCStart() Step {
 func EnterQTCHeader(header string) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() {
-			r.App.QTCController.SetActiveField(core.QTCHeaderField)
+			r.App.QTCController.SetActiveField(model.QTCHeaderField)
 			r.App.QTCController.Enter(header)
 			r.App.QTCController.ConfirmHeader()
 		})
@@ -450,11 +450,11 @@ func EnterQTCHeader(header string) Step {
 func EnterQTC(timestamp string, callsign string, number string) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() {
-			r.App.QTCController.SetActiveField(core.QTCTimestampField)
+			r.App.QTCController.SetActiveField(model.QTCTimestampField)
 			r.App.QTCController.Enter(timestamp)
-			r.App.QTCController.SetActiveField(core.QTCCallsignField)
+			r.App.QTCController.SetActiveField(model.QTCCallsignField)
 			r.App.QTCController.Enter(callsign)
-			r.App.QTCController.SetActiveField(core.QTCExchangeField)
+			r.App.QTCController.SetActiveField(model.QTCExchangeField)
 			r.App.QTCController.Enter(number)
 			r.App.QTCController.ConfirmData()
 		})
@@ -489,21 +489,21 @@ func RejectDialog(objectName string) Step {
 	}
 }
 
-func SetVFOFrequency(vfo core.VFOID, frequency core.Frequency) Step {
+func SetVFOFrequency(vfo model.VFOID, frequency model.Frequency) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() { r.App.VFOs[vfo].SetFrequency(frequency) })
 		return 0
 	}
 }
 
-func SetVFOMode(vfo core.VFOID, mode core.Mode) Step {
+func SetVFOMode(vfo model.VFOID, mode model.Mode) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() { r.App.VFOs[vfo].SetMode(mode) })
 		return 0
 	}
 }
 
-func SetWorkmode(workmode core.Workmode) Step {
+func SetWorkmode(workmode model.Workmode) Step {
 	return func(_ context.Context, r *Runtime) time.Duration {
 		r.UI(func() { r.App.Workmode.SetWorkmode(workmode) })
 		return 0
@@ -742,8 +742,8 @@ var LegacyScreenshotsScript = &Script{
 						r.App.Settings.EnterStationOperator("DL1ABC")
 						r.App.Settings.EnterStationLocator("AA00xx")
 						r.App.Settings.SetContestStartTimeNow()
-						r.App.Settings.EnterContestExchangeValue(core.EntryField("myExchange_1"), "Walter")
-						r.App.Settings.EnterContestExchangeValue(core.EntryField("myExchange_2"), "DL")
+						r.App.Settings.EnterContestExchangeValue(model.EntryField("myExchange_1"), "Walter")
+						r.App.Settings.EnterContestExchangeValue(model.EntryField("myExchange_2"), "DL")
 						r.App.Settings.RefreshView()
 					})
 					return 0
@@ -1128,8 +1128,8 @@ func FillQSOList(begin, end int) Step {
 
 type qsoData struct {
 	offset    time.Duration
-	frequency core.Frequency
-	workmode  core.Workmode
+	frequency model.Frequency
+	workmode  model.Workmode
 	values    []string
 }
 
@@ -1160,11 +1160,11 @@ func parseQSOCSV(csv string) []qsoData {
 		offsetMinutes, _ := strconv.Atoi(fields[0])
 		qso.offset = time.Duration(offsetMinutes) * time.Minute
 		kHz, _ := strconv.Atoi(fields[1])
-		qso.frequency = core.Frequency(kHz * 1000)
+		qso.frequency = model.Frequency(kHz * 1000)
 		if fields[2] == "r" {
-			qso.workmode = core.Run
+			qso.workmode = model.Run
 		} else {
-			qso.workmode = core.SearchPounce
+			qso.workmode = model.SearchPounce
 		}
 		qso.values = fields[3:]
 
@@ -1176,7 +1176,7 @@ func parseQSOCSV(csv string) []qsoData {
 func enterQSOData(r *Runtime, qso qsoData) {
 	r.UI(r.App.Entry.Clear)
 	r.Clock.Set(contestStart().Add(qso.offset))
-	r.App.VFOs[core.VFO1].SetFrequency(qso.frequency)
+	r.App.VFOs[model.VFO1].SetFrequency(qso.frequency)
 	time.Sleep(100 * time.Millisecond)
 	r.UI(func() {
 		r.App.Workmode.SetWorkmode(qso.workmode)

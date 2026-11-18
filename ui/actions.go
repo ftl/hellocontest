@@ -8,6 +8,7 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/app"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/workmode"
 )
 
@@ -21,7 +22,7 @@ type actions struct {
 	controller  *app.Controller
 	keybindings map[string]string
 	ignoreInput bool
-	focusedVFO  core.VFOID
+	focusedVFO  model.VFOID
 	allInfos    []ActionInfo
 
 	windowActions []*qtlib.QAction
@@ -169,8 +170,8 @@ func newActions(parent *qtlib.QWidget, controller *app.Controller, keybindings m
 
 	// Radio menu
 	a.incrementalTuningToggleAction = a.makeTriggerAction(core.ActionIncrementalTuningToggle, "Toggle Incremental Tuning", "Toggle the RIT or XIT of the focused VFO", "Ctrl+Shift+X", func() { controller.ToggleIncrementalTuning() })
-	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.XIT, active) })
-	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(core.RIT, active) })
+	a.xitActiveAction = a.makeCheckAction(core.ActionRadioXITActive, "XIT Active", "Activate the XIT for the search & pounce workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(model.XIT, active) })
+	a.ritActiveAction = a.makeCheckAction(core.ActionRadioRITActive, "RIT Active", "Activate the RIT for the run workmode", "", func(active bool) { controller.SetFocusedIncrementalTuningActive(model.RIT, active) })
 	a.dialActiveAction = a.makeCheckAction(core.ActionRadioDialActive, "HamDial", "Activate the HamDial device", "", func(active bool) { controller.SetHamDialActive(active) })
 
 	// Bandmap menu
@@ -326,13 +327,13 @@ func (a *actions) updateFromController() {
 	a.ignoreInput = true
 
 	a.esmAction.SetChecked(a.controller.ESMEnabled())
-	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.XIT))
-	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.RIT))
+	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(model.XIT))
+	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(model.RIT))
 	a.sendSpotsToTciAction.SetChecked(a.controller.SendSpotsToTci())
 	switch a.controller.Workmode.Workmode() {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		a.spAction.SetChecked(true)
-	case core.Run:
+	case model.Run:
 		a.runAction.SetChecked(true)
 	}
 	qtcsEnabled := a.controller.QTCList.QTCsEnabled()
@@ -435,18 +436,18 @@ func (a *actions) SetSpotSourceEnabled(name string, enabled bool) {
 
 // Listener-side state updates
 
-func (a *actions) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+func (a *actions) WorkmodeChanged(vfo model.VFOID, workmode model.Workmode) {
 	// the menu shows the global workmode, which VFO1 carries: in SO2V VFO2 is always S&P
-	if vfo != core.VFO1 {
+	if vfo != model.VFO1 {
 		return
 	}
 
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
 	switch workmode {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		a.spAction.SetChecked(true)
-	case core.Run:
+	case model.Run:
 		a.runAction.SetChecked(true)
 	}
 }
@@ -457,25 +458,25 @@ func (a *actions) ESMEnabled(enabled bool) {
 	a.esmAction.SetChecked(enabled)
 }
 
-func (a *actions) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+func (a *actions) VFOIncrementalTuningActiveChanged(vfo model.VFOID, kind model.IncrementalTuningKind, active bool) {
 	if vfo != a.focusedVFO {
 		return
 	}
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
-	if kind == core.RIT {
+	if kind == model.RIT {
 		a.ritActiveAction.SetChecked(active)
 		return
 	}
 	a.xitActiveAction.SetChecked(active)
 }
 
-func (a *actions) FocusedVFOChanged(vfo core.VFOID) {
+func (a *actions) FocusedVFOChanged(vfo model.VFOID) {
 	a.focusedVFO = vfo
 	a.ignoreInput = true
 	defer func() { a.ignoreInput = false }()
-	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.XIT))
-	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(core.RIT))
+	a.xitActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(model.XIT))
+	a.ritActiveAction.SetChecked(a.controller.FocusedIncrementalTuningActive(model.RIT))
 }
 
 func (a *actions) DialActiveChanged(active bool) {

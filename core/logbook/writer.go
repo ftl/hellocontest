@@ -1,20 +1,20 @@
 package logbook
 
-import "github.com/ftl/hellocontest/core"
+import "github.com/ftl/hellocontest/core/model"
 
 type Writer interface {
-	WriteQSO(core.QSO) error
-	WriteQTC(core.QTC) error
+	WriteQSO(model.QSO) error
+	WriteQTC(model.QTC) error
 }
 
 var _ Writer = new(nullWriter)
 
 type nullWriter struct{}
 
-func (d *nullWriter) WriteQSO(core.QSO) error {
+func (d *nullWriter) WriteQSO(model.QSO) error {
 	return nil
 }
 
-func (d *nullWriter) WriteQTC(core.QTC) error {
+func (d *nullWriter) WriteQTC(model.QTC) error {
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/dxcc"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // DXCCFinder returns a list of matching prefixes for the given string and indicates if there was a match at all.
@@ -18,7 +18,7 @@ type DXCCFinder interface {
 
 // Export writes the given QSOs to the given writer in the CSV format.
 // The header is very limited and needs to be completed manually after the log was written.
-func Export(w io.Writer, mycall core.Callsign, qsos ...core.QSO) error {
+func Export(w io.Writer, mycall model.Callsign, qsos ...model.QSO) error {
 	csvWriter := csv.NewWriter(w)
 	for _, qso := range qsos {
 		if err := writeQSO(csvWriter, mycall, qso); err != nil {
@@ -29,7 +29,7 @@ func Export(w io.Writer, mycall core.Callsign, qsos ...core.QSO) error {
 	return nil
 }
 
-func writeQSO(w *csv.Writer, mycall core.Callsign, qso core.QSO) error {
+func writeQSO(w *csv.Writer, mycall model.Callsign, qso model.QSO) error {
 	myCallIndex := 5
 	theirCallIndex := myCallIndex + 1 + len(qso.MyExchange)
 	dxccPrefixIndex := theirCallIndex + 1 + len(qso.TheirExchange)

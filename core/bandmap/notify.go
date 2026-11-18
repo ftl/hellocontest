@@ -1,83 +1,83 @@
 package bandmap
 
 import (
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type EntryAddedListener interface {
-	EntryAdded(core.BandmapEntry)
+	EntryAdded(model.BandmapEntry)
 }
 
 type EntryUpdatedListener interface {
-	EntryUpdated(core.BandmapEntry)
+	EntryUpdated(model.BandmapEntry)
 }
 
 type EntryRemovedListener interface {
-	EntryRemoved(core.BandmapEntry)
+	EntryRemoved(model.BandmapEntry)
 }
 
 type EntrySelectedListener interface {
-	EntrySelected(core.VFOID, core.BandmapEntry)
+	EntrySelected(model.VFOID, model.BandmapEntry)
 }
 
-type EntrySelectedListenerFunc func(core.VFOID, core.BandmapEntry)
+type EntrySelectedListenerFunc func(model.VFOID, model.BandmapEntry)
 
-func (f EntrySelectedListenerFunc) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) {
+func (f EntrySelectedListenerFunc) EntrySelected(vfo model.VFOID, entry model.BandmapEntry) {
 	f(vfo, entry)
 }
 
 type MarkerSelectedListener interface {
-	MarkerSelected(core.VFOID, core.BandmapMarker)
+	MarkerSelected(model.VFOID, model.BandmapMarker)
 }
 
-type MarkerSelectedListenerFunc func(core.VFOID, core.BandmapMarker)
+type MarkerSelectedListenerFunc func(model.VFOID, model.BandmapMarker)
 
-func (f MarkerSelectedListenerFunc) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) {
+func (f MarkerSelectedListenerFunc) MarkerSelected(vfo model.VFOID, marker model.BandmapMarker) {
 	f(vfo, marker)
 }
 
 type CQMarkerSelectedListener interface {
-	CQMarkerSelected(core.BandmapMarker)
+	CQMarkerSelected(model.BandmapMarker)
 }
 
-type CQMarkerSelectedListenerFunc func(core.BandmapMarker)
+type CQMarkerSelectedListenerFunc func(model.BandmapMarker)
 
-func (f CQMarkerSelectedListenerFunc) CQMarkerSelected(marker core.BandmapMarker) {
+func (f CQMarkerSelectedListenerFunc) CQMarkerSelected(marker model.BandmapMarker) {
 	f(marker)
 }
 
 type MarkersChangedListener interface {
-	MarkersChanged([]core.BandmapMarker)
+	MarkersChanged([]model.BandmapMarker)
 }
 
-type MarkersChangedListenerFunc func([]core.BandmapMarker)
+type MarkersChangedListenerFunc func([]model.BandmapMarker)
 
-func (f MarkersChangedListenerFunc) MarkersChanged(markers []core.BandmapMarker) {
+func (f MarkersChangedListenerFunc) MarkersChanged(markers []model.BandmapMarker) {
 	f(markers)
 }
 
 type EntryOnFrequencyListener interface {
-	EntryOnFrequency(core.VFOID, core.BandmapEntry, bool)
+	EntryOnFrequency(model.VFOID, model.BandmapEntry, bool)
 }
 
 type MarkerOnFrequencyListener interface {
-	MarkerOnFrequency(core.VFOID, core.BandmapMarker, bool)
+	MarkerOnFrequency(model.VFOID, model.BandmapMarker, bool)
 }
 
 type BandsChangedListener interface {
-	BandsChanged([]core.BandSummary)
+	BandsChanged([]model.BandSummary)
 }
 
 type Notifier struct {
 	listeners   []any
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 }
 
 func (n *Notifier) Notify(listener any) {
 	n.listeners = append(n.listeners, listener)
 }
 
-func (n *Notifier) emitEntryAdded(e core.BandmapEntry) {
+func (n *Notifier) emitEntryAdded(e model.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryAddedListener, ok := listener.(EntryAddedListener); ok {
 			n.asyncRunner(func() {
@@ -87,7 +87,7 @@ func (n *Notifier) emitEntryAdded(e core.BandmapEntry) {
 	}
 }
 
-func (n *Notifier) emitEntryUpdated(e core.BandmapEntry) {
+func (n *Notifier) emitEntryUpdated(e model.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryUpdatedListener, ok := listener.(EntryUpdatedListener); ok {
 			n.asyncRunner(func() {
@@ -97,7 +97,7 @@ func (n *Notifier) emitEntryUpdated(e core.BandmapEntry) {
 	}
 }
 
-func (n *Notifier) emitEntryRemoved(e core.BandmapEntry) {
+func (n *Notifier) emitEntryRemoved(e model.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entryRemovedListener, ok := listener.(EntryRemovedListener); ok {
 			n.asyncRunner(func() {
@@ -107,7 +107,7 @@ func (n *Notifier) emitEntryRemoved(e core.BandmapEntry) {
 	}
 }
 
-func (n *Notifier) emitEntrySelected(vfo core.VFOID, e core.BandmapEntry) {
+func (n *Notifier) emitEntrySelected(vfo model.VFOID, e model.BandmapEntry) {
 	for _, listener := range n.listeners {
 		if entrySelectedListener, ok := listener.(EntrySelectedListener); ok {
 			n.asyncRunner(func() {
@@ -117,7 +117,7 @@ func (n *Notifier) emitEntrySelected(vfo core.VFOID, e core.BandmapEntry) {
 	}
 }
 
-func (n *Notifier) emitEntryOnFrequency(vfo core.VFOID, e core.BandmapEntry, available bool) {
+func (n *Notifier) emitEntryOnFrequency(vfo model.VFOID, e model.BandmapEntry, available bool) {
 	for _, listener := range n.listeners {
 		if nearestEntryListener, ok := listener.(EntryOnFrequencyListener); ok {
 			n.asyncRunner(func() {
@@ -127,7 +127,7 @@ func (n *Notifier) emitEntryOnFrequency(vfo core.VFOID, e core.BandmapEntry, ava
 	}
 }
 
-func (n *Notifier) emitBandsChanged(bands []core.BandSummary) {
+func (n *Notifier) emitBandsChanged(bands []model.BandSummary) {
 	for _, listener := range n.listeners {
 		if bandsChangedListener, ok := listener.(BandsChangedListener); ok {
 			n.asyncRunner(func() {
@@ -137,7 +137,7 @@ func (n *Notifier) emitBandsChanged(bands []core.BandSummary) {
 	}
 }
 
-func (n *Notifier) emitMarkerSelected(vfo core.VFOID, marker core.BandmapMarker) {
+func (n *Notifier) emitMarkerSelected(vfo model.VFOID, marker model.BandmapMarker) {
 	for _, listener := range n.listeners {
 		if markerSelectedListener, ok := listener.(MarkerSelectedListener); ok {
 			n.asyncRunner(func() {
@@ -147,7 +147,7 @@ func (n *Notifier) emitMarkerSelected(vfo core.VFOID, marker core.BandmapMarker)
 	}
 }
 
-func (n *Notifier) emitCQMarkerSelected(marker core.BandmapMarker) {
+func (n *Notifier) emitCQMarkerSelected(marker model.BandmapMarker) {
 	for _, listener := range n.listeners {
 		if cqMarkerSelectedListener, ok := listener.(CQMarkerSelectedListener); ok {
 			n.asyncRunner(func() {
@@ -157,7 +157,7 @@ func (n *Notifier) emitCQMarkerSelected(marker core.BandmapMarker) {
 	}
 }
 
-func (n *Notifier) emitMarkersChanged(markers []core.BandmapMarker) {
+func (n *Notifier) emitMarkersChanged(markers []model.BandmapMarker) {
 	for _, listener := range n.listeners {
 		if markersChangedListener, ok := listener.(MarkersChangedListener); ok {
 			n.asyncRunner(func() {
@@ -167,7 +167,7 @@ func (n *Notifier) emitMarkersChanged(markers []core.BandmapMarker) {
 	}
 }
 
-func (n *Notifier) emitMarkerOnFrequency(vfo core.VFOID, marker core.BandmapMarker, available bool) {
+func (n *Notifier) emitMarkerOnFrequency(vfo model.VFOID, marker model.BandmapMarker, available bool) {
 	for _, listener := range n.listeners {
 		if markerOnFrequencyListener, ok := listener.(MarkerOnFrequencyListener); ok {
 			n.asyncRunner(func() {

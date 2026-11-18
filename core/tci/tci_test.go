@@ -5,60 +5,60 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestDiffMarkers(t *testing.T) {
-	cq := core.BandmapMarker{Kind: core.CQMarker, Text: "CQ", Frequency: 3560000, Band: core.Band80m}
-	one := core.BandmapMarker{Kind: core.NumberedMarker, Text: "1", Number: 1, Frequency: 3540000, Band: core.Band80m}
-	movedOne := core.BandmapMarker{Kind: core.NumberedMarker, Text: "1", Number: 1, Frequency: 3545000, Band: core.Band80m}
-	onTwenty := core.BandmapMarker{Kind: core.TextMarker, Text: "beacon", Frequency: 14100000, Band: core.Band20m}
+	cq := model.BandmapMarker{Kind: model.CQMarker, Text: "CQ", Frequency: 3560000, Band: model.Band80m}
+	one := model.BandmapMarker{Kind: model.NumberedMarker, Text: "1", Number: 1, Frequency: 3540000, Band: model.Band80m}
+	movedOne := model.BandmapMarker{Kind: model.NumberedMarker, Text: "1", Number: 1, Frequency: 3545000, Band: model.Band80m}
+	onTwenty := model.BandmapMarker{Kind: model.TextMarker, Text: "beacon", Frequency: 14100000, Band: model.Band20m}
 
 	tt := []struct {
 		desc        string
-		bands       []core.Band
-		sent        map[string]core.BandmapMarker
-		markers     []core.BandmapMarker
-		wantAdded   []core.BandmapMarker
+		bands       []model.Band
+		sent        map[string]model.BandmapMarker
+		markers     []model.BandmapMarker
+		wantAdded   []model.BandmapMarker
 		wantRemoved []string
 	}{
 		{
 			desc:      "the band of the second TRX",
-			bands:     []core.Band{core.Band80m, core.Band20m},
-			sent:      map[string]core.BandmapMarker{},
-			markers:   []core.BandmapMarker{one, onTwenty},
-			wantAdded: []core.BandmapMarker{one, onTwenty},
+			bands:     []model.Band{model.Band80m, model.Band20m},
+			sent:      map[string]model.BandmapMarker{},
+			markers:   []model.BandmapMarker{one, onTwenty},
+			wantAdded: []model.BandmapMarker{one, onTwenty},
 		},
 		{
 			desc:      "a new marker",
-			sent:      map[string]core.BandmapMarker{},
-			markers:   []core.BandmapMarker{cq, one},
-			wantAdded: []core.BandmapMarker{cq, one},
+			sent:      map[string]model.BandmapMarker{},
+			markers:   []model.BandmapMarker{cq, one},
+			wantAdded: []model.BandmapMarker{cq, one},
 		},
 		{
 			desc:      "an unchanged marker",
-			sent:      map[string]core.BandmapMarker{"CQ": cq, "1": one},
-			markers:   []core.BandmapMarker{cq, one},
-			wantAdded: []core.BandmapMarker{},
+			sent:      map[string]model.BandmapMarker{"CQ": cq, "1": one},
+			markers:   []model.BandmapMarker{cq, one},
+			wantAdded: []model.BandmapMarker{},
 		},
 		{
 			desc:      "a marker on a new frequency",
-			sent:      map[string]core.BandmapMarker{"1": one},
-			markers:   []core.BandmapMarker{movedOne},
-			wantAdded: []core.BandmapMarker{movedOne},
+			sent:      map[string]model.BandmapMarker{"1": one},
+			markers:   []model.BandmapMarker{movedOne},
+			wantAdded: []model.BandmapMarker{movedOne},
 		},
 		{
 			desc:        "a marker that is gone",
-			sent:        map[string]core.BandmapMarker{"CQ": cq, "1": one},
-			markers:     []core.BandmapMarker{one},
-			wantAdded:   []core.BandmapMarker{},
+			sent:        map[string]model.BandmapMarker{"CQ": cq, "1": one},
+			markers:     []model.BandmapMarker{one},
+			wantAdded:   []model.BandmapMarker{},
 			wantRemoved: []string{"CQ"},
 		},
 		{
 			desc:        "a marker on another band",
-			sent:        map[string]core.BandmapMarker{"beacon": onTwenty},
-			markers:     []core.BandmapMarker{one, onTwenty},
-			wantAdded:   []core.BandmapMarker{one},
+			sent:        map[string]model.BandmapMarker{"beacon": onTwenty},
+			markers:     []model.BandmapMarker{one, onTwenty},
+			wantAdded:   []model.BandmapMarker{one},
 			wantRemoved: []string{"beacon"},
 		},
 	}
@@ -66,7 +66,7 @@ func TestDiffMarkers(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			bands := tc.bands
 			if bands == nil {
-				bands = []core.Band{core.Band80m}
+				bands = []model.Band{model.Band80m}
 			}
 
 			_, added, removed := diffMarkers(tc.sent, tc.markers, bands)
@@ -82,12 +82,12 @@ func TestDiffMarkers(t *testing.T) {
 }
 
 func TestDiffMarkers_CurrentMarkersAreTheNextSentMarkers(t *testing.T) {
-	one := core.BandmapMarker{Kind: core.NumberedMarker, Text: "1", Number: 1, Frequency: 3540000, Band: core.Band80m}
-	onTwenty := core.BandmapMarker{Kind: core.TextMarker, Text: "beacon", Frequency: 14100000, Band: core.Band20m}
+	one := model.BandmapMarker{Kind: model.NumberedMarker, Text: "1", Number: 1, Frequency: 3540000, Band: model.Band80m}
+	onTwenty := model.BandmapMarker{Kind: model.TextMarker, Text: "beacon", Frequency: 14100000, Band: model.Band20m}
 
-	current, _, _ := diffMarkers(map[string]core.BandmapMarker{}, []core.BandmapMarker{one, onTwenty}, []core.Band{core.Band80m})
+	current, _, _ := diffMarkers(map[string]model.BandmapMarker{}, []model.BandmapMarker{one, onTwenty}, []model.Band{model.Band80m})
 
-	assert.Equal(t, map[string]core.BandmapMarker{"1": one}, current, "only the markers on the band of the TRX")
+	assert.Equal(t, map[string]model.BandmapMarker{"1": one}, current, "only the markers on the band of the TRX")
 }
 
 func TestEmitUsesTheAsyncRunner(t *testing.T) {
@@ -101,27 +101,27 @@ func TestEmitUsesTheAsyncRunner(t *testing.T) {
 		},
 		{
 			desc: "frequency changed",
-			emit: func(c *Client) { c.emitFrequencyChanged(core.VFO1, 3500000) },
+			emit: func(c *Client) { c.emitFrequencyChanged(model.VFO1, 3500000) },
 		},
 		{
 			desc: "band changed",
-			emit: func(c *Client) { c.emitBandChanged(core.VFO1, core.Band80m) },
+			emit: func(c *Client) { c.emitBandChanged(model.VFO1, model.Band80m) },
 		},
 		{
 			desc: "mode changed",
-			emit: func(c *Client) { c.emitModeChanged(core.VFO1, core.ModeCW) },
+			emit: func(c *Client) { c.emitModeChanged(model.VFO1, model.ModeCW) },
 		},
 		{
 			desc: "incremental tuning changed",
-			emit: func(c *Client) { c.emitIncrementalTuningChanged(core.VFO1, core.RIT, true, 100) },
+			emit: func(c *Client) { c.emitIncrementalTuningChanged(model.VFO1, model.RIT, true, 100) },
 		},
 		{
 			desc: "PTT changed",
-			emit: func(c *Client) { c.emitPTTChanged(core.VFO1, true) },
+			emit: func(c *Client) { c.emitPTTChanged(model.VFO1, true) },
 		},
 		{
 			desc: "TX VFO changed",
-			emit: func(c *Client) { c.emitTXVFOChanged(core.VFO1) },
+			emit: func(c *Client) { c.emitTXVFOChanged(model.VFO1) },
 		},
 	}
 	for _, tc := range testCases {

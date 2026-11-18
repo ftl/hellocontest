@@ -47,7 +47,7 @@ import (
 )
 
 // NewController returns a new instance of the AppController interface.
-func NewController(version string, clock core.Clock, quitter Quitter, asyncRunner core.AsyncRunner, configuration Configuration, sponsors string) *Controller {
+func NewController(version string, clock model.Clock, quitter Quitter, asyncRunner model.AsyncRunner, configuration Configuration, sponsors string) *Controller {
 	return &Controller{
 		version:       version,
 		clock:         clock,
@@ -70,12 +70,12 @@ type Controller struct {
 	demoRadioSingleVFO bool
 
 	version       string
-	clock         core.Clock
+	clock         model.Clock
 	session       *session.Session
 	configuration Configuration
 	sponsors      string
 	quitter       Quitter
-	asyncRunner   core.AsyncRunner
+	asyncRunner   model.AsyncRunner
 	store         *store.FileStore
 
 	bandplan          bandplan.Bandplan
@@ -83,7 +83,7 @@ type Controller struct {
 	scpFinder         *scp.Finder
 	callHistoryFinder *callhistory.Finder
 	hamDXMap          *hamdxmap.HamDXMap
-	focusedVFO        core.VFOID
+	focusedVFO        model.VFOID
 
 	VFOs                     []*vfo.VFO
 	Logbook                  *logbook.Logbook
@@ -127,15 +127,15 @@ type View interface {
 type Configuration interface {
 	LogDirectory() string
 	HamDXMapPort() int
-	Station() core.Station
-	Contest() core.Contest
-	KeyerSettings() core.KeyerSettings
-	KeyerPresets() []core.KeyerPreset
+	Station() model.Station
+	Contest() model.Contest
+	KeyerSettings() model.KeyerSettings
+	KeyerPresets() []model.KeyerPreset
 	SpotLifetime() time.Duration
-	SpotSources() []core.SpotSource
-	Radios() []core.Radio
-	Keyers() []core.Keyer
-	RemoteServerSettings() core.RemoteServerSettings
+	SpotSources() []model.SpotSource
+	Radios() []model.Radio
+	Keyers() []model.Keyer
+	RemoteServerSettings() model.RemoteServerSettings
 }
 
 // Script can be used to automate things
@@ -231,45 +231,45 @@ func (c *Controller) Startup() {
 
 	radios := c.configuration.Radios()
 	if c.demoRadio {
-		radios = append(radios, core.DemoRadio(c.demoRadioSingleVFO))
+		radios = append(radios, model.DemoRadio(c.demoRadioSingleVFO))
 	}
 	c.Radio = radio.NewController(radios, c.configuration.Keyers(), c.bandplan, c.asyncRunner)
 	c.Radio.Notify(c.ServiceStatus)
 	// the entry controller gets the VFO events from the VFOs, not from the raw stream of
 	// the radio, because only the VFO knows whether the application commanded a change.
 	// Therefore it only gets the radio level events here.
-	c.Radio.Notify(core.RadioChangedListenerFunc(c.Entry.RadioChanged))
-	c.Radio.Notify(core.CurrentVFOListenerFunc(c.Entry.CurrentVFOChanged))
-	c.Radio.Notify(core.TXVFOListenerFunc(c.Entry.TXVFOChanged))
+	c.Radio.Notify(model.RadioChangedListenerFunc(c.Entry.RadioChanged))
+	c.Radio.Notify(model.CurrentVFOListenerFunc(c.Entry.CurrentVFOChanged))
+	c.Radio.Notify(model.TXVFOListenerFunc(c.Entry.TXVFOChanged))
 	c.Radio.Notify(c.Callinfo)
 	c.Radio.Notify(c.Workmode)
 	c.Entry.SetVFOSwitcher(c.Radio)
 	c.Bandmap.Notify(c.Radio) // TODO implement Entry... in radio.Controller
 
-	c.VFOs = make([]*vfo.VFO, core.VFOCount)
+	c.VFOs = make([]*vfo.VFO, model.VFOCount)
 	for vfoID := range len(c.VFOs) {
-		v := vfo.NewVFO(core.VFOID(vfoID), fmt.Sprintf("VFO %d", vfoID+1), c.clock, c.bandplan, c.Logbook, c.asyncRunner)
+		v := vfo.NewVFO(model.VFOID(vfoID), fmt.Sprintf("VFO %d", vfoID+1), c.clock, c.bandplan, c.Logbook, c.asyncRunner)
 		v.SetClient(c.Radio)
 		c.VFOs[vfoID] = v
-		c.Entry.SetVFO(core.VFOID(vfoID), v)
+		c.Entry.SetVFO(model.VFOID(vfoID), v)
 		v.Notify(c.Entry)
 		c.Logbook.Notify(v)
 		c.Workmode.Notify(v)
 	}
-	c.Bandmap.SetVFO(c.VFOs[core.VFO1])
-	c.Entry.Notify(core.FocusedVFOListenerFunc(func(vfo core.VFOID) {
+	c.Bandmap.SetVFO(c.VFOs[model.VFO1])
+	c.Entry.Notify(model.FocusedVFOListenerFunc(func(vfo model.VFOID) {
 		c.focusedVFO = vfo
 	}))
 
 	c.Entry.Notify(c.Bandmap)
 	c.Radio.Notify(c.Bandmap)
 	c.Bandmap.Notify(bandmap.CQMarkerSelectedListenerFunc(c.gotoCQMarker))
-	c.Bandmap.Notify(bandmap.MarkerSelectedListenerFunc(func(core.VFOID, core.BandmapMarker) {
+	c.Bandmap.Notify(bandmap.MarkerSelectedListenerFunc(func(model.VFOID, model.BandmapMarker) {
 		if c.view != nil {
 			c.view.BringToFront()
 		}
 	}))
-	c.Bandmap.Notify(bandmap.EntrySelectedListenerFunc(func(core.VFOID, core.BandmapEntry) {
+	c.Bandmap.Notify(bandmap.EntrySelectedListenerFunc(func(model.VFOID, model.BandmapEntry) {
 		// the spot list may live in its own window, therefore the main window with the
 		// entry fields comes to the front
 		if c.view != nil {
@@ -291,7 +291,7 @@ func (c *Controller) Startup() {
 	c.Radio.SetSendSpotsToTci(c.session.SendSpotsToTci())
 	if c.demoRadio {
 		// not through c.SelectRadio: the selection must not survive in the session
-		if err := c.Radio.SelectRadio(core.DemoRadioName); err != nil {
+		if err := c.Radio.SelectRadio(model.DemoRadioName); err != nil {
 			log.Printf("Cannot select the demo radio: %v", err)
 		}
 	} else {
@@ -315,12 +315,12 @@ func (c *Controller) Startup() {
 		if err := c.remoteServer.Start(); err != nil {
 			log.Printf("remote server failed to start: %v", err)
 			c.remoteServer = nil
-			c.ServiceStatus.StatusChanged(core.RemoteService, false)
+			c.ServiceStatus.StatusChanged(model.RemoteService, false)
 		} else {
-			c.ServiceStatus.StatusChanged(core.RemoteService, true)
+			c.ServiceStatus.StatusChanged(model.RemoteService, true)
 		}
 	} else {
-		c.ServiceStatus.StatusChanged(core.RemoteService, false)
+		c.ServiceStatus.StatusChanged(model.RemoteService, false)
 	}
 
 	c.QTCController = qtc.NewController(c.clock, c, c.Logbook, c.QTCList, c.Entry, c.Keyer)
@@ -355,7 +355,7 @@ func (c *Controller) Startup() {
 	c.Settings.Notify(c.Bandmap)
 	c.Settings.Notify(c.dxccFinder)
 	c.Settings.Notify(c.callHistoryFinder)
-	c.Settings.Notify(settings.SettingsListenerFunc(func(s core.Settings) {
+	c.Settings.Notify(settings.SettingsListenerFunc(func(s model.Settings) {
 		if !c.dxccFinder.Available() {
 			return
 		}
@@ -363,7 +363,7 @@ func (c *Controller) Startup() {
 			c.Logbook.Refresh()
 		}
 	}))
-	c.Settings.Notify(settings.StationListenerFunc(func(station core.Station) {
+	c.Settings.Notify(settings.StationListenerFunc(func(station model.Station) {
 		bp := model.BandplanByID(station.Bandplan)
 		for _, v := range c.VFOs {
 			v.SetBandplan(bp)
@@ -388,19 +388,19 @@ func (c *Controller) Startup() {
 			}
 			c.Refresh()
 		})
-		c.ServiceStatus.StatusChanged(core.DXCCService, true)
+		c.ServiceStatus.StatusChanged(model.DXCCService, true)
 	})
 	c.scpFinder.WhenAvailable(func() {
-		c.ServiceStatus.StatusChanged(core.SCPService, true)
+		c.ServiceStatus.StatusChanged(model.SCPService, true)
 	})
-	c.ServiceStatus.StatusChanged(core.MapService, true)
+	c.ServiceStatus.StatusChanged(model.MapService, true)
 	c.hamDXMap.WhenStopped(func() {
-		c.ServiceStatus.StatusChanged(core.MapService, false)
+		c.ServiceStatus.StatusChanged(model.MapService, false)
 	})
 
 	// Toggle the workmode to make sure all the listeners are notified about the current workmode.
-	c.Workmode.SetWorkmode(core.Run)
-	c.Workmode.SetWorkmode(core.SearchPounce)
+	c.Workmode.SetWorkmode(model.Run)
+	c.Workmode.SetWorkmode(model.SearchPounce)
 
 	c.ClockView.StartAutoRefresh()
 	c.Rate.StartAutoRefresh()
@@ -452,8 +452,8 @@ func (c *Controller) openCurrentLog() error {
 	qsos, station, contest, keyerSettings, qtcs, err := store.ReadAll()
 	if err != nil {
 		log.Printf("Cannot load %s: %v", filepath.Base(filename), err)
-		qsos = []core.QSO{}
-		qtcs = []core.QTC{}
+		qsos = []model.QSO{}
+		qtcs = []model.QTC{}
 	} else {
 		c.Settings.SetWriter(store)
 		if station != nil {
@@ -471,7 +471,7 @@ func (c *Controller) openCurrentLog() error {
 	return nil
 }
 
-func (c *Controller) loadLogbook(filename string, store *store.FileStore, qsos []core.QSO, qtcs []core.QTC) {
+func (c *Controller) loadLogbook(filename string, store *store.FileStore, qsos []model.QSO, qtcs []model.QTC) {
 	c.filename = filename
 	c.store = store
 	c.Logbook.Load(store, qsos, qtcs)
@@ -955,11 +955,11 @@ func (c *Controller) SetESMEnabled(enabled bool) {
 }
 
 func (c *Controller) SwitchToSPWorkmode() {
-	c.Workmode.SetWorkmode(core.SearchPounce)
+	c.Workmode.SetWorkmode(model.SearchPounce)
 }
 
 func (c *Controller) SwitchToRunWorkmode() {
-	c.Workmode.SetWorkmode(core.Run)
+	c.Workmode.SetWorkmode(model.Run)
 }
 
 func (c *Controller) OfferQTC() {
@@ -991,44 +991,44 @@ func (c *Controller) FocusVFO2() {
 	c.Entry.FocusVFO2()
 }
 
-func (c *Controller) IncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind) bool {
+func (c *Controller) IncrementalTuningActive(vfo model.VFOID, kind model.IncrementalTuningKind) bool {
 	return c.VFOs[vfo].IncrementalTuningActive(kind)
 }
 
-func (c *Controller) FocusedIncrementalTuningActive(kind core.IncrementalTuningKind) bool {
+func (c *Controller) FocusedIncrementalTuningActive(kind model.IncrementalTuningKind) bool {
 	return c.IncrementalTuningActive(c.focusedVFO, kind)
 }
 
-func (c *Controller) SetIncrementalTuningActive(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+func (c *Controller) SetIncrementalTuningActive(vfo model.VFOID, kind model.IncrementalTuningKind, active bool) {
 	c.VFOs[vfo].SetIncrementalTuningActive(kind, active)
 }
 
-func (c *Controller) SetFocusedIncrementalTuningActive(kind core.IncrementalTuningKind, active bool) {
+func (c *Controller) SetFocusedIncrementalTuningActive(kind model.IncrementalTuningKind, active bool) {
 	c.SetIncrementalTuningActive(c.focusedVFO, kind, active)
 }
 
-func (c *Controller) ShiftIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, delta core.Frequency) {
+func (c *Controller) ShiftIncrementalTuning(vfo model.VFOID, kind model.IncrementalTuningKind, delta model.Frequency) {
 	c.VFOs[vfo].ShiftIncrementalTuning(kind, delta)
 }
 
-func (c *Controller) ShiftFocusedIncrementalTuning(kind core.IncrementalTuningKind, delta core.Frequency) {
+func (c *Controller) ShiftFocusedIncrementalTuning(kind model.IncrementalTuningKind, delta model.Frequency) {
 	c.ShiftIncrementalTuning(c.focusedVFO, kind, delta)
 }
 
 func (c *Controller) XITUp() {
-	c.ShiftFocusedIncrementalTuning(core.XIT, core.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(model.XIT, core.DefaultXITShift)
 }
 
 func (c *Controller) XITDown() {
-	c.ShiftFocusedIncrementalTuning(core.XIT, -core.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(model.XIT, -core.DefaultXITShift)
 }
 
 func (c *Controller) RITUp() {
-	c.ShiftFocusedIncrementalTuning(core.RIT, core.DefaultRITShift)
+	c.ShiftFocusedIncrementalTuning(model.RIT, core.DefaultRITShift)
 }
 
 func (c *Controller) RITDown() {
-	c.ShiftFocusedIncrementalTuning(core.RIT, -core.DefaultRITShift)
+	c.ShiftFocusedIncrementalTuning(model.RIT, -core.DefaultRITShift)
 }
 
 func (c *Controller) ToggleIncrementalTuning() {
@@ -1043,7 +1043,7 @@ func (c *Controller) IncrementalTuningDown() {
 	c.VFOs[c.focusedVFO].ShiftAvailableIncrementalTuning(-1)
 }
 
-func (c *Controller) ShiftFrequency(delta core.Frequency) {
+func (c *Controller) ShiftFrequency(delta model.Frequency) {
 	c.Entry.ShiftFrequency(delta)
 }
 
@@ -1105,12 +1105,12 @@ func (c *Controller) GotoNumberedMarker(number int) {
 	c.Bandmap.GotoNumberedMarker(number)
 }
 
-func (c *Controller) gotoCQMarker(marker core.BandmapMarker) {
+func (c *Controller) gotoCQMarker(marker model.BandmapMarker) {
 	// only VFO1 works in the running workmode, therefore the CQ frequency always belongs
 	// to VFO1, no matter which VFO is focused
-	c.Entry.SetFocusedVFO(core.VFO1)
-	c.Workmode.SetWorkmode(core.Run)
-	c.Entry.MarkerSelected(core.VFO1, marker)
+	c.Entry.SetFocusedVFO(model.VFO1)
+	c.Workmode.SetWorkmode(model.Run)
+	c.Entry.MarkerSelected(model.VFO1, marker)
 	if c.view != nil {
 		c.view.BringToFront()
 	}
@@ -1214,7 +1214,7 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		if err != nil {
 			return err
 		}
-		c.ShiftFrequency(core.Frequency(amount))
+		c.ShiftFrequency(model.Frequency(amount))
 	case core.ActionRadioFrequencyUp:
 		c.FrequencyUp()
 	case core.ActionRadioFrequencyDown:
@@ -1224,7 +1224,7 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		if err != nil {
 			return err
 		}
-		c.ShiftFocusedIncrementalTuning(core.XIT, core.Frequency(amount))
+		c.ShiftFocusedIncrementalTuning(model.XIT, model.Frequency(amount))
 	case core.ActionRadioXITUp:
 		c.XITUp()
 	case core.ActionRadioXITDown:
@@ -1234,7 +1234,7 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 		if err != nil {
 			return err
 		}
-		c.ShiftFocusedIncrementalTuning(core.RIT, core.Frequency(amount))
+		c.ShiftFocusedIncrementalTuning(model.RIT, model.Frequency(amount))
 	case core.ActionRadioRITUp:
 		c.RITUp()
 	case core.ActionRadioRITDown:
@@ -1278,13 +1278,13 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 	case core.ActionEntryFocusVFO2:
 		c.Entry.FocusVFO2()
 	case core.ActionEntryLogVFO1:
-		c.Entry.LogVFO(core.VFO1)
+		c.Entry.LogVFO(model.VFO1)
 	case core.ActionEntryLogVFO2:
-		c.Entry.LogVFO(core.VFO2)
+		c.Entry.LogVFO(model.VFO2)
 	case core.ActionEntryClearVFO1:
-		c.Entry.ClearVFO(core.VFO1)
+		c.Entry.ClearVFO(model.VFO1)
 	case core.ActionEntryClearVFO2:
-		c.Entry.ClearVFO(core.VFO2)
+		c.Entry.ClearVFO(model.VFO2)
 	case core.ActionEntryOfferQTC:
 		c.OfferQTC()
 	case core.ActionEntryRequestQTC:
@@ -1353,7 +1353,7 @@ type vfoBandSwitcher struct {
 	vfos []*vfo.VFO
 }
 
-func (s *vfoBandSwitcher) SetVFOBand(id core.VFOID, band core.Band) {
+func (s *vfoBandSwitcher) SetVFOBand(id model.VFOID, band model.Band) {
 	if int(id) < 0 || int(id) >= len(s.vfos) {
 		return
 	}

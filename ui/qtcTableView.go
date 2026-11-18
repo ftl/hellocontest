@@ -3,8 +3,8 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/logbook"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var (
@@ -60,7 +60,7 @@ func (v *qtcTableView) SetQTCsEnabled(enabled bool) {
 	}
 }
 
-func (v *qtcTableView) QTCAdded(qtc core.QTC) {
+func (v *qtcTableView) QTCAdded(qtc model.QTC) {
 	v.table.QTCAdded(qtc)
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 //nolint
@@ -27,28 +27,28 @@ func (m *Log) ClearRowAddedListeners() {
 	m.Called()
 }
 
-func (m *Log) NextQSONumber() core.QSONumber {
+func (m *Log) NextQSONumber() model.QSONumber {
 	if !m.active {
-		return core.QSONumber(0)
+		return model.QSONumber(0)
 	}
 	args := m.Called()
-	return args.Get(0).(core.QSONumber)
+	return args.Get(0).(model.QSONumber)
 }
 
-func (m *Log) LastBand() core.Band {
+func (m *Log) LastBand() model.Band {
 	if !m.active {
-		return core.NoBand
+		return model.NoBand
 	}
 	args := m.Called()
-	return args.Get(0).(core.Band)
+	return args.Get(0).(model.Band)
 }
 
-func (m *Log) LastMode() core.Mode {
+func (m *Log) LastMode() model.Mode {
 	if !m.active {
-		return core.NoMode
+		return model.NoMode
 	}
 	args := m.Called()
-	return args.Get(0).(core.Mode)
+	return args.Get(0).(model.Mode)
 }
 
 func (m *Log) LastExchange() []string {
@@ -59,26 +59,26 @@ func (m *Log) LastExchange() []string {
 	return args.Get(0).([]string)
 }
 
-func (m *Log) AddQSO(qso core.QSO) {
+func (m *Log) AddQSO(qso model.QSO) {
 	if !m.active {
 		return
 	}
 	m.Called(qso)
 }
 
-func (m *Log) UpdateQSO(qso core.QSO) {
+func (m *Log) UpdateQSO(qso model.QSO) {
 	if !m.active {
 		return
 	}
 	m.Called(qso)
 }
 
-func (m *Log) FindDuplicateQSOs(call core.Callsign, band core.Band, mode core.Mode) []core.QSO {
+func (m *Log) FindDuplicateQSOs(call model.Callsign, band model.Band, mode model.Mode) []model.QSO {
 	if !m.active {
-		return []core.QSO{}
+		return []model.QSO{}
 	}
 	args := m.Called(call, band, mode)
-	return args.Get(0).([]core.QSO)
+	return args.Get(0).([]model.QSO)
 }
 
 type QSOList struct {
@@ -90,23 +90,23 @@ func (m *QSOList) Activate() {
 	m.active = true
 }
 
-func (m *QSOList) Find(callsign core.Callsign, band core.Band, mode core.Mode) []core.QSO {
+func (m *QSOList) Find(callsign model.Callsign, band model.Band, mode model.Mode) []model.QSO {
 	if !m.active {
-		return []core.QSO{}
+		return []model.QSO{}
 	}
 	args := m.Called(callsign, band, mode)
-	return args.Get(0).([]core.QSO)
+	return args.Get(0).([]model.QSO)
 }
 
-func (m *QSOList) FindWorkedQSOs(callsign core.Callsign, band core.Band, mode core.Mode) ([]core.QSO, bool) {
+func (m *QSOList) FindWorkedQSOs(callsign model.Callsign, band model.Band, mode model.Mode) ([]model.QSO, bool) {
 	if !m.active {
-		return []core.QSO{}, false
+		return []model.QSO{}, false
 	}
 	args := m.Called(callsign, band, mode)
-	return args.Get(0).([]core.QSO), args.Get(1).(bool)
+	return args.Get(0).([]model.QSO), args.Get(1).(bool)
 }
 
-func (m *QSOList) SelectQSO(qso core.QSO) {
+func (m *QSOList) SelectQSO(qso model.QSO) {
 	if !m.active {
 		return
 	}
@@ -120,12 +120,12 @@ func (m *QSOList) SelectLastQSO() {
 	m.Called()
 }
 
-func (m *QSOList) LastBandAndMode() (core.Band, core.Mode) {
+func (m *QSOList) LastBandAndMode() (model.Band, model.Mode) {
 	if !m.active {
-		return core.NoBand, core.NoMode
+		return model.NoBand, model.NoMode
 	}
 	args := m.Called()
-	return args.Get(0).(core.Band), args.Get(1).(core.Mode)
+	return args.Get(0).(model.Band), args.Get(1).(model.Mode)
 }
 
 type AppView struct {
@@ -158,11 +158,11 @@ type LogbookView struct {
 	mock.Mock
 }
 
-func (m *LogbookView) UpdateAllRows(qsos []core.QSO) {
+func (m *LogbookView) UpdateAllRows(qsos []model.QSO) {
 	m.Called(qsos)
 }
 
-func (m *LogbookView) RowAdded(qso core.QSO) {
+func (m *LogbookView) RowAdded(qso model.QSO) {
 	m.Called(qso)
 }
 
@@ -170,9 +170,9 @@ type Reader struct {
 	mock.Mock
 }
 
-func (m *Reader) ReadAllQSOs() ([]core.QSO, error) {
+func (m *Reader) ReadAllQSOs() ([]model.QSO, error) {
 	args := m.Called()
-	return args.Get(0).([]core.QSO), args.Error(1)
+	return args.Get(0).([]model.QSO), args.Error(1)
 }
 
 type EntryView struct {
@@ -191,42 +191,42 @@ func (m *EntryView) SetUTC(utc string) {
 	m.Called(utc)
 }
 
-func (m *EntryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+func (m *EntryView) SetFrequency(vfo model.VFOID, frequency model.Frequency) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, frequency)
 }
 
-func (m *EntryView) SetCallsign(vfo core.VFOID, callsign string) {
+func (m *EntryView) SetCallsign(vfo model.VFOID, callsign string) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, callsign)
 }
 
-func (m *EntryView) SetTheirExchange(vfo core.VFOID, index int, value string) {
+func (m *EntryView) SetTheirExchange(vfo model.VFOID, index int, value string) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, index, value)
 }
 
-func (m *EntryView) SetBand(vfo core.VFOID, text string) {
+func (m *EntryView) SetBand(vfo model.VFOID, text string) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, text)
 }
 
-func (m *EntryView) SetMode(vfo core.VFOID, text string) {
+func (m *EntryView) SetMode(vfo model.VFOID, text string) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, text)
 }
 
-func (m *EntryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+func (m *EntryView) SetTXState(vfo model.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	if !m.active {
 		return
 	}
@@ -240,91 +240,91 @@ func (m *EntryView) SetMyExchange(index int, value string) {
 	m.Called(index, value)
 }
 
-func (m *EntryView) SetMyExchangeFields(fields []core.ExchangeField) {
+func (m *EntryView) SetMyExchangeFields(fields []model.ExchangeField) {
 	if !m.active {
 		return
 	}
 	m.Called(fields)
 }
 
-func (m *EntryView) SetTheirExchangeFields(fields []core.ExchangeField) {
+func (m *EntryView) SetTheirExchangeFields(fields []model.ExchangeField) {
 	if !m.active {
 		return
 	}
 	m.Called(fields)
 }
 
-func (m *EntryView) SetSerialClaim(vfo core.VFOID, n core.QSONumber, committed bool) {
+func (m *EntryView) SetSerialClaim(vfo model.VFOID, n model.QSONumber, committed bool) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, n, committed)
 }
 
-func (m *EntryView) SetActiveVFO(vfo core.VFOID) {
+func (m *EntryView) SetActiveVFO(vfo model.VFOID) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo)
 }
 
-func (m *EntryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
+func (m *EntryView) SetActiveField(vfo model.VFOID, field model.EntryField) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, field)
 }
 
-func (m *EntryView) SelectText(vfo core.VFOID, field core.EntryField, s string) {
+func (m *EntryView) SelectText(vfo model.VFOID, field model.EntryField, s string) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, field, s)
 }
 
-func (m *EntryView) SetDuplicateMarker(vfo core.VFOID, active bool) {
+func (m *EntryView) SetDuplicateMarker(vfo model.VFOID, active bool) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, active)
 }
 
-func (m *EntryView) SetEditingMarker(vfo core.VFOID, active bool) {
+func (m *EntryView) SetEditingMarker(vfo model.VFOID, active bool) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, active)
 }
 
-func (m *EntryView) ShowMessage(vfo core.VFOID, args ...interface{}) {
+func (m *EntryView) ShowMessage(vfo model.VFOID, args ...interface{}) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, args)
 }
 
-func (m *EntryView) ClearMessage(vfo core.VFOID) {
+func (m *EntryView) ClearMessage(vfo model.VFOID) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo)
 }
 
-func (m *EntryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
+func (m *EntryView) SetVFOEnabled(vfo model.VFOID, enabled bool) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, enabled)
 }
 
-func (m *EntryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
+func (m *EntryView) SetVFOWorkmode(vfo model.VFOID, workmode model.Workmode) {
 	if !m.active {
 		return
 	}
 	m.Called(vfo, workmode)
 }
 
-func (m *EntryView) SetTXVFO(vfo core.VFOID) {
+func (m *EntryView) SetTXVFO(vfo model.VFOID) {
 	if !m.active {
 		return
 	}

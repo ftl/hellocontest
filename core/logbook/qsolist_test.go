@@ -7,17 +7,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestQSOList_QSOAdded(t *testing.T) {
 	tt := []struct {
 		name   string
-		qsos   []core.QSO
-		number core.QSONumber
+		qsos   []model.QSO
+		number model.QSONumber
 	}{
-		{"empty", []core.QSO{}, 1},
-		{"empty with high number", []core.QSO{}, 100},
+		{"empty", []model.QSO{}, 1},
+		{"empty with high number", []model.QSO{}, 100},
 		{"next", toQSOs(1, 2, 3), 4},
 		{"future", toQSOs(1, 2, 3), 400},
 	}
@@ -25,7 +25,7 @@ func TestQSOList_QSOAdded(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			list := NewQSOList(new(testSettings))
 			list.list = tc.qsos
-			list.QSOAdded(core.QSO{MyNumber: tc.number})
+			list.QSOAdded(model.QSO{MyNumber: tc.number})
 			require.True(t, len(list.list) > 0, "list must not be empty")
 			assert.Equal(t, tc.number, list.list[len(list.list)-1].MyNumber)
 		})
@@ -33,13 +33,13 @@ func TestQSOList_QSOAdded(t *testing.T) {
 }
 
 func TestQSOList_SelectRow(t *testing.T) {
-	qso := core.QSO{Callsign: core.MustParseCallsign("DL1ABC"), MyNumber: 1}
+	qso := model.QSO{Callsign: model.MustParseCallsign("DL1ABC"), MyNumber: 1}
 	list := NewQSOList(new(testSettings))
 	list.QSOAdded(qso)
-	list.QSOAdded(core.QSO{Callsign: core.MustParseCallsign("K3LR"), MyNumber: 2})
+	list.QSOAdded(model.QSO{Callsign: model.MustParseCallsign("K3LR"), MyNumber: 2})
 	qsoNotified := false
 	indexNotified := false
-	list.Notify(QSOSelectedListenerFunc(func(selectedQSO core.QSO) {
+	list.Notify(QSOSelectedListenerFunc(func(selectedQSO model.QSO) {
 		qsoNotified = true
 		assert.Equal(t, qso, selectedQSO)
 	}))
@@ -55,14 +55,14 @@ func TestQSOList_SelectRow(t *testing.T) {
 }
 
 func TestQSOList_SelectLastQSO(t *testing.T) {
-	qso := core.QSO{Callsign: core.MustParseCallsign("DL1ABC"), MyNumber: 1}
-	lastQSO := core.QSO{Callsign: core.MustParseCallsign("K3LR"), MyNumber: 2}
+	qso := model.QSO{Callsign: model.MustParseCallsign("DL1ABC"), MyNumber: 1}
+	lastQSO := model.QSO{Callsign: model.MustParseCallsign("K3LR"), MyNumber: 2}
 	list := NewQSOList(new(testSettings))
 	list.QSOAdded(qso)
 	list.QSOAdded(lastQSO)
 	qsoNotified := false
 	indexNotified := false
-	list.Notify(QSOSelectedListenerFunc(func(selectedQSO core.QSO) {
+	list.Notify(QSOSelectedListenerFunc(func(selectedQSO model.QSO) {
 		qsoNotified = true
 		assert.Equal(t, lastQSO, selectedQSO)
 	}))
@@ -79,9 +79,9 @@ func TestQSOList_SelectLastQSO(t *testing.T) {
 
 func TestQSOList_QSOAddedListener(t *testing.T) {
 	list := NewQSOList(new(testSettings))
-	qso := core.QSO{MyNumber: 1}
+	qso := model.QSO{MyNumber: 1}
 	notified := false
-	list.Notify(QSOAddedListenerFunc(func(addedQSO core.QSO) {
+	list.Notify(QSOAddedListenerFunc(func(addedQSO model.QSO) {
 		notified = true
 		assert.Equal(t, qso, addedQSO)
 	}))
@@ -91,30 +91,30 @@ func TestQSOList_QSOAddedListener(t *testing.T) {
 	assert.True(t, notified)
 }
 
-func toQSOs(numbers ...int) []core.QSO {
-	result := make([]core.QSO, len(numbers))
+func toQSOs(numbers ...int) []model.QSO {
+	result := make([]model.QSO, len(numbers))
 	for i, number := range numbers {
 		result[i] = toQSO(number)
 	}
 	return result
 }
 
-func toQSO(number int) core.QSO {
-	return core.QSO{Callsign: core.MustParseCallsign(fmt.Sprintf("DL%dNN", number)), MyNumber: core.QSONumber(number)}
+func toQSO(number int) model.QSO {
+	return model.QSO{Callsign: model.MustParseCallsign(fmt.Sprintf("DL%dNN", number)), MyNumber: model.QSONumber(number)}
 }
 
 type testSettings struct{}
 
-func (c *testSettings) Station() core.Station {
-	return core.Station{}
+func (c *testSettings) Station() model.Station {
+	return model.Station{}
 }
 
-func (c *testSettings) Contest() core.Contest {
-	return core.Contest{}
+func (c *testSettings) Contest() model.Contest {
+	return model.Contest{}
 }
 
 type testScorer struct {
-	scores map[string]core.QSOScore
+	scores map[string]model.QSOScore
 	worked []string
 }
 
@@ -122,9 +122,9 @@ func (s *testScorer) Clear() {
 	s.worked = make([]string, 1)
 }
 
-func (s *testScorer) AddMuted(qso core.QSO) core.QSOScore {
+func (s *testScorer) AddMuted(qso model.QSO) model.QSOScore {
 	if s.scores == nil {
-		s.scores = make(map[string]core.QSOScore)
+		s.scores = make(map[string]model.QSOScore)
 	}
 	if s.worked == nil {
 		s.worked = make([]string, 0)

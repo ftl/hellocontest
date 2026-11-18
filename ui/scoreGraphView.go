@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/rate"
 )
 
@@ -16,10 +16,10 @@ type scoreGraphView struct {
 	widget *qtlib.QFrame
 
 	graph *scoreGraph
-	score core.Score
+	score model.Score
 }
 
-func newScoreGraphView(parent *qtlib.QWidget, clock core.Clock) *scoreGraphView {
+func newScoreGraphView(parent *qtlib.QWidget, clock model.Clock) *scoreGraphView {
 	v := &scoreGraphView{}
 	v.widget = qtlib.NewQFrame2()
 	setObjectName(v.widget, "scoreGraph")
@@ -43,8 +43,8 @@ func (v *scoreGraphView) RepaintForThemeChange() {
 	v.widget.Update()
 }
 
-// Implements core.score.View
-func (v *scoreGraphView) ShowScore(score core.Score) {
+// Implements model.score.View
+func (v *scoreGraphView) ShowScore(score model.Score) {
 	v.score = score
 	v.graph.SetGraphs(score.StackedGraphPerBand())
 	v.graph.widget.Update()
@@ -58,8 +58,8 @@ func (v *scoreGraphView) SetQTCsEnabled(enabled bool) {
 	// Graph doesn't need QTC info - no-op
 }
 
-// Implements core.rate.RateUpdatedListener
-func (v *scoreGraphView) RateUpdated(_ core.QSORate) {
+// Implements model.rate.RateUpdatedListener
+func (v *scoreGraphView) RateUpdated(_ model.QSORate) {
 	v.graph.UpdateTimeFrame()
 	v.graph.widget.Update()
 }

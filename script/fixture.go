@@ -10,7 +10,7 @@ import (
 	"github.com/ftl/conval"
 	"github.com/ftl/hamradio/locator"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/store"
 )
 
@@ -148,27 +148,27 @@ func prepareScreenshotsFixture(fixture *contestFixture) (string, error) {
 	return filename, nil
 }
 
-func fixtureStation() (core.Station, error) {
+func fixtureStation() (model.Station, error) {
 	loc, err := locator.Parse(fixtureStationLocator)
 	if err != nil {
-		return core.Station{}, fmt.Errorf("cannot parse the fixture locator: %w", err)
+		return model.Station{}, fmt.Errorf("cannot parse the fixture locator: %w", err)
 	}
-	return core.Station{
-		Callsign: core.MustParseCallsign(fixtureStationCallsign),
-		Operator: core.MustParseCallsign(fixtureStationOperator),
+	return model.Station{
+		Callsign: model.MustParseCallsign(fixtureStationCallsign),
+		Operator: model.MustParseCallsign(fixtureStationOperator),
 		Locator:  loc,
 	}, nil
 }
 
-func fixtureContest(fixture *contestFixture, callHistoryFilename string) (core.Contest, error) {
+func fixtureContest(fixture *contestFixture, callHistoryFilename string) (model.Contest, error) {
 	definition, err := conval.IncludedDefinition(fixture.identifier)
 	if err != nil {
-		return core.Contest{}, fmt.Errorf("cannot load the contest definition %s: %w", fixture.identifier, err)
+		return model.Contest{}, fmt.Errorf("cannot load the contest definition %s: %w", fixture.identifier, err)
 	}
 
 	// the exchange fields are derived from the definition when the log is loaded, they do
 	// not belong into the file
-	return core.Contest{
+	return model.Contest{
 		Definition:             definition,
 		Name:                   fixture.name,
 		StartTime:              mustParseFixtureTime(fixtureTimebase),

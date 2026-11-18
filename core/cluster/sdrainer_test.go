@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var testSpotTime = time.Date(2026, 9, 12, 16, 51, 0, 0, time.UTC)
@@ -20,18 +20,18 @@ var testSpotTime = time.Date(2026, 9, 12, 16, 51, 0, 0, time.UTC)
 func TestSDRainerSpot(t *testing.T) {
 	channel := sdrainer.Channel{
 		Frequency: 3560000,
-		Callsign:  core.MustParseCallsign("dl1abc"),
+		Callsign:  model.MustParseCallsign("dl1abc"),
 		SNR:       25,
 	}
 
-	spot, ok := sdrainerSpot(channel, core.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
+	spot, ok := sdrainerSpot(channel, model.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
 
 	require.True(t, ok)
-	assert.Equal(t, core.MustParseCallsign("DL1ABC"), spot.Call)
-	assert.Equal(t, core.Frequency(3560000), spot.Frequency, "SDRainer reports the frequency in Hz")
-	assert.Equal(t, core.Band80m, spot.Band)
-	assert.Equal(t, core.ModeCW, spot.Mode, "SDRainer decodes CW")
-	assert.Equal(t, core.SkimmerSpot, spot.Source, "the type of the source decides")
+	assert.Equal(t, model.MustParseCallsign("DL1ABC"), spot.Call)
+	assert.Equal(t, model.Frequency(3560000), spot.Frequency, "SDRainer reports the frequency in Hz")
+	assert.Equal(t, model.Band80m, spot.Band)
+	assert.Equal(t, model.ModeCW, spot.Mode, "SDRainer decodes CW")
+	assert.Equal(t, model.SkimmerSpot, spot.Source, "the type of the source decides")
 	assert.Equal(t, 25.0, spot.SNR, "SDRainer measures the signal to noise ratio")
 	assert.Equal(t, testSpotTime, spot.Time, "the spot is as new as the event")
 }
@@ -40,20 +40,20 @@ func TestSDRainerSpot_Quality(t *testing.T) {
 	tt := []struct {
 		desc    string
 		quality sdrcore.ChannelQuality
-		want    core.SpotQuality
+		want    model.SpotQuality
 	}{
-		{desc: "valid", quality: sdrcore.ValidQuality, want: core.ValidSpotQuality},
-		{desc: "qsy", quality: sdrcore.QSYQuality, want: core.QSYSpotQuality},
-		{desc: "busted", quality: sdrcore.BustedQuality, want: core.BustedSpotQuality},
-		{desc: "unverified", quality: sdrcore.UnverifiedQuality, want: core.UnknownSpotQuality},
-		{desc: "none", quality: sdrcore.NoQuality, want: core.UnknownSpotQuality},
+		{desc: "valid", quality: sdrcore.ValidQuality, want: model.ValidSpotQuality},
+		{desc: "qsy", quality: sdrcore.QSYQuality, want: model.QSYSpotQuality},
+		{desc: "busted", quality: sdrcore.BustedQuality, want: model.BustedSpotQuality},
+		{desc: "unverified", quality: sdrcore.UnverifiedQuality, want: model.UnknownSpotQuality},
+		{desc: "none", quality: sdrcore.NoQuality, want: model.UnknownSpotQuality},
 	}
 	for _, tc := range tt {
 		t.Run(tc.desc, func(t *testing.T) {
 			channel := testChannel("1", 3560000, "dl1abc")
 			channel.Quality = tc.quality
 
-			spot, ok := sdrainerSpot(channel, core.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
+			spot, ok := sdrainerSpot(channel, model.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
 
 			require.True(t, ok)
 			assert.Equal(t, tc.want, spot.Quality, "SDRainer and the bandmap use the same tags")
@@ -64,7 +64,7 @@ func TestSDRainerSpot_Quality(t *testing.T) {
 func TestSDRainerSpot_WithoutACallsign(t *testing.T) {
 	channel := sdrainer.Channel{Frequency: 3560000}
 
-	_, ok := sdrainerSpot(channel, core.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
+	_, ok := sdrainerSpot(channel, model.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
 
 	assert.False(t, ok, "a channel without a callsign is no spot")
 }
@@ -72,10 +72,10 @@ func TestSDRainerSpot_WithoutACallsign(t *testing.T) {
 func TestSDRainerSpot_OutsideOfTheBands(t *testing.T) {
 	channel := sdrainer.Channel{
 		Frequency: 5000000,
-		Callsign:  core.MustParseCallsign("dl1abc"),
+		Callsign:  model.MustParseCallsign("dl1abc"),
 	}
 
-	_, ok := sdrainerSpot(channel, core.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
+	_, ok := sdrainerSpot(channel, model.SkimmerSpot, bandplan.IARURegion1, testSpotTime)
 
 	assert.False(t, ok, "a frequency of no band is no spot")
 }
@@ -91,7 +91,7 @@ func TestSDRainerClient_SpotsARunningCallsign(t *testing.T) {
 	client.run(events, nil)
 
 	require.Len(t, bandmap.Spots(), 1, "the channel without a callsign is no spot")
-	assert.Equal(t, core.MustParseCallsign("DL1ABC"), bandmap.Spots()[0].Call)
+	assert.Equal(t, model.MustParseCallsign("DL1ABC"), bandmap.Spots()[0].Call)
 }
 
 func TestSDRainerClient_LearnsAChannelFromEveryEvent(t *testing.T) {
@@ -112,7 +112,7 @@ func TestSDRainerClient_LearnsAChannelFromEveryEvent(t *testing.T) {
 			client.handleEvent(tc.event)
 
 			require.Len(t, bandmap.Spots(), 1, "every event of a channel brings the spot")
-			assert.Equal(t, core.MustParseCallsign("DL1ABC"), bandmap.Spots()[0].Call)
+			assert.Equal(t, model.MustParseCallsign("DL1ABC"), bandmap.Spots()[0].Call)
 		})
 	}
 }
@@ -175,7 +175,7 @@ func TestSDRainerClient_SpotsACorrectedCallsignAtOnce(t *testing.T) {
 	client.handleEvent(sdrainer.ChannelRunningCallsignDetected{Channel: testChannel("1", 3560000, "dl1abd")})
 
 	require.Len(t, bandmap.Spots(), 2, "a corrected callsign waits for no interval")
-	assert.Equal(t, core.MustParseCallsign("DL1ABD"), bandmap.Spots()[1].Call)
+	assert.Equal(t, model.MustParseCallsign("DL1ABD"), bandmap.Spots()[1].Call)
 }
 
 func TestSDRainerClient_RefreshesTheChannelsThatStillExist(t *testing.T) {
@@ -189,7 +189,7 @@ func TestSDRainerClient_RefreshesTheChannelsThatStillExist(t *testing.T) {
 	client.refreshSpots()
 
 	require.Len(t, bandmap.Spots(), 1, "the destroyed channel is gone")
-	assert.Equal(t, core.MustParseCallsign("DL1ABC"), bandmap.Spots()[0].Call)
+	assert.Equal(t, model.MustParseCallsign("DL1ABC"), bandmap.Spots()[0].Call)
 }
 
 func TestSDRainerClient_RefreshesAlsoAnIdleChannel(t *testing.T) {
@@ -217,8 +217,8 @@ func TestSDRainerClient_RefreshesTheLastStateOfAChannel(t *testing.T) {
 	client.refreshSpots()
 
 	require.Len(t, bandmap.Spots(), 1, "one record for each channel")
-	assert.Equal(t, core.MustParseCallsign("DL1ABD"), bandmap.Spots()[0].Call)
-	assert.Equal(t, core.Frequency(3560100), bandmap.Spots()[0].Frequency)
+	assert.Equal(t, model.MustParseCallsign("DL1ABD"), bandmap.Spots()[0].Call)
+	assert.Equal(t, model.Frequency(3560100), bandmap.Spots()[0].Frequency)
 }
 
 func TestSDRainerClient_RefreshesNoChannelWithoutACallsign(t *testing.T) {
@@ -269,9 +269,9 @@ func TestSDRainerClient_TakesTheSpotOfACorrectedCallsignBack(t *testing.T) {
 	client.handleEvent(sdrainer.ChannelRunningCallsignDetected{Channel: testChannel("1", 3560000, "dl1abd")})
 
 	require.Len(t, bandmap.RemovedSpots(), 1, "the callsign before is obsolete")
-	assert.Equal(t, core.MustParseCallsign("DL1ABC"), bandmap.RemovedSpots()[0].Call)
+	assert.Equal(t, model.MustParseCallsign("DL1ABC"), bandmap.RemovedSpots()[0].Call)
 	require.Len(t, bandmap.Spots(), 2)
-	assert.Equal(t, core.MustParseCallsign("DL1ABD"), bandmap.Spots()[1].Call)
+	assert.Equal(t, model.MustParseCallsign("DL1ABD"), bandmap.Spots()[1].Call)
 }
 
 func TestSDRainerClient_TakesEachSpotBackOnlyOneTime(t *testing.T) {
@@ -285,8 +285,8 @@ func TestSDRainerClient_TakesEachSpotBackOnlyOneTime(t *testing.T) {
 
 	removed := bandmap.RemovedSpots()
 	require.Len(t, removed, 2)
-	assert.Equal(t, core.MustParseCallsign("DL1ABC"), removed[0].Call)
-	assert.Equal(t, core.MustParseCallsign("DL1ABD"), removed[1].Call, "each spot goes back one time")
+	assert.Equal(t, model.MustParseCallsign("DL1ABC"), removed[0].Call)
+	assert.Equal(t, model.MustParseCallsign("DL1ABD"), removed[1].Call, "each spot goes back one time")
 }
 
 func TestSDRainerClient_TakesNoSpotBackWithoutASpot(t *testing.T) {
@@ -317,7 +317,7 @@ func setupSDRainerClient() (*sdrainerClient, *bandmapSpy, *testClock) {
 	clock := &testClock{now: testSpotTime}
 	client := &sdrainerClient{
 		parent:    &Clusters{bandplan: bandplan.IARURegion1},
-		source:    core.SpotSource{Type: core.SkimmerSpot},
+		source:    model.SpotSource{Type: model.SkimmerSpot},
 		bandmap:   bandmap,
 		clock:     clock,
 		connected: true,
@@ -332,7 +332,7 @@ func testChannel(id string, frequency float64, call string) sdrainer.Channel {
 		Frequency: frequency,
 	}
 	if call != "" {
-		result.Callsign = core.MustParseCallsign(call)
+		result.Callsign = model.MustParseCallsign(call)
 	}
 	return result
 }
@@ -341,29 +341,29 @@ func testChannel(id string, frequency float64, call string) sdrainer.Channel {
 // needs the lock
 type bandmapSpy struct {
 	lock         sync.RWMutex
-	spots        []core.Spot
-	removedSpots []core.Spot
+	spots        []model.Spot
+	removedSpots []model.Spot
 }
 
-func (b *bandmapSpy) Add(spot core.Spot) {
+func (b *bandmapSpy) Add(spot model.Spot) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	b.spots = append(b.spots, spot)
 }
 
-func (b *bandmapSpy) Remove(spot core.Spot) {
+func (b *bandmapSpy) Remove(spot model.Spot) {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	b.removedSpots = append(b.removedSpots, spot)
 }
 
-func (b *bandmapSpy) RemovedSpots() []core.Spot {
+func (b *bandmapSpy) RemovedSpots() []model.Spot {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	return slices.Clone(b.removedSpots)
 }
 
-func (b *bandmapSpy) Spots() []core.Spot {
+func (b *bandmapSpy) Spots() []model.Spot {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	return slices.Clone(b.spots)

@@ -7,8 +7,8 @@ import (
 	"github.com/ftl/conval"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestScoreCounter_AddQSO_ScoreQSO(t *testing.T) {
@@ -21,15 +21,15 @@ func TestScoreCounter_AddQSO_ScoreQSO(t *testing.T) {
 		},
 	}
 
-	scoredQSO := scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("DL1ABC"), MyNumber: 1})
+	scoredQSO := scoreCounter.AddQSO(model.QSO{Callsign: model.MustParseCallsign("DL1ABC"), MyNumber: 1})
 	assert.Equal(t, 1, scoredQSO.Points)
 	assert.Equal(t, 2, scoredQSO.Multis)
 
-	scoredQSO = scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("K3LR"), MyNumber: 3})
+	scoredQSO = scoreCounter.AddQSO(model.QSO{Callsign: model.MustParseCallsign("K3LR"), MyNumber: 3})
 	assert.Equal(t, 6, scoredQSO.Points)
 	assert.Equal(t, 7, scoredQSO.Multis)
 
-	scoredQSO = scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("DK9ZZ"), MyNumber: 2})
+	scoredQSO = scoreCounter.AddQSO(model.QSO{Callsign: model.MustParseCallsign("DK9ZZ"), MyNumber: 2})
 	assert.Equal(t, 3, scoredQSO.Points)
 	assert.Equal(t, 4, scoredQSO.Multis)
 }
@@ -37,40 +37,40 @@ func TestScoreCounter_AddQSO_ScoreQSO(t *testing.T) {
 func TestScoreCounter_AddQTC_ScoreQTC(t *testing.T) {
 	scoreCounter := newScoreCounter(new(testSettings), testEntity)
 	scoreCounter.counter = &testConvalCounter{}
-	dl1abc := core.MustParseCallsign("DL1ABC")
-	header := core.QTCHeader{SeriesNumber: 1, QTCCount: 2}
+	dl1abc := model.MustParseCallsign("DL1ABC")
+	header := model.QTCHeader{SeriesNumber: 1, QTCCount: 2}
 	now := time.Now()
 
-	scoreCounter.AddQTCSeries(core.QTCSeries{
+	scoreCounter.AddQTCSeries(model.QTCSeries{
 		TheirCallsign: dl1abc,
 		Header:        header,
-		QTCs: []core.QTC{
-			{Kind: core.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
-			{Kind: core.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-1 * time.Minute), Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
-			{Kind: core.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: header, Timestamp: now, Band: core.Band80m, Mode: core.ModeCW, Frequency: 3500000},
+		QTCs: []model.QTC{
+			{Kind: model.SentQTC, QSONumber: 1, QTCNumber: 1, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-2 * time.Minute), Band: model.Band80m, Mode: model.ModeCW, Frequency: 3500000},
+			{Kind: model.SentQTC, QSONumber: 2, QTCNumber: 2, TheirCallsign: dl1abc, Header: header, Timestamp: now.Add(-1 * time.Minute), Band: model.Band80m, Mode: model.ModeCW, Frequency: 3500000},
+			{Kind: model.SentQTC, QSONumber: 3, QTCNumber: 3, TheirCallsign: dl1abc, Header: header, Timestamp: now, Band: model.Band80m, Mode: model.ModeCW, Frequency: 3500000},
 		},
 	})
 
 	assert.Equal(t, 3, scoreCounter.Score().Result().QTCs, "total")
-	assert.Equal(t, 3, scoreCounter.Score().ScorePerBand[core.Band80m].QTCs, "score per band")
+	assert.Equal(t, 3, scoreCounter.Score().ScorePerBand[model.Band80m].QTCs, "score per band")
 }
 
 func TestScoreCounter_AddQSO_MarksDuplicates(t *testing.T) {
-	dl1abc := core.MustParseCallsign("DL1ABC")
-	dl2abc := core.MustParseCallsign("DL2ABC")
+	dl1abc := model.MustParseCallsign("DL1ABC")
+	dl2abc := model.MustParseCallsign("DL2ABC")
 	scoreCounter := newScoreCounter(new(testSettings), testEntity)
 	scoreCounter.counter = &testConvalCounter{}
 
-	qso := scoreCounter.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 1})
+	qso := scoreCounter.AddQSO(model.QSO{Callsign: dl1abc, MyNumber: 1})
 	assert.False(t, qso.Duplicate, "first qso")
 
-	qso = scoreCounter.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 3})
+	qso = scoreCounter.AddQSO(model.QSO{Callsign: dl1abc, MyNumber: 3})
 	assert.True(t, qso.Duplicate, "duplicate of first qso")
 
-	qso = scoreCounter.AddQSO(core.QSO{Callsign: dl2abc, MyNumber: 1})
+	qso = scoreCounter.AddQSO(model.QSO{Callsign: dl2abc, MyNumber: 1})
 	assert.False(t, qso.Duplicate, "second qso, after edit")
 
-	qso = scoreCounter.AddQSO(core.QSO{Callsign: dl1abc, MyNumber: 2})
+	qso = scoreCounter.AddQSO(model.QSO{Callsign: dl1abc, MyNumber: 2})
 	assert.True(t, qso.Duplicate, "second qso, after insert")
 }
 
@@ -84,12 +84,12 @@ func TestScoreCounter_AddQSO_MultisPerProperty(t *testing.T) {
 		},
 	}
 
-	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT1ABC"), Band: core.Band80m, MyNumber: 1})
-	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT2ABC"), Band: core.Band40m, MyNumber: 2})
+	scoreCounter.AddQSO(model.QSO{Callsign: model.MustParseCallsign("CT1ABC"), Band: model.Band80m, MyNumber: 1})
+	scoreCounter.AddQSO(model.QSO{Callsign: model.MustParseCallsign("CT2ABC"), Band: model.Band40m, MyNumber: 2})
 
 	score := scoreCounter.Score()
-	assert.Equal(t, map[conval.Property]int{"ct_district": 5, conval.CQZoneProperty: 1}, score.ScorePerBand[core.Band80m].MultisPerProperty, "80m")
-	assert.Equal(t, map[conval.Property]int{"ct_district": 5}, score.ScorePerBand[core.Band40m].MultisPerProperty, "40m")
+	assert.Equal(t, map[conval.Property]int{"ct_district": 5, conval.CQZoneProperty: 1}, score.ScorePerBand[model.Band80m].MultisPerProperty, "80m")
+	assert.Equal(t, map[conval.Property]int{"ct_district": 5}, score.ScorePerBand[model.Band40m].MultisPerProperty, "40m")
 	assert.Equal(t, map[conval.Property]int{"ct_district": 10, conval.CQZoneProperty: 1}, score.Result().MultisPerProperty, "total")
 	assert.Equal(t, 11, score.Result().Multis, "the properties sum up to the multis")
 }
@@ -102,16 +102,16 @@ func TestScoreCounter_AddQSO_DuplicateBringsNoMultis(t *testing.T) {
 		},
 	}
 
-	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT1ABC"), Band: core.Band80m, MyNumber: 1})
-	scoreCounter.AddQSO(core.QSO{Callsign: core.MustParseCallsign("CT1ABC"), Band: core.Band80m, MyNumber: 2})
+	scoreCounter.AddQSO(model.QSO{Callsign: model.MustParseCallsign("CT1ABC"), Band: model.Band80m, MyNumber: 1})
+	scoreCounter.AddQSO(model.QSO{Callsign: model.MustParseCallsign("CT1ABC"), Band: model.Band80m, MyNumber: 2})
 
 	score := scoreCounter.Score()
-	assert.Equal(t, map[conval.Property]int{"ct_district": 5}, score.ScorePerBand[core.Band80m].MultisPerProperty)
+	assert.Equal(t, map[conval.Property]int{"ct_district": 5}, score.ScorePerBand[model.Band80m].MultisPerProperty)
 }
 
 func TestScoreCounter_MultiProperties_FollowTheStation(t *testing.T) {
 	// WAG counts the entities for a german station and the districts for all other stations
-	wag := core.Contest{Definition: &conval.Definition{Scoring: conval.Scoring{MultiRules: []conval.ScoringRule{
+	wag := model.Contest{Definition: &conval.Definition{Scoring: conval.Scoring{MultiRules: []conval.ScoringRule{
 		{Property: conval.DXCCEntityProperty, MyCountry: []conval.DXCCEntity{"dl"}},
 		{Property: "wag_district", MyCountry: []conval.DXCCEntity{conval.NotCountry, "dl"}},
 	}}}}
@@ -122,7 +122,7 @@ func TestScoreCounter_MultiProperties_FollowTheStation(t *testing.T) {
 	assert.Equal(t, []conval.Property{conval.DXCCEntityProperty}, scoreCounter.Score().MultiProperties, "a german station counts the entities")
 
 	entities.entity = dxcc.Prefix{Prefix: "OE", PrimaryPrefix: "OE", Continent: "EU"}
-	scoreCounter.StationChanged(core.Station{Callsign: core.MustParseCallsign("OE1ABC")})
+	scoreCounter.StationChanged(model.Station{Callsign: model.MustParseCallsign("OE1ABC")})
 
 	assert.Equal(t, []conval.Property{"wag_district"}, scoreCounter.Score().MultiProperties, "another station counts the districts")
 }
@@ -130,7 +130,7 @@ func TestScoreCounter_MultiProperties_FollowTheStation(t *testing.T) {
 func TestScoreCounter_MultiProperties_WithoutAContestDefinition(t *testing.T) {
 	scoreCounter := newScoreCounter(new(testSettings), testEntity)
 
-	scoreCounter.ContestChanged(core.Contest{})
+	scoreCounter.ContestChanged(model.Contest{})
 
 	assert.Empty(t, scoreCounter.Score().MultiProperties)
 }

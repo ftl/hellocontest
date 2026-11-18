@@ -1,6 +1,6 @@
 package qtc
 
-import "github.com/ftl/hellocontest/core"
+import "github.com/ftl/hellocontest/core/model"
 
 var _ qtcWorkflow = &provide{}
 
@@ -21,7 +21,7 @@ func (c *provide) HeaderAction() {
 }
 
 func (c *provide) ConfirmHeader() {
-	c.setActivePhase(core.QTCExchangeData)
+	c.setActivePhase(model.QTCExchangeData)
 	c.setActiveQTC(0)
 }
 
@@ -39,7 +39,7 @@ func (c *provide) ConfirmData() {
 	if c.currentSeries.IsValidQTCIndex(c.currentQTC + 1) {
 		c.setActiveQTC(c.currentQTC + 1)
 	} else {
-		c.setActivePhase(core.QTCFinish)
+		c.setActivePhase(model.QTCFinish)
 	}
 }
 
@@ -47,7 +47,7 @@ func (c *provide) setActiveQTC(index int) {
 	if !c.currentSeries.IsValidQTCIndex(index) {
 		return
 	}
-	c.setActivePhase(core.QTCExchangeData)
+	c.setActivePhase(model.QTCExchangeData)
 
 	c.currentQTC = index
 	c.view.SetActiveQTC(c.currentQTC)

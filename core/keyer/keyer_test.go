@@ -7,21 +7,21 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/mocked"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestSend(t *testing.T) {
-	keyerSettings := core.KeyerSettings{
+	keyerSettings := model.KeyerSettings{
 		WPM:       30,
 		SPMacros:  []string{"", "", "", ""},
 		RunMacros: []string{"", "", "", ""},
 	}
-	values := func() core.KeyerValues {
-		return core.KeyerValues{
+	values := func() model.KeyerValues {
+		return model.KeyerValues{
 			TheirCall: "DL0ZZZ",
-			MyNumber:  core.QSONumber(56),
-			MyReport:  core.RST("599"),
+			MyNumber:  model.QSONumber(56),
+			MyReport:  model.RST("599"),
 			MyXchange: "ABC",
 		}
 	}
@@ -37,7 +37,7 @@ func TestSend(t *testing.T) {
 	cwClient.On("Speed", 30).Once()
 	cwClient.On("Send", "DL1ABC DL0ZZZ t56 5nn ABC").Once()
 
-	keyer := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
+	keyer := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, model.SearchPounce, nil)
 	keyer.SetView(view)
 	keyer.SetValues(values)
 	keyer.EnterPattern(0, "{{.MyCall}} {{.TheirCall}} {{.MyNumber}} {{.MyReport}} {{.MyXchange}}")
@@ -64,67 +64,67 @@ func TestPad(t *testing.T) {
 }
 
 func TestWorkmode_FocusSwitchOrderIndependence(t *testing.T) {
-	keyerSettings := core.KeyerSettings{
+	keyerSettings := model.KeyerSettings{
 		WPM:       25,
 		SPMacros:  []string{"sp0", "", "", ""},
 		RunMacros: []string{"run0", "", "", ""},
 	}
 	cwClient := new(mocked.CWClient)
-	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
+	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, model.SearchPounce, nil)
 
 	// Simulate SO2V: VFO1=Run, VFO2=S&P
-	k.WorkmodeChanged(core.VFO1, core.Run)
-	k.WorkmodeChanged(core.VFO2, core.SearchPounce)
-	k.FocusedVFOChanged(core.VFO1)
-	assert.Equal(t, core.Run, k.workmode, "VFO1 focused → Run")
+	k.WorkmodeChanged(model.VFO1, model.Run)
+	k.WorkmodeChanged(model.VFO2, model.SearchPounce)
+	k.FocusedVFOChanged(model.VFO1)
+	assert.Equal(t, model.Run, k.workmode, "VFO1 focused → Run")
 
 	// Switch to VFO2
-	k.FocusedVFOChanged(core.VFO2)
-	assert.Equal(t, core.SearchPounce, k.workmode, "VFO2 focused → S&P")
+	k.FocusedVFOChanged(model.VFO2)
+	assert.Equal(t, model.SearchPounce, k.workmode, "VFO2 focused → S&P")
 
 	// Switch back to VFO1 — this is the regression case.
 	// WorkmodeChanged may arrive before or after FocusChanged.
 	// Test both orderings:
 
 	// Order A: FocusedVFOChanged first, then WorkmodeChanged
-	k.FocusedVFOChanged(core.VFO1)
-	k.WorkmodeChanged(core.VFO1, core.Run)
-	assert.Equal(t, core.Run, k.workmode, "Order A: VFO1 focused → Run")
+	k.FocusedVFOChanged(model.VFO1)
+	k.WorkmodeChanged(model.VFO1, model.Run)
+	assert.Equal(t, model.Run, k.workmode, "Order A: VFO1 focused → Run")
 
 	// Reset to VFO2
-	k.FocusedVFOChanged(core.VFO2)
-	assert.Equal(t, core.SearchPounce, k.workmode)
+	k.FocusedVFOChanged(model.VFO2)
+	assert.Equal(t, model.SearchPounce, k.workmode)
 
 	// Order B: WorkmodeChanged first, then FocusChanged
-	k.WorkmodeChanged(core.VFO1, core.Run)
-	k.FocusedVFOChanged(core.VFO1)
-	assert.Equal(t, core.Run, k.workmode, "Order B: VFO1 focused → Run")
+	k.WorkmodeChanged(model.VFO1, model.Run)
+	k.FocusedVFOChanged(model.VFO1)
+	assert.Equal(t, model.Run, k.workmode, "Order B: VFO1 focused → Run")
 }
 
 type testSettings struct {
 	stationCallsign string
 }
 
-func (s *testSettings) Station() core.Station {
-	return core.Station{
-		Callsign: core.MustParseCallsign(s.stationCallsign),
+func (s *testSettings) Station() model.Station {
+	return model.Station{
+		Callsign: model.MustParseCallsign(s.stationCallsign),
 	}
 }
 
-func (s *testSettings) Contest() core.Contest {
-	return core.Contest{}
+func (s *testSettings) Contest() model.Contest {
+	return model.Contest{}
 }
 
-type vfoSwitcherSpy struct{ txVFOs []core.VFOID }
+type vfoSwitcherSpy struct{ txVFOs []model.VFOID }
 
-func (s *vfoSwitcherSpy) SetTXVFO(vfo core.VFOID) { s.txVFOs = append(s.txVFOs, vfo) }
+func (s *vfoSwitcherSpy) SetTXVFO(vfo model.VFOID) { s.txVFOs = append(s.txVFOs, vfo) }
 
-type transmissionStartedSpy struct{ vfos []core.VFOID }
+type transmissionStartedSpy struct{ vfos []model.VFOID }
 
-func (s *transmissionStartedSpy) TransmissionStarted(vfo core.VFOID) { s.vfos = append(s.vfos, vfo) }
+func (s *transmissionStartedSpy) TransmissionStarted(vfo model.VFOID) { s.vfos = append(s.vfos, vfo) }
 
 func TestSend_SwitchesTXVFOToFocusedAndAnnounces(t *testing.T) {
-	keyerSettings := core.KeyerSettings{
+	keyerSettings := model.KeyerSettings{
 		WPM:       25,
 		SPMacros:  []string{"sp0", "", "", ""},
 		RunMacros: []string{"run0", "", "", ""},
@@ -143,38 +143,38 @@ func TestSend_SwitchesTXVFOToFocusedAndAnnounces(t *testing.T) {
 	vfoSw := &vfoSwitcherSpy{}
 	tx := &transmissionStartedSpy{}
 
-	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
+	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, model.SearchPounce, nil)
 	k.SetView(view)
 	k.SetVFOSwitcher(vfoSw)
 	k.Notify(tx)
 
 	// An operator send switches the TX VFO to the focused VFO and announces it.
-	k.FocusedVFOChanged(core.VFO2)
+	k.FocusedVFOChanged(model.VFO2)
 	k.SendMacro(0)
-	assert.Equal(t, []core.VFOID{core.VFO2}, vfoSw.txVFOs, "operator send switches TX to the focused VFO")
-	assert.Equal(t, []core.VFOID{core.VFO2}, tx.vfos, "operator send announces the transmission")
+	assert.Equal(t, []model.VFOID{model.VFO2}, vfoSw.txVFOs, "operator send switches TX to the focused VFO")
+	assert.Equal(t, []model.VFOID{model.VFO2}, tx.vfos, "operator send announces the transmission")
 
 	// An explicit-VFO send (parrot) targets the given VFO and does NOT announce
 	// (otherwise the parrot would stop on its own CQ).
-	k.SendWithWorkmodeOnVFO(core.VFO1, core.Run, 0)
-	assert.Equal(t, []core.VFOID{core.VFO2, core.VFO1}, vfoSw.txVFOs, "explicit send switches TX to the given VFO")
-	assert.Equal(t, []core.VFOID{core.VFO2}, tx.vfos, "explicit send must not announce")
+	k.SendWithWorkmodeOnVFO(model.VFO1, model.Run, 0)
+	assert.Equal(t, []model.VFOID{model.VFO2, model.VFO1}, vfoSw.txVFOs, "explicit send switches TX to the given VFO")
+	assert.Equal(t, []model.VFOID{model.VFO2}, tx.vfos, "explicit send must not announce")
 }
 
 type macroSentCall struct {
-	vfo      core.VFOID
-	workmode core.Workmode
+	vfo      model.VFOID
+	workmode model.Workmode
 	index    int
 }
 
 type macroSentSpy struct{ calls []macroSentCall }
 
-func (s *macroSentSpy) MacroSent(vfo core.VFOID, workmode core.Workmode, index int) {
+func (s *macroSentSpy) MacroSent(vfo model.VFOID, workmode model.Workmode, index int) {
 	s.calls = append(s.calls, macroSentCall{vfo: vfo, workmode: workmode, index: index})
 }
 
 func TestSend_AnnouncesTheMacroThatWentOut(t *testing.T) {
-	keyerSettings := core.KeyerSettings{
+	keyerSettings := model.KeyerSettings{
 		WPM:       25,
 		SPMacros:  []string{"sp0", "sp1", "", ""},
 		RunMacros: []string{"run0", "", "", ""},
@@ -192,20 +192,20 @@ func TestSend_AnnouncesTheMacroThatWentOut(t *testing.T) {
 	cwClient.On("Send", mock.Anything)
 	sent := &macroSentSpy{}
 
-	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, core.SearchPounce, nil)
+	k := New(&testSettings{"DL1ABC"}, cwClient, keyerSettings, model.SearchPounce, nil)
 	k.SetView(view)
 	k.SetVFOSwitcher(&vfoSwitcherSpy{})
 	k.Notify(sent)
 
 	// the operator sends with the focused VFO and the workmode of that VFO
-	k.FocusedVFOChanged(core.VFO2)
-	k.WorkmodeChanged(core.VFO2, core.SearchPounce)
+	k.FocusedVFOChanged(model.VFO2)
+	k.WorkmodeChanged(model.VFO2, model.SearchPounce)
 	k.SendMacro(1)
 	require.Len(t, sent.calls, 1)
-	assert.Equal(t, macroSentCall{vfo: core.VFO2, workmode: core.SearchPounce, index: 1}, sent.calls[0])
+	assert.Equal(t, macroSentCall{vfo: model.VFO2, workmode: model.SearchPounce, index: 1}, sent.calls[0])
 
 	// the parrot sends on the VFO that it names, in the running workmode
-	k.SendWithWorkmodeOnVFO(core.VFO1, core.Run, core.CQMacroIndex)
+	k.SendWithWorkmodeOnVFO(model.VFO1, model.Run, model.CQMacroIndex)
 	require.Len(t, sent.calls, 2)
-	assert.Equal(t, macroSentCall{vfo: core.VFO1, workmode: core.Run, index: core.CQMacroIndex}, sent.calls[1])
+	assert.Equal(t, macroSentCall{vfo: model.VFO1, workmode: model.Run, index: model.CQMacroIndex}, sent.calls[1])
 }

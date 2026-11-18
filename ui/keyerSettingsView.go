@@ -5,15 +5,15 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const keyerMacroCount = 4
 
 // KeyerSettingsController is the callback surface the keyer settings dialog uses.
 type KeyerSettingsController interface {
-	EnterLabel(core.Workmode, int, string)
-	EnterMacro(core.Workmode, int, string)
+	EnterLabel(model.Workmode, int, string)
+	EnterMacro(model.Workmode, int, string)
 	SelectPreset(string)
 	EnterParrotIntervalSeconds(int)
 	Save()
@@ -68,8 +68,8 @@ For more details see <a href="https://github.com/ftl/hellocontest/wiki/Main-Wind
 	root.AddWidget(templatesLabel.QWidget)
 
 	tabs := qtlib.NewQTabWidget2()
-	tabs.AddTab(v.buildMacroTab(core.SearchPounce), "Search && Pounce")
-	tabs.AddTab(v.buildMacroTab(core.Run), "Run")
+	tabs.AddTab(v.buildMacroTab(model.SearchPounce), "Search && Pounce")
+	tabs.AddTab(v.buildMacroTab(model.Run), "Run")
 	root.AddWidget(tabs.QWidget)
 
 	root.AddWidget(v.buildPresetGroup().QWidget)
@@ -83,7 +83,7 @@ For more details see <a href="https://github.com/ftl/hellocontest/wiki/Main-Wind
 	return v
 }
 
-func (v *keyerSettingsView) buildMacroTab(workmode core.Workmode) *qtlib.QWidget {
+func (v *keyerSettingsView) buildMacroTab(workmode model.Workmode) *qtlib.QWidget {
 	page := qtlib.NewQWidget2()
 	grid := qtlib.NewQGridLayout(page)
 
@@ -197,7 +197,7 @@ func (v *keyerSettingsView) ClearMessage() {
 	v.messageLabel.SetText("")
 }
 
-func (v *keyerSettingsView) SetLabel(workmode core.Workmode, index int, text string) {
+func (v *keyerSettingsView) SetLabel(workmode model.Workmode, index int, text string) {
 	idx := int(workmode) - 1
 	if idx < 0 || idx >= len(v.labels) || index < 0 || index >= keyerMacroCount {
 		return
@@ -205,7 +205,7 @@ func (v *keyerSettingsView) SetLabel(workmode core.Workmode, index int, text str
 	v.doIgnore(func() { v.labels[idx][index].SetText(text) })
 }
 
-func (v *keyerSettingsView) SetMacro(workmode core.Workmode, index int, text string) {
+func (v *keyerSettingsView) SetMacro(workmode model.Workmode, index int, text string) {
 	idx := int(workmode) - 1
 	if idx < 0 || idx >= len(v.macros) || index < 0 || index >= keyerMacroCount {
 		return

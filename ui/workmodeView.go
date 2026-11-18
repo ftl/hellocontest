@@ -3,11 +3,11 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type WorkmodeController interface {
-	SetWorkmode(core.Workmode)
+	SetWorkmode(model.Workmode)
 }
 
 type workmodeView struct {
@@ -41,13 +41,13 @@ func newWorkmodeView() *workmodeView {
 		if v.ignoreInput || !checked || v.controller == nil {
 			return
 		}
-		v.controller.SetWorkmode(core.SearchPounce)
+		v.controller.SetWorkmode(model.SearchPounce)
 	})
 	v.runRadio.OnToggled(func(checked bool) {
 		if v.ignoreInput || !checked || v.controller == nil {
 			return
 		}
-		v.controller.SetWorkmode(core.Run)
+		v.controller.SetWorkmode(model.Run)
 	})
 
 	return v
@@ -55,13 +55,13 @@ func newWorkmodeView() *workmodeView {
 
 func (v *workmodeView) SetWorkmodeController(c WorkmodeController) { v.controller = c }
 
-func (v *workmodeView) SetWorkmode(wm core.Workmode) {
+func (v *workmodeView) SetWorkmode(wm model.Workmode) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
 	switch wm {
-	case core.SearchPounce:
+	case model.SearchPounce:
 		v.searchPounceRadio.SetChecked(true)
-	case core.Run:
+	case model.Run:
 		v.runRadio.SetChecked(true)
 	}
 }

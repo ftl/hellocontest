@@ -12,7 +12,6 @@ import (
 	"github.com/ftl/hamradio/locator"
 	"github.com/ftl/hamradio/scp"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callhistory"
 	"github.com/ftl/hellocontest/core/dxcc"
 	"github.com/ftl/hellocontest/core/model"
@@ -22,22 +21,22 @@ const contestStartTimeFormat = "02-01-2006 15:04"
 const callHistoryArchiveURL = "https://n1mmwp.hamdocs.com/mmfiles/categories/callhistory"
 
 type StationListener interface {
-	StationChanged(core.Station)
+	StationChanged(model.Station)
 }
 
-type StationListenerFunc func(core.Station)
+type StationListenerFunc func(model.Station)
 
-func (f StationListenerFunc) StationChanged(station core.Station) {
+func (f StationListenerFunc) StationChanged(station model.Station) {
 	f(station)
 }
 
 type ContestListener interface {
-	ContestChanged(core.Contest)
+	ContestChanged(model.Contest)
 }
 
-type ContestListenerFunc func(core.Contest)
+type ContestListenerFunc func(model.Contest)
 
-func (f ContestListenerFunc) ContestChanged(contest core.Contest) {
+func (f ContestListenerFunc) ContestChanged(contest model.Contest) {
 	f(contest)
 }
 
@@ -52,18 +51,18 @@ func (f ContestPagesListenerFunc) ContestPagesChanged(rulesAvailable bool, uploa
 }
 
 type SettingsListener interface {
-	SettingsChanged(core.Settings)
+	SettingsChanged(model.Settings)
 }
 
-type SettingsListenerFunc func(core.Settings)
+type SettingsListenerFunc func(model.Settings)
 
-func (f SettingsListenerFunc) SettingsChanged(settings core.Settings) {
+func (f SettingsListenerFunc) SettingsChanged(settings model.Settings) {
 	f(settings)
 }
 
 type Writer interface {
-	WriteStation(core.Station) error
-	WriteContest(core.Contest) error
+	WriteStation(model.Station) error
+	WriteContest(model.Contest) error
 }
 
 type ConfigurationFileOpener func()
@@ -97,7 +96,7 @@ type View interface {
 	SetContestIdentifiers(ids []string, texts []string)
 	SelectContestIdentifier(string)
 
-	SetContestExchangeFields([]core.ExchangeField)
+	SetContestExchangeFields([]model.ExchangeField)
 	SetContestExchangeValue(index int, value string)
 	SetContestGenerateSerialExchange(active bool, sensitive bool)
 	SetContestGenerateReport(active bool, sensitive bool)
@@ -116,7 +115,7 @@ type View interface {
 	SetMultisGoal(string)
 }
 
-func New(configurationFileOpener ConfigurationFileOpener, clock core.Clock, browserOpener BrowserOpener, callHistory CallHistory, station core.Station, contest core.Contest) *Settings {
+func New(configurationFileOpener ConfigurationFileOpener, clock model.Clock, browserOpener BrowserOpener, callHistory CallHistory, station model.Station, contest model.Contest) *Settings {
 	result := &Settings{
 		writer:                  new(nullWriter),
 		clock:                   clock,
@@ -146,7 +145,7 @@ func New(configurationFileOpener ConfigurationFileOpener, clock core.Clock, brow
 
 type Settings struct {
 	writer                         Writer
-	clock                          core.Clock
+	clock                          model.Clock
 	view                           View
 	configurationFileOpener        ConfigurationFileOpener
 	browserOpener                  BrowserOpener
@@ -158,14 +157,14 @@ type Settings struct {
 
 	listeners []any
 
-	station core.Station
-	contest core.Contest
+	station model.Station
+	contest model.Contest
 
-	defaultStation core.Station
-	defaultContest core.Contest
+	defaultStation model.Station
+	defaultContest model.Contest
 
-	savedStation core.Station
-	savedContest core.Contest
+	savedStation model.Station
+	savedContest model.Contest
 }
 
 func (s *Settings) SetDXCCEntities(entities DXCCEntities) {
@@ -182,7 +181,7 @@ func (s *Settings) multiProperties() []conval.Property {
 	if !found {
 		return nil
 	}
-	return s.contest.MultiProperties(core.ContestSetup(s.station, entity))
+	return s.contest.MultiProperties(model.ContestSetup(s.station, entity))
 }
 
 func (s *Settings) SetWriter(writer Writer) {
@@ -217,11 +216,11 @@ func (s *Settings) Notify(listener any) {
 	s.updateContestPages()
 }
 
-func (s *Settings) Station() core.Station {
+func (s *Settings) Station() model.Station {
 	return s.station
 }
 
-func (s *Settings) SetStation(station core.Station) {
+func (s *Settings) SetStation(station model.Station) {
 	s.station = station
 	s.savedStation = station
 	s.emitStationChanged()
@@ -239,11 +238,11 @@ func (s *Settings) emitStationChanged() {
 	}
 }
 
-func (s *Settings) Contest() core.Contest {
+func (s *Settings) Contest() model.Contest {
 	return s.contest
 }
 
-func (s *Settings) SetContest(contest core.Contest) {
+func (s *Settings) SetContest(contest model.Contest) {
 	s.contest = contest
 	s.savedContest = deepCopyContest(contest)
 	s.contest.UpdateExchangeFields()
@@ -252,7 +251,7 @@ func (s *Settings) SetContest(contest core.Contest) {
 	s.emitContestChanged()
 }
 
-func deepCopyContest(contest core.Contest) core.Contest {
+func deepCopyContest(contest model.Contest) model.Contest {
 	result := contest
 
 	result.ExchangeValues = make([]string, len(contest.ExchangeValues))
@@ -392,7 +391,7 @@ func (s *Settings) OpenConfigurationFile() {
 }
 
 func (s *Settings) EnterStationCallsign(value string) {
-	cs, err := core.ParseCallsign(value)
+	cs, err := model.ParseCallsign(value)
 	if err != nil {
 		s.view.ShowMessage(fmt.Sprintf("%v", err))
 		return
@@ -402,10 +401,10 @@ func (s *Settings) EnterStationCallsign(value string) {
 }
 
 func (s *Settings) EnterStationOperator(value string) {
-	var cs core.Callsign
+	var cs model.Callsign
 	var err error
 	if value != "" {
-		cs, err = core.ParseCallsign(value)
+		cs, err = model.ParseCallsign(value)
 	}
 	if err != nil {
 		s.view.ShowMessage(fmt.Sprintf("%v", err))
@@ -516,11 +515,11 @@ func (s *Settings) updateExchangeFields() {
 
 	s.view.SetContestAvailableCallHistoryFieldNames(s.availableCallHistoryFieldNames)
 
-	var exchangeFields []core.ExchangeField
+	var exchangeFields []model.ExchangeField
 	if s.contest.Definition == nil {
 		exchangeFields = nil
 	} else {
-		exchangeFields = core.DefinitionsToExchangeFields(s.contest.Definition.ExchangeFields(), core.MyExchangeField)
+		exchangeFields = model.DefinitionsToExchangeFields(s.contest.Definition.ExchangeFields(), model.MyExchangeField)
 	}
 	s.view.SetContestExchangeFields(exchangeFields)
 
@@ -625,7 +624,7 @@ func (s *Settings) ClearCallHistory() {
 	}
 }
 
-func (s *Settings) EnterContestExchangeValue(field core.EntryField, value string) {
+func (s *Settings) EnterContestExchangeValue(field model.EntryField, value string) {
 	i := field.ExchangeIndex() - 1
 	if i < 0 {
 		s.view.ShowMessage(fmt.Sprintf("%s is not an exchange field!", field))
@@ -734,7 +733,7 @@ func (s *Settings) EnterContestCallHistoryFile(value string) {
 	s.view.SetContestCallHistoryFile(value)
 }
 
-func (s *Settings) EnterContestCallHistoryFieldName(field core.EntryField, value string) {
+func (s *Settings) EnterContestCallHistoryFieldName(field model.EntryField, value string) {
 	i := field.ExchangeIndex() - 1
 	if i < 0 || i >= len(s.contest.CallHistoryFieldNames) {
 		log.Printf("call history field name is out of range: %d", i)
@@ -795,8 +794,8 @@ func (h *nullCallHistory) SelectFieldNames([]string) {}
 
 type nullWriter struct{}
 
-func (w *nullWriter) WriteStation(core.Station) error { return nil }
-func (w *nullWriter) WriteContest(core.Contest) error { return nil }
+func (w *nullWriter) WriteStation(model.Station) error { return nil }
+func (w *nullWriter) WriteContest(model.Contest) error { return nil }
 
 var _ View = new(nullView)
 
@@ -814,7 +813,7 @@ func (v *nullView) SetStationBandplan(string)                          {}
 func (v *nullView) SetContestIdentifiers(ids []string, texts []string) {}
 func (v *nullView) SetContestPagesAvailable(bool, bool)                {}
 func (v *nullView) SelectContestIdentifier(string)                     {}
-func (v *nullView) SetContestExchangeFields([]core.ExchangeField)      {}
+func (v *nullView) SetContestExchangeFields([]model.ExchangeField)     {}
 func (v *nullView) SetContestExchangeValue(index int, value string)    {}
 func (v *nullView) SetContestGenerateSerialExchange(bool, bool)        {}
 func (v *nullView) SetContestGenerateReport(bool, bool)                {}

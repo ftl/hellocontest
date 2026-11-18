@@ -1,7 +1,7 @@
 package clock
 
 import (
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/ticker"
 )
 
@@ -17,7 +17,7 @@ func (n *nullView) Show()          {}
 func (n *nullView) SetTime(string) {}
 
 // NewController returns a new clock view controller driven by the given clock.
-func NewController(clock core.Clock, asyncRunner core.AsyncRunner) *Controller {
+func NewController(clock model.Clock, asyncRunner model.AsyncRunner) *Controller {
 	result := &Controller{
 		clock:       clock,
 		asyncRunner: asyncRunner,
@@ -28,8 +28,8 @@ func NewController(clock core.Clock, asyncRunner core.AsyncRunner) *Controller {
 }
 
 type Controller struct {
-	clock       core.Clock
-	asyncRunner core.AsyncRunner
+	clock       model.Clock
+	asyncRunner model.AsyncRunner
 	ticker      *ticker.Ticker
 	view        View
 }

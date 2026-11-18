@@ -7,16 +7,16 @@ import (
 
 	"github.com/ftl/conval"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type scoreCounter struct {
-	score          core.Score
+	score          model.Score
 	counter        convalCounter
 	timeSheet      convalTimeSheet
-	activeBands    map[core.Band]bool
-	activeModes    map[core.Mode]bool
+	activeBands    map[model.Band]bool
+	activeModes    map[model.Mode]bool
 	prefixDatabase prefixDatabase
 	valid          bool
 
@@ -32,13 +32,13 @@ type scoreCounter struct {
 	timeSheetFactory func() convalTimeSheet
 }
 
-func newScoreCounter(settings core.Settings, entities DXCCEntities) *scoreCounter {
+func newScoreCounter(settings model.Settings, entities DXCCEntities) *scoreCounter {
 	result := &scoreCounter{
-		score:          core.NewScore(),
+		score:          model.NewScore(),
 		counter:        new(nullCounter),
 		timeSheet:      new(nullTimeSheet),
-		activeBands:    make(map[core.Band]bool),
-		activeModes:    make(map[core.Mode]bool),
+		activeBands:    make(map[model.Band]bool),
+		activeModes:    make(map[model.Mode]bool),
 		prefixDatabase: prefixDatabase{entities},
 	}
 	result.counterFactory = result.newConvalCounter
@@ -50,7 +50,7 @@ func newScoreCounter(settings core.Settings, entities DXCCEntities) *scoreCounte
 	return result
 }
 
-func (c *scoreCounter) StationChanged(station core.Station) {
+func (c *scoreCounter) StationChanged(station model.Station) {
 	oldSetup := c.contestSetup
 
 	entity, found := c.prefixDatabase.prefixes.Find(station.Callsign.String())
@@ -59,7 +59,7 @@ func (c *scoreCounter) StationChanged(station core.Station) {
 		return
 	}
 
-	c.contestSetup = core.ContestSetup(station, entity)
+	c.contestSetup = model.ContestSetup(station, entity)
 	log.Printf("Using %+v as station setup", c.contestSetup)
 
 	// the rules decide per station which multiplier properties count
@@ -80,7 +80,7 @@ func (c *scoreCounter) updateMultiProperties() {
 	c.score.MultiProperties = c.multiProperties
 }
 
-func (c *scoreCounter) ContestChanged(contest core.Contest) {
+func (c *scoreCounter) ContestChanged(contest model.Contest) {
 	c.contestDefinition = contest.Definition
 	c.contestStartTime = contest.StartTime
 	c.myExchangeFields = toConvalExchangeFields(contest.MyExchangeFields)
@@ -101,12 +101,12 @@ func (c *scoreCounter) Clear() {
 }
 
 func (c *scoreCounter) clear() {
-	c.score = core.NewScore()
+	c.score = model.NewScore()
 	c.score.MultiProperties = c.multiProperties
 	c.counter = c.counterFactory()
 	c.timeSheet = c.timeSheetFactory()
-	c.activeBands = make(map[core.Band]bool)
-	c.activeModes = make(map[core.Mode]bool)
+	c.activeBands = make(map[model.Band]bool)
+	c.activeModes = make(map[model.Mode]bool)
 }
 
 func (c *scoreCounter) newConvalTimeSheet() convalTimeSheet {
@@ -124,9 +124,9 @@ func (c *scoreCounter) newConvalCounter() convalCounter {
 }
 
 // Add the given QSO and return the QSO with updated fields for points, multis, and duplicate.
-func (c *scoreCounter) AddQSO(qso core.QSO) core.QSO {
+func (c *scoreCounter) AddQSO(qso model.QSO) model.QSO {
 	convalScore := c.counter.Add(c.toConvalQSO(qso))
-	qsoScore := core.QSOScore{
+	qsoScore := model.QSOScore{
 		Points:            convalScore.Points,
 		Multis:            convalScore.Multis,
 		MultisPerProperty: convalScore.MultisPerProperty,
@@ -147,23 +147,23 @@ func (c *scoreCounter) AddQSO(qso core.QSO) core.QSO {
 	if c.contestDefinition != nil {
 		graph, ok := c.score.GraphPerBand[qso.Band]
 		if !ok {
-			graph = core.NewBandGraph(qso.Band, c.contestStartTime, c.contestDefinition.Duration)
+			graph = model.NewBandGraph(qso.Band, c.contestStartTime, c.contestDefinition.Duration)
 		}
 		graph.Add(qso.Time, qsoScore)
 		c.score.GraphPerBand[graph.Band] = graph
 
-		sumGraph, ok := c.score.GraphPerBand[core.NoBand]
+		sumGraph, ok := c.score.GraphPerBand[model.NoBand]
 		if !ok {
-			sumGraph = core.NewBandGraph(core.NoBand, c.contestStartTime, c.contestDefinition.Duration)
+			sumGraph = model.NewBandGraph(model.NoBand, c.contestStartTime, c.contestDefinition.Duration)
 		}
 		sumGraph.Add(qso.Time, qsoScore)
-		c.score.GraphPerBand[core.NoBand] = sumGraph
+		c.score.GraphPerBand[model.NoBand] = sumGraph
 	}
 
 	return qso
 }
 
-func (c *scoreCounter) AddQTCSeries(series core.QTCSeries) {
+func (c *scoreCounter) AddQTCSeries(series model.QTCSeries) {
 	if len(series.QTCs) == 0 {
 		return
 	}
@@ -171,7 +171,7 @@ func (c *scoreCounter) AddQTCSeries(series core.QTCSeries) {
 
 	convalQTC := c.toConvalQTC(series)
 	convalScore := c.counter.AddQTC(convalQTC)
-	qtcScore := core.QTCScore{
+	qtcScore := model.QTCScore{
 		Value: convalScore.Value,
 	}
 
@@ -186,21 +186,21 @@ func (c *scoreCounter) AddQTCSeries(series core.QTCSeries) {
 	if c.contestDefinition != nil {
 		graph, ok := c.score.GraphPerBand[firstQTC.Band]
 		if !ok {
-			graph = core.NewBandGraph(firstQTC.Band, c.contestStartTime, c.contestDefinition.Duration)
+			graph = model.NewBandGraph(firstQTC.Band, c.contestStartTime, c.contestDefinition.Duration)
 		}
 		graph.AddQTC(firstQTC.Timestamp, qtcScore)
 		c.score.GraphPerBand[graph.Band] = graph
 
-		sumGraph, ok := c.score.GraphPerBand[core.NoBand]
+		sumGraph, ok := c.score.GraphPerBand[model.NoBand]
 		if !ok {
-			sumGraph = core.NewBandGraph(core.NoBand, c.contestStartTime, c.contestDefinition.Duration)
+			sumGraph = model.NewBandGraph(model.NoBand, c.contestStartTime, c.contestDefinition.Duration)
 		}
 		sumGraph.AddQTC(firstQTC.Timestamp, qtcScore)
-		c.score.GraphPerBand[core.NoBand] = sumGraph
+		c.score.GraphPerBand[model.NoBand] = sumGraph
 	}
 }
 
-func (c *scoreCounter) Value(callsign core.Callsign, entity dxcc.Prefix, band core.Band, mode core.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
+func (c *scoreCounter) Value(callsign model.Callsign, entity dxcc.Prefix, band model.Band, mode model.Mode, exchange []string) (points, multis int, multiValues map[conval.Property]string) {
 	continent, country, _, _ := toConvalDXCCEntity(entity)
 	convalQSO := conval.QSO{
 		TheirCall:      callsign,
@@ -215,21 +215,21 @@ func (c *scoreCounter) Value(callsign core.Callsign, entity dxcc.Prefix, band co
 	return qsoScore.Points, qsoScore.Multis, qsoScore.MultiValues
 }
 
-func (c *scoreCounter) Score() core.Score {
+func (c *scoreCounter) Score() model.Score {
 	return c.score
 }
 
-func (c *scoreCounter) FillSummary(summary *core.Summary) {
+func (c *scoreCounter) FillSummary(summary *model.Summary) {
 	breakDuration := c.computeMinBreakDuration(c.contestDefinition, summary.OperatorMode, summary.Overlay)
 	timeReport := c.timeSheet.TimeReport(breakDuration)
 	bands := make([]string, 0, len(c.activeBands))
-	for _, band := range core.Bands {
+	for _, band := range model.Bands {
 		if c.activeBands[band] {
 			bands = append(bands, string(band))
 		}
 	}
 	modes := make([]string, 0, len(c.activeModes))
-	for _, mode := range core.Modes {
+	for _, mode := range model.Modes {
 		if c.activeModes[mode] {
 			modes = append(modes, string(mode))
 		}
@@ -256,7 +256,7 @@ func (c *scoreCounter) computeMinBreakDuration(definition *conval.Definition, op
 	return conval.DefaultBreakDuration
 }
 
-func (c *scoreCounter) toConvalQSO(qso core.QSO) conval.QSO {
+func (c *scoreCounter) toConvalQSO(qso model.QSO) conval.QSO {
 	result := conval.QSO{
 		TheirCall:     qso.Callsign,
 		Timestamp:     qso.Time,
@@ -277,7 +277,7 @@ func (c *scoreCounter) toQSOExchange(fields []conval.ExchangeField, values []str
 	return conval.ParseExchange(fields, values, c.prefixDatabase, c.contestDefinition)
 }
 
-func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField {
+func toConvalExchangeFields(fields []model.ExchangeField) []conval.ExchangeField {
 	result := make([]conval.ExchangeField, len(fields))
 	for i, field := range fields {
 		result[i] = field.Properties
@@ -285,7 +285,7 @@ func toConvalExchangeFields(fields []core.ExchangeField) []conval.ExchangeField 
 	return result
 }
 
-func (c *scoreCounter) toConvalQTC(series core.QTCSeries) conval.QTC {
+func (c *scoreCounter) toConvalQTC(series model.QTCSeries) conval.QTC {
 	if len(series.QTCs) == 0 {
 		return conval.QTC{}
 	}

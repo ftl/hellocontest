@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type scoreTableView struct {
@@ -11,7 +11,7 @@ type scoreTableView struct {
 	widget *qtlib.QWidget
 
 	table *scoreTable
-	score core.Score
+	score model.Score
 }
 
 func newScoreTableView(parent *qtlib.QWidget) *scoreTableView {
@@ -37,8 +37,8 @@ func (v *scoreTableView) RepaintForThemeChange() {
 	repaintScrollBarsForThemeChange(v.table.widget.QAbstractScrollArea)
 }
 
-// Implements core.score.View
-func (v *scoreTableView) ShowScore(score core.Score) {
+// Implements model.score.View
+func (v *scoreTableView) ShowScore(score model.Score) {
 	v.score = score
 	v.table.ShowScore(score)
 }
@@ -47,7 +47,7 @@ func (v *scoreTableView) SetGoals(points, multis int) {
 	// Table doesn't display goals - no-op
 }
 
-func (v *scoreTableView) SetBands(bands []core.Band) {
+func (v *scoreTableView) SetBands(bands []model.Band) {
 	v.table.SetBands(bands)
 }
 

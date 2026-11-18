@@ -10,34 +10,34 @@ import (
 	"github.com/ftl/hamradio"
 	"github.com/ftl/hamradio/bandplan"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
-	DefaultFrequency = core.Frequency(7028000)
-	DefaultMode      = core.ModeCW
+	DefaultFrequency = model.Frequency(7028000)
+	DefaultMode      = model.ModeCW
 )
 
 type Client struct {
 	bandplan    bandplan.Bandplan
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 
 	mutex      sync.RWMutex
 	listeners  []any
-	vfos       [core.VFOCount]vfoState
-	currentVFO core.VFOID
-	txVFO      core.VFOID
+	vfos       [model.VFOCount]vfoState
+	currentVFO model.VFOID
+	txVFO      model.VFOID
 	singleVFO  bool
 	connected  bool
 }
 
 type vfoState struct {
-	frequency core.Frequency
-	band      core.Band
-	mode      core.Mode
+	frequency model.Frequency
+	band      model.Band
+	mode      model.Mode
 }
 
-func New(bandplan bandplan.Bandplan, singleVFO bool, asyncRunner core.AsyncRunner) *Client {
+func New(bandplan bandplan.Bandplan, singleVFO bool, asyncRunner model.AsyncRunner) *Client {
 	result := &Client{
 		bandplan:    bandplan,
 		asyncRunner: asyncRunner,
@@ -60,12 +60,12 @@ func (c *Client) SetBandplan(bandplan bandplan.Bandplan) {
 	c.bandplan = bandplan
 }
 
-func (c *Client) bandOf(frequency core.Frequency) core.Band {
+func (c *Client) bandOf(frequency model.Frequency) model.Band {
 	band := c.bandplan.ByFrequency(hamradio.Frequency(frequency))
 	if band.Name == bandplan.BandUnknown {
-		return core.NoBand
+		return model.NoBand
 	}
-	return core.Band(band.Name)
+	return model.Band(band.Name)
 }
 
 func (c *Client) Notify(listener any) {
@@ -97,7 +97,7 @@ func (c *Client) Disconnect() {
 	c.emitConnectionChanged(false)
 }
 
-func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+func (c *Client) SetCurrentVFO(vfo model.VFOID) {
 	if !c.knownVFO(vfo) {
 		return
 	}
@@ -109,13 +109,13 @@ func (c *Client) SetCurrentVFO(vfo core.VFOID) {
 		return
 	}
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.CurrentVFOListener) {
+		model.Emit(c.listeners, func(listener model.CurrentVFOListener) {
 			listener.CurrentVFOChanged(vfo)
 		})
 	})
 }
 
-func (c *Client) SetTXVFO(vfo core.VFOID) {
+func (c *Client) SetTXVFO(vfo model.VFOID) {
 	if !c.knownVFO(vfo) {
 		return
 	}
@@ -127,13 +127,13 @@ func (c *Client) SetTXVFO(vfo core.VFOID) {
 		return
 	}
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.TXVFOListener) {
+		model.Emit(c.listeners, func(listener model.TXVFOListener) {
 			listener.TXVFOChanged(vfo)
 		})
 	})
 }
 
-func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+func (c *Client) SetFrequency(vfo model.VFOID, frequency model.Frequency) {
 	if !c.knownVFO(vfo) {
 		return
 	}
@@ -145,7 +145,7 @@ func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
 	c.echo(vfo, current)
 }
 
-func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
+func (c *Client) SetBand(vfo model.VFOID, band model.Band) {
 	if !c.knownVFO(vfo) {
 		return
 	}
@@ -159,17 +159,17 @@ func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 
 // frequencyInBand puts the VFO into the lower portion of the band, where a CW contest
 // takes place.
-func (c *Client) frequencyInBand(band core.Band) (core.Frequency, bool) {
+func (c *Client) frequencyInBand(band model.Band) (model.Frequency, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	b, ok := c.bandplan[bandplan.BandName(band)]
 	if !ok {
 		return 0, false
 	}
-	return core.Frequency(b.From) + 20000, true
+	return model.Frequency(b.From) + 20000, true
 }
 
-func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
+func (c *Client) SetMode(vfo model.VFOID, mode model.Mode) {
 	if !c.knownVFO(vfo) {
 		return
 	}
@@ -180,12 +180,12 @@ func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
 	c.echo(vfo, current)
 }
 
-func (c *Client) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (c *Client) SetIncrementalTuning(vfo model.VFOID, kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
 	if !c.knownVFO(vfo) {
 		return
 	}
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
+		model.Emit(c.listeners, func(listener model.VFOIncrementalTuningListener) {
 			listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
 		})
 	})
@@ -200,14 +200,14 @@ func (c *Client) Refresh() {
 
 	c.emitConnectionChanged(true)
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.CurrentVFOListener) {
+		model.Emit(c.listeners, func(listener model.CurrentVFOListener) {
 			listener.CurrentVFOChanged(currentVFO)
 		})
-		core.Emit(c.listeners, func(listener core.TXVFOListener) {
+		model.Emit(c.listeners, func(listener model.TXVFOListener) {
 			listener.TXVFOChanged(txVFO)
 		})
 		for vfo, state := range vfos {
-			c.emitState(core.VFOID(vfo), state)
+			c.emitState(model.VFOID(vfo), state)
 		}
 	})
 }
@@ -218,36 +218,36 @@ func (c *Client) Send(string) {}
 
 func (c *Client) Abort() {}
 
-func (c *Client) knownVFO(vfo core.VFOID) bool {
+func (c *Client) knownVFO(vfo model.VFOID) bool {
 	if vfo < 0 || int(vfo) >= len(c.vfos) {
 		return false
 	}
-	return !c.singleVFO || vfo == core.VFO1
+	return !c.singleVFO || vfo == model.VFO1
 }
 
 // echo answers every command, also when it does not change anything: the VFO waits for the
 // confirmation of the radio before it shows a commanded value
-func (c *Client) echo(vfo core.VFOID, state vfoState) {
+func (c *Client) echo(vfo model.VFOID, state vfoState) {
 	c.asyncRunner(func() {
 		c.emitState(vfo, state)
 	})
 }
 
-func (c *Client) emitState(vfo core.VFOID, state vfoState) {
-	core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
+func (c *Client) emitState(vfo model.VFOID, state vfoState) {
+	model.Emit(c.listeners, func(listener model.VFOFrequencyListener) {
 		listener.VFOFrequencyChanged(vfo, state.frequency)
 	})
-	core.Emit(c.listeners, func(listener core.VFOBandListener) {
+	model.Emit(c.listeners, func(listener model.VFOBandListener) {
 		listener.VFOBandChanged(vfo, state.band)
 	})
-	core.Emit(c.listeners, func(listener core.VFOModeListener) {
+	model.Emit(c.listeners, func(listener model.VFOModeListener) {
 		listener.VFOModeChanged(vfo, state.mode)
 	})
 }
 
 func (c *Client) emitConnectionChanged(connected bool) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.ConnectionChangedListener) {
+		model.Emit(c.listeners, func(listener model.ConnectionChangedListener) {
 			listener.ConnectionChanged(connected)
 		})
 	})

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ftl/hamradio/locator"
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,12 +57,12 @@ func TestFileStore_V1QSORoundtrip(t *testing.T) {
 	err = fs.format.Clear(&pbReadWriter{writer: tmpFile})
 	require.NoError(t, err)
 
-	qso := core.QSO{
-		Callsign:      core.MustParseCallsign("DL1ABC"),
+	qso := model.QSO{
+		Callsign:      model.MustParseCallsign("DL1ABC"),
 		Time:          time.Unix(123, 0),
 		Frequency:     3535000,
-		Band:          core.Band80m,
-		Mode:          core.ModeCW,
+		Band:          model.Band80m,
+		Mode:          model.ModeCW,
 		MyReport:      "599",
 		MyNumber:      1,
 		MyExchange:    []string{"599", "001", "mx"},
@@ -98,15 +97,15 @@ func TestFileStore_V1StationRoundtrip(t *testing.T) {
 	require.NoError(t, err)
 
 	loc, err := locator.Parse("AA00AA")
-	station1 := core.Station{
-		Callsign: core.MustParseCallsign("DL0ABC"),
-		Operator: core.MustParseCallsign("DL1ABC"),
+	station1 := model.Station{
+		Callsign: model.MustParseCallsign("DL0ABC"),
+		Operator: model.MustParseCallsign("DL1ABC"),
 		Locator:  loc,
 		Bandplan: model.DefaultBandplanID,
 	}
-	station2 := core.Station{
-		Callsign: core.MustParseCallsign("DL0ABC"),
-		Operator: core.MustParseCallsign("DL2ABC"),
+	station2 := model.Station{
+		Callsign: model.MustParseCallsign("DL0ABC"),
+		Operator: model.MustParseCallsign("DL2ABC"),
 		Locator:  loc,
 		Bandplan: model.DefaultBandplanID,
 	}
@@ -135,10 +134,10 @@ func TestFileStore_V1ContestRoundtrip(t *testing.T) {
 	err = fs.format.Clear(&pbReadWriter{writer: tmpFile})
 	require.NoError(t, err)
 
-	contest1 := core.Contest{
+	contest1 := model.Contest{
 		Name: "ONE",
 	}
-	contest2 := core.Contest{
+	contest2 := model.Contest{
 		Name: "TWO",
 	}
 	err = fs.WriteContest(contest1)
@@ -166,10 +165,10 @@ func TestFileStore_V1KeyerRoundtrip(t *testing.T) {
 	err = fs.format.Clear(&pbReadWriter{writer: tmpFile})
 	require.NoError(t, err)
 
-	keyer1 := core.KeyerSettings{
+	keyer1 := model.KeyerSettings{
 		WPM: 25,
 	}
-	keyer2 := core.KeyerSettings{
+	keyer2 := model.KeyerSettings{
 		WPM: 35,
 	}
 	err = fs.WriteKeyer(keyer1)
@@ -197,19 +196,19 @@ func TestFileStore_V1QTCRoundtrip(t *testing.T) {
 	err = fs.format.Clear(&pbReadWriter{writer: tmpFile})
 	require.NoError(t, err)
 
-	qtc := core.QTC{
+	qtc := model.QTC{
 		Timestamp: time.Unix(123, 0),
 		Frequency: 3535000,
-		Band:      core.Band80m,
-		Mode:      core.ModeCW,
+		Band:      model.Band80m,
+		Mode:      model.ModeCW,
 
-		Kind:          core.SentQTC,
+		Kind:          model.SentQTC,
 		QSONumber:     45,
-		TheirCallsign: core.MustParseCallsign("DL1ABC"),
-		Header:        core.QTCHeader{SeriesNumber: 7, QTCCount: 10},
+		TheirCallsign: model.MustParseCallsign("DL1ABC"),
+		Header:        model.QTCHeader{SeriesNumber: 7, QTCCount: 10},
 
-		QTCTime:     core.QTCTime{Hour: 12, Minute: 34},
-		QTCCallsign: core.MustParseCallsign("DL2ABC"),
+		QTCTime:     model.QTCTime{Hour: 12, Minute: 34},
+		QTCCallsign: model.MustParseCallsign("DL2ABC"),
 		QTCNumber:   56,
 	}
 	err = fs.WriteQTC(qtc)

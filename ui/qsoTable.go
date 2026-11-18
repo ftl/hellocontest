@@ -5,12 +5,12 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // QSOListController is implemented by *logbook.QSOList.
 type QSOListController interface {
-	GetExchangeFields() ([]core.ExchangeField, []core.ExchangeField)
+	GetExchangeFields() ([]model.ExchangeField, []model.ExchangeField)
 	SelectRow(int)
 }
 
@@ -18,8 +18,8 @@ type qsoTable struct {
 	table *qtlib.QTableView
 	model *qtlib.QStandardItemModel
 
-	myExchangeFields    []core.ExchangeField
-	theirExchangeFields []core.ExchangeField
+	myExchangeFields    []model.ExchangeField
+	theirExchangeFields []model.ExchangeField
 
 	controller QSOListController
 }
@@ -49,7 +49,7 @@ func (t *qsoTable) SetQSOListController(controller QSOListController) {
 	t.ExchangeFieldsChanged(t.controller.GetExchangeFields())
 }
 
-func (t *qsoTable) ExchangeFieldsChanged(myFields, theirFields []core.ExchangeField) {
+func (t *qsoTable) ExchangeFieldsChanged(myFields, theirFields []model.ExchangeField) {
 	t.myExchangeFields = myFields
 	t.theirExchangeFields = theirFields
 	t.rebuildColumns()
@@ -110,7 +110,7 @@ func (t *qsoTable) rebuildColumns() {
 	}
 }
 
-func (t *qsoTable) QSOAdded(qso core.QSO) {
+func (t *qsoTable) QSOAdded(qso model.QSO) {
 	row := t.model.RowCount(gc(qtlib.NewQModelIndex()))
 
 	items := []*qtlib.QStandardItem{
@@ -151,7 +151,7 @@ func (t *qsoTable) QSORowSelected(index int) {
 	SelectTableRow(t.table, index, t.model)
 }
 
-func isNarrowExchangeField(f core.ExchangeField) bool {
+func isNarrowExchangeField(f model.ExchangeField) bool {
 	if len(f.Properties) != 1 {
 		return false
 	}

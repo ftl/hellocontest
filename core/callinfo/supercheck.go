@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type Supercheck struct {
@@ -16,7 +16,7 @@ type Supercheck struct {
 	dupes     DupeChecker
 	valuer    Valuer
 
-	theirExchangeFields []core.ExchangeField
+	theirExchangeFields []model.ExchangeField
 }
 
 func NewSupercheck(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistoryFinder,
@@ -31,11 +31,11 @@ func NewSupercheck(dxcc DXCCFinder, callsigns CallsignFinder, history CallHistor
 	}
 }
 
-func (s *Supercheck) SetTheirExchangeFields(fields []core.ExchangeField) {
+func (s *Supercheck) SetTheirExchangeFields(fields []model.ExchangeField) {
 	s.theirExchangeFields = fields
 }
 
-func (s *Supercheck) Calculate(input string, band core.Band, mode core.Mode) []core.AnnotatedCallsign {
+func (s *Supercheck) Calculate(input string, band model.Band, mode model.Mode) []model.AnnotatedCallsign {
 	normalizedInput := normalizeInput(input)
 
 	annotatedCallsigns := s.findMatchingCallsigns(normalizedInput)
@@ -45,7 +45,7 @@ func (s *Supercheck) Calculate(input string, band core.Band, mode core.Mode) []c
 
 	filter := placeholderToFilter(normalizedInput)
 
-	result := make([]core.AnnotatedCallsign, 0, len(annotatedCallsigns))
+	result := make([]model.AnnotatedCallsign, 0, len(annotatedCallsigns))
 	for _, annotatedCallsign := range annotatedCallsigns {
 		if filter != nil && !filter.MatchString(annotatedCallsign.Callsign.String()) {
 			continue
@@ -62,31 +62,31 @@ func (s *Supercheck) Calculate(input string, band core.Band, mode core.Mode) []c
 	return result
 }
 
-func (s *Supercheck) findMatchingCallsigns(input string) map[core.Callsign]core.AnnotatedCallsign {
+func (s *Supercheck) findMatchingCallsigns(input string) map[model.Callsign]model.AnnotatedCallsign {
 	if s.dupes == nil || s.callsigns == nil || s.history == nil {
-		return map[core.Callsign]core.AnnotatedCallsign{}
+		return map[model.Callsign]model.AnnotatedCallsign{}
 	}
 
 	normalizedInput := normalizeInput(input)
 	dupeMatches, err := s.dupes.Find(normalizedInput)
 	if err != nil {
-		dupeMatches = []core.AnnotatedCallsign{}
+		dupeMatches = []model.AnnotatedCallsign{}
 	}
 	scpMatches, err := s.callsigns.Find(normalizedInput)
 	if err != nil {
-		scpMatches = []core.AnnotatedCallsign{}
+		scpMatches = []model.AnnotatedCallsign{}
 	}
 	historicMatches, err := s.history.Find(normalizedInput)
 	if err != nil {
-		historicMatches = []core.AnnotatedCallsign{}
+		historicMatches = []model.AnnotatedCallsign{}
 	}
 
-	result := make(map[core.Callsign]core.AnnotatedCallsign, len(dupeMatches)+len(scpMatches)+len(historicMatches))
+	result := make(map[model.Callsign]model.AnnotatedCallsign, len(dupeMatches)+len(scpMatches)+len(historicMatches))
 	for _, match := range dupeMatches {
 		result[match.Callsign] = match
 	}
 	for _, match := range scpMatches {
-		var annotatedCallsign core.AnnotatedCallsign
+		var annotatedCallsign model.AnnotatedCallsign
 		storedCallsign, found := result[match.Callsign]
 		if found {
 			annotatedCallsign = storedCallsign
@@ -96,7 +96,7 @@ func (s *Supercheck) findMatchingCallsigns(input string) map[core.Callsign]core.
 		result[annotatedCallsign.Callsign] = annotatedCallsign
 	}
 	for _, match := range historicMatches {
-		var annotatedCallsign core.AnnotatedCallsign
+		var annotatedCallsign model.AnnotatedCallsign
 		storedCallsign, found := result[match.Callsign]
 		if found {
 			annotatedCallsign = storedCallsign
@@ -111,18 +111,18 @@ func (s *Supercheck) findMatchingCallsigns(input string) map[core.Callsign]core.
 }
 
 func placeholderToFilter(s string) *regexp.Regexp {
-	if !strings.Contains(s, core.FilterPlaceholder) {
+	if !strings.Contains(s, model.FilterPlaceholder) {
 		return nil
 	}
 
-	parts := strings.Split(s, core.FilterPlaceholder)
+	parts := strings.Split(s, model.FilterPlaceholder)
 	for i := range parts {
 		parts[i] = regexp.QuoteMeta(parts[i])
 	}
 	return regexp.MustCompile(strings.Join(parts, "."))
 }
 
-func (s *Supercheck) addInfos(annotatedCallsign *core.AnnotatedCallsign, normalizedInput string, band core.Band, mode core.Mode) {
+func (s *Supercheck) addInfos(annotatedCallsign *model.AnnotatedCallsign, normalizedInput string, band model.Band, mode model.Mode) {
 	// TODO: this should be merged with the Collector to remove duplicate code
 	matchString := annotatedCallsign.Callsign.String()
 	exactMatch := (matchString == normalizedInput)

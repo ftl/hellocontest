@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestParseSNR(t *testing.T) {
@@ -98,7 +98,7 @@ func TestCluster_ConnectionLost_WithoutARetryInterval(t *testing.T) {
 
 func setupTestCluster(opener *clusterOpenerStub, retryInterval time.Duration) *cluster {
 	parent := new(Clusters)
-	source := core.SpotSource{Name: "test", HostAddress: "localhost:7373"}
+	source := model.SpotSource{Name: "test", HostAddress: "localhost:7373"}
 	result := newCluster(parent, source, new(bandmapSpy), bandplan.IARURegion1, staticTestClock{}, opener.open)
 	result.retryInterval = retryInterval
 	return result
@@ -143,7 +143,7 @@ func TestClusters_UpdatesTheViewOnTheUIThread(t *testing.T) {
 	var pending []func()
 	view := new(spotSourceViewSpy)
 	clusters := NewClusters(
-		[]core.SpotSource{{Name: "test", HostAddress: "localhost:7373"}},
+		[]model.SpotSource{{Name: "test", HostAddress: "localhost:7373"}},
 		new(bandmapSpy), bandplan.IARURegion1, nil, staticTestClock{}, time.Minute,
 		func(f func()) { pending = append(pending, f) },
 	)

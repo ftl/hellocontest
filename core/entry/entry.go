@@ -10,7 +10,7 @@ import (
 
 	"github.com/ftl/conval"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/parse"
 )
 
@@ -24,25 +24,25 @@ const (
 type View interface {
 	SetMyExchange(int, string)
 
-	SetFrequency(core.VFOID, core.Frequency)
-	SetBand(vfo core.VFOID, text string)
-	SetMode(vfo core.VFOID, text string)
-	SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
+	SetFrequency(model.VFOID, model.Frequency)
+	SetBand(vfo model.VFOID, text string)
+	SetMode(vfo model.VFOID, text string)
+	SetTXState(vfo model.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration)
 
-	SetCallsign(core.VFOID, string)
-	SetTheirExchange(vfo core.VFOID, index int, text string)
+	SetCallsign(model.VFOID, string)
+	SetTheirExchange(vfo model.VFOID, index int, text string)
 
-	SetSerialClaim(core.VFOID, core.QSONumber, bool)
-	SetActiveVFO(core.VFOID)
-	SetActiveField(core.VFOID, core.EntryField)
-	SelectText(core.VFOID, core.EntryField, string)
-	SetDuplicateMarker(core.VFOID, bool)
-	SetEditingMarker(core.VFOID, bool)
-	ShowMessage(core.VFOID, ...any)
-	ClearMessage(core.VFOID)
-	SetVFOEnabled(core.VFOID, bool)
-	SetVFOWorkmode(core.VFOID, core.Workmode)
-	SetTXVFO(core.VFOID)
+	SetSerialClaim(model.VFOID, model.QSONumber, bool)
+	SetActiveVFO(model.VFOID)
+	SetActiveField(model.VFOID, model.EntryField)
+	SelectText(model.VFOID, model.EntryField, string)
+	SetDuplicateMarker(model.VFOID, bool)
+	SetEditingMarker(model.VFOID, bool)
+	ShowMessage(model.VFOID, ...any)
+	ClearMessage(model.VFOID)
+	SetVFOEnabled(model.VFOID, bool)
+	SetVFOWorkmode(model.VFOID, model.Workmode)
+	SetTXVFO(model.VFOID)
 }
 
 type input struct {
@@ -56,13 +56,13 @@ type input struct {
 
 // Logbook functionality used for QSO entry.
 type Logbook interface {
-	NextQSONumber() core.QSONumber
-	LastBand() core.Band
-	LastMode() core.Mode
+	NextQSONumber() model.QSONumber
+	LastBand() model.Band
+	LastMode() model.Mode
 	LastExchange() []string
-	AddQSO(core.QSO)
-	UpdateQSO(core.QSO)
-	FindDuplicateQSOs(core.Callsign, core.Band, core.Mode) []core.QSO
+	AddQSO(model.QSO)
+	UpdateQSO(model.QSO)
+	FindDuplicateQSOs(model.Callsign, model.Band, model.Mode) []model.QSO
 }
 
 // QSOList functionality used for QSO entry.
@@ -74,7 +74,7 @@ type QSOList interface {
 type Keyer interface {
 	SendMacro(index int)
 	SendQuestion(q string)
-	GetText(workmode core.Workmode, index int) (string, error)
+	GetText(workmode model.Workmode, index int) (string, error)
 	SendText(text string, args ...any)
 	Repeat()
 	Stop()
@@ -82,21 +82,21 @@ type Keyer interface {
 
 // Callinfo functionality used for QSO entry.
 type Callinfo interface {
-	InputChanged(vfo core.VFOID, call string, band core.Band, mode core.Mode, exchange []string)
+	InputChanged(vfo model.VFOID, call string, band model.Band, mode model.Mode, exchange []string)
 }
 
 type Bandmap interface {
-	Add(core.Spot)
-	SelectByCallsign(core.Callsign)
+	Add(model.Spot)
+	SelectByCallsign(model.Callsign)
 	GotoCQMarker()
 	GotoNumberedMarker(int)
-	MarkWithNextNumber(core.Frequency, core.Band, core.MarkerInput)
-	MarkWithNumber(int, core.Frequency, core.Band, core.MarkerInput)
-	MarkWithText(string, core.Frequency, core.Band)
+	MarkWithNextNumber(model.Frequency, model.Band, model.MarkerInput)
+	MarkWithNumber(int, model.Frequency, model.Band, model.MarkerInput)
+	MarkWithText(string, model.Frequency, model.Band)
 }
 
 // NewController returns a new entry controller.
-func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qsoList QSOList, bandmap Bandmap, asyncRunner core.AsyncRunner) *Controller {
+func NewController(settings model.Settings, clock model.Clock, logbook Logbook, qsoList QSOList, bandmap Bandmap, asyncRunner model.AsyncRunner) *Controller {
 	result := &Controller{
 		clock:       clock,
 		view:        new(nullView),
@@ -108,26 +108,26 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 		esmView:     new(nullESMView),
 		vfoSwitcher: new(nullVFOSwitcher),
 
-		vfos:                 make([]core.VFO, core.VFOCount),
-		input:                make([]input, core.VFOCount),
-		selectedFrequency:    make([]core.Frequency, core.VFOCount),
-		selectedBand:         make([]core.Band, core.VFOCount),
-		selectedMode:         make([]core.Mode, core.VFOCount),
-		activeField:          make([]core.EntryField, core.VFOCount),
-		errorField:           make([]core.EntryField, core.VFOCount),
-		currentCallinfoFrame: make([]core.CallinfoFrame, core.VFOCount),
+		vfos:                 make([]model.VFO, model.VFOCount),
+		input:                make([]input, model.VFOCount),
+		selectedFrequency:    make([]model.Frequency, model.VFOCount),
+		selectedBand:         make([]model.Band, model.VFOCount),
+		selectedMode:         make([]model.Mode, model.VFOCount),
+		activeField:          make([]model.EntryField, model.VFOCount),
+		errorField:           make([]model.EntryField, model.VFOCount),
+		currentCallinfoFrame: make([]model.CallinfoFrame, model.VFOCount),
 		claims:               newSerialClaims(),
-		esmState:             make([]core.ESMState, core.VFOCount),
-		esmMessage:           make([]string, core.VFOCount),
-		esmMacroIndex:        make([]int, core.VFOCount),
-		lastNumber:           make([]core.QSONumber, core.VFOCount),
+		esmState:             make([]model.ESMState, model.VFOCount),
+		esmMessage:           make([]string, model.VFOCount),
+		esmMacroIndex:        make([]int, model.VFOCount),
+		lastNumber:           make([]model.QSONumber, model.VFOCount),
 
 		stationCallsign: settings.Station().Callsign.String(),
-		vfoWorkmode:     make([]core.Workmode, core.VFOCount),
+		vfoWorkmode:     make([]model.Workmode, model.VFOCount),
 	}
 	for vfo := range len(result.vfos) {
 		result.vfos[vfo] = new(nullVFO)
-		result.activeField[vfo] = core.CallsignField
+		result.activeField[vfo] = model.CallsignField
 	}
 	result.updateExchangeFields(settings.Contest())
 	return result
@@ -135,78 +135,78 @@ func NewController(settings core.Settings, clock core.Clock, logbook Logbook, qs
 
 // VFOSwitcher is implemented by something that can command the rig to make a given VFO the current one.
 type VFOSwitcher interface {
-	SetCurrentVFO(core.VFOID)
+	SetCurrentVFO(model.VFOID)
 }
 
 type nullVFOSwitcher struct{}
 
-func (n *nullVFOSwitcher) SetCurrentVFO(core.VFOID) {}
+func (n *nullVFOSwitcher) SetCurrentVFO(model.VFOID) {}
 
 type editSnapshot struct {
-	focusedVFO     core.VFOID
+	focusedVFO     model.VFOID
 	input          input
 	myReport       string
 	myNumber       string
 	myExchange     []string
-	claimedSerial  core.QSONumber
-	claimSnapshot  core.QSONumber
+	claimedSerial  model.QSONumber
+	claimSnapshot  model.QSONumber
 	claimCommitted bool
-	activeField    core.EntryField
-	errorField     core.EntryField
-	callinfoFrame  core.CallinfoFrame
-	esmState       []core.ESMState
+	activeField    model.EntryField
+	errorField     model.EntryField
+	callinfoFrame  model.CallinfoFrame
+	esmState       []model.ESMState
 	esmMessage     []string
 	esmMacroIndex  []int
 }
 
 type Controller struct {
-	clock           core.Clock
+	clock           model.Clock
 	view            View
 	logbook         Logbook
 	qsoList         QSOList
 	keyer           Keyer
 	callinfo        Callinfo
-	vfos            []core.VFO
+	vfos            []model.VFO
 	vfoSwitcher     VFOSwitcher
 	ignoreVFOChange bool
 	bandmap         Bandmap
 	esmView         ESMView
 
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 	listeners   []any
 
 	stationCallsign string
-	workmode        core.Workmode
-	vfoWorkmode     []core.Workmode
+	workmode        model.Workmode
+	vfoWorkmode     []model.Workmode
 
-	myExchangeFields         []core.ExchangeField
-	theirExchangeFields      []core.ExchangeField
-	myReportExchangeField    core.ExchangeField
-	myNumberExchangeField    core.ExchangeField
-	theirReportExchangeField core.ExchangeField
-	theirNumberExchangeField core.ExchangeField
+	myExchangeFields         []model.ExchangeField
+	theirExchangeFields      []model.ExchangeField
+	myReportExchangeField    model.ExchangeField
+	myNumberExchangeField    model.ExchangeField
+	theirReportExchangeField model.ExchangeField
+	theirNumberExchangeField model.ExchangeField
 	generateSerialExchange   bool
 	generateReport           bool
 	defaultExchangeValues    []string
-	currentCallinfoFrame     []core.CallinfoFrame
+	currentCallinfoFrame     []model.CallinfoFrame
 
 	input              []input
 	myReport           string
 	myNumber           string
 	myExchange         []string
-	lastNumber         []core.QSONumber
+	lastNumber         []model.QSONumber
 	lastExchange       []string
-	focusedVFO         core.VFOID
-	txVFO              core.VFOID
+	focusedVFO         model.VFOID
+	txVFO              model.VFOID
 	vfo2Enabled        bool
-	activeField        []core.EntryField
-	errorField         []core.EntryField
-	selectedFrequency  []core.Frequency
-	selectedBand       []core.Band
-	selectedMode       []core.Mode
+	activeField        []model.EntryField
+	errorField         []model.EntryField
+	selectedFrequency  []model.Frequency
+	selectedBand       []model.Band
+	selectedMode       []model.Mode
 	claims             SerialClaims
 	editing            bool
-	editQSO            core.QSO
+	editQSO            model.QSO
 	editSnapshot       *editSnapshot
 	ignoreQSOSelection bool
 
@@ -215,7 +215,7 @@ type Controller struct {
 	parrotTimeLeft time.Duration
 
 	esmEnabled    bool
-	esmState      []core.ESMState
+	esmState      []model.ESMState
 	esmMessage    []string
 	esmMacroIndex []int
 }
@@ -224,9 +224,9 @@ func (c *Controller) Notify(listener any) {
 	c.listeners = append(c.listeners, listener)
 }
 
-func (c *Controller) emitFocusedVFOChanged(vfo core.VFOID) {
+func (c *Controller) emitFocusedVFOChanged(vfo model.VFOID) {
 	for _, l := range c.listeners {
-		if listener, ok := l.(core.FocusedVFOListener); ok {
+		if listener, ok := l.(model.FocusedVFOListener); ok {
 			listener.FocusedVFOChanged(vfo)
 		}
 	}
@@ -234,15 +234,15 @@ func (c *Controller) emitFocusedVFOChanged(vfo core.VFOID) {
 
 func (c *Controller) emitCallsignEntered(callsign string) {
 	for _, l := range c.listeners {
-		if listener, ok := l.(core.CallsignEnteredListener); ok {
+		if listener, ok := l.(model.CallsignEnteredListener); ok {
 			listener.CallsignEntered(c.focusedVFO, callsign)
 		}
 	}
 }
 
-func (c *Controller) emitCallsignLogged(callsign string, frequency core.Frequency) {
+func (c *Controller) emitCallsignLogged(callsign string, frequency model.Frequency) {
 	for _, l := range c.listeners {
-		if listener, ok := l.(core.CallsignLoggedListener); ok {
+		if listener, ok := l.(model.CallsignLoggedListener); ok {
 			listener.CallsignLogged(callsign, frequency)
 		}
 	}
@@ -257,10 +257,10 @@ func (c *Controller) SetView(view View) {
 	}
 
 	c.view = view
-	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
+	c.view.SetVFOEnabled(model.VFO2, c.vfo2Enabled)
 	c.view.SetActiveVFO(c.focusedVFO)
-	for vfo := range core.VFOCount {
-		c.view.SetVFOWorkmode(core.VFOID(vfo), c.vfoWorkmode[vfo])
+	for vfo := range model.VFOCount {
+		c.view.SetVFOWorkmode(model.VFOID(vfo), c.vfoWorkmode[vfo])
 	}
 	c.Clear()
 }
@@ -268,7 +268,7 @@ func (c *Controller) SetView(view View) {
 func (c *Controller) LogbookLoaded() {
 	lastBand := c.logbook.LastBand()
 	lastMode := c.logbook.LastMode()
-	for vfo := range core.VFOCount {
+	for vfo := range model.VFOCount {
 		c.selectedBand[vfo] = lastBand
 		c.selectedMode[vfo] = lastMode
 	}
@@ -284,12 +284,12 @@ func (c *Controller) SetCallinfo(callinfo Callinfo) {
 	c.callinfo = callinfo
 }
 
-func (c *Controller) CallinfoFrameChanged(vfo core.VFOID, frame core.CallinfoFrame) {
+func (c *Controller) CallinfoFrameChanged(vfo model.VFOID, frame model.CallinfoFrame) {
 	c.currentCallinfoFrame[vfo] = frame
 	// TODO what do we need to update here?
 }
 
-func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
+func (c *Controller) SetVFO(id model.VFOID, vfo model.VFO) {
 	if vfo == nil {
 		c.vfos[id] = new(nullVFO)
 	} else {
@@ -299,37 +299,37 @@ func (c *Controller) SetVFO(id core.VFOID, vfo core.VFO) {
 }
 
 // ShiftFrequency changes the frequency of the currently focused VFO by delta.
-func (c *Controller) ShiftFrequency(delta core.Frequency) {
+func (c *Controller) ShiftFrequency(delta model.Frequency) {
 	c.vfos[c.focusedVFO].ShiftFrequency(delta)
 }
 
-func (c *Controller) GotoNextField() core.EntryField {
+func (c *Controller) GotoNextField() model.EntryField {
 	return c.gotoNextField(false)
 }
 
-func (c *Controller) GotoNextFieldSkippingReport() core.EntryField {
+func (c *Controller) GotoNextFieldSkippingReport() model.EntryField {
 	return c.gotoNextField(true)
 }
 
-func (c *Controller) gotoNextField(skipReport bool) core.EntryField {
+func (c *Controller) gotoNextField(skipReport bool) model.EntryField {
 	switch c.activeField[c.focusedVFO] {
-	case core.CallsignField:
+	case model.CallsignField:
 		c.leaveCallsignField()
 	}
 
-	transitions := map[core.EntryField]core.EntryField{
-		core.BandField: core.CallsignField,
-		core.ModeField: core.CallsignField,
+	transitions := map[model.EntryField]model.EntryField{
+		model.BandField: model.CallsignField,
+		model.ModeField: model.CallsignField,
 	}
 	if len(c.theirExchangeFields) > 0 {
-		transitions[core.CallsignField] = core.TheirExchangeField(1)
+		transitions[model.CallsignField] = model.TheirExchangeField(1)
 	}
 	for _, field := range c.myExchangeFields {
-		transitions[field.Field] = core.CallsignField
+		transitions[field.Field] = model.CallsignField
 	}
 	for i, field := range c.theirExchangeFields {
 		if i == len(c.theirExchangeFields)-1 {
-			transitions[field.Field] = core.CallsignField
+			transitions[field.Field] = model.CallsignField
 		} else {
 			transitions[field.Field] = field.Field.NextExchangeField()
 		}
@@ -346,22 +346,22 @@ func (c *Controller) gotoNextField(skipReport bool) core.EntryField {
 	return c.activeField[c.focusedVFO]
 }
 
-func nextFieldOf(transitions map[core.EntryField]core.EntryField, field core.EntryField) core.EntryField {
+func nextFieldOf(transitions map[model.EntryField]model.EntryField, field model.EntryField) model.EntryField {
 	next := transitions[field]
 	if next == "" {
-		return core.CallsignField
+		return model.CallsignField
 	}
 	return next
 }
 
 func (c *Controller) GotoNextPlaceholder() {
-	c.SetActiveField(core.CallsignField)
+	c.SetActiveField(model.CallsignField)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
-	c.view.SelectText(c.focusedVFO, c.activeField[c.focusedVFO], core.FilterPlaceholder)
+	c.view.SelectText(c.focusedVFO, c.activeField[c.focusedVFO], model.FilterPlaceholder)
 }
 
 func (c *Controller) leaveCallsignField() {
-	callsign, err := core.ParseCallsign(c.input[c.focusedVFO].callsign)
+	callsign, err := model.ParseCallsign(c.input[c.focusedVFO].callsign)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -392,7 +392,7 @@ func (c *Controller) leaveCallsignField() {
 }
 
 // isPredictable returns true if the exchange for the given field is predictable.
-func (c *Controller) isPredictable(field core.EntryField) bool {
+func (c *Controller) isPredictable(field model.EntryField) bool {
 	switch field {
 	case c.theirReportExchangeField.Field:
 		return false
@@ -421,20 +421,20 @@ func (c *Controller) RefreshView() {
 	c.showInput()
 }
 
-func (c *Controller) showQSO(qso core.QSO) {
-	c.input[core.VFO1].callsign = qso.Callsign.String()
-	c.input[core.VFO1].theirReport = qso.TheirReport.String()
-	c.input[core.VFO1].theirNumber = qso.TheirNumber.String()
-	c.input[core.VFO1].theirExchange = ensureLen(qso.TheirExchange, len(c.theirExchangeFields))
+func (c *Controller) showQSO(qso model.QSO) {
+	c.input[model.VFO1].callsign = qso.Callsign.String()
+	c.input[model.VFO1].theirReport = qso.TheirReport.String()
+	c.input[model.VFO1].theirNumber = qso.TheirNumber.String()
+	c.input[model.VFO1].theirExchange = ensureLen(qso.TheirExchange, len(c.theirExchangeFields))
 	c.myReport = qso.MyReport.String()
 	c.myNumber = qso.MyNumber.String()
 	c.myExchange = ensureLen(qso.MyExchange, len(c.myExchangeFields))
-	c.input[core.VFO1].band = qso.Band.String()
-	c.input[core.VFO1].mode = qso.Mode.String()
+	c.input[model.VFO1].band = qso.Band.String()
+	c.input[model.VFO1].mode = qso.Mode.String()
 
-	c.selectedFrequency[core.VFO1] = qso.Frequency
-	c.selectedBand[core.VFO1] = qso.Band
-	c.selectedMode[core.VFO1] = qso.Mode
+	c.selectedFrequency[model.VFO1] = qso.Frequency
+	c.selectedBand[model.VFO1] = qso.Band
+	c.selectedMode[model.VFO1] = qso.Mode
 
 	c.showInput()
 }
@@ -450,8 +450,8 @@ func ensureLen(a []string, l int) []string {
 }
 
 func (c *Controller) showInput() {
-	for vfo := range core.VFOCount {
-		v := core.VFOID(vfo)
+	for vfo := range model.VFOCount {
+		v := model.VFOID(vfo)
 		c.view.SetCallsign(v, c.input[vfo].callsign)
 		for i, value := range c.input[vfo].theirExchange {
 			c.view.SetTheirExchange(v, i+1, value)
@@ -476,10 +476,10 @@ func (c *Controller) setTheirExchangePrediction(i int, value string) {
 	c.view.SetTheirExchange(c.focusedVFO, i+1, value)
 }
 
-func (c *Controller) isDuplicate(vfo core.VFOID, callsign core.Callsign) (core.QSO, bool) {
+func (c *Controller) isDuplicate(vfo model.VFOID, callsign model.Callsign) (model.QSO, bool) {
 	qsos := c.logbook.FindDuplicateQSOs(callsign, c.selectedBand[vfo], c.selectedMode[vfo])
 	if len(qsos) == 0 {
-		return core.QSO{}, false
+		return model.QSO{}, false
 	}
 	return qsos[len(qsos)-1], true
 }
@@ -494,11 +494,11 @@ func (c *Controller) SetVFOSwitcher(switcher VFOSwitcher) {
 	c.vfoSwitcher = switcher
 }
 
-func (c *Controller) CurrentVFOChanged(vfo core.VFOID) {
+func (c *Controller) CurrentVFOChanged(vfo model.VFOID) {
 	if c.ignoreVFOChange {
 		return
 	}
-	if vfo == core.VFO2 && !c.vfo2Enabled {
+	if vfo == model.VFO2 && !c.vfo2Enabled {
 		return
 	}
 	if c.focusedVFO == vfo {
@@ -512,8 +512,8 @@ func (c *Controller) CurrentVFOChanged(vfo core.VFOID) {
 }
 
 // SetFocusedVFO is the single funnel for changing focused VFO.
-func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
-	if vfo == core.VFO2 && !c.vfo2Enabled {
+func (c *Controller) SetFocusedVFO(vfo model.VFOID) {
+	if vfo == model.VFO2 && !c.vfo2Enabled {
 		return
 	}
 	if c.focusedVFO == vfo {
@@ -530,7 +530,7 @@ func (c *Controller) SetFocusedVFO(vfo core.VFOID) {
 }
 
 // setFocusedVFOSilent updates focusedVFO without commanding the rig. Used by edit mode.
-func (c *Controller) setFocusedVFOSilent(vfo core.VFOID) {
+func (c *Controller) setFocusedVFOSilent(vfo model.VFOID) {
 	if c.focusedVFO == vfo {
 		return
 	}
@@ -540,48 +540,48 @@ func (c *Controller) setFocusedVFOSilent(vfo core.VFOID) {
 // ToggleFocusedVFO flips between VFO1 and VFO2. No-op if VFO2 is disabled.
 func (c *Controller) ToggleFocusedVFO() {
 	if !c.vfo2Enabled {
-		c.SetFocusedVFO(core.VFO1)
+		c.SetFocusedVFO(model.VFO1)
 		return
 	}
-	if c.focusedVFO == core.VFO1 {
-		c.SetFocusedVFO(core.VFO2)
+	if c.focusedVFO == model.VFO1 {
+		c.SetFocusedVFO(model.VFO2)
 	} else {
-		c.SetFocusedVFO(core.VFO1)
+		c.SetFocusedVFO(model.VFO1)
 	}
 }
 
 // FocusVFO1 sets the focused VFO to VFO1.
 func (c *Controller) FocusVFO1() {
-	c.SetFocusedVFO(core.VFO1)
+	c.SetFocusedVFO(model.VFO1)
 }
 
 // FocusVFO2 sets the focused VFO to VFO2. No-op if VFO2 is disabled.
 func (c *Controller) FocusVFO2() {
-	c.SetFocusedVFO(core.VFO2)
+	c.SetFocusedVFO(model.VFO2)
 }
 
 // LogVFO synthesises focus on vfo and then logs the QSO from that row.
-func (c *Controller) LogVFO(vfo core.VFOID) {
+func (c *Controller) LogVFO(vfo model.VFOID) {
 	c.SetFocusedVFO(vfo)
 	c.Log()
 }
 
 // ClearVFO synthesises focus on vfo and then clears that row.
-func (c *Controller) ClearVFO(vfo core.VFOID) {
+func (c *Controller) ClearVFO(vfo model.VFOID) {
 	c.SetFocusedVFO(vfo)
 	c.Clear()
 }
 
 // RadioChanged toggles VFO2 availability based on the connected radio's single-VFO flag.
-// Implements core.RadioChangedListener.
+// Implements model.RadioChangedListener.
 func (c *Controller) RadioChanged(_ string, singleVFO bool) {
 	c.vfo2Enabled = !singleVFO
-	if !c.vfo2Enabled && c.focusedVFO == core.VFO2 {
-		c.releaseSerialClaimFor(core.VFO2)
-		c.input[core.VFO2] = input{}
-		c.setFocusedVFOSilent(core.VFO1)
+	if !c.vfo2Enabled && c.focusedVFO == model.VFO2 {
+		c.releaseSerialClaimFor(model.VFO2)
+		c.input[model.VFO2] = input{}
+		c.setFocusedVFOSilent(model.VFO1)
 	}
-	c.view.SetVFOEnabled(core.VFO2, c.vfo2Enabled)
+	c.view.SetVFOEnabled(model.VFO2, c.vfo2Enabled)
 }
 
 // canTransmit reports whether the keyer is currently allowed to transmit. False during edit mode.
@@ -594,14 +594,14 @@ func (c *Controller) canTransmit() bool {
 
 // claimSerialFor reserves the next unclaimed serial for the given VFO if it has none yet.
 // Sticky: subsequent calls while a claim exists are no-ops.
-func (c *Controller) claimSerialFor(vfo core.VFOID) {
+func (c *Controller) claimSerialFor(vfo model.VFOID) {
 	c.claims.ClaimNext(vfo, c.logbook.NextQSONumber())
 	c.refreshMyNumberInputs()
 }
 
 // releaseSerialClaimFor frees the claim slot for vfo.
 // If the serial was committed (sent over air), it is burned and cannot be reused.
-func (c *Controller) releaseSerialClaimFor(vfo core.VFOID) {
+func (c *Controller) releaseSerialClaimFor(vfo model.VFOID) {
 	c.claims.Release(vfo)
 	c.refreshMyNumberInputs()
 }
@@ -615,7 +615,7 @@ func (c *Controller) SerialSent() {
 }
 
 // IsSerialCommitted reports whether the serial claim for vfo has been committed (sent over air).
-func (c *Controller) IsSerialCommitted(vfo core.VFOID) bool {
+func (c *Controller) IsSerialCommitted(vfo model.VFOID) bool {
 	return c.claims.committed[vfo]
 }
 
@@ -625,17 +625,17 @@ func (c *Controller) IsSerialCommitted(vfo core.VFOID) bool {
 func (c *Controller) refreshMyNumberInputs() {
 	base := c.logbook.NextQSONumber()
 	c.writeMyNumberInput(c.claims.DisplayedSerial(c.focusedVFO, base))
-	for vfo := range core.VFOCount {
-		c.view.SetSerialClaim(core.VFOID(vfo), c.claims.claimed[vfo], c.claims.committed[vfo])
+	for vfo := range model.VFOCount {
+		c.view.SetSerialClaim(model.VFOID(vfo), c.claims.claimed[vfo], c.claims.committed[vfo])
 	}
 }
 
-func (c *Controller) refreshMyNumberInput(vfo core.VFOID) {
+func (c *Controller) refreshMyNumberInput(vfo model.VFOID) {
 	base := c.logbook.NextQSONumber()
 	c.writeMyNumberInput(c.claims.DisplayedSerial(vfo, base))
 }
 
-func (c *Controller) writeMyNumberInput(serial core.QSONumber) {
+func (c *Controller) writeMyNumberInput(serial model.QSONumber) {
 	value := serial.String()
 	c.myNumber = value
 	i := c.myNumberExchangeField.Field.ExchangeIndex() - 1
@@ -650,30 +650,30 @@ func (c *Controller) writeMyNumberInput(serial core.QSONumber) {
 
 // enterEditMode snapshots VFO1's state, force-focuses VFO1 silently, marks editing,
 // and claims the QSO's existing serial for VFO1 for the duration of the edit.
-func (c *Controller) enterEditMode(qso core.QSO) {
+func (c *Controller) enterEditMode(qso model.QSO) {
 	c.editSnapshot = &editSnapshot{
 		focusedVFO:     c.focusedVFO,
-		input:          c.input[core.VFO1],
+		input:          c.input[model.VFO1],
 		myReport:       c.myReport,
 		myNumber:       c.myNumber,
 		myExchange:     append([]string(nil), c.myExchange...),
-		claimedSerial:  c.claims.claimed[core.VFO1],
-		claimSnapshot:  c.claims.snapshot[core.VFO1],
-		claimCommitted: c.claims.committed[core.VFO1],
-		activeField:    c.activeField[core.VFO1],
-		errorField:     c.errorField[core.VFO1],
-		callinfoFrame:  c.currentCallinfoFrame[core.VFO1],
-		esmState:       append([]core.ESMState(nil), c.esmState...),
+		claimedSerial:  c.claims.claimed[model.VFO1],
+		claimSnapshot:  c.claims.snapshot[model.VFO1],
+		claimCommitted: c.claims.committed[model.VFO1],
+		activeField:    c.activeField[model.VFO1],
+		errorField:     c.errorField[model.VFO1],
+		callinfoFrame:  c.currentCallinfoFrame[model.VFO1],
+		esmState:       append([]model.ESMState(nil), c.esmState...),
 		esmMessage:     append([]string(nil), c.esmMessage...),
 		esmMacroIndex:  append([]int(nil), c.esmMacroIndex...),
 	}
-	c.setFocusedVFOSilent(core.VFO1)
+	c.setFocusedVFOSilent(model.VFO1)
 	c.editing = true
 	c.editQSO = qso
-	c.claims.claimed[core.VFO1] = qso.MyNumber
-	c.claims.snapshot[core.VFO1] = c.logbook.NextQSONumber()
-	c.claims.committed[core.VFO1] = false
-	// TODO step 6: c.view.SetVFOEnabled(core.VFO2, false)
+	c.claims.claimed[model.VFO1] = qso.MyNumber
+	c.claims.snapshot[model.VFO1] = c.logbook.NextQSONumber()
+	c.claims.committed[model.VFO1] = false
+	// TODO step 6: c.view.SetVFOEnabled(model.VFO2, false)
 }
 
 // leaveEditMode restores the pre-edit state captured by enterEditMode. No-op if not editing.
@@ -682,27 +682,27 @@ func (c *Controller) leaveEditMode() {
 		return
 	}
 	snap := c.editSnapshot
-	c.input[core.VFO1] = snap.input
+	c.input[model.VFO1] = snap.input
 	c.myReport = snap.myReport
 	c.myNumber = snap.myNumber
 	c.myExchange = append(c.myExchange[:0], snap.myExchange...)
-	c.claims.claimed[core.VFO1] = snap.claimedSerial
-	c.claims.snapshot[core.VFO1] = snap.claimSnapshot
-	c.claims.committed[core.VFO1] = snap.claimCommitted
-	c.activeField[core.VFO1] = snap.activeField
-	c.errorField[core.VFO1] = snap.errorField
-	c.currentCallinfoFrame[core.VFO1] = snap.callinfoFrame
+	c.claims.claimed[model.VFO1] = snap.claimedSerial
+	c.claims.snapshot[model.VFO1] = snap.claimSnapshot
+	c.claims.committed[model.VFO1] = snap.claimCommitted
+	c.activeField[model.VFO1] = snap.activeField
+	c.errorField[model.VFO1] = snap.errorField
+	c.currentCallinfoFrame[model.VFO1] = snap.callinfoFrame
 	copy(c.esmState, snap.esmState)
 	copy(c.esmMessage, snap.esmMessage)
 	copy(c.esmMacroIndex, snap.esmMacroIndex)
 	c.editing = false
-	c.editQSO = core.QSO{}
+	c.editQSO = model.QSO{}
 	c.editSnapshot = nil
 	c.setFocusedVFOSilent(snap.focusedVFO)
-	// TODO step 6: c.view.SetVFOEnabled(core.VFO2, true)
+	// TODO step 6: c.view.SetVFOEnabled(model.VFO2, true)
 }
 
-func (c *Controller) SetActiveField(field core.EntryField) {
+func (c *Controller) SetActiveField(field model.EntryField) {
 	c.activeField[c.focusedVFO] = field
 	c.updateESM()
 }
@@ -719,7 +719,7 @@ func (c *Controller) selectCallsign(callsign string) {
 	if callsign == "" {
 		return
 	}
-	c.SetActiveField(core.CallsignField)
+	c.SetActiveField(model.CallsignField)
 	c.Enter(callsign)
 	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
@@ -727,13 +727,13 @@ func (c *Controller) selectCallsign(callsign string) {
 
 func (c *Controller) Enter(text string) {
 	switch c.activeField[c.focusedVFO] {
-	case core.CallsignField:
+	case model.CallsignField:
 		c.input[c.focusedVFO].callsign = text
 		c.enterCallsign(text)
-	case core.BandField:
+	case model.BandField:
 		c.input[c.focusedVFO].band = text
 		c.bandSelected(text)
-	case core.ModeField:
+	case model.ModeField:
 		c.input[c.focusedVFO].mode = text
 		c.modeSelected(text)
 	}
@@ -750,19 +750,19 @@ func (c *Controller) Enter(text string) {
 	c.updateESM()
 }
 
-func (c *Controller) frequencyEntered(frequency core.Frequency) {
+func (c *Controller) frequencyEntered(frequency model.Frequency) {
 	// log.Printf("Frequency selected: %s", frequency)
 	c.vfos[c.focusedVFO].SetFrequency(frequency)
 }
 
-func (c *Controller) bandEntered(band core.Band) {
+func (c *Controller) bandEntered(band model.Band) {
 	c.input[c.focusedVFO].band = band.String()
 	c.vfos[c.focusedVFO].SetBand(band)
 }
 
-func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+func (c *Controller) VFOFrequencyChanged(vfo model.VFOID, frequency model.Frequency) {
 	c.asyncRunner(func() {
-		if vfo == core.VFO1 && c.editing {
+		if vfo == model.VFO1 && c.editing {
 			return
 		}
 		if c.selectedFrequency[vfo] == frequency {
@@ -774,14 +774,14 @@ func (c *Controller) VFOFrequencyChanged(vfo core.VFOID, frequency core.Frequenc
 	})
 }
 
-func (c *Controller) VFOTuned(vfo core.VFOID, frequency core.Frequency) {
+func (c *Controller) VFOTuned(vfo model.VFOID, frequency model.Frequency) {
 	c.asyncRunner(func() {
-		if vfo == core.VFO1 && c.editing {
+		if vfo == model.VFO1 && c.editing {
 			return
 		}
 		// the operator left the frequency of the QSO in progress, therefore the input
 		// belongs to the previous frequency and gets cleared
-		if !core.IsFrequencyJump(c.selectedFrequency[vfo], frequency) {
+		if !model.IsFrequencyJump(c.selectedFrequency[vfo], frequency) {
 			return
 		}
 		c.selectedFrequency[vfo] = frequency
@@ -790,10 +790,10 @@ func (c *Controller) VFOTuned(vfo core.VFOID, frequency core.Frequency) {
 }
 
 // clearInput resets the input for the given VFO without changing the focused VFO.
-func (c *Controller) clearInput(vfo core.VFOID) {
+func (c *Controller) clearInput(vfo model.VFOID) {
 	c.claims.Release(vfo)
 	c.vfos[vfo].Refresh()
-	c.activeField[vfo] = core.CallsignField
+	c.activeField[vfo] = model.CallsignField
 
 	lastExchange := c.logbook.LastExchange()
 	c.fillExchangeDefaults(vfo, lastExchange)
@@ -803,7 +803,7 @@ func (c *Controller) clearInput(vfo core.VFOID) {
 	c.view.SetFrequency(vfo, c.selectedFrequency[vfo])
 	c.view.SetDuplicateMarker(vfo, false)
 	c.view.ClearMessage(vfo)
-	c.callinfoInputChanged(vfo, "", core.NoBand, core.NoMode, []string{})
+	c.callinfoInputChanged(vfo, "", model.NoBand, model.NoMode, []string{})
 
 	// Only push UI focus if this is focused VFO. For non-focused VFOs
 	// we reset internal state only — SetActiveField would steal focus.
@@ -813,7 +813,7 @@ func (c *Controller) clearInput(vfo core.VFOID) {
 }
 
 // callinfoInputChanged notifies the callinfo subsystem about input changes on a specific VFO.
-func (c *Controller) callinfoInputChanged(vfo core.VFOID, call string, band core.Band, mode core.Mode, exchange []string) {
+func (c *Controller) callinfoInputChanged(vfo model.VFOID, call string, band model.Band, mode model.Mode, exchange []string) {
 	if c.callinfo == nil {
 		return
 	}
@@ -829,12 +829,12 @@ func (c *Controller) bandSelected(s string) {
 	}
 }
 
-func (c *Controller) VFOBandChanged(vfo core.VFOID, band core.Band) {
+func (c *Controller) VFOBandChanged(vfo model.VFOID, band model.Band) {
 	c.asyncRunner(func() {
-		if vfo == core.VFO1 && c.editing {
+		if vfo == model.VFO1 && c.editing {
 			return
 		}
-		if band == core.NoBand || band == c.selectedBand[vfo] {
+		if band == model.NoBand || band == c.selectedBand[vfo] {
 			return
 		}
 		c.selectedBand[vfo] = band
@@ -856,7 +856,7 @@ func (c *Controller) modeSelected(s string) {
 	}
 }
 
-func (c *Controller) generateReportForMode(mode core.Mode) {
+func (c *Controller) generateReportForMode(mode model.Mode) {
 	generatedReport := defaultReportForMode(mode)
 	myIndex := c.myReportExchangeField.Field.ExchangeIndex()
 	if myIndex > 0 {
@@ -872,23 +872,23 @@ func (c *Controller) generateReportForMode(mode core.Mode) {
 	}
 }
 
-func defaultReportForMode(mode core.Mode) string {
+func defaultReportForMode(mode model.Mode) string {
 	switch mode {
-	case core.ModeCW, core.ModeDigital, core.ModeRTTY:
+	case model.ModeCW, model.ModeDigital, model.ModeRTTY:
 		return "599"
-	case core.ModeSSB, core.ModeFM:
+	case model.ModeSSB, model.ModeFM:
 		return "59"
 	default:
 		return ""
 	}
 }
 
-func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
+func (c *Controller) VFOModeChanged(vfo model.VFOID, mode model.Mode) {
 	c.asyncRunner(func() {
-		if vfo == core.VFO1 && c.editing {
+		if vfo == model.VFO1 && c.editing {
 			return
 		}
-		if mode == core.NoMode || mode == c.selectedMode[vfo] {
+		if mode == model.NoMode || mode == c.selectedMode[vfo] {
 			return
 		}
 		c.selectedMode[vfo] = mode
@@ -898,9 +898,9 @@ func (c *Controller) VFOModeChanged(vfo core.VFOID, mode core.Mode) {
 	})
 }
 
-func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
+func (c *Controller) VFOPTTChanged(vfo model.VFOID, active bool) {
 	c.asyncRunner(func() {
-		if vfo != core.VFO1 {
+		if vfo != model.VFO1 {
 			c.view.SetTXState(vfo, active, false, 0)
 			return
 		}
@@ -909,7 +909,7 @@ func (c *Controller) VFOPTTChanged(vfo core.VFOID, active bool) {
 	})
 }
 
-func (c *Controller) TXVFOChanged(vfo core.VFOID) {
+func (c *Controller) TXVFOChanged(vfo model.VFOID) {
 	c.asyncRunner(func() {
 		c.txVFO = vfo
 		c.view.SetTXVFO(vfo)
@@ -920,7 +920,7 @@ func (c *Controller) ParrotActive(active bool) {
 	c.parrotActive = active
 	c.updateTXState()
 	if active {
-		c.clearInput(core.VFO1)
+		c.clearInput(model.VFO1)
 	}
 }
 
@@ -930,7 +930,7 @@ func (c *Controller) ParrotTimeLeft(timeLeft time.Duration) {
 }
 
 func (c *Controller) updateTXState() {
-	c.view.SetTXState(core.VFO1, c.ptt, c.parrotActive, c.parrotTimeLeft)
+	c.view.SetTXState(model.VFO1, c.ptt, c.parrotActive, c.parrotTimeLeft)
 }
 
 func (c *Controller) SendQuestion() {
@@ -969,7 +969,7 @@ func (c *Controller) enterCallsign(s string) {
 	c.emitCallsignEntered(c.input[c.focusedVFO].callsign)
 	c.callinfoInputChanged(c.focusedVFO, c.input[c.focusedVFO].callsign, c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO], c.input[c.focusedVFO].theirExchange)
 
-	callsign, err := core.ParseCallsign(s)
+	callsign, err := model.ParseCallsign(s)
 	if err != nil {
 		return
 	}
@@ -985,10 +985,10 @@ func (c *Controller) enterCallsign(s string) {
 		return
 	}
 
-	c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()), core.CallsignField)
+	c.showErrorOnField(fmt.Errorf("%s was worked before in QSO #%s", qso.Callsign, qso.MyNumber.String()), model.CallsignField)
 }
 
-func (c *Controller) enterTheirExchange(field core.EntryField) {
+func (c *Controller) enterTheirExchange(field model.EntryField) {
 	if c.callinfo == nil {
 		return
 	}
@@ -996,7 +996,7 @@ func (c *Controller) enterTheirExchange(field core.EntryField) {
 	c.clearErrorOnField(field)
 }
 
-func (c *Controller) QSOSelected(qso core.QSO) {
+func (c *Controller) QSOSelected(qso model.QSO) {
 	if c.ignoreQSOSelection {
 		return
 	}
@@ -1005,8 +1005,8 @@ func (c *Controller) QSOSelected(qso core.QSO) {
 	c.enterEditMode(qso)
 
 	c.showQSO(qso)
-	c.view.SetActiveField(c.focusedVFO, core.CallsignField)
-	c.view.SetEditingMarker(core.VFO1, true)
+	c.view.SetActiveField(c.focusedVFO, model.CallsignField)
+	c.view.SetEditingMarker(model.VFO1, true)
 	c.callinfoInputChanged(c.focusedVFO, qso.Callsign.String(), qso.Band, qso.Mode, qso.TheirExchange)
 }
 
@@ -1025,10 +1025,10 @@ func (c *Controller) EnterPressed() {
 	}
 }
 
-func (c *Controller) CurrentQSOState() (core.Callsign, core.QSODataState) {
+func (c *Controller) CurrentQSOState() (model.Callsign, model.QSODataState) {
 	callEmpty := (c.input[c.focusedVFO].callsign == "")
 
-	call, err := core.ParseCallsign(c.input[c.focusedVFO].callsign)
+	call, err := model.ParseCallsign(c.input[c.focusedVFO].callsign)
 	callOK := (err == nil)
 
 	theirExchange := make([]string, len(c.theirExchangeFields))
@@ -1037,29 +1037,29 @@ func (c *Controller) CurrentQSOState() (core.Callsign, core.QSODataState) {
 
 	switch {
 	case callEmpty, !callOK:
-		return core.NoCallsign, core.QSODataEmpty
+		return model.NoCallsign, model.QSODataEmpty
 	case callOK && !exchangeOK:
-		return call, core.QSODataInvalid
+		return call, model.QSODataInvalid
 	case callOK && exchangeOK:
-		return call, core.QSODataValid
+		return call, model.QSODataValid
 	default:
 		log.Printf("invalid QSO state: %s, %+v", c.input[c.focusedVFO].callsign, c.input[c.focusedVFO].theirExchange)
-		return core.NoCallsign, core.QSODataEmpty
+		return model.NoCallsign, model.QSODataEmpty
 	}
 }
 
 func (c *Controller) Log() {
 	var err error
-	qso := core.QSO{}
+	qso := model.QSO{}
 	if c.editing {
 		qso.Time = c.editQSO.Time
 	} else {
 		qso.Time = c.clock.Now()
 	}
 
-	qso.Callsign, err = core.ParseCallsign(c.input[c.focusedVFO].callsign)
+	qso.Callsign, err = model.ParseCallsign(c.input[c.focusedVFO].callsign)
 	if err != nil {
-		c.showErrorOnField(err, core.CallsignField)
+		c.showErrorOnField(err, model.CallsignField)
 		return
 	}
 
@@ -1067,13 +1067,13 @@ func (c *Controller) Log() {
 
 	qso.Band, err = parse.Band(c.input[c.focusedVFO].band)
 	if err != nil {
-		c.showErrorOnField(err, core.BandField)
+		c.showErrorOnField(err, model.BandField)
 		return
 	}
 
 	qso.Mode, err = parse.Mode(c.input[c.focusedVFO].mode)
 	if err != nil {
-		c.showErrorOnField(err, core.ModeField)
+		c.showErrorOnField(err, model.ModeField)
 		return
 	}
 
@@ -1088,7 +1088,7 @@ func (c *Controller) Log() {
 	// handle my exchange
 	myNumber, err := strconv.Atoi(c.myNumber)
 	if err == nil {
-		qso.MyNumber = core.QSONumber(myNumber)
+		qso.MyNumber = model.QSONumber(myNumber)
 	}
 	qso.MyExchange = make([]string, len(c.myExchangeFields))
 	for i, field := range c.myExchangeFields {
@@ -1108,7 +1108,7 @@ func (c *Controller) Log() {
 			myNumber, err := strconv.Atoi(value)
 			if err == nil {
 				qso.MyExchange[i] = fmt.Sprintf("%03d", myNumber)
-				qso.MyNumber = core.QSONumber(myNumber)
+				qso.MyNumber = model.QSONumber(myNumber)
 			} else if len(field.Properties) == 1 {
 				c.showErrorOnField(err, field.Field)
 				return
@@ -1129,14 +1129,14 @@ func (c *Controller) Log() {
 
 	c.emitCallsignLogged(qso.Callsign.String(), qso.Frequency)
 
-	if c.workmode == core.SearchPounce {
-		spot := core.Spot{
+	if c.workmode == model.SearchPounce {
+		spot := model.Spot{
 			Call:      qso.Callsign,
 			Frequency: qso.Frequency,
 			Band:      qso.Band,
 			Mode:      qso.Mode,
 			Time:      qso.Time,
-			Source:    core.WorkedSpot,
+			Source:    model.WorkedSpot,
 		}
 		c.bandmap.Add(spot)
 	}
@@ -1145,7 +1145,7 @@ func (c *Controller) Log() {
 }
 
 func (c *Controller) parseCallsignCommand() bool {
-	if c.activeField[c.focusedVFO] != core.CallsignField {
+	if c.activeField[c.focusedVFO] != model.CallsignField {
 		return false
 	}
 
@@ -1189,12 +1189,12 @@ func isCommand(s string) bool {
 	return strings.HasPrefix(text, commandPrefix) || strings.HasPrefix(text, textMarkerCommand)
 }
 
-func parseKilohertz(s string) (core.Frequency, bool) {
+func parseKilohertz(s string) (model.Frequency, bool) {
 	kHz, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, false
 	}
-	return core.Frequency(kHz * 1000), true
+	return model.Frequency(kHz * 1000), true
 }
 
 func isCQCommand(s string) bool {
@@ -1221,23 +1221,23 @@ func parseTextMarkerCommand(s string) (string, bool) {
 	return text, true
 }
 
-func parseBandmapCallsign(s string) (core.Callsign, bool) {
+func parseBandmapCallsign(s string) (model.Callsign, bool) {
 	text, found := strings.CutPrefix(strings.TrimSpace(s), commandPrefix)
 	if !found {
-		return core.Callsign{}, false
+		return model.Callsign{}, false
 	}
 
-	call, err := core.ParseCallsign(text)
+	call, err := model.ParseCallsign(text)
 	if err != nil {
 		log.Printf("invalid bandmap callsign: %v", err)
-		return core.Callsign{}, false
+		return model.Callsign{}, false
 	}
 	return call, true
 }
 
 // parseTheirExchange parses their exchange fields and writes the values into the slice/pointers. Parsing errors are returned.
 // The arguments may be nil, this can be used to just validate the input.
-func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *core.RST, theirNumber *core.QSONumber) (core.ExchangeField, error) {
+func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *model.RST, theirNumber *model.QSONumber) (model.ExchangeField, error) {
 	for i, field := range c.theirExchangeFields {
 		value := c.input[c.focusedVFO].theirExchange[i]
 		if value == "" && !field.EmptyAllowed {
@@ -1273,7 +1273,7 @@ func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *cor
 					theirExchange[i] = fmt.Sprintf("%03d", n)
 				}
 				if theirNumber != nil {
-					*theirNumber = core.QSONumber(n)
+					*theirNumber = model.QSONumber(n)
 				}
 			} else if onlySerial {
 				return field, err
@@ -1285,17 +1285,17 @@ func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *cor
 			}
 		}
 	}
-	return core.ExchangeField{}, nil
+	return model.ExchangeField{}, nil
 }
 
-func (c *Controller) showErrorOnField(err error, field core.EntryField) {
+func (c *Controller) showErrorOnField(err error, field model.EntryField) {
 	c.SetActiveField(field)
 	c.errorField[c.focusedVFO] = field
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 	c.view.ShowMessage(c.focusedVFO, err)
 }
 
-func (c *Controller) clearErrorOnField(field core.EntryField) {
+func (c *Controller) clearErrorOnField(field model.EntryField) {
 	if c.errorField[c.focusedVFO] != field {
 		return
 	}
@@ -1311,10 +1311,10 @@ func (c *Controller) Clear() {
 		c.view.SetFrequency(c.focusedVFO, c.selectedFrequency[c.focusedVFO])
 		c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 		c.view.SetDuplicateMarker(c.focusedVFO, false)
-		c.view.SetEditingMarker(core.VFO1, false)
+		c.view.SetEditingMarker(model.VFO1, false)
 		c.view.ClearMessage(c.focusedVFO)
 		c.selectLastQSO()
-		c.callinfoInputChanged(c.focusedVFO, "", core.NoBand, core.NoMode, []string{})
+		c.callinfoInputChanged(c.focusedVFO, "", model.NoBand, model.NoMode, []string{})
 		return
 	}
 
@@ -1324,14 +1324,14 @@ func (c *Controller) Clear() {
 
 	c.vfos[c.focusedVFO].Refresh()
 
-	c.activeField[c.focusedVFO] = core.CallsignField
+	c.activeField[c.focusedVFO] = model.CallsignField
 
 	lastExchange := c.logbook.LastExchange()
 	c.fillExchangeDefaults(c.focusedVFO, lastExchange)
 	// Non-focused VFOs that have no in-progress QSO are also initialized so their default
 	// report follows the current contest/mode.
-	for vfo := range core.VFOCount {
-		v := core.VFOID(vfo)
+	for vfo := range model.VFOCount {
+		v := model.VFOID(vfo)
 		if v == c.focusedVFO {
 			continue
 		}
@@ -1350,21 +1350,21 @@ func (c *Controller) Clear() {
 	c.view.SetFrequency(c.focusedVFO, c.selectedFrequency[c.focusedVFO])
 	c.view.SetActiveField(c.focusedVFO, c.activeField[c.focusedVFO])
 	c.view.SetDuplicateMarker(c.focusedVFO, false)
-	c.view.SetEditingMarker(core.VFO1, false)
+	c.view.SetEditingMarker(model.VFO1, false)
 	c.view.ClearMessage(c.focusedVFO)
 	c.selectLastQSO()
-	c.callinfoInputChanged(c.focusedVFO, "", core.NoBand, core.NoMode, []string{})
+	c.callinfoInputChanged(c.focusedVFO, "", model.NoBand, model.NoMode, []string{})
 }
 
 // fillExchangeDefaults resets vfo's input fields (callsign/band/mode/exchange) and seeds
 // the default exchange values (mode-derived report, last-exchange carry-over). Idempotent.
-func (c *Controller) fillExchangeDefaults(vfo core.VFOID, lastExchange []string) {
+func (c *Controller) fillExchangeDefaults(vfo model.VFOID, lastExchange []string) {
 	c.input[vfo].callsign = ""
-	if c.selectedBand[vfo] != core.NoBand {
+	if c.selectedBand[vfo] != model.NoBand {
 		c.input[vfo].band = c.selectedBand[vfo].String()
 	}
 	generatedReport := ""
-	if c.selectedMode[vfo] != core.NoMode {
+	if c.selectedMode[vfo] != model.NoMode {
 		c.input[vfo].mode = c.selectedMode[vfo].String()
 		generatedReport = defaultReportForMode(c.selectedMode[vfo])
 	}
@@ -1400,7 +1400,7 @@ func (c *Controller) Activate() {
 }
 
 func (c *Controller) EditLastQSO() {
-	c.activeField[c.focusedVFO] = core.CallsignField
+	c.activeField[c.focusedVFO] = model.CallsignField
 	c.qsoList.SelectLastQSO()
 }
 
@@ -1414,7 +1414,7 @@ func (c *Controller) selectLastQSO() {
 	c.ignoreQSOSelection = false
 }
 
-func (c *Controller) CurrentValues() core.KeyerValues {
+func (c *Controller) CurrentValues() model.KeyerValues {
 	myNumber, _ := strconv.Atoi(c.myNumber)
 
 	myXchanges := make([]string, 0, len(c.myExchange))
@@ -1427,9 +1427,9 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 		}
 	}
 
-	values := core.KeyerValues{}
+	values := model.KeyerValues{}
 	values.MyReport, _ = parse.RST(c.myReport)
-	values.MyNumber = core.QSONumber(myNumber)
+	values.MyNumber = model.QSONumber(myNumber)
 	values.MyXchange = strings.Join(myXchanges, " ")
 	values.MyExchange = strings.Join(c.myExchange, " ")
 	values.MyExchanges = c.myExchange
@@ -1439,7 +1439,7 @@ func (c *Controller) CurrentValues() core.KeyerValues {
 	return values
 }
 
-func (c *Controller) CurrentVFOState() (core.Frequency, core.Band, core.Mode) {
+func (c *Controller) CurrentVFOState() (model.Frequency, model.Band, model.Mode) {
 	return c.selectedFrequency[c.focusedVFO], c.selectedBand[c.focusedVFO], c.selectedMode[c.focusedVFO]
 }
 
@@ -1447,15 +1447,15 @@ func (c *Controller) FocusedVFO() (string, bool) {
 	return c.vfos[c.focusedVFO].Name(), c.vfo2Enabled
 }
 
-func (c *Controller) StationChanged(station core.Station) {
+func (c *Controller) StationChanged(station model.Station) {
 	c.stationCallsign = station.Callsign.String()
 }
 
-func (c *Controller) ContestChanged(contest core.Contest) {
+func (c *Controller) ContestChanged(contest model.Contest) {
 	c.updateExchangeFields(contest)
 }
 
-func (c *Controller) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
+func (c *Controller) WorkmodeChanged(vfo model.VFOID, workmode model.Workmode) {
 	c.vfoWorkmode[vfo] = workmode
 	if vfo == c.focusedVFO {
 		c.workmode = workmode
@@ -1464,7 +1464,7 @@ func (c *Controller) WorkmodeChanged(vfo core.VFOID, workmode core.Workmode) {
 	c.view.SetVFOWorkmode(vfo, workmode)
 }
 
-func (c *Controller) updateExchangeFields(contest core.Contest) {
+func (c *Controller) updateExchangeFields(contest model.Contest) {
 	c.myExchangeFields = contest.MyExchangeFields
 	c.myReportExchangeField = contest.MyReportExchangeField
 	c.myNumberExchangeField = contest.MyNumberExchangeField
@@ -1476,7 +1476,7 @@ func (c *Controller) updateExchangeFields(contest core.Contest) {
 	c.defaultExchangeValues = contest.ExchangeValues
 
 	c.myExchange = make([]string, len(contest.MyExchangeFields))
-	for vfo := range core.VFOCount {
+	for vfo := range model.VFOCount {
 		c.input[vfo].theirExchange = make([]string, len(contest.TheirExchangeFields))
 	}
 
@@ -1510,20 +1510,20 @@ func (c *Controller) MarkInBandmap() {
 		return
 	}
 
-	call, err := core.ParseCallsign(callsign)
+	call, err := model.ParseCallsign(callsign)
 	if err != nil {
 		// an incomplete callsign is no spot for the other operators, but the operator
 		// parks the QSO at a marker and continues it later
 		c.bandmap.MarkWithNextNumber(frequency, band, c.currentMarkerInput())
 		return
 	}
-	spot := core.Spot{
+	spot := model.Spot{
 		Call:      call,
 		Frequency: c.selectedFrequency[c.focusedVFO],
 		Band:      c.selectedBand[c.focusedVFO],
 		Mode:      c.selectedMode[c.focusedVFO],
 		Time:      c.clock.Now(),
-		Source:    core.ManualSpot,
+		Source:    model.ManualSpot,
 	}
 	c.bandmap.Add(spot)
 }
@@ -1532,9 +1532,9 @@ func (c *Controller) MarkWithNumberInBandmap(number int) {
 	c.bandmap.MarkWithNumber(number, c.selectedFrequency[c.focusedVFO], c.selectedBand[c.focusedVFO], c.currentMarkerInput())
 }
 
-func (c *Controller) currentMarkerInput() core.MarkerInput {
+func (c *Controller) currentMarkerInput() model.MarkerInput {
 	// the operator comes back to the marker later and continues the QSO there
-	return core.MarkerInput{
+	return model.MarkerInput{
 		Call:          strings.TrimSpace(c.input[c.focusedVFO].callsign),
 		TheirExchange: slices.Clone(c.input[c.focusedVFO].theirExchange),
 	}
@@ -1567,7 +1567,7 @@ func (c *Controller) clearCallsignInput() {
 	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
 }
 
-func (c *Controller) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) {
+func (c *Controller) MarkerSelected(vfo model.VFOID, marker model.BandmapMarker) {
 	// the bandmap decides which VFO goes to the marker, the focus follows that decision
 	c.SetFocusedVFO(vfo)
 
@@ -1575,12 +1575,12 @@ func (c *Controller) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) {
 	// setting the frequency also moves the rig to the band of the marker. A marker names
 	// no mode, therefore the mode of the VFO stays as it is.
 	c.frequencyEntered(marker.Frequency)
-	c.SetActiveField(core.CallsignField)
+	c.SetActiveField(model.CallsignField)
 	c.restoreMarkerInput(marker.Input)
 	c.Activate()
 }
 
-func (c *Controller) restoreMarkerInput(input core.MarkerInput) {
+func (c *Controller) restoreMarkerInput(input model.MarkerInput) {
 	if input.IsEmpty() {
 		return
 	}
@@ -1594,17 +1594,17 @@ func (c *Controller) restoreMarkerInput(input core.MarkerInput) {
 	c.updateESM()
 }
 
-func (c *Controller) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) {
+func (c *Controller) EntrySelected(vfo model.VFOID, entry model.BandmapEntry) {
 	// the bandmap decides which VFO works the spot, the focus follows that decision
 	c.SetFocusedVFO(vfo)
 
 	c.Clear()
 	// setting the frequency also moves the rig to the band of the spot
 	c.frequencyEntered(entry.Frequency)
-	if entry.Mode != core.NoMode && entry.Mode != c.selectedMode[c.focusedVFO] {
+	if entry.Mode != model.NoMode && entry.Mode != c.selectedMode[c.focusedVFO] {
 		c.vfos[c.focusedVFO].SetMode(entry.Mode)
 	}
-	c.SetActiveField(core.CallsignField)
+	c.SetActiveField(model.CallsignField)
 	c.Enter(entry.Call.String())
 	c.view.SetCallsign(c.focusedVFO, c.input[c.focusedVFO].callsign)
 	// the spot list may live in another window, therefore the callsign field of the

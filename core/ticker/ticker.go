@@ -3,10 +3,10 @@ package ticker
 import (
 	"time"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
-func New(clock core.Clock, callback func()) *Ticker {
+func New(clock model.Clock, callback func()) *Ticker {
 	return &Ticker{
 		clock:    clock,
 		callback: callback,
@@ -14,7 +14,7 @@ func New(clock core.Clock, callback func()) *Ticker {
 }
 
 type Ticker struct {
-	clock      core.Clock
+	clock      model.Clock
 	callback   func()
 	ticker     *time.Ticker
 	stopTicker chan struct{}

@@ -6,8 +6,8 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/export/summary"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var _ summary.View = (*summaryDialog)(nil)
@@ -40,7 +40,7 @@ type summaryDialog struct {
 	qtcsEnabled           bool
 	detailedMultis        bool
 	detailedMultisEnabled bool
-	score                 core.Score
+	score                 model.Score
 
 	openAfterExport bool
 }
@@ -55,14 +55,14 @@ func (d *summaryDialog) Show() bool {
 	d.view.doIgnore(func() {
 		d.view.contestName.SetText(d.contestName)
 		d.view.cabrilloName.SetText(d.cabrilloName)
-		d.view.startTime.SetText(core.FormatTimestamp(d.startTime))
+		d.view.startTime.SetText(model.FormatTimestamp(d.startTime))
 		d.view.callsign.SetText(d.callsign)
 		d.view.myExchanges.SetText(d.myExchanges)
 
 		d.view.workedModes.SetText(d.workedModes)
 		d.view.workedBands.SetText(d.workedBands)
-		d.view.operatingTime.SetText(core.FormatDuration(d.operatingTime))
-		d.view.breakTime.SetText(core.FormatDuration(d.breakTime))
+		d.view.operatingTime.SetText(model.FormatDuration(d.operatingTime))
+		d.view.breakTime.SetText(model.FormatDuration(d.breakTime))
 		d.view.breaks.SetText(strconv.Itoa(d.breaks))
 
 		selectComboValue(d.view.operatorModeCombo, d.operatorMode)
@@ -133,7 +133,7 @@ func (d *summaryDialog) SetCabrilloName(value string) {
 func (d *summaryDialog) SetStartTime(t time.Time) {
 	d.startTime = t
 	if d.view != nil {
-		d.view.doIgnore(func() { d.view.startTime.SetText(core.FormatTimestamp(t)) })
+		d.view.doIgnore(func() { d.view.startTime.SetText(model.FormatTimestamp(t)) })
 	}
 }
 
@@ -196,14 +196,14 @@ func (d *summaryDialog) SetWorkedBands(value string) {
 func (d *summaryDialog) SetOperatingTime(t time.Duration) {
 	d.operatingTime = t
 	if d.view != nil {
-		d.view.doIgnore(func() { d.view.operatingTime.SetText(core.FormatDuration(t)) })
+		d.view.doIgnore(func() { d.view.operatingTime.SetText(model.FormatDuration(t)) })
 	}
 }
 
 func (d *summaryDialog) SetBreakTime(t time.Duration) {
 	d.breakTime = t
 	if d.view != nil {
-		d.view.doIgnore(func() { d.view.breakTime.SetText(core.FormatDuration(t)) })
+		d.view.doIgnore(func() { d.view.breakTime.SetText(model.FormatDuration(t)) })
 	}
 }
 
@@ -233,7 +233,7 @@ func (d *summaryDialog) SetDetailedMultis(value bool, enabled bool) {
 	}
 }
 
-func (d *summaryDialog) SetScore(score core.Score) {
+func (d *summaryDialog) SetScore(score model.Score) {
 	d.score = score
 	if d.view != nil {
 		d.view.scoreTable.ShowScore(score)

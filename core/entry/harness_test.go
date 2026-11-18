@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/core/entry"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var scenarioFixedTime = time.Date(2006, time.January, 2, 15, 4, 5, 6, time.UTC)
@@ -59,7 +59,7 @@ func NewScenario(t *testing.T) *Scenario {
 		func(f func()) { f() },
 	)
 	s.vfo = &vfoSpy{ctrl: s.controller}
-	s.controller.SetVFO(core.VFO1, s.vfo)
+	s.controller.SetVFO(model.VFO1, s.vfo)
 	s.controller.SetCallinfo(s.callinfo)
 	s.controller.Notify(s.listener)
 	s.controller.SetView(s.view) // triggers Clear() → vfo.Refresh()
@@ -92,7 +92,7 @@ func (s *Scenario) resetSpies() {
 // WithClassicExchange configures RST + serial + generic-text exchange fields,
 // with auto-generated serial numbers.
 func (s *Scenario) WithClassicExchange() *Scenario {
-	contest := core.Contest{
+	contest := model.Contest{
 		Definition: scenarioFieldDefinition(
 			conval.ExchangeField{conval.RSTProperty},
 			conval.ExchangeField{conval.SerialNumberProperty},
@@ -108,7 +108,7 @@ func (s *Scenario) WithClassicExchange() *Scenario {
 
 // WithExchangeWithoutReport configures an exchange without a report field, like the CWT contest.
 func (s *Scenario) WithExchangeWithoutReport() *Scenario {
-	contest := core.Contest{
+	contest := model.Contest{
 		Definition: scenarioFieldDefinition(
 			conval.ExchangeField{conval.NameProperty},
 			conval.ExchangeField{conval.GenericTextProperty},
@@ -121,13 +121,13 @@ func (s *Scenario) WithExchangeWithoutReport() *Scenario {
 }
 
 // WithDuplicateQSO makes the logbook spy return qso for any FindDuplicateQSOs call.
-func (s *Scenario) WithDuplicateQSO(qso core.QSO) *Scenario {
+func (s *Scenario) WithDuplicateQSO(qso model.QSO) *Scenario {
 	s.logbook.duplicates = append(s.logbook.duplicates, qso)
 	return s
 }
 
 // WithCallinfoFrame injects a prediction frame for vfo via CallinfoFrameChanged.
-func (s *Scenario) WithCallinfoFrame(vfo core.VFOID, frame core.CallinfoFrame) *Scenario {
+func (s *Scenario) WithCallinfoFrame(vfo model.VFOID, frame model.CallinfoFrame) *Scenario {
 	s.controller.CallinfoFrameChanged(vfo, frame)
 	return s
 }
@@ -135,7 +135,7 @@ func (s *Scenario) WithCallinfoFrame(vfo core.VFOID, frame core.CallinfoFrame) *
 // WithClassicExchangeWithOptionalText configures RST + serial + optional-generic-text
 // (EmptyAllowed) exchange fields. Needed for C8 prediction-fill path.
 func (s *Scenario) WithClassicExchangeWithOptionalText() *Scenario {
-	contest := core.Contest{
+	contest := model.Contest{
 		Definition: scenarioFieldDefinition(
 			conval.ExchangeField{conval.RSTProperty},
 			conval.ExchangeField{conval.SerialNumberProperty},
@@ -156,8 +156,8 @@ func (s *Scenario) WithESMEnabled() *Scenario {
 }
 
 // WithWorkmode sets the workmode without spy reset.
-func (s *Scenario) WithWorkmode(w core.Workmode) *Scenario {
-	s.controller.WorkmodeChanged(core.VFO1, w)
+func (s *Scenario) WithWorkmode(w model.Workmode) *Scenario {
+	s.controller.WorkmodeChanged(model.VFO1, w)
 	return s
 }
 
@@ -177,7 +177,7 @@ func (s *Scenario) WithQSOListCallback(f func()) *Scenario {
 // WithClassicExchangeAndReport configures RST + serial + generic-text exchange fields
 // with both auto-generated serial numbers and report regeneration on mode change.
 func (s *Scenario) WithClassicExchangeAndReport() *Scenario {
-	contest := core.Contest{
+	contest := model.Contest{
 		Definition: scenarioFieldDefinition(
 			conval.ExchangeField{conval.RSTProperty},
 			conval.ExchangeField{conval.SerialNumberProperty},
@@ -219,7 +219,7 @@ func (s *Scenario) GotoNextFieldSkippingReport() *Scenario {
 }
 
 // SelectQSO triggers QSOSelected, entering edit mode with qso.
-func (s *Scenario) SelectQSO(qso core.QSO) *Scenario {
+func (s *Scenario) SelectQSO(qso model.QSO) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.QSOSelected(qso)
@@ -227,7 +227,7 @@ func (s *Scenario) SelectQSO(qso core.QSO) *Scenario {
 }
 
 // SetActiveField sets the active field on the focused VFO.
-func (s *Scenario) SetActiveField(field core.EntryField) *Scenario {
+func (s *Scenario) SetActiveField(field model.EntryField) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.SetActiveField(field)
@@ -267,7 +267,7 @@ func (s *Scenario) Clear() *Scenario {
 }
 
 // VFOFrequencyChanged fires the rig frequency-change event.
-func (s *Scenario) VFOFrequencyChanged(vfo core.VFOID, freq core.Frequency) *Scenario {
+func (s *Scenario) VFOFrequencyChanged(vfo model.VFOID, freq model.Frequency) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.VFOFrequencyChanged(vfo, freq)
@@ -275,7 +275,7 @@ func (s *Scenario) VFOFrequencyChanged(vfo core.VFOID, freq core.Frequency) *Sce
 }
 
 // VFOTuned fires the event that the operator tuned the VFO.
-func (s *Scenario) VFOTuned(vfo core.VFOID, freq core.Frequency) *Scenario {
+func (s *Scenario) VFOTuned(vfo model.VFOID, freq model.Frequency) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.VFOTuned(vfo, freq)
@@ -283,7 +283,7 @@ func (s *Scenario) VFOTuned(vfo core.VFOID, freq core.Frequency) *Scenario {
 }
 
 // VFOBandChanged fires the rig band-change event.
-func (s *Scenario) VFOBandChanged(vfo core.VFOID, band core.Band) *Scenario {
+func (s *Scenario) VFOBandChanged(vfo model.VFOID, band model.Band) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.VFOBandChanged(vfo, band)
@@ -291,7 +291,7 @@ func (s *Scenario) VFOBandChanged(vfo core.VFOID, band core.Band) *Scenario {
 }
 
 // VFOModeChanged fires the rig mode-change event.
-func (s *Scenario) VFOModeChanged(vfo core.VFOID, mode core.Mode) *Scenario {
+func (s *Scenario) VFOModeChanged(vfo model.VFOID, mode model.Mode) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.VFOModeChanged(vfo, mode)
@@ -299,10 +299,10 @@ func (s *Scenario) VFOModeChanged(vfo core.VFOID, mode core.Mode) *Scenario {
 }
 
 // WorkmodeChanged updates workmode (spy reset → action).
-func (s *Scenario) WorkmodeChanged(w core.Workmode) *Scenario {
+func (s *Scenario) WorkmodeChanged(w model.Workmode) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.WorkmodeChanged(core.VFO1, w)
+	s.controller.WorkmodeChanged(model.VFO1, w)
 	return s
 }
 
@@ -331,7 +331,7 @@ func (s *Scenario) MarkWithNumberInBandmap(number int) *Scenario {
 }
 
 // EntrySelected simulates a bandmap entry being selected for the given VFO.
-func (s *Scenario) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) *Scenario {
+func (s *Scenario) EntrySelected(vfo model.VFOID, entry model.BandmapEntry) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.EntrySelected(vfo, entry)
@@ -339,7 +339,7 @@ func (s *Scenario) EntrySelected(vfo core.VFOID, entry core.BandmapEntry) *Scena
 }
 
 // MarkerSelected simulates a marker of the spot list being selected for the given VFO.
-func (s *Scenario) MarkerSelected(vfo core.VFOID, marker core.BandmapMarker) *Scenario {
+func (s *Scenario) MarkerSelected(vfo model.VFOID, marker model.BandmapMarker) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.MarkerSelected(vfo, marker)
@@ -413,7 +413,7 @@ func (s *Scenario) AssertCallinfoNotified(callsign string) *Scenario {
 }
 
 // AssertCallinfoCleared asserts callinfo.InputChanged(vfo, "") was called for the given VFO.
-func (s *Scenario) AssertCallinfoCleared(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertCallinfoCleared(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	found := false
 	for _, inp := range s.callinfo.inputs {
@@ -428,7 +428,7 @@ func (s *Scenario) AssertCallinfoCleared(vfo core.VFOID) *Scenario {
 }
 
 // AssertMessageCleared asserts view.ClearMessage(vfo) was called and ShowMessage was not.
-func (s *Scenario) AssertMessageCleared(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertMessageCleared(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "ClearMessage", vfo)
 	assert.False(s.t, s.view.wasCalled("ShowMessage"),
@@ -437,7 +437,7 @@ func (s *Scenario) AssertMessageCleared(vfo core.VFOID) *Scenario {
 }
 
 // AssertMessageShown asserts view.ShowMessage was called for vfo.
-func (s *Scenario) AssertMessageShown(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertMessageShown(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	found := false
 	for _, c := range s.view.calls {
@@ -462,14 +462,14 @@ func (s *Scenario) AssertSerialClaimed() *Scenario {
 }
 
 // AssertActiveField asserts view.SetActiveField(vfo, field) was called.
-func (s *Scenario) AssertActiveField(vfo core.VFOID, field core.EntryField) *Scenario {
+func (s *Scenario) AssertActiveField(vfo model.VFOID, field model.EntryField) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetActiveField", vfo, field)
 	return s
 }
 
 // AssertTextSelected asserts view.SelectText(vfo, field, text) was called.
-func (s *Scenario) AssertTextSelected(vfo core.VFOID, field core.EntryField, text string) *Scenario {
+func (s *Scenario) AssertTextSelected(vfo model.VFOID, field model.EntryField, text string) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SelectText", vfo, field, text)
 	return s
@@ -490,7 +490,7 @@ func (s *Scenario) AssertMyExchangeValue(index int, value string) *Scenario {
 }
 
 // AssertDuplicateMarker asserts view.SetDuplicateMarker(vfo, marked) was called.
-func (s *Scenario) AssertDuplicateMarker(vfo core.VFOID, marked bool) *Scenario {
+func (s *Scenario) AssertDuplicateMarker(vfo model.VFOID, marked bool) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetDuplicateMarker", vfo, marked)
 	return s
@@ -498,7 +498,7 @@ func (s *Scenario) AssertDuplicateMarker(vfo core.VFOID, marked bool) *Scenario 
 
 // AssertTheirExchangeSet asserts view.SetTheirExchange(vfo, index, value) was called.
 // index is 1-based, matching the view interface.
-func (s *Scenario) AssertTheirExchangeSet(vfo core.VFOID, index int, value string) *Scenario {
+func (s *Scenario) AssertTheirExchangeSet(vfo model.VFOID, index int, value string) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetTheirExchange", vfo, index, value)
 	return s
@@ -530,7 +530,7 @@ func (s *Scenario) AssertCallsignLogged(callsign string) *Scenario {
 }
 
 // AssertVFOBand asserts the VFO rig was commanded with the given band.
-func (s *Scenario) AssertVFOBand(band core.Band) *Scenario {
+func (s *Scenario) AssertVFOBand(band model.Band) *Scenario {
 	s.t.Helper()
 	assert.Equal(s.t, band, s.vfo.lastBand,
 		"expected VFO to be commanded with band %v", band)
@@ -538,7 +538,7 @@ func (s *Scenario) AssertVFOBand(band core.Band) *Scenario {
 }
 
 // AssertVFOMode asserts the VFO rig was commanded with the given mode.
-func (s *Scenario) AssertVFOMode(mode core.Mode) *Scenario {
+func (s *Scenario) AssertVFOMode(mode model.Mode) *Scenario {
 	s.t.Helper()
 	assert.Equal(s.t, mode, s.vfo.lastMode,
 		"expected VFO to be commanded with mode %v", mode)
@@ -546,14 +546,14 @@ func (s *Scenario) AssertVFOMode(mode core.Mode) *Scenario {
 }
 
 // AssertVFOFrequency asserts the VFO rig was commanded with the given frequency.
-func (s *Scenario) AssertVFOFrequency(freq core.Frequency) *Scenario {
+func (s *Scenario) AssertVFOFrequency(freq model.Frequency) *Scenario {
 	s.t.Helper()
 	assert.Equal(s.t, freq, s.vfo.lastFreq,
 		"expected VFO to be commanded with frequency %v", freq)
 	return s
 }
 
-func (s *Scenario) AssertVFO2Frequency(freq core.Frequency) *Scenario {
+func (s *Scenario) AssertVFO2Frequency(freq model.Frequency) *Scenario {
 	s.t.Helper()
 	require.NotNil(s.t, s.vfo2, "the scenario needs WithVFO2")
 	assert.Equal(s.t, freq, s.vfo2.lastFreq,
@@ -561,7 +561,7 @@ func (s *Scenario) AssertVFO2Frequency(freq core.Frequency) *Scenario {
 	return s
 }
 
-func (s *Scenario) AssertVFO2Mode(mode core.Mode) *Scenario {
+func (s *Scenario) AssertVFO2Mode(mode model.Mode) *Scenario {
 	s.t.Helper()
 	require.NotNil(s.t, s.vfo2, "the scenario needs WithVFO2")
 	assert.Equal(s.t, mode, s.vfo2.lastMode,
@@ -570,7 +570,7 @@ func (s *Scenario) AssertVFO2Mode(mode core.Mode) *Scenario {
 }
 
 // AssertCallsignView asserts view.SetCallsign(vfo, text) was called.
-func (s *Scenario) AssertCallsignView(vfo core.VFOID, text string) *Scenario {
+func (s *Scenario) AssertCallsignView(vfo model.VFOID, text string) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetCallsign", vfo, text)
 	return s
@@ -598,7 +598,7 @@ func (s *Scenario) AssertBandmapSelected(callsign string) *Scenario {
 }
 
 // AssertEditingMarker asserts view.SetEditingMarker(vfo, marked) was called.
-func (s *Scenario) AssertEditingMarker(vfo core.VFOID, marked bool) *Scenario {
+func (s *Scenario) AssertEditingMarker(vfo model.VFOID, marked bool) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetEditingMarker", vfo, marked)
 	return s
@@ -643,7 +643,7 @@ func (s *Scenario) AssertBandmapAddedCallsign(callsign string) *Scenario {
 }
 
 // AssertBandmapSpotSource asserts the first added bandmap spot has the given source.
-func (s *Scenario) AssertBandmapSpotSource(source core.SpotType) *Scenario {
+func (s *Scenario) AssertBandmapSpotSource(source model.SpotType) *Scenario {
 	s.t.Helper()
 	if assert.NotEmpty(s.t, s.bandmap.addedSpots, "expected at least one bandmap spot") {
 		assert.Equal(s.t, source, s.bandmap.addedSpots[0].Source,
@@ -715,21 +715,21 @@ func (s *Scenario) AssertQSOListSelectLastCalled() *Scenario {
 }
 
 // AssertBandView asserts view.SetBand(vfo, text) was called.
-func (s *Scenario) AssertBandView(vfo core.VFOID, text string) *Scenario {
+func (s *Scenario) AssertBandView(vfo model.VFOID, text string) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetBand", vfo, text)
 	return s
 }
 
 // AssertModeView asserts view.SetMode(vfo, text) was called.
-func (s *Scenario) AssertModeView(vfo core.VFOID, text string) *Scenario {
+func (s *Scenario) AssertModeView(vfo model.VFOID, text string) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetMode", vfo, text)
 	return s
 }
 
 // AssertFrequencyView asserts view.SetFrequency(vfo, freq) was called.
-func (s *Scenario) AssertFrequencyView(vfo core.VFOID, freq core.Frequency) *Scenario {
+func (s *Scenario) AssertFrequencyView(vfo model.VFOID, freq model.Frequency) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetFrequency", vfo, freq)
 	return s
@@ -749,27 +749,27 @@ type scenarioSettings struct {
 	myCall string
 }
 
-func (s *scenarioSettings) Station() core.Station {
-	return core.Station{Callsign: core.MustParseCallsign(s.myCall)}
+func (s *scenarioSettings) Station() model.Station {
+	return model.Station{Callsign: model.MustParseCallsign(s.myCall)}
 }
 
-func (s *scenarioSettings) Contest() core.Contest {
-	return core.Contest{}
+func (s *scenarioSettings) Contest() model.Contest {
+	return model.Contest{}
 }
 
 // ---- vfoSpy -----------------------------------------------------------------
 
 type vfoSpy struct {
 	ctrl     *entry.Controller
-	vfoID    core.VFOID
-	lastBand core.Band
-	lastMode core.Mode
-	lastFreq core.Frequency
+	vfoID    model.VFOID
+	lastBand model.Band
+	lastMode model.Mode
+	lastFreq model.Frequency
 }
 
 func (v *vfoSpy) reset() {
-	v.lastBand = core.NoBand
-	v.lastMode = core.NoMode
+	v.lastBand = model.NoBand
+	v.lastMode = model.NoMode
 	v.lastFreq = 0
 }
 
@@ -777,19 +777,19 @@ func (v *vfoSpy) Name() string { return "STUB" }
 func (v *vfoSpy) Notify(any)   {}
 func (v *vfoSpy) Refresh() {
 	v.ctrl.VFOFrequencyChanged(v.vfoID, 14050000)
-	v.ctrl.VFOBandChanged(v.vfoID, core.Band20m)
-	v.ctrl.VFOModeChanged(v.vfoID, core.ModeCW)
+	v.ctrl.VFOBandChanged(v.vfoID, model.Band20m)
+	v.ctrl.VFOModeChanged(v.vfoID, model.ModeCW)
 }
-func (v *vfoSpy) SetFrequency(f core.Frequency)                                         { v.lastFreq = f }
-func (v *vfoSpy) ShiftFrequency(f core.Frequency)                                       { v.lastFreq += f }
-func (v *vfoSpy) SetBand(b core.Band)                                                   { v.lastBand = b }
-func (v *vfoSpy) SetMode(m core.Mode)                                                   { v.lastMode = m }
-func (v *vfoSpy) IncrementalTuningActive(core.IncrementalTuningKind) bool               { return false }
-func (v *vfoSpy) SetIncrementalTuningActive(core.IncrementalTuningKind, bool)           {}
-func (v *vfoSpy) SetIncrementalTuning(core.IncrementalTuningKind, bool, core.Frequency) {}
-func (v *vfoSpy) ShiftIncrementalTuning(core.IncrementalTuningKind, core.Frequency)     {}
-func (v *vfoSpy) ToggleAvailableIncrementalTuning()                                     {}
-func (v *vfoSpy) ShiftAvailableIncrementalTuning(core.Frequency)                        {}
+func (v *vfoSpy) SetFrequency(f model.Frequency)                                          { v.lastFreq = f }
+func (v *vfoSpy) ShiftFrequency(f model.Frequency)                                        { v.lastFreq += f }
+func (v *vfoSpy) SetBand(b model.Band)                                                    { v.lastBand = b }
+func (v *vfoSpy) SetMode(m model.Mode)                                                    { v.lastMode = m }
+func (v *vfoSpy) IncrementalTuningActive(model.IncrementalTuningKind) bool                { return false }
+func (v *vfoSpy) SetIncrementalTuningActive(model.IncrementalTuningKind, bool)            {}
+func (v *vfoSpy) SetIncrementalTuning(model.IncrementalTuningKind, bool, model.Frequency) {}
+func (v *vfoSpy) ShiftIncrementalTuning(model.IncrementalTuningKind, model.Frequency)     {}
+func (v *vfoSpy) ToggleAvailableIncrementalTuning()                                       {}
+func (v *vfoSpy) ShiftAvailableIncrementalTuning(model.Frequency)                         {}
 
 // ---- qsoListSpy -------------------------------------------------------------
 
@@ -810,8 +810,8 @@ func (q *qsoListSpy) SelectLastQSO() {
 // ---- bandmapSpy -------------------------------------------------------------
 
 type bandmapSpy struct {
-	selectedCallsigns   []core.Callsign
-	addedSpots          []core.Spot
+	selectedCallsigns   []model.Callsign
+	addedSpots          []model.Spot
 	cqMarkerGotos       int
 	numberedMarkerGotos []int
 	marksWithNextNumber []markCall
@@ -835,28 +835,28 @@ func (b *bandmapSpy) GotoNumberedMarker(number int) {
 	b.numberedMarkerGotos = append(b.numberedMarkerGotos, number)
 }
 
-func (b *bandmapSpy) MarkWithNextNumber(frequency core.Frequency, band core.Band, input core.MarkerInput) {
+func (b *bandmapSpy) MarkWithNextNumber(frequency model.Frequency, band model.Band, input model.MarkerInput) {
 	b.marksWithNextNumber = append(b.marksWithNextNumber, markCall{frequency: frequency, band: band, input: input})
 }
 
-func (b *bandmapSpy) MarkWithNumber(number int, frequency core.Frequency, band core.Band, input core.MarkerInput) {
+func (b *bandmapSpy) MarkWithNumber(number int, frequency model.Frequency, band model.Band, input model.MarkerInput) {
 	b.marksWithNumber = append(b.marksWithNumber, markCall{number: number, frequency: frequency, band: band, input: input})
 }
 
-func (b *bandmapSpy) MarkWithText(text string, frequency core.Frequency, band core.Band) {
+func (b *bandmapSpy) MarkWithText(text string, frequency model.Frequency, band model.Band) {
 	b.marksWithText = append(b.marksWithText, markCall{text: text, frequency: frequency, band: band})
 }
 
 type markCall struct {
 	number    int
 	text      string
-	frequency core.Frequency
-	band      core.Band
-	input     core.MarkerInput
+	frequency model.Frequency
+	band      model.Band
+	input     model.MarkerInput
 }
 
-func (b *bandmapSpy) Add(spot core.Spot) { b.addedSpots = append(b.addedSpots, spot) }
-func (b *bandmapSpy) SelectByCallsign(call core.Callsign) {
+func (b *bandmapSpy) Add(spot model.Spot) { b.addedSpots = append(b.addedSpots, spot) }
+func (b *bandmapSpy) SelectByCallsign(call model.Callsign) {
 	b.selectedCallsigns = append(b.selectedCallsigns, call)
 }
 
@@ -902,59 +902,59 @@ func (v *viewSpy) assertCalledWith(t *testing.T, method string, args ...any) {
 }
 
 func (v *viewSpy) SetMyExchange(i int, s string) { v.record("SetMyExchange", i, s) }
-func (v *viewSpy) SetFrequency(vfo core.VFOID, f core.Frequency) {
+func (v *viewSpy) SetFrequency(vfo model.VFOID, f model.Frequency) {
 	v.record("SetFrequency", vfo, f)
 }
-func (v *viewSpy) SetBand(vfo core.VFOID, text string) { v.record("SetBand", vfo, text) }
-func (v *viewSpy) SetMode(vfo core.VFOID, text string) { v.record("SetMode", vfo, text) }
-func (v *viewSpy) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+func (v *viewSpy) SetBand(vfo model.VFOID, text string) { v.record("SetBand", vfo, text) }
+func (v *viewSpy) SetMode(vfo model.VFOID, text string) { v.record("SetMode", vfo, text) }
+func (v *viewSpy) SetTXState(vfo model.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	v.record("SetTXState", vfo, ptt, parrotActive, parrotTimeLeft)
 }
-func (v *viewSpy) SetCallsign(vfo core.VFOID, s string) { v.record("SetCallsign", vfo, s) }
-func (v *viewSpy) SetTheirExchange(vfo core.VFOID, index int, text string) {
+func (v *viewSpy) SetCallsign(vfo model.VFOID, s string) { v.record("SetCallsign", vfo, s) }
+func (v *viewSpy) SetTheirExchange(vfo model.VFOID, index int, text string) {
 	v.record("SetTheirExchange", vfo, index, text)
 }
-func (v *viewSpy) SetSerialClaim(vfo core.VFOID, n core.QSONumber, committed bool) {
+func (v *viewSpy) SetSerialClaim(vfo model.VFOID, n model.QSONumber, committed bool) {
 	v.record("SetSerialClaim", vfo, n, committed)
 }
-func (v *viewSpy) SetActiveVFO(vfo core.VFOID) {
+func (v *viewSpy) SetActiveVFO(vfo model.VFOID) {
 	v.record("SetActiveVFO", vfo)
 }
-func (v *viewSpy) SetActiveField(vfo core.VFOID, field core.EntryField) {
+func (v *viewSpy) SetActiveField(vfo model.VFOID, field model.EntryField) {
 	v.record("SetActiveField", vfo, field)
 }
-func (v *viewSpy) SelectText(vfo core.VFOID, field core.EntryField, s string) {
+func (v *viewSpy) SelectText(vfo model.VFOID, field model.EntryField, s string) {
 	v.record("SelectText", vfo, field, s)
 }
-func (v *viewSpy) SetDuplicateMarker(vfo core.VFOID, b bool) {
+func (v *viewSpy) SetDuplicateMarker(vfo model.VFOID, b bool) {
 	v.record("SetDuplicateMarker", vfo, b)
 }
-func (v *viewSpy) SetEditingMarker(vfo core.VFOID, b bool) {
+func (v *viewSpy) SetEditingMarker(vfo model.VFOID, b bool) {
 	v.record("SetEditingMarker", vfo, b)
 }
-func (v *viewSpy) ShowMessage(vfo core.VFOID, args ...any) {
+func (v *viewSpy) ShowMessage(vfo model.VFOID, args ...any) {
 	v.record("ShowMessage", append([]any{vfo}, args...)...)
 }
-func (v *viewSpy) ClearMessage(vfo core.VFOID)          { v.record("ClearMessage", vfo) }
-func (v *viewSpy) SetVFOEnabled(vfo core.VFOID, b bool) { v.record("SetVFOEnabled", vfo, b) }
-func (v *viewSpy) SetVFOWorkmode(vfo core.VFOID, w core.Workmode) {
+func (v *viewSpy) ClearMessage(vfo model.VFOID)          { v.record("ClearMessage", vfo) }
+func (v *viewSpy) SetVFOEnabled(vfo model.VFOID, b bool) { v.record("SetVFOEnabled", vfo, b) }
+func (v *viewSpy) SetVFOWorkmode(vfo model.VFOID, w model.Workmode) {
 	v.record("SetVFOWorkmode", vfo, w)
 }
 
-func (v *viewSpy) SetTXVFO(vfo core.VFOID) {
+func (v *viewSpy) SetTXVFO(vfo model.VFOID) {
 	v.record("SetTXVFO", vfo)
 }
 
 // ---- logbookSpy -------------------------------------------------------------
 
 type logbookSpy struct {
-	nextQSONumber core.QSONumber
-	lastBand      core.Band
-	lastMode      core.Mode
+	nextQSONumber model.QSONumber
+	lastBand      model.Band
+	lastMode      model.Mode
 	lastExchange  []string
-	duplicates    []core.QSO
-	addedQSOs     []core.QSO
-	updatedQSOs   []core.QSO
+	duplicates    []model.QSO
+	addedQSOs     []model.QSO
+	updatedQSOs   []model.QSO
 }
 
 func (l *logbookSpy) resetCalls() {
@@ -962,20 +962,20 @@ func (l *logbookSpy) resetCalls() {
 	l.updatedQSOs = nil
 }
 
-func (l *logbookSpy) NextQSONumber() core.QSONumber { return l.nextQSONumber }
-func (l *logbookSpy) LastBand() core.Band           { return l.lastBand }
-func (l *logbookSpy) LastMode() core.Mode           { return l.lastMode }
-func (l *logbookSpy) LastExchange() []string        { return l.lastExchange }
-func (l *logbookSpy) AddQSO(qso core.QSO)           { l.addedQSOs = append(l.addedQSOs, qso) }
-func (l *logbookSpy) UpdateQSO(qso core.QSO)        { l.updatedQSOs = append(l.updatedQSOs, qso) }
-func (l *logbookSpy) FindDuplicateQSOs(_ core.Callsign, _ core.Band, _ core.Mode) []core.QSO {
+func (l *logbookSpy) NextQSONumber() model.QSONumber { return l.nextQSONumber }
+func (l *logbookSpy) LastBand() model.Band           { return l.lastBand }
+func (l *logbookSpy) LastMode() model.Mode           { return l.lastMode }
+func (l *logbookSpy) LastExchange() []string         { return l.lastExchange }
+func (l *logbookSpy) AddQSO(qso model.QSO)           { l.addedQSOs = append(l.addedQSOs, qso) }
+func (l *logbookSpy) UpdateQSO(qso model.QSO)        { l.updatedQSOs = append(l.updatedQSOs, qso) }
+func (l *logbookSpy) FindDuplicateQSOs(_ model.Callsign, _ model.Band, _ model.Mode) []model.QSO {
 	return l.duplicates
 }
 
 // ---- callinfoSpy ------------------------------------------------------------
 
 type callinfoInput struct {
-	vfo  core.VFOID
+	vfo  model.VFOID
 	call string
 }
 
@@ -989,7 +989,7 @@ func (c *callinfoSpy) resetCalls() {
 	c.inputs = nil
 }
 
-func (c *callinfoSpy) InputChanged(vfo core.VFOID, call string, _ core.Band, _ core.Mode, _ []string) {
+func (c *callinfoSpy) InputChanged(vfo model.VFOID, call string, _ model.Band, _ model.Mode, _ []string) {
 	c.callsigns = append(c.callsigns, call)
 	c.inputs = append(c.inputs, callinfoInput{vfo: vfo, call: call})
 }
@@ -1008,11 +1008,11 @@ func (l *listenerSpy) resetCalls() {
 	l.esmEnabledValues = nil
 }
 
-func (l *listenerSpy) CallsignEntered(_ core.VFOID, callsign string) {
+func (l *listenerSpy) CallsignEntered(_ model.VFOID, callsign string) {
 	l.callsignsEntered = append(l.callsignsEntered, callsign)
 }
 
-func (l *listenerSpy) CallsignLogged(callsign string, _ core.Frequency) {
+func (l *listenerSpy) CallsignLogged(callsign string, _ model.Frequency) {
 	l.callsignsLogged = append(l.callsignsLogged, callsign)
 }
 
@@ -1074,7 +1074,7 @@ func (k *keyerSpy) SendQuestion(q string) {
 	}
 }
 
-func (k *keyerSpy) GetText(_ core.Workmode, index int) (string, error) {
+func (k *keyerSpy) GetText(_ model.Workmode, index int) (string, error) {
 	return fmt.Sprintf("keyer[%d]", index), nil
 }
 
@@ -1107,8 +1107,8 @@ func scenarioFieldDefinition(fields ...conval.ExchangeField) *conval.Definition 
 
 type vfoSwitcherSpy struct {
 	seq               *int // shared sequence counter
-	calledCurrentWith []core.VFOID
-	calledTXWith      []core.VFOID
+	calledCurrentWith []model.VFOID
+	calledTXWith      []model.VFOID
 	lastSeq           int // sequence number of last SetTXVFO call
 }
 
@@ -1118,7 +1118,7 @@ func (v *vfoSwitcherSpy) reset() {
 	v.lastSeq = 0
 }
 
-func (v *vfoSwitcherSpy) SetCurrentVFO(vfo core.VFOID) {
+func (v *vfoSwitcherSpy) SetCurrentVFO(vfo model.VFOID) {
 	v.calledCurrentWith = append(v.calledCurrentWith, vfo)
 	if v.seq != nil {
 		*v.seq++
@@ -1126,7 +1126,7 @@ func (v *vfoSwitcherSpy) SetCurrentVFO(vfo core.VFOID) {
 	}
 }
 
-func (v *vfoSwitcherSpy) SetTXVFO(vfo core.VFOID) {
+func (v *vfoSwitcherSpy) SetTXVFO(vfo model.VFOID) {
 	v.calledTXWith = append(v.calledTXWith, vfo)
 	if v.seq != nil {
 		*v.seq++
@@ -1138,8 +1138,8 @@ func (v *vfoSwitcherSpy) SetTXVFO(vfo core.VFOID) {
 
 // WithVFO2 wires the vfo2 spy as VFO2 and enables dual-VFO mode.
 func (s *Scenario) WithVFO2() *Scenario {
-	s.vfo2 = &vfoSpy{ctrl: s.controller, vfoID: core.VFO2}
-	s.controller.SetVFO(core.VFO2, s.vfo2)
+	s.vfo2 = &vfoSpy{ctrl: s.controller, vfoID: model.VFO2}
+	s.controller.SetVFO(model.VFO2, s.vfo2)
 	s.controller.RadioChanged("", false) // singleVFO=false → vfo2Enabled=true
 	return s
 }
@@ -1152,13 +1152,13 @@ func (s *Scenario) WithVFOSwitcher() *Scenario {
 }
 
 // WithLastBand sets the logbook spy's last band (used by LogbookLoaded).
-func (s *Scenario) WithLastBand(band core.Band) *Scenario {
+func (s *Scenario) WithLastBand(band model.Band) *Scenario {
 	s.logbook.lastBand = band
 	return s
 }
 
 // WithLastMode sets the logbook spy's last mode (used by LogbookLoaded).
-func (s *Scenario) WithLastMode(mode core.Mode) *Scenario {
+func (s *Scenario) WithLastMode(mode model.Mode) *Scenario {
 	s.logbook.lastMode = mode
 	return s
 }
@@ -1170,7 +1170,7 @@ func (s *Scenario) WithLastExchange(exchange []string) *Scenario {
 }
 
 // WithNextQSONumber sets the logbook spy's next QSO number.
-func (s *Scenario) WithNextQSONumber(n core.QSONumber) *Scenario {
+func (s *Scenario) WithNextQSONumber(n model.QSONumber) *Scenario {
 	s.logbook.nextQSONumber = n
 	return s
 }
@@ -1178,7 +1178,7 @@ func (s *Scenario) WithNextQSONumber(n core.QSONumber) *Scenario {
 // ---- Action methods (H–N additions) ----------------------------------------
 
 // SetFocusedVFO switches the focused VFO.
-func (s *Scenario) SetFocusedVFO(vfo core.VFOID) *Scenario {
+func (s *Scenario) SetFocusedVFO(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.SetFocusedVFO(vfo)
@@ -1210,7 +1210,7 @@ func (s *Scenario) FocusVFO2() *Scenario {
 }
 
 // LogVFO focuses vfo and logs the QSO.
-func (s *Scenario) LogVFO(vfo core.VFOID) *Scenario {
+func (s *Scenario) LogVFO(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.LogVFO(vfo)
@@ -1218,7 +1218,7 @@ func (s *Scenario) LogVFO(vfo core.VFOID) *Scenario {
 }
 
 // ClearVFO focuses vfo and clears the row.
-func (s *Scenario) ClearVFO(vfo core.VFOID) *Scenario {
+func (s *Scenario) ClearVFO(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.ClearVFO(vfo)
@@ -1234,7 +1234,7 @@ func (s *Scenario) RadioChanged(singleVFO bool) *Scenario {
 }
 
 // CurrentVFOChanged fires the rig-side VFO change event.
-func (s *Scenario) CurrentVFOChanged(vfo core.VFOID) *Scenario {
+func (s *Scenario) CurrentVFOChanged(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.CurrentVFOChanged(vfo)
@@ -1242,7 +1242,7 @@ func (s *Scenario) CurrentVFOChanged(vfo core.VFOID) *Scenario {
 }
 
 // VFOPTTChanged fires the PTT-changed event.
-func (s *Scenario) VFOPTTChanged(vfo core.VFOID, active bool) *Scenario {
+func (s *Scenario) VFOPTTChanged(vfo model.VFOID, active bool) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
 	s.controller.VFOPTTChanged(vfo, active)
@@ -1301,7 +1301,7 @@ func (s *Scenario) SerialSent() *Scenario {
 func (s *Scenario) StationChanged(callsign string) *Scenario {
 	s.t.Helper()
 	s.resetSpies()
-	s.controller.StationChanged(core.Station{Callsign: core.MustParseCallsign(callsign)})
+	s.controller.StationChanged(model.Station{Callsign: model.MustParseCallsign(callsign)})
 	return s
 }
 
@@ -1332,7 +1332,7 @@ func (s *Scenario) Activate() *Scenario {
 // ---- Assertion methods (H–N additions) -------------------------------------
 
 // AssertVFOSwitcherTXCalled asserts the vfoSwitcher was commanded with the given VFO.
-func (s *Scenario) AssertVFOSwitcherTXCalled(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertVFOSwitcherTXCalled(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	if s.vfoSwitcher == nil {
 		s.t.Error("vfoSwitcher spy not wired (call WithVFOSwitcher() in setup)")
@@ -1350,7 +1350,7 @@ func (s *Scenario) AssertVFOSwitcherTXCalled(vfo core.VFOID) *Scenario {
 }
 
 // AssertTXVFOBeforeKeyer asserts SetTXVFO(vfo) was called before any keyer TX method.
-func (s *Scenario) AssertTXVFOBeforeKeyer(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertTXVFOBeforeKeyer(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	if s.vfoSwitcher == nil {
 		s.t.Error("vfoSwitcher spy not wired (call WithVFOSwitcher() in setup)")
@@ -1368,26 +1368,26 @@ func (s *Scenario) AssertTXVFOBeforeKeyer(vfo core.VFOID) *Scenario {
 // AssertVFO2Enabled asserts view.SetVFOEnabled(VFO2, enabled) was called.
 func (s *Scenario) AssertVFO2Enabled(enabled bool) *Scenario {
 	s.t.Helper()
-	s.view.assertCalledWith(s.t, "SetVFOEnabled", core.VFO2, enabled)
+	s.view.assertCalledWith(s.t, "SetVFOEnabled", model.VFO2, enabled)
 	return s
 }
 
 // AssertTXStateView asserts view.SetTXState(vfo, ptt, parrotActive, parrotTimeLeft) was called.
-func (s *Scenario) AssertTXStateView(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) *Scenario {
+func (s *Scenario) AssertTXStateView(vfo model.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetTXState", vfo, ptt, parrotActive, parrotTimeLeft)
 	return s
 }
 
 // AssertActiveVFO asserts view.SetActiveVFO(vfo) was called.
-func (s *Scenario) AssertActiveVFO(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertActiveVFO(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetActiveVFO", vfo)
 	return s
 }
 
 // AssertVFOSwitcherCurrentCalled asserts vfoSwitcher.SetCurrentVFO(vfo) was called.
-func (s *Scenario) AssertVFOSwitcherCurrentCalled(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertVFOSwitcherCurrentCalled(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	if s.vfoSwitcher == nil {
 		s.t.Error("vfoSwitcher spy not wired (call WithVFOSwitcher() in setup)")
@@ -1405,14 +1405,14 @@ func (s *Scenario) AssertVFOSwitcherCurrentCalled(vfo core.VFOID) *Scenario {
 }
 
 // AssertSerialClaimView asserts view.SetSerialClaim(vfo, serial, committed) was called.
-func (s *Scenario) AssertSerialClaimView(vfo core.VFOID, serial core.QSONumber, committed bool) *Scenario {
+func (s *Scenario) AssertSerialClaimView(vfo model.VFOID, serial model.QSONumber, committed bool) *Scenario {
 	s.t.Helper()
 	s.view.assertCalledWith(s.t, "SetSerialClaim", vfo, serial, committed)
 	return s
 }
 
 // AssertSerialCommitted asserts the serial claim for vfo is committed.
-func (s *Scenario) AssertSerialCommitted(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertSerialCommitted(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	assert.True(s.t, s.controller.IsSerialCommitted(vfo),
 		"expected serial on VFO %d to be committed", vfo)
@@ -1420,7 +1420,7 @@ func (s *Scenario) AssertSerialCommitted(vfo core.VFOID) *Scenario {
 }
 
 // AssertSerialNotCommitted asserts the serial claim for vfo is not committed.
-func (s *Scenario) AssertSerialNotCommitted(vfo core.VFOID) *Scenario {
+func (s *Scenario) AssertSerialNotCommitted(vfo model.VFOID) *Scenario {
 	s.t.Helper()
 	assert.False(s.t, s.controller.IsSerialCommitted(vfo),
 		"expected serial on VFO %d to NOT be committed", vfo)

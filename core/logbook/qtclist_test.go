@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestQTCList_basicSetup(t *testing.T) {
@@ -15,7 +15,7 @@ func TestQTCList_basicSetup(t *testing.T) {
 	listener := new(qtcListListener)
 	l.Notify(listener)
 
-	initialQTCs := []core.QTC{
+	initialQTCs := []model.QTC{
 		{Timestamp: now.Add(-4 * time.Minute), QSONumber: 1},
 		{Timestamp: now.Add(-2 * time.Minute), QSONumber: 2},
 		{Timestamp: now.Add(-1 * time.Minute), QSONumber: 3},
@@ -28,7 +28,7 @@ func TestQTCList_basicSetup(t *testing.T) {
 	assert.Equal(t, 1, listener.clearEvents)
 	assert.Equal(t, 3, listener.addedEvents)
 
-	newQTC := core.QTC{Timestamp: now, QSONumber: 4}
+	newQTC := model.QTC{Timestamp: now, QSONumber: 4}
 	l.QTCAdded(newQTC)
 	assert.Equal(t, 4, len(l.qtcs))
 	assert.Equal(t, newQTC, l.qtcs[3])
@@ -52,6 +52,6 @@ func (l *qtcListListener) QTCsCleared() {
 	l.clearEvents++
 }
 
-func (l *qtcListListener) QTCAdded(core.QTC) {
+func (l *qtcListListener) QTCAdded(model.QTC) {
 	l.addedEvents++
 }

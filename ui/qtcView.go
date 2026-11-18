@@ -6,7 +6,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -31,7 +31,7 @@ type QTCController interface {
 
 	Enter(string)
 	GotoNextField()
-	SetActiveField(core.QTCField)
+	SetActiveField(model.QTCField)
 
 	CompleteQTCSeries()
 	AbortQTCSeries()
@@ -43,7 +43,7 @@ type QTCController interface {
 type qtcView struct {
 	root       *qtlib.QWidget
 	controller QTCController
-	mode       core.QTCMode
+	mode       model.QTCMode
 	vfoName    string
 
 	theirCallLabel    *qtlib.QLabel
@@ -65,15 +65,15 @@ type qtcView struct {
 	dataActionButton *qtlib.QPushButton
 	confirmDataBtn   *qtlib.QPushButton
 
-	qtcs []core.QTC
+	qtcs []model.QTC
 }
 
-func newQTCView(controller QTCController, mode core.QTCMode, vfoName string) *qtcView {
+func newQTCView(controller QTCController, mode model.QTCMode, vfoName string) *qtcView {
 	v := &qtcView{controller: controller, mode: mode, vfoName: vfoName}
 
 	var sendText string
 	var modeText string
-	if mode == core.ProvideQTC {
+	if mode == model.ProvideQTC {
 		sendText = "Send"
 		modeText = "Offer QTC"
 	} else {
@@ -116,8 +116,8 @@ func newQTCView(controller QTCController, mode core.QTCMode, vfoName string) *qt
 	headerLayout.AddWidget(qtlib.NewQLabel3("Series/QTC Count:").QWidget)
 	v.seriesEntry = qtlib.NewQLineEdit2()
 	setObjectName(v.seriesEntry, qtcSeriesName)
-	v.seriesEntry.SetReadOnly(mode == core.ProvideQTC)
-	v.attachEntryHandlers(v.seriesEntry, core.QTCHeaderField)
+	v.seriesEntry.SetReadOnly(mode == model.ProvideQTC)
+	v.attachEntryHandlers(v.seriesEntry, model.QTCHeaderField)
 	headerLayout.AddWidget(v.seriesEntry.QWidget)
 	v.headerActionButton = qtlib.NewQPushButton3(sendText)
 	v.headerActionButton.OnClicked(controller.HeaderAction)
@@ -145,23 +145,23 @@ func newQTCView(controller QTCController, mode core.QTCMode, vfoName string) *qt
 	dataRow := qtlib.NewQWidget2()
 	dataLayout := qtlib.NewQHBoxLayout(dataRow)
 	dataLayout.SetContentsMargins(0, 0, 0, 0)
-	if mode == core.ReceiveQTC {
+	if mode == model.ReceiveQTC {
 		v.qtcTimeEntry = qtlib.NewQLineEdit2()
 		setObjectName(v.qtcTimeEntry, qtcTimestampName)
 		v.qtcTimeEntry.SetPlaceholderText("Time")
-		v.attachEntryHandlers(v.qtcTimeEntry, core.QTCTimestampField)
+		v.attachEntryHandlers(v.qtcTimeEntry, model.QTCTimestampField)
 		dataLayout.AddWidget(v.qtcTimeEntry.QWidget)
 
 		v.qtcCallEntry = qtlib.NewQLineEdit2()
 		setObjectName(v.qtcCallEntry, qtcCallsignName)
 		v.qtcCallEntry.SetPlaceholderText("Call")
-		v.attachEntryHandlers(v.qtcCallEntry, core.QTCCallsignField)
+		v.attachEntryHandlers(v.qtcCallEntry, model.QTCCallsignField)
 		dataLayout.AddWidget(v.qtcCallEntry.QWidget)
 
 		v.qtcExchangeEntry = qtlib.NewQLineEdit2()
 		setObjectName(v.qtcExchangeEntry, qtcExchangeName)
 		v.qtcExchangeEntry.SetPlaceholderText("Exch.")
-		v.attachEntryHandlers(v.qtcExchangeEntry, core.QTCExchangeField)
+		v.attachEntryHandlers(v.qtcExchangeEntry, model.QTCExchangeField)
 		dataLayout.AddWidget(v.qtcExchangeEntry.QWidget)
 	} else {
 		dataLayout.AddStretch()
@@ -177,7 +177,7 @@ func newQTCView(controller QTCController, mode core.QTCMode, vfoName string) *qt
 	return v
 }
 
-func (v *qtcView) attachEntryHandlers(edit *qtlib.QLineEdit, field core.QTCField) {
+func (v *qtcView) attachEntryHandlers(edit *qtlib.QLineEdit, field model.QTCField) {
 	edit.OnTextChanged(func(text string) {
 		v.controller.Enter(text)
 	})
@@ -202,9 +202,9 @@ func (v *qtcView) attachEntryHandlers(edit *qtlib.QLineEdit, field core.QTCField
 	})
 }
 
-func (v *qtcView) setHeader(theirCall core.Callsign, header core.QTCHeader) {
+func (v *qtcView) setHeader(theirCall model.Callsign, header model.QTCHeader) {
 	var format string
-	if v.mode == core.ProvideQTC {
+	if v.mode == model.ProvideQTC {
 		format = "Sending QTCs to %s"
 	} else {
 		format = "Receiving QTCs from %s"
@@ -222,7 +222,7 @@ func (v *qtcView) setHeader(theirCall core.Callsign, header core.QTCHeader) {
 	}
 }
 
-func (v *qtcView) setFieldError(_ core.QTCField, message string) {
+func (v *qtcView) setFieldError(_ model.QTCField, message string) {
 	v.theirCallLabel.SetStyleSheet(QTCFieldErrorStyle)
 	v.theirCallLabel.SetText(message)
 }
@@ -232,7 +232,7 @@ func (v *qtcView) clearFieldError() {
 	v.theirCallLabel.SetText(v.theirCallMessage)
 }
 
-func (v *qtcView) setQTCs(qtcs []core.QTC) {
+func (v *qtcView) setQTCs(qtcs []model.QTC) {
 	v.qtcs = qtcs
 	v.qtcTable.SetRowCount(0)
 	for i, q := range qtcs {
@@ -240,7 +240,7 @@ func (v *qtcView) setQTCs(qtcs []core.QTC) {
 	}
 }
 
-func (v *qtcView) setQTC(index int, qtc core.QTC) {
+func (v *qtcView) setQTC(index int, qtc model.QTC) {
 	if index < 0 {
 		return
 	}
@@ -253,12 +253,12 @@ func (v *qtcView) setQTC(index int, qtc core.QTC) {
 	v.fillQTCRow(index, qtc)
 }
 
-func (v *qtcView) appendQTCRow(index int, qtc core.QTC) {
+func (v *qtcView) appendQTCRow(index int, qtc model.QTC) {
 	v.qtcTable.InsertRow(index)
 	v.fillQTCRow(index, qtc)
 }
 
-func (v *qtcView) fillQTCRow(index int, qtc core.QTC) {
+func (v *qtcView) fillQTCRow(index int, qtc model.QTC) {
 	v.qtcTable.SetItem(index, 0, qtlib.NewQTableWidgetItem2(strconv.Itoa(index+1)))
 	v.qtcTable.SetItem(index, 1, qtlib.NewQTableWidgetItem2(qtc.QTCTime.String()))
 	v.qtcTable.SetItem(index, 2, qtlib.NewQTableWidgetItem2(qtc.QTCCallsign.String()))
@@ -282,79 +282,79 @@ func (v *qtcView) clearExchangeEntry() {
 	}
 }
 
-func (v *qtcView) enableWidgets(phase core.QTCWorkflowPhase) {
-	v.startActionButton.SetEnabled(phase == core.QTCStart)
-	v.confirmStartBtn.SetEnabled(phase == core.QTCStart)
+func (v *qtcView) enableWidgets(phase model.QTCWorkflowPhase) {
+	v.startActionButton.SetEnabled(phase == model.QTCStart)
+	v.confirmStartBtn.SetEnabled(phase == model.QTCStart)
 
-	v.seriesEntry.SetEnabled(phase == core.QTCExchangeHeader)
-	v.headerActionButton.SetEnabled(phase == core.QTCExchangeHeader)
-	v.confirmHeaderBtn.SetEnabled(phase == core.QTCExchangeHeader)
+	v.seriesEntry.SetEnabled(phase == model.QTCExchangeHeader)
+	v.headerActionButton.SetEnabled(phase == model.QTCExchangeHeader)
+	v.confirmHeaderBtn.SetEnabled(phase == model.QTCExchangeHeader)
 
-	v.qtcTable.SetEnabled(phase == core.QTCExchangeData)
+	v.qtcTable.SetEnabled(phase == model.QTCExchangeData)
 	if v.qtcTimeEntry != nil {
-		v.qtcTimeEntry.SetEnabled(phase == core.QTCExchangeData)
+		v.qtcTimeEntry.SetEnabled(phase == model.QTCExchangeData)
 	}
 	if v.qtcCallEntry != nil {
-		v.qtcCallEntry.SetEnabled(phase == core.QTCExchangeData)
+		v.qtcCallEntry.SetEnabled(phase == model.QTCExchangeData)
 	}
 	if v.qtcExchangeEntry != nil {
-		v.qtcExchangeEntry.SetEnabled(phase == core.QTCExchangeData)
+		v.qtcExchangeEntry.SetEnabled(phase == model.QTCExchangeData)
 	}
-	v.dataActionButton.SetEnabled(phase == core.QTCExchangeData)
-	v.confirmDataBtn.SetEnabled(phase == core.QTCExchangeData)
+	v.dataActionButton.SetEnabled(phase == model.QTCExchangeData)
+	v.confirmDataBtn.SetEnabled(phase == model.QTCExchangeData)
 }
 
-func (v *qtcView) highlightPhase(phase core.QTCWorkflowPhase) {
+func (v *qtcView) highlightPhase(phase model.QTCWorkflowPhase) {
 	v.startHeading.SetStyleSheet(QTCPhaseInactiveStyle)
 	v.headerHeading.SetStyleSheet(QTCPhaseInactiveStyle)
 	v.dataHeading.SetStyleSheet(QTCPhaseInactiveStyle)
 	switch phase {
-	case core.QTCStart:
+	case model.QTCStart:
 		v.startHeading.SetStyleSheet(QTCPhaseActiveStyle)
-	case core.QTCExchangeHeader:
+	case model.QTCExchangeHeader:
 		v.headerHeading.SetStyleSheet(QTCPhaseActiveStyle)
-	case core.QTCExchangeData:
+	case model.QTCExchangeData:
 		v.dataHeading.SetStyleSheet(QTCPhaseActiveStyle)
 	}
 }
 
 func (v *qtcView) focusStart() {
-	v.highlightPhase(core.QTCStart)
-	v.enableWidgets(core.QTCStart)
+	v.highlightPhase(model.QTCStart)
+	v.enableWidgets(model.QTCStart)
 	v.confirmStartBtn.SetFocus()
 }
 
 func (v *qtcView) focusHeader() {
-	v.highlightPhase(core.QTCExchangeHeader)
-	v.enableWidgets(core.QTCExchangeHeader)
+	v.highlightPhase(model.QTCExchangeHeader)
+	v.enableWidgets(model.QTCExchangeHeader)
 	v.confirmHeaderBtn.SetFocus()
 }
 
 func (v *qtcView) focusData() {
-	v.highlightPhase(core.QTCExchangeData)
-	v.enableWidgets(core.QTCExchangeData)
+	v.highlightPhase(model.QTCExchangeData)
+	v.enableWidgets(model.QTCExchangeData)
 	v.confirmDataBtn.SetFocus()
 }
 
 func (v *qtcView) focusNone() {
-	v.highlightPhase(core.QTCNone)
-	v.enableWidgets(core.QTCNone)
+	v.highlightPhase(model.QTCNone)
+	v.enableWidgets(model.QTCNone)
 	v.qtcTable.ClearSelection()
 }
 
-func (v *qtcView) focusEntry(field core.QTCField) {
+func (v *qtcView) focusEntry(field model.QTCField) {
 	switch field {
-	case core.QTCHeaderField:
+	case model.QTCHeaderField:
 		v.seriesEntry.SetFocus()
-	case core.QTCTimestampField:
+	case model.QTCTimestampField:
 		if v.qtcTimeEntry != nil {
 			v.qtcTimeEntry.SetFocus()
 		}
-	case core.QTCCallsignField:
+	case model.QTCCallsignField:
 		if v.qtcCallEntry != nil {
 			v.qtcCallEntry.SetFocus()
 		}
-	case core.QTCExchangeField:
+	case model.QTCExchangeField:
 		if v.qtcExchangeEntry != nil {
 			v.qtcExchangeEntry.SetFocus()
 		}

@@ -5,18 +5,18 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
-func Export(w io.Writer, summary core.Summary) error {
+func Export(w io.Writer, summary model.Summary) error {
 	return summaryTemplate.Execute(w, summary)
 }
 
 var summaryTemplate = template.Must(template.New("summary").
 	Funcs(template.FuncMap{
 		"join":     strings.Join,
-		"datetime": core.FormatTimestamp,
-		"duration": core.FormatDuration,
+		"datetime": model.FormatTimestamp,
+		"duration": model.FormatDuration,
 	}).
 	Parse(`Contest:    {{.ContestName}}
 Cabrillo:   {{.CabrilloName}}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/ftl/hamradio/scp"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestFinder_AvailableFor(t *testing.T) {
@@ -41,7 +41,7 @@ func TestFinder_Deactivate_DropsTheLoadedCallHistory(t *testing.T) {
 		dataLock:             new(sync.Mutex),
 		filename:             "/home/dl1abc/contest.txt",
 		fieldNames:           []string{"name"},
-		availabilityCallback: func(_ core.Service, a bool) { available = a },
+		availabilityCallback: func(_ model.Service, a bool) { available = a },
 	}
 
 	f.Deactivate()

@@ -6,19 +6,19 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/bandmap"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 var _ bandmap.View = (*spotsView)(nil)
 
 type SpotsController interface {
 	SpotFilterController
-	SelectEntry(core.BandmapEntryID)
-	SelectMarker(core.BandmapEntryID)
-	RemoveMarker(core.BandmapEntryID)
-	IgnoreEntry(core.BandmapEntryID)
-	RestoreEntry(core.BandmapEntryID)
+	SelectEntry(model.BandmapEntryID)
+	SelectMarker(model.BandmapEntryID)
+	RemoveMarker(model.BandmapEntryID)
+	IgnoreEntry(model.BandmapEntryID)
+	RestoreEntry(model.BandmapEntryID)
 }
 
 const (
@@ -50,7 +50,7 @@ type spotsView struct {
 	bold  *qtlib.QFont
 
 	controller        SpotsController
-	currentFrame      core.BandmapFrame
+	currentFrame      model.BandmapFrame
 	qtcsEnabled       bool
 	qtcsEnabledKnown  bool
 	suppressSelection bool
@@ -104,7 +104,7 @@ func (v *spotsView) RepaintForThemeChange() {
 	repaintScrollBarsForThemeChange(v.table.QAbstractScrollArea)
 }
 
-func (v *spotsView) ShowFrame(frame core.BandmapFrame) {
+func (v *spotsView) ShowFrame(frame model.BandmapFrame) {
 	// a new filter or a new order changes the position of every row, folding does not
 	filterChanged := v.currentFrame.Filter.Band != frame.Filter.Band ||
 		v.currentFrame.Filter.Mode != frame.Filter.Mode ||
@@ -195,7 +195,7 @@ func (v *spotsView) buildTable() {
 		if row < 0 || row >= len(v.currentFrame.Rows) {
 			return
 		}
-		if v.currentFrame.Rows[row].Kind == core.MarkerRow {
+		if v.currentFrame.Rows[row].Kind == model.MarkerRow {
 			v.controller.SelectMarker(v.currentFrame.Rows[row].Marker.ID)
 			return
 		}
@@ -213,15 +213,15 @@ func (v *spotsView) showContextMenu(pos *qtlib.QPoint) {
 	if row < 0 || row >= len(v.currentFrame.Rows) {
 		return
 	}
-	if v.currentFrame.Rows[row].Kind == core.MarkerRow {
+	if v.currentFrame.Rows[row].Kind == model.MarkerRow {
 		v.showMarkerContextMenu(pos, v.currentFrame.Rows[row].Marker)
 		return
 	}
 	v.showSpotContextMenu(pos, v.currentFrame.Rows[row].Entry)
 }
 
-func (v *spotsView) showMarkerContextMenu(pos *qtlib.QPoint, marker core.BandmapMarker) {
-	if marker.Kind == core.CQMarker {
+func (v *spotsView) showMarkerContextMenu(pos *qtlib.QPoint, marker model.BandmapMarker) {
+	if marker.Kind == model.CQMarker {
 		return
 	}
 
@@ -231,7 +231,7 @@ func (v *spotsView) showMarkerContextMenu(pos *qtlib.QPoint, marker core.Bandmap
 	v.controller.RemoveMarker(marker.ID)
 }
 
-func (v *spotsView) showSpotContextMenu(pos *qtlib.QPoint, entry core.BandmapEntry) {
+func (v *spotsView) showSpotContextMenu(pos *qtlib.QPoint, entry model.BandmapEntry) {
 	label := "Ignore Spot"
 	if entry.Ignored {
 		label = "Restore Spot"
@@ -260,9 +260,9 @@ func (v *spotsView) chooseFromContextMenu(pos *qtlib.QPoint, text string) bool {
 
 // --- Table updates ---------------------------------------------------------
 
-func (v *spotsView) applyIncrementalDiff(oldFrame, newFrame core.BandmapFrame) bool {
-	visited := make(map[core.BandmapEntryID]bool, len(newFrame.Rows))
-	var toInsert []core.BandmapEntryID
+func (v *spotsView) applyIncrementalDiff(oldFrame, newFrame model.BandmapFrame) bool {
+	visited := make(map[model.BandmapEntryID]bool, len(newFrame.Rows))
+	var toInsert []model.BandmapEntryID
 
 	for _, row := range newFrame.Rows {
 		visited[row.ID()] = true
@@ -292,32 +292,32 @@ func (v *spotsView) applyIncrementalDiff(oldFrame, newFrame core.BandmapFrame) b
 	return rowsRemoved
 }
 
-func (v *spotsView) reloadTable(frame core.BandmapFrame) {
+func (v *spotsView) reloadTable(frame model.BandmapFrame) {
 	ClearTableRows(v.model)
 	for i, row := range frame.Rows {
 		v.insertRow(i, row)
 	}
 }
 
-func (v *spotsView) insertRow(idx int, row core.BandmapRow) {
+func (v *spotsView) insertRow(idx int, row model.BandmapRow) {
 	v.model.InsertRow(idx, v.buildRow(row))
 }
 
-func (v *spotsView) updateRow(idx int, row core.BandmapRow) {
+func (v *spotsView) updateRow(idx int, row model.BandmapRow) {
 	items := v.buildRow(row)
 	for col, item := range items {
 		v.model.SetItem(idx, col, item)
 	}
 }
 
-func (v *spotsView) buildRow(row core.BandmapRow) []*qtlib.QStandardItem {
-	if row.Kind == core.MarkerRow {
+func (v *spotsView) buildRow(row model.BandmapRow) []*qtlib.QStandardItem {
+	if row.Kind == model.MarkerRow {
 		return v.buildMarkerRow(row.Marker)
 	}
 	return v.buildSpotRow(row.Entry)
 }
 
-func (v *spotsView) buildMarkerRow(marker core.BandmapMarker) []*qtlib.QStandardItem {
+func (v *spotsView) buildMarkerRow(marker model.BandmapMarker) []*qtlib.QStandardItem {
 	ageText, _ := FormatSpotAge(marker.CreatedAt)
 	cells := [spotColCount]string{
 		spotColFrequency: FormatSpotFrequency(marker.Frequency),
@@ -336,11 +336,11 @@ func (v *spotsView) buildMarkerRow(marker core.BandmapMarker) []*qtlib.QStandard
 	return items
 }
 
-func (v *spotsView) buildSpotRow(entry core.BandmapEntry) []*qtlib.QStandardItem {
+func (v *spotsView) buildSpotRow(entry model.BandmapEntry) []*qtlib.QStandardItem {
 	ageText, ageBold := FormatSpotAge(entry.LastHeard)
 	// an ignored spot is no target for the operator any more, therefore it looks like a
 	// worked spot
-	dimmed := entry.Source == core.WorkedSpot || entry.Ignored
+	dimmed := entry.Source == model.WorkedSpot || entry.Ignored
 
 	type cell struct {
 		text  string
@@ -380,11 +380,11 @@ func (v *spotsView) buildSpotRow(entry core.BandmapEntry) []*qtlib.QStandardItem
 	return items
 }
 
-func (v *spotsView) applySelection(frame core.BandmapFrame) {
+func (v *spotsView) applySelection(frame model.BandmapFrame) {
 	v.withSuppressedSelection(func() {
 		sel := v.table.SelectionModel()
 		idx, ok := frame.IndexOf(frame.SelectedEntry.ID)
-		if frame.SelectedEntry.ID == core.NoEntryID || !ok {
+		if frame.SelectedEntry.ID == model.NoEntryID || !ok {
 			sel.ClearSelection()
 			return
 		}
@@ -412,7 +412,7 @@ func (v *spotsView) setQTCsEnabled(enabled bool) {
 
 // --- Formatters ------------------------------------------------------------
 
-func getDXCCInformation(e core.BandmapEntry) string {
+func getDXCCInformation(e model.BandmapEntry) string {
 	if e.Info.DXCCEntity.PrimaryPrefix == "" {
 		return ""
 	}

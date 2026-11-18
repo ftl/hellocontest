@@ -7,7 +7,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -17,11 +17,11 @@ const (
 
 // EntryController controls the entry of QSO data.
 type EntryController interface {
-	GotoNextField() core.EntryField
-	GotoNextFieldSkippingReport() core.EntryField
+	GotoNextField() model.EntryField
+	GotoNextFieldSkippingReport() model.EntryField
 	GotoNextPlaceholder()
-	SetFocusedVFO(core.VFOID)
-	SetActiveField(core.EntryField)
+	SetFocusedVFO(model.VFOID)
+	SetActiveField(model.EntryField)
 
 	Enter(string)
 	SelectMatch(int)
@@ -34,8 +34,8 @@ type EntryController interface {
 	Log()
 	Clear()
 
-	LogVFO(core.VFOID)
-	ClearVFO(core.VFOID)
+	LogVFO(model.VFOID)
+	ClearVFO(model.VFOID)
 }
 
 type entryVFOWidgets struct {
@@ -61,9 +61,9 @@ type entryVFOWidgets struct {
 type entryView struct {
 	myExchangeFields []*qtlib.QLineEdit
 
-	vfo [core.VFOCount]entryVFOWidgets
+	vfo [model.VFOCount]entryVFOWidgets
 
-	vfoWorkmode [core.VFOCount]core.Workmode
+	vfoWorkmode [model.VFOCount]model.Workmode
 
 	area *entryArea
 
@@ -74,17 +74,17 @@ type entryView struct {
 }
 
 type IncrementalTuningController interface {
-	SetIncrementalTuningActive(core.VFOID, core.IncrementalTuningKind, bool)
+	SetIncrementalTuningActive(model.VFOID, model.IncrementalTuningKind, bool)
 }
 
 func newEntryView() *entryView {
 	v := &entryView{}
 
-	v.vfo[core.VFO1] = newEntryVFOWidgets("VFO 1")
-	v.registerVFOWidgets(core.VFO1, &v.vfo[core.VFO1])
+	v.vfo[model.VFO1] = newEntryVFOWidgets("VFO 1")
+	v.registerVFOWidgets(model.VFO1, &v.vfo[model.VFO1])
 
-	v.vfo[core.VFO2] = newEntryVFOWidgets("VFO 2")
-	v.registerVFOWidgets(core.VFO2, &v.vfo[core.VFO2])
+	v.vfo[model.VFO2] = newEntryVFOWidgets("VFO 2")
+	v.registerVFOWidgets(model.VFO2, &v.vfo[model.VFO2])
 
 	return v
 }
@@ -122,10 +122,10 @@ func newEntryVFOWidgets(vfoName string) entryVFOWidgets {
 	return w
 }
 
-func (v *entryView) registerVFOWidgets(vfo core.VFOID, widgets *entryVFOWidgets) {
-	v.connectEditSignals(widgets.callsign, vfo, core.CallsignField, true)
-	v.connectComboSignals(widgets.band, vfo, core.BandField)
-	v.connectComboSignals(widgets.mode, vfo, core.ModeField)
+func (v *entryView) registerVFOWidgets(vfo model.VFOID, widgets *entryVFOWidgets) {
+	v.connectEditSignals(widgets.callsign, vfo, model.CallsignField, true)
+	v.connectComboSignals(widgets.band, vfo, model.BandField)
+	v.connectComboSignals(widgets.mode, vfo, model.ModeField)
 	widgets.logButton.OnClicked(func() {
 		if v.controller != nil {
 			v.controller.LogVFO(vfo)
@@ -138,17 +138,17 @@ func (v *entryView) registerVFOWidgets(vfo core.VFOID, widgets *entryVFOWidgets)
 	})
 	widgets.xit.OnStateChanged(func(state int) {
 		if v.incrementalTuningInput != nil {
-			v.incrementalTuningInput.SetIncrementalTuningActive(vfo, core.XIT, state != 0)
+			v.incrementalTuningInput.SetIncrementalTuningActive(vfo, model.XIT, state != 0)
 		}
 	})
 	widgets.rit.OnStateChanged(func(state int) {
 		if v.incrementalTuningInput != nil {
-			v.incrementalTuningInput.SetIncrementalTuningActive(vfo, core.RIT, state != 0)
+			v.incrementalTuningInput.SetIncrementalTuningActive(vfo, model.RIT, state != 0)
 		}
 	})
 }
 
-func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, vfo core.VFOID, field core.EntryField) {
+func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, vfo model.VFOID, field model.EntryField) {
 	combo.OnCurrentTextChanged(func(text string) {
 		if v.controller == nil || v.ignoreInput {
 			return
@@ -169,7 +169,7 @@ func (v *entryView) connectComboSignals(combo *qtlib.QComboBox, vfo core.VFOID, 
 	})
 }
 
-func (v *entryView) connectEditSignals(edit *qtlib.QLineEdit, vfo core.VFOID, field core.EntryField, isTheirRow bool) {
+func (v *entryView) connectEditSignals(edit *qtlib.QLineEdit, vfo model.VFOID, field model.EntryField, isTheirRow bool) {
 	edit.OnTextChanged(func(text string) {
 		if v.controller == nil || v.ignoreInput {
 			return
@@ -249,15 +249,15 @@ func (v *entryView) SetIncrementalTuningController(controller IncrementalTuningC
 	v.incrementalTuningInput = controller
 }
 
-func (v *entryView) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+func (v *entryView) SetFrequency(vfo model.VFOID, frequency model.Frequency) {
 	v.vfo[vfo].frequencyLabel.SetText(fmt.Sprintf("%.2f kHz", frequency/1000.0))
 }
 
-func (v *entryView) SetSerialClaim(vfo core.VFOID, serial core.QSONumber, committed bool) {
+func (v *entryView) SetSerialClaim(vfo model.VFOID, serial model.QSONumber, committed bool) {
 	v.area.setSerialClaim(vfo, serial, committed)
 }
 
-func (v *entryView) SetCallsign(vfo core.VFOID, text string) {
+func (v *entryView) SetCallsign(vfo model.VFOID, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
 	widget := v.vfo[vfo].callsign
@@ -268,7 +268,7 @@ func (v *entryView) SetCallsign(vfo core.VFOID, text string) {
 	widget.SetText(text)
 }
 
-func (v *entryView) SetBand(vfo core.VFOID, text string) {
+func (v *entryView) SetBand(vfo model.VFOID, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
 	combo := v.vfo[vfo].band
@@ -282,7 +282,7 @@ func (v *entryView) SetBand(vfo core.VFOID, text string) {
 	}
 }
 
-func (v *entryView) SetMode(vfo core.VFOID, text string) {
+func (v *entryView) SetMode(vfo model.VFOID, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
 	combo := v.vfo[vfo].mode
@@ -296,14 +296,14 @@ func (v *entryView) SetMode(vfo core.VFOID, text string) {
 	}
 }
 
-func incrementalTuningWidget(widgets *entryVFOWidgets, kind core.IncrementalTuningKind) *qtlib.QCheckBox {
-	if kind == core.RIT {
+func incrementalTuningWidget(widgets *entryVFOWidgets, kind model.IncrementalTuningKind) *qtlib.QCheckBox {
+	if kind == model.RIT {
 		return widgets.rit
 	}
 	return widgets.xit
 }
 
-func (v *entryView) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool) {
+func (v *entryView) VFOIncrementalTuningActiveChanged(vfo model.VFOID, kind model.IncrementalTuningKind, active bool) {
 	widget := incrementalTuningWidget(&v.vfo[vfo], kind)
 	if widget == nil {
 		return
@@ -314,7 +314,7 @@ func (v *entryView) VFOIncrementalTuningActiveChanged(vfo core.VFOID, kind core.
 	widget.SetChecked(active)
 }
 
-func (v *entryView) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (v *entryView) VFOIncrementalTuningChanged(vfo model.VFOID, kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
 	widget := incrementalTuningWidget(&v.vfo[vfo], kind)
 	if widget == nil {
 		return
@@ -327,11 +327,11 @@ func (v *entryView) VFOIncrementalTuningChanged(vfo core.VFOID, kind core.Increm
 	}
 }
 
-func (v *entryView) VFOIncrementalTuningVisibilityChanged(vfo core.VFOID, kind core.IncrementalTuningKind, visible bool) {
+func (v *entryView) VFOIncrementalTuningVisibilityChanged(vfo model.VFOID, kind model.IncrementalTuningKind, visible bool) {
 	v.area.setIncrementalTuningVisible(vfo, kind, visible)
 }
 
-func (v *entryView) SetTXState(vfo core.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
+func (v *entryView) SetTXState(vfo model.VFOID, ptt bool, parrotActive bool, parrotTimeLeft time.Duration) {
 	widget := v.vfo[vfo].txIndicator
 	if widget == nil {
 		return
@@ -359,7 +359,7 @@ func (v *entryView) SetMyExchange(index int, text string) {
 	v.myExchangeFields[i].SetText(text)
 }
 
-func (v *entryView) SetTheirExchange(vfo core.VFOID, index int, text string) {
+func (v *entryView) SetTheirExchange(vfo model.VFOID, index int, text string) {
 	v.ignoreInput = true
 	defer func() { v.ignoreInput = false }()
 	fields := v.vfo[vfo].theirExchangeFields
@@ -370,13 +370,13 @@ func (v *entryView) SetTheirExchange(vfo core.VFOID, index int, text string) {
 	fields[i].SetText(text)
 }
 
-func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField) {
-	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false, core.VFO1)
-	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO1].theirExchangeFields, true, core.VFO1)
-	v.setExchangeFields(theirExchangeFields, &v.vfo[core.VFO2].theirExchangeFields, true, core.VFO2)
+func (v *entryView) SetExchangeFields(myExchangeFields, theirExchangeFields []model.ExchangeField) {
+	v.setExchangeFields(myExchangeFields, &v.myExchangeFields, false, model.VFO1)
+	v.setExchangeFields(theirExchangeFields, &v.vfo[model.VFO1].theirExchangeFields, true, model.VFO1)
+	v.setExchangeFields(theirExchangeFields, &v.vfo[model.VFO2].theirExchangeFields, true, model.VFO2)
 }
 
-func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool, vfo core.VFOID) {
+func (v *entryView) setExchangeFields(fields []model.ExchangeField, editFields *[]*qtlib.QLineEdit, isTheirRow bool, vfo model.VFOID) {
 	// Remove old fields
 	for _, f := range *editFields {
 		f.SetParent(nil)
@@ -390,56 +390,56 @@ func (v *entryView) setExchangeFields(fields []core.ExchangeField, editFields *[
 		editField.SetPlaceholderText(field.Short)
 		editField.SetEnabled(!field.ReadOnly)
 
-		v.connectEditSignals(editField, vfo, core.TheirExchangeField(i+1), isTheirRow)
+		v.connectEditSignals(editField, vfo, model.TheirExchangeField(i+1), isTheirRow)
 		(*editFields)[i] = editField
 	}
 }
 
-func (v *entryView) SetVFOWorkmode(vfo core.VFOID, workmode core.Workmode) {
+func (v *entryView) SetVFOWorkmode(vfo model.VFOID, workmode model.Workmode) {
 	v.vfoWorkmode[vfo] = workmode
 	v.updateVFOLabel(vfo)
 }
 
-func (v *entryView) SetTXVFO(vfo core.VFOID) {
+func (v *entryView) SetTXVFO(vfo model.VFOID) {
 	v.area.setTXVFO(vfo)
 }
 
-func (v *entryView) updateVFOLabel(vfo core.VFOID) {
+func (v *entryView) updateVFOLabel(vfo model.VFOID) {
 	label := v.vfo[vfo].vfoLabel
 	if label == nil {
 		return
 	}
 	text := fmt.Sprintf("VFO %d", vfo+1)
 	switch v.vfoWorkmode[vfo] {
-	case core.Run:
+	case model.Run:
 		text += " RUN"
-	case core.SearchPounce:
+	case model.SearchPounce:
 		text += " S&P"
 	}
 	label.SetTextFormat(qtlib.PlainText)
 	label.SetText(text)
 }
 
-func (v *entryView) SetActiveVFO(vfo core.VFOID) {
+func (v *entryView) SetActiveVFO(vfo model.VFOID) {
 	v.area.setActiveVFO(vfo)
 }
 
-func (v *entryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
+func (v *entryView) SetActiveField(vfo model.VFOID, field model.EntryField) {
 	callsign := v.vfo[vfo].callsign
 	band := v.vfo[vfo].band
 	mode := v.vfo[vfo].mode
 	theirExchange := v.vfo[vfo].theirExchangeFields
 
 	switch field {
-	case core.CallsignField, core.OtherField:
+	case model.CallsignField, model.OtherField:
 		if callsign != nil {
 			callsign.SetFocus()
 		}
-	case core.BandField:
+	case model.BandField:
 		if band != nil {
 			band.SetFocus()
 		}
-	case core.ModeField:
+	case model.ModeField:
 		if mode != nil {
 			mode.SetFocus()
 		}
@@ -459,7 +459,7 @@ func (v *entryView) SetActiveField(vfo core.VFOID, field core.EntryField) {
 	}
 }
 
-func (v *entryView) SelectText(vfo core.VFOID, field core.EntryField, s string) {
+func (v *entryView) SelectText(vfo model.VFOID, field model.EntryField, s string) {
 	edit := v.fieldToEntry(vfo, field)
 	if edit == nil {
 		return
@@ -472,11 +472,11 @@ func (v *entryView) SelectText(vfo core.VFOID, field core.EntryField, s string) 
 	edit.SetSelection(index, len(s))
 }
 
-func (v *entryView) fieldToEntry(vfo core.VFOID, field core.EntryField) *qtlib.QLineEdit {
+func (v *entryView) fieldToEntry(vfo model.VFOID, field model.EntryField) *qtlib.QLineEdit {
 	callsign := v.vfo[vfo].callsign
 	theirExchange := v.vfo[vfo].theirExchangeFields
 	switch field {
-	case core.CallsignField, core.OtherField:
+	case model.CallsignField, model.OtherField:
 		return callsign
 	}
 	switch {
@@ -494,15 +494,15 @@ func (v *entryView) fieldToEntry(vfo core.VFOID, field core.EntryField) *qtlib.Q
 	return nil
 }
 
-func (v *entryView) SetDuplicateMarker(vfo core.VFOID, duplicate bool) {
+func (v *entryView) SetDuplicateMarker(vfo model.VFOID, duplicate bool) {
 	v.area.setDuplicateMarker(vfo, duplicate)
 }
 
-func (v *entryView) SetEditingMarker(vfo core.VFOID, editing bool) {
+func (v *entryView) SetEditingMarker(vfo model.VFOID, editing bool) {
 	v.area.setEditingMarker(vfo, editing)
 }
 
-func (v *entryView) ShowMessage(vfo core.VFOID, args ...any) {
+func (v *entryView) ShowMessage(vfo model.VFOID, args ...any) {
 	widget := v.vfo[vfo].messageLabel
 	if widget == nil {
 		return
@@ -512,7 +512,7 @@ func (v *entryView) ShowMessage(vfo core.VFOID, args ...any) {
 	v.area.setMessageVisible(vfo, text != "")
 }
 
-func (v *entryView) ClearMessage(vfo core.VFOID) {
+func (v *entryView) ClearMessage(vfo model.VFOID) {
 	widget := v.vfo[vfo].messageLabel
 	if widget == nil {
 		return
@@ -521,8 +521,8 @@ func (v *entryView) ClearMessage(vfo core.VFOID) {
 	v.area.setMessageVisible(vfo, false)
 }
 
-func (v *entryView) SetVFOEnabled(vfo core.VFOID, enabled bool) {
-	if vfo == core.VFO1 {
+func (v *entryView) SetVFOEnabled(vfo model.VFOID, enabled bool) {
+	if vfo == model.VFO1 {
 		return
 	}
 	v.area.setVFO2Enabled(enabled)

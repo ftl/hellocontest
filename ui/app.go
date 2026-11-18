@@ -12,10 +12,10 @@ import (
 	qtlib "github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/app"
 	"github.com/ftl/hellocontest/core/cfg"
 	"github.com/ftl/hellocontest/core/clock"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/settings"
 )
 
@@ -71,7 +71,7 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 		log.Fatal(err)
 	}
 
-	var timebase core.Clock
+	var timebase model.Clock
 	if startupScript != nil {
 		timebase = startupScript
 	} else {
@@ -127,7 +127,7 @@ func Run(version string, sponsors string, startupScript Script, args []string) {
 		})
 	}
 
-	a.controller.Settings.Notify(settings.ContestListenerFunc(func(c core.Contest) {
+	a.controller.Settings.Notify(settings.ContestListenerFunc(func(c model.Contest) {
 		a.SetExchangeFields(c.MyExchangeFields, c.TheirExchangeFields, c.GenerateSerialExchange)
 		a.scoreTableView.SetBands(c.Bands())
 	}))
@@ -270,7 +270,7 @@ func (a *application) createStatusBar() {
 	a.window.SetStatusBar(a.statusView.statusBar)
 }
 
-func (a *application) createViews(timebase core.Clock) {
+func (a *application) createViews(timebase model.Clock) {
 	// setup QSO list dock
 	a.qsoTableView = newQSOTableView(a.window.QWidget, a.controller.QSOList)
 	a.controller.QSOList.SetView(a.qsoTableView)
@@ -438,11 +438,11 @@ func (a *application) storeWindowState() {
 	settings.Sync()
 }
 
-func (a *application) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, showSerialExchangeIndicator bool) {
+func (a *application) SetExchangeFields(myExchangeFields, theirExchangeFields []model.ExchangeField, showSerialExchangeIndicator bool) {
 	a.centralArea.SetExchangeFields(myExchangeFields, theirExchangeFields, showSerialExchangeIndicator)
 }
 
-// runAsync posts a function to run on the Qt main thread (implements core.AsyncRunner)
+// runAsync posts a function to run on the Qt main thread (implements model.AsyncRunner)
 func (a *application) runAsync(f func()) {
 	mainthread.Start(f)
 }
@@ -528,7 +528,7 @@ type scoreCompositeAdapter struct {
 	table *scoreTableView
 }
 
-func (s *scoreCompositeAdapter) ShowScore(score core.Score) {
+func (s *scoreCompositeAdapter) ShowScore(score model.Score) {
 	s.graph.ShowScore(score)
 	s.table.ShowScore(score)
 }
@@ -562,7 +562,7 @@ type keyerButtonAdapter struct {
 }
 
 func (a *keyerButtonAdapter) ShowMessage(args ...any) {
-	a.messenger.ShowMessage(core.VFO1, args...)
+	a.messenger.ShowMessage(model.VFO1, args...)
 }
 
 // buildFileFilter converts glob patterns like "*.log" to Qt filter format

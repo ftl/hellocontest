@@ -8,32 +8,32 @@ import (
 
 	"github.com/ftl/conval"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestCollector_addCallsign(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    core.Callinfo
-		expected core.Callinfo
+		input    model.Callinfo
+		expected model.Callinfo
 		failure  bool
 	}{
 		{
 			name:     "empty input",
-			input:    core.Callinfo{},
-			expected: core.Callinfo{},
+			input:    model.Callinfo{},
+			expected: model.Callinfo{},
 			failure:  true,
 		},
 		{
 			name:     "valid callsign",
-			input:    core.Callinfo{Input: "DL1ABC"},
-			expected: core.Callinfo{Input: "DL1ABC", Call: core.MustParseCallsign("DL1ABC"), CallValid: true},
+			input:    model.Callinfo{Input: "DL1ABC"},
+			expected: model.Callinfo{Input: "DL1ABC", Call: model.MustParseCallsign("DL1ABC"), CallValid: true},
 		},
 		{
 			name:     "incomplete callsign",
-			input:    core.Callinfo{Input: "DL"},
-			expected: core.Callinfo{Input: "DL"},
+			input:    model.Callinfo{Input: "DL"},
+			expected: model.Callinfo{Input: "DL"},
 			failure:  true,
 		},
 	}
@@ -61,7 +61,7 @@ func TestCollector_GetInfoForInput_normalizesInput(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
 			c := &Collector{}
-			actual := c.GetInfoForInput(test.input, core.Band10m, core.ModeCW, []string{})
+			actual := c.GetInfoForInput(test.input, model.Band10m, model.ModeCW, []string{})
 			assert.Equal(t, test.expected, actual.Input)
 		})
 	}
@@ -86,7 +86,7 @@ func TestCollector_addDXCC(t *testing.T) {
 			c := &Collector{
 				dxcc: dxccFinder,
 			}
-			info := core.Callinfo{Input: test.input}
+			info := model.Callinfo{Input: test.input}
 			success := c.addDXCC(&info)
 			assert.NotEqual(t, test.failure, success, "success")
 			if test.failure {
@@ -99,15 +99,15 @@ func TestCollector_addDXCC(t *testing.T) {
 }
 
 type dupeCheckerStub struct {
-	workedQSOs []core.QSO
+	workedQSOs []model.QSO
 	duplicate  bool
 }
 
-func (s *dupeCheckerStub) FindWorkedQSOs(core.Callsign, core.Band, core.Mode) ([]core.QSO, bool) {
+func (s *dupeCheckerStub) FindWorkedQSOs(model.Callsign, model.Band, model.Mode) ([]model.QSO, bool) {
 	return s.workedQSOs, s.duplicate
 }
 
-func (s *dupeCheckerStub) Find(string) ([]core.AnnotatedCallsign, error) {
+func (s *dupeCheckerStub) Find(string) ([]model.AnnotatedCallsign, error) {
 	return nil, nil
 }
 
@@ -116,23 +116,23 @@ type valuerStub struct {
 	multis int
 }
 
-func (s *valuerStub) Value(core.Callsign, dxcc.Prefix, core.Band, core.Mode, []string) (int, int, map[conval.Property]string) {
+func (s *valuerStub) Value(model.Callsign, dxcc.Prefix, model.Band, model.Mode, []string) (int, int, map[conval.Property]string) {
 	return s.points, s.multis, nil
 }
 
 func TestCollector_UpdateValue_RefreshesTheDuplicateState(t *testing.T) {
 	dupes := &dupeCheckerStub{}
 	collector := NewCollector(new(dxcc.Finder), nil, nil, dupes, &valuerStub{points: 2}, nil)
-	info := core.Callinfo{Call: core.MustParseCallsign("DL1ABC")}
+	info := model.Callinfo{Call: model.MustParseCallsign("DL1ABC")}
 
-	require.True(t, collector.UpdateValue(&info, core.Band80m, core.ModeCW))
+	require.True(t, collector.UpdateValue(&info, model.Band80m, model.ModeCW))
 	require.False(t, info.Duplicate, "the station was not worked yet")
 
 	// the QSO is logged
 	dupes.duplicate = true
-	dupes.workedQSOs = []core.QSO{{Callsign: core.MustParseCallsign("DL1ABC")}}
+	dupes.workedQSOs = []model.QSO{{Callsign: model.MustParseCallsign("DL1ABC")}}
 
-	require.True(t, collector.UpdateValue(&info, core.Band80m, core.ModeCW))
+	require.True(t, collector.UpdateValue(&info, model.Band80m, model.ModeCW))
 
 	assert.True(t, info.Duplicate, "the update of the value sees the logged QSO")
 	assert.True(t, info.Worked)

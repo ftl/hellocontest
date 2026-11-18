@@ -5,7 +5,7 @@ import (
 
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 
 // vfoArea handles the visible UI related to core/entry and core/callinfo for a specific VFO. It takes care of visibility, layout and style of the related widgets.
 type vfoArea struct {
-	vfo          core.VFOID
+	vfo          model.VFOID
 	widgetPrefix string
 
 	entry    *entryVFOWidgets
@@ -39,7 +39,7 @@ type vfoArea struct {
 	isEditing    bool
 }
 
-func newVFOArea(vfo core.VFOID, widgetPrefix string, entry *entryVFOWidgets, callinfo *callinfoVFOWidgets) *vfoArea {
+func newVFOArea(vfo model.VFOID, widgetPrefix string, entry *entryVFOWidgets, callinfo *callinfoVFOWidgets) *vfoArea {
 	result := &vfoArea{
 		vfo:          vfo,
 		widgetPrefix: widgetPrefix,
@@ -154,7 +154,7 @@ func (a *vfoArea) setupCallinfoWidgets() {
 	a.callinfo.supercheckLabel.SetTextFormat(qtlib.RichText)
 	a.callinfo.supercheckLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
 	a.callinfo.supercheckLabel.SetMinimumWidth(0)
-	setFixedSampleHeight(a.callinfo.supercheckLabel, renderSupercheckHTML([]core.AnnotatedCallsign{{}}))
+	setFixedSampleHeight(a.callinfo.supercheckLabel, renderSupercheckHTML([]model.AnnotatedCallsign{{}}))
 
 	setObjectName(a.callinfo.dxccLabel, a.widgetPrefix+"dxccLabel")
 	a.callinfo.dxccLabel.QWidget.SetSizePolicy2(qtlib.QSizePolicy__Ignored, qtlib.QSizePolicy__Preferred)
@@ -166,7 +166,7 @@ func (a *vfoArea) setupCallinfoWidgets() {
 	a.callinfo.userInfoLabel.SetAlignment(qtlib.AlignVCenter | qtlib.AlignTrailing)
 }
 
-func (a *vfoArea) setupExchangeFields(fields []core.ExchangeField) {
+func (a *vfoArea) setupExchangeFields(fields []model.ExchangeField) {
 	for i, field := range fields {
 		if i >= len(a.entry.theirExchangeFields) {
 			break
@@ -185,8 +185,8 @@ func (a *vfoArea) setupExchangeFields(fields []core.ExchangeField) {
 	}
 }
 
-func (a *vfoArea) exchangeFieldName(field core.ExchangeField) string {
-	if a.vfo == core.VFO2 {
+func (a *vfoArea) exchangeFieldName(field model.ExchangeField) string {
+	if a.vfo == model.VFO2 {
 		return "vfo2_" + string(field.Field)
 	}
 	return string(field.Field)
@@ -196,7 +196,7 @@ func (a *vfoArea) setEnabled(enabled bool) {
 	a.root.SetVisible(enabled)
 }
 
-func (a *vfoArea) setIncrementalTuningVisible(kind core.IncrementalTuningKind, visible bool) {
+func (a *vfoArea) setIncrementalTuningVisible(kind model.IncrementalTuningKind, visible bool) {
 	incrementalTuningWidget(a.entry, kind).SetVisible(visible)
 }
 

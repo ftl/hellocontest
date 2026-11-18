@@ -3,7 +3,7 @@ package ui
 import (
 	qtlib "github.com/mappu/miqt/qt6"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/rate"
 )
 
@@ -41,7 +41,7 @@ func (v *rateView) RepaintForThemeChange() {
 	v.widget.Update()
 }
 
-func (v *rateView) ShowRate(rate core.QSORate) {
+func (v *rateView) ShowRate(rate model.QSORate) {
 	v.indicator.SetRate(rate)
 	v.indicator.widget.Update()
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ftl/hamdial"
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +16,7 @@ func TestTurnDelta(t *testing.T) {
 		desc      string
 		interval  time.Duration
 		direction hamdial.Direction
-		expected  core.Frequency
+		expected  model.Frequency
 	}{
 		{desc: "first detent", interval: 0, direction: hamdial.Clockwise, expected: baseTuningStep},
 		{desc: "slow turn", interval: slowTurnInterval, direction: hamdial.Clockwise, expected: baseTuningStep},
@@ -33,7 +33,7 @@ func TestTurnDelta(t *testing.T) {
 
 func TestTurnDeltaIsSymmetric(t *testing.T) {
 	now := time.Now()
-	deltaAt := func(direction hamdial.Direction) core.Frequency {
+	deltaAt := func(direction hamdial.Direction) model.Frequency {
 		controller := &Controller{lastTurn: now.Add(-slowTurnInterval / 2), lastTurnDirection: direction}
 		return controller.turnDelta(direction, now)
 	}
@@ -62,7 +62,7 @@ func TestTurnDeltaResetsOnDirectionChange(t *testing.T) {
 
 func TestTurnDeltaGrowsFasterThanLinear(t *testing.T) {
 	now := time.Now()
-	deltaAt := func(interval time.Duration) core.Frequency {
+	deltaAt := func(interval time.Duration) model.Frequency {
 		controller := &Controller{lastTurn: now.Add(-interval), lastTurnDirection: hamdial.Clockwise}
 		return controller.turnDelta(hamdial.Clockwise, now)
 	}
@@ -91,10 +91,10 @@ func (r *queuedRunner) RunAll() {
 
 type shiftRecorder struct {
 	DialActions
-	shifts []core.Frequency
+	shifts []model.Frequency
 }
 
-func (a *shiftRecorder) ShiftFrequency(delta core.Frequency) {
+func (a *shiftRecorder) ShiftFrequency(delta model.Frequency) {
 	a.shifts = append(a.shifts, delta)
 }
 
@@ -110,7 +110,7 @@ func TestDialTurnedCoalescesShiftsWhileTheMainThreadIsBusy(t *testing.T) {
 
 	runner.RunAll()
 	assert.Len(t, actions.shifts, 1, "all turns must be applied as one single shift")
-	assert.Equal(t, core.Frequency(500), actions.shifts[0])
+	assert.Equal(t, model.Frequency(500), actions.shifts[0])
 
 	runner.RunAll()
 	assert.Len(t, actions.shifts, 1, "the accumulated delta must not be applied twice")

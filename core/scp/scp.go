@@ -5,7 +5,7 @@ import (
 
 	"github.com/ftl/hamradio/scp"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func New() *Finder {
@@ -54,7 +54,7 @@ func (f *Finder) FindStrings(s string) ([]string, error) {
 	return f.database.FindStrings(s)
 }
 
-func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
+func (f *Finder) Find(s string) ([]model.AnnotatedCallsign, error) {
 	if !f.Available() {
 		return nil, nil
 	}
@@ -67,8 +67,8 @@ func (f *Finder) Find(s string) ([]core.AnnotatedCallsign, error) {
 	return toAnnotatedCallsigns(matches), nil
 }
 
-func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
-	result := make([]core.AnnotatedCallsign, 0, len(matches))
+func toAnnotatedCallsigns(matches []scp.Match) []model.AnnotatedCallsign {
+	result := make([]model.AnnotatedCallsign, 0, len(matches))
 
 	for _, match := range matches {
 		annotatedCallsign, err := toAnnotatedCallsign(match)
@@ -82,12 +82,12 @@ func toAnnotatedCallsigns(matches []scp.Match) []core.AnnotatedCallsign {
 	return result
 }
 
-func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
-	cs, err := core.ParseCallsign(match.Key())
+func toAnnotatedCallsign(match scp.Match) (model.AnnotatedCallsign, error) {
+	cs, err := model.ParseCallsign(match.Key())
 	if err != nil {
-		return core.AnnotatedCallsign{}, nil
+		return model.AnnotatedCallsign{}, nil
 	}
-	return core.AnnotatedCallsign{
+	return model.AnnotatedCallsign{
 		Callsign:   cs,
 		Assembly:   toMatchingAssembly(match),
 		Comparable: match,
@@ -102,11 +102,11 @@ func toAnnotatedCallsign(match scp.Match) (core.AnnotatedCallsign, error) {
 	}, nil
 }
 
-func toMatchingAssembly(match scp.Match) core.MatchingAssembly {
-	result := make(core.MatchingAssembly, len(match.Assembly))
+func toMatchingAssembly(match scp.Match) model.MatchingAssembly {
+	result := make(model.MatchingAssembly, len(match.Assembly))
 
 	for i, part := range match.Assembly {
-		result[i] = core.MatchingPart{OP: core.MatchingOperation(part.OP), Value: part.Value}
+		result[i] = model.MatchingPart{OP: model.MatchingOperation(part.OP), Value: part.Value}
 	}
 
 	return result

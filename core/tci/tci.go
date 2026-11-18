@@ -11,13 +11,13 @@ import (
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/ftl/tci/client"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/network"
 )
 
 const retryInterval = 10 * time.Second
 
-func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan, asyncRunner core.AsyncRunner) (*Client, error) {
+func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan, asyncRunner model.AsyncRunner) (*Client, error) {
 	host, err := network.ParseTCPAddr(address)
 	if err != nil {
 		return nil, err
@@ -34,14 +34,14 @@ func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan, as
 	result.trx = &trxListener{
 		client: result,
 		trx:    trx,
-		vfo:    core.VFO1,
+		vfo:    model.VFO1,
 	}
 	if trx2 >= 0 && trx2 != trx {
 		result.singleVFO = false
 		result.trx2 = &trxListener{
 			client: result,
 			trx:    trx2,
-			vfo:    core.VFO2,
+			vfo:    model.VFO2,
 		}
 	}
 	result.resetSpots()
@@ -57,20 +57,20 @@ func NewClient(address string, trx int, trx2 int, bandplan bandplan.Bandplan, as
 type Client struct {
 	client      *client.Client
 	bandplan    bandplan.Bandplan
-	asyncRunner core.AsyncRunner
+	asyncRunner model.AsyncRunner
 
 	singleVFO bool
 
 	sendSpots      bool
 	lastHeardSpots map[string]time.Time
-	sentMarkers    map[string]core.BandmapMarker
+	sentMarkers    map[string]model.BandmapMarker
 
 	trx       *trxListener
 	trx2      *trxListener
 	connected bool
 
-	currentVFO core.VFOID
-	txVFO      core.VFOID
+	currentVFO model.VFOID
+	txVFO      model.VFOID
 
 	listeners []any
 }
@@ -98,24 +98,24 @@ func (c *Client) SingleVFO() bool {
 	return c.singleVFO
 }
 
-func (c *Client) toTCITRX(vfo core.VFOID) int {
-	if !c.singleVFO && vfo == core.VFO2 {
+func (c *Client) toTCITRX(vfo model.VFOID) int {
+	if !c.singleVFO && vfo == model.VFO2 {
 		return c.trx2.trx
 	}
 	return c.trx.trx
 }
 
-func (c *Client) SetCurrentVFO(vfo core.VFOID) {
+func (c *Client) SetCurrentVFO(vfo model.VFOID) {
 	if c.singleVFO {
-		c.currentVFO = core.VFO1
+		c.currentVFO = model.VFO1
 		return
 	}
 	c.currentVFO = vfo
 }
 
-func (c *Client) SetTXVFO(vfo core.VFOID) {
+func (c *Client) SetTXVFO(vfo model.VFOID) {
 	if c.singleVFO {
-		c.txVFO = core.VFO1
+		c.txVFO = model.VFO1
 		return
 	}
 	c.txVFO = vfo
@@ -128,55 +128,55 @@ func (c *Client) Notify(listener any) {
 
 func (c *Client) emitConnectionChanged(connected bool) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.ConnectionChangedListener) {
+		model.Emit(c.listeners, func(listener model.ConnectionChangedListener) {
 			listener.ConnectionChanged(connected)
 		})
 	})
 }
 
-func (c *Client) emitFrequencyChanged(vfo core.VFOID, frequency core.Frequency) {
+func (c *Client) emitFrequencyChanged(vfo model.VFOID, frequency model.Frequency) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.VFOFrequencyListener) {
+		model.Emit(c.listeners, func(listener model.VFOFrequencyListener) {
 			listener.VFOFrequencyChanged(vfo, frequency)
 		})
 	})
 }
 
-func (c *Client) emitBandChanged(vfo core.VFOID, band core.Band) {
+func (c *Client) emitBandChanged(vfo model.VFOID, band model.Band) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.VFOBandListener) {
+		model.Emit(c.listeners, func(listener model.VFOBandListener) {
 			listener.VFOBandChanged(vfo, band)
 		})
 	})
 }
 
-func (c *Client) emitModeChanged(vfo core.VFOID, mode core.Mode) {
+func (c *Client) emitModeChanged(vfo model.VFOID, mode model.Mode) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.VFOModeListener) {
+		model.Emit(c.listeners, func(listener model.VFOModeListener) {
 			listener.VFOModeChanged(vfo, mode)
 		})
 	})
 }
 
-func (c *Client) emitIncrementalTuningChanged(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (c *Client) emitIncrementalTuningChanged(vfo model.VFOID, kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.VFOIncrementalTuningListener) {
+		model.Emit(c.listeners, func(listener model.VFOIncrementalTuningListener) {
 			listener.VFOIncrementalTuningChanged(vfo, kind, active, offset)
 		})
 	})
 }
 
-func (c *Client) emitPTTChanged(vfo core.VFOID, active bool) {
+func (c *Client) emitPTTChanged(vfo model.VFOID, active bool) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.VFOPTTListener) {
+		model.Emit(c.listeners, func(listener model.VFOPTTListener) {
 			listener.VFOPTTChanged(vfo, active)
 		})
 	})
 }
 
-func (c *Client) emitTXVFOChanged(vfo core.VFOID) {
+func (c *Client) emitTXVFOChanged(vfo model.VFOID) {
 	c.asyncRunner(func() {
-		core.Emit(c.listeners, func(listener core.TXVFOListener) {
+		model.Emit(c.listeners, func(listener model.TXVFOListener) {
 			listener.TXVFOChanged(vfo)
 		})
 	})
@@ -203,14 +203,14 @@ func (c *Client) Abort() {
 	}
 }
 
-func (c *Client) SetFrequency(vfo core.VFOID, frequency core.Frequency) {
+func (c *Client) SetFrequency(vfo model.VFOID, frequency model.Frequency) {
 	err := c.client.SetVFOFrequency(c.toTCITRX(vfo), client.VFOA, int(frequency))
 	if err != nil {
 		log.Printf("cannot set VFO frequency: %v", err)
 	}
 }
 
-func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
+func (c *Client) SetBand(vfo model.VFOID, band model.Band) {
 	bandplanBand := c.bandplan[toBandplanBandName(band)]
 	frequency := findModePortionCenter(c.bandplan, int(bandplanBand.Center()), toBandplanMode(c.modeOf(vfo)))
 	log.Printf("tci: switching TRX%d to %s at %d", c.toTCITRX(vfo), band, frequency)
@@ -220,24 +220,24 @@ func (c *Client) SetBand(vfo core.VFOID, band core.Band) {
 	}
 }
 
-func (c *Client) modeOf(vfo core.VFOID) core.Mode {
-	if !c.singleVFO && vfo == core.VFO2 {
+func (c *Client) modeOf(vfo model.VFOID) model.Mode {
+	if !c.singleVFO && vfo == model.VFO2 {
 		return c.trx2.mode
 	}
 	return c.trx.mode
 }
 
-func (c *Client) SetMode(vfo core.VFOID, mode core.Mode) {
+func (c *Client) SetMode(vfo model.VFOID, mode model.Mode) {
 	err := c.client.SetMode(c.toTCITRX(vfo), toClientMode(mode))
 	if err != nil {
 		log.Printf("cannot set mode: %v", err)
 	}
 }
 
-func (c *Client) SetIncrementalTuning(vfo core.VFOID, kind core.IncrementalTuningKind, active bool, offset core.Frequency) {
+func (c *Client) SetIncrementalTuning(vfo model.VFOID, kind model.IncrementalTuningKind, active bool, offset model.Frequency) {
 	setEnable := c.client.SetXITEnable
 	setOffset := c.client.SetXITOffset
-	if kind == core.RIT {
+	if kind == model.RIT {
 		setEnable = c.client.SetRITEnable
 		setOffset = c.client.SetRITOffset
 	}
@@ -262,20 +262,20 @@ func (c *Client) Refresh() {
 	}
 }
 
-var spotColors = map[core.SpotType]client.ARGB{
-	core.WorkedSpot:  client.NewARGB(255, 128, 128, 128),
-	core.ManualSpot:  client.NewARGB(255, 255, 255, 255),
-	core.SkimmerSpot: client.NewARGB(255, 255, 255, 255),
-	core.RBNSpot:     client.NewARGB(255, 255, 255, 255),
-	core.ClusterSpot: client.NewARGB(255, 255, 255, 255),
+var spotColors = map[model.SpotType]client.ARGB{
+	model.WorkedSpot:  client.NewARGB(255, 128, 128, 128),
+	model.ManualSpot:  client.NewARGB(255, 255, 255, 255),
+	model.SkimmerSpot: client.NewARGB(255, 255, 255, 255),
+	model.RBNSpot:     client.NewARGB(255, 255, 255, 255),
+	model.ClusterSpot: client.NewARGB(255, 255, 255, 255),
 }
 
 // a marker is no spot, therefore it has its own colors: the CQ frequency in dark red, the
 // numbered and text markers in the light blue of the spot list
-var markerColors = map[core.BandmapMarkerKind]client.ARGB{
-	core.CQMarker:       client.NewARGB(255, 139, 0, 0),
-	core.NumberedMarker: client.NewARGB(255, 173, 216, 230),
-	core.TextMarker:     client.NewARGB(255, 173, 216, 230),
+var markerColors = map[model.BandmapMarkerKind]client.ARGB{
+	model.CQMarker:       client.NewARGB(255, 139, 0, 0),
+	model.NumberedMarker: client.NewARGB(255, 173, 216, 230),
+	model.TextMarker:     client.NewARGB(255, 173, 216, 230),
 }
 
 // SetBandplan swaps the bandplan used for band lookups. Subsequent lookups use
@@ -298,16 +298,16 @@ func (c *Client) activeTRXs() []*trxListener {
 	return []*trxListener{c.trx, c.trx2}
 }
 
-func (c *Client) activeBands() []core.Band {
+func (c *Client) activeBands() []model.Band {
 	trxs := c.activeTRXs()
-	result := make([]core.Band, 0, len(trxs))
+	result := make([]model.Band, 0, len(trxs))
 	for _, trx := range trxs {
 		result = append(result, trx.band)
 	}
 	return result
 }
 
-func (c *Client) trxOnBand(band core.Band) (*trxListener, bool) {
+func (c *Client) trxOnBand(band model.Band) (*trxListener, bool) {
 	for _, trx := range c.activeTRXs() {
 		if trx.band == band {
 			return trx, true
@@ -316,7 +316,7 @@ func (c *Client) trxOnBand(band core.Band) (*trxListener, bool) {
 	return nil, false
 }
 
-func (c *Client) spotVisible(band core.Band, mode core.Mode) bool {
+func (c *Client) spotVisible(band model.Band, mode model.Mode) bool {
 	for _, trx := range c.activeTRXs() {
 		if trx.band == band && trx.mode == mode {
 			return true
@@ -327,10 +327,10 @@ func (c *Client) spotVisible(band core.Band, mode core.Mode) bool {
 
 func (c *Client) resetSpots() {
 	c.lastHeardSpots = make(map[string]time.Time)
-	c.sentMarkers = make(map[string]core.BandmapMarker)
+	c.sentMarkers = make(map[string]model.BandmapMarker)
 }
 
-func (c *Client) EntryAdded(entry core.BandmapEntry) {
+func (c *Client) EntryAdded(entry model.BandmapEntry) {
 	if !c.sendSpots {
 		return
 	}
@@ -354,7 +354,7 @@ func (c *Client) EntryAdded(entry core.BandmapEntry) {
 	}
 }
 
-func (c *Client) MarkersChanged(markers []core.BandmapMarker) {
+func (c *Client) MarkersChanged(markers []model.BandmapMarker) {
 	if !c.sendSpots {
 		return
 	}
@@ -368,7 +368,7 @@ func (c *Client) MarkersChanged(markers []core.BandmapMarker) {
 	c.sentMarkers = currentMarkers
 }
 
-func (c *Client) addMarkers(markers []core.BandmapMarker) {
+func (c *Client) addMarkers(markers []model.BandmapMarker) {
 	for _, marker := range markers {
 		// a marker has no mode, therefore the mode of the TRX on that band decides
 		trx, onBand := c.trxOnBand(marker.Band)
@@ -393,9 +393,9 @@ func (c *Client) deleteMarkers(texts []string) {
 
 // diffMarkers compares the markers on the bands of the TRXs with the markers that the
 // client sent before, therefore the client sends only the changes.
-func diffMarkers(sentMarkers map[string]core.BandmapMarker, markers []core.BandmapMarker, bands []core.Band) (map[string]core.BandmapMarker, []core.BandmapMarker, []string) {
-	currentMarkers := make(map[string]core.BandmapMarker, len(markers))
-	addedMarkers := make([]core.BandmapMarker, 0, len(markers))
+func diffMarkers(sentMarkers map[string]model.BandmapMarker, markers []model.BandmapMarker, bands []model.Band) (map[string]model.BandmapMarker, []model.BandmapMarker, []string) {
+	currentMarkers := make(map[string]model.BandmapMarker, len(markers))
+	addedMarkers := make([]model.BandmapMarker, 0, len(markers))
 	for _, marker := range markers {
 		if !slices.Contains(bands, marker.Band) {
 			continue
@@ -422,11 +422,11 @@ func diffMarkers(sentMarkers map[string]core.BandmapMarker, markers []core.Bandm
 	return currentMarkers, addedMarkers, removedMarkers
 }
 
-func (c *Client) EntryUpdated(entry core.BandmapEntry) {
+func (c *Client) EntryUpdated(entry model.BandmapEntry) {
 	c.EntryAdded(entry)
 }
 
-func (c *Client) EntryRemoved(entry core.BandmapEntry) {
+func (c *Client) EntryRemoved(entry model.BandmapEntry) {
 	if !c.sendSpots {
 		return
 	}
@@ -444,14 +444,14 @@ func isNotConnectedError(err error) bool {
 type trxListener struct {
 	client    *Client
 	trx       int
-	vfo       core.VFOID
-	frequency core.Frequency
-	band      core.Band
-	mode      core.Mode
+	vfo       model.VFOID
+	frequency model.Frequency
+	band      model.Band
+	mode      model.Mode
 	xitActive bool
-	xitOffset core.Frequency
+	xitOffset model.Frequency
 	ritActive bool
-	ritOffset core.Frequency
+	ritOffset model.Frequency
 	ptt       bool
 }
 
@@ -459,8 +459,8 @@ func (l *trxListener) Refresh() {
 	l.client.emitFrequencyChanged(l.vfo, l.frequency)
 	l.client.emitBandChanged(l.vfo, l.band)
 	l.client.emitModeChanged(l.vfo, l.mode)
-	l.client.emitIncrementalTuningChanged(l.vfo, core.XIT, l.xitActive, l.xitOffset)
-	l.client.emitIncrementalTuningChanged(l.vfo, core.RIT, l.ritActive, l.ritOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, model.XIT, l.xitActive, l.xitOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, model.RIT, l.ritActive, l.ritOffset)
 	l.client.emitPTTChanged(l.vfo, l.ptt)
 }
 
@@ -477,7 +477,7 @@ func (l *trxListener) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
 	if trx != l.trx || vfo != client.VFOA {
 		return
 	}
-	incomingFrequency := core.Frequency(frequency)
+	incomingFrequency := model.Frequency(frequency)
 	if l.frequency == incomingFrequency {
 		return
 	}
@@ -518,19 +518,19 @@ func (l *trxListener) SetXITEnable(trx int, active bool) {
 		return
 	}
 	l.xitActive = incomingActive
-	l.client.emitIncrementalTuningChanged(l.vfo, core.XIT, l.xitActive, l.xitOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, model.XIT, l.xitActive, l.xitOffset)
 }
 
 func (l *trxListener) SetXITOffset(trx int, offset int) {
 	if trx != l.trx {
 		return
 	}
-	incomingOffset := core.Frequency(offset)
+	incomingOffset := model.Frequency(offset)
 	if incomingOffset == l.xitOffset {
 		return
 	}
 	l.xitOffset = incomingOffset
-	l.client.emitIncrementalTuningChanged(l.vfo, core.XIT, l.xitActive, l.xitOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, model.XIT, l.xitActive, l.xitOffset)
 }
 
 func (l *trxListener) SetRITEnable(trx int, active bool) {
@@ -541,19 +541,19 @@ func (l *trxListener) SetRITEnable(trx int, active bool) {
 		return
 	}
 	l.ritActive = active
-	l.client.emitIncrementalTuningChanged(l.vfo, core.RIT, l.ritActive, l.ritOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, model.RIT, l.ritActive, l.ritOffset)
 }
 
 func (l *trxListener) SetRITOffset(trx int, offset int) {
 	if trx != l.trx {
 		return
 	}
-	incomingOffset := core.Frequency(offset)
+	incomingOffset := model.Frequency(offset)
 	if incomingOffset == l.ritOffset {
 		return
 	}
 	l.ritOffset = incomingOffset
-	l.client.emitIncrementalTuningChanged(l.vfo, core.RIT, l.ritActive, l.ritOffset)
+	l.client.emitIncrementalTuningChanged(l.vfo, model.RIT, l.ritActive, l.ritOffset)
 }
 
 func (l *trxListener) SetTX(trx int, enable bool) {
@@ -568,59 +568,59 @@ func (l *trxListener) SetTX(trx int, enable bool) {
 	// log.Printf("incoming PTT %v", enable)
 }
 
-func toCoreBand(bandName bandplan.BandName) core.Band {
+func toCoreBand(bandName bandplan.BandName) model.Band {
 	if bandName == bandplan.BandUnknown {
-		return core.NoBand
+		return model.NoBand
 	}
-	return core.Band(bandName)
+	return model.Band(bandName)
 }
 
-func toBandplanBandName(band core.Band) bandplan.BandName {
-	if band == core.NoBand {
+func toBandplanBandName(band model.Band) bandplan.BandName {
+	if band == model.NoBand {
 		return bandplan.BandUnknown
 	}
 	return bandplan.BandName(band)
 }
 
-func toCoreMode(mode client.Mode) core.Mode {
+func toCoreMode(mode client.Mode) model.Mode {
 	switch mode {
 	case client.ModeUSB, client.ModeLSB:
-		return core.ModeSSB
+		return model.ModeSSB
 	case client.ModeCW:
-		return core.ModeCW
+		return model.ModeCW
 	case client.ModeNFM, client.ModeWFM:
-		return core.ModeFM
+		return model.ModeFM
 	case client.ModeDIGL, client.ModeDIGU, client.ModeSPEC:
-		return core.ModeDigital
+		return model.ModeDigital
 	default:
-		return core.NoMode
+		return model.NoMode
 	}
 }
 
-func toClientMode(mode core.Mode) client.Mode {
+func toClientMode(mode model.Mode) client.Mode {
 	switch mode {
-	case core.ModeCW:
+	case model.ModeCW:
 		return client.ModeCW
-	case core.ModeSSB:
+	case model.ModeSSB:
 		return client.ModeUSB // TODO make this dependent of the current frequency either LSB or USB
-	case core.ModeFM:
+	case model.ModeFM:
 		return client.ModeNFM
-	case core.ModeRTTY:
+	case model.ModeRTTY:
 		return client.ModeDIGU
-	case core.ModeDigital:
+	case model.ModeDigital:
 		return client.ModeDIGU
 	default:
 		return client.ModeSPEC
 	}
 }
 
-func toBandplanMode(mode core.Mode) bandplan.Mode {
+func toBandplanMode(mode model.Mode) bandplan.Mode {
 	switch mode {
-	case core.ModeCW:
+	case model.ModeCW:
 		return bandplan.ModeCW
-	case core.ModeSSB, core.ModeFM:
+	case model.ModeSSB, model.ModeFM:
 		return bandplan.ModePhone
-	case core.ModeDigital, core.ModeRTTY:
+	case model.ModeDigital, model.ModeRTTY:
 		return bandplan.ModeDigital
 	default:
 		return bandplan.ModeDigital

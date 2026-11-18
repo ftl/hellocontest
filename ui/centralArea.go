@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	qtlib "github.com/mappu/miqt/qt6"
 )
 
@@ -53,6 +53,6 @@ func (a *centralArea) RepaintForThemeChange() {
 	a.root.Update()
 }
 
-func (a *centralArea) SetExchangeFields(myExchangeFields, theirExchangeFields []core.ExchangeField, showSerialExchangeIndicator bool) {
+func (a *centralArea) SetExchangeFields(myExchangeFields, theirExchangeFields []model.ExchangeField, showSerialExchangeIndicator bool) {
 	a.entryArea.SetExchangeFields(myExchangeFields, theirExchangeFields, showSerialExchangeIndicator)
 }

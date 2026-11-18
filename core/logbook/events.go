@@ -1,6 +1,6 @@
 package logbook
 
-import "github.com/ftl/hellocontest/core"
+import "github.com/ftl/hellocontest/core/model"
 
 type LogbookClearedListener interface {
 	LogbookCleared()
@@ -35,22 +35,22 @@ func (f QSOsClearedListenerFunc) QSOsCleared() {
 }
 
 type QSOAddedListener interface {
-	QSOAdded(core.QSO)
+	QSOAdded(model.QSO)
 }
 
-type QSOAddedListenerFunc func(core.QSO)
+type QSOAddedListenerFunc func(model.QSO)
 
-func (f QSOAddedListenerFunc) QSOAdded(qso core.QSO) {
+func (f QSOAddedListenerFunc) QSOAdded(qso model.QSO) {
 	f(qso)
 }
 
 type QSOSelectedListener interface {
-	QSOSelected(core.QSO)
+	QSOSelected(model.QSO)
 }
 
-type QSOSelectedListenerFunc func(core.QSO)
+type QSOSelectedListenerFunc func(model.QSO)
 
-func (f QSOSelectedListenerFunc) QSOSelected(qso core.QSO) {
+func (f QSOSelectedListenerFunc) QSOSelected(qso model.QSO) {
 	f(qso)
 }
 
@@ -65,22 +65,22 @@ func (f QSORowSelectedListenerFunc) QSORowSelected(index int) {
 }
 
 type ExchangeFieldsChangedListener interface {
-	ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField)
+	ExchangeFieldsChanged(myExchangeFields []model.ExchangeField, theirExchangeFields []model.ExchangeField)
 }
 
-type ExchangeFieldsChangedListenerFunc func(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField)
+type ExchangeFieldsChangedListenerFunc func(myExchangeFields []model.ExchangeField, theirExchangeFields []model.ExchangeField)
 
-func (f ExchangeFieldsChangedListenerFunc) ExchangeFieldsChanged(myExchangeFields []core.ExchangeField, theirExchangeFields []core.ExchangeField) {
+func (f ExchangeFieldsChangedListenerFunc) ExchangeFieldsChanged(myExchangeFields []model.ExchangeField, theirExchangeFields []model.ExchangeField) {
 	f(myExchangeFields, theirExchangeFields)
 }
 
 type QTCAddedListener interface {
-	QTCAdded(core.QTC)
+	QTCAdded(model.QTC)
 }
 
-type QTCAddedListenerFunc func(core.QTC)
+type QTCAddedListenerFunc func(model.QTC)
 
-func (f QTCAddedListenerFunc) QTCAdded(qtc core.QTC) {
+func (f QTCAddedListenerFunc) QTCAdded(qtc model.QTC) {
 	f(qtc)
 }
 
@@ -89,12 +89,12 @@ type QTCsEnabledListener interface {
 }
 
 type QTCSelectedListener interface {
-	QTCSelected(core.QTC)
+	QTCSelected(model.QTC)
 }
 
-type QTCSelectedListenerFunc func(core.QTC)
+type QTCSelectedListenerFunc func(model.QTC)
 
-func (f QTCSelectedListenerFunc) QTCSelected(qtc core.QTC) {
+func (f QTCSelectedListenerFunc) QTCSelected(qtc model.QTC) {
 	f(qtc)
 }
 
@@ -114,11 +114,11 @@ type QTCsClearedListener interface {
 }
 
 type ScoreChangedListener interface {
-	ScoreChanged(core.Score)
+	ScoreChanged(model.Score)
 }
 
-type ScoreChangedFunc func(core.Score)
+type ScoreChangedFunc func(model.Score)
 
-func (f ScoreChangedFunc) ScoreChanged(score core.Score) {
+func (f ScoreChangedFunc) ScoreChanged(score model.Score) {
 	f(score)
 }

@@ -76,6 +76,15 @@ func IsFrequencyJump(from Frequency, to Frequency) bool {
 	return from.DistanceTo(to) > frequencyJumpThreshold
 }
 
+// Default step sizes for the relative shift actions. Keyboard shortcuts use
+// these; the remote interface may override them via an explicit amount.
+const (
+	DefaultFrequencyShift = Frequency(10) // Hz
+	DefaultXITShift       = Frequency(10) // Hz
+	DefaultRITShift       = Frequency(10) // Hz
+	DefaultSpeedShift     = 1             // WPM
+)
+
 // Band represents an amateur radio band.
 type Band string
 

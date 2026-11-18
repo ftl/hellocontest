@@ -1,7 +1,6 @@
 package vfo
 
 import (
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/model"
 )
 
@@ -67,9 +66,9 @@ func (v *VFO) ShiftAvailableIncrementalTuning(sign model.Frequency) {
 	if !ok {
 		return
 	}
-	step := core.DefaultXITShift
+	step := model.DefaultXITShift
 	if kind == model.RIT {
-		step = core.DefaultRITShift
+		step = model.DefaultRITShift
 	}
 	v.ShiftIncrementalTuning(kind, sign*step)
 }

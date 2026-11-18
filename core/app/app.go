@@ -13,7 +13,7 @@ import (
 
 	"github.com/ftl/hamradio/bandplan"
 
-	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/actions"
 	"github.com/ftl/hellocontest/core/bandmap"
 	"github.com/ftl/hellocontest/core/callhistory"
 	"github.com/ftl/hellocontest/core/callinfo"
@@ -1016,19 +1016,19 @@ func (c *Controller) ShiftFocusedIncrementalTuning(kind model.IncrementalTuningK
 }
 
 func (c *Controller) XITUp() {
-	c.ShiftFocusedIncrementalTuning(model.XIT, core.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(model.XIT, model.DefaultXITShift)
 }
 
 func (c *Controller) XITDown() {
-	c.ShiftFocusedIncrementalTuning(model.XIT, -core.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(model.XIT, -model.DefaultXITShift)
 }
 
 func (c *Controller) RITUp() {
-	c.ShiftFocusedIncrementalTuning(model.RIT, core.DefaultRITShift)
+	c.ShiftFocusedIncrementalTuning(model.RIT, model.DefaultRITShift)
 }
 
 func (c *Controller) RITDown() {
-	c.ShiftFocusedIncrementalTuning(model.RIT, -core.DefaultRITShift)
+	c.ShiftFocusedIncrementalTuning(model.RIT, -model.DefaultRITShift)
 }
 
 func (c *Controller) ToggleIncrementalTuning() {
@@ -1048,11 +1048,11 @@ func (c *Controller) ShiftFrequency(delta model.Frequency) {
 }
 
 func (c *Controller) FrequencyUp() {
-	c.ShiftFrequency(core.DefaultFrequencyShift)
+	c.ShiftFrequency(model.DefaultFrequencyShift)
 }
 
 func (c *Controller) FrequencyDown() {
-	c.ShiftFrequency(-core.DefaultFrequencyShift)
+	c.ShiftFrequency(-model.DefaultFrequencyShift)
 }
 
 func (c *Controller) KeyerShiftSpeed(delta int) {
@@ -1060,11 +1060,11 @@ func (c *Controller) KeyerShiftSpeed(delta int) {
 }
 
 func (c *Controller) KeyerSpeedUp() {
-	c.KeyerShiftSpeed(core.DefaultSpeedShift)
+	c.KeyerShiftSpeed(model.DefaultSpeedShift)
 }
 
 func (c *Controller) KeyerSpeedDown() {
-	c.KeyerShiftSpeed(-core.DefaultSpeedShift)
+	c.KeyerShiftSpeed(-model.DefaultSpeedShift)
 }
 
 func (c *Controller) MarkInBandmap() {
@@ -1209,139 +1209,139 @@ func markerNumber(params map[string]string) (int, error) {
 
 func (c *Controller) DoAction(id string, params map[string]string) error {
 	switch id {
-	case core.ActionRadioShiftFrequency:
-		amount, err := shiftAmount(params, int(core.DefaultFrequencyShift))
+	case actions.RadioShiftFrequency:
+		amount, err := shiftAmount(params, int(model.DefaultFrequencyShift))
 		if err != nil {
 			return err
 		}
 		c.ShiftFrequency(model.Frequency(amount))
-	case core.ActionRadioFrequencyUp:
+	case actions.RadioFrequencyUp:
 		c.FrequencyUp()
-	case core.ActionRadioFrequencyDown:
+	case actions.RadioFrequencyDown:
 		c.FrequencyDown()
-	case core.ActionRadioShiftXIT:
-		amount, err := shiftAmount(params, int(core.DefaultXITShift))
+	case actions.RadioShiftXIT:
+		amount, err := shiftAmount(params, int(model.DefaultXITShift))
 		if err != nil {
 			return err
 		}
 		c.ShiftFocusedIncrementalTuning(model.XIT, model.Frequency(amount))
-	case core.ActionRadioXITUp:
+	case actions.RadioXITUp:
 		c.XITUp()
-	case core.ActionRadioXITDown:
+	case actions.RadioXITDown:
 		c.XITDown()
-	case core.ActionRadioShiftRIT:
-		amount, err := shiftAmount(params, int(core.DefaultRITShift))
+	case actions.RadioShiftRIT:
+		amount, err := shiftAmount(params, int(model.DefaultRITShift))
 		if err != nil {
 			return err
 		}
 		c.ShiftFocusedIncrementalTuning(model.RIT, model.Frequency(amount))
-	case core.ActionRadioRITUp:
+	case actions.RadioRITUp:
 		c.RITUp()
-	case core.ActionRadioRITDown:
+	case actions.RadioRITDown:
 		c.RITDown()
-	case core.ActionIncrementalTuningToggle:
+	case actions.IncrementalTuningToggle:
 		c.ToggleIncrementalTuning()
-	case core.ActionIncrementalTuningUp:
+	case actions.IncrementalTuningUp:
 		c.IncrementalTuningUp()
-	case core.ActionIncrementalTuningDown:
+	case actions.IncrementalTuningDown:
 		c.IncrementalTuningDown()
-	case core.ActionKeyerShiftSpeed:
-		amount, err := shiftAmount(params, core.DefaultSpeedShift)
+	case actions.KeyerShiftSpeed:
+		amount, err := shiftAmount(params, model.DefaultSpeedShift)
 		if err != nil {
 			return err
 		}
 		c.KeyerShiftSpeed(amount)
-	case core.ActionKeyerSpeedUp:
+	case actions.KeyerSpeedUp:
 		c.KeyerSpeedUp()
-	case core.ActionKeyerSpeedDown:
+	case actions.KeyerSpeedDown:
 		c.KeyerSpeedDown()
-	case core.ActionEntryClear:
+	case actions.EntryClear:
 		c.ClearEntryFields()
-	case core.ActionEntryGotoEntryField:
+	case actions.EntryGotoEntryField:
 		c.GotoEntryFields()
-	case core.ActionEntryEditLastQSO:
+	case actions.EntryEditLastQSO:
 		c.EditLastQSO()
-	case core.ActionEntryRefreshPrediction:
+	case actions.EntryRefreshPrediction:
 		c.RefreshPrediction()
-	case core.ActionEntrySelectBestMatch:
+	case actions.EntrySelectBestMatch:
 		c.Entry.SelectBestMatchOnFrequency()
-	case core.ActionEntryLogQSO:
+	case actions.EntryLogQSO:
 		c.LogQSO()
-	case core.ActionEntryStartParrot:
+	case actions.EntryStartParrot:
 		c.StartParrot()
-	case core.ActionEntryNextESMStep:
+	case actions.EntryNextESMStep:
 		c.Entry.NextESMStep()
-	case core.ActionEntryToggleFocusedVFO:
+	case actions.EntryToggleFocusedVFO:
 		c.Entry.ToggleFocusedVFO()
-	case core.ActionEntryFocusVFO1:
+	case actions.EntryFocusVFO1:
 		c.Entry.FocusVFO1()
-	case core.ActionEntryFocusVFO2:
+	case actions.EntryFocusVFO2:
 		c.Entry.FocusVFO2()
-	case core.ActionEntryLogVFO1:
+	case actions.EntryLogVFO1:
 		c.Entry.LogVFO(model.VFO1)
-	case core.ActionEntryLogVFO2:
+	case actions.EntryLogVFO2:
 		c.Entry.LogVFO(model.VFO2)
-	case core.ActionEntryClearVFO1:
+	case actions.EntryClearVFO1:
 		c.Entry.ClearVFO(model.VFO1)
-	case core.ActionEntryClearVFO2:
+	case actions.EntryClearVFO2:
 		c.Entry.ClearVFO(model.VFO2)
-	case core.ActionEntryOfferQTC:
+	case actions.EntryOfferQTC:
 		c.OfferQTC()
-	case core.ActionEntryRequestQTC:
+	case actions.EntryRequestQTC:
 		c.RequestQTC()
-	case core.ActionBandmapMark:
+	case actions.BandmapMark:
 		c.MarkInBandmap()
-	case core.ActionBandmapMarkWithNumber:
+	case actions.BandmapMarkWithNumber:
 		number, err := markerNumber(params)
 		if err != nil {
 			return err
 		}
 		c.MarkWithNumberInBandmap(number)
-	case core.ActionBandmapDeleteMarker:
+	case actions.BandmapDeleteMarker:
 		c.DeleteMarker()
-	case core.ActionBandmapIgnoreSpot:
+	case actions.BandmapIgnoreSpot:
 		c.IgnoreSpot()
-	case core.ActionBandmapRestoreSpot:
+	case actions.BandmapRestoreSpot:
 		c.RestoreSpot()
-	case core.ActionBandmapGotoHighestValueSpot:
+	case actions.BandmapGotoHighestValueSpot:
 		c.GotoHighestValueSpot()
-	case core.ActionBandmapGotoNearestSpot:
+	case actions.BandmapGotoNearestSpot:
 		c.GotoNearestSpot()
-	case core.ActionBandmapGotoNextSpotUp:
+	case actions.BandmapGotoNextSpotUp:
 		c.GotoNextSpotUp()
-	case core.ActionBandmapGotoNextSpotDown:
+	case actions.BandmapGotoNextSpotDown:
 		c.GotoNextSpotDown()
-	case core.ActionBandmapGotoCQFrequency:
+	case actions.BandmapGotoCQFrequency:
 		c.GotoCQFrequency()
-	case core.ActionBandmapGotoNumberedMarker:
+	case actions.BandmapGotoNumberedMarker:
 		number, err := markerNumber(params)
 		if err != nil {
 			return err
 		}
 		c.GotoNumberedMarker(number)
-	case core.ActionWindowShowQSOs:
+	case actions.WindowShowQSOs:
 		c.ShowQSOs()
-	case core.ActionWindowShowQTCs:
+	case actions.WindowShowQTCs:
 		c.ShowQTCs()
-	case core.ActionWindowShowScoreGraph:
+	case actions.WindowShowScoreGraph:
 		c.ShowScoreGraph()
-	case core.ActionWindowShowScoreTable:
+	case actions.WindowShowScoreTable:
 		c.ShowScoreTable()
-	case core.ActionWindowShowRate:
+	case actions.WindowShowRate:
 		c.ShowRate()
-	case core.ActionWindowShowSpots:
+	case actions.WindowShowSpots:
 		c.ShowSpots()
-	case core.ActionWindowShowBandMatrix:
+	case actions.WindowShowBandMatrix:
 		c.ShowBandMatrix()
-	case core.ActionWindowShowClock:
+	case actions.WindowShowClock:
 		c.ShowClock()
-	case core.ActionKeyerSendMacro1:
+	case actions.KeyerSendMacro1:
 		c.Keyer.SendMacro(0)
-	case core.ActionKeyerSendMacro2:
+	case actions.KeyerSendMacro2:
 		c.Keyer.SendMacro(1)
-	case core.ActionKeyerSendMacro3:
+	case actions.KeyerSendMacro3:
 		c.Keyer.SendMacro(2)
-	case core.ActionKeyerSendMacro4:
+	case actions.KeyerSendMacro4:
 		c.Keyer.SendMacro(3)
 	default:
 		return fmt.Errorf("unknown action: %s", id)

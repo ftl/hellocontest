@@ -7,7 +7,6 @@ import (
 	"github.com/ftl/hamradio/bandplan"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/clock"
 	"github.com/ftl/hellocontest/core/model"
 )
@@ -98,7 +97,7 @@ func TestToggleAndShiftAvailableIncrementalTuning(t *testing.T) {
 	assert.False(t, v.IncrementalTuningActive(model.XIT), "toggle again disables it")
 
 	v.ShiftAvailableIncrementalTuning(1)
-	assert.Equal(t, core.DefaultXITShift, v.state[model.XIT].offset)
+	assert.Equal(t, model.DefaultXITShift, v.state[model.XIT].offset)
 	v.ShiftAvailableIncrementalTuning(-1)
 	assert.Equal(t, model.Frequency(0), v.state[model.XIT].offset)
 }

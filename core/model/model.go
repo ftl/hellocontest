@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"maps"
 	"math"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -14,67 +13,10 @@ import (
 	"golang.org/x/exp/constraints"
 
 	"github.com/ftl/conval"
-	"github.com/ftl/hamradio/callsign"
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hamradio/latlon"
 	"github.com/ftl/hamradio/locator"
 )
-
-// QSO contains the details about one radio contact.
-type QSO struct {
-	Callsign      Callsign
-	Time          time.Time
-	Frequency     Frequency
-	Band          Band
-	Mode          Mode
-	MyReport      RST
-	MyNumber      QSONumber
-	MyExchange    []string
-	TheirReport   RST
-	TheirNumber   QSONumber
-	TheirExchange []string
-	LogTimestamp  time.Time
-	DXCC          dxcc.Prefix
-	Points        int
-	Multis        int
-	Duplicate     bool
-	Workmode      Workmode
-}
-
-func (qso *QSO) String() string {
-	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%s|%s|%s|%s|%s|%s|%2d|%2d|%t|%s", qso.Time.Format("15:04"), qso.Callsign.String(), qso.Frequency/1000.0, qso.Band, qso.Mode, qso.MyReport, qso.MyNumber.String(), strings.Join(qso.MyExchange, " "), qso.TheirReport, qso.TheirNumber.String(), strings.Join(qso.TheirExchange, " "), qso.Points, qso.Multis, qso.Duplicate, qso.Workmode.String())
-}
-
-type Callsign = callsign.Callsign
-
-var NoCallsign = callsign.NoCallsign
-
-func MustParseCallsign(s string) Callsign {
-	return callsign.MustParse(s)
-}
-
-func ParseCallsign(s string) (Callsign, error) {
-	return callsign.Parse(s)
-}
-
-// Frequency in Hz.
-type Frequency float64
-
-func (f Frequency) String() string {
-	return fmt.Sprintf("%.0fHz", float64(f))
-}
-
-func (f Frequency) DistanceTo(other Frequency) Frequency {
-	result := f - other
-	if result < 0 {
-		return -result
-	}
-	return result
-}
-
-func IsFrequencyJump(from Frequency, to Frequency) bool {
-	return from.DistanceTo(to) > frequencyJumpThreshold
-}
 
 // Default step sizes for the relative shift actions. Keyboard shortcuts use
 // these; the remote interface may override them via an explicit amount.
@@ -85,472 +27,9 @@ const (
 	DefaultSpeedShift     = 1             // WPM
 )
 
-// Band represents an amateur radio band.
-type Band string
-
-// All HF bands.
-const (
-	NoBand   Band = ""
-	Band160m Band = "160m"
-	Band80m  Band = "80m"
-	Band60m  Band = "60m"
-	Band40m  Band = "40m"
-	Band30m  Band = "30m"
-	Band20m  Band = "20m"
-	Band17m  Band = "17m"
-	Band15m  Band = "15m"
-	Band12m  Band = "12m"
-	Band10m  Band = "10m"
-)
-
-// Bands are all supported HF bands.
-var Bands = []Band{Band160m, Band80m, Band60m, Band40m, Band30m, Band20m, Band17m, Band15m, Band12m, Band10m}
-
-func (band *Band) String() string {
-	return string(*band)
-}
-
-// Mode represents the mode.
-type Mode string
-
-// All relevant modes.
-const (
-	NoMode      Mode = ""
-	ModeCW      Mode = "CW"
-	ModeSSB     Mode = "SSB"
-	ModeFM      Mode = "FM"
-	ModeRTTY    Mode = "RTTY"
-	ModeDigital Mode = "DIGI"
-)
-
-// Modes are all relevant modes.
-var Modes = []Mode{ModeCW, ModeSSB, ModeFM, ModeRTTY, ModeDigital}
-
-func (mode *Mode) String() string {
-	return string(*mode)
-}
-
-// RST represents a signal report using the "Readability/Signalstrength/Tone" system.
-type RST string
-
-func (rst RST) String() string {
-	return string(rst)
-}
-
-// QSONumber is the unique number of a QSO in the log, either on my or on their side.
-type QSONumber int
-
-func (nr *QSONumber) String() string {
-	return fmt.Sprintf("%03d", *nr)
-}
-
 // Clock represents a source of the current time.
 type Clock interface {
 	Now() time.Time
-}
-
-// Workmode is either search&pounce or run.
-type Workmode int
-
-// All work modes.
-const (
-	UnknownWorkmode Workmode = iota
-	SearchPounce
-	Run
-)
-
-func (workmode *Workmode) String() string {
-	switch *workmode {
-	case SearchPounce:
-		return "S"
-	case Run:
-		return "R"
-	default:
-		return ""
-	}
-}
-
-const MaxQTCsPerCall = 10 // TODO: this should be configurable through the contest definition
-
-// QTC represents one QTC. If the QTC is not yet logged, it contains no timestamp, frequency,
-// and mode information
-type QTC struct {
-	// Basic Information
-	Kind          QTCKind
-	QSONumber     QSONumber // used only for SentQTC, references the QSO in my log
-	TheirCallsign Callsign
-	Header        QTCHeader
-
-	// Log Information, must be set, when actually sending the QTC
-	Timestamp time.Time
-	Frequency Frequency
-	Band      Band
-	Mode      Mode
-	Confirmed bool // this field is not persistent, it is only used during the QTC workflow to track which QTCs have been confirmed
-
-	// Data from referenced QSO, either from my log, or from their log
-	QTCTime     QTCTime
-	QTCCallsign Callsign
-	QTCNumber   QSONumber
-}
-
-func (q QTC) String() string {
-	return fmt.Sprintf("%s|%-10s|%5.0fkHz|%4s|%-4s|%d|%s|%s|%d", q.Timestamp.Format("15:04"), q.TheirCallsign.String(), q.Frequency/1000.0, q.Band, q.Mode, q.Kind, q.QTCTime.String(), q.QTCCallsign, q.QTCNumber)
-}
-
-func (q QTC) SeriesKey() string {
-	return fmt.Sprintf("%s|%d|%d", q.TheirCallsign, q.Header.SeriesNumber, q.Header.QTCCount)
-}
-
-func (q QTC) WasTransmitted() bool {
-	return !q.Timestamp.IsZero()
-}
-
-func (q QTC) VerifyComplete() error {
-	switch {
-	case q.Timestamp.IsZero():
-		return fmt.Errorf("the timestamp must not be zero")
-	case q.Band == NoBand:
-		return fmt.Errorf("the band must not be empty")
-	case q.Mode == NoMode:
-		return fmt.Errorf("the mode must not be empty")
-	case q.Frequency == 0:
-		return fmt.Errorf("the frequency must not be zero")
-	case (q.Kind == SentQTC) && (q.QSONumber <= 0):
-		return fmt.Errorf("the QSO number must be greater than zero")
-	default:
-		return nil
-	}
-}
-
-type QTCMode int
-
-const (
-	ReceiveQTC QTCMode = iota
-	ProvideQTC
-)
-
-type QTCKind int
-
-const (
-	ReceivedQTC QTCKind = iota
-	SentQTC
-)
-
-type QTCHeader struct {
-	SeriesNumber int
-	QTCCount     int
-}
-
-var qtcHeaderFormat = regexp.MustCompile(`([[:digit:]]+)/((1)?[[:digit:]]$)`)
-
-func ParseQTCHeader(s string) (QTCHeader, error) {
-	result := QTCHeader{}
-
-	fields := qtcHeaderFormat.FindStringSubmatch(s)
-	if len(fields) < 3 {
-		return QTCHeader{}, fmt.Errorf("%q is not a valid QTC header", s)
-	}
-
-	result.SeriesNumber, _ = strconv.Atoi(fields[1])
-	result.QTCCount, _ = strconv.Atoi(fields[2])
-
-	return result, nil
-}
-
-func (h QTCHeader) String() string {
-	return fmt.Sprintf("%d/%d", h.SeriesNumber, h.QTCCount)
-}
-
-func QTCByTimestamp(a, b QTC) int {
-	switch {
-	case a.Timestamp.Before(b.Timestamp):
-		return -1
-	case a.Timestamp.After(b.Timestamp):
-		return 1
-	default:
-		return 0
-	}
-}
-
-type QTCTime struct {
-	Hour   int
-	Minute int
-}
-
-var ZeroQTCTime = QTCTime{0, 0}
-
-// ParseQTCTime parses the given string as QTC time (hhmm). The additional reference time
-// is used, if only the minutes are given in the string. In that case, the hours are taken
-// from the reference.
-func ParseQTCTime(s string, reference QTCTime) (QTCTime, error) {
-	l := len(s)
-	if l < 1 || l > 4 {
-		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %q is invalid", s)
-	}
-
-	result := QTCTime{}
-	var err error
-
-	switch {
-	case l < 3:
-		result.Hour = reference.Hour
-	default:
-		result.Hour, err = strconv.Atoi(string(s[0 : l-2]))
-	}
-	if err != nil {
-		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %q is not a number", s)
-	}
-	if result.Hour < 0 || result.Hour > 23 {
-		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %d is not valid for the hour section", result.Hour)
-	}
-
-	result.Minute, err = strconv.Atoi(s[max(l-2, 0):l])
-	if err != nil {
-		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %q is not a number", s)
-	}
-	if result.Minute < 0 || result.Minute > 59 {
-		return ZeroQTCTime, fmt.Errorf("cannot parse QTC time: %d is not valid for the minute section", result.Minute)
-	}
-
-	return result, nil
-}
-
-func QTCTimeFromTimestamp(ts time.Time) QTCTime {
-	return QTCTime{
-		Hour:   ts.Hour(),
-		Minute: ts.Minute(),
-	}
-}
-
-func (t QTCTime) String() string {
-	return fmt.Sprintf("%02d%02d", t.Hour, t.Minute)
-}
-
-func (t QTCTime) ShortString() string {
-	return fmt.Sprintf("%02d", t.Minute)
-}
-
-const NoQTCIndex int = -1
-
-type QTCSeries struct {
-	TheirCallsign Callsign
-	Header        QTCHeader
-	QTCs          []QTC
-}
-
-func NewQTCSeries(seriesNumber int, qtcs []QTC) (QTCSeries, error) {
-	if len(qtcs) > MaxQTCsPerCall {
-		return QTCSeries{}, fmt.Errorf("a QTC series must not have more than %d QTCs", MaxQTCsPerCall)
-	}
-	if len(qtcs) < 1 {
-		return QTCSeries{}, fmt.Errorf("a QTC series must have at least one QTC")
-	}
-
-	result := QTCSeries{
-		Header: QTCHeader{SeriesNumber: seriesNumber, QTCCount: len(qtcs)},
-	}
-	for i := range qtcs {
-		qtcs[i].Header = result.Header
-	}
-	result.QTCs = qtcs
-	result.TheirCallsign = result.theirCallsign()
-	if result.TheirCallsign == NoCallsign {
-		return QTCSeries{}, fmt.Errorf("a QTC series must have a consistent value for 'their callsign'")
-	}
-	return result, nil
-}
-
-func NewReceivingQTCSeries(theirCallsign Callsign) QTCSeries {
-	result := QTCSeries{
-		TheirCallsign: theirCallsign,
-	}
-	return result
-}
-
-func (s *QTCSeries) theirCallsign() Callsign {
-	if len(s.QTCs) == 0 {
-		return NoCallsign
-	}
-
-	theirCallsign := s.QTCs[0].TheirCallsign
-	theirCallsignString := theirCallsign.String()
-	for _, qtc := range s.QTCs {
-		if qtc.TheirCallsign.String() != theirCallsignString {
-			return NoCallsign
-		}
-	}
-	return theirCallsign
-}
-
-func (s *QTCSeries) Key() string {
-	return fmt.Sprintf("%s|%d|%d", s.theirCallsign(), s.Header.SeriesNumber, s.Header.QTCCount)
-}
-
-func (s *QTCSeries) IsPrepared() bool {
-	return s.TheirCallsign != NoCallsign && len(s.QTCs) > 0
-}
-
-func (s *QTCSeries) IsComplete() bool {
-	return s.IsPrepared() && s.Header.QTCCount > 0 && len(s.QTCs) == s.Header.QTCCount
-}
-
-func (s *QTCSeries) IsValidQTCIndex(index int) bool {
-	return index >= 0 && index < s.Header.QTCCount
-}
-
-func (s *QTCSeries) IsLastQTCIndex(index int) bool {
-	return index >= 0 && index == s.Header.QTCCount-1
-}
-
-func (s *QTCSeries) SetData(index int, qtc QTC) {
-	if index >= 0 && index < len(s.QTCs) {
-		s.QTCs[index] = qtc
-	} else {
-		s.QTCs = append(s.QTCs, qtc)
-	}
-}
-
-// QTCWorkflowPhase represents the phases in the QTC exchange workflow
-type QTCWorkflowPhase int
-
-const (
-	QTCNone QTCWorkflowPhase = iota
-	QTCStart
-	QTCExchangeHeader
-	QTCExchangeData
-	QTCFinish
-)
-
-// QTCField represents the currently active entry field in the QTC exchange workflow
-type QTCField string
-
-const (
-	QTCNoneField      QTCField = ""
-	QTCHeaderField    QTCField = "header"
-	QTCTimestampField QTCField = "timestamp"
-	QTCCallsignField  QTCField = "callsign"
-	QTCExchangeField  QTCField = "exchange"
-)
-
-// QSODataState represents the current state of the entered QSO data
-type QSODataState int
-
-const (
-	QSODataEmpty QSODataState = iota
-	QSODataInvalid
-	QSODataValid
-)
-
-// EntryField represents an entry field in the visual part.
-type EntryField string
-
-// The entry fields.
-const (
-	CallsignField EntryField = "callsign"
-	BandField     EntryField = "band"
-	ModeField     EntryField = "mode"
-	OtherField    EntryField = "other"
-
-	myExchangePrefix    string = "myExchange_"
-	theirExchangePrefix string = "theirExchange_"
-)
-
-func (f EntryField) IsMyExchange() bool {
-	return strings.HasPrefix(string(f), myExchangePrefix)
-}
-
-func (f EntryField) IsTheirExchange() bool {
-	return strings.HasPrefix(string(f), theirExchangePrefix)
-}
-
-func IsExchangeField(name string) bool {
-	return strings.HasPrefix(name, myExchangePrefix) || strings.HasPrefix(name, theirExchangePrefix)
-}
-
-func (f EntryField) ExchangeIndex() int {
-	s := string(f)
-	var a string
-	switch {
-	case strings.HasPrefix(s, myExchangePrefix):
-		a = s[len(myExchangePrefix):]
-	case strings.HasPrefix(s, theirExchangePrefix):
-		a = s[len(theirExchangePrefix):]
-	default:
-		return -1
-	}
-	result, err := strconv.Atoi(a)
-	if err != nil {
-		return -1
-	}
-	return result
-}
-
-func (f EntryField) NextExchangeField() EntryField {
-	s := string(f)
-	var a string
-	var prefix string
-	switch {
-	case strings.HasPrefix(s, myExchangePrefix):
-		prefix = myExchangePrefix
-		a = s[len(myExchangePrefix):]
-	case strings.HasPrefix(s, theirExchangePrefix):
-		prefix = theirExchangePrefix
-		a = s[len(theirExchangePrefix):]
-	default:
-		return ""
-	}
-	i, err := strconv.Atoi(a)
-	if err != nil {
-		return ""
-	}
-	return EntryField(prefix + strconv.Itoa(i+1))
-}
-
-func MyExchangeField(index int) EntryField {
-	return EntryField(fmt.Sprintf("%s%d", myExchangePrefix, index))
-}
-
-func TheirExchangeField(index int) EntryField {
-	return EntryField(fmt.Sprintf("%s%d", theirExchangePrefix, index))
-}
-
-type ExchangeField struct {
-	Field            EntryField
-	CanContainSerial bool
-	CanContainReport bool
-	EmptyAllowed     bool
-	Properties       conval.ExchangeField
-
-	Short    string
-	Name     string
-	Hint     string
-	ReadOnly bool
-}
-
-func DefinitionsToExchangeFields(fieldDefinitions []conval.ExchangeField, exchangeEntryField func(int) EntryField) []ExchangeField {
-	result := make([]ExchangeField, 0, len(fieldDefinitions))
-	for i, fieldDefinition := range fieldDefinitions {
-		short := strings.Join(fieldDefinition.Strings(), "/")
-		field := ExchangeField{
-			Field:      exchangeEntryField(i + 1),
-			Properties: fieldDefinition,
-			Short:      short,
-		}
-		for _, property := range fieldDefinition {
-			if property == conval.SerialNumberProperty {
-				field.CanContainSerial = true
-			}
-			if property == conval.RSTProperty {
-				field.CanContainReport = true
-			}
-			if property == conval.EmptyProperty {
-				field.EmptyAllowed = true
-			}
-		}
-		result = append(result, field)
-	}
-	return result
 }
 
 // KeyerValues contains the values that can be used as variables in the keyer templates.
@@ -568,6 +47,7 @@ type KeyerValues struct {
 const FilterPlaceholder = "."
 
 // ESMState represents the current state of the ESM state machine.
+// TODO: move into core/entry as it is used only there
 type ESMState int
 
 const (
@@ -684,11 +164,6 @@ func ContestSetup(station Station, entity dxcc.Prefix) conval.Setup {
 		MyCountry:   conval.DXCCEntity(strings.ToLower(entity.PrimaryPrefix)),
 		GridLocator: station.Locator,
 	}
-}
-
-func ShowMultisPerProperty(detailedMultis bool, properties []conval.Property) bool {
-	// one property alone needs no own column, the summed multis say the same
-	return detailedMultis && len(properties) > 1
 }
 
 func (c Contest) MultiProperties(setup conval.Setup) []conval.Property {
@@ -1020,8 +495,8 @@ func ScoreColumns(qtcsEnabled bool, detailedMultis bool, properties []conval.Pro
 
 	// a contest without multiplier properties needs neither a multiplier column nor Q/M
 	switch {
-	case ShowMultisPerProperty(detailedMultis, properties):
-		for _, property := range SortedMultiProperties(properties) {
+	case showMultisPerProperty(detailedMultis, properties):
+		for _, property := range sortedMultiProperties(properties) {
 			result = append(result, ScoreColumn{string(property), func(score BandScore) string {
 				return strconv.Itoa(score.MultisPerProperty[property])
 			}})
@@ -1037,7 +512,12 @@ func ScoreColumns(qtcsEnabled bool, detailedMultis bool, properties []conval.Pro
 	return result
 }
 
-func SortedMultiProperties(properties []conval.Property) []conval.Property {
+func showMultisPerProperty(detailedMultis bool, properties []conval.Property) bool {
+	// one property alone needs no own column, the summed multis say the same
+	return detailedMultis && len(properties) > 1
+}
+
+func sortedMultiProperties(properties []conval.Property) []conval.Property {
 	result := slices.Clone(properties)
 	slices.Sort(result)
 	return result

@@ -11,7 +11,6 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/ftl/hellocontest/core/model"
-	"github.com/ftl/hellocontest/core/parse"
 )
 
 func ToQSO(pbQSO *QSO) (model.QSO, error) {
@@ -23,16 +22,16 @@ func ToQSO(pbQSO *QSO) (model.QSO, error) {
 	}
 	qso.Time = time.Unix(pbQSO.Timestamp, 0)
 	qso.Frequency = model.Frequency(pbQSO.Frequency)
-	qso.Band, err = parse.Band(pbQSO.Band)
+	qso.Band, err = model.ParseBand(pbQSO.Band)
 	if err != nil {
 		return model.QSO{}, err
 	}
-	qso.Mode, err = parse.Mode(pbQSO.Mode)
+	qso.Mode, err = model.ParseMode(pbQSO.Mode)
 	if err != nil {
 		return model.QSO{}, err
 	}
 	if pbQSO.MyReport != "" {
-		qso.MyReport, err = parse.RST(pbQSO.MyReport)
+		qso.MyReport, err = model.ParseRST(pbQSO.MyReport)
 		if err != nil {
 			qso.MyReport = ""
 		}
@@ -40,7 +39,7 @@ func ToQSO(pbQSO *QSO) (model.QSO, error) {
 	qso.MyNumber = model.QSONumber(pbQSO.MyNumber)
 	qso.MyExchange = pbQSO.MyExchange
 	if pbQSO.TheirReport != "" {
-		qso.TheirReport, err = parse.RST(pbQSO.TheirReport)
+		qso.TheirReport, err = model.ParseRST(pbQSO.TheirReport)
 		if err != nil {
 			return model.QSO{}, err
 		}
@@ -199,11 +198,11 @@ func ToQTC(pbQTC *QTC) (model.QTC, error) {
 		return model.QTC{}, fmt.Errorf("QTC has no timestamp: %v", pbQTC)
 	}
 	qtc.Frequency = model.Frequency(pbQTC.Frequency)
-	qtc.Band, err = parse.Band(pbQTC.Band)
+	qtc.Band, err = model.ParseBand(pbQTC.Band)
 	if err != nil {
 		return model.QTC{}, err
 	}
-	qtc.Mode, err = parse.Mode(pbQTC.Mode)
+	qtc.Mode, err = model.ParseMode(pbQTC.Mode)
 	if err != nil {
 		return model.QTC{}, err
 	}

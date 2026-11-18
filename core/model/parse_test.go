@@ -1,17 +1,15 @@
-package parse
+package model
 
 import (
 	"testing"
-
-	"github.com/ftl/hellocontest/core/model"
 )
 
-func TestRST(t *testing.T) {
+func TestParseRST(t *testing.T) {
 	testCases := []struct {
 		desc     string
 		value    string
 		valid    bool
-		expected model.RST
+		expected RST
 	}{
 		{"valid CW report", "599", true, "599"},
 		{"valid SSB report", "59", true, "59"},
@@ -26,7 +24,7 @@ func TestRST(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			actual, err := RST(tC.value)
+			actual, err := ParseRST(tC.value)
 			if err != nil && tC.valid {
 				t.Errorf("expected to be valid, but got error %v", err)
 			}

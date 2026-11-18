@@ -11,7 +11,6 @@ import (
 	"github.com/ftl/conval"
 
 	"github.com/ftl/hellocontest/core/model"
-	"github.com/ftl/hellocontest/core/parse"
 )
 
 const (
@@ -821,7 +820,7 @@ func (c *Controller) callinfoInputChanged(vfo model.VFOID, call string, band mod
 }
 
 func (c *Controller) bandSelected(s string) {
-	if band, err := parse.Band(s); err == nil {
+	if band, err := model.ParseBand(s); err == nil {
 		// log.Printf("Band selected: %v", band)
 		c.selectedBand[c.focusedVFO] = band
 		c.vfos[c.focusedVFO].SetBand(band)
@@ -845,7 +844,7 @@ func (c *Controller) VFOBandChanged(vfo model.VFOID, band model.Band) {
 }
 
 func (c *Controller) modeSelected(s string) {
-	if mode, err := parse.Mode(s); err == nil {
+	if mode, err := model.ParseMode(s); err == nil {
 		// log.Printf("Mode selected: %v", mode)
 		c.selectedMode[c.focusedVFO] = mode
 		c.vfos[c.focusedVFO].SetMode(mode)
@@ -1065,13 +1064,13 @@ func (c *Controller) Log() {
 
 	qso.Frequency = c.selectedFrequency[c.focusedVFO]
 
-	qso.Band, err = parse.Band(c.input[c.focusedVFO].band)
+	qso.Band, err = model.ParseBand(c.input[c.focusedVFO].band)
 	if err != nil {
 		c.showErrorOnField(err, model.BandField)
 		return
 	}
 
-	qso.Mode, err = parse.Mode(c.input[c.focusedVFO].mode)
+	qso.Mode, err = model.ParseMode(c.input[c.focusedVFO].mode)
 	if err != nil {
 		c.showErrorOnField(err, model.ModeField)
 		return
@@ -1099,7 +1098,7 @@ func (c *Controller) Log() {
 
 		switch field.Field {
 		case c.myReportExchangeField.Field:
-			qso.MyReport, err = parse.RST(value)
+			qso.MyReport, err = model.ParseRST(value)
 			if err != nil {
 				c.showErrorOnField(err, field.Field)
 				return
@@ -1154,7 +1153,7 @@ func (c *Controller) parseCallsignCommand() bool {
 		return true
 	}
 
-	if b, err := parse.Band(c.input[c.focusedVFO].callsign); err == nil {
+	if b, err := model.ParseBand(c.input[c.focusedVFO].callsign); err == nil {
 		c.bandEntered(b)
 		return true
 	}
@@ -1252,7 +1251,7 @@ func (c *Controller) parseTheirExchange(theirExchange []string, theirReport *mod
 
 		switch field.Field {
 		case c.theirReportExchangeField.Field:
-			rst, err := parse.RST(value)
+			rst, err := model.ParseRST(value)
 			if err != nil {
 				return field, err
 			}
@@ -1428,7 +1427,7 @@ func (c *Controller) CurrentValues() model.KeyerValues {
 	}
 
 	values := model.KeyerValues{}
-	values.MyReport, _ = parse.RST(c.myReport)
+	values.MyReport, _ = model.ParseRST(c.myReport)
 	values.MyNumber = model.QSONumber(myNumber)
 	values.MyXchange = strings.Join(myXchanges, " ")
 	values.MyExchange = strings.Join(c.myExchange, " ")

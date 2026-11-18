@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/pb"
 )
 
@@ -24,7 +25,7 @@ var Default = &Data{
 		Callsign: "DL0ABC",
 		Operator: "DL1ABC",
 		Locator:  "AA00xx",
-		Bandplan: core.DefaultBandplanID.String(),
+		Bandplan: model.DefaultBandplanID.String(),
 	},
 	Contest: &pb.Contest{
 		Name:       "Default",

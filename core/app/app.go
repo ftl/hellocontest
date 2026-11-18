@@ -30,6 +30,7 @@ import (
 	"github.com/ftl/hellocontest/core/hamdxmap"
 	"github.com/ftl/hellocontest/core/keyer"
 	"github.com/ftl/hellocontest/core/logbook"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/newcontest"
 	"github.com/ftl/hellocontest/core/parrot"
 	"github.com/ftl/hellocontest/core/qtc"
@@ -180,7 +181,7 @@ func (c *Controller) Startup() {
 	c.NewContestController = newcontest.NewController(c.Settings, c.configuration.LogDirectory())
 	c.ExportCabrilloController = cabrillo.NewController()
 
-	c.bandplan = core.BandplanByID(c.configuration.Station().Bandplan)
+	c.bandplan = model.BandplanByID(c.configuration.Station().Bandplan)
 	c.dxccFinder = dxcc.New()
 	// the settings need the DXCC entity of the station to find the multiplier properties
 	c.Settings.SetDXCCEntities(c.dxccFinder)
@@ -363,7 +364,7 @@ func (c *Controller) Startup() {
 		}
 	}))
 	c.Settings.Notify(settings.StationListenerFunc(func(station core.Station) {
-		bp := core.BandplanByID(station.Bandplan)
+		bp := model.BandplanByID(station.Bandplan)
 		for _, v := range c.VFOs {
 			v.SetBandplan(bp)
 		}

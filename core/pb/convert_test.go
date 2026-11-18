@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 func TestStationBandplanRoundtrip(t *testing.T) {
@@ -22,8 +23,8 @@ func TestStationBandplanEmptyDefaultsToRegion1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Bandplan != core.DefaultBandplanID {
-		t.Errorf("bandplan = %q, want default %q", got.Bandplan, core.DefaultBandplanID)
+	if got.Bandplan != model.DefaultBandplanID {
+		t.Errorf("bandplan = %q, want default %q", got.Bandplan, model.DefaultBandplanID)
 	}
 }
 

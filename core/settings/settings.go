@@ -15,6 +15,7 @@ import (
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/callhistory"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 const contestStartTimeFormat = "02-01-2006 15:04"
@@ -309,7 +310,7 @@ func (s *Settings) showSettings() {
 	s.view.SetStationBandplanOptions(bandplanOptions())
 	bandplanID := s.station.Bandplan
 	if bandplanID == "" {
-		bandplanID = core.DefaultBandplanID
+		bandplanID = model.DefaultBandplanID
 	}
 	s.view.SetStationBandplan(bandplanID.String())
 
@@ -429,13 +430,13 @@ func (s *Settings) EnterStationLocator(value string) {
 }
 
 func (s *Settings) EnterStationBandplan(id string) {
-	s.station.Bandplan = core.BandplanID(id)
+	s.station.Bandplan = model.BandplanID(id)
 }
 
 // bandplanOptions returns the selectable bandplan identifiers and labels as
 // plain strings for the view.
 func bandplanOptions() (ids []string, labels []string) {
-	bandplanIDs, labels := core.BandplanIDs()
+	bandplanIDs, labels := model.BandplanIDs()
 	ids = make([]string, len(bandplanIDs))
 	for i, id := range bandplanIDs {
 		ids[i] = id.String()

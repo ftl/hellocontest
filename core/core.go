@@ -18,6 +18,7 @@ import (
 	"github.com/ftl/hamradio/dxcc"
 	"github.com/ftl/hamradio/latlon"
 	"github.com/ftl/hamradio/locator"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 // QSO contains the details about one radio contact.
@@ -639,7 +640,7 @@ type Station struct {
 	Callsign Callsign
 	Operator Callsign
 	Locator  locator.Locator
-	Bandplan BandplanID
+	Bandplan model.BandplanID
 }
 
 type Contest struct {

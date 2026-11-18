@@ -1,4 +1,4 @@
-package core
+package model
 
 import "github.com/ftl/hamradio/bandplan"
 

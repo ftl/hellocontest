@@ -7,6 +7,7 @@ import (
 
 	"github.com/ftl/hamradio/locator"
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -101,13 +102,13 @@ func TestFileStore_V1StationRoundtrip(t *testing.T) {
 		Callsign: core.MustParseCallsign("DL0ABC"),
 		Operator: core.MustParseCallsign("DL1ABC"),
 		Locator:  loc,
-		Bandplan: core.DefaultBandplanID,
+		Bandplan: model.DefaultBandplanID,
 	}
 	station2 := core.Station{
 		Callsign: core.MustParseCallsign("DL0ABC"),
 		Operator: core.MustParseCallsign("DL2ABC"),
 		Locator:  loc,
-		Bandplan: core.DefaultBandplanID,
+		Bandplan: model.DefaultBandplanID,
 	}
 	err = fs.WriteStation(station1)
 	err = fs.WriteStation(station2)

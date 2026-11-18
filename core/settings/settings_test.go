@@ -7,6 +7,7 @@ import (
 
 	"github.com/ftl/hellocontest/core"
 	"github.com/ftl/hellocontest/core/dxcc"
+	"github.com/ftl/hellocontest/core/model"
 )
 
 type recordingView struct {
@@ -22,7 +23,7 @@ func (v *recordingView) SetStationBandplanOptions(ids, labels []string) {
 func (v *recordingView) SetStationBandplan(id string) { v.bandplan = id }
 
 func TestShowSettingsSelectsConfiguredBandplan(t *testing.T) {
-	station := core.Station{Bandplan: core.BandplanIARURegion3}
+	station := core.Station{Bandplan: model.BandplanIARURegion3}
 	s := New(nil, nil, nil, nil, station, core.Contest{})
 
 	view := &recordingView{nullView: new(nullView)}
@@ -36,13 +37,13 @@ func TestShowSettingsSelectsConfiguredBandplan(t *testing.T) {
 // mirrors the New()-contest sequence: an old log (no bandplan -> region-1) is
 // loaded, then Reset() restores the config default, then the dialog is shown.
 func TestNewContestResetRestoresConfiguredBandplan(t *testing.T) {
-	config := core.Station{Bandplan: core.BandplanIARURegion3}
+	config := core.Station{Bandplan: model.BandplanIARURegion3}
 	s := New(nil, nil, nil, nil, config, core.Contest{})
 
 	view := &recordingView{nullView: new(nullView)}
 	s.SetView(view)
 
-	s.SetStation(core.Station{Bandplan: core.BandplanIARURegion1}) // old log loaded
+	s.SetStation(core.Station{Bandplan: model.BandplanIARURegion1}) // old log loaded
 	s.Reset()
 	s.showSettings()
 

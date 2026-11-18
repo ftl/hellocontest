@@ -11,6 +11,7 @@ import (
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/ftl/hellocontest/core"
+	"github.com/ftl/hellocontest/core/model"
 	"github.com/ftl/hellocontest/core/parse"
 )
 
@@ -88,9 +89,9 @@ func ToStation(pbStation *Station) (core.Station, error) {
 		log.Printf("Cannot parse station locator: %v", err)
 		station.Locator = locator.Locator{}
 	}
-	station.Bandplan = core.BandplanID(pbStation.Bandplan)
+	station.Bandplan = model.BandplanID(pbStation.Bandplan)
 	if station.Bandplan == "" {
-		station.Bandplan = core.DefaultBandplanID
+		station.Bandplan = model.DefaultBandplanID
 	}
 	return station, nil
 }

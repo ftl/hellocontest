@@ -14,6 +14,8 @@ import (
 
 const PatternCount = 4
 
+const DefaultSpeedShift = 1 // WPM
+
 // ButtonView represents the visual parts of trigger the transmission of the keyer macros.
 type ButtonView interface {
 	ShowMessage(...any)

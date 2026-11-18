@@ -1060,11 +1060,11 @@ func (c *Controller) KeyerShiftSpeed(delta int) {
 }
 
 func (c *Controller) KeyerSpeedUp() {
-	c.KeyerShiftSpeed(vfo.DefaultSpeedShift)
+	c.KeyerShiftSpeed(keyer.DefaultSpeedShift)
 }
 
 func (c *Controller) KeyerSpeedDown() {
-	c.KeyerShiftSpeed(-vfo.DefaultSpeedShift)
+	c.KeyerShiftSpeed(-keyer.DefaultSpeedShift)
 }
 
 func (c *Controller) MarkInBandmap() {
@@ -1246,7 +1246,7 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 	case actions.IncrementalTuningDown:
 		c.IncrementalTuningDown()
 	case actions.KeyerShiftSpeed:
-		amount, err := shiftAmount(params, vfo.DefaultSpeedShift)
+		amount, err := shiftAmount(params, keyer.DefaultSpeedShift)
 		if err != nil {
 			return err
 		}

@@ -10,7 +10,6 @@ const (
 	DefaultFrequencyShift = model.Frequency(10) // Hz
 	DefaultXITShift       = model.Frequency(10) // Hz
 	DefaultRITShift       = model.Frequency(10) // Hz
-	DefaultSpeedShift     = 1                   // WPM
 )
 
 type incrementalTuningState struct {

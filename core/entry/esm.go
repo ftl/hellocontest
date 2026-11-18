@@ -7,6 +7,18 @@ import (
 	"github.com/ftl/hellocontest/core/model"
 )
 
+// ESMState represents the current state of the ESM state machine.
+type ESMState int
+
+const (
+	ESMCallsignEmpty ESMState = iota
+	ESMCallsignInvalid
+	ESMCallsignValid
+	ESMExchangeInvalid
+	ESMExchangeValid
+	ESMUnknown
+)
+
 type ESMView interface {
 	SetESMEnabled(enabled bool)
 	SetMessage(message string)
@@ -62,9 +74,9 @@ func (c *Controller) NextESMStep() {
 		c.keyer.SendText(c.esmMessage[c.focusedVFO])
 	}
 	switch {
-	case c.esmState[c.focusedVFO] == model.ESMCallsignValid && c.workmode == model.Run:
+	case c.esmState[c.focusedVFO] == ESMCallsignValid && c.workmode == model.Run:
 		c.GotoNextFieldSkippingReport()
-	case c.esmState[c.focusedVFO] == model.ESMExchangeValid:
+	case c.esmState[c.focusedVFO] == ESMExchangeValid:
 		c.Log()
 	}
 }
@@ -84,36 +96,36 @@ func (c *Controller) updateESM() {
 	c.esmView.SetMessage(c.esmMessage[c.focusedVFO])
 }
 
-func (c *Controller) currentESMState() model.ESMState {
+func (c *Controller) currentESMState() ESMState {
 	switch {
 	case c.activeField[c.focusedVFO] == model.CallsignField:
 		if c.input[c.focusedVFO].callsign == "" {
-			return model.ESMCallsignEmpty
+			return ESMCallsignEmpty
 		}
 		_, err := model.ParseCallsign(c.input[c.focusedVFO].callsign)
 		if err != nil {
-			return model.ESMCallsignInvalid
+			return ESMCallsignInvalid
 		}
-		return model.ESMCallsignValid
+		return ESMCallsignValid
 	case c.activeField[c.focusedVFO].IsTheirExchange():
 		_, err := c.parseTheirExchange(nil, nil, nil)
 		if err != nil {
-			return model.ESMExchangeInvalid
+			return ESMExchangeInvalid
 		}
-		return model.ESMExchangeValid
+		return ESMExchangeValid
 	}
-	return model.ESMUnknown
+	return ESMUnknown
 }
 
 func (c *Controller) updateSPMessage() (string, int) {
 	switch c.esmState[c.focusedVFO] {
-	case model.ESMCallsignEmpty, model.ESMCallsignInvalid:
+	case ESMCallsignEmpty, ESMCallsignInvalid:
 		return callsignRequest(c.input[c.focusedVFO].callsign), -1
-	case model.ESMCallsignValid:
+	case ESMCallsignValid:
 		return c.getKeyerText(0), 0
-	case model.ESMExchangeInvalid:
+	case ESMExchangeInvalid:
 		return "nr?", -1
-	case model.ESMExchangeValid:
+	case ESMExchangeValid:
 		return c.getKeyerText(1), 1
 	default:
 		return "", -1
@@ -122,15 +134,15 @@ func (c *Controller) updateSPMessage() (string, int) {
 
 func (c *Controller) updateRunMessage() (string, int) {
 	switch c.esmState[c.focusedVFO] {
-	case model.ESMCallsignEmpty:
+	case ESMCallsignEmpty:
 		return c.getKeyerText(0), 0
-	case model.ESMCallsignInvalid:
+	case ESMCallsignInvalid:
 		return callsignRequest(c.input[c.focusedVFO].callsign), -1
-	case model.ESMCallsignValid:
+	case ESMCallsignValid:
 		return c.getKeyerText(1), 1
-	case model.ESMExchangeInvalid:
+	case ESMExchangeInvalid:
 		return "nr?", -1
-	case model.ESMExchangeValid:
+	case ESMExchangeValid:
 		return c.getKeyerText(2), 2
 	default:
 		return "", -1

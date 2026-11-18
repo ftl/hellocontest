@@ -116,7 +116,7 @@ func NewController(settings model.Settings, clock model.Clock, logbook Logbook, 
 		errorField:           make([]model.EntryField, model.VFOCount),
 		currentCallinfoFrame: make([]model.CallinfoFrame, model.VFOCount),
 		claims:               newSerialClaims(),
-		esmState:             make([]model.ESMState, model.VFOCount),
+		esmState:             make([]ESMState, model.VFOCount),
 		esmMessage:           make([]string, model.VFOCount),
 		esmMacroIndex:        make([]int, model.VFOCount),
 		lastNumber:           make([]model.QSONumber, model.VFOCount),
@@ -153,7 +153,7 @@ type editSnapshot struct {
 	activeField    model.EntryField
 	errorField     model.EntryField
 	callinfoFrame  model.CallinfoFrame
-	esmState       []model.ESMState
+	esmState       []ESMState
 	esmMessage     []string
 	esmMacroIndex  []int
 }
@@ -214,7 +214,7 @@ type Controller struct {
 	parrotTimeLeft time.Duration
 
 	esmEnabled    bool
-	esmState      []model.ESMState
+	esmState      []ESMState
 	esmMessage    []string
 	esmMacroIndex []int
 }
@@ -662,7 +662,7 @@ func (c *Controller) enterEditMode(qso model.QSO) {
 		activeField:    c.activeField[model.VFO1],
 		errorField:     c.errorField[model.VFO1],
 		callinfoFrame:  c.currentCallinfoFrame[model.VFO1],
-		esmState:       append([]model.ESMState(nil), c.esmState...),
+		esmState:       append([]ESMState(nil), c.esmState...),
 		esmMessage:     append([]string(nil), c.esmMessage...),
 		esmMacroIndex:  append([]int(nil), c.esmMacroIndex...),
 	}

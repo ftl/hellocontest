@@ -62,6 +62,8 @@ func (f Frequency) DistanceTo(other Frequency) Frequency {
 	return result
 }
 
+const frequencyJumpThreshold = Frequency(250) // Hz
+
 func IsFrequencyJump(from Frequency, to Frequency) bool {
 	return from.DistanceTo(to) > frequencyJumpThreshold
 }

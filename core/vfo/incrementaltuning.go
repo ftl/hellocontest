@@ -4,6 +4,15 @@ import (
 	"github.com/ftl/hellocontest/core/model"
 )
 
+// Default step sizes for the relative shift actions. Keyboard shortcuts use
+// these; the remote interface may override them via an explicit amount.
+const (
+	DefaultFrequencyShift = model.Frequency(10) // Hz
+	DefaultXITShift       = model.Frequency(10) // Hz
+	DefaultRITShift       = model.Frequency(10) // Hz
+	DefaultSpeedShift     = 1                   // WPM
+)
+
 type incrementalTuningState struct {
 	intentActive bool
 	actualActive bool
@@ -66,9 +75,9 @@ func (v *VFO) ShiftAvailableIncrementalTuning(sign model.Frequency) {
 	if !ok {
 		return
 	}
-	step := model.DefaultXITShift
+	step := DefaultXITShift
 	if kind == model.RIT {
-		step = model.DefaultRITShift
+		step = DefaultRITShift
 	}
 	v.ShiftIncrementalTuning(kind, sign*step)
 }

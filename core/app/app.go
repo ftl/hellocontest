@@ -1016,19 +1016,19 @@ func (c *Controller) ShiftFocusedIncrementalTuning(kind model.IncrementalTuningK
 }
 
 func (c *Controller) XITUp() {
-	c.ShiftFocusedIncrementalTuning(model.XIT, model.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(model.XIT, vfo.DefaultXITShift)
 }
 
 func (c *Controller) XITDown() {
-	c.ShiftFocusedIncrementalTuning(model.XIT, -model.DefaultXITShift)
+	c.ShiftFocusedIncrementalTuning(model.XIT, -vfo.DefaultXITShift)
 }
 
 func (c *Controller) RITUp() {
-	c.ShiftFocusedIncrementalTuning(model.RIT, model.DefaultRITShift)
+	c.ShiftFocusedIncrementalTuning(model.RIT, vfo.DefaultRITShift)
 }
 
 func (c *Controller) RITDown() {
-	c.ShiftFocusedIncrementalTuning(model.RIT, -model.DefaultRITShift)
+	c.ShiftFocusedIncrementalTuning(model.RIT, -vfo.DefaultRITShift)
 }
 
 func (c *Controller) ToggleIncrementalTuning() {
@@ -1048,11 +1048,11 @@ func (c *Controller) ShiftFrequency(delta model.Frequency) {
 }
 
 func (c *Controller) FrequencyUp() {
-	c.ShiftFrequency(model.DefaultFrequencyShift)
+	c.ShiftFrequency(vfo.DefaultFrequencyShift)
 }
 
 func (c *Controller) FrequencyDown() {
-	c.ShiftFrequency(-model.DefaultFrequencyShift)
+	c.ShiftFrequency(-vfo.DefaultFrequencyShift)
 }
 
 func (c *Controller) KeyerShiftSpeed(delta int) {
@@ -1060,11 +1060,11 @@ func (c *Controller) KeyerShiftSpeed(delta int) {
 }
 
 func (c *Controller) KeyerSpeedUp() {
-	c.KeyerShiftSpeed(model.DefaultSpeedShift)
+	c.KeyerShiftSpeed(vfo.DefaultSpeedShift)
 }
 
 func (c *Controller) KeyerSpeedDown() {
-	c.KeyerShiftSpeed(-model.DefaultSpeedShift)
+	c.KeyerShiftSpeed(-vfo.DefaultSpeedShift)
 }
 
 func (c *Controller) MarkInBandmap() {
@@ -1210,7 +1210,7 @@ func markerNumber(params map[string]string) (int, error) {
 func (c *Controller) DoAction(id string, params map[string]string) error {
 	switch id {
 	case actions.RadioShiftFrequency:
-		amount, err := shiftAmount(params, int(model.DefaultFrequencyShift))
+		amount, err := shiftAmount(params, int(vfo.DefaultFrequencyShift))
 		if err != nil {
 			return err
 		}
@@ -1220,7 +1220,7 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 	case actions.RadioFrequencyDown:
 		c.FrequencyDown()
 	case actions.RadioShiftXIT:
-		amount, err := shiftAmount(params, int(model.DefaultXITShift))
+		amount, err := shiftAmount(params, int(vfo.DefaultXITShift))
 		if err != nil {
 			return err
 		}
@@ -1230,7 +1230,7 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 	case actions.RadioXITDown:
 		c.XITDown()
 	case actions.RadioShiftRIT:
-		amount, err := shiftAmount(params, int(model.DefaultRITShift))
+		amount, err := shiftAmount(params, int(vfo.DefaultRITShift))
 		if err != nil {
 			return err
 		}
@@ -1246,7 +1246,7 @@ func (c *Controller) DoAction(id string, params map[string]string) error {
 	case actions.IncrementalTuningDown:
 		c.IncrementalTuningDown()
 	case actions.KeyerShiftSpeed:
-		amount, err := shiftAmount(params, model.DefaultSpeedShift)
+		amount, err := shiftAmount(params, vfo.DefaultSpeedShift)
 		if err != nil {
 			return err
 		}

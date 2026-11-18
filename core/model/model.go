@@ -7,15 +7,6 @@ import (
 	"github.com/ftl/hamradio/locator"
 )
 
-// Default step sizes for the relative shift actions. Keyboard shortcuts use
-// these; the remote interface may override them via an explicit amount.
-const (
-	DefaultFrequencyShift = Frequency(10) // Hz
-	DefaultXITShift       = Frequency(10) // Hz
-	DefaultRITShift       = Frequency(10) // Hz
-	DefaultSpeedShift     = 1             // WPM
-)
-
 // Clock represents a source of the current time.
 type Clock interface {
 	Now() time.Time
